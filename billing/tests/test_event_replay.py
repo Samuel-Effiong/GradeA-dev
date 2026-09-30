@@ -180,6 +180,65 @@ class DenyByDefaultTests(TestCase, ReplayFixture):
         self.assertEqual(row.auto_replay_attempts, MAX_AUTO_REPLAY_ATTEMPTS)
 
 
+class ReplayOneGuardTests(TestCase, ReplayFixture):
+    """
+    Guards that only matter when a row changes between the sweep selecting
+    it and replay_one acting on it - a concurrent sweep or a live
+    redelivery. Driven through replay_one directly, with a row whose DB
+    state has moved on from the copy in hand.
+    """
+
+    def setUp(self):
+        self.plan = make_plan()
+        self.user, self.wallet = self.build(email="guards@replay.test")
+
+    def spy(self):
+        spy = mock.Mock(
+            __qualname__="StripeWebhookHandler._handle_overage_checkout_completed"
+        )
+        return mock.patch.dict(event_replay.AUTO_REPLAYABLE, {OVERAGE_KEY: spy}), spy
+
+    def test_exhausted_row_is_not_run_even_when_handed_over(self):
+        row = self.failed_event("evt_exhausted", attempts=MAX_AUTO_REPLAY_ATTEMPTS)
+        patcher, spy = self.spy()
+        with patcher:
+            outcome = event_replay.replay_one(row)
+        self.assertEqual(outcome, ReplayOutcome.ATTEMPTS_EXHAUSTED)
+        spy.assert_not_called()
+
+    def test_row_already_claimed_by_a_live_worker_is_not_run(self):
+        row = self.failed_event("evt_inflight")
+        StripeEvent.objects.filter(pk=row.pk).update(
+            status=StripeEventStatus.PROCESSING
+        )
+        patcher, spy = self.spy()
+        with patcher:
+            outcome = event_replay.replay_one(row)
+        self.assertEqual(outcome, ReplayOutcome.CLAIM_LOST)
+        spy.assert_not_called()
+
+    def test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run(self):
+        """Another sweep replayed it, and it failed again, since we read it."""
+        row = self.failed_event("evt_stale")
+        StripeEvent.objects.filter(pk=row.pk).update(auto_replay_attempts=1)
+        patcher, spy = self.spy()
+        with patcher:
+            outcome = event_replay.replay_one(row)  # row still says 0
+        self.assertEqual(outcome, ReplayOutcome.CLAIM_LOST)
+        spy.assert_not_called()
+
+    def test_runs_exactly_the_mapped_handler_not_the_dispatcher(self):
+        row = self.failed_event("evt_direct")
+        patcher, spy = self.spy()
+        with patcher, mock.patch.object(
+            StripeWebhookHandler, "handle_checkout_completed"
+        ) as dispatcher:
+            outcome = event_replay.replay_one(row)
+        self.assertEqual(outcome, ReplayOutcome.REPLAYED)
+        spy.assert_called_once()
+        dispatcher.assert_not_called()
+
+
 class WidenedAllowListTests(TestCase, ReplayFixture):
     """
     The defence against a future careless edit: even if someone adds an

@@ -47,6 +47,17 @@ SS = "billing/stripe_service.py"
 RC = "billing/receipts.py"
 ST = "AutoGrader/settings.py"
 BF = "billing/management/commands/backfill_receipt_urls.py"
+ER = "billing/event_replay.py"
+
+# P1c test classes. None of them is the 20-thread ReplayConcurrencyTests,
+# so the P1c battery can run without a 20-thread slot.
+REPLAY = "billing.tests.test_event_replay"
+PINNING = f"{REPLAY}.AllowListPinningTests"
+DENY = f"{REPLAY}.DenyByDefaultTests"
+WIDENED = f"{REPLAY}.WidenedAllowListTests"
+GUARDS = f"{REPLAY}.ReplayOneGuardTests"
+ALLOWED = f"{REPLAY}.ReplayTheAllowedFlowTests"
+WIRING = f"{REPLAY}.ReplayTaskWiringTests"
 
 # (id, guard, file, line or None, old, new, test modules)
 # `line` pins a replacement to one line where the text repeats; otherwise
@@ -428,6 +439,146 @@ MUTANTS = [
         "            if not dry_run:",
         "            if True:",
         [BACKFILL],
+    ),
+    # -- P1c: automatic replay ---------------------------------------------
+    (
+        "P01",
+        "allow-list membership (widen to the upgrade flow)",
+        ER,
+        None,
+        "    ): StripeWebhookHandler._handle_overage_checkout_completed,\n}",
+        "    ): StripeWebhookHandler._handle_overage_checkout_completed,\n"
+        '    ("checkout.session.completed", "individual_upgrade_checkout"): '
+        "StripeWebhookHandler._handle_individual_upgrade_checkout_completed,\n}",
+        [PINNING],
+    ),
+    (
+        "P02",
+        "vetted-handler second gate",
+        ER,
+        None,
+        "    if qualname not in VETTED_HANDLERS:",
+        "    if False:",
+        [WIDENED],
+    ),
+    (
+        "P03",
+        "VETTED_HANDLERS membership",
+        ER,
+        None,
+        'frozenset({"StripeWebhookHandler._handle_overage_checkout_completed"})',
+        'frozenset({"StripeWebhookHandler._handle_overage_checkout_completed",'
+        ' "StripeWebhookHandler.handle_charge_refunded"})',
+        [PINNING, WIDENED],
+    ),
+    (
+        "P04",
+        "missing-flow guard",
+        ER,
+        None,
+        "    if not flow:\n        return ReplayOutcome.NO_FLOW_IN_PAYLOAD, None\n",
+        "",
+        [DENY],
+    ),
+    (
+        "P05",
+        "not-allow-listed guard",
+        ER,
+        None,
+        "    if handler is None:\n        return ReplayOutcome.NOT_ALLOW_LISTED, None\n",
+        "",
+        [DENY],
+    ),
+    (
+        "P06",
+        "attempts cap in classify",
+        ER,
+        None,
+        "    if event_row.auto_replay_attempts >= MAX_AUTO_REPLAY_ATTEMPTS:",
+        "    if False:",
+        [GUARDS],
+    ),
+    (
+        "P07",
+        "attempts cap in the selection query",
+        ER,
+        None,
+        "            auto_replay_attempts__lt=MAX_AUTO_REPLAY_ATTEMPTS,\n",
+        "",
+        [DENY],
+    ),
+    (
+        "P08",
+        "claim only from FAILED",
+        ER,
+        175,
+        "status=StripeEventStatus.FAILED,",
+        "",
+        [GUARDS],
+    ),
+    (
+        "P09",
+        "claim fenced on the attempts seen",
+        ER,
+        None,
+        "        auto_replay_attempts=event_row.auto_replay_attempts,\n",
+        "",
+        [GUARDS],
+    ),
+    (
+        "P10",
+        "stored payload, never re-fetch Stripe",
+        ER,
+        None,
+        '    session = (event_row.payload or {}).get("object") or {}',
+        '    session = dict(__import__("stripe").checkout.Session.retrieve('
+        '(event_row.payload or {}).get("object", {}).get("id", "cs_x")))',
+        [ALLOWED],
+    ),
+    (
+        "P11",
+        "handler idempotency guard (_overage_already_granted)",
+        SS,
+        2916,
+        "if payment_intent_id and StripeWebhookHandler._overage_already_granted(",
+        "if False and StripeWebhookHandler._overage_already_granted(",
+        [ALLOWED],
+    ),
+    (
+        "P12",
+        "per-event skip reason recorded on the row",
+        ER,
+        None,
+        "    StripeEvent.objects.filter(pk=event_row.pk).update(auto_replay_note=note[:200])",
+        "    pass",
+        [DENY, WIDENED],
+    ),
+    (
+        "P13",
+        "direct flow handler, not the dispatcher",
+        ER,
+        None,
+        '            handler(obj, obj.get("metadata") or {})',
+        "            StripeWebhookHandler.handle_checkout_completed(obj)",
+        [GUARDS],
+    ),
+    (
+        "P14",
+        "only FAILED events selected",
+        ER,
+        264,
+        "status=StripeEventStatus.FAILED,",
+        "",
+        [DENY],
+    ),
+    (
+        "P15",
+        "hourly beat entry",
+        ST,
+        None,
+        '        "task": "billing.tasks.replay_safe_failed_stripe_events",',
+        '        "task": "billing.tasks.sweep_stale_stripe_events",',
+        [WIRING],
     ),
 ]
 
