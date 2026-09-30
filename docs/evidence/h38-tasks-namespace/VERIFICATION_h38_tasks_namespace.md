@@ -56,3 +56,26 @@ My probes are in `h38_tasks_probe_tests_vf1a_h38t_probe.py`. They use billing's 
 The fix is off `abeda10`, the same base as the add_teachers fix. `git merge-tree --write-tree 8de3078 0fbac49` (bundle 4's tip) is **clean**. If the founder picks the fold-in, it needs one strict full re-run and my Gate 1 refresh.
 
 Logs: `runs/h38_tasks_{baseline_0fbac49,prefix_abeda10,mutant_V1..V4}.log`.
+
+---
+
+## Re-check (N1 + N2, narrow) @ **970c010**, 2026-09-30: **VERIFIED**
+- **a6d7e64 (N1):** for a **TEACHER** user, `teacher_may_reach` now always answers with `teacher_can_reach_course` (current owner **and** reachable). Non-teachers keep the deferral. The sweep's ALLOWED entry for the old `course.teacher_id != user.id` line is gone.
+- **a6d7e64 (N2):** every stored or shown refusal (grading, batch, auto-grade skip) is `COURSE_NOT_FOUND = "This course wasn't found."`, per the SM's ruling. The 404 bodies are unchanged.
+- **4e2d870:** my round-1 record, committed verbatim.
+
+The run was in 0b's slot at 6G, from my detached checkout moved to 970c010. My probe's Q7 was turned from a documenting print into assertions, and it gained a never-owner case.
+
+| Check | Result |
+|---|---|
+| **Baseline** @ 970c010: my 9 probes + ed's module + `classrooms.tests_teacher_access_sweep` | **28 OK** |
+| Q7: the ex-owner of a **reassigned** course (after removal) | T1–T4 **404**, no student name, task still STARTED; grading **not run**, no `CreditLedger` row; stored error **"This course wasn't found."** |
+| Q7b: a same-school teacher who never owned the course, holding a task on it | T2 **404** |
+| Q1–Q6 (round 1) | all still hold: byte-identical 404s, member cancels 200, clocked grading refused uncharged, moved-to-school-B refused, own individual course untouched, no log leak |
+| **Mutants (mine), 5/5 KILLED**, sha-checked restore | V1 (a task's course never found), V2 (session-results' 404 wording), V3 (over-block), V4 (the refused run logs the student), and **V5, the round-1 deferral restored**. V5 is killed by my Q7/Q7b, ed's `ReassignedCourseTests` and the sweep's direct-owner scan |
+| Hooks | `pre-commit run --from-ref 0fbac49 --to-ref 970c010` passes, and each of the 3 commits passes |
+| Bundle 4 | `git merge-tree --write-tree 8de3078 970c010` is **clean** |
+
+N3 (no GRADING_FAILED event on a refusal) and N4 (no run-time check on extraction) stand, for the SM.
+
+Logs: `runs/h38_tasks_r2_{baseline_970c010,mutant_V1..V5}.log`. Probe and harness: `h38_tasks_probe_r2_*`, `h38_tasks_harness_r2_*`.
