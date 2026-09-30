@@ -1,0 +1,12 @@
+# R4: annual re-check: due tolerance
+# file: billing/services.py (occurrence 1)
+# old: '            or user_subscription.next_credit_grant_at > refresh_due_by(now)\n'
+# new: '            or user_subscription.next_credit_grant_at > now\n'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 5.8
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK

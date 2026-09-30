@@ -1,0 +1,12 @@
+# F1: licence window: the due tolerance (1a's F1)
+# file: billing/license_service.py (occurrence 1)
+# old: '                consumption_window_start__lte=refresh_due_by(now)\n'
+# new: '                consumption_window_start__lte=now\n'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 5.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_run_2s_early_reopens_the_consumption_window (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_2s_early_reopens_the_consumption_window)
+
+FAILED (failures=1)
