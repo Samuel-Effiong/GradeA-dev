@@ -34,7 +34,7 @@ from AutoGrader.reason_codes import REASON_CODES, CodedError
 from classrooms.models import reachable_courses
 
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
-from .task_tracking import launch_processing_task
+from .task_tracking import clear_batch_credit_stop, launch_processing_task
 
 #: Items a retry re-runs: grading reads its submission, which is stored.
 GRADE_ITEM_TYPES = frozenset({BackgroundTaskType.BATCH_SUBMISSION_GRADING})
@@ -139,6 +139,13 @@ def retry_item(item, requested_by, request=None):
     if not claimed:
         # Another retry (or the item's own worker) got there first.
         raise ItemNotRetryable()
+    if item.batch_session_id:
+        # S7c: any retry that won its claim resumes a batch stopped for
+        # credits, whatever this item failed with (a PROVIDER_FAILURE item
+        # retried after a top-up must not be stopped by the old mark). A
+        # real shortfall re-marks it (batch_credit_refusal) before any
+        # charge.
+        clear_batch_credit_stop(item.batch_session_id)
     item.refresh_from_db()
 
     from assignments.tasks import grade_engine_async

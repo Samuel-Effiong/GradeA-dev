@@ -49,6 +49,7 @@ from students.task_tracking import (
     claim_processing_task_start,
     cleanup_cancelled_task_artifacts,
     create_processing_task,
+    ensure_batch_has_credits,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
     launch_processing_task,
@@ -507,6 +508,9 @@ def grade_engine_async(
         mark_processing_task_started(
             processing_task_id, meta={"step": "Retrieving submission"}
         )
+        # FR-A-07 (S7c): if the batch already ran out of credits, stop here,
+        # before any provider call (never charged).
+        ensure_batch_has_credits(processing_task_id)
         self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
         submission = StudentSubmission.objects.select_related("assignment").get(
             id=submission_id
@@ -858,6 +862,9 @@ def upload_answers_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
         ensure_task_not_cancelled(processing_task_id)
+        # FR-A-07 (S7c): stop before the billed extraction if the batch
+        # already ran out of credits.
+        ensure_batch_has_credits(processing_task_id)
         outcome: dict = {}
         submission = upload_answers_engine(
             assignment=assignment,
