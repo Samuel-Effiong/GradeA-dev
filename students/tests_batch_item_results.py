@@ -289,6 +289,45 @@ class TheSessionResultsShape(BatchFixture, TestCase):
         self.assertIs(ok["replaced_existing"], True)
 
 
+class EveryListIsInUploadOrder(BatchFixture, TestCase):
+    """v2's N1 (SM ruling): each per-item list is sorted by item_index,
+    whatever order the items were created in or finished in."""
+
+    def setUp(self):
+        self.build(students=1)
+
+    def test_items_finishing_out_of_order_are_listed_by_item_index(self):
+        session = BatchUploadSession.objects.create(
+            teacher=self.teacher,
+            assignment=self.assignment,
+            task_type=BatchUploadType.SUBMISSION,
+            total_files=6,
+        )
+        # Created in the order 3, 1, 2 (so newest-first would read 2, 1, 3),
+        # and finished in the order 2, 3, 1.
+        items = {}
+        for index in (3, 1, 2):
+            for outcome in ("fail", "ok"):
+                items[(index, outcome)] = task_tracking.create_processing_task(
+                    requested_by=self.teacher,
+                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                    batch_session=session,
+                    assignment=self.assignment,
+                    file_name=f"{outcome}{index}.png",
+                    item_index=index if outcome == "fail" else index + 3,
+                )
+        for index in (2, 3, 1):
+            task_tracking.mark_processing_task_failure(
+                items[(index, "fail")].id, RuntimeError("x")
+            )
+            task_tracking.mark_processing_task_success(items[(index, "ok")].id)
+
+        data = self.session_results(session.id)
+
+        self.assertEqual([e["item_index"] for e in data["failure_list"]], [1, 2, 3])
+        self.assertEqual([e["item_index"] for e in data["success_list"]], [4, 5, 6])
+
+
 class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
     """S6b's two batch 413 problems, fixed per item."""
 

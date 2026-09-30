@@ -19,7 +19,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -2640,7 +2640,11 @@ class TaskViewSet(viewsets.ViewSet):
                 "submission",
                 "submission__assignment",
                 "assignment__course",
-            ).all()
+            )
+            # FR-A-07 (S7a, v2's N1): every per-item list is in item_index
+            # order (upload order), whatever order the items finished in;
+            # items with no index (older rows) come last, oldest first.
+            .order_by(F("item_index").asc(nulls_last=True), "created_at")
         )
 
         if tracked_tasks:
