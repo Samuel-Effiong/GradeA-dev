@@ -186,6 +186,11 @@ class LicenseSeatCountingTest(APITestCase):
         )
         del payload["max_seats"]
         with patch("billing.stripe_service.stripe") as mock_stripe:
+            # A real URL: without the fix checkout goes ahead, and a bare
+            # MagicMock url would be rendered into the JSON body.
+            mock_stripe.checkout.Session.create.return_value.url = (
+                "https://checkout.example/session"
+            )
             response = self.client.post(
                 reverse("license-subscription-list"), payload, format="json"
             )
@@ -268,11 +273,22 @@ class AddTeachersSeatCountingTest(APITestCase):
             self.teacher_allocations(licence).filter(is_active=True).count(), 2
         )
 
-    def test_an_account_stored_with_capitals_is_not_duplicated(self):
-        """Stored 'Mixed.Case@', added as 'mixed.case@': the existing account
-        is enrolled, and no second account is created."""
-        existing = CustomUser.objects.create_user(
-            email="Mixed.Case@teacherchange.edu",
+    def test_an_active_teacher_stored_with_capitals_takes_no_seat(self):
+        """Stored 'Kept.Case@', on a full licence; re-added as 'kept.case@'
+        they are already active, so no seat is needed."""
+        self.teacher("Kept.Case@teacherchange.edu")
+        licence = self.licence(["kept.case@teacherchange.edu", "t2@teacherchange.edu"])
+
+        response = self.add(licence, ["kept.case@teacherchange.edu"])
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.assertEqual(
+            self.teacher_allocations(licence).filter(is_active=True).count(), 2
+        )
+
+    def teacher(self, email):
+        return CustomUser.objects.create_user(
+            email=email,
             password="password123",  # pragma: allowlist secret
             first_name="Mixed",
             last_name="Case",
@@ -280,6 +296,11 @@ class AddTeachersSeatCountingTest(APITestCase):
             school=self.school,
             is_active=True,
         )
+
+    def test_an_account_stored_with_capitals_is_not_duplicated(self):
+        """Stored 'Mixed.Case@', added as 'mixed.case@': the existing account
+        is enrolled, and no second account is created."""
+        existing = self.teacher("Mixed.Case@teacherchange.edu")
         licence = self.licence(["t1@teacherchange.edu"])
 
         response = self.add(licence, ["mixed.case@teacherchange.edu"])
