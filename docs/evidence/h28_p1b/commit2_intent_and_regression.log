@@ -1,0 +1,63 @@
+# commit 2 verification on the exact formatted tree
+# model+admin+migration+test sha256:
+fd8c6abe9633ddaef6d61f609b4601437d27dd2460b426bed6b49b9435fb216d  billing/models.py
+652326cb6f58faa0fb08809dea752ee68bc981526b26c55e19ca4011b107ccd5  billing/admin.py
+7a054bd085c6a8e3cd28b4b9b9269872d767e463b3aac60a26e2e3ef06f61ab4  billing/migrations/0070_license_stripe_mutation_intent.py
+d12d13ec2fe7d420c3136d17d457c0b4c05252e06adfb47e49d8e78094de591e  billing/tests/test_h28_licence_stripe_mutation_intent.py
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.............API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 173, in http_method_not_allowed
+    raise exceptions.MethodNotAllowed(request.method)
+rest_framework.exceptions.MethodNotAllowed: Method "DELETE" not allowed.
+...API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+...Cannot activate automatic trial for user teacher9@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher8@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher4b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher4@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher2@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher5@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher6@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher7@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user inactive_teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user active@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user inactive@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+........License 932d6ee3-a727-4fe4-b91c-d99d748a1d0c is STRIPE-billed but has no stripe_subscription_id; cancelling locally only.
+.
+----------------------------------------------------------------------
+Ran 45 tests in 194.248s
+
+OK
+Destroying test database for alias 'default'...
+Found 45 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

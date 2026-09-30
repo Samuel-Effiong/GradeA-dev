@@ -1,0 +1,12 @@
+# L20: the retry runs on a fresh connection
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '            connection.close()\n            time.sleep(FINALISE_BACKOFF_SECONDS[attempt - 1])'
+# new: '            time.sleep(FINALISE_BACKOFF_SECONDS[attempt - 1])'
+# commit: e70d641a3025571021dd1c9baddb5df0fdc58011
+# exit: 1
+# elapsed_s: 37.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_persistent_transient_failure_stops_after_three_attempts (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_persistent_transient_failure_stops_after_three_attempts)
+
+FAILED (failures=1)

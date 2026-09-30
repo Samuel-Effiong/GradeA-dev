@@ -1,0 +1,13 @@
+# L05: a refused delete is read back (read_back_on)
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: 'if not (outcome_unknown(exc) or isinstance(exc, read_back_on)):'
+# new: 'if not outcome_unknown(exc):'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 40.9
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_refused_delete_of_a_subscription_already_gone_completes (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_refused_delete_of_a_subscription_already_gone_completes)
+FAIL: test_a_real_refusal_changes_nothing_and_fails_the_intent (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_real_refusal_changes_nothing_and_fails_the_intent)
+
+FAILED (failures=1, errors=1)

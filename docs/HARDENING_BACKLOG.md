@@ -95,6 +95,7 @@ speed that decision up, not to pre-empt it.
 | H-63 | The student dashboard's per-row status and its Graded tile define "graded" differently: the per-row GRADED (`assignments/services.py` `get_student_assignment_status`) needs `graded_at` and `is_published`, while the Graded tile (`dashboard/views.py` `_assignment_status_counts`) needs `is_published` and a `score_percentage`. A manual score without `graded_at` would be a Graded tile but a SUBMITTED row | Low: display consistency | Hardening Engineer (d5) | **Not started (logged 2026-09-30 by the SM; found during the student-tiles partition, `2eb7c3e`).** Unreachable through today's write paths, checked at beta `463e222`: the grading service is the only production writer of `feedback` and sets `score_percentage`, `feedback` and `graded_at` together (`students/services.py` ~328-335), and `update_grade` refuses a submission without `feedback` ("Submission has not be graded yet", `students/views.py` ~995), so a manual score always lands on a submission that already has `graded_at`. Fix when next touched: one shared "grade released" definition used by both. |
 | H-64 | A student's PENDING enrolments become ENROLLED at their first login through a bulk `QuerySet.update()`, which sends no signal and so bumps no cache generation. A classmate's cached course roster (the course list and detail keyed on the course's `crs` scope since the H-1 stage 3 rework) shows the old enrolment status for up to its 5-minute TTL | Low: brief staleness of a status shown to classmates | Hardening Engineer (d5) | **Not started (logged 2026-09-30 by the SM).** Found by the Verification Engineer while reviewing the batch-2b candidate; pre-existing (the activation predates the rework). Fix when next touching enrolment: bump each affected course's `crs` scope (and the student's own `usr`) after that update, with a freshness test through the real login. |
 | H-66 | The paid overage handler (`_handle_overage_checkout_completed`) runs its idempotency check `_overage_already_granted` only when the session carries a `payment_intent`. A `"paid"` session without one would take the wallet lock but have no idempotency key, so two different event ids for it would both grant | Low: forge-only today (Gate 4 (b) for H-62 found no real signed event can reach it; a forged payload needs database write access) | Hardening Engineer (d5) | **Not started (logged 2026-09-30 by the SM).** 1a's S1 in `docs/evidence/p1_overage_lock/VERIFICATION_h62_gate4_redteam.md`: make the second layer unconditional. Refuse a `"paid"` session with no `payment_intent` with an ERROR log and no grant, as unpaid sessions already are, so a future flow change (coupons, a $0 session, a wider `AUTO_REPLAYABLE`) cannot silently remove the key. Test it through the handler and the replay path. |
+| H-67 | Django's system checks never run on deploy. The production `Dockerfile` CMD starts gunicorn only (`Dockerfile:84`), and no pre-deploy `migrate` or `check` step is in the repo. So an error-level check, `billing.E001` today and `audit.E001` once Epic A lands, is never evaluated, and a misconfiguration it exists to catch goes live silently | Low-Medium: silent misconfiguration on deploy | The founder decides (Railway configuration); the SM recommends the Railway route | **Not started (logged 2026-09-30 by the SM).** Source: v2's floor-check record, N1. Options: (a) a Railway pre-deploy command, `python manage.py check --deploy --fail-level ERROR` or `check --fail-level ERROR` (the SM's recommendation; founder, in Railway); (b) `python manage.py check --fail-level ERROR && gunicorn …` in the Dockerfile CMD. Either way, a failing check must stop the deploy rather than start a server with the error. |
 
 ---
 
@@ -1635,3 +1636,60 @@ changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
 H-5 is Section 7. They were deliberately kept out of the security work so
 that diff stayed reviewable. That decision is what this document exists to
 make safe: the work was postponed, not dropped.
+
+---
+
+## H-28 — irreversible Stripe mutations inside `transaction.atomic` (P1b)
+
+**Owner:** fix-p1b. **Gate-8 class:** environment-sensitive / billing.
+**Status:** Phase 1 (investigation) in progress; no code written; design
+proposal owed to the Fixes Coordinator and then the Senior Manager before
+any implementation.
+
+**Scope.** Not a fixed list of sites: the whole class across `billing/` —
+every irreversible Stripe mutation running inside a `transaction.atomic`
+and/or while holding a `select_for_update`, at the webhook layer AND the
+view layer. Scope widened by the Senior Manager, 2026-09-17, after the
+view-layer site below was found outside the original audit.
+
+**The bug.** Django rolls back the DB half of a failed operation; Stripe
+does not. A mutation that succeeds inside a transaction that later aborts
+leaves Stripe changed and the DB unchanged — permanently, with no retry
+that repairs it.
+
+**Two failure modes, deliberately not given one remedy.** Webhook-layer
+sites die by the Postgres 60 s `idle_in_transaction_session_timeout`
+(shorter than stripe-python's 80 s default) and **can be redelivered**.
+View-layer sites die by gunicorn's request timeout and are **never
+redelivered**, so divergence there is silent and permanent. Five of the six
+confirmed sites are view-layer.
+
+**Confirmed sites** (read against `b744c9f`; not yet reproduced by test):
+`license_service.py:3465` `convert_license_to_offline` (worst —
+irreversible `Subscription.delete`); `:2224`/`:2249` `update_seats`;
+`:2062` `change_license_plan` -> `stripe_service.py:1680`; `:1969`
+`cancel_license_subscription`; `views.py:754`/`:766` `cancel`;
+`stripe_service.py:3397`/`:3399`/`:3406` via the `@transaction.atomic`
+`handle_checkout_completed`.
+
+**In-tree reference pattern.** `stripe_service.py:975-1070`
+(`reactivate_if_cancelling`) already does it correctly: Stripe mutation
+OUTSIDE the transaction, a short local transaction, a compensating revert
+on local-save failure, and a loud `MANUAL RECONCILIATION NEEDED` log when
+the compensation itself fails. The design applies this pattern rather than
+inventing one.
+
+**Acceptance:** every confirmed site either moves its mutation out of the
+transaction, becomes idempotent, or becomes reconcilable, with the choice
+justified per flow; runtime proof via
+`assert_no_call_inside_transaction` that no mutation executes inside an
+open transaction; permanent regression tests; the full 10 gates at the
+environment-sensitive bar (Gate 8 DEPLOYED-REAL).
+
+**Companion deliverable:** `docs/evidence/h28_p1b/SPEC_audit_stripe_divergence.md`
+— a read-only `audit_*` command cross-checking both subscription models
+against Stripe. Dual-purpose: the P1b "has this already happened?"
+detector, and a permanent reconciliation safety net. Build-ready; blocked
+only on production read access. Writes nothing to Stripe, repairs nothing.
+
+**Evidence:** `docs/evidence/h28_p1b/`.

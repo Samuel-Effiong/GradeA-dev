@@ -1,0 +1,27 @@
+# pre-commit run --from-ref f3002bc --to-ref HEAD, at 35612de (2026-09-30), under systemd-run 6G, nice 10, timeout 1800; exit 0
+# Covers every commit on task/h28-p1b since its base (H-62 f3002bc), including the merge of bundle 4 (8e450e6) and cb2e657 (known non-bisectable: migration dependency, fixed at 8aada3c). No commit on this branch used --no-verify.
+check yaml..............................................................(no files to check)Skipped
+fix end of files............................................................................Passed
+trim trailing whitespace....................................................................Passed
+check python ast............................................................................Passed
+check docstring is first....................................................................Passed
+check for added large files.................................................................Passed
+check for merge conflicts...................................................................Passed
+check toml..............................................................(no files to check)Skipped
+check json..................................................................................Passed
+check xml...............................................................(no files to check)Skipped
+check for case conflicts....................................................................Passed
+check builtin type constructor use..........................................................Passed
+fix utf-8 byte order marker.................................................................Passed
+detect private key..........................................................................Passed
+python tests naming.........................................................................Passed
+debug statements (python)...................................................................Passed
+check for broken symlinks...............................................(no files to check)Skipped
+fix requirements.txt....................................................(no files to check)Skipped
+black.......................................................................................Passed
+mypy........................................................................................Passed
+flake8......................................................................................Passed
+isort.......................................................................................Passed
+bandit......................................................................................Passed
+Detect secrets..............................................................................Passed
+Check gunicorn timeout stays in sync with Stripe webhook claim window...(no files to check)Skipped
