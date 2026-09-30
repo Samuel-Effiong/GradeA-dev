@@ -1,0 +1,14 @@
+# P1: display travels in args
+# file: AutoGrader/reason_codes.py (occurrence 1)
+# old: '        self.args = (code.value, params, None, display or None)'
+# new: '        self.args = (code.value, params, None, None)'
+# commit: 047c4f645c84848e8e46d05bcc198fdcf90af4b9
+# exit: 1
+# elapsed_s: 5.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_display_override_survives_json (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_a_display_override_survives_json)
+FAIL: test_through_celerys_result_backend_both_serializers (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_through_celerys_result_backend_both_serializers) (cls='FileTooLargeError', serializer='json')
+FAIL: test_through_celerys_result_backend_both_serializers (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_through_celerys_result_backend_both_serializers) (cls='PayloadTooLarge', serializer='json')
+
+FAILED (failures=3)

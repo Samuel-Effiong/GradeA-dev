@@ -263,11 +263,19 @@ class CodedError(Exception):
     count shown as "63.2 MB"): message only, never in the body's `params`.
     `detail` is for logs only and never reaches a response. A subclass fixes
     its code with the `reason_code` attribute.
+
+    It survives being serialized, as Celery does to a task's failure: its
+    `args` are `(reason_code, params, None, display)`, which is exactly what
+    the constructor takes, so both `cls(*args)` (Celery's json result
+    backend, production's serializer) and pickle's default reduce rebuild it
+    with the same code, params and message. `detail` is deliberately left
+    out of `args`: it is for logs, not for a result backend. Pickle keeps it
+    (it restores `__dict__`); json does not.
     """
 
     reason_code: ReasonCode | None = None
 
-    def __init__(self, reason_code=None, *, params=None, detail=None, display=None):
+    def __init__(self, reason_code=None, params=None, detail=None, display=None):
         code = reason_code or type(self).reason_code
         if code is None:
             raise TypeError("CodedError needs a reason_code")
@@ -296,7 +304,14 @@ class CodedError(Exception):
         self.params = params
         self.detail = detail
         self._spec = spec
-        super().__init__(spec.render(params, display))
+        self._message = spec.render(params, display)
+        super().__init__(self._message)
+        # After super().__init__: Exception.__init__ would set args to the
+        # message, and a DRF APIException base sets none at all.
+        self.args = (code.value, params, None, display or None)
+
+    def __str__(self):
+        return self._message
 
     @property
     def spec(self):
