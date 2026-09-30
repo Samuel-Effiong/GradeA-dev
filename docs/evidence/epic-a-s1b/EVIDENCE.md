@@ -96,6 +96,6 @@ Test and doc only; no behaviour changes.
 
 | Gate | Result |
 |---|---|
-| Reproduce-first | B1 applied: the new test fails on the school assertion (`mutation_log.txt`, B1). |
-| Changed module | `audit.tests_failed_auth_cap`: _pending_ |
-| 2 Mutation | 16 mutants: _pending_ |
+| Reproduce-first | B1 applied (a summary's school dropped): **killed only by the new** `test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped` (`followup_mutation_log.txt`). |
+| Changed module | `audit.tests_failed_auth_cap`: **17 OK** on `e1e0374` (`followup_changed_module.txt`) |
+| 2 Mutation | **16 mutants, 16 killed** (`followup_mutation_log.txt`, `mutation_results.json`). The new test also kills C2, C5, C6, C7, E3, E5 and M1. |

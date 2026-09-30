@@ -9,6 +9,7 @@
   "C2_no_per_target_cap": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_a_suppressed_door_failure_leaves_only_the_summary",
       "test_each_threshold_summary_is_written_exactly_once",
       "test_lock_denials_get_the_floor_then_the_per_target_cap",
@@ -34,6 +35,7 @@
   "C5_no_summaries": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_a_suppressed_door_failure_leaves_only_the_summary",
       "test_account_registration_failures_are_capped_too",
       "test_an_anonymous_crash_is_capped_in_the_global_bucket",
@@ -48,6 +50,7 @@
   "C6_a_summary_for_every_suppression": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_a_suppressed_door_failure_leaves_only_the_summary",
       "test_each_threshold_summary_is_written_exactly_once",
       "test_summaries_are_written_at_1_and_10_suppressed"
@@ -56,6 +59,7 @@
   "C7_wrong_thresholds": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_each_threshold_summary_is_written_exactly_once",
       "test_summaries_are_written_at_1_and_10_suppressed"
     ]
@@ -87,6 +91,7 @@
   "E5_lock_denials_uncapped": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_lock_denials_get_the_floor_then_the_per_target_cap"
     ]
   },
@@ -99,12 +104,20 @@
   "E3_suppression_not_marked": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_a_suppressed_door_failure_leaves_only_the_summary"
+    ]
+  },
+  "B1_summary_school_dropped": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped"
     ]
   },
   "M1_door_fallback_ignores_suppression": {
     "killed": true,
     "failing_tests": [
+      "test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped",
       "test_a_suppressed_door_failure_leaves_only_the_summary"
     ]
   }
