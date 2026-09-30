@@ -1,0 +1,12 @@
+# G5: grant: cycle not ended
+# file: billing/services.py (occurrence 1)
+# old: '            or user_subscription.billing_cycle_end <= now\n'
+# new: ''
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 4.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [cycle already ended]
+
+FAILED (failures=1)
