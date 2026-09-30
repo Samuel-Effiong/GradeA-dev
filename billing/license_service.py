@@ -2618,7 +2618,8 @@ class LicenseSubscriptionService:
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The seat increase could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "
-                "reconciliation."
+                "reconciliation.",
+                intent=intent,
             )
 
         # Phases B and C.
@@ -2664,7 +2665,8 @@ class LicenseSubscriptionService:
                 raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                     "The seat change was applied at our payment provider but "
                     "its payment could not be confirmed. It has been flagged "
-                    "for manual reconciliation."
+                    "for manual reconciliation.",
+                    intent=intent,
                 ) from exc
             if invoice is not None and invoice.get("status") != "paid":
                 raise payment_failed(f"invoice status: {invoice.get('status')}")

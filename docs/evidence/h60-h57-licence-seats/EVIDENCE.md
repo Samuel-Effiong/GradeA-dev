@@ -146,3 +146,75 @@ the revert, the void, the guard and the intent state.
 The refusals themselves are unchanged. The same exception type is raised
 at the same point, and the intent ends in the same state. Only the client
 wording changed. The stopped log is `changed_modules_run1_stopped_230be2d.txt`.
+
+## Round 2: a not-recorded licence change is a 409 or a 503, not a 500
+
+v2's static sweep, with the SM's ruling. H-28's `LicenceStripeChangeNotRecorded`
+(Stripe applied the change, the application couldn't record it) is a plain
+Exception. On change_plan and update_seats it fell into `except Exception`,
+giving a 500 whose `logger.exception` line carried the chained Stripe text.
+On cancel and convert-to-offline it wasn't caught at all.
+
+The exception covers two outcomes, and the routes now answer each on its
+own terms. A shared `_not_recorded_response` is used on all four licence
+routes: seats, plan, cancel and convert-to-offline.
+
+| Outcome | When | Status | Body (the exception's own fixed text) |
+|---|---|---|---|
+| ESCALATED | Live at Stripe and flagged for a human: a paid increase or upgrade whose local write failed, an unpaid change whose undo failed, a cancel whose revert failed, any convert-to-offline | **409**, no Retry-After | "…applied at our payment provider… flagged for manual reconciliation." |
+| COMPENSATED | The local write failed and the change was undone at Stripe (a decrease, a downgrade, a cancel) | **503** + `Retry-After: 30` | "The change could not be recorded, so it was undone. Nothing was changed; please try again." |
+
+- **409, not 503, for escalated.** A retry can't succeed: the licence's
+  guard stays closed until a human reconciles it, and Retry-After would
+  invite exactly the retry that can't work.
+- **The exception's fields.** It now carries `intent` and `escalated`,
+  set at all 6 raise sites. `escalated=False` only on `finalise`'s
+  compensated path.
+- **Logging.** The route logs through `log_provider_error(intent, exc)`:
+  ids, the class and code, no traceback, no chained text.
+- **Convert-to-offline** never compensates (a deleted subscription can't be
+  restored), so its only not-recorded answer is the 409.
+
+**Frontend contract change:** these four routes used to answer 500 ("An
+unexpected error occurred.") for this failure. Cancel and convert-to-offline
+went through the global handler. They now answer 409 (don't retry; the
+change is live and flagged) or 503 with Retry-After (nothing changed; retry).
+
+**Tests** (`NotRecordedRouteTests`, route level; H-28 had only service-level
+tests). Phase D's local write is made to fail for real, and each route's own
+compensation decides the outcome:
+- seats: paid increase → 409; decrease → 503, with Stripe's quantity put back
+- plan: paid upgrade → 409; downgrade → 503
+- cancel: compensated → 503, with cancel_at_period_end put back; revert
+  refused → 409
+- convert-to-offline → 409
+
+Each test checks:
+- the intent's final status;
+- that Retry-After is set only on the 503;
+- that the database error text is absent from the body;
+- that no ERROR is logged from `billing.license_views`, so the old
+  `logger.exception` path is gone;
+- that the log names the intent.
+
+**Mutants N1–N5:**
+- N1: the seats route falls back to the 500.
+- N2: escalated answers 503.
+- N3: no Retry-After.
+- N4: compensated is marked escalated.
+- N5: the handler logs the chained exception.
+
+A1 and A3 are corrected so they parse. The harness now refuses any mutant
+that doesn't parse.
+
+### Round 2 gates
+
+This is a production change after run 2's regression. Rule 15 therefore
+means the touched modules + mutation + ONE billing regression again (0b's
+reading).
+
+| Gate | Result | Log |
+|---|---|---|
+| Changed modules and guards | see log | `r2_changed_modules.txt` |
+| Mutation: A1–A11 (A1/A3 corrected), B1–B6, N1–N5 | see log | `r2_mutation_log.txt`, `r2_mutation_results.json` |
+| ONE billing regression | see log | `r2_regression_billing.txt` |

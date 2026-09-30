@@ -1706,7 +1706,8 @@ class StripeSubscriptionMutationService:
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "
-                "reconciliation."
+                "reconciliation.",
+                intent=intent,
             )
 
         try:
@@ -1756,7 +1757,8 @@ class StripeSubscriptionMutationService:
             raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change was applied at our payment provider but its "
                 "payment could not be confirmed. It has been flagged for "
-                "manual reconciliation."
+                "manual reconciliation.",
+                intent=intent,
             ) from exc
 
         if invoice is None:

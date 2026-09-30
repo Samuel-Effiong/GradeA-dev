@@ -3,6 +3,7 @@ Every anchor must occur exactly once in its file: replace(..., 1) on a
 non-unique anchor silently mutates the wrong site.
 """
 
+import ast
 import json
 import os
 import re
@@ -13,6 +14,7 @@ L = "billing/license_service.py"
 S = "billing/stripe_service.py"
 M = "billing/license_stripe_mutation.py"
 Z = "billing/serializers.py"
+V = "billing/license_views.py"
 LOG = "license_stripe_mutation.log_provider_error(intent, exc)\n"
 TA = " + license_stripe_mutation.TRY_AGAIN"
 SEATS_FIXED = (
@@ -20,7 +22,8 @@ SEATS_FIXED = (
     '                "Stripe error while updating seats."' + TA + "\n"
 )
 SEATS_RAW = (
-    '            raise ValueError(f"Stripe error while updating seats: {exc}")\n'
+    "            raise ValueError(\n"
+    '                f"Stripe error while updating seats: {exc}"\n'
 )
 
 MUTANTS = {
@@ -126,6 +129,32 @@ MUTANTS = {
         "                raise serializers.ValidationError(refused)\n",
         "                pass\n",
     ),
+    # The not-recorded outcome on the licence routes (v2's finding).
+    "N1_seats_not_recorded_falls_to_500": (
+        V,
+        "        except license_stripe_mutation.LicenceStripeChangeNotRecorded as e:\n"
+        "            return _not_recorded_response(e)\n"
+        "        except Exception as e:\n"
+        '            logger.exception("Unexpected error updating seats: %s", e)\n',
+        "        except Exception as e:\n"
+        '            logger.exception("Unexpected error updating seats: %s", e)\n',
+    ),
+    "N2_escalated_answers_503": (
+        V,
+        '        return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)\n',
+        '        return Response({"detail": str(exc)}, status=503)\n',
+    ),
+    "N3_no_retry_after": (V, '    response["Retry-After"] = "30"\n', ""),
+    "N4_compensated_marked_escalated": (
+        M,
+        "                    escalated=False,\n",
+        "                    escalated=True,\n",
+    ),
+    "N5_handler_logs_the_chain": (
+        V,
+        "        license_stripe_mutation.log_provider_error(exc.intent, exc)\n",
+        '        logger.exception("Licence change not recorded: %s", exc)\n',
+    ),
 }
 
 TESTS = [
@@ -138,7 +167,11 @@ try:
     for name, (path, a, b) in MUTANTS.items():
         src = originals.setdefault(path, open(path).read())
         assert src.count(a) == 1, f"{name}: anchor found {src.count(a)} times"
-        open(path, "w").write(src.replace(a, b, 1))
+        mutated = src.replace(a, b, 1)
+        # A mutant that doesn't parse is "killed" by an import error, not by
+        # a test (run 2's A1/A3). Refuse it instead.
+        ast.parse(mutated)
+        open(path, "w").write(mutated)
         p = subprocess.run(
             [sys.executable, "manage.py", "test", *TESTS]
             + ["--settings=settings_worktree", "--keepdb", "--noinput"],

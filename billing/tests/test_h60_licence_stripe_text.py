@@ -17,6 +17,7 @@ nor the log.
 
 from unittest.mock import patch
 
+from django.db import OperationalError
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -24,7 +25,7 @@ from rest_framework.test import APIClient
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
 from billing.license_stripe_mutation import LicenceStripe
-from billing.models import PlanTier, PlanType
+from billing.models import LicenseStripeMutationStatus, PlanTier, PlanType
 from billing.tests.test_h28_cancel_phases import MUTATION_LOGGER, LicencePhaseTestCase
 from billing.tests.test_h28_licence_stripe_divergence import _make_plan
 
@@ -176,3 +177,127 @@ class LicenceStripeTextTests(LicencePhaseTestCase):
                 ),
                 fixed="Failed to cancel Stripe subscription.",
             )
+
+
+class NotRecordedRouteTests(LicencePhaseTestCase):
+    """v2's finding (SM ruling): when Stripe applied a licence change that the
+    application then couldn't record (H-28's LicenceStripeChangeNotRecorded),
+    the route answered a 500, and its log line carried the chained Stripe
+    text. The route now answers by outcome:
+
+    - ESCALATED (live at Stripe, flagged for a human): 409, no Retry-After.
+    - COMPENSATED (undone at Stripe, nothing changed): 503 + Retry-After.
+
+    The failure is the real one: phase D's local write fails, and each route's
+    own compensation decides the outcome."""
+
+    SUB_ID = "sub_h60_nr"
+
+    def setUp(self):
+        super().setUp()
+        self.cheaper_plan = _make_plan(
+            PlanTier.STANDARD, PlanType.STANDARD, "500.00", "price_h60_std"
+        )
+        self.dearer_plan = _make_plan(
+            PlanTier.POWER, PlanType.POWER, "2000.00", "price_h60_nr_power"
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.superadmin)
+
+    def url(self, name):
+        return reverse(f"license-subscription-{name}", kwargs={"pk": self.licence.pk})
+
+    def post_with_local_write_failing(self, name, payload=None):
+        with patch(
+            "billing.license_stripe_mutation._finalise_with_retry",
+            side_effect=OperationalError("server closed the connection"),
+        ), self.assertNoLogs("billing.license_views", "ERROR"):
+            with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+                response = self.client.post(
+                    self.url(name), payload or {}, format="json"
+                )
+        # ids only on the new line; H-28's own reconciliation lines are not
+        # client-facing and carry the database error, never Stripe's text.
+        self.assertTrue(
+            any(str(self.only_intent().id) in line for line in logs.output), logs.output
+        )
+        return response
+
+    def assert_escalated(self, response):
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.data)
+        self.assertIn("flagged for manual reconciliation", response.data["detail"])
+        self.assertNotIn("Retry-After", response)
+        self.assertNotIn("server closed", response.content.decode())
+        self.assertEqual(
+            self.only_intent().status, LicenseStripeMutationStatus.ESCALATED
+        )
+
+    def assert_compensated(self, response):
+        self.assertEqual(
+            response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE, response.data
+        )
+        self.assertIn("Nothing was changed", response.data["detail"])
+        self.assertEqual(response["Retry-After"], "30")
+        self.assertNotIn("server closed", response.content.decode())
+        self.assertEqual(
+            self.only_intent().status, LicenseStripeMutationStatus.COMPENSATED
+        )
+
+    # -- update_seats ---------------------------------------------------------
+
+    def test_seats_a_paid_increase_not_recorded_is_409(self):
+        self.assert_escalated(
+            self.post_with_local_write_failing(
+                "update-seats", {"max_seats": self.SEATS + 5}
+            )
+        )
+
+    def test_seats_a_decrease_not_recorded_is_undone_and_503(self):
+        self.assert_compensated(
+            self.post_with_local_write_failing(
+                "update-seats", {"max_seats": self.SEATS - 3}
+            )
+        )
+        self.assertEqual(self.stripe.quantity, self.SEATS)
+
+    # -- change_plan ----------------------------------------------------------
+
+    def test_plan_a_paid_upgrade_not_recorded_is_409(self):
+        self.assert_escalated(
+            self.post_with_local_write_failing(
+                "change-plan", {"plan": str(self.dearer_plan.pk)}
+            )
+        )
+
+    def test_plan_a_downgrade_not_recorded_is_undone_and_503(self):
+        self.assert_compensated(
+            self.post_with_local_write_failing(
+                "change-plan", {"plan": str(self.cheaper_plan.pk)}
+            )
+        )
+
+    # -- cancel ---------------------------------------------------------------
+
+    def test_cancel_not_recorded_is_undone_and_503(self):
+        self.assert_compensated(self.post_with_local_write_failing("cancel"))
+        self.assertFalse(self.stripe.cancel_at_period_end)
+
+    def test_cancel_not_recorded_and_not_undone_is_409(self):
+        fake = self.stripe.subscription_modify
+
+        def revert_refused(*args, **kwargs):
+            if kwargs.get("cancel_at_period_end") is False:
+                raise stripe.error.APIConnectionError("revert unreachable")
+            return fake(*args, **kwargs)
+
+        with patch.object(
+            LicenceStripe, "modify_subscription", side_effect=revert_refused
+        ):
+            self.assert_escalated(self.post_with_local_write_failing("cancel"))
+
+    # -- convert-to-offline ---------------------------------------------------
+
+    def test_convert_to_offline_not_recorded_is_409(self):
+        """A deleted subscription can't be restored, so convert never
+        compensates: its only not-recorded outcome is the 409."""
+        self.assert_escalated(self.post_with_local_write_failing("convert-to-offline"))
