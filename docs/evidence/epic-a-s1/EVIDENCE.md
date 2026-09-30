@@ -166,4 +166,15 @@ v2's record is committed verbatim as `VERIFICATION_v2_f300c6b.md`.
 - 1a's M4 (last id only), M5 (first id only) and M7 (all ids must survive).
 - G1, G2 and R1 re-anchored onto the new check.
 
-**R2 gates:** _pending_ (runs through 0b, rule 13).
+**Also (v2's pre-read):** an anonymous requester is answered False without a query. `AnonymousUser.pk` is None and must never match NULL-actor events. The outcome is unchanged, because `should_record` never writes the generic event for an anonymous request. `test_an_anonymous_requester_needs_no_query` pins it. The fail-safe test now uses an authenticated stand-in, so it still reaches the erroring query and still kills G4.
+
+**R2 gates.** Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, `EXEMPT_EMAIL_DOMAINS=` and RACE_COST 600/200, one at a time, on WIP 767f848.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | f300c6b's `context.py` and `middleware.py` against the new tests (`prefix_f300c6b_r2_failing.txt`): **the pinned add_teachers test FAILS** (no event names the admin). "An event naming someone else" errors in both variants with `DoesNotExist`, because no STATE_CHANGE was written; that is V1 surfacing through `.get()`. Three unit tests error with `AttributeError` because the renamed check does not exist there. |
+| On the fix | `audit.tests_license_admin_attribution` + `audit.tests_state_change`: **39 OK** |
+| 2 Mutation | `mutate.py`: **30 mutants, 30 killed**, survivors `[]`. V1 (the actor condition dropped) is killed by the pinned test and the someone-else test. 1a's M4, M5 and M7 are killed by the adopted two-event cases. G4 is killed by the fail-safe test. |
+| 1 Regression | `audit users classrooms students assignments`: 2046 run, **1 failure**, `assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others`. It is a timing test, and it failed while 0b's full-suite run loaded the machine (load average above 6). Re-run alone twice on the same tree: **8/8 OK both times**. It does not touch audit code. So: 2045 OK + 1 load flake (skipped=18). |
+| 1 Regression (billing, for add_teachers) | `billing`: **1652 OK** |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** on 767f848 |
