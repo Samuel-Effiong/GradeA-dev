@@ -41,3 +41,39 @@ All restores were sha-checked, and the added migration file was deleted.
 **N2 (process).** Once this is live on a deployment, the rollback sections of later packages can drop the stop-gap SET DEFAULT SQL for these 9 columns (see the rollback caveat). Until then the caveat stands. When production moves, `PRODUCTION_HEADS` has to move with it, as the test file's own comment says.
 
 **N3.** billing 0070 is kept by the SM's ruling; H-28 and H-62 renumber when revived.
+
+## Re-verification: guard rule (a)+(b) @ b029f5c. Verification Engineer 1a, 2026-09-30
+**Verdict for b029f5c: VERIFIED-WITH-NOTES, with R1 REQUIRED (tests only).**
+
+The SM declined the table-age scope and approved rules (a) and (b), which are independent of the production cutoff:
+- (a) an AddField of a NOT NULL column without `db_default`, on any table;
+- (b) an AlterField that turns a column from nullable to NOT NULL, judged against the migration state before that migration.
+
+The code implements both (`migrations_since_production`, `rollback_candidates`, `broken_fields`).
+
+**Runs:** guard tests plus my probes, **9 OK**.
+
+| Mutant | Result |
+|---|---|
+| H1: `token_epoch` loses its `db_default` | killed (3 tests) |
+| H2: rule (a) dropped | killed |
+| H3: a new NOT NULL AddField without `db_default` (a real migration file) | killed; the guard names `users.customuser.vf_new_flag` |
+| H4: production head too new | killed |
+| H5: rule (b) disabled in `rollback_candidates` | killed: `test_rule_b_fires_only_when_an_alter_makes_a_column_not_null` |
+| **H6: `fields_a_rollback_would_break` passes the FINAL state as "state before"** | **SURVIVED** |
+
+**R1 (REQUIRED, tests only).**
+- The rule (b) self-test injects its own `state_before`, and the real graph has no tightening today, so nothing exercises the production wiring.
+- Under H6, `previous_field.null` reads the final NOT NULL, and rule (b) silently never fires on real migrations.
+- Pin the wiring: for example, run `fields_a_rollback_would_break` over the real loader plus a synthetic tightening migration and assert it's flagged, or assert that the state the lambda returns has a known real AlterField's pre-migration nullability.
+
+**N4 (wording).** The guard's failure message says old code "omits them from INSERT (or inserts NULL)". A `db_default` fixes only the omitted case; an explicit NULL insert into a tightened column still fails. There's none today.
+
+## Re-verification: R1 @ 1f52219. Verification Engineer 1a, 2026-09-30
+**Verdict for the tip 1f52219: VERIFIED-WITH-NOTES.** Nothing is required; R1 is closed.
+
+b029f5c..1f52219 is test-only. Rule (b)'s wiring is now a named `state_before(loader)`, used by `fields_a_rollback_would_break` and the guard-on-guard, and two tests pin it:
+- `test_rule_b_reads_the_state_before_each_migration`: before billing 0070 the wallet column has no `db_default`, and in the final state it has one;
+- `test_the_guard_uses_the_state_before_each_migration`: a wraps-spy asserts the guard calls `state_before` exactly once.
+
+**Runs** (`systemd-run` 6G): guard module **9 OK**. My **H6a** (the guard inlines a final-state lambda) is killed by the spy test. My **H6b** (`state_before` returns the final state) is killed by the state test. H5 is still killed. Per rule 15, the author's run is relied on for the rest. N4 (the failure message's "or inserts NULL") stands as a wording note.
