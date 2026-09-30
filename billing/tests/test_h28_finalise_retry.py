@@ -150,7 +150,9 @@ class FinaliseRetryTests(LicencePhaseTestCase):
         attempts = []
 
         def always_drop(*args, **kwargs):
-            attempts.append(1)
+            # The backend each attempt runs on: §9e discards the connection
+            # before every retry, even where Django would have kept it.
+            attempts.append(backend_pid())
             raise OperationalError("server closed the connection unexpectedly")
 
         with patch.object(
@@ -162,6 +164,9 @@ class FinaliseRetryTests(LicencePhaseTestCase):
                 self.cancel()
 
         self.assertEqual(len(attempts), license_stripe_mutation.FINALISE_ATTEMPTS)
+        self.assertEqual(
+            len(set(attempts)), len(attempts), "a retry reused the connection"
+        )
         self.assertEqual(self.sleeps, [0.2, 1.0])
         # Then the normal failure path: no money moved, so it is undone.
         self.assertEqual(

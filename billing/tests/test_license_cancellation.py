@@ -30,7 +30,7 @@ entirely -- see LicenseSubscriptionViewSet's docstring.
 """
 
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import stripe as real_stripe
 from django.test import TransactionTestCase
@@ -101,7 +101,7 @@ class LicenseCancellationServiceTests(TransactionTestCase):
 
     # -- STRIPE billing_method ----------------------------------------------
 
-    @patch("billing.license_service.stripe.Subscription.modify")
+    @patch("billing.license_stripe_mutation.LicenceStripe.modify_subscription")
     def test_stripe_license_defers_deactivation_to_period_end(self, mock_modify):
         license_sub = _make_license(
             self.school,
@@ -123,7 +123,7 @@ class LicenseCancellationServiceTests(TransactionTestCase):
         )
         self.assertFalse(updated.auto_renew)
 
-    @patch("billing.license_service.stripe.Subscription.modify")
+    @patch("billing.license_stripe_mutation.LicenceStripe.modify_subscription")
     def test_stripe_license_tells_stripe_to_stop_renewing(self, mock_modify):
         license_sub = _make_license(
             self.school,
@@ -135,9 +135,11 @@ class LicenseCancellationServiceTests(TransactionTestCase):
 
         LicenseSubscriptionService.cancel_license_subscription(license_sub)
 
-        mock_modify.assert_called_once_with("sub_test123", cancel_at_period_end=True)
+        mock_modify.assert_called_once_with(
+            "sub_test123", cancel_at_period_end=True, idempotency_key=ANY
+        )
 
-    @patch("billing.license_service.stripe.Subscription.modify")
+    @patch("billing.license_stripe_mutation.LicenceStripe.modify_subscription")
     def test_stripe_failure_is_surfaced_and_leaves_local_state_untouched(
         self, mock_modify
     ):
@@ -196,7 +198,7 @@ class LicenseCancellationServiceTests(TransactionTestCase):
 
     # -- shared behavior ------------------------------------------------------
 
-    @patch("billing.license_service.stripe.Subscription.modify")
+    @patch("billing.license_stripe_mutation.LicenceStripe.modify_subscription")
     def test_cancellation_is_recorded_on_the_billing_ledger(self, mock_modify):
         license_sub = _make_license(
             self.school,
@@ -322,7 +324,7 @@ class LicenseCancellationApiTests(APITestCase):
         self.license_sub.refresh_from_db()
         self.assertFalse(self.license_sub.auto_renew)
 
-    @patch("billing.license_service.stripe.Subscription.modify")
+    @patch("billing.license_stripe_mutation.LicenceStripe.modify_subscription")
     def test_super_admin_can_cancel_a_stripe_license(self, mock_modify):
         self.client.force_authenticate(user=self.superadmin)
         response = self.client.post(
@@ -332,7 +334,9 @@ class LicenseCancellationApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["is_active"])
         self.assertFalse(response.data["auto_renew"])
-        mock_modify.assert_called_once_with("sub_test123", cancel_at_period_end=True)
+        mock_modify.assert_called_once_with(
+            "sub_test123", cancel_at_period_end=True, idempotency_key=ANY
+        )
 
     def test_super_admin_can_cancel_an_offline_license(self):
         offline_license = _make_license(
@@ -349,7 +353,7 @@ class LicenseCancellationApiTests(APITestCase):
         self.assertFalse(response.data["is_active"])
         self.assertFalse(response.data["auto_renew"])
 
-    @patch("billing.license_service.stripe.Subscription.modify")
+    @patch("billing.license_stripe_mutation.LicenceStripe.modify_subscription")
     def test_cancelling_twice_is_rejected_with_a_400(self, mock_modify):
         self.client.force_authenticate(user=self.superadmin)
         first = self.client.post(self.cancel_url)

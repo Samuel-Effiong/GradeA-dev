@@ -155,6 +155,56 @@ class SeatPhaseTests(LicencePhaseTestCase):
 
         self._assert_reverted_and_voided(self.only_intent())
 
+    def test_the_licence_stays_guarded_while_a_card_error_is_undone(self):
+        """A CardError is not a refusal: the intent stays in flight (so the
+        per-licence guard holds) until the undo has run, and only then
+        becomes FAILED. Taken as a refusal, it would be FAILED at once and
+        the licence open to a second change while Stripe is still being put
+        back."""
+        self.stripe.card_error_on_modify = True
+        seen = []
+
+        def revert_while_checking(*args, **kwargs):
+            if kwargs["items"][0]["quantity"] == self.SEATS:
+                seen.append(LicenseStripeMutationIntent.objects.get().status)
+            return self.stripe.subscription_modify(*args, **kwargs)
+
+        with patch.object(
+            LicenceStripe, "modify_subscription", side_effect=revert_while_checking
+        ):
+            with self.assertRaisesRegex(ValueError, "card error"):
+                self.update_seats(self.SEATS + 5)
+
+        self.assertEqual(seen, [LicenseStripeMutationStatus.PENDING])
+        self.assertEqual(self.only_intent().status, LicenseStripeMutationStatus.FAILED)
+
+    def test_with_no_new_invoice_an_older_open_one_is_left_alone(self):
+        """A declined change that raised no invoice of its own: the older
+        open invoice is the subscription's latest, and must not be taken
+        for the change's."""
+        self.stripe.invoices["in_h28_renewal"] = {
+            "status": "open",
+            "amount_paid": 0,
+            "pi_status": "requires_payment_method",
+        }
+        self.stripe.latest_invoice = "in_h28_renewal"
+
+        def decline_before_invoicing(*args, **kwargs):
+            if kwargs["items"][0]["quantity"] == self.SEATS + 5:
+                raise stripe.error.CardError(
+                    "Your card was declined.", None, "card_declined"
+                )
+            return self.stripe.subscription_modify(*args, **kwargs)
+
+        with patch.object(
+            LicenceStripe, "modify_subscription", side_effect=decline_before_invoicing
+        ):
+            with self.assertRaisesRegex(ValueError, "card error"):
+                self.update_seats(self.SEATS + 5)
+
+        self.assertEqual(self.stripe.invoices["in_h28_renewal"]["status"], "open")
+        self.assertEqual(self.void_calls(), [])
+
     def test_an_older_open_invoice_is_never_voided(self):
         """Only the change's own invoice may be voided. An unpaid renewal
         already open on the subscription is the school's real debt."""

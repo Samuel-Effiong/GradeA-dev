@@ -127,6 +127,16 @@ class StaleIntentCheckTests(AlertingTestCase):
         self.assertEqual(license_stripe_mutation.escalate_stale_intents(), 0)
         self.assertEqual(len(self.emails), 1)
 
+    def test_an_old_escalated_intent_is_not_alerted_again(self):
+        """ESCALATED already told a human; however long it waits for one,
+        the check never re-selects it."""
+        old = self.make_intent(S.ESCALATED, self.STALE)
+
+        self.assertEqual(license_stripe_mutation.escalate_stale_intents(), 0)
+
+        self.assertEqual(self.status_of(old), S.ESCALATED)
+        self.assertEqual(self.emails, [])
+
     def test_a_stale_stripe_applied_intent_is_escalated(self):
         applied = self.make_intent(S.STRIPE_APPLIED, self.STALE)
         with self.assertLogs(MUTATION_LOGGER, level="ERROR"):
