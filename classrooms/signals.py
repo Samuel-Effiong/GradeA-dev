@@ -116,23 +116,34 @@ def delete_cache_patterns(*patterns):
 # ---------------------------------------------------------------------------
 
 
-def _course_scopes(course):
-    """Entities whose cached responses a course-shaped change can affect.
-
-    H-1 Stage 3 (gap G5): a course, topic or roster change is also visible
-    to every OTHER student enrolled in the course - their own cached copy
-    of the course, its topics, and their classmates' roster - not only the
-    teacher who owns it. One query for the enrolled student ids, folded
-    into the caller's own pipelined `bump_many`.
-    """
+def _course_owner_scopes(course):
+    """The course itself, its teacher and the teacher's school: a fixed
+    three scopes, whatever the size of the class."""
     if course is None:
         return []
     teacher = getattr(course, "teacher", None)
-    scopes = [
+    return [
         (SCOPE_COURSE, course.pk),
         (SCOPE_USER, getattr(course, "teacher_id", None)),
         (SCOPE_SCHOOL, getattr(teacher, "school_id", None) if teacher else None),
     ]
+
+
+def _course_scopes(course):
+    """Entities whose cached responses a course-shaped change can affect.
+
+    H-1 Stage 3 (gap G5): a course or topic change is also visible to every
+    enrolled student - the course name and topics appear in their own
+    user-keyed caches (course list, dashboards, submissions) - not only to
+    the teacher who owns it. One query for the enrolled student ids, folded
+    into the caller's own pipelined `bump_many`. That is O(class size) per
+    call, which is fine for a rename or a topic edit, a single write.
+
+    An ENROLMENT does not use this: see `clear_student_course_cache`.
+    """
+    if course is None:
+        return []
+    scopes = _course_owner_scopes(course)
     scopes.extend(
         (SCOPE_USER, student_id)
         for student_id in StudentCourse.objects.filter(course=course).values_list(
@@ -252,9 +263,17 @@ def notify_admins_of_teacher_first_course(sender, instance, created, **kwargs):
 
 @receiver([post_save, post_delete], sender=StudentCourse)
 def clear_student_course_cache(sender, instance, **kwargs):
+    # A fixed five scopes per enrolment write, NOT one per classmate. The
+    # only thing a classmate sees change is the roster (CourseSerializer's
+    # `students` and `student_count`), and every cached student payload
+    # carrying it is keyed on this course's `crs` generation or on `global`
+    # (CourseViewSet.extra_cache_scopes, my_courses), both bumped here. The
+    # old per-classmate fan-out made a roster import of n rows cost O(n^2)
+    # bumps. The sweep in classrooms/tests_course_roster_scope_sweep.py
+    # keeps every roster-bearing student payload on one of those scopes.
     bump_many(
         [(SCOPE_USER, instance.student_id), (SCOPE_GLOBAL, None)]
-        + _course_scopes(getattr(instance, "course", None))
+        + _course_owner_scopes(getattr(instance, "course", None))
     )
     delete_cache_patterns(
         "*superadmin*",
