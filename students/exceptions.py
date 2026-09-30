@@ -104,9 +104,9 @@ class SubmissionProcessingInProgressError(Exception):
 class CourseNotReachableError(Exception):
     """H-38 at run time: the teacher a grading run acts for can no longer
     reach the submission's course (removed from the school whose session it
-    sits in). Raised before any provider call, so nothing is charged. It
-    says nothing about the course beyond the teacher's own loss of access.
-    User-facing."""
+    sits in). Raised before any provider call, so nothing is charged.
+    Uncoded (SM ruling), and its message is a plain "not found": never the
+    removal, the course or the school. User-facing."""
 
-    def __init__(self, message="You no longer have access to this course."):
+    def __init__(self, message="This course wasn't found."):
         super().__init__(message)

@@ -37,7 +37,7 @@ from students.models import (
     StudentSubmission,
 )
 
-NO_ACCESS = "You no longer have access to this course."
+NO_ACCESS = "This course wasn't found."
 
 
 class H38RetryFixture(TeacherRemovalBase):
