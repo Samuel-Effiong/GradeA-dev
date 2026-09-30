@@ -158,7 +158,9 @@ class OtherSchoolBeforeSubscriptionTest(APITestCase):
             result = self.invite(teacher.email, raise_on_conflict=False)
 
         self.assertIsNone(result)
-        text = "\n".join(logs.output)
+        # The messages, not logs.output: that carries the logger's name,
+        # billing.license_service.
+        text = "\n".join(record.getMessage() for record in logs.records)
         self.assertIn("belongs to school", text)
         self.assertNoBillingWords(text)
 
