@@ -25,3 +25,19 @@ The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, timeout) in 0b's slot,
 - **N3.** `CREDIT_TRANSACTION`'s rate is derived, not measured (the harness patches `execute_graded_task`). This is stated in `audit/volume.py`; treat that one projection as an estimate.
 
 Logs: `runs/s8_run1.log`, `runs/s8_run1b.log`.
+
+---
+
+## Re-check (N1) @ **5f7ab88**, 2026-09-30: **VERIFIED**
+The code is 08195fb. Per-action counts are `action = A AND occurred_at >= X` (audit_action_time_ix); per-class counts are `retention_class = C AND occurred_at >= X` (audit_retention_ix, window only); the all-time figure is the `reltuples` estimate; `--exact-all-time` (whose help says FULL SCAN) is opt-in. The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, timeout) in 0b's slot, beside bundle 4's full run.
+
+v2's independent check (not ed's test): capture **every** statement the default run issues against `audit_auditevent`, and `EXPLAIN` each with `enable_seqscan = off`.
+
+| Check | Result |
+|---|---|
+| v2 probes + `audit.tests_volume_report` | **15 OK** |
+| P4: every default statement | **36/36** with an `Index Cond` on the leading column (`action` / `retention_class`) and no Seq Scan; 0 unbounded (bounded sample and catalogue statements exempt) |
+| P4b: opt-in | default: 0 "(all time, exact)" lines, **0 unbounded statements**. `--exact-all-time`: 1 line, exactly 1 unbounded statement (`SELECT retention_class, COUNT(id) FROM audit_auditevent GROUP BY 1`) |
+| P1 / P2 / P5 (still) | no leaks; the projection is exact (1,515,480 / 602,980); a write inside the command is refused (read-only) |
+
+N1 is closed. The note that the production planner choice is the founder's EXPLAIN on main (per EVIDENCE) stands as stated. Logs: `runs/s8_n1.log`, `s8_n1b.log`, `s8_n1c.log`. (The earlier P4b/P5 failures in `s8_n1.log`/`n1b` were v2's probe code: an outdated `measured` signature and a SQL match that missed Django's `GROUP BY 1`. Both are fixed in the probe.)
