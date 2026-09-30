@@ -76,6 +76,83 @@ the network call — so it carries H-23's money-loss shape *as well*, at a view-
 door e2's webhook-focused audit did not cover. This is the finding that widened
 the scope.
 
+## A-CONFIRMED. Hand-confirmation of section A (2026-09-18, read against `b744c9f`)
+
+Each site below was READ, not inferred. Tool output alone is not evidence (H1.4).
+Still: **confirmed by reading, NOT yet reproduced by a test, NOT fixed, no gate run.**
+
+| # | Site | Verdict |
+|---|---|---|
+| A1 | `views.py:754` + `:766` | **CONFIRMED DEFECT** |
+| A2 | `stripe_service.py:1054` | **NOT A DEFECT — this is the correct pattern** (reclassified) |
+| A3 | `stripe_service.py:4691` | **LOW / likely benign** |
+| A4 | `license_service.py:1969` | **CONFIRMED DEFECT** |
+| A5/A6 | `license_service.py:2224`, `:2249` | **CONFIRMED DEFECT (money)** |
+| A7 | `license_service.py:3465` | **CONFIRMED DEFECT — worst of the set** |
+
+The board's original priority site (`stripe_service.py:3399`) is **not yet hand-confirmed.**
+
+### A7 — `convert_license_to_offline()` — whole-school revenue loss
+
+`@transaction.atomic` (decorator, :3449) + `select_for_update` on `LicenseSubscription`,
+then **`stripe.Subscription.delete(...)` at :3465**. A Stripe subscription delete is
+**irreversible** — there is no un-delete; recovery means creating a new subscription.
+Every DB write follows it inside the same transaction: `billing_method=OFFLINE`,
+`stripe_subscription_id=None`, `stripe_status=None`, and a `LicenseBillingRecord` row.
+
+Rollback after the delete (60 s idle-in-transaction kill on a slow Stripe call, or any
+later raise in the block) leaves: **Stripe subscription permanently gone; app still
+believes the school is STRIPE-billed and still holds the dead `stripe_subscription_id`.**
+The school stops being billed and nothing reports it. Admin action at the **view layer,
+so never redelivered** — silent and permanent.
+
+### A5/A6 — `update_seats()` — money, and a compensator that can be skipped
+
+`@transaction.atomic` (decorator, :2174) + `select_for_update`. `Subscription.modify`
+at :2224 changes seat quantity; under `proration_behavior="always_invoice"` Stripe
+**charges the school immediately**. A compensating revert exists at :2249 — but it is
+itself a Stripe call **inside the same transaction**, so a mid-call kill skips it. Rollback
+leaves the school charged and upgraded at Stripe, with the app on `old_seats`.
+
+### A4 — `cancel_license_subscription()`
+
+`@transaction.atomic` (decorator, :1921) + `select_for_update`. `cancel_at_period_end=True`
+set at Stripe (:1969); `auto_renew=False` written locally afterwards. Rollback = Stripe will
+not renew, app says it will.
+
+### A1 — `views.py` `cancel()` — the original find, holds up
+
+`with transaction.atomic()` (:726) + `select_for_update` (:728-730) held across **two**
+irreversible Stripe calls: `release_schedule` (:754) and
+`Subscription.modify(cancel_at_period_end=True)` (:766). Teacher cancels; Stripe cancels;
+DB rolls back; app still shows renewing — or the pending plan change is released at Stripe
+yet still displayed as pending. **View layer, never redelivered.**
+
+Note the explicit `StripeError` branch (:768-795) writes the schedule-clearing fields and
+then `return`s — a `return` inside `atomic` **commits**, so that path is sound. The hazard
+is the *kill*, not the handled error.
+
+### A3 — `handle_setup_intent_succeeded()` — LOW, and why
+
+`Customer.modify` (:4691) is inside the `@transaction.atomic` decorator (:4655), but
+**nothing follows it except logging** — no DB state is lost on rollback — and redelivery
+re-sets the same default payment method idempotently. Different severity from the rest.
+**Confirms these 7 are not one defect and must not get one uniform remedy.**
+
+### A2 — NOT A DEFECT — the in-tree reference pattern
+
+`reactivate_if_cancelling()` (:975-1070) already does it right, and my tool mis-flagged it:
+- the real `Subscription.modify` is **OUTSIDE** the transaction (~:998);
+- the atomic block (:1010) is **short and purely local**;
+- the call at :1054 is a deliberate **compensating revert** on local-save failure;
+- when the compensation itself fails it logs **"MANUAL RECONCILIATION NEEDED — Stripe and
+  local state now disagree about renewal."**
+
+**The house already contains the remedy.** The design proposal will cite :975-1070 as the
+in-tree reference — mutate Stripe outside the transaction, keep the transaction short and
+local, compensate on failure, log loudly when compensation fails — rather than inventing a
+pattern. Cheaper to approve, consistent with house style.
+
 ## B. Transitive candidates — atomic wrapping a mutation across a call boundary
 
 Over-inclusive; `list()` / `create()` rows are probable name collisions.
