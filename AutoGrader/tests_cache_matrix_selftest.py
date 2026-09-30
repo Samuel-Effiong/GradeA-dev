@@ -27,6 +27,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TransactionTestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from AutoGrader.cache_generation import SCOPE_USER, bump_many
@@ -44,6 +45,11 @@ User = get_user_model()
 
 
 def make_active_user(email, user_type):
+    """An active account that has signed in before. `last_login` is what a
+    real sign-in records; without it retire (A)'s has_signed_in treats an
+    existing student as never signed in, and enrolling them re-sends
+    credentials and leaves the enrollment PENDING (the same fix as the
+    H-25 fixtures, 877c900)."""
     return User.objects.create_user(
         email=email,
         password="password123",  # nosec  # pragma: allowlist secret
@@ -51,6 +57,7 @@ def make_active_user(email, user_type):
         is_active=True,
         first_name="Matrix",
         last_name=user_type.title(),
+        last_login=timezone.now(),
     )
 
 

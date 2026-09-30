@@ -29,6 +29,7 @@ from django.db import connection
 from django.test import TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 import classrooms.signals
@@ -59,6 +60,12 @@ User = get_user_model()
 
 
 def make_active_user(email, user_type, first_name, **extra):
+    """An active account that has signed in before. `last_login` is what a
+    real sign-in records; without it retire (A)'s has_signed_in treats an
+    existing student as never signed in, and enrolling them re-sends
+    credentials and leaves the enrollment PENDING (the same fix as the
+    H-25 fixtures, 877c900)."""
+    extra.setdefault("last_login", timezone.now())
     return User.objects.create_user(
         email=email,
         password="password123",  # nosec  # pragma: allowlist secret
