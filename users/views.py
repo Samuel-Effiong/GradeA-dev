@@ -131,6 +131,11 @@ from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
 
+# H-43: the ONE reply /auth/otp gives for every 202 - an unknown address, a
+# sent code, and a locked reset alike - so its text says nothing about
+# whether an account exists.
+OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
+
 # Founder-approved wording (2026-09-28) for the password-reset email.
 # Wording only: no link.
 RESET_EMAIL_WARNING = (
@@ -888,10 +893,8 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
                         "Accepted",
                         value={
                             "success": True,
-                            "message": "An OTP has been sent if an account with that email exists.",
-                            "data": {
-                                "detail": "An OTP has been sent if an account with that email exists."
-                            },
+                            "message": OTP_SENT_DETAIL,
+                            "data": {"detail": OTP_SENT_DETAIL},
                         },
                         response_only=True,
                     )
@@ -942,10 +945,7 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             return Response(
-                {
-                    "detail": "If an account with that email exists, an OTP has been sent."
-                },
-                status=status.HTTP_202_ACCEPTED,
+                {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
             )
 
         if otp_type == "VERIFY_EMAIL":
@@ -965,10 +965,7 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
                 # Locked out (AUTHZ-L2): no new code and no email, but the
                 # same reply as a send, so this is not an enumeration signal.
                 return Response(
-                    {
-                        "detail": "An OTP has been sent if an account with that email exists."
-                    },
-                    status=status.HTTP_202_ACCEPTED,
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
                 )
 
             message = f"""
@@ -996,7 +993,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         return Response(
-            {"detail": "An OTP has been sent if an account with that email exists."},
+            {"detail": OTP_SENT_DETAIL},
             status=status.HTTP_202_ACCEPTED,
         )
 
