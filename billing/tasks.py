@@ -1602,3 +1602,60 @@ def process_stripe_event(self, event_id, claim_token_iso):
         log_prefix="Stripe webhook (async)",
     )
     return f"{event_id}: {row.event_type} -> HTTP {response.status_code}"
+
+
+@shared_task(bind=True, max_retries=0)
+def fill_billing_transaction_receipt_url(self, transaction_id):
+    """
+    Fill one BillingTransaction's Stripe receipt link, after the purchase
+    that recorded it has committed. Queued by
+    billing.receipts.schedule_receipt_url_fill; see that module for why
+    the link is never resolved inside the webhook transaction.
+
+    max_retries=0: an unresolved link is left empty for
+    sweep_missing_receipt_urls, which is the retry.
+    """
+    from .receipts import fill_receipt_url
+
+    outcome = fill_receipt_url(transaction_id)
+    return f"{transaction_id}: {outcome.value}"
+
+
+@shared_task(bind=True, max_retries=0)
+def sweep_missing_receipt_urls(self):
+    """
+    Hourly safety net for receipt links the on_commit task never filled
+    (broker down at commit, worker lost, Stripe unavailable at the time).
+    Bounded per run; see billing.receipts.sweep_missing_receipt_urls.
+    """
+    from .receipts import sweep_missing_receipt_urls as sweep
+
+    counts = sweep()
+    summary = "Receipt link sweep: " + ", ".join(
+        f"{count} {outcome}" for outcome, count in counts.items()
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def replay_safe_failed_stripe_events(self):
+    """
+    Re-run FAILED Stripe webhook events for the one allow-listed flow, so a
+    customer who paid for overage credits and received nothing is credited
+    without waiting for a human.
+
+    Deliberately narrow: see billing/event_replay.py for why every other
+    event type and flow is denied, and why the allow-list cannot be widened
+    into a refund or a Subscription.modify by a single careless edit.
+    """
+    from .event_replay import replay_safe_failed_events
+
+    counts = replay_safe_failed_events()
+    summary = "Stripe auto-replay: " + ", ".join(
+        f"{count} {outcome}" for outcome, count in counts.items() if count
+    )
+    if not any(counts.values()):
+        summary = "Stripe auto-replay: nothing eligible."
+    logger.info(summary)
+    return summary

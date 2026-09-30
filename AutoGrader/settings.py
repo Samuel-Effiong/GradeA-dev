@@ -881,6 +881,21 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.sweep_stale_stripe_events",
         "schedule": crontab(minute=15),
     },
+    # Fills Stripe receipt links the post-commit task missed (broker down,
+    # worker lost, Stripe unavailable). Links are never resolved inside a
+    # webhook transaction - see billing/receipts.py.
+    "sweep-missing-receipt-urls": {
+        "task": "billing.tasks.sweep_missing_receipt_urls",
+        "schedule": crontab(minute=40),
+    },
+    # Re-runs FAILED webhook events for the ONE allow-listed flow (paid
+    # overage purchases), so a customer who paid and got nothing is
+    # credited without waiting for a human. Every other event type and
+    # flow is denied - see billing/event_replay.py.
+    "replay-safe-failed-stripe-events": {
+        "task": "billing.tasks.replay_safe_failed_stripe_events",
+        "schedule": crontab(minute=50),
+    },
     "cleanup-expired-credit-buckets": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
         "schedule": crontab(minute=0, hour=5),
@@ -980,6 +995,8 @@ BEAT_HEALTH_EXPECTATIONS = {
         timedelta(minutes=10),
     ),
     "sweep-stale-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
+    "sweep-missing-receipt-urls": (timedelta(hours=1), timedelta(hours=3)),
+    "replay-safe-failed-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
     "expire-active-trials": (timedelta(hours=6), timedelta(hours=15)),
     "process-license-renewals": (timedelta(days=1), timedelta(days=2)),
     "process-annual_plan-credit-grants": (timedelta(days=1), timedelta(days=2)),

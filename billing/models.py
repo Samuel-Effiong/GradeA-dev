@@ -2226,6 +2226,26 @@ class StripeEvent(models.Model):
             "reported."
         ),
     )
+    auto_replay_attempts = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=_(
+            "How many times the allow-listed auto-replay task has re-run "
+            "this event's handler (billing/event_replay.py). Capped, so an "
+            "event that fails the same way forever stops being retried and "
+            "starts being reported."
+        ),
+    )
+    auto_replay_note = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        db_default="",
+        help_text=_(
+            "Why the auto-replay task did or did not re-run this event, "
+            "recorded on the row so the decision outlives the logs."
+        ),
+    )
     last_error = models.TextField(
         blank=True,
         default="",

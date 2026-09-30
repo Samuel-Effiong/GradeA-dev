@@ -1,0 +1,27 @@
+# pre-commit run --from-ref 6212ce9 --to-ref HEAD, at fa05589 (2026-09-30), under systemd-run 6G, nice 10, timeout 1800; exit 0
+# Covers every commit in the port, including 81c913f (--no-verify), and the merge of beta abeda10. The earlier run at 8288cc6 is superseded.
+check yaml..............................................................(no files to check)Skipped
+fix end of files............................................................................Passed
+trim trailing whitespace....................................................................Passed
+check python ast............................................................................Passed
+check docstring is first....................................................................Passed
+check for added large files.................................................................Passed
+check for merge conflicts...................................................................Passed
+check toml..............................................................(no files to check)Skipped
+check json..............................................................(no files to check)Skipped
+check xml...............................................................(no files to check)Skipped
+check for case conflicts....................................................................Passed
+check builtin type constructor use..........................................................Passed
+fix utf-8 byte order marker.................................................................Passed
+detect private key..........................................................................Passed
+python tests naming.........................................................................Passed
+debug statements (python)...................................................................Passed
+check for broken symlinks...............................................(no files to check)Skipped
+fix requirements.txt....................................................(no files to check)Skipped
+black.......................................................................................Passed
+mypy........................................................................................Passed
+flake8......................................................................................Passed
+isort.......................................................................................Passed
+bandit......................................................................................Passed
+Detect secrets..............................................................................Passed
+Check gunicorn timeout stays in sync with Stripe webhook claim window...(no files to check)Skipped
