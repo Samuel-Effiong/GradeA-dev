@@ -1636,3 +1636,26 @@ def sweep_missing_receipt_urls(self):
     )
     logger.info(summary)
     return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def replay_safe_failed_stripe_events(self):
+    """
+    Re-run FAILED Stripe webhook events for the one allow-listed flow, so a
+    customer who paid for overage credits and received nothing is credited
+    without waiting for a human.
+
+    Deliberately narrow: see billing/event_replay.py for why every other
+    event type and flow is denied, and why the allow-list cannot be widened
+    into a refund or a Subscription.modify by a single careless edit.
+    """
+    from .event_replay import replay_safe_failed_events
+
+    counts = replay_safe_failed_events()
+    summary = "Stripe auto-replay: " + ", ".join(
+        f"{count} {outcome}" for outcome, count in counts.items() if count
+    )
+    if not any(counts.values()):
+        summary = "Stripe auto-replay: nothing eligible."
+    logger.info(summary)
+    return summary
