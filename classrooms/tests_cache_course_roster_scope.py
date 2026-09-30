@@ -44,12 +44,7 @@ from AutoGrader.cache_generation import (
     versioned_key,
 )
 from AutoGrader.tests_cache_generation import redis_commands_sent_by_this_process
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -80,10 +75,9 @@ class RosterBase(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        # Stage 3 still carries the legacy wildcard deletes; switch them off
-        # so these tests measure the generation mechanism, which is all
-        # that remains once step 4 removes them.
-        self.enterContext(legacy_wildcards_disabled())
+        # Step 4 removed the legacy wildcard deletes, so these tests run on
+        # the real code with nothing patched out (on stage 3 they switched
+        # the wildcards off); run_matrix fails any SCAN a mutation sends.
         # Enrolment and removal email the student through Celery.
         self.enterContext(
             patch("classrooms.services.notifications.safe_delay", lambda *a, **k: None)
@@ -265,9 +259,12 @@ class EnrolmentBumpCostTests(RosterBase):
             results[300],
             f"Redis commands for one enrolment must not grow with the class: {results}",
         )
-        # Pinned exactly: one pipeline of SET NX + INCR per scope. The old
+        # Pinned exactly: one pipeline of SET NX + INCR per scope, sent
+        # twice, because the enrolment commits inside an atomic block and
+        # H-25 replays every in-transaction bump once at commit (stage 3
+        # alone, without H-25, pins {"SET": 5, "INCR": 5}). The old
         # per-classmate fan-out sent 2 per enrolled student on top.
-        self.assertEqual(results[30], {"SET": 5, "INCR": 5})
+        self.assertEqual(results[30], {"SET": 10, "INCR": 10})
 
 
 class StudentCourseKeyShapeTests(RosterBase):
