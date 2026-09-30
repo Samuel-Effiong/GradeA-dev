@@ -20,7 +20,7 @@ from rest_framework.test import APITestCase
 
 from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass, ReasonCode
 from audit.models import AuditEvent
-from AutoGrader.reason_codes import AUDIT_ONLY_CODES
+from AutoGrader.reason_codes import AUDIT_ONLY_CODES, REASON_CODES
 from classrooms.models import School
 from users.models import PasswordResetOTP, UserTypes
 
@@ -254,9 +254,11 @@ class VerifyEmailDoorTests(DoorBase):
     def test_every_code_verify_records_is_in_the_catalogue(self):
         """S6a's emitter refuses a code outside the catalogue, which would
         leave a locked attempt with no event at all."""
+        # Updated on purpose (the auth-lock envelope slice): VERIFY_LOCKED is
+        # now a user-facing code; either list is the catalogue.
         for code in ("CODE_MISSING", "INVALID_CODE", "CODE_EXPIRED", "VERIFY_LOCKED"):
             with self.subTest(code=code):
-                self.assertIn(ReasonCode(code), AUDIT_ONLY_CODES)
+                self.assertIn(ReasonCode(code), AUDIT_ONLY_CODES | set(REASON_CODES))
 
     def test_the_user_still_signs_in_when_the_audit_store_is_down(self):
         """FR-A-11."""

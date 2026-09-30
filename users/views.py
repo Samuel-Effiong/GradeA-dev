@@ -19,7 +19,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -67,6 +67,7 @@ from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.reason_codes import add_coded_envelope
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -79,6 +80,7 @@ from classrooms.serializers import (
     SchoolAdminRegistrationCompletionSerializer,
     StudentRegistrationCompletionSerializer,
 )
+from students.item_results import UNCLASSIFIED, failure_summary, item_result
 from students.models import BackgroundTaskStatus, BatchUploadSession
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
@@ -88,6 +90,7 @@ from students.task_tracking import (
     normalize_processing_task_status,
 )
 from users.auth_audit import account_for_email, sign_in_failed, sign_in_succeeded
+from users.exceptions import EnvelopedThrottled
 from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
@@ -671,13 +674,16 @@ def _reset_locked_response(otp_obj):
         "your current password. If you didn't try to reset your password, "
         "someone else may have. Your account is still safe."
     )
+    # v2's S6a N3 (SM ruling): every documented field exactly as before,
+    # with the coded envelope added beside them.
+    body = {
+        "code": "RESET_LOCKED",
+        "message": message,
+        "locked_until": locked_until.isoformat(),
+        "retry_after_seconds": retry_after,
+    }
     response = Response(
-        {
-            "code": "RESET_LOCKED",
-            "message": message,
-            "locked_until": locked_until.isoformat(),
-            "retry_after_seconds": retry_after,
-        },
+        add_coded_envelope(body, "RESET_LOCKED", message),
         status=status.HTTP_429_TOO_MANY_REQUESTS,
     )
     response["Retry-After"] = str(retry_after)
@@ -703,6 +709,11 @@ def _auth_error_example(name, message, summary=None):
         response_only=True,
     )
 
+
+_VERIFY_LOCKED_TEXT = (
+    "Too many incorrect codes for this email address. Please wait, then "
+    "request a new verification email. Expected available in 1800 seconds."
+)
 
 _THROTTLED_EXAMPLE = _auth_error_example(
     "Throttled",
@@ -739,6 +750,15 @@ returns a JWT pair, so the user is signed in straight away.
 - The code from a self-registration email is valid for **15 minutes**; requesting a
   new one (`/auth/otp`) replaces the old code.
 - Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+
+**Two different 429s.** After **5 wrong codes for one address** (from any number
+of IPs) the address is locked for 30 minutes, and every attempt, a correct code
+included, answers **429** with `error.field_errors.code == "VERIFY_LOCKED"` and a
+`Retry-After` header. Show `message`, then offer "Send a new link" once the wait
+is over. The per-IP rate limit has **no** `code`. The lock's body also carries
+`reason_code`, `error_class`, `remediation`, `retryable`, `params` and `reference`
+(quote `reference` when contacting support); the per-IP limit's does not. An
+address with no account is locked and answered exactly the same way.
 """,
         request=VerifyCustomUserSerializer,
         examples=[
@@ -791,8 +811,37 @@ returns a JWT pair, so the user is signed in straight away.
             ),
             429: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Too many attempts from this IP (5/hour). Wait for `Retry-After` seconds.",
-                examples=[_THROTTLED_EXAMPLE],
+                description=(
+                    "VERIFY_LOCKED (5 wrong codes for this address, 30 min; has "
+                    "`error.field_errors.code`), or the per-IP rate limit (5/hour; "
+                    "no `code`). Wait for `Retry-After` seconds either way."
+                ),
+                examples=[
+                    OpenApiExample(
+                        "Address locked",
+                        summary="VERIFY_LOCKED: 5 wrong codes for this address",
+                        value={
+                            "success": False,
+                            "message": _VERIFY_LOCKED_TEXT,
+                            "error": {
+                                "field_errors": {
+                                    "detail": _VERIFY_LOCKED_TEXT,
+                                    "code": "VERIFY_LOCKED",
+                                    "reason_code": "VERIFY_LOCKED",
+                                    "error_class": "USER",
+                                    "remediation": (
+                                        "Wait, then request a new verification email."
+                                    ),
+                                    "retryable": True,
+                                    "params": {},
+                                    "reference": "<request id>",
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                    _THROTTLED_EXAMPLE,
+                ],
             ),
         },
     )
@@ -841,12 +890,17 @@ returns a JWT pair, so the user is signed in straight away.
                 "VERIFY_LOCKED",
                 denied=True,
             )
-            raise Throttled(
+            # v2's S6a N3 (SM ruling): the same 429, text and Retry-After,
+            # plus `code` VERIFY_LOCKED and the coded envelope, so a client
+            # can tell this lock from the per-IP rate limit.
+            raise EnvelopedThrottled(
                 wait=max(1, int(wait)),
                 detail=(
                     "Too many incorrect codes for this email address. Please "
                     "wait, then request a new verification email."
                 ),
+                reason_code="VERIFY_LOCKED",
+                code_value="VERIFY_LOCKED",
             )
 
         def refuse(message, account, reason_code):
@@ -1090,7 +1144,9 @@ is locked for **30 minutes**: the answer becomes **429** with
 `error.field_errors.code == "RESET_LOCKED"`, plus `locked_until` (UTC ISO time),
 `retry_after_seconds` and a `Retry-After` header. Show `message` as is; it tells
 the user their password was not changed. Requesting a new code during the lock
-sends nothing.
+sends nothing. The body also carries `reason_code` ("RESET_LOCKED"),
+`error_class`, `remediation`, `retryable`, `params` and `reference` (quote
+`reference` when contacting support).
 
 **Telling the two 429s apart:** `RESET_LOCKED` has `error.field_errors.code`;
 the plain rate limit (10 requests/hour per IP) does not.
@@ -2248,7 +2304,15 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             },
             description="Successfully authenticated",
         ),
-        401: OpenApiResponse(description="Invalid credentials"),
+        401: OpenApiResponse(
+            description=(
+                "Invalid credentials, or the account is locked after too many "
+                "failed attempts. The lock's body has `error.field_errors.code` "
+                '"account_locked" and `reason_code` "ACCOUNT_LOCKED", plus '
+                "`error_class`, `remediation`, `retryable`, `params` and "
+                "`reference`; show `message` either way."
+            )
+        ),
     },
 )
 class TokenObtainPairView(BaseTokenObtainPairView):
@@ -2639,7 +2703,11 @@ class TaskViewSet(viewsets.ViewSet):
                 "submission",
                 "submission__assignment",
                 "assignment__course",
-            ).all()
+            )
+            # FR-A-07 (S7a, v2's N1): every per-item list is in item_index
+            # order (upload order), whatever order the items finished in;
+            # items with no index (older rows) come last, oldest first.
+            .order_by(F("item_index").asc(nulls_last=True), "created_at")
         )
 
         if tracked_tasks:
@@ -2655,13 +2723,8 @@ class TaskViewSet(viewsets.ViewSet):
                 # Get context for this specific task
                 task_context = get_task_context(processing_task)
 
-                task_entry = {
-                    "status": processing_task.status,
-                    "file_name": processing_task.file_name,
-                    "task_id": processing_task.celery_task_id,
-                    "error": processing_task.error,
-                    "context": task_context,  # add context
-                }
+                # FR-A-07 (S7a): the old keys, plus the item's own result.
+                task_entry = item_result(processing_task, task_context)
 
                 if processing_task.status == "SUCCESS":
                     success.append(task_entry)
@@ -2697,6 +2760,7 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failures,
                 "cancelled_list": cancelled,
                 "pending_list": pending,
+                **failure_summary(failures),
             }
         else:
             # Fallback to session.results (legacy, for sessions without tracked tasks)
@@ -2749,6 +2813,13 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failure_entries,
                 "cancelled_list": [],
                 "pending_list": [],
+                # FR-A-07: a legacy session has no codes; its failures count
+                # as unclassified.
+                "failure_codes": (
+                    {UNCLASSIFIED: len(failure_entries)} if failure_entries else {}
+                ),
+                "stopped_at_item": None,
+                "resumable": False,
             }
 
         # Use the new serializer

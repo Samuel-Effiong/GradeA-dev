@@ -17,6 +17,7 @@ from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
 from users.auth_audit import failure_actor
+from users.exceptions import EnvelopedAuthenticationFailed
 from users.models import (
     BetaWhitelist,
     CustomUser,
@@ -481,7 +482,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 error_class=ErrorClass.USER,
                 reason_code="ACCOUNT_LOCKED",
             )
-            raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+            # v2's S6a N3 (SM ruling): the same 401, message and
+            # "account_locked" code, with the coded envelope added.
+            raise EnvelopedAuthenticationFailed(
+                self.LOCKED_MESSAGE,
+                "account_locked",
+                reason_code="ACCOUNT_LOCKED",
+                code_value="account_locked",
+            )
 
         try:
             data = super().validate(attrs)
@@ -643,6 +651,19 @@ class BatchSessionResultTaskEntrySerializer(serializers.Serializer):
     error = serializers.CharField(allow_null=True)
     # Add context for each task
     context = TaskContextSerializer(allow_null=True)
+    # FR-A-07 (S7a, 08a §4.3): the item's own result. Not required, so a
+    # legacy session (results JSON, no tracked items) still serializes.
+    item_id = serializers.CharField(required=False, allow_null=True)
+    item_index = serializers.IntegerField(required=False, allow_null=True)
+    submission_id = serializers.CharField(required=False, allow_null=True)
+    reason_code = serializers.CharField(required=False, allow_null=True)
+    error_class = serializers.CharField(required=False, allow_null=True)
+    message = serializers.CharField(required=False, allow_null=True)
+    remediation = serializers.CharField(required=False, allow_null=True)
+    retryable = serializers.BooleanField(required=False)
+    retry_count = serializers.IntegerField(required=False)
+    reference = serializers.CharField(required=False, allow_null=True)
+    replaced_existing = serializers.BooleanField(required=False, allow_null=True)
 
 
 class BatchSessionResultSerializer(serializers.Serializer):
@@ -667,6 +688,12 @@ class BatchSessionResultSerializer(serializers.Serializer):
     failure_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
     cancelled_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
     pending_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
+    # FR-A-07 (S7a): per-code failure counts ("UNCLASSIFIED" for a failure
+    # with no code), the first item a mid-batch credit stop failed at, and
+    # whether any failed item can be retried as it is.
+    failure_codes = serializers.DictField(child=serializers.IntegerField())
+    stopped_at_item = serializers.IntegerField(allow_null=True)
+    resumable = serializers.BooleanField()
 
 
 class TaskCancelSerializer(serializers.Serializer):
