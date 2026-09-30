@@ -1253,6 +1253,7 @@ def _match_enrolled_student(course, identified_name, file_name=None, teacher=Non
     roster (`teacher` defaults to the course's teacher). Only the paper's own
     text is ever quoted for an unmatched name.
     """
+    unnamed = not file_name
     file_name = file_name or UNNAMED_PAPER
     name = " ".join((identified_name or "").split())
 
@@ -1288,7 +1289,15 @@ def _match_enrolled_student(course, identified_name, file_name=None, teacher=Non
             params={
                 "file_name": file_name,
                 "student_display": f"{student.first_name} {student.last_name}".strip(),
-            }
+            },
+            # This template opens with the file name. A real name is shown as
+            # given ("scan.png belongs to ..."); only the stand-in is
+            # capitalised to start the sentence (v2's S6c N1).
+            display=(
+                {"file_name": UNNAMED_PAPER[:1].upper() + UNNAMED_PAPER[1:]}
+                if unnamed
+                else None
+            ),
         )
     raise unmatched(
         f'the name "{name}" doesn\'t match anyone on the roster'  # noqa: B907
