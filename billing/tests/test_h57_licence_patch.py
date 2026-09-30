@@ -16,8 +16,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from billing.models import LicenseBillingMethod, PlanTier, PlanType
-from billing.serializers import LICENCE_NOT_PATCHABLE
+from billing.models import LicenseBillingMethod, LicenseSubscription, PlanTier, PlanType
+from billing.serializers import LICENCE_NOT_PATCHABLE, STRIPE_PRICE_NOT_PATCHABLE
 from billing.tests.test_h28_licence_stripe_divergence import _make_plan
 from billing.tests.test_license_cancellation import _make_license
 from classrooms.models import School
@@ -140,7 +140,7 @@ class LicencePatchTests(APITestCase):
         payload = {
             **self.unchanged(),
             "auto_renew": False,
-            "custom_price_cents": 12_345,
+            "custom_price_cents": None,
             "teacher_emails": [],
             "carry_forward_teachers": True,
         }
@@ -148,8 +148,31 @@ class LicencePatchTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         after = self.stored()
         self.assertFalse(after["auto_renew"])
-        self.assertEqual(after["custom_price_cents"], 12_345)
+        self.assertIsNone(after["custom_price_cents"])
         self.assertEqual(after["max_seats"], 10)
+
+    def test_a_stripe_licences_price_changes_only_through_change_plan(self):
+        """v2's note 3: a PATCHed price moved only the local row, so the
+        licence and Stripe disagreed on what the school pays."""
+        before = self.stored()
+        response = self.client.patch(
+            self.url, {"custom_price_cents": 12_345, "auto_renew": False}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            str(response.data["custom_price_cents"][0]), STRIPE_PRICE_NOT_PATCHABLE
+        )
+        self.assertEqual(self.stored(), before)
+
+    def test_an_offline_licences_price_is_still_patchable(self):
+        LicenseSubscription.objects.filter(pk=self.licence.pk).update(
+            billing_method=LicenseBillingMethod.OFFLINE, stripe_subscription_id=None
+        )
+        response = self.client.patch(
+            self.url, {"custom_price_cents": 12_345}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(self.stored()["custom_price_cents"], 12_345)
 
     def test_a_blank_stripe_id_echo_matches_a_null_stored_one(self):
         self.licence.stripe_subscription_id = None

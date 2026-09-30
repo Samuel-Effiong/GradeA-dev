@@ -15,6 +15,8 @@ S = "billing/stripe_service.py"
 M = "billing/license_stripe_mutation.py"
 Z = "billing/serializers.py"
 V = "billing/license_views.py"
+# 0b (2026-09-30): mutation runs on its own test DB, never the regression's.
+SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree")
 LOG = "license_stripe_mutation.log_provider_error(intent, exc)\n"
 TA = " + license_stripe_mutation.TRY_AGAIN"
 SEATS_FIXED = (
@@ -155,11 +157,31 @@ MUTANTS = {
         "        license_stripe_mutation.log_provider_error(exc.intent, exc)\n",
         '        logger.exception("Licence change not recorded: %s", exc)\n',
     ),
+    # Round 3 (v2's notes 2 and 3).
+    "C1_stripe_price_patchable_again": (
+        Z,
+        "                and self.instance.billing_method == LicenseBillingMethod.STRIPE\n",
+        "                and False\n",
+    ),
+    "C2_offline_price_refused_too": (
+        Z,
+        "                and self.instance.billing_method == LicenseBillingMethod.STRIPE\n",
+        "                and True\n",
+    ),
+    "W1_plan_message_framed_twice": (
+        L,
+        "        except ValueError:\n"
+        "            # The inner messages are already the client's fixed text (H-60);\n",
+        "        except ValueError as exc:\n"
+        '            raise ValueError(f"Stripe price change failed: {exc}") from exc\n'
+        "            # The inner messages are already the client's fixed text (H-60);\n",
+    ),
 }
 
 TESTS = [
     "billing.tests.test_h60_licence_stripe_text",
     "billing.tests.test_h57_licence_patch",
+    "billing.tests.test_h28_plan_phases",
 ]
 originals: dict = {}
 results = {}
@@ -174,7 +196,7 @@ try:
         open(path, "w").write(mutated)
         p = subprocess.run(
             [sys.executable, "manage.py", "test", *TESTS]
-            + ["--settings=settings_worktree", "--keepdb", "--noinput"],
+            + [f"--settings={SETTINGS}", "--keepdb", "--noinput"],
             capture_output=True,
             text=True,
             env={**os.environ, "EXEMPT_EMAIL_DOMAINS": ""},
@@ -188,7 +210,7 @@ finally:
     for path, src in originals.items():
         open(path, "w").write(src)
 
-with open("docs/evidence/h60-h57-licence-seats/r2_mutation_results.json", "w") as f:
+with open("docs/evidence/h60-h57-licence-seats/r3_mutation_results.json", "w") as f:
     json.dump(results, f, indent=2)
     f.write("\n")
 print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])

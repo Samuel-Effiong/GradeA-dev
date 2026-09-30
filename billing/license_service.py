@@ -2423,8 +2423,10 @@ class LicenseSubscriptionService:
                     new_effective_price,
                 )
             )
-        except ValueError as exc:
-            raise ValueError(f"Stripe price change failed: {exc}") from exc
+        except ValueError:
+            # The inner messages are already the client's fixed text (H-60);
+            # a "Stripe price change failed: " frame only doubled them (v2).
+            raise
 
         # Phase D.
         def revalidate(current):

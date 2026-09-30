@@ -38,16 +38,19 @@ No, so neither row closes. At `8de3078`:
 - Each message keeps its old prefix, so the H-28 tests that pin prefixes
   ("Stripe error while updating", "Card declined", "Stripe price change
   failed", "Failed to schedule Stripe cancellation") stand unchanged.
-- **Where Stripe's text still goes:**
-  - The intent's `failure_reason`, which H-28's reconciliation reads. This
-    is unchanged; `abandon`, `_set_status` and `undo_unpaid_change` already
-    wrote it there.
-  - A new `license_stripe_mutation.log_provider_error(intent, exc)`. It logs
-    the licence id, intent id, exception class, Stripe error code and
-    Stripe request id, and never the message.
+- **Where Stripe's text goes now** (reworded after v2's note 1):
+  - **Never:** the client body, or the new route log line
+    `license_stripe_mutation.log_provider_error(intent, exc)`. That line
+    logs the licence id, intent id, exception class, Stripe error code and
+    Stripe request id only.
+  - **Kept, by design, for the human reconciler:** the intent's
+    `failure_reason` (unchanged; `abandon`, `_set_status` and
+    `undo_unpaid_change` already wrote it there). On an escalation,
+    H-28's reconciliation alert keeps it too: the operator ERROR log line
+    and the super-admin email, via `escalate(why)`.
 - **Not changed:**
-  - H-28's own reconciliation and lost-response log lines, which already
-    carry Stripe's text server-side for a human reconciler.
+  - H-28's reconciliation and lost-response log lines, and the super-admin
+    email, which carry Stripe's text server-side for a human reconciler.
   - "Plan {name} has no stripe_price_id", which is our own configuration
     text, not provider text.
 
@@ -219,3 +222,52 @@ reading).
 | Prefix: 9fe13c3's views and raise sites, the new route tests kept | 7/7 FAIL (the routes answered 500) | `r2_prefix_9fe13c3_failing.txt` |
 | Mutation: A1–A11 (A1/A3 corrected), B1–B6, N1–N5 | 22/22 killed, **every one by named tests** (A1 by `test_seats_unreadable_subscription`, A3 by `test_seats_refused_by_stripe`), 0 survivors, source clean | `r2_mutation_log.txt`, `r2_mutation_results.json` |
 | ONE billing regression | 1910 OK (211 s of test time) | `r2_regression_billing.txt` (trimmed; full log in GAP-evidence-logs) |
+
+## Round 3: v2's notes 1–3 (SM ruling)
+
+v2 verified round 2 as VERIFIED-WITH-NOTES (`VERIFICATION_h60_h57.md`).
+
+- **Note 1 (wording):** the "where Stripe's text goes" section above and
+  the NotRecordedRouteTests comment now say exactly where it goes. The
+  client body and the new ids-only route log line never carry it. The
+  intent's failure_reason, and on an escalation H-28's reconciliation alert
+  (the operator log and the super-admin email), keep it for the human, by
+  design.
+- **Note 2 (double frame):** `change_license_plan` wrapped its inner fixed
+  messages as "Stripe price change failed: Card declined. …". It now
+  re-raises them unchanged.
+  - **Behaviour change:** test_h28_plan_phases'
+    `test_a_failed_price_creation_changes_nothing_and_frees_the_licence`
+    pinned "Stripe price change failed". It now pins
+    "^Custom price creation failed", the inner fixed text.
+  - The refusal and the intent state are unchanged.
+  - The two configuration refusals that start "Stripe price change failed:"
+    (no subscription id, no stripe_price_id) are single-framed already and
+    unchanged.
+- **Note 3 (real divergence):** a PATCH of `custom_price_cents` on a
+  STRIPE-billed licence changed only the local price, so the licence and
+  Stripe disagreed on what the school pays.
+  - A CHANGED value is now refused on a Stripe-billed licence with a 400:
+    `STRIPE_PRICE_NOT_PATCHABLE`, which points to change_plan with
+    custom_price_cents. Nothing in the request is applied.
+  - An unchanged echo still gets 200.
+  - An OFFLINE licence's price stays PATCHable.
+  - **Frontend contract change:** this 400 is new.
+  - The echo test now echoes the stored (null) price, and two tests were
+    added: a Stripe licence's changed price → 400; an offline licence's →
+    200, applied.
+- **Mutants added:**
+  - C1: a Stripe price is patchable again.
+  - C2: the offline price is refused too.
+  - W1: the double frame is back.
+  - `test_h28_plan_phases` joins the mutation tests.
+- **Note 4 (dead code)** goes to the backlog (SM). **Note 5** is already
+  flagged.
+
+### Round 3 gates
+
+| Gate | Result | Log |
+|---|---|---|
+| Changed modules and guards | see log | `r3_changed_modules.txt` |
+| Mutation: A1–A11, B1–B6, N1–N5, C1–C2, W1 (own DB) | see log | `r3_mutation_log.txt`, `r3_mutation_results.json` |
+| ONE billing regression (timestamped, `--verbosity 2`) | see log | `r3_regression_billing.txt` |

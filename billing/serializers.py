@@ -1938,6 +1938,12 @@ LICENCE_NOT_PATCHABLE = {
 }
 
 
+STRIPE_PRICE_NOT_PATCHABLE = (
+    "The price of a Stripe-billed licence can't be changed here. Use the "
+    "change_plan action with custom_price_cents."
+)
+
+
 def _stored_differs(instance, field, value) -> bool:
     """True when a PATCH `value` for `field` is not what `instance` holds."""
     stored = getattr(instance, field)
@@ -2121,6 +2127,18 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
                 if field in attrs
                 and _stored_differs(self.instance, field, attrs[field])
             }
+            # The price of a Stripe-billed licence is Stripe's too: a local-only
+            # change would diverge from what Stripe charges (v2's note 3, the
+            # divergence H-28 removed from change_plan). Offline licences
+            # keep a PATCHable price.
+            if (
+                "custom_price_cents" in attrs
+                and self.instance.billing_method == LicenseBillingMethod.STRIPE
+                and _stored_differs(
+                    self.instance, "custom_price_cents", attrs["custom_price_cents"]
+                )
+            ):
+                refused["custom_price_cents"] = STRIPE_PRICE_NOT_PATCHABLE
             # A non-empty list is a caller who believes teachers were added.
             # Empty or absent is ignored, as an echoed create form sends it.
             # carry_forward_teachers is ignored: it defaults to True and only

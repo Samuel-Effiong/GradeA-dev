@@ -7,8 +7,11 @@ Stripe's own text (QA-ERR-03, "no raw library text").
 Each licence route returned `str(ValueError)` as its 400, and the service
 built that ValueError from Stripe's message: update_seats, change_plan
 (through apply_licence_price_at_stripe), cancel and convert-to-offline.
-Every site now raises fixed text. Stripe's message stays on the intent's
-failure_reason for reconciliation, and the log line carries ids only.
+Every site now raises fixed text. The client body and the new ids-only
+route log line never carry Stripe's message. It stays on the intent's
+failure_reason, and on an escalation H-28's reconciliation alert (the
+operator log line and the super-admin email) keeps it for the human, by
+design.
 
 Each test makes Stripe fail with a SENTINEL message at one site, then
 asserts that the sentinel reaches neither the error the route would show
@@ -216,8 +219,9 @@ class NotRecordedRouteTests(LicencePhaseTestCase):
                 response = self.client.post(
                     self.url(name), payload or {}, format="json"
                 )
-        # ids only on the new line; H-28's own reconciliation lines are not
-        # client-facing and carry the database error, never Stripe's text.
+        # The new route line carries ids only. H-28's own reconciliation
+        # alert (operator log + super-admin email) is not client-facing and
+        # may carry Stripe's detail for the human, by design (v2 note 1).
         self.assertTrue(
             any(str(self.only_intent().id) in line for line in logs.output), logs.output
         )
