@@ -1,0 +1,12 @@
+# L3: the heartbeat's extend is compare-and-extend
+# file: AutoGrader/beat_locks.py (occurrence 1)
+# old: '    "if redis.call(\'get\', KEYS[1]) == ARGV[1] then "\n    "return redis.call(\'pexpire\', KEYS[1], ARGV[2]) end return 0"\n'
+# new: '    "return redis.call(\'pexpire\', KEYS[1], ARGV[2])"\n'
+# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# exit: 1
+# elapsed_s: 13.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+
+FAILED (failures=1)

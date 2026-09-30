@@ -1,0 +1,12 @@
+# L9: the TTL never exceeds max_hold
+# file: AutoGrader/beat_locks.py (occurrence 1)
+# old: '    ttl_seconds = min(_seconds(ttl), max_hold_seconds)\n'
+# new: '    ttl_seconds = _seconds(ttl)\n'
+# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# exit: 1
+# elapsed_s: 10.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval) [escalate-stale-licence-stripe-intents]
+
+FAILED (failures=1)

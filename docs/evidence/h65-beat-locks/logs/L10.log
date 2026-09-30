@@ -1,0 +1,12 @@
+# L10: an exemption is a scheduled, named choice
+# file: AutoGrader/beat_locks.py (occurrence 1)
+# old: '    "dashboard.tasks.record_concurrent_users": "one sample row per tick",\n'
+# new: ''
+# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# exit: 1
+# elapsed_s: 9.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt)
+
+FAILED (failures=1)
