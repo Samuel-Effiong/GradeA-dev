@@ -42,6 +42,7 @@ from AutoGrader.reason_codes import (
     LEGACY_CODES,
     REASON_CODES,
     CodedError,
+    coded_entry,
     coded_response,
 )
 from billing import access_control
@@ -249,7 +250,13 @@ class CatalogueCompletenessTests(SimpleTestCase):
                 self.assertLessEqual(spec.placeholders(), spec.params)
                 self.assertLessEqual(set(spec.defaults), spec.params)
                 self.assertNotIn("{", spec.remediation)
-                self.assertTrue(spec.message.strip() and spec.remediation.strip())
+                self.assertTrue(spec.message.strip())
+                # S7d: "" is "nothing to do" (the body says null), never
+                # whitespace.
+                self.assertEqual(spec.remediation, spec.remediation.strip())
+                for alternative in spec.alternative_remediations:
+                    self.assertNotIn("{", alternative)
+                    self.assertTrue(alternative.strip())
                 if spec.http_status == 503:
                     self.assertIsNotNone(spec.retry_after)
 
@@ -289,6 +296,289 @@ class CatalogueCompletenessTests(SimpleTestCase):
         ):
             with self.subTest(code=code):
                 self.assertIn(code, emitted)
+
+
+#: The QA catalogue additions (sections B-F), exactly as approved by the
+#: founder acting as QA on 2026-09-30
+#: (docs/phase2/qa/catalogue_additions_proposal.md): (status, message
+#: template, remediation). An empty remediation is the proposal's "none".
+APPROVED_ADDITIONS = {
+    "REGISTRATION_PAUSED": (
+        429,
+        "Student registration is paused for a short while because of too many "
+        "invalid activation codes. Please try again later; if your code has "
+        "expired by then, ask for a new one.",
+        "Try again in a few minutes. If your code has expired, ask your teacher "
+        "for a new one.",
+    ),
+    "FILE_NOT_A_PDF": (
+        422,
+        "{file_name} is not a PDF. If it is a photo or scan, upload it as an "
+        "image instead.",
+        "Upload the photo or scan as an image (JPEG, PNG, GIF or WebP).",
+    ),
+    "ROSTER_NO_INPUT": (
+        400,
+        "Upload a roster file or paste your student list.",
+        "Choose a CSV file, or paste rows copied from your spreadsheet.",
+    ),
+    "ROSTER_EMPTY": (
+        400,
+        "This roster has no student rows.",
+        "Check that the file has one student per row, then try again.",
+    ),
+    "ROSTER_FILE_UNREADABLE": (
+        400,
+        "{file_name} isn't readable as text.",
+        "Export your roster as a CSV file (UTF-8) and try again.",
+    ),
+    "ROSTER_TOO_MANY_ROWS": (
+        400,
+        "This roster has {row_count} rows. Upload at most {max_rows} rows at a "
+        "time.",
+        "Split the roster into smaller files.",
+    ),
+    "ROW_NAME_MISSING": (
+        422,
+        "Row {row}: a first and a last name are required.",
+        "Add the missing name and import the row again.",
+    ),
+    "ROW_NAME_INVALID": (
+        422,
+        "Row {row}: each name needs between 2 and 150 characters.",
+        "Correct the name and import the row again.",
+    ),
+    "ROW_ALREADY_ENROLLED": (
+        422,
+        "Row {row}: {student_display} is already in this course.",
+        "",
+    ),
+    "ROW_NAME_CLASH": (
+        422,
+        "Row {row}: a student named {student_display} is already in this course.",
+        "Add an email address to tell the two students apart.",
+    ),
+    "ROW_STAFF_EMAIL": (
+        422,
+        "Row {row}: this email can't be added as a student.",
+        "Use the student's own email address.",
+    ),
+    "ROW_OTHER_SCHOOL": (
+        422,
+        "Row {row}: this account can't be added to this school. If you believe "
+        "this is a mistake, contact your school administrator.",
+        "",
+    ),
+    "ROW_ACCOUNT_DISABLED": (
+        422,
+        "Row {row}: this student's account is disabled.",
+        "Contact support if they should have access.",
+    ),
+    "ROW_EMAIL_INVALID": (
+        422,
+        'Row {row}: "{email}" isn\'t a valid email address.',
+        "Correct the email and import the row again.",
+    ),
+    "ROW_DUPLICATE": (422, "Row {row} repeats row {first_row}.", ""),
+    "ROW_FAILED": (
+        422,
+        "Row {row}: this student couldn't be added.",
+        "Check the row and try again. If it keeps failing, contact support and "
+        "quote the reference.",
+    ),
+    "TEACHER_LIST_EMPTY": (
+        400,
+        "Add at least one teacher.",
+        "Enter the teachers' email addresses.",
+    ),
+    "LICENCE_INACTIVE": (
+        400,
+        "This licence isn't active, so teachers can't be added to it.",
+        "Renew the licence, or contact us.",
+    ),
+    "LICENCE_SEATS_EXCEEDED": (
+        400,
+        "Your licence has {availability} ({in_use} of {max_seats} in use).",
+        "Add fewer teachers, remove a teacher, or ask us to add seats.",
+    ),
+    "TEACHER_EMAIL_NOT_BUSINESS": (
+        422,
+        "{email} isn't a school or work email address.",
+        "Use the teacher's school or work email.",
+    ),
+    "TEACHER_EMAIL_OTHER_ROLE": (
+        422,
+        "This email can't be added as a teacher.",
+        "Use the teacher's own account email.",
+    ),
+    "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION": (
+        422,
+        "{email} has their own subscription, which must be cancelled before they "
+        "can join the licence.",
+        "Ask the teacher to cancel their individual subscription, then add them "
+        "again.",
+    ),
+    "TEACHER_IN_OTHER_SCHOOL": (
+        422,
+        "This teacher already belongs to another school.",
+        "Contact support if the teacher has moved schools.",
+    ),
+    "TEACHER_ALREADY_ON_LICENCE": (422, "{email} is already on this licence.", ""),
+    "TEACHER_NOT_ON_LICENCE": (
+        422,
+        "This teacher isn't an active teacher on this licence.",
+        "",
+    ),
+    "TEACHER_ADD_FAILED": (
+        422,
+        "We couldn't add this teacher.",
+        "Try again. If it keeps failing, contact support and quote the reference.",
+    ),
+    "TEACHER_REMOVE_FAILED": (
+        422,
+        "We couldn't remove this teacher.",
+        "Try again. If it keeps failing, contact support and quote the reference.",
+    ),
+    "SUBMISSION_NOT_GRADED": (
+        400,
+        "This submission hasn't been graded yet, so it can't be published.",
+        "Grade it first, then publish.",
+    ),
+}
+
+
+class QaCatalogueAdditionsTests(SimpleTestCase):
+    """S7d: the approved codes, their texts and statuses, exactly."""
+
+    def test_every_approved_code_is_user_facing_with_its_approved_text(self):
+        for value, (http_status, message, remediation) in APPROVED_ADDITIONS.items():
+            with self.subTest(code=value):
+                spec = REASON_CODES[ReasonCode(value)]
+                self.assertEqual(spec.error_class, ErrorClass.USER)
+                self.assertEqual(spec.http_status, http_status)
+                self.assertEqual(spec.message, message)
+                self.assertEqual(spec.remediation, remediation)
+
+    def test_the_seat_message_reads_as_both_approved_forms(self):
+        def seats(**params):
+            availability = (
+                f"{params['remaining']} seats left, but you're adding "
+                f"{params['adding']} teachers"
+                if params["remaining"]
+                else "no seats left"
+            )
+            return str(
+                CodedError(
+                    ReasonCode.LICENCE_SEATS_EXCEEDED,
+                    params=params,
+                    display={"availability": availability},
+                )
+            )
+
+        self.assertEqual(
+            seats(remaining=2, adding=5, in_use=8, max_seats=10),
+            "Your licence has 2 seats left, but you're adding 5 teachers "
+            "(8 of 10 in use).",
+        )
+        self.assertEqual(
+            seats(remaining=0, adding=1, in_use=10, max_seats=10),
+            "Your licence has no seats left (10 of 10 in use).",
+        )
+
+    def test_the_individual_subscription_text_lives_in_one_constant(self):
+        from AutoGrader import reason_codes
+
+        self.assertEqual(
+            REASON_CODES[ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION].message,
+            reason_codes.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION_MESSAGE,
+        )
+
+    def test_a_row_code_always_carries_its_row(self):
+        for code, spec in REASON_CODES.items():
+            if code.value.startswith("ROW_"):
+                with self.subTest(code=code):
+                    self.assertIn("row", spec.params)
+                    self.assertIn("{row}", spec.message)
+
+    def test_no_neutral_code_names_a_role_or_a_school(self):
+        for value in (
+            "ROW_STAFF_EMAIL",
+            "ROW_OTHER_SCHOOL",
+            "TEACHER_EMAIL_OTHER_ROLE",
+            "TEACHER_IN_OTHER_SCHOOL",
+        ):
+            with self.subTest(code=value):
+                spec = REASON_CODES[ReasonCode(value)]
+                self.assertLessEqual(spec.params, {"row"})
+                for word in ("admin", "staff", "super", "{school"):
+                    self.assertNotIn(word, spec.message.lower())
+
+
+class RemediationChoiceTests(SimpleTestCase):
+    """S7d: one code, a remediation per route (TEACHER_LIST_EMPTY), and "none"
+    as null."""
+
+    def test_an_approved_alternative_is_carried_to_the_body(self):
+        error = CodedError(
+            ReasonCode.TEACHER_LIST_EMPTY, remediation="Choose the teachers to remove."
+        )
+        self.assertEqual(error.remediation, "Choose the teachers to remove.")
+        body = coded_response(error).data
+        self.assertEqual(body["remediation"], "Choose the teachers to remove.")
+
+    def test_the_default_is_the_specs(self):
+        error = CodedError(ReasonCode.TEACHER_LIST_EMPTY)
+        self.assertEqual(error.remediation, "Enter the teachers' email addresses.")
+        self.assertEqual(
+            coded_response(error).data["remediation"],
+            "Enter the teachers' email addresses.",
+        )
+
+    def test_an_unapproved_remediation_is_refused(self):
+        with self.assertRaises(ValueError):
+            CodedError(ReasonCode.TEACHER_LIST_EMPTY, remediation=SENTINEL)
+        with self.assertRaises(ValueError):
+            CodedError(ReasonCode.RUBRIC_MISSING, remediation="Do something.")
+
+    def test_nothing_to_do_is_null(self):
+        error = CodedError(ReasonCode.TEACHER_NOT_ON_LICENCE)
+        self.assertIsNone(error.remediation)
+        self.assertIsNone(coded_response(error).data["remediation"])
+
+    def test_a_chosen_remediation_survives_being_rebuilt_from_its_args(self):
+        """Celery's json backend rebuilds an error as cls(*args)."""
+        error = CodedError(
+            ReasonCode.TEACHER_LIST_EMPTY, remediation="Choose the teachers to remove."
+        )
+        rebuilt = CodedError(*error.args)
+        self.assertEqual(rebuilt.remediation, error.remediation)
+        plain = CodedError(ReasonCode.RUBRIC_MISSING)
+        self.assertEqual(len(plain.args), 4)
+
+
+class CodedEntryTests(SimpleTestCase):
+    def test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones(self):
+        error = CodedError(
+            ReasonCode.ROW_DUPLICATE, params={"row": 4, "first_row": 2}, detail=SENTINEL
+        )
+        entry = coded_entry(error, row=4, name="Ann One", status="skipped")
+        self.assertEqual(
+            entry,
+            {
+                "row": 4,
+                "name": "Ann One",
+                "status": "skipped",
+                "error": "Row 4 repeats row 2.",
+                "reason_code": "ROW_DUPLICATE",
+                "error_class": "USER",
+                "message": "Row 4 repeats row 2.",
+                "remediation": None,
+                "retryable": False,
+                "params": {"row": 4, "first_row": 2},
+                "reference": None,
+            },
+        )
+        self.assertNotIn(SENTINEL, str(entry))
 
 
 # ---------------------------------------------------------------- CodedError
@@ -432,7 +722,7 @@ class CodedEnvelopeThroughTheAPITests(SimpleTestCase):
                 self.assertEqual(envelope["error"], message)
                 self.assertEqual(envelope["reason_code"], code.value)
                 self.assertEqual(envelope["error_class"], spec.error_class.value)
-                self.assertEqual(envelope["remediation"], spec.remediation)
+                self.assertEqual(envelope["remediation"], spec.remediation or None)
                 self.assertIs(envelope["retryable"], spec.retryable)
                 self.assertEqual(envelope["params"], sample_params(code))
                 self.assertEqual(envelope.get("code"), LEGACY_CODES.get(code))
