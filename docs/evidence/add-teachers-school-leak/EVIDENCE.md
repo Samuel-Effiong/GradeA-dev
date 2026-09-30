@@ -24,5 +24,14 @@ Any school admin could learn which school an arbitrary address belongs to: a **c
   - **Fixed here (SM ruling 1):** "Email X already belongs to a {STUDENT/SCHOOL_ADMIN/…} account, not a teacher." told any school admin the role of an arbitrary address. It is now **"This email can't be added as a teacher."**, and its log line carries the user id only: no email, no role. A test checks that no role word ("student", "school admin", "super") reaches the response or the log.
   - **Left for QA (SM ruling 2):** "Teacher X has an active individual subscription…" discloses the billing status of an arbitrary teacher. It is actionable for a legitimate admin, so the founder and QA decide it via the proposal's `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`, which now notes the disclosure.
 
-## Gates
-_pending_
+## Gates (rule 15 + addendum 2: changed modules incl. the repo-wide guards present on beta, mutation, ONE regression)
+Run on **`f7260bd`**, one step at a time at 6G, beside Gate 10 in 0b's one slot.
+- **History:** the first gated run (`e22eb1a` + `22b5d75`) stopped at the changed-module step. My two new tests caught the batch log line that still carried the email; fixed in `f7260bd`. No red mutation or regression was recorded.
+- **On beta:** `AutoGrader.tests_reason_codes` and audit's route coverage are Phase 2 only, so the beta guard set is the three below.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | `abeda10`'s `billing/license_service.py` against `billing.tests.test_add_teachers_other_school_not_disclosed` (`prefix_abeda10_failing.txt`): **3 tests, 2 failures**. The other school's name, and the role, are disclosed. The third test (the teacher is still refused) passes on beta, as it should: the refusal itself was never wrong. |
+| Changed modules | the new test module; `billing.tests.test_license_service`, `test_license_teacher_changes_400`, `test_h38_teacher_removal`, `test_h38_part2_removed_teacher_routes`; the repo-wide guards present on beta: `AutoGrader.tests_no_wildcard_invalidation`, `tests_cache_invalidation_coverage`, `tests_migration_rollback_defaults`. **151 OK** (`changed_modules.txt`) |
+| 2 Mutation | **5 mutants, 5 killed** (`mutation_log.txt`, `mutation_results.json`): N1 names the other school; N2 the log carries the email; N3 the teacher is enrolled anyway; N4 names the role; N5 the batch log carries the email. |
+| 1 Regression (owning app) | `billing`: **1680 OK** (`regression_billing.txt`, trimmed; the full log is in GAP-evidence-logs) |
