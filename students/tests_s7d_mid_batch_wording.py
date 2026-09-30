@@ -7,6 +7,8 @@ raise sites (the item that runs out, and the items stopped before any
 provider call) build the error.
 """
 
+from django.test import TestCase
+
 from AutoGrader.error_messages import describe_background_task_error
 from students import task_tracking
 from students.models import BackgroundProcessingTask, BackgroundTaskStatus
@@ -16,7 +18,9 @@ NONE_FINISHED = "Credits ran out before any of the 4 items were finished."
 SOME_FINISHED = "Credits ran out after 1 of 4 items. The finished items are saved."
 
 
-class MidBatchWordingTests(GradingBatchFixture):
+class MidBatchWordingTests(GradingBatchFixture, TestCase):
+    # GradingBatchFixture is a mixin, not a TestCase: without TestCase these
+    # tests were never collected (mutation batch 4 caught it, as V1/V2).
     def error(self):
         return task_tracking._mid_batch_error(self.session.id)
 
