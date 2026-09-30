@@ -25,6 +25,7 @@ Every refused upload answers with its own reason code and the status F7 fixed fo
 
 ## Design decisions for the verifier and the SM
 1. **A photo labelled PDF is `FILE_UNREADABLE`, not `FILE_TYPE_UNSUPPORTED`.** Its real type (an image) is supported, so the #4 template ("photo.pdf is a PNG file, which isn't supported. Accepted types: … PNG …") would contradict itself. The precise reason ("This file is not a PDF…") stays server-side on `__cause__`. What's lost is the old hint "upload it as an image instead": the #3 remediation is "Re-export or re-scan the file". A catalogue text change would restore it, and QA owns the catalogue.
+   **QA item (SM, 2026-09-30):** the SM accepted `FILE_UNREADABLE` here. The lost hint ("If it is a photo or scan, upload it as an image instead") goes on the list of catalogue text changes to propose to QA, with S7d's extra codes.
 2. **An empty ASSIGNMENT file is `FILE_UNREADABLE`.** `SUBMISSION_EMPTY`'s text is about student answers, so `upload_assignment_file` maps it.
 3. **A zero-byte file is `SUBMISSION_EMPTY`** (it is empty). Before, it was "could not be read as an image" or a PyMuPDF error.
 4. **SM scope ruling (2026-09-30): batch behaviour is unchanged.** S6b gives `FILE_TOO_LARGE` its code, its 413 and its params (actual, limit, dimension) wherever a **single-file** size or page check refuses today. 08a's two batch 413 problems stay in **S7a** (per-item 413):
