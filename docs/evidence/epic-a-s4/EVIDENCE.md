@@ -69,10 +69,15 @@ Today five allow-listed sites remain, none of them on a tracked model: `record_b
 - `audit/tests_emitter.py`: before/after follow the action's own allow-list.
 - `users/tests_auth_audit_doors.py`: `only_event()` ignores a fixture's privileged-account create event. It uses JSON containment, because a key lookup is NULL on events without the key.
 
+- `audit/tests_state_change.py`: a superadmin's write compares only its request's events. The school-admin scoping tests filter `?action=AUTH_LOGIN`, because a privileged fixture account's creation is now a PERMISSION_CHANGE in its school.
+- `audit/tests_query_api.py`, `audit/tests_admin_action.py`: the privileged fixture accounts are created inside `history.suppressed()`. Those tests are about query scoping and admin coverage, not account creation.
+- `audit/tests_license_admin_attribution.py` (S3's SM pin): add-teachers now records the credit GRANT, the **seat** taken (SUBSCRIPTION_CHANGE on the allocation, R4) and the teacher's **school** set (PERMISSION_CHANGE). Remove-teachers records the EXPIRE, the seat released and the school cleared. All of them name the admin, so there is still no STATE_CHANGE.
+- `audit/tests_enums.py`: GRADE_CHANGE joins the three-year (STUDENT_RECORD) actions (D6).
+
 ## 4. Changed-module map (0b: every touched production file under a label)
 | Production file | Labels |
 |---|---|
-| `audit/history.py`, `metadata.py`, `emitter.py`, `enums.py`, `context.py`, `apps.py` | audit.tests_history, audit.tests_history_guard, audit.tests_emitter, audit.tests_metadata, audit.tests_state_change, audit.tests_route_coverage |
+| `audit/history.py`, `metadata.py`, `emitter.py`, `enums.py`, `context.py`, `apps.py` | the whole `audit` app, plus students.tests_epic_a_submission_upload_audit and assignments.tests_epic_a_crud_audit (event-count pins elsewhere) |
 | `students/services.py` | audit.tests_history (AI grading), assignments.tests_grading_audit_events, students.tests_second_opinion_queue |
 | `students/views.py` | audit.tests_history, students.tests_grading_review_fixes, students.tests_submission_update_freshness, students.tests_second_opinion_queue |
 | `assignments/tasks.py` | assignments.tests_grading_audit_events, audit.tests_history |

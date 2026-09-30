@@ -49,7 +49,8 @@ class ActionVocabularyTest(SimpleTestCase):
                 self.assertLessEqual(len(value), 64)
 
     def test_the_actions_kept_three_years_are_exactly_the_documented_ones(self):
-        """Grading, roster changes and submissions touch a student's record."""
+        """Grading, roster changes, submissions and (Epic A S4, D6) grade
+        changes touch a student's record."""
         self.assertEqual(
             STUDENT_RECORD_ACTIONS,
             {
@@ -58,5 +59,6 @@ class ActionVocabularyTest(SimpleTestCase):
                 AuditAction.GRADING_FAILED,
                 AuditAction.ROSTER_CHANGE,
                 AuditAction.SUBMISSION_UPLOAD,
+                AuditAction.GRADE_CHANGE,
             },
         )
