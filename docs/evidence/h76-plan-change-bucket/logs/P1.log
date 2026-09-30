@@ -1,0 +1,13 @@
+# P1: the old bucket is marked processed
+# file: billing/services.py (occurrence 2)
+# old: '            active_monthly.is_processed = True\n'
+# new: ''
+# commit: 5b2565023794ef409ee8ae96fc57453b5fe08e0c
+# exit: 1
+# elapsed_s: 18.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_cleanup_does_not_expire_what_was_rolled_over (billing.tests.test_plan_change_retires_old_bucket.PlanChangeRetiresOldBucketTests.test_the_cleanup_does_not_expire_what_was_rolled_over)
+FAIL: test_the_old_bucket_is_retired_as_processed (billing.tests.test_plan_change_retires_old_bucket.PlanChangeRetiresOldBucketTests.test_the_old_bucket_is_retired_as_processed)
+
+FAILED (failures=2)
