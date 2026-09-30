@@ -34,3 +34,12 @@ The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`) 
 **Behaviour changes** (d5's 4-point records; the F7 staging check before beta applies): whitespace text 400 → 422 SUBMISSION_EMPTY; exhausted provider retries → coded PROVIDER_FAILURE 503 + Retry-After (the old "attempts failed" text only in `detail`); the credits/plan audit error class MODEL → USER.
 
 Logs: `runs/s6d_run1.log`, `runs/s6d_run2_mutants.log`.
+
+---
+
+## Addendum: F1 ("always refund"), confirmed (the SM asked; it was missing above), 2026-09-30
+- **Static:** `upload_answers_engine` wraps the answer extraction in `billing_refund_scope(reason="answer upload failed before the submission was persisted")` (`students/services.py:925`). The post-save notification stays outside the scope.
+- **d5's test** `students.tests_s6d_extraction_refund.test_a_mid_chunk_failure_nets_the_ledger_to_zero`: a real six-page upload in two chunks; chunk 1 is charged on every outer attempt (3 charges, ledger rows grow, so not vacuous) and chunk 2 times out every time. It asserts the wallet's **used credits are back to their starting value** (net zero), `ProviderFailureError.params == {"credit_clause": REFUNDED}`, and no submission exists. The control `test_a_successful_upload_keeps_its_charges` passes.
+- **v2 run @ f0068ef:** baseline 2 OK; **mutant F1M (the refund scope replaced by `if True:`) KILLED** by the mid-chunk test (`vf_s6d_f1_mutant.py`; restore sha-checked).
+
+F1 holds. The verdict stays **VERIFIED**. Log: `runs/s6d_f1.log`. (The record committed at 433b64a predates this addendum; please re-commit this file.)
