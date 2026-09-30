@@ -18,7 +18,11 @@ repos:
         # file (~1.7MB, third-party binary data, sha256-verified — see its
         # README) so token counting works with no outbound network. The
         # 500KB guard still applies to everything else.
-        exclude: ^(docs/backend/.*\.html|ai_processor/tiktoken_cache/[0-9a-f]{40})$
+        # The two architecture diagrams under docs/backend/phase 2/ are the
+        # founder's source diagrams (~2.2MB each PNG), versioned byte-for-byte on
+        # the founder's decision of 2026-10-01; excluded by exact filename so no
+        # other large file slips through.
+        exclude: ^(docs/backend/.*\.html|ai_processor/tiktoken_cache/[0-9a-f]{40}|docs/backend/phase 2/Phase 2 Part 1 (Individual|School License) Architecture\.png)$
     -   id: check-merge-conflict
     -   id: check-toml
     -   id: check-json
