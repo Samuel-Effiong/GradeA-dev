@@ -1,0 +1,56 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user expire.once@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user expire.stale@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user expire.race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F
+======================================================================
+FAIL: test_a_stale_copy_expires_nothing_the_second_time (billing.tests.test_expire_bucket_race.ExpireBucketOnceTests.test_a_stale_copy_expires_nothing_the_second_time)
+The overlapping cleanup run's view: it listed the bucket before
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/billing/tests/test_expire_bucket_race.py", line 78, in test_a_stale_copy_expires_nothing_the_second_time
+    self.assertEqual((first, second), (700, 0))
+AssertionError: Tuples differ: (700, 700) != (700, 0)
+
+First differing element 1:
+700
+0
+
+- (700, 700)
+?       --
+
++ (700, 0)
+
+======================================================================
+FAIL: test_two_racing_expiries_write_one_expire_row (billing.tests.test_expire_bucket_race.ConcurrentExpiryTests.test_two_racing_expiries_write_one_expire_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/billing/tests/test_expire_bucket_race.py", line 105, in test_two_racing_expiries_write_one_expire_row
+    self.assertEqual(sorted(results), [0, 700])
+AssertionError: Lists differ: [700, 700] != [0, 700]
+
+First differing element 0:
+700
+0
+
+- [700, 700]
+?  --
+
++ [0, 700]
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.289s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 3 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

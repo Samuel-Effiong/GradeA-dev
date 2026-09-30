@@ -1036,6 +1036,12 @@ class SubscriptionService:
         Formalizes the loss of credits due to expiration
         """
         bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
+        # Re-checked under the lock: two overlapping expiries of one bucket
+        # (two cleanup runs - a duplicate Beat, a redeploy overlap, a manual
+        # run) used to both write an EXPIRE row; the second waited on the
+        # lock, then recorded the same credits as expired again.
+        if bucket.is_processed:
+            return 0
         unused_amount = max(0, bucket.total_credits - bucket.used_credits)
 
         if unused_amount > 0:
