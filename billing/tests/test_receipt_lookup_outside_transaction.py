@@ -58,6 +58,7 @@ from billing.models import (
 from billing.services import SubscriptionService
 from billing.stripe_service import StripeWebhookHandler
 from billing.tests.testing_fake_stripe import (
+    assert_no_call_inside_transaction,
     charge_receipt_url,
     fake_stripe,
     invoice_url,
@@ -99,14 +100,11 @@ def pi_receipt(pi_id):
 def assert_receipts_outside_transaction(test, fake):
     """The P1 invariant: a receipt lookup happened, and none of them ran
     while the webhook transaction (and its row locks) was open."""
-    lookups = fake.receipt_lookups()
-    test.assertTrue(lookups, "no receipt lookup happened at all: the link was dropped")
-    inside = [c.path for c in lookups if c.in_transaction]
-    test.assertEqual(
-        inside,
-        [],
-        f"Stripe receipt lookup(s) ran INSIDE the webhook transaction: {inside}",
+    test.assertTrue(
+        fake.receipt_lookups(),
+        "no receipt lookup happened at all: the link was dropped",
     )
+    assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
 
 
 def txn_by(**lookup):

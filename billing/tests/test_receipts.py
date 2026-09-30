@@ -47,6 +47,7 @@ from billing.tests.test_receipt_lookup_outside_transaction import (
     run_receipt_tasks_inline,
 )
 from billing.tests.testing_fake_stripe import (
+    assert_stripe_untouched,
     charge_receipt_url,
     fake_stripe,
     invoice_url,
@@ -660,7 +661,7 @@ class WebhookReceiptRecoveryTests(TransactionTestCase, OverageFixture):
         )
         txn = BillingTransaction.objects.get(stripe_payment_intent_id="pi_crash")
         self.assertIsNone(txn.receipt_url)
-        self.assert_stripe_untouched(fake)
+        assert_stripe_untouched(self, fake)
 
         with fake_stripe():
             receipts.sweep_missing_receipt_urls(
@@ -670,13 +671,6 @@ class WebhookReceiptRecoveryTests(TransactionTestCase, OverageFixture):
             )
         txn.refresh_from_db()
         self.assertEqual(txn.receipt_url, pi_receipt("pi_crash"))
-
-    def assert_stripe_untouched(self, fake):
-        """Stripe-side state for the G5 record: this path only ever reads."""
-        mutating = [(c.method, c.path) for c in fake.calls if c.method != "get"]
-        self.assertEqual(
-            mutating, [], f"the webhook path called Stripe to MUTATE: {mutating}"
-        )
 
     def test_handler_failure_after_record_queues_no_receipt_task(self):
         session = self.checkout_session(
