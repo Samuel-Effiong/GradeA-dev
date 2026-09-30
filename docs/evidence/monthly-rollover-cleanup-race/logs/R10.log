@@ -1,0 +1,13 @@
+# R10: licence re-check: due tolerance
+# file: billing/tasks.py (occurrence 1)
+# old: 'if locked_allocation.next_credit_grant_at > refresh_due_by(now):'
+# new: 'if locked_allocation.next_credit_grant_at > now:'
+# commit: 64b7c8beb9baa7a2af1eb71e740f80e5360eda2e
+# exit: 1
+# elapsed_s: 5.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+FAIL: test_a_run_starting_a_little_earlier_than_last_months_still_refreshes (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_starting_a_little_earlier_than_last_months_still_refreshes)
+
+FAILED (failures=2)

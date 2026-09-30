@@ -1,0 +1,12 @@
+# R3: annual task passes its start time
+# file: billing/tasks.py (occurrence 1)
+# old: 'process_mid_cycle_credit_grant(sub, now=now)'
+# new: 'process_mid_cycle_credit_grant(sub)'
+# commit: 64b7c8beb9baa7a2af1eb71e740f80e5360eda2e
+# exit: 1
+# elapsed_s: 4.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+
+FAILED (failures=1)

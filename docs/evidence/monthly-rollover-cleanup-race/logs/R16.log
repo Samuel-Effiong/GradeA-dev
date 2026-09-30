@@ -1,0 +1,13 @@
+# R16: cleanup: only an ACTIVE subscription entitles
+# file: billing/tasks.py (occurrence 1)
+# old: '            is_active=True, user__credit_wallet__in=wallet_ids\n'
+# new: '            user__credit_wallet__in=wallet_ids\n'
+# commit: 64b7c8beb9baa7a2af1eb71e740f80e5360eda2e
+# exit: 1
+# elapsed_s: 5.4
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_the_lost_months_query_finds_a_write_off_before_the_refresh (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_lost_months_query_finds_a_write_off_before_the_refresh)
+FAIL: test_it_is_written_off_once_the_owner_is_no_longer_entitled (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_it_is_written_off_once_the_owner_is_no_longer_entitled)
+
+FAILED (failures=1, errors=1)

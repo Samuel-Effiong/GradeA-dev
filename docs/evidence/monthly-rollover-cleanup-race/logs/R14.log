@@ -1,0 +1,16 @@
+# R14: cleanup keeps an owed bucket at all
+# file: billing/tasks.py (occurrence 1)
+# old: '        if bucket.pk in owed:\n'
+# new: '        if False:\n'
+# commit: 64b7c8beb9baa7a2af1eb71e740f80e5360eda2e
+# exit: 1
+# elapsed_s: 5.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_licence_teacher_is_entitled_too (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_licence_teacher_is_entitled_too)
+FAIL: test_a_refresh_overdue_by_a_week_is_logged_and_still_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_refresh_overdue_by_a_week_is_logged_and_still_kept)
+FAIL: test_an_entitled_owners_newest_monthly_bucket_is_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_entitled_owners_newest_monthly_bucket_is_kept)
+FAIL: test_an_older_unprocessed_monthly_bucket_is_still_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_older_unprocessed_monthly_bucket_is_still_written_off)
+FAIL: test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over)
+
+FAILED (failures=5)
