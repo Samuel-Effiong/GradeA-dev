@@ -15,9 +15,17 @@ EM = "audit/emitter.py"
 SVC = "ai_processor/services.py"
 TASKS = "assignments/tasks.py"
 META = "audit/metadata.py"
+CODES = "AutoGrader/reason_codes.py"
 
 MUTANTS = {
     # --- part 0 (X-5): the trace id is always the server's ---
+    # X5 (R3): S6a's coded body echoes the client's id as its reference.
+    "X5_reference_echoes_the_client_id": (
+        CODES,
+        '        "reference": get_request_id(),\n',
+        '        "reference": __import__("AutoGrader.request_context", fromlist=["_"])'
+        ".get_client_request_id() or get_request_id(),\n",
+    ),
     "X1_inbound_id_adopted": (
         MW,
         "        request_id = generate_request_id()\n",
@@ -122,6 +130,7 @@ TESTS = [
     "audit.tests_emitter",
     "assignments.tests_grading_audit_events",
     "billing.tests.test_execute_graded_task",
+    "AutoGrader.tests_reason_codes",
 ]
 
 originals: dict = {}

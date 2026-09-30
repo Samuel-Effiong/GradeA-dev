@@ -10,7 +10,9 @@
   - the body carries the envelope in `error.field_errors` (F7), with the
     legacy lowercase `code` for the two old refusals only (F8);
   - QA-ERR-03: no exception text, traceback or class name reaches the body;
-  - QA-ERR-04: `reference` is the response's `X-Request-ID`.
+  - QA-ERR-04: `reference` is the response's `X-Request-ID`, which is always
+    the server's id (X-5, SM ruling). A client's inbound id is never echoed
+    as the reference; a UUID one is kept only as `client_request_id`.
 * The renderer shows the display sentence alone.
 
 No mocks (rule 14): every failure is a real exception raised by a real view.
@@ -120,6 +122,18 @@ class GatedView(APIView):
         return Response({"ok": True})
 
 
+class CodedSeeingTheClientId(APIView):
+    """Records the client id the middleware kept, then fails coded."""
+
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+    seen: dict = {}
+
+    def get(self, request):
+        self.seen["client_request_id"] = request.client_request_id
+        raise CodedError(ReasonCode.PROVIDER_FAILURE, detail=SENTINEL)
+
+
 class PlainSerializerError(APIView):
     authentication_classes: list = []
     permission_classes = [AllowAny]
@@ -132,6 +146,7 @@ urlpatterns = [
     path("coded/<str:code>", RaiseCoded.as_view()),
     path("refusal/<str:kind>", RaiseRefusal.as_view()),
     path("caught", CaughtInView.as_view()),
+    path("coded-client-id", CodedSeeingTheClientId.as_view()),
     path("plain", PlainSerializerError.as_view()),
     path("gated", GatedView.as_view()),
 ]
@@ -403,11 +418,20 @@ class CodedEnvelopeThroughTheAPITests(SimpleTestCase):
                 self.assertTrue(envelope["reference"])
                 self.assertEqual(envelope["reference"], response["X-Request-ID"])
 
-    def test_qa_err_04_an_inbound_request_id_is_the_reference(self):
+    def test_qa_err_04_an_inbound_request_id_is_never_the_reference(self):
+        """X-5 wins over the first QA-ERR-04 reading (SM ruling): echoing a
+        client-controlled value as our reference would let a caller forge
+        correlation ids. The reference is the server's id; the client's UUID
+        is kept only as `client_request_id`."""
         inbound = "3f2b9c1e-6d4a-4e8f-9a0b-1c2d3e4f5a6b"
-        response = self.client.get("/coded/PROVIDER_FAILURE", HTTP_X_REQUEST_ID=inbound)
+        CodedSeeingTheClientId.seen.clear()
+        response = self.client.get("/coded-client-id", HTTP_X_REQUEST_ID=inbound)
         _, envelope = self.envelope(response)
-        self.assertEqual(envelope["reference"], inbound)
+        self.assertEqual(envelope["reason_code"], "PROVIDER_FAILURE")
+        self.assertEqual(envelope["reference"], response["X-Request-ID"])
+        self.assertNotEqual(envelope["reference"], inbound)
+        self.assertNotEqual(envelope["reference"], inbound.replace("-", ""))
+        self.assertEqual(CodedSeeingTheClientId.seen["client_request_id"], inbound)
 
     def test_the_old_refusals_keep_their_message_and_legacy_code(self):
         cases = (

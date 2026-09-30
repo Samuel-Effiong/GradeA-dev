@@ -60,6 +60,21 @@ So a client that sent another action's trace id as its `X-Request-ID` placed its
 
 `assignments.tests_grading_audit_events` pins `prompt_version` on both grading events. The 23 existing direct calls in tests pass a test version.
 
+## R3: v2's D1 (S5 R2 REJECTED at `d189f61`)
+**Defect.** S6a's `AutoGrader.tests_reason_codes.test_qa_err_04_an_inbound_request_id_is_the_reference` asserted that a client's inbound `X-Request-ID` becomes the coded body's `reference`. S5's X-5 makes it the server id, so the merged tree failed that test. My gates never ran that module, because I only listed the modules I wrote. Every module whose behaviour the change touches is in scope.
+
+**SM ruling: X-5 wins.** The `reference` is the server's id, the same value as the response `X-Request-ID` header and the audit trace. A client's UUID is kept only as `client_request_id`. Echoing a client-controlled value as our reference would let a caller forge correlation ids.
+
+**Change (test and doc only).**
+- S6a's test becomes `test_qa_err_04_an_inbound_request_id_is_never_the_reference`, through a small `CodedSeeingTheClientId` view. It checks:
+  - the reference equals the response header;
+  - it is not the inbound id, in dashed or hex form;
+  - the view saw the inbound UUID as `request.client_request_id`.
+- The QA-ERR-04 wording in the module docstring and in the `reason_codes.py` envelope comment now says "the server's X-Request-ID, never an inbound id". 08a (`reference == response["X-Request-ID"]`) already holds as written, because the header is now always the server's.
+- `mutate.py` gains **X5** (the body's reference echoes the client id) and adds `AutoGrader.tests_reason_codes` to its labels.
+
+The R3 gates are below. Per rule 15, the ai_processor regression is not re-run, because R3 changes no behaviour.
+
 ## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
 Re-run on `6fef60a` (S5 + S6a `75bf91a`). Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time.
 
