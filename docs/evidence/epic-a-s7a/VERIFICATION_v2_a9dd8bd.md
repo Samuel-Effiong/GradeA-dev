@@ -28,3 +28,24 @@ The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`) 
 - **N2 (procedural, SM).** S7a is to be base-updated onto d5's CodedError serialization fix once that merges into epic. That merge gets v2's usual check: remerge-diff, the added-lines survival, and the S7a + CodedError probes on the merged tree.
 
 Logs: `runs/s7a_run1.log`, `runs/s7a_run2_mutants.log`.
+
+---
+
+## Re-check (N1 + N2: the base update) @ **039bbc8**, 2026-09-30: **VERIFIED**
+- **57ef70a (N1):** session-results lists are sorted by `item_index`, with 1a's test `EveryListIsInUploadOrder`.
+- **039bbc8 (N2):** 0b's merge of phase2/epic-a 3d6575c (S8 + CodedError + auth-lock) into S7a.
+
+The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`) in 0b's slot. Per **rule 15 addendum 2**, it includes every repo-wide guard module.
+
+| Check | Result |
+|---|---|
+| `git show --remerge-diff 039bbc8` | **empty** (no hand edits) |
+| Added-lines survival since base 522f818 | `users/views.py`: S7a 17/17, epic 72/72. `users/serializers.py`: S7a 19/19, epic 9/9 |
+| v2 probes (S7a, auth-lock, CodedError) + `students.tests_batch_item_results`, `users.tests_auth_lock_envelope`, `AutoGrader.tests_codederror_serialization` + guards (`AutoGrader.tests_no_wildcard_invalidation`, `tests_cache_invalidation_coverage`, `tests_reason_codes`, `tests_migration_rollback_defaults`, `audit.tests_route_coverage`, `audit.tests_history_guard`, `classrooms.tests_teacher_access_sweep`, `tests_course_roster_scope_sweep`) | **142 run, 141 OK, 1 FAIL**, and that failure is not S7a (below) |
+| N1 | the all-refused batch now lists `[(FILE_TOO_LARGE, None, 1), (FILE_TOO_LARGE, None, 2)]`, in upload order |
+| The base update doesn't regress the merged slices | the auth-lock A1 oracle is still identical (429 VERIFY_LOCKED ×2, Retry-After 1799/1799); the CodedError round-trips are all OK |
+| **The one failure** | `tests_no_wildcard_invalidation`: `audit/bench_volume.py: clear [70]`, **S8's harness `cache.clear()`**, inherited from epic. It is the known Gate 10 red; ed is moving the harnesses to a test path. **Not in S7a's diff.** |
+
+**For the record (v2):** my S8 verification (3511833 / 5f7ab88) did not run the repo-wide guard modules, so I missed this `cache.clear()`. Rule 15 addendum 2 now requires them; the S8 record should be read with this correction.
+
+Log: `runs/s7a_recheck_039bbc8.log`.
