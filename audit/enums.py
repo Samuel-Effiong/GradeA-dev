@@ -86,6 +86,9 @@ class AuditAction(models.TextChoices):
     # (POST /auth/register). Not AUTH_LOGIN - nobody is signed in until the
     # address is verified, and that /auth/verify success is the AUTH_LOGIN.
     ACCOUNT_REGISTER = "ACCOUNT_REGISTER", "Account registered"
+    # Epic A completion S3 (D6): a retention sweep's record of its own run,
+    # zero-count runs included, so a stopped sweep shows as a gap.
+    AUDIT_RETENTION_SWEEP = "AUDIT_RETENTION_SWEEP", "Audit retention sweep"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

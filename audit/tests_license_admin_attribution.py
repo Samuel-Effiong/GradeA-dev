@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from audit.enums import AuditAction, AuditOutcome
+from audit.enums import AuditAction
 from audit.models import AuditEvent
 from audit.tests_state_change import LOCMEM_CACHE
 from billing.models import (
@@ -75,32 +75,25 @@ class SchoolAdminLicenceChangesNameTheAdminTests(TestCase):
     def add_teacher(self):
         return self.post("add_teachers", {"teacher_emails": [self.teacher.email]})
 
-    def test_add_teachers_names_the_admin_and_keeps_the_teachers_credit_grant(self):
+    def test_add_teachers_names_the_admin_on_the_teachers_credit_grant(self):
+        """Epic A S3 (SM pin): the credit grant now names the INITIATOR - the
+        school admin - with the teacher as target, so it IS the admin's
+        trace and the generic STATE_CHANGE is not written (S1's invariant:
+        exactly one event naming the requester)."""
         response, events = self.add_teacher()
 
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data["successful"], 1)
-        self.assertTrue(
-            events.filter(
-                action=AuditAction.CREDIT_TRANSACTION, actor_id=self.teacher.id
-            ).exists(),
-            "the teacher's credit grant is a side effect and must stay",
-        )
         by_admin = events.filter(actor_id=self.admin.id)
         self.assertEqual(
-            list(by_admin.values_list("action", "outcome", "metadata__route")),
-            [
-                (
-                    AuditAction.STATE_CHANGE,
-                    AuditOutcome.SUCCESS,
-                    "license-subscription-add-teachers",
-                )
-            ],
+            list(by_admin.values_list("action", "target_id", "metadata__ledger_type")),
+            [(AuditAction.CREDIT_TRANSACTION, self.teacher.id, "GRANT")],
         )
+        self.assertFalse(events.filter(action=AuditAction.STATE_CHANGE).exists())
 
-    def test_remove_teachers_names_the_admin(self):
-        """Control: no ledger row today, so the generic event always named
-        the admin here; it must keep doing so once S3 adds one (G7)."""
+    def test_remove_teachers_names_the_admin_on_the_clawback(self):
+        """S3 (G7): the clawback goes through the ledger - an EXPIRE naming
+        the admin, the teacher as target - and is the admin's one event."""
         self.add_teacher()
 
         response, events = self.post(
@@ -108,4 +101,9 @@ class SchoolAdminLicenceChangesNameTheAdminTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(events.filter(actor_id=self.admin.id).count(), 1)
+        by_admin = events.filter(actor_id=self.admin.id)
+        self.assertEqual(
+            list(by_admin.values_list("action", "target_id", "metadata__ledger_type")),
+            [(AuditAction.CREDIT_TRANSACTION, self.teacher.id, "EXPIRE")],
+        )
+        self.assertFalse(events.filter(action=AuditAction.STATE_CHANGE).exists())

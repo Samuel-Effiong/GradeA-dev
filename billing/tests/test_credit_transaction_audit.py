@@ -76,11 +76,16 @@ class RecordEmitsCreditTransactionTests(TestCase):
         event = events.get()
         self.assertEqual(event.outcome, AuditOutcome.SUCCESS)
         self.assertIsNone(event.error_class)
-        self.assertEqual(event.actor_id, self.user.id)
-        self.assertEqual(event.actor_role, ActorRole.TEACHER)
-        self.assertEqual(event.target_type, "CreditLedger")
-        self.assertEqual(event.target_id, ledger.id)
-        self.assertEqual(event.metadata, {"ledger_type": "GRANT", "credits": 500})
+        # Epic A S3: outside a request the actor is SYSTEM; the wallet owner
+        # is the target and the ledger row is named in the metadata.
+        self.assertIsNone(event.actor_id)
+        self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+        self.assertEqual(event.target_type, "CustomUser")
+        self.assertEqual(event.target_id, self.user.id)
+        self.assertEqual(
+            event.metadata,
+            {"ledger_type": "GRANT", "credits": 500, "ledger_id": str(ledger.id)},
+        )
 
 
 class ConsumeCreditsEmitsCreditTransactionTests(TestCase):
@@ -104,14 +109,17 @@ class ConsumeCreditsEmitsCreditTransactionTests(TestCase):
         self.assertEqual(events.count(), 1)
         event = events.get()
         self.assertEqual(event.outcome, AuditOutcome.SUCCESS)
-        self.assertEqual(event.actor_id, self.user.id)
-        self.assertEqual(event.actor_role, ActorRole.TEACHER)
-        self.assertEqual(event.target_type, "CreditLedger")
+        self.assertIsNone(event.actor_id)
+        self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+        self.assertEqual(event.target_type, "CustomUser")
+        self.assertEqual(event.target_id, self.user.id)
         ledger_row = CreditLedger.objects.get(
             user_id=self.user.id, ledger_type=CreditLedgerType.CONSUME
         )
-        self.assertEqual(event.target_id, ledger_row.id)
-        self.assertEqual(event.metadata, {"ledger_type": "CONSUME", "credits": -30})
+        self.assertEqual(
+            event.metadata,
+            {"ledger_type": "CONSUME", "credits": -30, "ledger_id": str(ledger_row.id)},
+        )
 
     def test_consume_spanning_two_buckets_emits_one_event_per_ledger_row(self):
         # A second, later-expiring bucket so the deficient first bucket's
@@ -140,7 +148,7 @@ class ConsumeCreditsEmitsCreditTransactionTests(TestCase):
         self.assertEqual(sorted(e.metadata["credits"] for e in events), [-20, -10])
         for event in events:
             self.assertEqual(event.outcome, AuditOutcome.SUCCESS)
-            self.assertEqual(event.actor_id, self.user.id)
+            self.assertEqual(event.target_id, self.user.id)
 
         # The paired CreditUsageLog rows are not separately audited.
         self.assertEqual(CreditUsageLog.objects.filter(wallet=self.wallet).count(), 3)
@@ -178,9 +186,11 @@ class BatchRefundEmitsCreditTransactionTests(TestCase):
         self.assertEqual(events.count(), 1)
         event = events.get()
         self.assertEqual(event.outcome, AuditOutcome.SUCCESS)
-        self.assertEqual(event.actor_id, self.user.id)
-        self.assertEqual(event.target_type, "CreditLedger")
-        self.assertEqual(event.metadata, {"ledger_type": "REFUND", "credits": 40})
+        self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+        self.assertEqual(event.target_type, "CustomUser")
+        self.assertEqual(event.target_id, self.user.id)
+        self.assertEqual(event.metadata["ledger_type"], "REFUND")
+        self.assertEqual(event.metadata["credits"], 40)
 
     def test_a_zero_amount_refund_emits_no_event(self):
         # amount is clamped to min(log.amount, bucket.used_credits); an

@@ -1,0 +1,6 @@
+F1_equal_floor_is_an_error {'killed': True, 'failing_tests': []}
+F2_off_by_one_allowed {'killed': True, 'failing_tests': ['test_a_floor_below_the_thresholds_is_an_error', 'test_each_threshold_raised_above_the_floor_is_caught']}
+F3_login_threshold_not_checked {'killed': True, 'failing_tests': ['test_each_threshold_raised_above_the_floor_is_caught']}
+F4_check_not_registered {'killed': False, 'failing_tests': []}
+F5_error_without_its_id {'killed': True, 'failing_tests': ['test_a_floor_below_the_thresholds_is_an_error', 'test_each_threshold_raised_above_the_floor_is_caught', 'test_the_check_is_registered']}
+SURVIVORS: ['F4_check_not_registered']
