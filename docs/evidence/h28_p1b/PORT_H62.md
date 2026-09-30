@@ -27,7 +27,8 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 | — | `8e450e6` | merge of bundle 4 (`bd29d1f`: H-62's final tip and the `expire_bucket` race fix), so H-28's rule-15 runs cover what it lands beside; then `04314f6` logs H-67 (backlog only) |
 | 7 | `f3e8d4d` | the bounded retry of the local write (§9e); the named Gate-5 assertion is `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` (see *The kill in commit 7's test* below) |
 | 8 | `0cfe219` | a human is told (§9g–§9i): every reconciliation alert also emails every active super admin; the stale-intent periodic task `escalate-stale-licence-stripe-intents` (every 5 min, one query, no Stripe call; beat entry and health expectation added); and `manage.py resolve_licence_stripe_intent` (§9h-bis) |
-| 9 | (next) | the per-request Stripe budget (§9i (2)); the named Gate-5 assertion is `test_h28_stripe_budget.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time` (see *The request budget* below) |
+| 9 | `77e8c95` | the per-request Stripe budget (§9i (2)); the named Gate-5 assertion is `test_h28_stripe_budget.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time` (see *The request budget* below) |
+| 10 | (the commit adding this row) | docs: the detector-spec amendment (`SPEC_audit_stripe_divergence.md`): compare price, quantity, renewal and open change-invoices, not only status, and read the intent ledger first |
 
 ## F1: the 4-point behaviour-change record
 

@@ -118,3 +118,26 @@ Not exempt from the doctrine. Gate 2 mutants on the discriminator logic (flip
 `cancel_at_period_end`, drop the "no local record" condition, invert the mirror direction);
 Gate 5 for Stripe timeout/error mid-enumeration; Gate 7 against Stripe test mode with
 fixtures for each verdict class. Gate-8 class: environment-sensitive.
+
+## Amendment for Change 1 (H-28 commit 10)
+
+Two things changed after this spec was written, and the detector must cover both before it is built.
+
+### 1. Compare what is billed, not only whether it is active
+
+The payment-failure finding (`FINDING_licence_payment_failure_paths.md`, F0–F5) diverges on ordinary customer behaviour and leaves **status `active` on both sides**, with the **price or quantity** disagreeing. A status-only comparison cannot see the most likely production divergence. For every licence subscription, the detector also compares:
+
+| Stripe | Application | Disagreement means |
+|---|---|---|
+| the item's price amount per contract cycle | `custom_price_cents or plan.price_cents`, times `contract_months` | F0 (a plan change that never reached Stripe), or F1/F2 before Change 1 |
+| the item's quantity | `max_seats` | F5 before Change 1, or a lost seat change |
+| `cancel_at_period_end` | `not auto_renew` | a lost cancellation |
+| open invoices on the subscription | none expected after a completed change | F3/F4 before Change 1: a charge left for Stripe to collect for a change the application does not show |
+
+New verdicts beside `P1B_FINGERPRINT`: `PRICE_DIVERGENT`, `QUANTITY_DIVERGENT`, `RENEWAL_DIVERGENT` and `OPEN_CHANGE_INVOICE`. An open invoice is reported, never voided: the detector stays read-only.
+
+### 2. Read the intent ledger first
+
+Since Change 1, every licence Stripe change leaves a `LicenseStripeMutationIntent`. A disagreement on a licence with an **in-flight** intent (PENDING, STRIPE_APPLIED or ESCALATED) is already known and alerted. The detector prints it with the intent's id and status (`KNOWN_IN_FLIGHT`) rather than as a new finding. A disagreement with **no** in-flight intent is the detector's real product. After Change 1 it means a path outside the phases, or a divergence from before Change 1 landed. The stale-intent task (`escalate-stale-licence-stripe-intents`) and `resolve_licence_stripe_intent` handle the in-flight ones; the detector remains the backstop (§9g (iii)).
+
+The binding properties above are unchanged: read-only, both models, enumerated by customer, rate-limited, and never run from here without production read access.
