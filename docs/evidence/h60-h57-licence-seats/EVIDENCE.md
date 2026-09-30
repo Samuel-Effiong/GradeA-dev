@@ -215,6 +215,7 @@ reading).
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed modules and guards | see log | `r2_changed_modules.txt` |
-| Mutation: A1–A11 (A1/A3 corrected), B1–B6, N1–N5 | see log | `r2_mutation_log.txt`, `r2_mutation_results.json` |
-| ONE billing regression | see log | `r2_regression_billing.txt` |
+| Changed modules and guards | 214 OK | `r2_changed_modules.txt` |
+| Prefix: 9fe13c3's views and raise sites, the new route tests kept | 7/7 FAIL (the routes answered 500) | `r2_prefix_9fe13c3_failing.txt` |
+| Mutation: A1–A11 (A1/A3 corrected), B1–B6, N1–N5 | 22/22 killed, **every one by named tests** (A1 by `test_seats_unreadable_subscription`, A3 by `test_seats_refused_by_stripe`), 0 survivors, source clean | `r2_mutation_log.txt`, `r2_mutation_results.json` |
+| ONE billing regression | 1910 OK (211 s of test time) | `r2_regression_billing.txt` (trimmed; full log in GAP-evidence-logs) |
