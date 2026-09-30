@@ -215,7 +215,7 @@ def escalate(intent, why: str) -> None:
     _reconciliation_needed(intent, why)
 
 
-def apply_at_stripe(intent, call, reached, payment_errors=()):
+def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
     """
     Phase B, then phase C.
 
@@ -233,13 +233,18 @@ def apply_at_stripe(intent, call, reached, payment_errors=()):
     so after a CardError the change may be live (DESIGN_PROPOSAL.md §9j).
     They are re-raised with the intent left PENDING, for the caller to
     settle with undo_unpaid_change.
+
+    `read_back_on` are further errors to treat as an unknown outcome and
+    read back rather than take as a refusal. A delete retried after its
+    response was lost can be refused because the object is already gone,
+    which makes a delete that happened look like one that did not (§9j).
     """
     try:
         result = call(idempotency_key=intent.idempotency_key("apply"))
     except payment_errors:
         raise
     except stripe.error.StripeError as exc:
-        if not outcome_unknown(exc):
+        if not (outcome_unknown(exc) or isinstance(exc, read_back_on)):
             _set_status(
                 intent,
                 LicenseStripeMutationStatus.FAILED,

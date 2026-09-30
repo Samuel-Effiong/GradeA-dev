@@ -3829,54 +3829,112 @@ class LicenseSubscriptionService:
         return license_sub
 
     @staticmethod
-    @transaction.atomic
     def convert_license_to_offline(
         license_sub: LicenseSubscription,
         performed_by: CustomUser,
         notes: Optional[str] = None,
     ) -> LicenseSubscription:
+        """
+        Stop billing a licence through Stripe: delete its Stripe subscription
+        and bill it offline from now on.
 
-        license_sub = LicenseSubscription.objects.select_for_update().get(
-            pk=license_sub.pk
+        H-28 (P0): the delete cannot be undone, and used to run inside the
+        transaction that then wrote OFFLINE, so a failure after it left the
+        school's subscription gone while the application still billed it as
+        STRIPE. Now the delete is recorded as an intent first and runs in NO
+        transaction (see billing/license_stripe_mutation.py). A delete whose
+        response is lost or refused is read back from Stripe before it is
+        classified. If the local write then fails, nothing can put the
+        subscription back, so the intent is ESCALATED and a human is told;
+        code never re-creates a subscription (DESIGN_PROPOSAL.md §6.1).
+        """
+
+        def write_offline(licence):
+            licence.billing_method = LicenseBillingMethod.OFFLINE
+            licence.stripe_subscription_id = None
+            licence.stripe_status = None
+            licence.save(
+                update_fields=[
+                    "billing_method",
+                    "stripe_subscription_id",
+                    "stripe_status",
+                    "updated_at",
+                ]
+            )
+
+            LicenseBillingRecord.objects.create(
+                license_subscription=licence,
+                record_type=LicenseBillingRecordType.CONVERTED_TO_OFFLINE,
+                notes=notes,
+                performed_by=performed_by,
+            )
+
+            logger.info(
+                "License %s converted from STRIPE to OFFLINE billing by %s.",
+                licence.id,
+                performed_by.email if performed_by else "unknown",
+            )
+
+        # Phase A — or the whole operation, where Stripe is not involved.
+        try:
+            with transaction.atomic(durable=True):
+                licence = LicenseSubscription.objects.select_for_update().get(
+                    pk=license_sub.pk
+                )
+                if licence.billing_method == LicenseBillingMethod.OFFLINE:
+                    raise ValueError("License is already billed offline.")
+
+                if not licence.stripe_subscription_id:
+                    write_offline(licence)
+                    return licence
+
+                intent = license_stripe_mutation.record_intent(
+                    licence,
+                    LicenseStripeMutationOperation.CONVERT_TO_OFFLINE,
+                    {
+                        "billing_method": [
+                            LicenseBillingMethod.STRIPE,
+                            LicenseBillingMethod.OFFLINE,
+                        ],
+                        "deleted_stripe_subscription_id": licence.stripe_subscription_id,
+                    },
+                    performed_by,
+                )
+        except IntegrityError as exc:
+            if license_stripe_mutation.is_guard_violation(exc):
+                raise license_stripe_mutation.busy_error() from exc
+            raise
+
+        sub_id = intent.stripe_subscription_id
+
+        def deleted():
+            return stripe.Subscription.retrieve(sub_id).get("status") == "canceled"
+
+        # Phases B and C.
+        try:
+            license_stripe_mutation.apply_at_stripe(
+                intent,
+                call=lambda **key: stripe.Subscription.delete(sub_id, **key),
+                reached=deleted,
+                read_back_on=(stripe.error.InvalidRequestError,),
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Failed to cancel Stripe subscription: {exc}") from exc
+
+        # Phase D. There is no compensation: a deleted subscription cannot be
+        # restored, only re-created, which would move money.
+        def revalidate(current):
+            if (
+                current.billing_method != LicenseBillingMethod.STRIPE
+                or current.stripe_subscription_id != sub_id
+            ):
+                raise license_stripe_mutation.LicenceMovedOn(
+                    f"licence {current.id} changed while Stripe was being updated"
+                )
+
+        return license_stripe_mutation.finalise(
+            intent, revalidate=revalidate, write=write_offline, compensate=None
         )
-
-        if license_sub.billing_method == LicenseBillingMethod.OFFLINE:
-            raise ValueError("License is already billed offline.")
-
-        if license_sub.stripe_subscription_id:
-            try:
-                stripe.Subscription.delete(license_sub.stripe_subscription_id)
-            except stripe.error.StripeError as exc:
-                raise ValueError(
-                    f"Failed to cancel Stripe subscription: {exc}"
-                ) from exc
-
-        license_sub.billing_method = LicenseBillingMethod.OFFLINE
-        license_sub.stripe_subscription_id = None
-        license_sub.stripe_status = None
-        license_sub.save(
-            update_fields=[
-                "billing_method",
-                "stripe_subscription_id",
-                "stripe_status",
-                "updated_at",
-            ]
-        )
-
-        LicenseBillingRecord.objects.create(
-            license_subscription=license_sub,
-            record_type=LicenseBillingRecordType.CONVERTED_TO_OFFLINE,
-            notes=notes,
-            performed_by=performed_by,
-        )
-
-        logger.info(
-            "License %s converted from STRIPE to OFFLINE billing by %s.",
-            license_sub.id,
-            performed_by.email if performed_by else "unknown",
-        )
-
-        return license_sub
 
     @staticmethod
     @transaction.atomic

@@ -22,7 +22,8 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 |---|---|---|
 | 3 | `af43442` | the phase plumbing (`billing/license_stripe_mutation.py`) and `cancel_license_subscription` on it |
 | 4 | `f190771` | `update_seats` on it, with F4 and F5: an unpaid or declined seat increase is reverted and its own invoice voided (`undo_unpaid_change`) |
-| 5 | (the commit adding this note) | `change_license_plan` on it, with F0 and F1–F3; `change_license_price` delegates to it |
+| 5 | `318c7d8` | `change_license_plan` on it, with F0 and F1–F3; `change_license_price` delegates to it |
+| 6 | (next) | `convert_license_to_offline` (P0) on it: no compensation, and a refused or lost delete is read back |
 
 ## F1: the 4-point behaviour-change record
 
@@ -47,5 +48,6 @@ Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout
 | Commit 3's modules | commit-3 tree | 58 ran; only the 16 expected failures (sites commits 4–6 fix) |
 | Commit 4's modules | commit-4 tree | 74 ran; only the 11 expected failures (commits 5–6) |
 | Commit 5's modules, with `test_mailerlite_sync` (it calls the rewritten plan change and cancel) | commit-5 tree | 109 ran; only the 2 expected failures (convert to offline, commit 6) |
+| Commit 6's modules | commit-6 tree | **119 ran, OK: all 18 reproductions pass** |
 
 Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.
