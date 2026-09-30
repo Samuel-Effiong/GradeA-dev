@@ -155,7 +155,7 @@ finally:
     for path, src in originals.items():
         open(path, "w").write(src)
 
-with open("docs/evidence/h60-h57-licence-seats/mutation_results.json", "w") as f:
+with open("docs/evidence/h60-h57-licence-seats/r2_mutation_results.json", "w") as f:
     json.dump(results, f, indent=2)
     f.write("\n")
 print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])

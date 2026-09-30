@@ -120,10 +120,10 @@ This branch edits the same file elsewhere (cancel, update_seats, convert).
 
 | Gate | Result | Log |
 |---|---|---|
-| Reproduce-first on 8de3078 (source reverted, tests kept) | see log | `prefix_8de3078_failing.txt` |
-| Changed modules: the new tests, H-28's licence modules, the licence cancellation/admin tests and all repo-wide guards | see log | `changed_modules.txt` |
-| Mutation (A1–A11 for H-60, B1–B6 for H-57) | see log | `mutation_log.txt`, `mutation_results.json` |
-| ONE owning-app regression: billing | see log | `regression_billing.txt` |
+| Reproduce-first on 8de3078 (source reverted, tests kept) | 10 FAIL of the 10 H-60 tests. Every site showed the sentinel, or the log did. `test_h57_licence_patch` ERRORs on import, since `LICENCE_NOT_PATCHABLE` doesn't exist at 8de3078, as expected. | `prefix_8de3078_failing.txt` |
+| Changed modules: the new tests, H-28's licence modules, the licence cancellation/admin tests and all repo-wide guards | 207 OK (run 2, 2d09675). Run 1 stopped; see the behaviour change below | `changed_modules.txt` |
+| Mutation (A1–A11 for H-60, B1–B6 for H-57) | Run 2: 17/17 reported killed, BUT A1 and A3 were **invalid**. Their replacement left a dangling `) from exc`, so the module failed to import and no test caught them (`failing_tests: []`). Both are corrected and re-run in round 2 (below). The other 15 were killed by named tests. | `mutation_log_run2.txt`, `mutation_results_run2.json` |
+| ONE owning-app regression: billing | 1903 OK (run 2, 2d09675) | `regression_billing.txt` (trimmed; full log in GAP-evidence-logs) |
 | `pre-commit run mypy --all-files`, `makemigrations --check` | pass | n/a |
 
 ## Behaviour change: four H-28 tests pinned Stripe's text
