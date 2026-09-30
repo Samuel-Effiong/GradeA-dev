@@ -23,7 +23,9 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 | 3 | `af43442` | the phase plumbing (`billing/license_stripe_mutation.py`) and `cancel_license_subscription` on it |
 | 4 | `f190771` | `update_seats` on it, with F4 and F5: an unpaid or declined seat increase is reverted and its own invoice voided (`undo_unpaid_change`) |
 | 5 | `318c7d8` | `change_license_plan` on it, with F0 and F1–F3; `change_license_price` delegates to it |
-| 6 | (next) | `convert_license_to_offline` (P0) on it: no compensation, and a refused or lost delete is read back |
+| 6 | `83dd6c2` | `convert_license_to_offline` (P0) on it: no compensation, and a refused or lost delete is read back |
+| — | `8e450e6` | merge of bundle 4 (`bd29d1f`: H-62's final tip and the `expire_bucket` race fix), so H-28's rule-15 runs cover what it lands beside; then `04314f6` logs H-67 (backlog only) |
+| 7 | (next) | the bounded retry of the local write (§9e); the named Gate-5 assertion is `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` |
 
 ## F1: the 4-point behaviour-change record
 
@@ -49,5 +51,6 @@ Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout
 | Commit 4's modules | commit-4 tree | 74 ran; only the 11 expected failures (commits 5–6) |
 | Commit 5's modules, with `test_mailerlite_sync` (it calls the rewritten plan change and cancel) | commit-5 tree | 109 ran; only the 2 expected failures (convert to offline, commit 6) |
 | Commit 6's modules | commit-6 tree | **119 ran, OK: all 18 reproductions pass** |
+| Commit 7's modules | commit-7 tree, over `04314f6` | 123 ran, OK |
 
 Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.

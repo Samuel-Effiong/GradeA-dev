@@ -47,8 +47,15 @@ refusal (the request was processed and turned down) counts as not applied.
 """
 
 import logging
+import time
 
-from django.db import IntegrityError, transaction
+from django.db import (
+    IntegrityError,
+    InterfaceError,
+    OperationalError,
+    connection,
+    transaction,
+)
 from django.utils import timezone
 
 from .imports import stripe
@@ -61,6 +68,15 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 GUARD_CONSTRAINT = "one_inflight_stripe_mutation_per_licence"
+
+#: The local write after Stripe applied a change is retried on these alone
+#: (DESIGN_PROPOSAL.md §9e): a dropped or terminated connection. Anything
+#: else (a constraint, a re-validation) is a logic failure that a retry
+#: would only delay.
+TRANSIENT_DB_ERRORS = (OperationalError, InterfaceError)
+FINALISE_ATTEMPTS = 3
+#: Seconds to wait before the 2nd and 3rd attempts.
+FINALISE_BACKOFF_SECONDS = (0.2, 1.0)
 
 
 class LicenceBillingChangeInProgress(ValueError):
@@ -324,7 +340,17 @@ def finalise(intent, revalidate, write, compensate=None):
     Phase D: re-lock the licence, re-check it, write the local result and
     mark the intent COMPLETE — all in one short transaction.
 
-    If that fails, the Stripe change is undone by `compensate(
+    A transient database failure (TRANSIENT_DB_ERRORS: the connection was
+    dropped, or Postgres terminated it) is retried a bounded number of
+    times (§9e). Before each retry the dead connection is closed, so the
+    next attempt runs on a fresh one, in a new top-level transaction, never
+    nested in the one that failed. Each attempt re-reads, re-validates and
+    writes absolute values, so a retry cannot apply a change twice; and if
+    an earlier attempt's commit did land (its acknowledgement lost with the
+    connection), the intent is already COMPLETE and nothing is written
+    again.
+
+    If it still fails, the Stripe change is undone by `compensate(
     idempotency_key=...)` where one is given — only for changes where no
     money has moved — and the intent becomes COMPENSATED. With no
     compensation, or if it fails, the intent becomes ESCALATED and a human
@@ -334,18 +360,13 @@ def finalise(intent, revalidate, write, compensate=None):
     Raises LicenceStripeChangeNotRecorded in either failure case.
     """
     try:
-        with transaction.atomic(durable=True):
-            licence = LicenseSubscription.objects.select_for_update().get(
-                pk=intent.license_subscription_id
-            )
-            revalidate(licence)
-            write(licence)
-            intent.status = LicenseStripeMutationStatus.COMPLETE
-            intent.completed_at = timezone.now()
-            intent.save(update_fields=["status", "completed_at", "updated_at"])
-        return licence
+        return _finalise_with_retry(intent, revalidate, write)
     except Exception as exc:  # noqa: BLE001 - every failure takes this path
         cause = f"{type(exc).__name__}: {exc}"
+        if isinstance(exc, TRANSIENT_DB_ERRORS):
+            # The intent's own status is written next; do not write it on
+            # the connection that just failed.
+            connection.close()
 
         if compensate is not None:
             try:
@@ -374,3 +395,42 @@ def finalise(intent, revalidate, write, compensate=None):
             "The change was applied at our payment provider but could not be "
             "recorded. It has been flagged for manual reconciliation."
         ) from exc
+
+
+def _finalise_with_retry(intent, revalidate, write):
+    for attempt in range(1, FINALISE_ATTEMPTS + 1):
+        try:
+            with transaction.atomic(durable=True):
+                licence = LicenseSubscription.objects.select_for_update().get(
+                    pk=intent.license_subscription_id
+                )
+                if (
+                    attempt > 1
+                    and LicenseStripeMutationIntent.objects.filter(
+                        pk=intent.pk, status=LicenseStripeMutationStatus.COMPLETE
+                    ).exists()
+                ):
+                    # An earlier attempt committed; only its reply was lost.
+                    intent.status = LicenseStripeMutationStatus.COMPLETE
+                    return licence
+                revalidate(licence)
+                write(licence)
+                intent.status = LicenseStripeMutationStatus.COMPLETE
+                intent.completed_at = timezone.now()
+                intent.save(update_fields=["status", "completed_at", "updated_at"])
+            return licence
+        except TRANSIENT_DB_ERRORS as exc:
+            if attempt == FINALISE_ATTEMPTS:
+                raise
+            logger.warning(
+                "H-28 intent %s: the local write failed on attempt %d of %d "
+                "(%s: %s); retrying on a fresh connection.",
+                intent.id,
+                attempt,
+                FINALISE_ATTEMPTS,
+                type(exc).__name__,
+                exc,
+            )
+            connection.close()
+            time.sleep(FINALISE_BACKOFF_SECONDS[attempt - 1])
+    raise AssertionError("unreachable: the last attempt returns or raises")
