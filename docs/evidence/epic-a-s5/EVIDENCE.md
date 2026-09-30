@@ -73,7 +73,16 @@ So a client that sent another action's trace id as its `X-Request-ID` placed its
 - The QA-ERR-04 wording in the module docstring and in the `reason_codes.py` envelope comment now says "the server's X-Request-ID, never an inbound id". 08a (`reference == response["X-Request-ID"]`) already holds as written, because the header is now always the server's.
 - `mutate.py` gains **X5** (the body's reference echoes the client id) and adds `AutoGrader.tests_reason_codes` to its labels.
 
-The R3 gates are below. Per rule 15, the ai_processor regression is not re-run, because R3 changes no behaviour.
+**R3 gates** (on `1dedac3`; rule 15: no ai_processor re-run, because R3 changes no behaviour):
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | `75bf91a`'s source for S5's 7 files, against `AutoGrader.tests_reason_codes` + `audit.tests_trace_server_owned` (`prefix_r3_75bf91a_failing.txt`): 33 tests, **6 fail**, among them the updated `test_qa_err_04_an_inbound_request_id_is_never_the_reference`, on its reference assertion. |
+| Changed modules | the S5 modules + **`AutoGrader.tests_reason_codes`**: **178 OK** (`changed_modules.txt`) |
+| 2 Mutation | **18 mutants, 18 killed** (`mutation_log.txt`, `mutation_results.json`). The new X5 (the body's reference echoes the client id) is killed by S6a's updated test and by `CodedErrorReferenceTests`. |
+| mypy / hooks | the pre-commit hooks passed on every R3 commit. R3 touches only a test, a docstring and a comment. |
+
+The gates table below is R2's (on `6fef60a`), kept for the record.
 
 ## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
 Re-run on `6fef60a` (S5 + S6a `75bf91a`). Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time.
