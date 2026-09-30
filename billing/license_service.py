@@ -509,10 +509,12 @@ class LicenseSubscriptionService:
                         metadata={**metadata, "previous_unused": unused, **cap_meta},
                     )
                 elif cap_meta["requested_rollover"] > 0:
+                    # Ids only: the teacher's email here was a BE-A-04 PII
+                    # leak (Epic A S3, SM ruling).
                     logger.info(
                         "License rollover fully suppressed by max_bank for "
                         "teacher %s: requested %d (%s).",
-                        teacher.email,
+                        teacher.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
                     )
