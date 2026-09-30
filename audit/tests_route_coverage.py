@@ -46,6 +46,23 @@ User = get_user_model()
 LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 WRITE_METHODS = ("post", "put", "patch", "delete")
 
+# Routes that refuse anyone but a signed-in superadmin with a bare 404 ("no
+# hint this exists"; billing/qa_console.py). For them a 404 to an anonymous
+# caller is a refusal, not reachability. Kept explicit - a 404 in general is
+# not a refusal, since an open route given a made-up id answers 404 too.
+CONCEALED_ROUTES = frozenset(
+    {
+        "qa-console",
+        "qa-console-state",
+        "qa-console-new-subscriber",
+        "qa-console-action",
+        "qa-console-reset",
+        "qa-console-runs-list",
+        "qa-console-runs-create",
+        "qa-console-runs-detail",
+    }
+)
+
 
 def _walk(patterns, prefix="", namespace=None):
     for pattern in patterns:
@@ -140,8 +157,13 @@ class RouteCoverageTests(TestCase):
                 )
                 response = fire(client, method, url_for(name, kwarg_names))
                 transaction.set_rollback(True)
-            refused = response.status_code in (401, 403) or (
-                response.status_code == 302 and "login" in response.get("Location", "")
+            refused = (
+                response.status_code in (401, 403)
+                or (
+                    response.status_code == 302
+                    and "login" in response.get("Location", "")
+                )
+                or (response.status_code == 404 and name in CONCEALED_ROUTES)
             )
             if refused:
                 continue
@@ -214,7 +236,7 @@ class RouteCoverageTests(TestCase):
 
     def test_every_registry_entry_names_a_real_route(self):
         names = {name for name, _ in self.routes}
-        for registry in (ANONYMOUS_AUDITED_ROUTES, EXCLUDED_ROUTES):
+        for registry in (ANONYMOUS_AUDITED_ROUTES, EXCLUDED_ROUTES, CONCEALED_ROUTES):
             for name in registry:
                 with self.subTest(route=name):
                     self.assertIn(name, names, f"stale entry: {name}")
