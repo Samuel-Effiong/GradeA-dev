@@ -24,6 +24,7 @@ from django.core.cache import cache
 from django.db import connections, transaction
 from django.test import TransactionTestCase
 from django.urls import reverse
+from django.utils import timezone
 from django_redis.client import DefaultClient
 from rest_framework.test import APIClient
 
@@ -59,6 +60,13 @@ LEGACY_MODULES = (
 
 
 def make_user(email, user_type, first_name):
+    """An active account that has signed in before.
+
+    `last_login` is what a real sign-in records. Without it an existing
+    student counts as never signed in (classrooms.services.enrollment
+    has_signed_in), and enrolling them re-sends credentials and leaves the
+    enrollment PENDING, which is not the path these tests race.
+    """
     return User.objects.create_user(
         email=email,
         password="password123",  # nosec  # pragma: allowlist secret
@@ -66,6 +74,7 @@ def make_user(email, user_type, first_name):
         is_active=True,
         first_name=first_name,
         last_name=user_type.title(),
+        last_login=timezone.now(),
     )
 
 
