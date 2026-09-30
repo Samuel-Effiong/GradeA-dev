@@ -79,7 +79,7 @@ MUTANTS = [
         "M02",
         "lookup inline at overage grant site (put lookup back inside)",
         SS,
-        3003,
+        3015,
         "schedule_receipt_url_fill(billing_transaction)",
         "__import__('billing.receipts', fromlist=['x']).fill_receipt_url(billing_transaction.pk)",
         ALL,
@@ -89,7 +89,7 @@ MUTANTS = [
         "M03",
         "schedule at individual_checkout trial conversion",
         SS,
-        2817,
+        2829,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -98,7 +98,7 @@ MUTANTS = [
         "M04",
         "schedule at individual_checkout fresh activation",
         SS,
-        2866,
+        2878,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -107,7 +107,7 @@ MUTANTS = [
         "M05",
         "schedule at overage block purchase",
         SS,
-        3003,
+        3015,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW, REPRO],
@@ -116,7 +116,7 @@ MUTANTS = [
         "M06",
         "schedule at license overage, inactive license",
         SS,
-        3141,
+        3153,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -125,7 +125,7 @@ MUTANTS = [
         "M07",
         "schedule at license overage fulfilled",
         SS,
-        3234,
+        3246,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -134,7 +134,7 @@ MUTANTS = [
         "M08",
         "schedule at upgrade, subscription changed",
         SS,
-        3327,
+        3339,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -143,7 +143,7 @@ MUTANTS = [
         "M09",
         "schedule at upgrade applied",
         SS,
-        3384,
+        3396,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -152,7 +152,7 @@ MUTANTS = [
         "M10",
         "schedule at individual_subscribe replay",
         SS,
-        3427,
+        3439,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -161,7 +161,7 @@ MUTANTS = [
         "M11",
         "schedule at license_create",
         SS,
-        3510,
+        3522,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -170,7 +170,7 @@ MUTANTS = [
         "M12",
         "schedule at trial_to_paid replay",
         SS,
-        3634,
+        3646,
         "schedule_receipt_url_fill(billing_transaction)",
         "pass",
         [FLOW],
@@ -180,7 +180,7 @@ MUTANTS = [
         "M13",
         "store PI: trial conversion",
         SS,
-        2812,
+        2824,
         'stripe_payment_intent_id=session.get("payment_intent"),',
         "",
         [FLOW],
@@ -189,7 +189,7 @@ MUTANTS = [
         "M14",
         "store PI: fresh activation",
         SS,
-        2861,
+        2873,
         'stripe_payment_intent_id=session.get("payment_intent"),',
         "",
         [FLOW],
@@ -198,7 +198,7 @@ MUTANTS = [
         "M15",
         "store PI: individual_subscribe",
         SS,
-        3422,
+        3434,
         'stripe_payment_intent_id=session.get("payment_intent"),',
         "",
         [FLOW],
@@ -207,7 +207,7 @@ MUTANTS = [
         "M16",
         "store PI: license_create",
         SS,
-        3505,
+        3517,
         'stripe_payment_intent_id=session.get("payment_intent"),',
         "",
         [FLOW],
@@ -216,7 +216,7 @@ MUTANTS = [
         "M17",
         "store PI: trial_to_paid",
         SS,
-        3629,
+        3641,
         'stripe_payment_intent_id=session.get("payment_intent"),',
         "",
         [FLOW],
@@ -541,7 +541,7 @@ MUTANTS = [
         "P11",
         "handler idempotency guard (_overage_already_granted)",
         SS,
-        2916,
+        2928,
         "if payment_intent_id and StripeWebhookHandler._overage_already_granted(",
         "if False and StripeWebhookHandler._overage_already_granted(",
         [ALLOWED],
@@ -647,6 +647,9 @@ def apply(path, line, old, new):
 
 def run_one(commit, mutant, out_dir):
     mid, guard, rel, line, old, new, modules = mutant
+    # P1MUT_DB: one shared test database for a sequential (--jobs 1) run, so
+    # each mutant reuses it (--keepdb) instead of building its own.
+    db_name = os.environ.get("P1MUT_DB") or f"test_p1mut_{mid.lower()}"
     base = tempfile.mkdtemp(prefix=f"p1mut-{mid}-")
     wt = os.path.join(base, "wt")
     log_path = os.path.join(out_dir, f"{mid}.log")
@@ -665,7 +668,7 @@ def run_one(commit, mutant, out_dir):
                 "from AutoGrader.settings import *  # noqa: F401,F403\n"
                 "from AutoGrader.settings import DATABASES\n"
                 'DATABASES["default"].setdefault("TEST", {})\n'
-                f'DATABASES["default"]["TEST"]["NAME"] = "test_p1mut_{mid.lower()}"\n'
+                f'DATABASES["default"]["TEST"]["NAME"] = {db_name!r}\n'
             )
         target = os.path.join(wt, rel)
         pristine = subprocess.check_output(["git", "show", f"{commit}:{rel}"], cwd=REPO)
