@@ -1,0 +1,19 @@
+# P6: the log-only detail stays out of args
+# file: AutoGrader/reason_codes.py (occurrence 1)
+# old: '        self.args = (code.value, params, None, display or None)'
+# new: '        self.args = (code.value, params, detail, display or None)'
+# commit: 047c4f645c84848e8e46d05bcc198fdcf90af4b9
+# exit: 1
+# elapsed_s: 5.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='DefinedOnlyHere')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='FileTooLargeError')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='FileTypeUnsupportedError')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='FileUnreadableError')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='PayloadTooLarge')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='StudentNameUnmatchedError')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='StudentNotOnRosterError')
+FAIL: test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry) (cls='SubmissionEmptyError')
+
+FAILED (failures=8)
