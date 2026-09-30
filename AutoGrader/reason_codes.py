@@ -78,8 +78,8 @@ class ReasonSpec:
             if name is not None
         }
 
-    def render(self, params):
-        return self.message.format(**{**self.defaults, **params})
+    def render(self, params, display=None):
+        return self.message.format(**{**self.defaults, **params, **(display or {})})
 
 
 _FILE = frozenset({"file_name"})
@@ -128,8 +128,10 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Split the file, remove blank pages or scan at a lower resolution, "
         "then upload again.",
         retryable=False,
-        # dimension: "bytes" | "pages" | "pixels"; actual/limit are the
-        # display strings ("63.2 MB" / "50 MB").
+        # dimension: "bytes" | "pages" | "pixels"; actual/limit are NUMBERS
+        # in that unit (SM ruling on S6b N1, 08a §4.2). The message shows
+        # them through `display` ("63.2 MB" / "50 MB"). `actual` is absent
+        # only when the size is unknown (never a made-up number).
         params=_FILE | {"actual", "limit", "dimension"},
     ),
     ReasonCode.SUBMISSION_EMPTY: ReasonSpec(
@@ -251,13 +253,16 @@ class CodedError(Exception):
     """A failure with a stable reason code.
 
     `str(error)` is the display message, rendered from the spec and the
-    whitelisted scalar `params`. `detail` is for logs only and never reaches
-    a response. A subclass fixes its code with the `reason_code` attribute.
+    whitelisted scalar `params`. `display` optionally says how a placeholder
+    reads in the message when its param is machine-readable (an int byte
+    count shown as "63.2 MB"): message only, never in the body's `params`.
+    `detail` is for logs only and never reaches a response. A subclass fixes
+    its code with the `reason_code` attribute.
     """
 
     reason_code: ReasonCode | None = None
 
-    def __init__(self, reason_code=None, *, params=None, detail=None):
+    def __init__(self, reason_code=None, *, params=None, detail=None, display=None):
         code = reason_code or type(self).reason_code
         if code is None:
             raise TypeError("CodedError needs a reason_code")
@@ -272,14 +277,21 @@ class CodedError(Exception):
         not_scalar = [k for k, v in params.items() if not isinstance(v, _SCALARS)]
         if not_scalar:
             raise TypeError(f"{code}: params must be scalars: {sorted(not_scalar)}")
-        missing = spec.placeholders() - set(params) - set(spec.defaults)
+        display = dict(display or {})
+        stray = set(display) - spec.placeholders()
+        if stray:
+            raise ValueError(f"{code}: display for no placeholder: {sorted(stray)}")
+        not_text = [k for k, v in display.items() if not isinstance(v, str)]
+        if not_text:
+            raise TypeError(f"{code}: display values must be text: {sorted(not_text)}")
+        missing = spec.placeholders() - set(params) - set(spec.defaults) - set(display)
         if missing:
             raise ValueError(f"{code}: params missing: {sorted(missing)}")
         self.reason_code = code
         self.params = params
         self.detail = detail
         self._spec = spec
-        super().__init__(spec.render(params))
+        super().__init__(spec.render(params, display))
 
     @property
     def spec(self):

@@ -134,6 +134,18 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
         self.assertEqual(body["reference"], response["X-Request-ID"])
         return body
 
+    def assertSizeParams(self, body, dimension, actual, limit, shown):
+        """SM ruling on S6b N1 (08a §4.2): FILE_TOO_LARGE's params are
+        machine-readable numbers in the unit `dimension` names; only the
+        message shows them formatted (`shown`)."""
+        params = body["params"]
+        self.assertEqual(params["dimension"], dimension)
+        for key, expected in (("actual", actual), ("limit", limit)):
+            self.assertIs(type(params[key]), int, f"{key}={params[key]!r}")
+            self.assertEqual(params[key], expected)
+        for text in shown:
+            self.assertIn(text, body["error"])
+
     def assertNoInternals(self, response):
         text = response.content.decode()
         for leak in (SENTINEL, "Traceback", "Error:", "fitz", "PIL", "poppler"):
@@ -253,11 +265,13 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             "big.pdf",
         )
-        self.assertEqual(body["params"]["dimension"], "bytes")
-        self.assertEqual(body["params"]["actual"], "3.0 MB")
-        self.assertEqual(body["params"]["limit"], "1 MB")
-        self.assertIn("3.0 MB", body["error"])
-        self.assertIn("1 MB", body["error"])
+        self.assertSizeParams(
+            body,
+            "bytes",
+            actual=len(b"%PDF-1.4") + 3 * 1024 * 1024,
+            limit=1024 * 1024,
+            shown=("3.0 MB", "1 MB"),
+        )
 
     def test_too_many_pages_is_too_large_with_actual_and_limit(self):
         with patch("ai_processor.services.PDFService.MAX_PAGE_COUNT", 2):
@@ -271,11 +285,9 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             "long.pdf",
         )
-        self.assertEqual(body["params"]["dimension"], "pages")
-        self.assertEqual(body["params"]["actual"], "3 pages")
-        self.assertEqual(body["params"]["limit"], "2 pages")
-        self.assertIn("3 pages", body["error"])
-        self.assertIn("2 pages", body["error"])
+        self.assertSizeParams(
+            body, "pages", actual=3, limit=2, shown=("3 pages", "2 pages")
+        )
 
     def test_too_many_pixels_is_too_large_with_actual_and_limit(self):
         with patch("assignments.services.MAX_IMAGE_PIXELS", 20_000):
@@ -289,10 +301,13 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             "huge.png",
         )
-        self.assertEqual(body["params"]["dimension"], "pixels")
-        self.assertEqual(body["params"]["actual"], "200x120 px")
-        self.assertIn("200x120 px", body["error"])
-        self.assertIn(body["params"]["limit"], body["error"])
+        self.assertSizeParams(
+            body,
+            "pixels",
+            actual=200 * 120,
+            limit=20_000,
+            shown=("200x120 px", "0.02 MP"),
+        )
 
     def test_an_image_too_large_even_compressed_is_too_large(self):
         refusal = ImageCompressionError(
@@ -315,11 +330,13 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
                     status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                     name,
                 )
-                self.assertEqual(body["params"]["dimension"], "bytes")
-                self.assertEqual(
-                    body["params"]["actual"], "6.5 MB even after compression"
+                self.assertSizeParams(
+                    body,
+                    "bytes",
+                    actual=6 * 1024 * 1024 + 512 * 1024,
+                    limit=5 * 1024 * 1024,
+                    shown=("6.5 MB even after compression", "5 MB"),
                 )
-                self.assertEqual(body["params"]["limit"], "5 MB")
                 self.assertNoInternals(response)
 
     # -- #6 SUBMISSION_EMPTY (empty FILES only: §6.1's final ruling) -------------

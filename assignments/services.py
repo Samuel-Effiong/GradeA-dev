@@ -215,37 +215,43 @@ def _declared_type(uploaded_file):
     return str(uploaded_file.content_type or "unknown")
 
 
-def _too_many_pixels(file_name, actual=None):
-    """FILE_TOO_LARGE by pixels. Pillow refuses a decompression bomb before
-    it reports dimensions, so `actual` then states the bound it exceeded."""
-    if actual is None:
+def _too_many_pixels(file_name, size=None):
+    """FILE_TOO_LARGE by pixels; `size` is (width, height). Pillow refuses a
+    decompression bomb before it reports dimensions, so the message then
+    states the bound it exceeded and `actual` is left out of params."""
+    params = {"file_name": file_name, "limit": MAX_IMAGE_PIXELS, "dimension": "pixels"}
+    display = {"limit": f"{MAX_IMAGE_PIXELS / 1_000_000:g} MP"}
+    if size is None:
+        # Unknown, so absent from params rather than a made-up number.
         bomb = Image.MAX_IMAGE_PIXELS
-        actual = f"over {2 * bomb / 1_000_000:g} MP" if bomb else "too large to decode"
-    return FileTooLargeError(
-        params={
-            "file_name": file_name,
-            "actual": actual,
-            "limit": f"{MAX_IMAGE_PIXELS / 1_000_000:g} MP",
-            "dimension": "pixels",
-        }
-    )
+        display["actual"] = (
+            f"over {2 * bomb / 1_000_000:g} MP" if bomb else "too large to decode"
+        )
+    else:
+        width, height = size
+        params["actual"] = width * height
+        display["actual"] = f"{width}x{height} px"
+    return FileTooLargeError(params=params, display=display)
 
 
 def _too_large_after_compression(file_name, error):
     """FILE_TOO_LARGE for an image no compression brings under the cap."""
     smallest, cap = error.smallest_bytes, error.cap_bytes
-    return FileTooLargeError(
-        params={
-            "file_name": file_name,
-            "actual": (
-                f"{human_size(smallest)} even after compression"
-                if smallest
-                else "too large even after compression"
-            ),
-            "limit": human_size(cap) if cap else "the upload limit",
-            "dimension": "bytes",
-        }
-    )
+    params = {"file_name": file_name, "dimension": "bytes"}
+    display = {
+        "actual": (
+            f"{human_size(smallest)} even after compression"
+            if smallest
+            else "too large even after compression"
+        ),
+        "limit": human_size(cap) if cap else "the upload limit",
+    }
+    # Numbers only when known; an unknown size is absent, never invented.
+    if smallest:
+        params["actual"] = int(smallest)
+    if cap:
+        params["limit"] = int(cap)
+    return FileTooLargeError(params=params, display=display)
 
 
 def _option_letter(index: int) -> str:
@@ -442,7 +448,7 @@ class AssignmentProcessingService:
 
         width, height = image.size
         if width * height > MAX_IMAGE_PIXELS:
-            raise _too_many_pixels(file_name, f"{width}x{height} px")
+            raise _too_many_pixels(file_name, (width, height))
 
         try:
             # Forces the actual decode. Anything that only fails on real
@@ -509,10 +515,14 @@ class AssignmentProcessingService:
                 raise FileTooLargeError(
                     params={
                         "file_name": file_name,
+                        "actual": int(exc.page_count),
+                        "limit": int(exc.limit),
+                        "dimension": "pages",
+                    },
+                    display={
                         "actual": f"{exc.page_count} pages",
                         "limit": f"{exc.limit} pages",
-                        "dimension": "pages",
-                    }
+                    },
                 ) from exc
             except ImageCompressionError as exc:
                 raise _too_large_after_compression(file_name, exc) from exc

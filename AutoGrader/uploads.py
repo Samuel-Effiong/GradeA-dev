@@ -18,8 +18,9 @@ from AutoGrader.reason_codes import CodedError
 class PayloadTooLarge(CodedError, APIException):
     """FR-A-06 FILE_TOO_LARGE (413), for bytes, pages or pixels.
 
-    Coded: its message comes from the spec and its params (file name,
-    actual and limit as display strings, and the dimension), and a view
+    Coded: its params are the file name, `actual` and `limit` as numbers in
+    the unit `dimension` names, and its message shows them formatted (the
+    `display` argument), and a view
     that lets it propagate answers with the coded body. Still an
     APIException, so `.detail` is that same display message and the
     existing `except PayloadTooLarge` callers keep working."""
@@ -61,8 +62,12 @@ def validate_upload_size(uploaded_file, max_size_bytes=None):
         raise PayloadTooLarge(
             params={
                 "file_name": file_name_of(uploaded_file),
+                "actual": int(uploaded_file.size),
+                "limit": int(max_size_bytes),
+                "dimension": "bytes",
+            },
+            display={
                 "actual": human_size(uploaded_file.size),
                 "limit": human_size(max_size_bytes),
-                "dimension": "bytes",
-            }
+            },
         )
