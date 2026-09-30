@@ -149,6 +149,13 @@ def _set_status(intent, status, **fields) -> bool:
         return False
 
 
+def stripe_id(value):
+    """The id of a Stripe reference that may be an id or an expanded object."""
+    if value is None or isinstance(value, str):
+        return value
+    return value.get("id")
+
+
 def _reconciliation_needed(intent, why: str) -> None:
     logger.error(
         "MANUAL RECONCILIATION NEEDED — Stripe and local state may now "
@@ -161,7 +168,31 @@ def _reconciliation_needed(intent, why: str) -> None:
     )
 
 
-def apply_at_stripe(intent, call, reached):
+def abandon(intent, why: str) -> None:
+    """Close an intent whose Stripe change was never attempted (a read that
+    had to come first failed, or showed the change cannot be made). Stripe
+    is untouched, so FAILED is the truth, and the licence is free again."""
+    _set_status(
+        intent,
+        LicenseStripeMutationStatus.FAILED,
+        failure_reason=f"Not attempted: {why}",
+    )
+
+
+def escalate(intent, why: str) -> None:
+    """Give up: a human must reconcile Stripe and the application. The
+    intent stays in flight (ESCALATED), so it keeps the licence's guard
+    closed until someone resolves it."""
+    _set_status(
+        intent,
+        LicenseStripeMutationStatus.ESCALATED,
+        escalated_at=timezone.now(),
+        failure_reason=why,
+    )
+    _reconciliation_needed(intent, why)
+
+
+def apply_at_stripe(intent, call, reached, payment_errors=()):
     """
     Phase B, then phase C.
 
@@ -173,9 +204,17 @@ def apply_at_stripe(intent, call, reached):
     but the read-back shows it applied. Re-raises the Stripe error when the
     change did not happen (the intent is then FAILED) or when it cannot be
     determined (the intent stays PENDING and a human is told).
+
+    `payment_errors` are errors that do not prove the change was refused:
+    Stripe applies an item change in the same call that attempts payment,
+    so after a CardError the change may be live (DESIGN_PROPOSAL.md §9j).
+    They are re-raised with the intent left PENDING, for the caller to
+    settle with undo_unpaid_change.
     """
     try:
         result = call(idempotency_key=intent.idempotency_key("apply"))
+    except payment_errors:
+        raise
     except stripe.error.StripeError as exc:
         if not outcome_unknown(exc):
             _set_status(
@@ -210,6 +249,46 @@ def apply_at_stripe(intent, call, reached):
 
     _set_status(intent, LicenseStripeMutationStatus.STRIPE_APPLIED)
     return result
+
+
+def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
+    """
+    The payment-failure branch (DESIGN_PROPOSAL.md §9d, F1-F5): Stripe may
+    have applied the change but collected nothing. Put Stripe back with
+    `revert(idempotency_key=...)`, then void the change's own invoice if it
+    is still open, so nothing is left for Stripe to collect later.
+    `find_invoice()` returns that invoice's id, or None when the change
+    raised none; it must never return an invoice the change did not create.
+
+    Both done: the two sides stand where they began, and the intent is
+    FAILED. Returns True. Either step failed: ESCALATED, a human is told,
+    and it returns False.
+    """
+    problems = []
+    try:
+        revert(idempotency_key=intent.idempotency_key("revert"))
+    except stripe.error.StripeError as exc:
+        problems.append(f"the revert failed: {exc}")
+    try:
+        invoice_id = find_invoice()
+        if invoice_id:
+            invoice = stripe.Invoice.retrieve(invoice_id)
+            if invoice.get("status") == "open":
+                stripe.Invoice.void_invoice(
+                    invoice_id, idempotency_key=intent.idempotency_key("void")
+                )
+    except stripe.error.StripeError as exc:
+        problems.append(f"voiding the change's invoice failed: {exc}")
+
+    if problems:
+        escalate(intent, f"Payment not collected ({why}); " + "; ".join(problems))
+        return False
+    _set_status(
+        intent,
+        LicenseStripeMutationStatus.FAILED,
+        failure_reason=f"Payment not collected ({why}); reverted at Stripe",
+    )
+    return True
 
 
 def finalise(intent, revalidate, write, compensate=None):
@@ -262,13 +341,7 @@ def finalise(intent, revalidate, write, compensate=None):
                     "Nothing was changed; please try again."
                 ) from exc
 
-        _set_status(
-            intent,
-            LicenseStripeMutationStatus.ESCALATED,
-            escalated_at=timezone.now(),
-            failure_reason=cause,
-        )
-        _reconciliation_needed(intent, cause)
+        escalate(intent, cause)
         raise LicenceStripeChangeNotRecorded(
             "The change was applied at our payment provider but could not be "
             "recorded. It has been flagged for manual reconciliation."

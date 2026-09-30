@@ -58,11 +58,19 @@ from users.models import CustomUser, UserTypes
 MUTATION_LOGGER = "billing.license_stripe_mutation"
 
 
-class CancelPhaseTests(TransactionTestCase):
-    """TransactionTestCase: the phases' own transactions must really commit,
-    and `connection.in_atomic_block` must mean what it says."""
+class LicencePhaseTestCase(TransactionTestCase):
+    """
+    The fixture for every flow on the phase plumbing: one STRIPE licence on
+    the stateful fake, with each Stripe call recorded along with whether a
+    transaction was open. No tests of its own, so importing it into another
+    module collects nothing twice.
 
-    SUB_ID = "sub_h28_cancel"
+    TransactionTestCase: the phases' own transactions must really commit,
+    and `connection.in_atomic_block` must mean what it says.
+    """
+
+    SUB_ID = "sub_h28_phases"
+    SEATS = 10
 
     def setUp(self):
         school = School.objects.create(name="H-28 Cancel School")
@@ -86,7 +94,7 @@ class CancelPhaseTests(TransactionTestCase):
             billing_cycle_end=timezone.now() + timedelta(days=30),
             billing_method=LicenseBillingMethod.STRIPE,
             contract_months=CONTRACT_MONTHS,
-            max_seats=10,
+            max_seats=self.SEATS,
             is_active=True,
             auto_renew=True,
             stripe_subscription_id=self.SUB_ID,
@@ -96,7 +104,7 @@ class CancelPhaseTests(TransactionTestCase):
             sub_id=self.SUB_ID,
             price_id="price_h28c_initial",
             unit_amount=int(plan.price_cents) * CONTRACT_MONTHS,
-            quantity=10,
+            quantity=self.SEATS,
         )
         for p in self.stripe.patches():
             p.start()
@@ -124,11 +132,6 @@ class CancelPhaseTests(TransactionTestCase):
 
     # -- helpers -------------------------------------------------------------
 
-    def cancel(self):
-        return LicenseSubscriptionService.cancel_license_subscription(
-            self.licence, performed_by=self.superadmin, notes="h28 phases"
-        )
-
     def fresh_licence(self):
         return LicenseSubscription.objects.get(pk=self.licence.pk)
 
@@ -140,6 +143,23 @@ class CancelPhaseTests(TransactionTestCase):
     def modify_calls(self):
         return [c for c in self.stripe.calls if c[0] == "Subscription.modify"]
 
+    def assert_no_stripe_call_inside_a_transaction(self):
+        self.assertTrue(self.in_transaction_at_call, "no Stripe call was made")
+        self.assertNotIn(
+            True,
+            self.in_transaction_at_call,
+            "a Stripe call was made with a database transaction open",
+        )
+
+
+class CancelPhaseTests(LicencePhaseTestCase):
+    SUB_ID = "sub_h28_cancel"
+
+    def cancel(self):
+        return LicenseSubscriptionService.cancel_license_subscription(
+            self.licence, performed_by=self.superadmin, notes="h28 phases"
+        )
+
     def cancellation_records(self):
         return LicenseBillingRecord.objects.filter(
             license_subscription=self.licence,
@@ -150,14 +170,6 @@ class CancelPhaseTests(TransactionTestCase):
         self.assertTrue(self.fresh_licence().auto_renew)
         self.assertFalse(self.stripe.cancel_at_period_end)
         self.assertEqual(self.cancellation_records(), 0)
-
-    def assert_no_stripe_call_inside_a_transaction(self):
-        self.assertTrue(self.in_transaction_at_call, "no Stripe call was made")
-        self.assertNotIn(
-            True,
-            self.in_transaction_at_call,
-            "a Stripe call was made with a database transaction open",
-        )
 
     # -- the forward path ----------------------------------------------------
 

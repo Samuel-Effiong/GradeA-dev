@@ -2353,7 +2353,6 @@ class LicenseSubscriptionService:
         return license_sub
 
     @staticmethod
-    @transaction.atomic
     def update_seats(
         license_sub: LicenseSubscription,
         new_max_seats: int,
@@ -2363,123 +2362,214 @@ class LicenseSubscriptionService:
         Update the maximum number of seats for a license.
         Validates that new_max_seats >= current active teacher count.
         Updates Stripe subscription quantity with appropriate proration.
+
+        H-28: the Stripe calls run in NO transaction (see
+        billing/license_stripe_mutation.py). The change is recorded as an
+        intent first. An increase is invoiced at once; if that invoice is
+        not paid (declined, or 3D Secure) or the card is refused, the
+        quantity is put back and the change's own invoice voided, so Stripe
+        is left with nothing to collect (F4, F5). If the local write then
+        fails, a decrease (no money moved) is undone at Stripe; a PAID
+        increase is escalated to a human instead of being refunded.
         """
         if new_max_seats <= 0:
             raise ValueError("max_seats must be a positive integer.")
 
-        # Lock license row
-        license_sub = LicenseSubscription.objects.select_for_update().get(
-            pk=license_sub.pk
-        )
+        def validate(licence):
+            active_teacher_count = licence.allocations.filter(
+                is_active=True, is_admin_allocation=False
+            ).count()
+            if new_max_seats < active_teacher_count:
+                raise ValueError(
+                    f"Cannot reduce max_seats to {new_max_seats} because there "
+                    f"are {active_teacher_count} active teachers. "
+                    "Remove some teachers first."
+                )
+            if new_max_seats == licence.max_seats:
+                raise ValueError("License already has this many seats.")
 
-        # Get active teacher count
-        active_teacher_count = license_sub.allocations.filter(
-            is_active=True, is_admin_allocation=False
-        ).count()
+        def write_seats(licence, old_seats, proration_behavior):
+            licence.max_seats = new_max_seats
+            licence.save(update_fields=["max_seats", "updated_at"])
 
-        if new_max_seats < active_teacher_count:
-            raise ValueError(
-                f"Cannot reduce max_seats to {new_max_seats} because there are {active_teacher_count} active teachers. "
-                "Remove some teachers first."
+            if licence.billing_method == LicenseBillingMethod.OFFLINE:
+                LicenseBillingRecord.objects.create(
+                    license_subscription=licence,
+                    record_type=LicenseBillingRecordType.SEATS_CHANGE_OFFLINE,
+                    notes=(
+                        f"Seats changed {old_seats} -> {new_max_seats} "
+                        "(offline license — adjust invoicing accordingly)."
+                    ),
+                    performed_by=performed_by,
+                )
+
+            logger.info(
+                "License %s seats updated: %d -> %d (proration: %s)",
+                licence.id,
+                old_seats,
+                new_max_seats,
+                proration_behavior,
             )
 
-        if new_max_seats == license_sub.max_seats:
-            raise ValueError("License already has this many seats.")
-
-        old_seats = license_sub.max_seats
-        is_increase = new_max_seats > old_seats
-        proration_behavior = "always_invoice" if is_increase else "none"
-
-        # Update Stripe subscription quantity
-        if license_sub.stripe_subscription_id:
-            try:
-                # Retrieve subscription item ID
-                stripe_sub = stripe.Subscription.retrieve(
-                    license_sub.stripe_subscription_id
+        # Phase A — or the whole operation, where Stripe is not involved.
+        try:
+            with transaction.atomic(durable=True):
+                licence = LicenseSubscription.objects.select_for_update().get(
+                    pk=license_sub.pk
                 )
-                items = stripe_sub.get("items", {}).get("data", [])
-                if not items:
-                    raise ValueError("Stripe subscription has no items.")
-                item_id = items[0]["id"]
+                validate(licence)
+                old_seats = licence.max_seats
+                is_increase = new_max_seats > old_seats
+                proration_behavior = "always_invoice" if is_increase else "none"
 
-                # Update quantity
-                stripe.Subscription.modify(
-                    license_sub.stripe_subscription_id,
-                    items=[{"id": item_id, "quantity": new_max_seats}],
-                    proration_behavior=proration_behavior,
+                if not licence.stripe_subscription_id:
+                    write_seats(licence, old_seats, proration_behavior)
+                    return licence
+
+                intent = license_stripe_mutation.record_intent(
+                    licence,
+                    LicenseStripeMutationOperation.UPDATE_SEATS,
+                    {"old_max_seats": old_seats, "new_max_seats": new_max_seats},
+                    performed_by,
                 )
+        except IntegrityError as exc:
+            if license_stripe_mutation.is_guard_violation(exc):
+                raise license_stripe_mutation.busy_error() from exc
+            raise
 
-                # For always_invoice, verify invoice paid
-                if proration_behavior == "always_invoice":
-                    stripe_sub_refreshed = stripe.Subscription.retrieve(
-                        license_sub.stripe_subscription_id
-                    )
-                    latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
-                    if latest_invoice_id:
-                        # No expand: this branch only reads invoice["status"],
-                        # never the PaymentIntent. The old
-                        # expand=["payment_intent"] was already dead weight —
-                        # that field was removed from the Invoice object in
-                        # API 2025-03-31 and Stripe silently ignores the
-                        # expand rather than erroring. If a caller here ever
-                        # needs the PaymentIntent, use
-                        # resolve_invoice_payment_intent() with
-                        # INVOICE_PAYMENT_INTENT_EXPAND.
-                        invoice = stripe.Invoice.retrieve(latest_invoice_id)
-                        if invoice.get("status") != "paid":
-                            # Revert quantity
-                            stripe.Subscription.modify(
-                                license_sub.stripe_subscription_id,
-                                items=[{"id": item_id, "quantity": old_seats}],
-                                proration_behavior="none",
-                            )
-                            raise ValueError(
-                                f"Seat increase payment failed (invoice status: {invoice['status']}). "
-                                "Seats have not been increased."
-                            )
+        sub_id = intent.stripe_subscription_id
 
-                        BillingTransactionService.record(
-                            source=BillingTransactionSource.LICENSE,
-                            transaction_type=BillingTransactionType.LICENSE_SEAT_CHANGE_CHARGE,
-                            status=BillingTransactionStatus.PAID,
-                            billing_method=BillingTransactionMethod.STRIPE,
-                            amount_cents=invoice.get("amount_paid") or 0,
-                            currency=invoice.get("currency", "usd"),
-                            license_subscription=license_sub,
-                            stripe_invoice_id=latest_invoice_id,
-                            stripe_subscription_id=license_sub.stripe_subscription_id,
-                            receipt_url=invoice.get("hosted_invoice_url"),
-                            performed_by=performed_by,
-                            description=f"Seats increased {old_seats} -> {new_max_seats}",
-                        )
-            except stripe.error.StripeError as exc:
-                raise ValueError(f"Stripe error while updating seats: {exc}") from exc
+        # Phase B: what the change needs from Stripe, read before changing it.
+        try:
+            before = stripe.Subscription.retrieve(sub_id)
+        except stripe.error.StripeError as exc:
+            license_stripe_mutation.abandon(
+                intent, f"could not read the subscription: {exc}"
+            )
+            raise ValueError(f"Stripe error while updating seats: {exc}") from exc
+        items = before.get("items", {}).get("data", [])
+        if not items:
+            license_stripe_mutation.abandon(intent, "the subscription has no items")
+            raise ValueError("Stripe subscription has no items.")
+        item_id = items[0]["id"]
+        invoice_before = license_stripe_mutation.stripe_id(before.get("latest_invoice"))
 
-        # Update local max_seats
-        license_sub.max_seats = new_max_seats
-        license_sub.save(update_fields=["max_seats", "updated_at"])
+        def set_quantity(quantity, proration, **key):
+            return stripe.Subscription.modify(
+                sub_id,
+                items=[{"id": item_id, "quantity": quantity}],
+                proration_behavior=proration,
+                **key,
+            )
 
-        if license_sub.billing_method == LicenseBillingMethod.OFFLINE:
-            LicenseBillingRecord.objects.create(
-                license_subscription=license_sub,
-                record_type=LicenseBillingRecordType.SEATS_CHANGE_OFFLINE,
-                notes=(
-                    f"Seats changed {old_seats} -> {new_max_seats} "
-                    "(offline license — adjust invoicing accordingly)."
+        def quantity_reached():
+            data = stripe.Subscription.retrieve(sub_id).get("items", {}).get("data", [])
+            return bool(data) and data[0].get("quantity") == new_max_seats
+
+        def revert(**key):
+            return set_quantity(old_seats, "none", **key)
+
+        def invoice_of_this_change():
+            """The change's own invoice: the subscription's latest, if it is
+            not the one that was latest before the change."""
+            latest = license_stripe_mutation.stripe_id(
+                stripe.Subscription.retrieve(sub_id).get("latest_invoice")
+            )
+            return latest if latest and latest != invoice_before else None
+
+        def payment_failed(why):
+            if license_stripe_mutation.undo_unpaid_change(
+                intent, revert, invoice_of_this_change, why
+            ):
+                return ValueError(
+                    f"Seat increase payment failed ({why}). "
+                    "Seats have not been increased."
+                )
+            return license_stripe_mutation.LicenceStripeChangeNotRecorded(
+                "The seat increase could not be paid, and undoing it at our "
+                "payment provider failed. It has been flagged for manual "
+                "reconciliation."
+            )
+
+        # Phases B and C.
+        try:
+            license_stripe_mutation.apply_at_stripe(
+                intent,
+                call=lambda **key: set_quantity(
+                    new_max_seats, proration_behavior, **key
                 ),
-                performed_by=performed_by,
+                reached=quantity_reached,
+                payment_errors=(stripe.error.CardError,),
             )
+        except stripe.error.CardError as exc:
+            raise payment_failed(f"card error: {exc}") from exc
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Stripe error while updating seats: {exc}") from exc
 
-        # Log the change
-        logger.info(
-            "License %s seats updated: %d -> %d (proration: %s)",
-            license_sub.id,
-            old_seats,
-            new_max_seats,
-            proration_behavior,
+        # An increase is invoiced at once: it stands only if that invoice
+        # was paid.
+        paid_invoice = None
+        if is_increase:
+            try:
+                invoice_id = invoice_of_this_change()
+                invoice = stripe.Invoice.retrieve(invoice_id) if invoice_id else None
+            except stripe.error.StripeError as exc:
+                # Applied at Stripe, and whether it was paid is unknown: money
+                # may have moved, so nothing is undone automatically.
+                license_stripe_mutation.escalate(
+                    intent,
+                    f"seat increase applied, but its invoice could not be read: {exc}",
+                )
+                raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
+                    "The seat change was applied at our payment provider but "
+                    "its payment could not be confirmed. It has been flagged "
+                    "for manual reconciliation."
+                ) from exc
+            if invoice is not None and invoice.get("status") != "paid":
+                raise payment_failed(f"invoice status: {invoice.get('status')}")
+            paid_invoice = invoice
+
+        # Phase D.
+        def revalidate(licence):
+            active_teacher_count = licence.allocations.filter(
+                is_active=True, is_admin_allocation=False
+            ).count()
+            if (
+                licence.max_seats != old_seats
+                or licence.stripe_subscription_id != sub_id
+                or new_max_seats < active_teacher_count
+            ):
+                raise license_stripe_mutation.LicenceMovedOn(
+                    f"licence {licence.id} changed while Stripe was being updated"
+                )
+
+        def write(licence):
+            write_seats(licence, old_seats, proration_behavior)
+            if paid_invoice is not None:
+                BillingTransactionService.record(
+                    source=BillingTransactionSource.LICENSE,
+                    transaction_type=BillingTransactionType.LICENSE_SEAT_CHANGE_CHARGE,
+                    status=BillingTransactionStatus.PAID,
+                    billing_method=BillingTransactionMethod.STRIPE,
+                    amount_cents=paid_invoice.get("amount_paid") or 0,
+                    currency=paid_invoice.get("currency", "usd"),
+                    license_subscription=licence,
+                    stripe_invoice_id=paid_invoice.get("id"),
+                    stripe_subscription_id=sub_id,
+                    receipt_url=paid_invoice.get("hosted_invoice_url"),
+                    performed_by=performed_by,
+                    description=f"Seats increased {old_seats} -> {new_max_seats}",
+                )
+
+        return license_stripe_mutation.finalise(
+            intent,
+            revalidate=revalidate,
+            write=write,
+            # Undo at Stripe only where no money moved (DESIGN_PROPOSAL.md
+            # §9d): a decrease, or an increase that raised no invoice. A
+            # paid increase escalates; a human rolls it forward.
+            compensate=revert if paid_invoice is None else None,
         )
-
-        return license_sub
 
     @staticmethod
     def initiate_overage_purchase(

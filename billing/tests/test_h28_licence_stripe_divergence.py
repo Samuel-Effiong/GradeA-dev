@@ -186,24 +186,27 @@ class _FakeLicenceStripe:
                 self.quantity = item["quantity"]
 
         new_total = self.unit_amount() * self.quantity
-        if (
+        invoiced = (
             kwargs.get("proration_behavior") == "always_invoice"
             and new_total > old_total
-        ):
+        )
+        if invoiced:
             invoice_id = f"in_h28_{next(self._ids)}"
+            # A declined card leaves the change's invoice open and unpaid.
+            outcome = "open" if self.card_error_on_modify else self.invoice_outcome
             self.invoices[invoice_id] = {
-                "status": self.invoice_outcome,
-                "amount_paid": (
-                    new_total - old_total if self.invoice_outcome == "paid" else 0
-                ),
+                "status": outcome,
+                "amount_paid": new_total - old_total if outcome == "paid" else 0,
                 "pi_status": self.pi_status,
             }
             self.latest_invoice = invoice_id
 
-        if self.card_error_on_modify:
+        if self.card_error_on_modify and invoiced:
             # The in-tree individual path records that Stripe applies the
             # item change in the same call that attempts payment, so the swap
             # may be live even though this raised (stripe_service.py ~1157).
+            # Only a call that attempts payment can be declined: a revert
+            # with proration_behavior="none" charges nothing.
             raise stripe.error.CardError(
                 "Your card was declined.", None, "card_declined"
             )
