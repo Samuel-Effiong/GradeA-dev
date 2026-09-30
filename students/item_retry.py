@@ -14,16 +14,24 @@ params.resolution = "replace_file" tells a client which action to offer.
 
 Two retries of one item race on a conditional UPDATE claim: exactly one
 wins, and the other is refused.
+
+H-38: the item's course must still be reachable by the retrying teacher
+(`teacher_course_access_q`), at the request and again in the claim. A
+teacher removed from a school owns their batch sessions still, but its
+items are not found (404, before anything else is said about them), and
+retry-failed skips them. grade_engine_async checks again when it runs.
 """
 
 from __future__ import annotations
 
-from django.db.models import F
+from django.db.models import F, Q
+from django.http import Http404
 from django.utils import timezone
 
 from audit.emitter import emit, resolve_trace_id
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.reason_codes import REASON_CODES, CodedError
+from classrooms.models import reachable_courses
 
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
 from .task_tracking import launch_processing_task
@@ -47,6 +55,25 @@ class ItemNotRetryable(CodedError):
     """NOT_RETRYABLE (409): this item can't be retried as it is."""
 
     reason_code = ReasonCode.NOT_RETRYABLE
+
+
+def reachable_items_q(user):
+    """Q for the items whose course `user` can reach now (H-38): the
+    item's assignment's course, or the batch session's when the item has
+    no assignment (an assignment upload that failed before creating one)."""
+    courses = reachable_courses(user)
+    return Q(assignment__isnull=False, assignment__course__in=courses) | Q(
+        assignment__isnull=True, batch_session__course__in=courses
+    )
+
+
+def is_reachable(item, user):
+    """Whether `user` can still reach `item`'s course (H-38)."""
+    return (
+        BackgroundProcessingTask.objects.filter(reachable_items_q(user))
+        .filter(pk=item.pk)
+        .exists()
+    )
 
 
 def _retryable_as_it_is(code):
@@ -76,27 +103,35 @@ def refusal_for(item):
 
 def retry_item(item, requested_by, request=None):
     """Retry `item` in place and return it, reloaded; or raise
-    ItemNotRetryable. A broker outage raises ProcessingTemporarilyUnavailable
+    ItemNotRetryable. An item whose course `requested_by` can't reach is
+    Http404 (H-38). A broker outage raises ProcessingTemporarilyUnavailable
     (503) with the item marked FAILED again (launch_processing_task)."""
+    if not is_reachable(item, requested_by):
+        raise Http404()
     refusal = refusal_for(item)
     if refusal is not None:
         raise refusal
 
-    # The claim: only a row still in the state that was judged retryable.
-    claimed = BackgroundProcessingTask.objects.filter(
-        pk=item.pk,
-        status=BackgroundTaskStatus.FAILURE,
-        reason_code=item.reason_code,
-        retry_count=item.retry_count,
-    ).update(
-        status=BackgroundTaskStatus.PENDING,
-        retry_count=F("retry_count") + 1,
-        reason_code="",
-        error="",
-        started_at=None,
-        finished_at=None,
-        trace_id=resolve_trace_id(),
-        updated_at=timezone.now(),
+    # The claim: only a row still in the state that was judged retryable,
+    # and still reachable (a removal between the check above and here).
+    claimed = (
+        BackgroundProcessingTask.objects.filter(reachable_items_q(requested_by))
+        .filter(
+            pk=item.pk,
+            status=BackgroundTaskStatus.FAILURE,
+            reason_code=item.reason_code,
+            retry_count=item.retry_count,
+        )
+        .update(
+            status=BackgroundTaskStatus.PENDING,
+            retry_count=F("retry_count") + 1,
+            reason_code="",
+            error="",
+            started_at=None,
+            finished_at=None,
+            trace_id=resolve_trace_id(),
+            updated_at=timezone.now(),
+        )
     )
     if not claimed:
         # Another retry (or the item's own worker) got there first.
@@ -133,7 +168,9 @@ def retry_item(item, requested_by, request=None):
 def retry_failed(session, requested_by, reason_codes=None, request=None):
     """Retry every failed item of `session` that can be retried as it is
     (only those with one of `reason_codes`, when given). Returns
-    (retried item ids, skipped [{item_id, reason_code}]), in item order."""
+    (retried item ids, skipped [{item_id, reason_code}]), in item order.
+    An item whose course `requested_by` can't reach (H-38) is skipped with
+    no code: nothing about it is said beyond "not retried"."""
     retried, skipped = [], []
     failures = session.processing_tasks.filter(
         status=BackgroundTaskStatus.FAILURE
@@ -141,9 +178,14 @@ def retry_failed(session, requested_by, reason_codes=None, request=None):
     for item in failures:
         wanted = not reason_codes or item.reason_code in reason_codes
         try:
+            # Reachability first: an unreachable item's code isn't reported.
+            if not is_reachable(item, requested_by):
+                raise Http404()
             if not wanted:
                 raise ItemNotRetryable()
             retry_item(item, requested_by, request=request)
+        except Http404:
+            skipped.append({"item_id": str(item.id), "reason_code": None})
         except ItemNotRetryable:
             skipped.append(
                 {"item_id": str(item.id), "reason_code": item.reason_code or None}

@@ -21,6 +21,7 @@ from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
 from students.exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    CourseNotReachableError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
@@ -459,9 +460,12 @@ def extract_answer_background_task(
 def _grading_failure_error_class(exc):
     """FR-A-05's fixed taxonomy, applied to what grade_engine_async's except
     block actually sees: an AI content-policy refusal is the model
-    declining to grade, a recognized infra failure (timeout, rate limit,
+    declining to grade, a teacher who lost access to the course (H-38) is
+    the user's case, a recognized infra failure (timeout, rate limit,
     dropped connection, unreadable file) is the provider's fault, and
     anything else is an unclassified system fault."""
+    if isinstance(exc, CourseNotReachableError):
+        return ErrorClass.USER
     if isinstance(exc, PERMANENT_AI_REFUSALS):
         return ErrorClass.MODEL
     if classify_infra_error(exc) is not None:
@@ -501,6 +505,15 @@ def grade_engine_async(
             submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         user = CustomUser.objects.get(id=user_id)
+        # H-38, checked when the run starts, not only when it was requested:
+        # a retry, a scheduled grading or a queued batch item must not grade
+        # (or bill) for a teacher since removed from the course's school.
+        if (
+            not reachable_courses(user)
+            .filter(pk=submission.assignment.course_id)
+            .exists()
+        ):
+            raise CourseNotReachableError()
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})

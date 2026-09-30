@@ -99,3 +99,14 @@ class SubmissionProcessingInProgressError(Exception):
     """
 
     pass
+
+
+class CourseNotReachableError(Exception):
+    """H-38 at run time: the teacher a grading run acts for can no longer
+    reach the submission's course (removed from the school whose session it
+    sits in). Raised before any provider call, so nothing is charged. It
+    says nothing about the course beyond the teacher's own loss of access.
+    User-facing."""
+
+    def __init__(self, message="You no longer have access to this course."):
+        super().__init__(message)

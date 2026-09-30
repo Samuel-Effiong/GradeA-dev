@@ -37,6 +37,7 @@ def _user_facing_exception_types():
     from students.exceptions import (
         AssignmentNotOpenError,
         CannotAssociateStudentError,
+        CourseNotReachableError,
         SubmissionAlreadyGradedError,
         SubmissionBeingGradedError,
         SubmissionLimitReachedError,
@@ -50,6 +51,7 @@ def _user_facing_exception_types():
         SubmissionBeingGradedError,
         SubmissionLimitReachedError,
         AssignmentNotOpenError,
+        CourseNotReachableError,
         AIFeatureNotAvailableError,
         InsufficientCreditsError,
         IndividualSubscriptionConflictError,
