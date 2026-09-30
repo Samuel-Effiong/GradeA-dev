@@ -10,12 +10,15 @@ carries a database default (`db_default`), set by the
 
 Two halves:
 
-* **Guard** (static, over the migration graph). Every field that an
-  AddField or AlterField after production's head touches must, in the final
-  migration state, be nullable or have a `db_default`. The allow-list is
-  empty on purpose. CreateModel is out of scope: code that predates a table
-  never inserts into it. The same rule catches an AlterField that makes an
-  existing column NOT NULL.
+* **Guard** (static, over the migration graph). Every column that an
+  AddField or AlterField after production's heads touches, on a table
+  production already has, but that production's schema does not have, must
+  in the final migration state be nullable or have a `db_default`. That is
+  exactly the column an older INSERT omits. The allow-list is empty on
+  purpose. Out of scope, for the same reason: a table production does not
+  have (older code never inserts into it; CreateModel, and the AddFields
+  after it on such a table), and an AlterField on a column production
+  already has (older code lists that column in its INSERT).
 * **Old-code INSERTs** (real PostgreSQL). For each of the nine columns a
   rollback could meet, a raw INSERT that lists every other column, as the
   older code's INSERT does, succeeds, and the row gets the default.
@@ -96,11 +99,17 @@ def fields_a_rollback_would_break(loader=None, state=None):
     allow-listed."""
     loader = loader or MigrationLoader(None, ignore_no_migrations=True)
     state = state or loader.project_state()
+    production = loader.project_state(nodes=list(PRODUCTION_HEADS.items()), at_end=True)
     broken = {}
     for (app, model, name), where in fields_touched_since_production(loader).items():
         model_state = state.models.get((app, model))
         if model_state is None or name not in model_state.fields:
             continue  # removed again later
+        in_production = production.models.get((app, model))
+        if in_production is None:
+            continue  # a table older code never inserts into
+        if name in in_production.fields:
+            continue  # a column older code already lists in its INSERT
         field = model_state.fields[name]
         if field.many_to_many or field.null or field.primary_key:
             continue
