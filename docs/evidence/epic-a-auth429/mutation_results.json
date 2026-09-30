@@ -1,0 +1,42 @@
+{
+  "L1_envelope_overwrites_documented_keys": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_envelope_is_added_never_replacing_a_key"
+    ]
+  },
+  "L2_reset_lock_without_envelope": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_documented_fields_stay_and_the_envelope_is_added"
+    ]
+  },
+  "L3_handler_adds_no_envelope": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_401_message_and_legacy_code_stay_and_the_envelope_is_added",
+      "test_the_lock_is_told_apart_from_the_per_ip_rate_limit"
+    ]
+  },
+  "L4_verify_lock_has_no_code": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_lock_is_told_apart_from_the_per_ip_rate_limit"
+    ]
+  },
+  "L5_login_lock_loses_legacy_code": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_401_message_and_legacy_code_stay_and_the_envelope_is_added"
+    ]
+  },
+  "L6_a_second_text_key_changes_the_display": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_401_message_and_legacy_code_stay_and_the_envelope_is_added",
+      "test_the_documented_fields_stay_and_the_envelope_is_added",
+      "test_the_envelope_is_added_never_replacing_a_key",
+      "test_the_lock_is_told_apart_from_the_per_ip_rate_limit"
+    ]
+  }
+}
