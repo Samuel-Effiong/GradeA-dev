@@ -52,6 +52,7 @@ from users.models import UserTypes
 
 User = get_user_model()
 PW = "History-test-pw-1"  # pragma: allowlist secret
+INVITE_PW = "a-brand-new-password-77"  # pragma: allowlist secret
 SENTINEL = "SENTINEL-S4-7f3a private student words"
 LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 ESSAY = [
@@ -251,9 +252,11 @@ class GradeChangeRouteTests(APITestCase):
         )
         with patch("students.views.notify_student_of_graded_submission"):
             self.assertEqual(self.client.post(url).status_code, status.HTTP_200_OK)
+            event = self.the_grade_change()
+            # A second publish changes nothing: no second GRADE_CHANGE (S1's
+            # generic event records that no-op request, as for any other).
             self.assertEqual(self.client.post(url).status_code, status.HTTP_200_OK)
-
-        event = self.the_grade_change()
+        self.assertEqual(events(AuditAction.GRADE_CHANGE).count(), 1)
         self.assertEqual(event.metadata["source"], "bulk")
         self.assertEqual(
             (event.before, event.after),
@@ -268,9 +271,9 @@ class GradeChangeRouteTests(APITestCase):
             "student-submission-mark-reviewed", kwargs={"pk": self.submission.pk}
         )
         self.assertEqual(self.client.post(url).status_code, status.HTTP_200_OK)
-        self.assertEqual(self.client.post(url).status_code, status.HTTP_200_OK)
-
         event = self.the_grade_change()
+        self.assertEqual(self.client.post(url).status_code, status.HTTP_200_OK)
+        self.assertEqual(events(AuditAction.GRADE_CHANGE).count(), 1)
         self.assertEqual(
             (event.before, event.after),
             ({"needs_review": True}, {"needs_review": False}),
@@ -286,8 +289,10 @@ class GradeChangeRouteTests(APITestCase):
 
     def test_a_deleted_submission_is_a_grade_change_with_no_after(self):
         """SM R5."""
+        submission_id = self.submission.id
         with request_audit_state(SimpleNamespace(user=self.world.teacher)):
             self.submission.delete()
+        self.submission.id = submission_id  # delete() clears the pk
 
         event = self.the_grade_change()
         self.assertEqual(event.metadata["source"], "delete")
@@ -328,7 +333,7 @@ class PublishAllTests(APITestCase):
         world.new_submission(world.new_student("pa-ungraded"), graded=False)
         self.client.force_authenticate(user=world.teacher)
 
-        with patch("assignments.views.notify_student_of_graded_submission"):
+        with patch("students.services.notify_student_of_graded_submission"):
             response = self.client.post(
                 reverse(
                     "assignment-publish-all-grades", kwargs={"pk": world.assignment.pk}
@@ -569,6 +574,54 @@ class PermissionChangeTests(APITestCase):
         self.assertEqual(
             (flip.before, flip.after), ({"is_active": False}, {"is_active": True})
         )
+
+    def assert_own_activation(self, user):
+        flip = events(AuditAction.PERMISSION_CHANGE).get(target_id=user.id)
+        self.assertEqual(flip.actor_id, user.id)
+        self.assertEqual(
+            (flip.before["is_active"], flip.after["is_active"]), (False, True)
+        )
+
+    def test_a_student_invitation_names_the_invitee(self):
+        """SM ruling: the invitee who proved the invitation code acts."""
+        student = make_user(
+            "perm.invited.student@example.com",
+            UserTypes.STUDENT,
+            is_active=False,
+            email_verified_at=None,
+            activation_token="stu-inv-s4",
+            activation_expires=timezone.now() + timedelta(days=1),
+        )
+        response = self.client.post(
+            reverse("auth-register-student"),
+            {
+                "token": "stu-inv-s4",
+                "password": INVITE_PW,
+                "first_name": "Stu",
+                "last_name": "Dent",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assert_own_activation(student)
+
+    def test_a_school_admin_invitation_names_the_invitee(self):
+        admin = make_user(
+            "perm.invited.admin@example.com",
+            UserTypes.SCHOOL_ADMIN,
+            school=School.objects.create(name="Invite School"),
+            is_active=False,
+            email_verified_at=None,
+            activation_token="adm-inv-s4",
+            activation_expires=timezone.now() + timedelta(days=1),
+        )
+        response = self.client.post(
+            reverse("auth-register-school-admin"),
+            {"email": admin.email, "token": "adm-inv-s4", "password": INVITE_PW},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assert_own_activation(admin)
 
     def test_admin_actions_record_each_user_they_change(self):
         admin = User.objects.create_superuser(

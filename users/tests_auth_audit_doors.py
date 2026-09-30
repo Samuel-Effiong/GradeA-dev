@@ -56,9 +56,12 @@ class DoorBase(APITestCase):
 
     def only_event(self):
         """The one event this request recorded (failure paths record nothing
-        else)."""
-        self.assertEqual(AuditEvent.objects.count(), 1)
-        return AuditEvent.objects.get()
+        else). Updated on purpose for Epic A S4: a privileged account made in
+        setUp leaves its own history create event, which is not the
+        request's."""
+        requested = AuditEvent.objects.exclude(metadata__source="create")
+        self.assertEqual(requested.count(), 1)
+        return requested.get()
 
     def the_login_event(self):
         """Success paths may also record side events (e.g. a first credit
