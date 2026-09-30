@@ -9,6 +9,7 @@ from django.conf import settings
 from rest_framework.renderers import JSONRenderer
 
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.reason_codes import ENVELOPE_KEYS
 
 
 def api_response(
@@ -85,9 +86,18 @@ def flatten_errors(data) -> str:
             top_level_message_keys = ("detail", "error", "message")
             matching_keys = [key for key in top_level_message_keys if key in obj]
             # A machine-readable `code` next to the message (billing/refusals.py)
-            # is for clients to branch on, not text to show.
+            # is for clients to branch on, not text to show. So is the rest of
+            # a coded error body (FR-A-06, AutoGrader.reason_codes): when a
+            # string `reason_code` marks the dict as one, its envelope keys are
+            # hidden too, and `message` stays the one display sentence. A plain
+            # serializer error dict with a field named e.g. `params` is not
+            # affected.
+            coded = isinstance(obj.get("reason_code"), str)
             shown_keys = [
-                key for key in obj if not (key == "code" and isinstance(obj[key], str))
+                key
+                for key in obj
+                if not (key == "code" and isinstance(obj[key], str))
+                and not (coded and key in ENVELOPE_KEYS)
             ]
             if len(shown_keys) == 1 and matching_keys:
                 _collect(obj[matching_keys[0]])

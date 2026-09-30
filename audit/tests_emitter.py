@@ -149,11 +149,11 @@ class WhatOneEventRecordsTest(TestCase):
             actor=self.teacher,
             outcome=AuditOutcome.FAILURE,
             error_class=ErrorClass.PROVIDER,
-            reason_code="PROVIDER_TIMEOUT",
+            reason_code="PROVIDER_FAILURE",
         )
         self.assertEqual(event.outcome, AuditOutcome.FAILURE)
         self.assertEqual(event.error_class, ErrorClass.PROVIDER)
-        self.assertEqual(event.reason_code, "PROVIDER_TIMEOUT")
+        self.assertEqual(event.reason_code, "PROVIDER_FAILURE")
 
     def test_before_and_after_are_stored_when_given_and_null_when_not(self):
         event = call(
@@ -447,6 +447,11 @@ class RejectedWritesTest(TestCase):
         for bad in ("lowercase", "HAS SPACE", "X" * 65, ""):
             with self.subTest(reason_code=bad):
                 self.rejected(reason_code=bad)
+
+    def test_a_well_formed_code_outside_the_catalogue_is_rejected(self):
+        """FR-A-06: the vocabulary is closed (audit.enums.ReasonCode), so a
+        new code is added to the catalogue before anything can emit it."""
+        self.rejected(reason_code="PROVIDER_TIMEOUT")
 
     def test_a_licence_or_department_that_is_not_a_uuid_is_rejected(self):
         self.rejected(school_id="nope")

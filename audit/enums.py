@@ -97,3 +97,79 @@ STUDENT_RECORD_ACTIONS = frozenset(
         AuditAction.SUBMISSION_UPLOAD,
     }
 )
+
+
+class ReasonCode(models.TextChoices):
+    """FR-A-06: the stable, machine-readable reason for a non-success outcome.
+
+    One vocabulary for both the wire (a coded error body, see
+    `AutoGrader/reason_codes.py`) and the audit trail (the emitter accepts
+    only these as `AuditEvent.reason_code`). UPPER_SNAKE, stable: a client
+    branches on the value, so a value is never renamed, only added.
+
+    Every member is either user-facing (it has a spec in
+    `AutoGrader.reason_codes.REASON_CODES`: status, message, remediation) or
+    audit-only (`AutoGrader.reason_codes.AUDIT_ONLY_CODES`: the sign-in and
+    session outcomes, whose responses the auth views already shape). A test
+    ties the two lists to this enum. Design: 08a §1 and §4.1.
+    """
+
+    # The FR-A-06 / QA-ERR-02 catalogue (08a §1).
+    MISSING_STUDENT_NAME = "MISSING_STUDENT_NAME", "Missing or unmatched student name"
+    STUDENT_NOT_ON_ROSTER = "STUDENT_NOT_ON_ROSTER", "Student not on the roster"
+    FILE_UNREADABLE = "FILE_UNREADABLE", "File unreadable"
+    FILE_TYPE_UNSUPPORTED = "FILE_TYPE_UNSUPPORTED", "File type not supported"
+    FILE_TOO_LARGE = "FILE_TOO_LARGE", "File too large"
+    SUBMISSION_EMPTY = "SUBMISSION_EMPTY", "Submission empty"
+    RUBRIC_MISSING = "RUBRIC_MISSING", "Rubric missing"
+    DUPLICATE_SUBMISSION = "DUPLICATE_SUBMISSION", "Duplicate submission"
+    PROVIDER_FAILURE = "PROVIDER_FAILURE", "Grading service failure"
+    INSUFFICIENT_CREDITS_MID_BATCH = (
+        "INSUFFICIENT_CREDITS_MID_BATCH",
+        "Credits ran out during a batch",
+    )
+
+    # Request-level refusals kept alongside the catalogue (08a §1, §4.4).
+    INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS", "Insufficient credits"
+    AI_FEATURE_NOT_AVAILABLE = "AI_FEATURE_NOT_AVAILABLE", "AI feature not available"
+    NOT_RETRYABLE = "NOT_RETRYABLE", "Not retryable"
+
+    # Sign-in and session outcomes (audit-only; FR-A-01, Epic A S1).
+    ACCOUNT_LOCKED = "ACCOUNT_LOCKED", "Account locked"
+    ACCOUNT_DEACTIVATED = "ACCOUNT_DEACTIVATED", "Account deactivated"
+    WRONG_PASSWORD = "WRONG_PASSWORD", "Wrong password"  # pragma: allowlist secret
+    INVALID_CREDENTIALS = "INVALID_CREDENTIALS", "Invalid credentials"
+    INVALID_CODE = "INVALID_CODE", "Invalid code"
+    CODE_EXPIRED = "CODE_EXPIRED", "Code expired"
+    CODE_MISSING = "CODE_MISSING", "Code missing"
+    CODE_NOT_REQUESTED = "CODE_NOT_REQUESTED", "Code not requested"
+    RESET_LOCKED = "RESET_LOCKED", "Password reset locked"
+    REFRESH_TOKEN_MISSING = "REFRESH_TOKEN_MISSING", "Refresh token missing"
+    REFRESH_TOKEN_INVALID = "REFRESH_TOKEN_INVALID", "Refresh token invalid"
+    SESSION_REVOKE_FAILED = "SESSION_REVOKE_FAILED", "Session revoke failed"
+    GOOGLE_SIGN_IN_REFUSED = "GOOGLE_SIGN_IN_REFUSED", "Google sign-in refused"
+    GOOGLE_CODE_MISSING = "GOOGLE_CODE_MISSING", "Google code missing"
+    GOOGLE_EXCHANGE_FAILED = "GOOGLE_EXCHANGE_FAILED", "Google code exchange failed"
+    GOOGLE_TOKEN_INVALID = "GOOGLE_TOKEN_INVALID", "Google token invalid"
+    GOOGLE_EMAIL_UNVERIFIED = "GOOGLE_EMAIL_UNVERIFIED", "Google email unverified"
+    # A malformed body on an anonymous door (Epic A S2, task/epic-a-s2:
+    # audit.request_audit.INVALID_REQUEST). Listed ahead of S2 landing so
+    # the emitter does not reject it.
+    INVALID_REQUEST = "INVALID_REQUEST", "Invalid request"
+
+
+# The ten FR-A-06 conditions, as QA-ERR-02 lists them.
+FR_A_06_CODES = frozenset(
+    {
+        ReasonCode.MISSING_STUDENT_NAME,
+        ReasonCode.STUDENT_NOT_ON_ROSTER,
+        ReasonCode.FILE_UNREADABLE,
+        ReasonCode.FILE_TYPE_UNSUPPORTED,
+        ReasonCode.FILE_TOO_LARGE,
+        ReasonCode.SUBMISSION_EMPTY,
+        ReasonCode.RUBRIC_MISSING,
+        ReasonCode.DUPLICATE_SUBMISSION,
+        ReasonCode.PROVIDER_FAILURE,
+        ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
+    }
+)
