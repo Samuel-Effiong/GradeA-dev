@@ -29,7 +29,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from audit.enums import FR_A_06_CODES, ErrorClass, ReasonCode
-from AutoGrader.error_messages import is_user_facing_error
+from AutoGrader.error_messages import (
+    describe_background_task_error,
+    describe_user_error,
+    is_user_facing_error,
+)
 from AutoGrader.reason_codes import (
     AUDIT_ONLY_CODES,
     ENVELOPE_KEYS,
@@ -323,6 +327,19 @@ class CodedErrorTests(SimpleTestCase):
             reason_code = ReasonCode.RUBRIC_MISSING
 
         self.assertEqual(RubricMissingError().reason_code, ReasonCode.RUBRIC_MISSING)
+
+    def test_the_message_layer_shows_the_message_and_never_the_detail(self):
+        """The path background-task item text and _failure_response's
+        fallback take (describe_user_error / describe_background_task_error),
+        which coded_response itself does not go through. QA-ERR-03 for
+        per-item errors (the S6a mutation battery's M8)."""
+        for code in REASON_CODES:
+            with self.subTest(code=code):
+                error = CodedError(code, params=sample_params(code), detail=SENTINEL)
+                for describe in (describe_user_error, describe_background_task_error):
+                    shown = describe(error, fallback_message="fallback")
+                    self.assertEqual(shown, error.message)
+                    self.assertNotIn(SENTINEL, shown)
 
     def test_only_user_and_validation_classes_are_user_facing(self):
         self.assertTrue(is_user_facing_error(CodedError(ReasonCode.RUBRIC_MISSING)))
