@@ -1749,19 +1749,40 @@ class LicenseSubscriptionService:
 
         safe_delay(sync_user_to_mailerlite, str(teacher.id))
 
-        # 2. Expire all active credit buckets for this teacher
+        # 2. Expire all active credit buckets for this teacher - through the
+        # ledger (Epic A S3, G7 / D4), exactly as the Beat cleanup records a
+        # normal expiry: an EXPIRE row per bucket with credits left, so the
+        # books balance and each gets a CREDIT_TRANSACTION naming whoever
+        # removed the teacher. It used to be a bare .update() with no ledger
+        # row and no event. Local import: this module stays free of
+        # SubscriptionService at import time (see the module docstring).
+        from .services import SubscriptionService
+
         wallet = teacher.credit_wallet
         now = timezone.now()
+        buckets = list(
+            wallet.buckets.select_for_update().filter(
+                models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now),
+                is_processed=False,
+            )
+        )
+        for bucket in buckets:
+            bucket.expires_at = now
+            bucket.save(update_fields=["expires_at", "updated_at"])
+            SubscriptionService.expire_bucket(
+                bucket,
+                reference=(
+                    f"Removed from licence {license_sub.id}: "
+                    f"{bucket.bucket_type} bucket expired."
+                ),
+            )
 
-        expired_count = wallet.buckets.filter(
-            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
-        ).update(expires_at=now)
-
+        # Ids only: the teacher's email here was a BE-A-04 PII leak.
         logger.info(
-            "Removed teacher %s from license %s" "Expired %d credit buckets.",
-            teacher.email,
+            "Removed teacher %s from license %s. Expired %d credit buckets.",
+            teacher.id,
             license_sub.id,
-            expired_count,
+            len(buckets),
         )
 
     @staticmethod

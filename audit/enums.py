@@ -82,6 +82,9 @@ class AuditAction(models.TextChoices):
     # Epic A completion S1: the generic event for a state-changing request
     # that recorded no named event. `metadata.route` says which route.
     STATE_CHANGE = "STATE_CHANGE", "State-changing request"
+    # Epic A completion S3 (D6): a retention sweep's record of its own run,
+    # zero-count runs included, so a stopped sweep shows as a gap.
+    AUDIT_RETENTION_SWEEP = "AUDIT_RETENTION_SWEEP", "Audit retention sweep"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

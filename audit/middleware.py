@@ -36,7 +36,7 @@ class AuditMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        with request_audit_state() as state:
+        with request_audit_state(request) as state:
             response = self.get_response(request)
             view = getattr(request, REQUEST_ATTR, None)
             if view is not None:
