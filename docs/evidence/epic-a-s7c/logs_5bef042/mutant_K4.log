@@ -1,0 +1,442 @@
+Found 17 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying audit.0001_initial... OK
+  Applying audit.0002_alter_auditevent_actor_role... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying students.0029_background_task_item_result... OK
+  Applying students.0030_batch_session_credits_exhausted_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback... OK
+Creating test database for alias 'default' ('test_epic_a_s7c_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_first_item_refused_before_anything_ran_is_the_plain_refusal (students.tests_credits_mid_batch.AGradingBatchThatRunsOutOfCredits.test_a_first_item_refused_before_anything_ran_is_the_plain_refusal) ... Cannot activate automatic trial for user s7c-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-30 22:39:50,182 refusals 59525 127448749870016 [request_id=- client_request_id=-] Background task 65012801-c156-4e83-8bdd-7b9680606262 refused: InsufficientCreditsError: balance 0 < estimate 900
+
+
+ok
+test_resume_after_a_top_up_completes_the_rest_and_leaves_the_done_alone (students.tests_credits_mid_batch.AGradingBatchThatRunsOutOfCredits.test_resume_after_a_top_up_completes_the_rest_and_leaves_the_done_alone) ... Cannot activate automatic trial for user s7c-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-30 22:39:50,652 refusals 59525 127448749870016 [request_id=- client_request_id=-] Background task 305fb7e6-83ac-4357-8abd-ce454d3226ce refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-09-30 22:39:50,681 refusals 59525 127448749870016 [request_id=- client_request_id=-] Background task 75badacf-db62-4461-bfc1-ce493fb2e5c4 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+ok
+test_the_rest_of_the_batch_stops_uncharged_with_its_own_code (students.tests_credits_mid_batch.AGradingBatchThatRunsOutOfCredits.test_the_rest_of_the_batch_stops_uncharged_with_its_own_code) ... Cannot activate automatic trial for user s7c-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-30 22:39:51,182 refusals 59525 127448749870016 [request_id=- client_request_id=-] Background task f5ff153a-f29d-49dc-9bed-02e5511d8371 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-09-30 22:39:51,204 refusals 59525 127448749870016 [request_id=- client_request_id=-] Background task 5f150b06-b0f6-4ef4-895b-a783499c56ea refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+ok
+test_the_rest_stops_uncharged_and_resumes_by_re_upload (students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload) ... Cannot activate automatic trial for user s7c-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-30 22:39:51,524 refusals 59525 127448749870016 [request_id=323ab141cfea42a3a0950411e9a57097 client_request_id=-] Background task 2e365c43-feb9-4309-889b-c912af887ef3 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-09-30 22:39:51,560 refusals 59525 127448749870016 [request_id=323ab141cfea42a3a0950411e9a57097 client_request_id=-] Background task 992e0149-bea4-4686-874c-211534a25c72 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+FAIL
+test_every_retryable_failure_is_retried_and_the_rest_listed (students.tests_item_retry.RetryFailed.test_every_retryable_failure_is_retried_and_the_rest_listed) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_only_the_named_codes_are_retried (students.tests_item_retry.RetryFailed.test_only_the_named_codes_are_retried) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_code_that_is_not_retryable_as_it_is_is_a_409 (students.tests_item_retry.RetryOneItem.test_a_code_that_is_not_retryable_as_it_is_is_a_409) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+ok
+test_a_mid_batch_credit_stop_is_retried_after_a_top_up (students.tests_item_retry.RetryOneItem.test_a_mid_batch_credit_stop_is_retried_after_a_top_up) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_provider_failure_is_retried_in_place (students.tests_item_retry.RetryOneItem.test_a_provider_failure_is_retried_in_place) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_second_retry_counts_again_on_the_same_item (students.tests_item_retry.RetryOneItem.test_a_second_retry_counts_again_on_the_same_item) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_stale_copy_of_an_item_retried_since_is_refused (students.tests_item_retry.RetryOneItem.test_a_stale_copy_of_an_item_retried_since_is_refused) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_item_that_has_not_failed_is_a_409 (students.tests_item_retry.RetryOneItem.test_an_item_that_has_not_failed_is_a_409) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+ok
+test_an_upload_item_answers_upload_the_file_again (students.tests_item_retry.RetryOneItem.test_an_upload_item_answers_upload_the_file_again) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request failed with NOT_RETRYABLE: This upload can't be retried as it is, because its file isn't kept. Upload the file again.
+API request failed with NOT_RETRYABLE: This upload can't be retried as it is, because its file isn't kept. Upload the file again.
+ok
+test_another_teachers_session_or_a_foreign_item_is_a_404 (students.tests_item_retry.RetryOneItem.test_another_teachers_session_or_a_foreign_item_is_a_404) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7c/users/views.py", line 2614, in retry_item
+    session = self._own_session(request, session_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7c/users/views.py", line 2655, in _own_session
+    return get_object_or_404(
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No BatchUploadSession matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.BackgroundProcessingTask.DoesNotExist: BackgroundProcessingTask matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7c/users/views.py", line 2615, in retry_item
+    item = get_object_or_404(
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No BackgroundProcessingTask matches the given query.
+ok
+test_pickle_and_args_rebuild_keep_code_params_and_message (students.tests_item_retry.TheRefusalSurvivesSerialization.test_pickle_and_args_rebuild_keep_code_params_and_message) ... ok
+test_same_code_new_retry_count_is_not_claimed_again (students.tests_item_retry.AClaimWaitingOnTheLockSeesTheRowItFinallyGets.test_same_code_new_retry_count_is_not_claimed_again) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_exactly_one_wins (students.tests_item_retry.TwoRetriesOfOneItemAtOnce.test_exactly_one_wins) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s7b-other@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+ok
+
+======================================================================
+FAIL: test_the_rest_stops_uncharged_and_resumes_by_re_upload (students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7c/students/tests_credits_mid_batch.py", line 300, in test_the_rest_stops_uncharged_and_resumes_by_re_upload
+    self.assertEqual(len(calls), 2)
+AssertionError: 3 != 2
+
+----------------------------------------------------------------------
+Ran 17 tests in 4.642s
+
+FAILED (failures=1)
+Destroying test database for alias 'default' ('test_epic_a_s7c_mut')...
