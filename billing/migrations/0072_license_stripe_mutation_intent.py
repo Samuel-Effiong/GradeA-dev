@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("billing", "0069_price_sync_audit"),
+        ("billing", "0071_stripeevent_auto_replay_attempts_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
