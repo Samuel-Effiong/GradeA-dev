@@ -847,7 +847,7 @@ def upload_answers_engine_async(
             request_user=user,
             is_proxy_upload=is_teacher,
             processing_task_id=processing_task_id,
-            file_name=file_name or uploaded_file.name,
+            file_name=file_name or getattr(uploaded_file, "name", None),
             upload_outcome=outcome,
         )
 

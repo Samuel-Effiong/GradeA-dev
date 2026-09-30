@@ -24,6 +24,7 @@ served by the task-status endpoint).
 import ast
 import io
 import pathlib
+import uuid
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -158,7 +159,8 @@ class IdentityFixture:
             assignment=self.assignment,
             batch_session=session,
             file_name=file_name,
-            celery_task_id=f"celery-{file_name}-{student_name}",
+            # A route-safe id (the status URL takes no dots or spaces).
+            celery_task_id=f"celery-{uuid.uuid4().hex}",
         )
         extracted = {
             "student_name": student_name,
