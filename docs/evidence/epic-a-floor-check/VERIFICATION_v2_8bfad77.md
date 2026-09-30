@@ -25,3 +25,19 @@ Runs were wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, timeout) in 0b's slot, f
 - **N2 (spec).** `floor ≥ max(threshold)` keeps every failure up to the lock-setting one. The **first refusal after the lock** (VERIFY_LOCKED / RESET_LOCKED / ACCOUNT_LOCKED) shares the per-target counter and is written individually only if `FAILED_AUTH_TARGET_LIMIT > max(threshold)`. `FLOOR=5 LIMIT=5` passes today's check. The module docstring claims "and the refusals after it". Either add the strict `LIMIT > max(threshold)` condition, which the defaults 30 > 5 satisfy, or narrow the docstring.
 
 Log: `runs/floorcheck.log`.
+
+---
+
+## Re-check @ 63f71c3 (N2), 2026-09-30: **VERIFIED**
+The delta from 8bfad77 is `audit/checks.py` and `audit/tests_checks.py` only (plus docs). The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, timeout) in 0b's slot.
+
+| `manage.py check --tag audit` | Result |
+|---|---|
+| `FLOOR=5 LIMIT=5` (passed at 8bfad77) | **audit.E001**: "FAILED_AUTH_TARGET_LIMIT (5) is not above the lock threshold(s) {…: 5, …: 5, …: 5}"; rc=1 |
+| `FLOOR=5 LIMIT=6` | no issues (the boundary is correct: T < limit) |
+| `LIMIT=4` | **audit.E001** naming the limit; rc=1 |
+| `audit.tests_checks` | **8 OK** |
+
+The docstring now states both conditions (T ≤ floor, T < limit). ed's F6/F7 mutants are killed (committed). N1 (checks never run on deploy) stays open as the SM's backlog item for the founder.
+
+Log: `runs/floorcheck_n2.log`.
