@@ -48,3 +48,9 @@ All restores were sha-checked.
 **N2 (informational).** With legacy case-twin accounts both active on the old licence, the carried-forward count is 1 (by lower-cased email) while 2 allocations are carried. The enrolment layer's seat check refuses the second, and it shows as a failed carry-forward in `teacher_invitations`. That's safe. Counting carried teachers by user id would make the pre-check match exactly.
 
 **N3 (docs drift, backlog).** Several places still say "0 = unlimited" for the input: `stripe_view_schemas.py` (the `max_seats` help) and the model/migration `help_text`. `create_license_subscription`'s own log line still formats 0 as "unlimited", which is now unreachable on create. Creation and checkout now refuse 0. That is still true for stored legacy licences only.
+
+## Re-verification: R1 @ 39fee13. Verification Engineer 1a, 2026-09-30
+**Verdict for the tip 39fee13: VERIFIED.** fdfe423..39fee13 is tests plus this record (committed verbatim).
+- **R1 closed:** both Stripe stubs now return `SimpleNamespace(id="cs_test_seat_counting", url=…)` from `Session.create`, so `create_license_session`'s log line and the response get real values (rule 14).
+- **N1 closed:** my twin probe is adopted as `ExactMatchWinsTests`, and my Q1 (the exact match no longer wins) is now **killed** by `test_an_exact_match_wins_over_a_case_twin`. Dropping a third assertion that depended on collation was right.
+- **Run** (`systemd-run` 6G): the three seat test files plus my probes, **36 OK**. N2 and N3 stand as information and backlog.
