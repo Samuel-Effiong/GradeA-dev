@@ -366,3 +366,126 @@ lookup (the student gets 404 instead of a cached body).
    change rather than silently passing.
 
 Run: 24 tests, OK (`nice -n 10`, no `--parallel`), on `0ca0404`.
+
+
+## 9. Rework: an enrolment no longer bumps every classmate (Design A)
+
+**Why.** G5's fix (§4) made the StudentCourse receiver bump every student
+enrolled in the course, so each classmate's cached course list, detail and
+my-courses showed a new or departed student at once. That makes one
+enrolment O(class size) and a roster import O(n²). The step 4 targeted run
+hung for 19 hours in the H-25 roster-cost harness at its default scale
+(thousands of enrolments into one course, each bumping every earlier one). The per-module
+pass on step 4 (`docs/evidence/h1-step4-per-module-8063c44/`) cleared step 4
+itself: identical command counts with and without it.
+
+**Design A (SM-approved 2026-09-30), commit `cc14bb0`.**
+
+**Verification status: Design A is NOT yet verified.** The VERIFIED record
+`6cf8c1c` (§5–§6) covers stage 3 before this rework. 1a verifies the rework
+together with step 4 on the batch-2b candidate.
+
+- An enrolment write bumps a fixed five scopes: the student's `usr`,
+  `global`, and the course's owner scopes (`crs`, the teacher's `usr`, the
+  school's `sch`). It no longer bumps classmates.
+- A student's cached course **list** and **detail** carry the `crs`
+  generation of each course the key covers (detail: that course; list:
+  every course the student can see), as well as the student's own `usr`
+  (`UserCacheMixin.extra_cache_scopes`, overridden on CourseViewSet). A
+  teacher's or admin's keys are unchanged.
+- The extra generations are read in **one** `MGET` (`versioned_key(...,
+  batched=True)` through `get_generations`). A missing or corrupt counter
+  reads as the default, and an unreachable Redis returns the defaults without
+  raising, the same contract as `get_generation`.
+- **my-courses gets no `crs` scope** (deviation approved by the SM): its key
+  is already `usr`+`global`, and every enrolment write bumps `global`. A
+  comment at the key records that its roster freshness depends on that bump.
+- Course and Topic writes keep the per-student fan-out. A rename or topic
+  edit is not a per-row roster operation, and those paths were verified in
+  §5 and are unchanged.
+
+**Freshness, through the real endpoints**
+(`classrooms/tests_cache_course_roster_scope.py`, legacy wildcards
+disabled). After an add (`course-students` POST) and a removal
+(`course-remove-student` DELETE):
+
+| Read | Viewer | Verdict |
+|---|---|---|
+| course list | classmate | FRESH |
+| course detail | classmate | FRESH |
+| my-courses | classmate | FRESH |
+| course detail | teacher | FRESH |
+| course detail | student of another course | UNAFFECTED |
+
+**Cost of a write, pinned.** One enrolment into a class of 30 and into a
+class of 300 (the class filled with `bulk_create`, which sends no signals):
+both record exactly the five scopes above and the same Redis commands,
+exactly 10 commands in one pipeline, `{"SET": 5, "INCRBY": 5}` (SET NX plus
+INCRBY per scope; redis-py sends a pipelined incr as INCRBY). On the
+batch-2b candidate, which carries H-25, the same enrolment replays its bump at
+commit: `{"SET": 10, "INCRBY": 10}`.
+
+**Cost of a cache hit, measured** (the same test file, `[roster-scope read
+cost]`). A hit compared with a teacher's hit on the same URL, both after a
+warm-up:
+
+| Hit | Teacher | Student | Difference |
+|---|---|---|---|
+| course list | 0 queries; Redis GET 2, SET 1 | 1 query; Redis MGET 1, GET 1, SET 1 | +1 query (the student's enrolled course ids); same 3 Redis commands |
+| course detail | 0 queries; Redis GET 2, SET 1 | 0 queries; Redis MGET 1, GET 1, SET 1 | none |
+
+The student's `MGET` replaces the `GET` of their own generation, so a hit
+costs no additional Redis round trip. The plan estimated +1 query and +1
+round trip; the measured cost is +1 query on the list only. The `SET` is
+the same on both sides, so it is not part of the difference: it is the activity middleware's heartbeat claim
+(`cache.add`, a SET NX on every authenticated request, `users/middleware.py`).
+Of the two teacher `GET`s, one is the teacher's own generation and one the
+cached payload. The student reads the payload with `GET` and every
+generation with one `MGET`.
+
+**Static sweep** (`classrooms/tests_course_roster_scope_sweep.py`). This
+test finds every serializer that declares a roster field (`students`,
+`student_count`) or nests or subclasses one. It then finds every cached view
+class (a `UserCacheMixin` viewset, or one calling `versioned_key`) that uses
+such a serializer. Each must key on `SCOPE_COURSE` or `SCOPE_GLOBAL`, or be
+allow-listed with a reason. An allow-list entry that no longer matches
+fails too. Four entries remain, each for a viewer who is never a student:
+SchoolViewSet, CourseCategoryViewSet (never routed, H-6), and the superadmin
+and school-admin dashboards. A guard test on synthetic source proves the
+sweep flags a nested serializer, a missing hook and a viewer-only
+`versioned_key`.
+
+**Mutation battery**, on the batch-2b candidate `018351f`, which carries this
+rework, step 4 and batch-2a's retire (A). It ran in a disposable detached
+worktree with its own test database, and each mutant was restored and
+sha256-checked before the next:
+
+| Mutant | What it breaks | Caught by |
+|---|---|---|
+| control | nothing (unmutated `018351f`) | 16 tests OK |
+| M1 | the StudentCourse receiver bumps every classmate again (the old fan-out) | the pinned write cost (`test_one_enrolment_bumps_five_scopes_at_a_class_of_30_and_of_300`) |
+| M2 | a student's course detail loses its `crs` scope | both classmate freshness tests, the detail key-shape test, the hit-cost test (4 failures) |
+| M3 | a student's course list loses its `crs` scopes | both classmate freshness tests, the list key-shape test, the hit-cost test, the silent-withdrawal test (4 failures, 1 error) |
+| M4 | my-courses drops `global` from its key | both classmate freshness tests, and the static sweep (`test_every_roster_bearing_cached_view_keys_on_a_roster_scope`) |
+| M5 | CourseViewSet's `extra_cache_scopes` override is removed | freshness, both key shapes, hit cost, silent withdrawal, and the static sweep (6 failures, 1 error) |
+| M6 | the batched generation read ignores the counters | both freshness tests, both batched-read tests, the hit-cost test (5 failures) |
+
+6 of 6 mutants caught, each by the test aimed at it. M2 to M6 also fail the
+end-to-end freshness tests. M1 does not, and is not expected to: restoring the
+fan-out makes a write slow, not a read stale, which is why the write cost is
+pinned. Every restore was sha256-checked against the blob; the
+disposable worktree and its database were removed afterwards.
+
+**Regression.** The 47 stage 3 cache, probe and regression modules, one at
+a time, each under `timeout -k 60 600` at `cc14bb0`:
+46 OK and 1 FAILED, none timed out, 10:44 to 11:04. The failure was the
+matrix self-test's silent withdrawal, which Design A makes fresh by
+construction; it was fixed in `2987700` (a silent rename instead, plus a test
+pinning the withdrawal behaviour), and both modules then passed (18 tests) (`docs/evidence/h1-stage3-per-module-cc14bb0/`).
+
+**On the batch-2b candidate.** The 109-module pass at `8b1c0cf`
+(`docs/evidence/batch-2b-candidate-per-module-8b1c0cf/`) gave 107 OK. The
+other two failed from retire (A) fixture fallout: students with no
+`last_login` were enrolled PENDING. `018351f` fixed both, the same way as
+`877c900`, and both then passed. That pass adds the per-module regression
+for this rework on top of batch-2a.
