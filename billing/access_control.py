@@ -43,9 +43,10 @@ from functools import wraps
 from typing import Any, Optional, Tuple
 
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.response import Response
 
+from AutoGrader.reason_codes import coded_response
+
+from .errors import InsufficientCreditsError
 from .models import PlanFeature, PlanFeatureKey
 
 logger = logging.getLogger(__name__)
@@ -586,15 +587,19 @@ def require_ai_access(view_func=None, *, feature: Optional[str] = None):
                     reason,
                 )
 
-                return Response(
-                    {
-                        "detail": f"AI access denied: {reason}",
-                        "reason_code": (
-                            reason.lower().replace(" ", "_") if reason else "unknown"
-                        ),
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                # FR-A-06 (S6a): the coded body, never the internal reason.
+                # A balance problem is the credits refusal (402), as
+                # AIProcessor.execute_graded_task maps the same reasons;
+                # anything else is the plan refusal (403) with the spec's
+                # fixed message. The reason itself stays in the log above.
+                if reason in (
+                    NO_CREDITS_REMAINING_REASON,
+                    TRIAL_CREDITS_EXHAUSTED_REASON,
+                ):
+                    refusal: Exception = InsufficientCreditsError(reason)
+                else:
+                    refusal = AIFeatureNotAvailableError()
+                return coded_response(refusal)
 
             return func(self, request, *args, **kwargs)
 

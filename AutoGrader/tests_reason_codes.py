@@ -19,6 +19,7 @@ No mocks (rule 14): every failure is a real exception raised by a real view.
 import ast
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
@@ -37,7 +38,13 @@ from AutoGrader.reason_codes import (
     CodedError,
     coded_response,
 )
-from billing.access_control import AIFeatureNotAvailableError
+from billing import access_control
+from billing.access_control import (
+    NO_CREDITS_REMAINING_REASON,
+    TRIAL_CREDITS_EXHAUSTED_REASON,
+    AIFeatureNotAvailableError,
+    require_ai_access,
+)
 from billing.errors import (
     INSUFFICIENT_CREDITS_MESSAGE,
     EmptyWalletError,
@@ -98,6 +105,17 @@ class CaughtInView(APIView):
             return coded_response(exc)
 
 
+class GatedView(APIView):
+    """A view behind billing.access_control.require_ai_access."""
+
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+
+    @require_ai_access
+    def get(self, request):
+        return Response({"ok": True})
+
+
 class PlainSerializerError(APIView):
     authentication_classes: list = []
     permission_classes = [AllowAny]
@@ -111,6 +129,7 @@ urlpatterns = [
     path("refusal/<str:kind>", RaiseRefusal.as_view()),
     path("caught", CaughtInView.as_view()),
     path("plain", PlainSerializerError.as_view()),
+    path("gated", GatedView.as_view()),
 ]
 
 
@@ -405,6 +424,41 @@ class CodedEnvelopeThroughTheAPITests(SimpleTestCase):
         error when the dict carries no reason_code."""
         body = self.client.get("/plain").json()
         self.assertEqual(body["message"], "Params: This field is required.")
+
+
+@override_settings(ROOT_URLCONF=__name__)
+class RequireAiAccessTests(SimpleTestCase):
+    """@require_ai_access answers with the coded body (S6a, SM option A),
+    never the internal reason it logs."""
+
+    def test_a_refused_request_gets_the_plan_refusal_without_the_reason(self):
+        response = self.client.get("/gated")
+        self.assertEqual(response.status_code, 403)
+        body = response.json()
+        envelope = body["error"]["field_errors"]
+        spec = REASON_CODES[ReasonCode.AI_FEATURE_NOT_AVAILABLE]
+        self.assertEqual(envelope["reason_code"], "AI_FEATURE_NOT_AVAILABLE")
+        self.assertEqual(envelope["code"], "ai_feature_not_available")
+        self.assertEqual(body["message"], spec.message)
+        self.assertEqual(envelope["reference"], response["X-Request-ID"])
+        raw = response.content.decode()
+        self.assertNotIn("not authenticated", raw)
+        self.assertNotIn("AI access denied", raw)
+
+    def test_a_balance_reason_gets_the_credits_refusal(self):
+        for reason in (NO_CREDITS_REMAINING_REASON, TRIAL_CREDITS_EXHAUSTED_REASON):
+            with self.subTest(reason=reason):
+
+                def refuse(user, feature=None, reason=reason):
+                    return False, reason
+
+                with patch.object(access_control, "can_user_access_ai", refuse):
+                    response = self.client.get("/gated")
+                self.assertEqual(response.status_code, 402)
+                envelope = response.json()["error"]["field_errors"]
+                self.assertEqual(envelope["reason_code"], "INSUFFICIENT_CREDITS")
+                self.assertEqual(envelope["error"], INSUFFICIENT_CREDITS_MESSAGE)
+                self.assertNotIn(reason, response.content.decode())
 
 
 class RendererMessageTests(SimpleTestCase):
