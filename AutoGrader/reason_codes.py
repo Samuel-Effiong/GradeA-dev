@@ -211,9 +211,14 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.NOT_RETRYABLE: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_409_CONFLICT,
-        "This item can't be retried as it is.",
+        # S7b: `why` is a server constant, given through `display` (an upload
+        # item: its file isn't kept, F4); the default is the general case.
+        "{why}",
         "Fix what its failure message describes first, then try again.",
         retryable=False,
+        # resolution: "replace_file" for an upload item (re-upload it).
+        params=frozenset({"why", "resolution"}),
+        defaults={"why": "This item can't be retried as it is."},
     ),
     # The three sign-in locks (v2's S6a N3, SM ruling). PENDING QA CATALOGUE
     # APPROVAL (staging only until QA agrees). Their responses keep every

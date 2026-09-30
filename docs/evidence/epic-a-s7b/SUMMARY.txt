@@ -1,0 +1,54 @@
+=== (1) reproduce-first: students.tests_item_retry on UNCHANGED a9dd8bd 2026-09-30T19:28:25+01:00
+rc=1
+Ran 10 tests in 0.664s
+FAILED (errors=10)
+     10 AttributeError: module 'students' has no attribute 'item_retry'
+=== (2) dev run on the implementation 19:28:41
+rc=0
+Ran 42 tests in 3.722s
+OK
+=== done 19:29:00
+
+=== tree d600629 S7b: pin that the upload refusal survives serialization
+=== (1) changed modules + repo-wide guards 19:33:02
+rc=1
+FAIL: test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation)
+Ran 135 tests in 54.079s
+FAILED (failures=1)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:11.51
+	Maximum resident set size (kbytes): 321904
+=== (2) owning-app regression: users + students.tests_batch_item_results 19:34:13
+rc=0
+Ran 704 tests in 54.141s
+OK (skipped=4)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:14.26
+	Maximum resident set size (kbytes): 243700
+=== (3) mutants 19:35:28
+R1_any_code_retried KILLED FAILED (failures=5) ['test_a_code_that_is_not_retryable_as_it_is_is_a_409', 'test_every_retryable_failure_is_retried_and_the_rest_listed']
+  restore ok
+R2_uploads_retried KILLED FAILED (errors=2) ['test_an_upload_item_answers_upload_the_file_again']
+  restore ok
+R3_claim_unfenced SURVIVED OK []
+  restore ok
+R4_count_not_bumped KILLED FAILED (failures=4) ['test_a_mid_batch_credit_stop_is_retried_after_a_top_up', 'test_a_provider_failure_is_retried_in_place', 'test_a_second_retry_counts_again_on_the_same_item', 'test_exactly_one_wins']
+  restore ok
+R5_code_not_cleared KILLED FAILED (failures=1) ['test_a_provider_failure_is_retried_in_place']
+  restore ok
+R6_any_teachers_session KILLED FAILED (failures=1) ['test_another_teachers_session_or_a_foreign_item_is_a_404']
+  restore ok
+R7_item_not_in_session KILLED FAILED (failures=1) ['test_another_teachers_session_or_a_foreign_item_is_a_404']
+  restore ok
+R8_no_audit KILLED FAILED (failures=1) ['test_a_provider_failure_is_retried_in_place']
+  restore ok
+R9_codes_filter_ignored KILLED FAILED (failures=1) ['test_only_the_named_codes_are_retried']
+  restore ok
+R10_trace_not_refreshed KILLED FAILED (failures=1) ['test_a_provider_failure_is_retried_in_place']
+  restore ok
+=== done 19:36:14
+
+=== the module with the stale-copy test 19:36:57
+Ran 12 tests in 1.310s
+OK
+=== R3 again
+R3_claim_unfenced KILLED FAILED (failures=1) ['test_a_stale_copy_of_an_item_retried_since_is_refused']
+  restore ok

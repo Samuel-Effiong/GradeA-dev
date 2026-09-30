@@ -1,0 +1,63 @@
+# Trimmed: test results and the summary/failure blocks only (tests' logged tracebacks removed).
+# Full log: GAP-evidence-logs/epic-a-s7b-h38/6_0ce44d6_mutant_M4.log
+Found 21 test(s).
+Creating test database for alias 'default' ('test_epic_a_s7b')...
+System check identified some issues:
+System check identified 1 issue (0 silenced).
+The claim re-checks access in its conditional UPDATE: the removal ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_after_the_removal_the_item_is_not_found_and_nothing_runs (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_after_the_removal_the_item_is_not_found_and_nothing_runs) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+An assignment upload that failed before creating its assignment ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_an_upload_item_is_not_found_either_not_told_to_re_upload (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_an_upload_item_is_not_found_either_not_told_to_re_upload) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_before_the_removal_the_same_retry_is_accepted (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_before_the_removal_the_same_retry_is_accepted) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_for_a_removed_teacher_fails_before_grading (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_a_run_for_a_removed_teacher_fails_before_grading) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_active_teachers_run_still_grades (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_an_active_teachers_run_still_grades) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_every_retryable_failure_is_retried_and_the_rest_listed (students.tests_item_retry.RetryFailed.test_every_retryable_failure_is_retried_and_the_rest_listed) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_only_the_named_codes_are_retried (students.tests_item_retry.RetryFailed.test_only_the_named_codes_are_retried) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_code_that_is_not_retryable_as_it_is_is_a_409 (students.tests_item_retry.RetryOneItem.test_a_code_that_is_not_retryable_as_it_is_is_a_409) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_mid_batch_credit_stop_is_retried_after_a_top_up (students.tests_item_retry.RetryOneItem.test_a_mid_batch_credit_stop_is_retried_after_a_top_up) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_provider_failure_is_retried_in_place (students.tests_item_retry.RetryOneItem.test_a_provider_failure_is_retried_in_place) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_second_retry_counts_again_on_the_same_item (students.tests_item_retry.RetryOneItem.test_a_second_retry_counts_again_on_the_same_item) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_stale_copy_of_an_item_retried_since_is_refused (students.tests_item_retry.RetryOneItem.test_a_stale_copy_of_an_item_retried_since_is_refused) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_item_that_has_not_failed_is_a_409 (students.tests_item_retry.RetryOneItem.test_an_item_that_has_not_failed_is_a_409) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_upload_item_answers_upload_the_file_again (students.tests_item_retry.RetryOneItem.test_an_upload_item_answers_upload_the_file_again) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_teachers_session_or_a_foreign_item_is_a_404 (students.tests_item_retry.RetryOneItem.test_another_teachers_session_or_a_foreign_item_is_a_404) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_pickle_and_args_rebuild_keep_code_params_and_message (students.tests_item_retry.TheRefusalSurvivesSerialization.test_pickle_and_args_rebuild_keep_code_params_and_message) ... ok
+test_same_code_new_retry_count_is_not_claimed_again (students.tests_item_retry.AClaimWaitingOnTheLockSeesTheRowItFinallyGets.test_same_code_new_retry_count_is_not_claimed_again) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_exactly_one_wins (students.tests_item_retry.TwoRetriesOfOneItemAtOnce.test_exactly_one_wins) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+Destroying test database for alias 'default' ('test_epic_a_s7b')...
+
+======================================================================
+FAIL: test_an_item_with_no_assignment_is_judged_by_its_batchs_course (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_an_item_with_no_assignment_is_judged_by_its_batchs_course)
+An assignment upload that failed before creating its assignment
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 173, in test_an_item_with_no_assignment_is_judged_by_its_batchs_course
+    self.assertEqual(response.status_code, 409, response.content[:400])
+AssertionError: 404 != 409 : b'{"success":false,"message":"Not found.","error":{"field_errors":{"detail":"Not found."}}}'
+
+----------------------------------------------------------------------
+Ran 21 tests in 3.622s
+
+FAILED (failures=1)
+Destroying test database for alias 'default' ('test_epic_a_s7b')...

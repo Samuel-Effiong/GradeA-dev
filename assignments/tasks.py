@@ -22,6 +22,7 @@ from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
 from students.exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    CourseNotReachableError,
     RubricMissingError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
@@ -467,8 +468,9 @@ def _grading_failure_error_class(exc):
     misfiled as MODEL, 08a §2.2) carry their own class. PROVIDER_FAILURE
     is the provider's fault when its cause is a recognised infra failure
     (timeout, rate limit, dropped connection, 5xx), and the model's when
-    it is not (unusable output). Any other recognised infra failure is the
-    provider's, and anything else an unclassified system fault."""
+    it is not (unusable output). A teacher who lost access to the course
+    (H-38; uncoded) is the user's case. Any other recognised infra failure
+    is the provider's, and anything else an unclassified system fault."""
     reason = reason_of(exc)
     if reason is not None:
         code = reason[0]
@@ -478,6 +480,8 @@ def _grading_failure_error_class(exc):
         ):
             return ErrorClass.MODEL
         return REASON_CODES[code].error_class
+    if isinstance(exc, CourseNotReachableError):
+        return ErrorClass.USER
     if classify_infra_error(exc) is not None:
         return ErrorClass.PROVIDER
     return ErrorClass.SYSTEM
@@ -515,6 +519,15 @@ def grade_engine_async(
             submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         user = CustomUser.objects.get(id=user_id)
+        # H-38, checked when the run starts, not only when it was requested:
+        # a retry, a scheduled grading or a queued batch item must not grade
+        # (or bill) for a teacher since removed from the course's school.
+        if (
+            not reachable_courses(user)
+            .filter(pk=submission.assignment.course_id)
+            .exists()
+        ):
+            raise CourseNotReachableError()
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
