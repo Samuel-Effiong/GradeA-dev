@@ -3,16 +3,18 @@
 Not part of the suite (the file name doesn't match the test pattern). Run by
 label on the test database:
 
-    python manage.py test audit.bench_history --settings=settings_worktree
+    AUDIT_BENCH=1 python manage.py test audit.tests.test_bench_history --settings=settings_worktree
 
 It prints p50/p95 for one grade save (the update-grade route's own save)
 and for a roster import of 30 (the real bulk-add route), with capture on and
 with capture off (`history.suppressed()` around the same work).
 """
 
+import os
 import statistics
 import time
 from decimal import Decimal
+from unittest import skipUnless
 
 from django.urls import reverse
 from rest_framework.test import APITestCase
@@ -30,6 +32,10 @@ def _percentiles(samples):
     return statistics.median(ordered) * 1000, p95 * 1000
 
 
+@skipUnless(
+    os.environ.get("AUDIT_BENCH") == "1",
+    "a benchmark, run by label with AUDIT_BENCH=1 only",
+)
 class HistoryCostBenchmark(APITestCase):
     def test_print_the_cost(self):
         world = World("bench")

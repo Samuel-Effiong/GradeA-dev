@@ -143,10 +143,6 @@ SUPPRESSION_ALLOWED = {
         "the AI grading save (SM note 2): its before/after go onto the one "
         "GRADING_COMPLETED event, never a GRADE_CHANGE"
     ),
-    ("audit/bench_history.py", "test_print_the_cost"): (
-        "test tooling (Gate 6 benchmark, run by explicit label only): its "
-        "capture-off baseline. Not app code - nothing imports it (v2's N1)"
-    ),
 }
 
 
