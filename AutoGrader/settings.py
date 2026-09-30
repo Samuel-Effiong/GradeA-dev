@@ -38,12 +38,16 @@ LOGGING = {
             # from a request - it reads "-" outside any request/task).
             "format": (
                 "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} "
-                "[request_id={request_id}] {message}\n\n"
+                "[request_id={request_id} client_request_id={client_request_id}] "
+                "{message}\n\n"
             ),
             "style": "{",
         },
         "simple": {
-            "format": "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s] %(message)s\n\n",
+            "format": (
+                "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s "
+                "client_request_id=%(client_request_id)s] %(message)s\n\n"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },

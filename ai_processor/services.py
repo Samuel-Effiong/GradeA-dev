@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import logging
 import math
@@ -6,6 +7,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import uuid
 from io import BytesIO
 from pathlib import Path
@@ -23,6 +25,7 @@ from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
 
 from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
+from audit.emitter import resolve_trace_id
 from billing.access_control import (
     NO_CREDITS_REMAINING_REASON,
     TRIAL_CREDITS_EXHAUSTED_REASON,
@@ -89,8 +92,29 @@ AI_CONFIDENCE_THRESHOLD = 80
 PROMPT_DIR = Path(__file__).resolve().parent
 
 
-def _load_prompt(filename: str) -> str:
-    return (PROMPT_DIR / filename).read_text(encoding="utf-8")
+class Prompt(str):
+    """A prompt's text, carrying the version NFR-OBS-04 records on every AI
+    call: the file's stem plus the first 8 hex digits of the text's
+    SHA-256, e.g. "GRADING_ASSIGNMENT_PROMPT_5:1a2b3c4d" (no "@": audit
+    metadata drops anything shaped like an email address). The hash changes
+    whenever the text does, even if the file is edited without a rename."""
+
+    version: str
+
+    def __new__(cls, text: str, version: str) -> "Prompt":
+        prompt = super().__new__(cls, text)
+        prompt.version = version
+        return prompt
+
+
+def prompt_version_of(filename: str, text: str) -> str:
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+    return f"{Path(filename).stem}:{digest}"
+
+
+def _load_prompt(filename: str) -> Prompt:
+    text = (PROMPT_DIR / filename).read_text(encoding="utf-8")
+    return Prompt(text, prompt_version_of(filename, text))
 
 
 ASSIGNMENT_EXTRACTION_PROMPT = _load_prompt("ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt")
@@ -122,7 +146,62 @@ WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = _load_prompt(
     "WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt"
 )
 
+# Built in code rather than a file; versioned the same way, over the template
+# text before `{numbers}` is filled in.
+_BLANK_VERIFICATION_TEXT = (
+    "You are re-checking ONE narrow thing about a scanned student "
+    "submission. A first pass reported that the student wrote "
+    "nothing for question(s) {numbers}.\n\n"
+    "For EACH of those question numbers, look at the pages and say "
+    "whether there is ANY student writing responding to it - any "
+    "mark, working, crossing-out, marginal note or continuation "
+    "elsewhere on the page counts.\n\n"
+    "Describe what you can see in `observed` BEFORE you decide "
+    "`content_found`. If you do find writing, quote a short "
+    "verbatim fragment of it in `verbatim_fragment` and give the "
+    "page in `page`; otherwise set both to null.\n\n"
+    "Do not transcribe the full answer and do not grade anything. "
+    "Answer only the question of whether something is there.\n\n"
+    "Be honest in both directions: saying content exists when it "
+    "does not sends a teacher on a pointless hunt, and saying it "
+    "does not exist when it does leaves a student wrongly scored "
+    "zero."
+)
+BLANK_VERIFICATION_INSTRUCTION = Prompt(
+    _BLANK_VERIFICATION_TEXT,
+    prompt_version_of("BLANK_VERIFICATION_INSTRUCTION", _BLANK_VERIFICATION_TEXT),
+)
+
 logger = logging.getLogger(__name__)
+
+
+def _current_attempt() -> int:
+    """1 for a first try; Celery's retry count + 1 inside a retried task."""
+    try:
+        from celery import current_task
+
+        if current_task and current_task.request.id:
+            return int(current_task.request.retries or 0) + 1
+    except Exception:  # noqa: BLE001 - a log field must never fail the call
+        pass
+    return 1
+
+
+def _log_ai_call(*, trace_id, model, prompt_version, task_type, latency_ms, outcome):
+    """One line per provider call (S5, NFR-OBS-04). Fields only - never
+    prompt or answer text, which carry student work."""
+    logger.info(
+        "ai_call trace_id=%s model=%s prompt_version=%s task_type=%s "
+        "attempt=%d latency_ms=%d outcome=%s",
+        trace_id,
+        model,
+        prompt_version or "-",
+        task_type or "-",
+        _current_attempt(),
+        latency_ms,
+        outcome,
+    )
+
 
 # Shown to a STUDENT when their teacher's plan or wallet blocks the AI call.
 # Deliberately says nothing about the teacher's subscription, balance or any
@@ -669,7 +748,13 @@ class AIProcessor:
         response_schema=None,
         sub_models=None,
         override_model=None,
+        prompt_version=None,
+        task_type=None,
     ):
+        """The one place a provider call leaves the app (S5, FR-A-03 /
+        NFR-OBS-04). Every call carries the server trace id as X-Request-ID
+        and writes one log line: trace id, model, prompt version, task type,
+        attempt, latency and outcome - never prompt or answer text."""
         main_model = override_model or MAIN_MODEL
         if sub_models is None:
             sub_models = DEFAULT_FALLBACK_MODELS
@@ -681,50 +766,51 @@ class AIProcessor:
         else:
             response_format = None
 
+        trace_id = resolve_trace_id()
+        request = {
+            "extra_headers": {
+                "HTTP-Referer": settings.FRONTEND_DOMAIN,
+                "X-Title": "GradeA+",
+                "X-Request-ID": str(trace_id),
+            },
+            "model": main_model,
+            "extra_body": {
+                "models": sub_models,
+                # Refuse any upstream provider (e.g. DeepSeek) that may
+                # retain or train on this request. Student names and
+                # submission content pass through this call.
+                "provider": {"data_collection": "deny"},
+            },
+            "messages": messages
+            or [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.0,
+            "response_format": response_format,
+        }
         if tool_schemas:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": settings.FRONTEND_DOMAIN,
-                    "X-Title": "GradeA+",
-                },
-                model=main_model,
-                extra_body={
-                    "models": sub_models,
-                    # Refuse any upstream provider (e.g. DeepSeek) that may
-                    # retain or train on this request. Student names and
-                    # submission content pass through this call.
-                    "provider": {"data_collection": "deny"},
-                },
-                messages=messages
-                or [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                tools=tool_schemas,
-                temperature=0.0,
-                response_format=response_format,
-            )
-        else:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": settings.FRONTEND_DOMAIN,
-                    "X-Title": "GradeA+",
-                },
-                model=main_model,
-                extra_body={
-                    "models": sub_models,
-                    "provider": {"data_collection": "deny"},
-                },
-                messages=messages
-                or [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.0,
-                response_format=response_format,
-            )
+            request["tools"] = tool_schemas
 
-        return response
+        started = time.monotonic()
+        outcome = "ok"
+        served_model = main_model
+        try:
+            response = self.client.chat.completions.create(**request)
+            served_model = getattr(response, "model", None) or main_model
+            return response
+        except Exception as exc:
+            outcome = type(exc).__name__
+            raise
+        finally:
+            _log_ai_call(
+                trace_id=trace_id,
+                model=served_model,
+                prompt_version=prompt_version,
+                task_type=task_type,
+                latency_ms=int((time.monotonic() - started) * 1000),
+                outcome=outcome,
+            )
 
     def get_ai_model_function(self):
         return self.__ai_model
@@ -763,6 +849,7 @@ Do not include any explanatory text before or after the JSON
         try:
 
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
@@ -821,6 +908,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
@@ -964,6 +1052,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=ASSIGNMENT_EXTRACTION_PROMPT.version,
                         user=user,
                         feature="Assignment Extraction",
                         task_type="extract_assignment",
@@ -1140,6 +1229,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=system_prompt.version,
                         user=user,
                         feature="Assignment Extraction",
                         task_type="extract_assignment",
@@ -1607,6 +1697,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
                         user=user,
                         feature="Answer Extraction",
                         task_type="extract_answer",
@@ -1833,6 +1924,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
@@ -1980,25 +2072,7 @@ Do not include any explanatory text before or after the JSON
             return answers
 
         numbers = [entry.get("question_number") for entry in blanks]
-        instruction = (
-            "You are re-checking ONE narrow thing about a scanned student "
-            "submission. A first pass reported that the student wrote "
-            f"nothing for question(s) {numbers}.\n\n"
-            "For EACH of those question numbers, look at the pages and say "
-            "whether there is ANY student writing responding to it - any "
-            "mark, working, crossing-out, marginal note or continuation "
-            "elsewhere on the page counts.\n\n"
-            "Describe what you can see in `observed` BEFORE you decide "
-            "`content_found`. If you do find writing, quote a short "
-            "verbatim fragment of it in `verbatim_fragment` and give the "
-            "page in `page`; otherwise set both to null.\n\n"
-            "Do not transcribe the full answer and do not grade anything. "
-            "Answer only the question of whether something is there.\n\n"
-            "Be honest in both directions: saying content exists when it "
-            "does not sends a teacher on a pointless hunt, and saying it "
-            "does not exist when it does leaves a student wrongly scored "
-            "zero."
-        )
+        instruction = BLANK_VERIFICATION_INSTRUCTION.format(numbers=numbers)
 
         override_model = (
             getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
@@ -2007,6 +2081,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
@@ -2599,6 +2674,7 @@ Do not include any explanatory text before or after the JSON
             ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
+                    prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                     user=user,
                     feature="Grading Assignment",
                     task_type="grade_assignment",
@@ -2869,6 +2945,7 @@ Do not include any explanatory text before or after the JSON
             ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
+                    prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                     user=user,
                     feature="Grading Assignment",
                     task_type="grade_assignment",
@@ -3818,6 +3895,7 @@ Do not include any explanatory text before or after the JSON
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
+                prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                 user=user,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -4208,6 +4286,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         for round_index in range(MAX_TOOL_CALL_ROUNDS):
             response = self.execute_graded_task(
+                prompt_version=GENERATE_ASSIGNMENT_PROMPT.version,
                 user=user,
                 feature="Assignment Generation",
                 task_type="generate_assignment",
@@ -4314,6 +4393,7 @@ Now, respond to the following teacher's instruction using the rules above
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
+                prompt_version=GRADE_FORMATTER.version,
                 user=user,
                 feature="Formatted Grade",
                 task_type="formatted_grade",
@@ -4362,7 +4442,16 @@ Now, respond to the following teacher's instruction using the rules above
         course=None,
         processing_task_id=None,
         override_model=None,
+        *,
+        prompt_version,
     ):
+        """The only way into the provider call: access control, billing and
+        the call itself. `prompt_version` is required (S5, NFR-OBS-04): every
+        AI path names the prompt it sent (e.g. `GRADING_ASSIGNMENT_PROMPT.
+        version`), so any result can be traced to the exact prompt text."""
+        if not prompt_version:
+            raise ValueError("execute_graded_task requires a prompt_version")
+
         # I need the assignment to for students who are submitting
         # their assignment to know who the teacher that created
         # the assignment is and charge the teacher
@@ -4473,6 +4562,8 @@ Now, respond to the following teacher's instruction using the rules above
                 response_schema,
                 sub_models=sub_models,
                 override_model=override_model,
+                prompt_version=prompt_version,
+                task_type=task_type,
             )
             return response
 
@@ -4552,6 +4643,8 @@ Now, respond to the following teacher's instruction using the rules above
             response_schema,
             sub_models=sub_models,
             override_model=override_model,
+            prompt_version=prompt_version,
+            task_type=task_type,
         )
 
         resolved_course = assignment.course if assignment else course
@@ -4672,6 +4765,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         try:
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature=feature,
                 task_type=task_type,
@@ -4824,6 +4918,7 @@ Based on the data above, write a short personalised summary for the teacher."""
         ]
 
         response = self.execute_graded_task(
+            prompt_version=STUDENT_SUMMARY_PROMPT.version,
             user=teacher,
             feature="Student Summary",
             task_type="student_summary",
@@ -4870,6 +4965,7 @@ Turn this data into concise teacher-facing narration.
         ]
 
         response = self.execute_graded_task(
+            prompt_version=WEEKLY_COURSE_SUMMARY_PROMPT.version,
             user=teacher,
             feature="Weekly Course Summary",
             task_type="weekly_course_summary",
@@ -4933,6 +5029,7 @@ Turn this data into concise school-admin-facing narration.
         ]
 
         response = self.execute_graded_task(
+            prompt_version=WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.version,
             user=admin,
             feature="Weekly School Admin Summary",
             task_type="weekly_school_admin_summary",

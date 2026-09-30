@@ -49,6 +49,9 @@ from billing.models import (  # PlanFeature,; PlanFeatureInclusion,; PlanFeature
 from classrooms.models import Course, School
 from users.models import CustomUser, UserTypes
 
+# S5: execute_graded_task requires one; any non-empty label will do here.
+TEST_PROMPT_VERSION = "TEST_PROMPT:00000000"
+
 
 def make_ai_response(tokens=100, content='{"result": "ok"}'):
     """A minimal stand-in for the OpenAI SDK response object shape that
@@ -167,6 +170,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         teacher = self._make_teacher_with_credits()
 
         response = self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -186,6 +190,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         schema = {"name": "test_schema", "strict": True, "schema": {"type": "object"}}
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -205,6 +210,8 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             schema,
             sub_models=GRADING_FALLBACK_MODELS,
             override_model=None,
+            prompt_version=TEST_PROMPT_VERSION,
+            task_type="grade_assignment",
         )
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
@@ -213,6 +220,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         teacher = self._make_teacher_with_credits()
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Answer Extraction",
             task_type="extract_answer",
@@ -233,6 +241,8 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             None,
             sub_models=GRADING_FALLBACK_MODELS,
             override_model=None,
+            prompt_version=TEST_PROMPT_VERSION,
+            task_type="extract_answer",
         )
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
@@ -241,6 +251,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         teacher = self._make_teacher_with_credits()
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Assignment Extraction",
             task_type="extract_assignment",
@@ -259,6 +270,8 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             None,
             sub_models=GRADING_FALLBACK_MODELS,
             override_model=None,
+            prompt_version=TEST_PROMPT_VERSION,
+            task_type="extract_assignment",
         )
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
@@ -274,6 +287,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         teacher = self._make_teacher_with_credits()
 
         response = self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -313,6 +327,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         # this plan -> deny by default.
         with self.assertRaises(AIFeatureNotAvailableError):
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=teacher,
                 feature="Assignment Generation",
                 task_type="generate_assignment",
@@ -329,6 +344,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
 
         with self.assertRaises(InsufficientCreditsError):
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=teacher,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -343,6 +359,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
 
         with self.assertRaises(InsufficientCreditsError) as ctx:
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=teacher,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -367,6 +384,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         assignment.course = course
 
         response = self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=student,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -387,6 +405,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         student = self._make_user(UserTypes.STUDENT, "noassign@example.com")
         with self.assertRaises(ValueError):
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=student,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -404,6 +423,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
 
         with self.assertRaises(AIFeatureNotAvailableError) as ctx:
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=student,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -425,6 +445,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         self._give_credits(admin, 100000)
 
         response = self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=admin,
             feature="Weekly Course Summary",
             task_type="weekly_course_summary",
@@ -442,6 +463,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
 
         with self.assertRaises(AIFeatureNotAvailableError):
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=admin,
                 feature="Grading Assignment",  # admins can't grade
                 task_type="grade_assignment",
@@ -458,6 +480,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         # Deliberately no subscription, no wallet, no credits at all.
 
         response = self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=superadmin,
             feature="Superadmin Custom AI Prompt",
             task_type="custom_ai_prompt:superadmin",
@@ -480,6 +503,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         schema = {"name": "test_schema", "strict": True, "schema": {"type": "object"}}
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=superadmin,
             feature="Superadmin Custom AI Prompt",
             task_type="custom_ai_prompt:superadmin",
@@ -496,6 +520,8 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             schema,
             sub_models=None,
             override_model=None,
+            prompt_version=TEST_PROMPT_VERSION,
+            task_type="custom_ai_prompt:superadmin",
         )
 
     def test_unrecognized_user_type_raises_clean_value_error(self):
@@ -513,6 +539,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
 
         with self.assertRaises(ValueError) as ctx:
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=weird_user,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -541,6 +568,7 @@ class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
         teacher.save()
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -564,6 +592,7 @@ class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
         admin.save()
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=admin,
             feature="Weekly Course Summary",
             task_type="weekly_course_summary",
@@ -589,6 +618,7 @@ class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
         assignment.course = course
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=student,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -607,6 +637,7 @@ class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
         teacher = self._make_teacher_with_credits()  # individual, no school
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -634,6 +665,7 @@ class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
         teacher.save()
 
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",
@@ -646,6 +678,7 @@ class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
 
         mock_ai_model.return_value = make_ai_response(tokens=300)
         self.processor.execute_graded_task(
+            prompt_version=TEST_PROMPT_VERSION,
             user=teacher,
             feature="Grading Assignment",
             task_type="grade_assignment",

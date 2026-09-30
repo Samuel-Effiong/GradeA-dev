@@ -207,6 +207,7 @@ METADATA_ALLOWLIST = {
             "task_id",
             "attempt",
             "model",
+            "prompt_version",
             "feature",
             "http_status",
         }

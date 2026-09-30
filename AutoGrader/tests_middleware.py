@@ -1,10 +1,15 @@
+import uuid
 from unittest.mock import patch
 
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase
 
 from AutoGrader.middleware import RequestIDMiddleware
-from AutoGrader.request_context import REQUEST_ID_HEADER, get_request_id
+from AutoGrader.request_context import (
+    REQUEST_ID_HEADER,
+    get_client_request_id,
+    get_request_id,
+)
 
 
 class RequestIDMiddlewareTests(SimpleTestCase):
@@ -33,14 +38,37 @@ class RequestIDMiddlewareTests(SimpleTestCase):
         self.assertEqual(seen["contextvar_during_request"], seen["request_id"])
         self.assertEqual(response[REQUEST_ID_HEADER], seen["request_id"])
 
-    def test_reuses_valid_inbound_header(self):
+    def test_never_adopts_an_inbound_id(self):
+        """X-5 (S5 part 0): the request id is the audit trace id, so a client
+        must not choose it. Reversed on purpose: it used to be reused."""
+        client_id = str(uuid.uuid4())
+        seen = {}
+
         def get_response(request):
+            seen["request_id"] = request.request_id
+            seen["client_request_id"] = get_client_request_id()
+            return HttpResponse("ok")
+
+        request = self.factory.get("/", HTTP_X_REQUEST_ID=client_id)
+        response = self._middleware(get_response)(request)
+
+        self.assertNotEqual(seen["request_id"], uuid.UUID(client_id).hex)
+        self.assertEqual(response[REQUEST_ID_HEADER], seen["request_id"])
+        self.assertEqual(seen["client_request_id"], client_id)
+        self.assertIsNone(get_client_request_id())
+
+    def test_a_non_uuid_inbound_id_is_not_kept_at_all(self):
+        seen = {}
+
+        def get_response(request):
+            seen["client_request_id"] = request.client_request_id
             return HttpResponse("ok")
 
         request = self.factory.get("/", HTTP_X_REQUEST_ID="client-supplied-id-123")
         response = self._middleware(get_response)(request)
 
-        self.assertEqual(response[REQUEST_ID_HEADER], "client-supplied-id-123")
+        self.assertIsNone(seen["client_request_id"])
+        self.assertNotEqual(response[REQUEST_ID_HEADER], "client-supplied-id-123")
 
     def test_generates_new_id_when_inbound_header_is_malformed(self):
         def get_response(request):
