@@ -1181,14 +1181,18 @@ class LicenseSubscriptionService:
 
             # 4. School validation
             if user.school and user.school != school:
-                error_msg = (
-                    f"Teacher {email!r} already belongs to school {user.school.name!r}. "
-                    f"Cannot enroll under {school.name!r}."
+                # Generic on purpose: naming the other school told any school
+                # admin which school an arbitrary address belongs to (a
+                # cross-tenant disclosure). The log carries ids only.
+                error_msg = "This teacher already belongs to another school."
+                logger.warning(
+                    "Teacher %s belongs to school %s, not %s: not enrolled.",
+                    user.id,
+                    user.school_id,
+                    school.id,
                 )
-
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # Associate the teacher with the school if they don't have one
