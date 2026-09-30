@@ -54,11 +54,11 @@ from assignments.tasks import (
 )
 from audit import history
 from audit.emitter import emit
-from audit.enums import AuditAction, AuditOutcome
+from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.reason_codes import coded_response
+from AutoGrader.reason_codes import CodedError, coded_response
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
@@ -1400,10 +1400,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # persisting a score, or vice versa) be published, emailing the
         # student about a grade that doesn't exist.
         if not submission.graded_at or submission.score is None:
-            return Response(
-                {"error": "Cannot publish an ungraded submission."},
-                status=HTTP_400_BAD_REQUEST,
-            )
+            # Catalogue F (Epic A S7d): coded SUBMISSION_NOT_GRADED, still a
+            # 400.
+            return coded_response(CodedError(ReasonCode.SUBMISSION_NOT_GRADED))
 
         # Conditional UPDATE as an atomic claim: two concurrent publish
         # requests both saw is_published=False above, but only one matches

@@ -39,9 +39,10 @@ from ai_processor.services import ai_processor  # pdf_service
 from assignments.exceptions import FileUnreadableError
 from audit import history
 from audit.emitter import emit
-from audit.enums import AuditAction, AuditOutcome
+from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
@@ -273,6 +274,22 @@ logger = logging.getLogger(__name__)
         },
     ),
 )
+def _not_graded_entries(submissions):
+    """publish-all's skipped list (catalogue F, Epic A S7d): one coded entry
+    per submission not yet graded (no graded_at, or no score), ids only."""
+    return [
+        coded_entry(
+            CodedError(ReasonCode.SUBMISSION_NOT_GRADED),
+            submission_id=str(submission_id),
+            student_id=str(student_id),
+            status="skipped",
+        )
+        for submission_id, student_id in submissions.order_by(
+            "submission_date", "pk"
+        ).values_list("pk", "student_id")
+    ]
+
+
 class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing assignments.
@@ -1827,11 +1844,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         graded_submissions = assignment.submissions.filter(
             graded_at__isnull=False, score__isnull=False
         )
+        # Catalogue F (Epic A S7d): every submission this can't publish is
+        # listed as skipped with its code, not only counted.
+        skipped = _not_graded_entries(
+            assignment.submissions.exclude(pk__in=graded_submissions.values("pk"))
+        )
 
         total_graded = graded_submissions.count()
         if total_graded == 0:
+            # "Nothing to publish" stays a normal answer, as before.
             return Response(
-                {"message": "No graded submissions found to publish."},
+                {
+                    "message": "No graded submissions found to publish.",
+                    "skipped": skipped,
+                },
                 status=status.HTTP_200_OK,
             )
 
@@ -1869,6 +1895,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "message": f"Successfully published {updated_count} submissions.",
             "total_graded": total_graded,
             "ungraded_count": ungraded_count,
+            "skipped": skipped,
         }
 
         serializer = PublishAllGradesResponseSerializer(data)
