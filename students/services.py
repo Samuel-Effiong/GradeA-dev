@@ -16,13 +16,15 @@ from assignments.services import AssignmentProcessingService
 from AutoGrader.celery import app as celery_app
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
+from classrooms.models import teacher_course_access_q
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
 from .exceptions import (
     AssignmentNotOpenError,
-    CannotAssociateStudentError,
+    StudentNameUnmatchedError,
+    StudentNotOnRosterError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
@@ -839,7 +841,12 @@ def upload_answers_engine(
     request_user,
     is_proxy_upload=False,
     processing_task_id=None,
+    file_name=None,
+    upload_outcome=None,
 ):
+    """`file_name` names the file in a coded refusal (S6c). `upload_outcome`,
+    when given, receives replaced_existing: whether this upload overwrote an
+    existing (ungraded) submission instead of creating one (F3)."""
     assignment_context = f"""
     This is the Assignment Context to use in properly extracting the student submissions
     {assignment.questions}
@@ -883,7 +890,10 @@ def upload_answers_engine(
 
         if is_proxy_upload:
             target_student = _match_enrolled_student(
-                assignment.course, student_submission.get("student_name")
+                assignment.course,
+                student_submission.get("student_name"),
+                file_name=file_name,
+                teacher=request_user,
             )
         else:
             # Post-extraction re-check. The authoritative check is under
@@ -981,6 +991,11 @@ def upload_answers_engine(
                             "extraction_confidence",
                         ]
                     )
+
+        if upload_outcome is not None:
+            # F3: the overwrite of an existing ungraded submission stays, but
+            # the item says it happened (informational, never a failure).
+            upload_outcome["replaced_existing"] = not created
 
         if created and request_user.user_type == UserTypes.STUDENT:
             notify_teacher_of_student_submission(submission)
@@ -1186,7 +1201,38 @@ def update_submission_from_raw_text(
     return locked
 
 
-def _match_enrolled_student(course, identified_name):
+#: Where the message names the file when a caller has none to give.
+UNNAMED_PAPER = "the paper"
+
+
+def _name_matches(candidates, name):
+    """Up to two of `candidates` whose name matches `name`: exact
+    (case-insensitive) "first last" first, then substring, never loading a
+    whole roster. Two rows are enough to know a match is ambiguous."""
+    exact = candidates.annotate(
+        full_name=Concat("first_name", Value(" "), "last_name")
+    ).filter(full_name__iexact=name)
+    matches = list(exact[:2])
+    if not matches:
+        first_name, _, last_name = name.partition(" ")
+        fuzzy = candidates.filter(
+            first_name__icontains=first_name, last_name__icontains=last_name
+        )
+        matches = list(fuzzy[:2])
+    return matches
+
+
+def _teachers_own_students(teacher):
+    """Every student enrolled, in ANY status, in a course `teacher` owns and
+    can still reach (H-38). Never the school's students: a colleague's or
+    another school's student is not the uploading teacher's to name (SM)."""
+    return CustomUser.objects.filter(
+        teacher_course_access_q(teacher, prefix="enrollments__course__"),
+        user_type=UserTypes.STUDENT,
+    ).distinct()
+
+
+def _match_enrolled_student(course, identified_name, file_name=None, teacher=None):
     """
     Resolve the student name the extractor read off a teacher-uploaded
     submission to exactly one ENROLLED student on the course.
@@ -1200,45 +1246,53 @@ def _match_enrolled_student(course, identified_name):
     student's work and grade landed on another student's record with no
     error anywhere. Refusing is the only safe answer; the teacher can
     upload for that student directly.
+
+    FR-A-06 (S6c): a refusal is coded. MISSING_STUDENT_NAME for no name, a
+    name matching nobody, or an ambiguous one; STUDENT_NOT_ON_ROSTER when the
+    name is uniquely one of `teacher`'s own students outside this course's
+    roster (`teacher` defaults to the course's teacher). Only the paper's own
+    text is ever quoted for an unmatched name.
     """
+    file_name = file_name or UNNAMED_PAPER
     name = " ".join((identified_name or "").split())
-    if not name:
-        raise CannotAssociateStudentError(
-            "Student name cannot be found in the submission"
+
+    def unmatched(name_state):
+        return StudentNameUnmatchedError(
+            params={"file_name": file_name, "name_state": name_state}
         )
+
+    if not name:
+        raise unmatched("no name was found on the paper")
 
     enrolled = CustomUser.objects.filter(
         enrollments__course=course,
         enrollments__enrollment_status="ENROLLED",
     ).distinct()
-
-    # Exact: the whole name against "first last", so multi-word first names
-    # ("Mary Ann Smith") match without guessing where the split is.
-    exact = enrolled.annotate(
-        full_name=Concat("first_name", Value(" "), "last_name")
-    ).filter(full_name__iexact=name)
-    # Two rows are enough to know it's ambiguous; never load a whole roster.
-    matches = list(exact[:2])
-    if not matches:
-        first_name, _, last_name = name.partition(" ")
-        fuzzy = enrolled.filter(
-            first_name__icontains=first_name, last_name__icontains=last_name
-        )
-        matches = list(fuzzy[:2])
-
-    if not matches:
-        raise CannotAssociateStudentError(
-            "Student not among the enrolled students in the course"
-        )
+    matches = _name_matches(enrolled, name)
     if len(matches) > 1:
         # Teacher-facing text: literal double quotes, not !r (see the same
         # choice in notify_school_admins_of_grading_complete).
-        raise CannotAssociateStudentError(
-            f'The name "{name}" matches more than one enrolled student in this '  # noqa: B907
-            "course, so the submission could not be attributed safely. Please "
-            "upload it for the right student directly."
+        raise unmatched(
+            f'the name "{name}" matches more than one student'  # noqa: B907
         )
-    return matches[0]
+    if matches:
+        return matches[0]
+
+    # Nobody on this roster. One of the teacher's own students elsewhere
+    # (pending, withdrawn, or in another of their courses) is named, so the
+    # teacher knows to enrol them; anything else is only the paper's text.
+    elsewhere = _name_matches(_teachers_own_students(teacher or course.teacher), name)
+    if len(elsewhere) == 1:
+        student = elsewhere[0]
+        raise StudentNotOnRosterError(
+            params={
+                "file_name": file_name,
+                "student_display": f"{student.first_name} {student.last_name}".strip(),
+            }
+        )
+    raise unmatched(
+        f'the name "{name}" doesn\'t match anyone on the roster'  # noqa: B907
+    )
 
 
 def get_grade_details(percentage):
