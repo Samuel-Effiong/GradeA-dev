@@ -72,6 +72,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .grading_gates import ensure_gradable
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -844,6 +845,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def grade_async(self, request, pk=None):
         submission = self.get_object()
+        # 409 RUBRIC_MISSING before anything is queued (S6d).
+        ensure_gradable(submission.assignment)
 
         processing_task = create_processing_task(
             requested_by=request.user,
@@ -899,6 +902,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def schedule_grade_async(self, request, pk=None):
         submission = self.get_object()
+        # 409 RUBRIC_MISSING before anything is scheduled (S6d); the run
+        # re-checks, since the rubric can be removed meanwhile.
+        ensure_gradable(submission.assignment)
 
         serializer = ScheduleGradingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

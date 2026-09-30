@@ -42,7 +42,14 @@ def make_classroom(prefix):
         title="A",
         course=course,
         status=AssignmentStatus.PUBLISHED,
-        questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+        questions=[
+            {
+                "question_number": 1,
+                "question_text": "Q1?",
+                "points": 10,
+                "model_answer": "4",
+            }
+        ],
     )
     wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
     CreditBucket.objects.create(

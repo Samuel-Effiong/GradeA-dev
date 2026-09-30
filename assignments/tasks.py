@@ -10,23 +10,26 @@ from rest_framework.exceptions import ParseError
 from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
 from audit import history
 from audit.emitter import emit
-from audit.enums import AuditAction, AuditOutcome, ErrorClass
+from audit.enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
 from AutoGrader.error_messages import (
     classify_infra_error,
     describe_background_task_error,
 )
+from AutoGrader.reason_codes import REASON_CODES, CodedError
 from AutoGrader.tasks import send_email_task
 from billing.refusals import PERMANENT_AI_REFUSALS
 from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
 from students.exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    RubricMissingError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
     TaskCancelledError,
 )
+from students.grading_gates import rubric_missing
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
@@ -454,7 +457,10 @@ def _grading_failure_error_class(exc):
     block actually sees: an AI content-policy refusal is the model
     declining to grade, a recognized infra failure (timeout, rate limit,
     dropped connection, unreadable file) is the provider's fault, and
-    anything else is an unclassified system fault."""
+    anything else is an unclassified system fault. A coded failure
+    (FR-A-06) carries its own class."""
+    if isinstance(exc, CodedError):
+        return REASON_CODES[exc.reason_code].error_class
     if isinstance(exc, PERMANENT_AI_REFUSALS):
         return ErrorClass.MODEL
     if classify_infra_error(exc) is not None:
@@ -617,6 +623,7 @@ def grade_engine_async(
             target_id=submission_id,
             outcome=AuditOutcome.FAILURE,
             error_class=_grading_failure_error_class(exc),
+            reason_code=exc.reason_code if isinstance(exc, CodedError) else None,
             metadata={
                 "assignment_id": (
                     str(task.assignment_id) if task and task.assignment_id else None
@@ -1078,6 +1085,48 @@ def upload_assignment_async(
         raise
 
 
+def _refuse_batch_without_rubric(assignment, submissions, session, actor):
+    """
+    The run-time RUBRIC_MISSING check for a scheduled or automatic batch
+    (S6d): the rubric was there when grading was scheduled (the route
+    checks) but is gone now. Nothing is dispatched, claimed or charged;
+    each ungraded submission is recorded FAILED on the batch with the
+    RUBRIC_MISSING message, and audited with its code.
+    """
+    refusal = RubricMissingError()
+    for submission in submissions:
+        if session is not None:
+            session.update_result(
+                f"Submission for {submission.student.get_full_name()}",
+                "FAILED",
+                error=str(refusal),
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission.id,
+            )
+        emit(
+            AuditAction.GRADING_FAILED,
+            actor=actor,
+            request=None,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.FAILURE,
+            error_class=REASON_CODES[ReasonCode.RUBRIC_MISSING].error_class,
+            reason_code=ReasonCode.RUBRIC_MISSING,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "submission_id": str(submission.id),
+                "task_id": None,
+                "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
+            },
+        )
+    logger.warning(
+        "Grading of assignment %s refused at run time: RUBRIC_MISSING "
+        "(%d submission(s) not dispatched).",
+        assignment.id,
+        len(submissions),
+    )
+
+
 @shared_task(bind=True, max_retries=3)
 def grade_batch_async(
     self, user_id, assignment_id, batch_id=None, processing_task_id=None
@@ -1106,6 +1155,20 @@ def grade_batch_async(
     except Exception as e:
         logger.error(f"Failed to clear scheduling info or create session: {e}")
         pass
+
+    assignment = Assignment.objects.filter(id=assignment_id).first()
+    if assignment is not None and rubric_missing(assignment.questions):
+        _refuse_batch_without_rubric(
+            assignment,
+            list(submissions.select_related("student")),
+            (
+                BatchUploadSession.objects.filter(id=batch_id).first()
+                if batch_id
+                else None
+            ),
+            CustomUser.objects.filter(id=user_id).first(),
+        )
+        return "Refused: RUBRIC_MISSING"
 
     for submission in submissions:
         ensure_task_not_cancelled(processing_task_id)
@@ -1136,6 +1199,15 @@ def auto_grade_due_assignment(assignment_id):
             task_type=BatchUploadType.GRADE,
             total_files=ungraded_submissions.count(),
         )
+
+        if rubric_missing(assignment.questions):
+            _refuse_batch_without_rubric(
+                assignment,
+                list(ungraded_submissions.select_related("student")),
+                session,
+                assignment.course.teacher,
+            )
+            return "Refused: RUBRIC_MISSING"
 
         for submission in ungraded_submissions:
             grade_engine_async.delay(

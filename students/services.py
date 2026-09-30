@@ -34,6 +34,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .grading_gates import ensure_gradable
 from .models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -332,6 +333,12 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
 
 
 def grade_engine(user, submission, processing_task_id=None):
+    # FR-A-06 #7 (S6d): nothing to grade against -> 409 RUBRIC_MISSING,
+    # before the claim, the AI call and any charge. Every grading path
+    # comes through here, including scheduled and automatic runs, which
+    # re-check at run time because the rubric can be removed meanwhile.
+    ensure_gradable(submission.assignment)
+
     if not _claim_submission_for_grading(submission.id):
         raise SubmissionGradingInProgressError(
             f"Submission {submission.id} is already being graded."
