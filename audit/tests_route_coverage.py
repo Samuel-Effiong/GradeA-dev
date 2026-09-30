@@ -433,25 +433,22 @@ class _OpenWrite(APIView):
         return Response({"ok": True}, status=201)
 
 
-def _probe_urlconf():
-    """The real URLconf plus one unnamed and one named open write route (v2's
-    probe)."""
-    from AutoGrader import urls as root
+# The real URLconf plus one unnamed and one named open write route (v2's
+# probe). UnnamedRouteGuardTests points ROOT_URLCONF at this module; a real
+# module path, since get_resolver() caches on the URLconf.
+from AutoGrader import urls as _root_urls  # noqa: E402
 
-    return SimpleNamespace(
-        urlpatterns=list(root.urlpatterns)
-        + [
-            path("route-coverage-probe/unnamed/", _OpenWrite.as_view()),
-            path(
-                "route-coverage-probe/named/",
-                _OpenWrite.as_view(),
-                name="route-coverage-probe-named",
-            ),
-        ]
-    )
+urlpatterns = list(_root_urls.urlpatterns) + [
+    path("route-coverage-probe/unnamed/", _OpenWrite.as_view()),
+    path(
+        "route-coverage-probe/named/",
+        _OpenWrite.as_view(),
+        name="route-coverage-probe-named",
+    ),
+]
 
 
-@override_settings(CACHES=LOCMEM_CACHE, ROOT_URLCONF=_probe_urlconf())
+@override_settings(CACHES=LOCMEM_CACHE, ROOT_URLCONF=__name__)
 class UnnamedRouteGuardTests(TestCase):
     """The guard itself catches an unnamed write route (G1), and still sees
     a named one."""
