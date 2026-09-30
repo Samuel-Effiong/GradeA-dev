@@ -174,6 +174,8 @@ class RetryOneItem(RetryFixture, TestCase):
         self.assertEqual(entry["item_id"], str(item.id))
         self.assertEqual(entry["retry_count"], 1)
         self.assertEqual(entry["status"], BackgroundTaskStatus.PENDING)
+        # The item's reference is now the retrying request's trace.
+        self.assertEqual(entry["reference"], response["X-Request-ID"])
         item.refresh_from_db()
         self.assertEqual(item.retry_count, 1)
         self.assertEqual(item.status, BackgroundTaskStatus.PENDING)
