@@ -434,6 +434,375 @@ class KeyMapIsTheCodeTests(SimpleTestCase):
         )
 
 
+# ---------------------------------------------------------------------------
+# H-73: writes through the RAW Redis client.
+#
+# Layer 2 sees only calls on a name `cache` (cache.set/add/...). A write
+# through the django-redis client itself - get_redis_connection(), or
+# cache.client / cache.client.get_client() - is invisible to it: no
+# versioned_key, no NON_RESPONSE_CACHE_WRITES entry, nothing. H-65's
+# beat_locks helper was the first new such user. Every module that obtains
+# a raw client, and every write it makes through one, is now counted here
+# and must be listed with its reason; the list is compared both ways, so a
+# new user fails and a stale entry fails.
+
+#: Calls that hand back a raw Redis client (or connection pool).
+RAW_CLIENT_SOURCES = {
+    "get_redis_connection",
+    "get_client",
+    "Redis",
+    "StrictRedis",
+    "from_url",
+    "ConnectionPool",
+}
+
+#: Redis commands that change data. Reads (get, scan_iter, ...) and
+#: pipeline.execute() - which only sends what the counted calls queued -
+#: are not counted.
+RAW_WRITE_METHODS = {
+    "set",
+    "setex",
+    "setnx",
+    "psetex",
+    "mset",
+    "msetnx",
+    "getset",
+    "getdel",
+    "setrange",
+    "append",
+    "incr",
+    "incrby",
+    "incrbyfloat",
+    "decr",
+    "decrby",
+    "expire",
+    "pexpire",
+    "expireat",
+    "pexpireat",
+    "persist",
+    "delete",
+    "unlink",
+    "rename",
+    "renamenx",
+    "copy",
+    "eval",
+    "evalsha",
+    "fcall",
+    "execute_command",
+    "hset",
+    "hmset",
+    "hsetnx",
+    "hdel",
+    "hincrby",
+    "lpush",
+    "rpush",
+    "lpop",
+    "rpop",
+    "lrem",
+    "ltrim",
+    "lset",
+    "sadd",
+    "srem",
+    "spop",
+    "zadd",
+    "zrem",
+    "zincrby",
+    "xadd",
+    "publish",
+    "flushdb",
+    "flushall",
+}
+
+#: Modules that obtain a raw Redis client: (acquisitions, raw writes, why).
+RAW_CLIENT_USERS = {
+    "AutoGrader/beat_locks.py": (
+        1,
+        4,
+        "H-65 Beat task locks: SET NX PX with a per-run token, Lua "
+        "compare-and-delete/extend, and the fail-closed probe. Keys are "
+        "under the cache's own prefix (lock_key -> cache.make_key); not a "
+        "response cache",
+    ),
+    "AutoGrader/cache_generation.py": (
+        1,
+        2,
+        "the pipelined generation bump (SET NX + INCR per counter): the "
+        "generation counters themselves, not a response cache",
+    ),
+    "AutoGrader/redis_test_hygiene.py": (
+        1,
+        1,
+        "test-only key hygiene (H-9 follow-up): unlinks dead and own "
+        "gaplus-t<pid>: test prefixes across the test Redis's databases; "
+        "never imported by production code",
+    ),
+    "AutoGrader/testing/beat_locks.py": (
+        1,
+        1,
+        "test-only isolation: deletes this process's beat-lock keys before "
+        "each test; never imported by production code",
+    ),
+}
+
+
+def _callee(call):
+    func = call.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def _module_name(rel):
+    return rel[: -len(".py")].replace("/", ".")
+
+
+def raw_client_factories(tree):
+    """Functions in `tree` that return or yield a raw client (beat_locks's
+    `_redis`, redis_test_hygiene's `_clients` generator)."""
+    return {
+        fn.name
+        for fn in ast.walk(tree)
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and any(
+            isinstance(r, (ast.Return, ast.Yield))
+            and r.value is not None
+            and any(
+                isinstance(c, ast.Call) and _callee(c) in RAW_CLIENT_SOURCES
+                for c in ast.walk(r.value)
+            )
+            for r in ast.walk(fn)
+        )
+    }
+
+
+def scan_raw_client(source, imported_factories=()):
+    """(acquisition lines, write lines) in `source`: where it obtains a raw
+    Redis client, and where it writes through one.
+
+    A client expression is a call to a RAW_CLIENT_SOURCES function or to a
+    factory (defined here, or imported from a module that defines one),
+    `cache.client` / `cache._cache`, a pipeline of a client, or a name bound
+    to any of these in the same function (or at module level): by
+    assignment, as the target of a `for` over a factory, or as the
+    parameter of a function here that is called with a client."""
+    tree = ast.parse(source)
+    parents = _enclosing_functions(tree)
+    factories = raw_client_factories(tree) | set(imported_factories)
+
+    def scope_of(node):
+        scope = parents.get(node)
+        while scope is not None and not isinstance(
+            scope, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ):
+            scope = parents.get(scope)
+        return scope
+
+    names = set()  # (scope, name) bound to a client
+
+    def is_client(expr, scope):
+        if isinstance(expr, ast.Call):
+            callee = _callee(expr)
+            if callee in RAW_CLIENT_SOURCES or (
+                isinstance(expr.func, ast.Name) and callee in factories
+            ):
+                return True
+            return (
+                isinstance(expr.func, ast.Attribute)
+                and expr.func.attr == "pipeline"
+                and is_client(expr.func.value, scope)
+            )
+        if isinstance(expr, ast.Attribute):
+            return (
+                isinstance(expr.value, ast.Name)
+                and expr.value.id == "cache"
+                and expr.attr in ("client", "_cache")
+            )
+        if isinstance(expr, ast.Name):
+            return (scope, expr.id) in names or (None, expr.id) in names
+        return False
+
+    functions = {
+        fn.name: fn
+        for fn in ast.walk(tree)
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    def bind(scope, targets):
+        new = {
+            (scope, n.id)
+            for t in targets
+            for n in ast.walk(t)
+            if isinstance(n, ast.Name) and (scope, n.id) not in names
+        }
+        names.update(new)
+        return bool(new)
+
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and is_client(node.value, scope_of(node)):
+                changed |= bind(scope_of(node), node.targets)
+            elif isinstance(node, (ast.For, ast.AsyncFor)) and is_client(
+                node.iter, scope_of(node)
+            ):
+                changed |= bind(scope_of(node), [node.target])
+            elif (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in functions
+            ):
+                fn = functions[node.func.id]
+                params = fn.args.posonlyargs + fn.args.args
+                for arg, param in zip(node.args, params, strict=False):
+                    if is_client(arg, scope_of(node)) and (
+                        (fn, param.arg) not in names
+                    ):
+                        names.add((fn, param.arg))
+                        changed = True
+
+    acquisitions, writes = [], []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        callee = _callee(node)
+        if callee in RAW_CLIENT_SOURCES or (
+            isinstance(node.func, ast.Name) and callee in imported_factories
+        ):
+            acquisitions.append(node.lineno)
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in RAW_WRITE_METHODS
+            and is_client(node.func.value, scope_of(node))
+        ):
+            writes.append(node.lineno)
+    return sorted(acquisitions), sorted(writes)
+
+
+def raw_client_uses():
+    """{file: (acquisitions, writes)} for every non-test module that obtains
+    a raw Redis client or writes through one."""
+    files = list(production_python_files())
+    trees = {rel: ast.parse(path.read_text()) for rel, path in files}
+    factories_by_module = {
+        _module_name(rel): raw_client_factories(tree) for rel, tree in trees.items()
+    }
+    uses = {}
+    for rel, path in files:
+        imported = {
+            alias.asname or alias.name
+            for node in ast.walk(trees[rel])
+            if isinstance(node, ast.ImportFrom) and node.module
+            for alias in node.names
+            if alias.name in factories_by_module.get(node.module, ())
+        }
+        acquisitions, writes = scan_raw_client(path.read_text(), imported)
+        if acquisitions or writes:
+            uses[rel] = (len(acquisitions), len(writes))
+    return uses
+
+
+class RawRedisClientTests(SimpleTestCase):
+    """H-73: the raw client is the other door into Redis; layer 2 can't see
+    through it, so it is counted here."""
+
+    def test_every_raw_client_user_is_listed(self):
+        self.assertEqual(
+            raw_client_uses(),
+            {rel: (acq, writes) for rel, (acq, writes, _) in RAW_CLIENT_USERS.items()},
+            "a module obtains a raw Redis client or writes through one, and "
+            "the count differs from RAW_CLIENT_USERS. The raw client "
+            "bypasses the cache API, its key versioning and the "
+            "raw-cache-write guard above. Use the cache API if you can; if "
+            "not, list the module with its counts and the reason. An entry "
+            "that no longer matches the code must be updated or removed.",
+        )
+
+    def test_every_entry_gives_a_reason(self):
+        for rel, (_, _, why) in RAW_CLIENT_USERS.items():
+            with self.subTest(rel=rel):
+                self.assertGreater(len(why.split()), 3)
+
+    def test_the_scanner_finds_every_shape_it_exists_to_catch(self):
+        cases = {
+            "direct": ("get_redis_connection('default').set('k', 1)\n", 1, 1),
+            "bound": (
+                "def f():\n    c = get_redis_connection()\n    c.setex('k', 5, 1)\n",
+                1,
+                1,
+            ),
+            "cache.client": (
+                "def f():\n    cache.client.get_client(write=True).eval('s', 0)\n",
+                1,
+                1,
+            ),
+            "cache.client wrapper": ("cache.client.set('k', 1)\n", 0, 1),
+            "pipeline": (
+                "def f():\n"
+                "    c = cache.client.get_client(write=True)\n"
+                "    p = c.pipeline()\n"
+                "    p.set('k', 1)\n"
+                "    p.incr('k')\n"
+                "    p.execute()\n",
+                1,
+                2,
+            ),
+            "local factory": (
+                "def _r():\n    return get_redis_connection('default')\n"
+                "def g():\n    _r().delete('k')\n    x = _r()\n    x.expire('k', 1)\n",
+                1,
+                2,
+            ),
+            "redis-py": ("redis.Redis.from_url(u).hset('h', 'f', 1)\n", 1, 1),
+            "yielded, looped and passed on": (
+                "def _clients():\n"
+                "    for db in (0, 1):\n"
+                "        yield db, redis.Redis.from_url(u, db=db)\n"
+                "def _unlink(client, keys):\n"
+                "    client.unlink(*keys)\n"
+                "def sweep():\n"
+                "    for _db, c in _clients():\n"
+                "        _unlink(c, ['k'])\n"
+                "        c.delete('j')\n",
+                1,
+                2,
+            ),
+        }
+        for label, (source, acquisitions, writes) in cases.items():
+            with self.subTest(label):
+                found = scan_raw_client(source)
+                self.assertEqual(
+                    (len(found[0]), len(found[1])), (acquisitions, writes), found
+                )
+
+    def test_an_imported_factory_counts_in_the_importing_module(self):
+        source = "from AutoGrader.beat_locks import _redis\n_redis().set('k', 1)\n"
+        self.assertEqual(scan_raw_client(source, {"_redis"}), ([2], [2]))
+
+    def test_the_scanner_ignores_what_is_not_a_raw_write(self):
+        for label, source in {
+            "cache API": "cache.set('k', 1)\ncache.delete('k')\n",
+            "a read": "get_redis_connection().get('k')\n",
+            "a scan": "list(get_redis_connection().scan_iter(match='x'))\n",
+            "another client": "def f():\n    client = OpenAI()\n    client.set('x')\n",
+            "name in another function": (
+                "def f():\n    c = get_redis_connection()\n"
+                "def g(c):\n    c.set('k', 1)\n"
+            ),
+        }.items():
+            with self.subTest(label):
+                self.assertEqual(scan_raw_client(source)[1], [], label)
+
+    def test_the_live_modules_are_found_by_the_scan(self):
+        """The table is not vacuous: each listed module really is found."""
+        uses = raw_client_uses()
+        for rel in RAW_CLIENT_USERS:
+            with self.subTest(rel=rel):
+                self.assertIn(rel, uses)
+
+
 @override_settings(CACHES=REDIS_CACHE)
 class EveryFamilyIsReachableByItsScopeTests(SimpleTestCase):
     """Layer 3, against real Redis."""
