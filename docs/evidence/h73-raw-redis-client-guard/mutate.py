@@ -87,7 +87,8 @@ finally:
     for path, src in originals.items():
         open(path, "w").write(src)
 
-with open("docs/evidence/h73-raw-redis-client-guard/mutation_results.json", "w") as f:
+OUT = os.environ.get("MUT_RESULTS", "mutation_results.json")
+with open(f"docs/evidence/h73-raw-redis-client-guard/{OUT}", "w") as f:
     json.dump(results, f, indent=2)
     f.write("\n")
 print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])

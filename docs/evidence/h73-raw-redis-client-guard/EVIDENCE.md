@@ -72,6 +72,44 @@ and mutation; there is no regression (as ruled for H-55). The script follows
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed modules: this guard + all repo-wide guards (incl. H-65's `tests_beat_locks`/`tests_beat_health`) | see log | `changed_modules.txt` |
-| The gap: 2e9dcb0's guard with beat_locks gaining a raw GETSET | expected GREEN | `gap_old_guard_green_with_raw_write.txt` |
-| Mutation P1–P2 (production gains a raw write), S1–S5 (the scanner loses a rule) | see log | `mutation_log.txt`, `mutation_results.json` |
+### Round 1 (d7ab949)
+
+| Gate | Result | Log |
+|---|---|---|
+| Changed modules: this guard + all repo-wide guards (incl. H-65's `tests_beat_locks`/`tests_beat_health`) | 93 tests, **1 failure, inherited from H-65** (see below). Every H-73 test passed | `r1_changed_modules.txt` |
+| The gap: 2e9dcb0's guard with beat_locks gaining a raw GETSET | GREEN as expected (exit 0): the old guard can't see the raw write | `gap_old_guard_green_with_raw_write.txt` |
+| Mutation P1–P2 (production gains a raw write), S1–S5 (the scanner loses a rule), own DB, dropped | 6/7 killed by named tests; **S5 survived** | `r1_mutation_log.txt`, `r1_mutation_results.json` |
+
+**The inherited guard failure.** `AutoGrader.tests_no_wildcard_invalidation.test_no_production_code_calls_a_wildcard_cache_operation`
+fails with `{'AutoGrader/testing/beat_locks.py: scan_iter': [36]} != {}`.
+The file and its `scan_iter` come from H-65 (2e9dcb0, d5), H-73's base.
+H-73's diff against 2e9dcb0 touches only `AutoGrader/tests_cache_invalidation_coverage.py`.
+The cause: that guard's `production_python_files()` counts
+`AutoGrader/testing/` as production code, and its `ALLOWED` list has
+`redis_test_hygiene.py` but not `testing/beat_locks.py`. The fix belongs
+to d5 (reported to d5, 0b and the SM). H-73 cannot pass addendum 2's
+guard step until it lands. 0b will update H-73's base onto d5's fixed
+H-65 tip before the merge.
+
+**Script defect, disclosed.** Round 1's stop check (`grep -q " OK"`) also
+matched the migrations' `Applying ... OK` lines, so the script went on to
+the gap and mutation steps after the failure. Those steps don't depend on
+the guard, so their results stand. Round 2 checks for a final `OK` and no
+`FAILED`.
+
+**S5 (import resolution disabled) survived.** No live module imports a
+raw-client factory, and `test_an_imported_factory_counts_in_the_importing_module`
+hands the imported set to `scan_raw_client` directly, so nothing exercised
+`raw_client_uses()`'s cross-module resolution. The fix is test-only,
+at debd2ab:
+- `raw_client_uses(files=None)` takes an optional list of `(rel, path)` pairs.
+- `test_a_factory_imported_from_another_module_is_found_across_modules`
+  builds three fixture modules. An aliased import of a factory counts;
+  the same name imported from a module that doesn't define it does not.
+
+### Round 2 (debd2ab, test-only: 0b granted the changed module + the 7 mutants, no regression)
+
+| Gate | Result | Log |
+|---|---|---|
+| Changed module `AutoGrader.tests_cache_invalidation_coverage` | see log | `r2_changed_module.txt` |
+| Mutation P1–P2, S1–S5 (own DB, dropped) | see log | `r2_mutation_log.txt`, `r2_mutation_results.json` |
