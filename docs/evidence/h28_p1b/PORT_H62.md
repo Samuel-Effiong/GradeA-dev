@@ -139,3 +139,15 @@ The mutation table, with every mutant's result:
 - **Behaviour changes a reviewer should weigh:** F1 (its 4-point record is above); `change_license_price` now runs the whole recorded operation; and the MailerLite sync after a plan change now runs after commit.
 - **Deploy notes (0b has them):** the beat task `escalate-stale-licence-stripe-intents`, and the command `resolve_licence_stripe_intent`.
 - **Not done here, by design:** Gate 7 against Stripe test mode, including the DELETE idempotency question in §9j, and the detector itself (`SPEC_audit_stripe_divergence.md`, which needs production read access).
+
+## After verification: 1a's R1 and R2 (`f0169ca`, test-only)
+
+1a REJECTED `53b8378` on two test-only items (the code held under every attack, including real-HTTP retries). Record: `GAP-1a-records/VERIFICATION_h28_change1.md`.
+
+- **R1.** `test_license_cancellation`'s failure-path test never asserted the adapter was called, so a cancel routed around `LicenceStripe` still passed on the H-39 network guard's refusal (1a's V1). It now asserts `modify_subscription` was called once with the intent's key.
+- **R2.** The resolve command's "never changes the licence" test compared 4 fields, so a write to `is_active` survived (1a's V13). It now compares every concrete licence column except `updated_at`.
+- **N1 (widened).** `NoLegacyStripeCallTests` now flags any use of the `stripe` module other than its exceptions, a module imported at run time (`__import__`/`import_module`, 1a's V3), and a `StripeClient` built outside the adapter, with guard-on-guard cases. **Still latent:** a direct call in a helper function outside the scanned flows (1a's V2); the flows' behaviour tests catch a rerouted call.
+
+| Run (rule 15: the touched modules only) | Result | Log |
+|---|---|---|
+| `test_license_cancellation`, `test_h28_alerting`, `test_h28_stripe_budget` at `f0169ca` | 43 ran, OK | `rule15/touched_modules_f0169ca.log` |
