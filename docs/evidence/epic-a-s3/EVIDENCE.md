@@ -60,5 +60,18 @@ The log line carries ids only. The rollover's `logger.info` in `_rollover_and_gr
   - a clawback racing the Beat cleanup on the same bucket writes one EXPIRE;
   - a clawback racing the monthly grant expires nothing twice.
 
-## Gates
-_pending_ (rule 15).
+## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
+Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time in one slot.
+
+**History: first run on `ab98771`, 3 setup errors.** The first changed-module run (15:56) gave 57 tests, **3 errors**: all three `ClawbackThroughTheLedgerTests` errored in `setUp`, because the test's `SchoolCreditAllocation` row had no `monthly_allocation` (NOT NULL). The clawback was never reached. With a failing baseline, that run's "11/11 killed" meant nothing, so it was voided. The fix is test-only (`6e28c43`: the row gets `monthly_allocation=1000`). With 0b's approval, the prefix, the changed modules and the mutation were re-run on `6e28c43`. The billing regression was **not** re-run, since no billing source or test changed.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | `75bf91a`'s source for the 8 changed files against `audit.tests_background_attribution` (`prefix_75bf91a_failing.txt`, on `6e28c43`'s tests): **13 tests, 5 failures, 8 errors**. Failures: a Celery grant and the Beat expiry name the teacher, not SYSTEM (2); the rollover log carries the email (1); both Gate 3 races hit `expire_bucket(reference=...)` not existing (2). Errors: `request_audit_state(request)` doesn't exist there (5, including the 3 clawback tests); `AuditAction.AUDIT_RETENTION_SWEEP` doesn't exist there (3). |
+| Changed modules | `audit.tests_background_attribution`, `billing.tests.test_credit_transaction_audit`, `audit.tests_license_admin_attribution`, `audit.tests_state_change`: **57 OK** on `6e28c43` (`changed_modules.txt`) |
+| 2 Mutation | `mutate.py`, **11 mutants, 11 killed** on `6e28c43`, anchors asserted unique (`mutation_log.txt`, `mutation_results.json`). A1–A4 cover the actor rule; S1–S3 the sweeps; C1–C3 the clawback and the two log lines; R1 the `is_processed` re-check under the lock. Each is killed by its own tests, not by a broken baseline. |
+| 1 Regression (owning app) | `billing`: **1670 OK** on `ab98771` (the fix after it touches only an audit test). The repo copy is trimmed to its last 200 lines; full log in `~/Documents/Projects/GAP-evidence-logs/epic-a-s3_regression_billing_ab98771_full.txt` |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** (on `6e28c43`) |
+| Migrations | `makemigrations --check --dry-run`: **No changes detected** |
+| 3 Concurrency | `ClawbackRaceTests` (TransactionTestCase, real threads): the clawback racing the Beat cleanup, and racing the monthly grant |
+| 7 Real infra | real Postgres row locks; Celery tasks called directly (`.apply()`) |
