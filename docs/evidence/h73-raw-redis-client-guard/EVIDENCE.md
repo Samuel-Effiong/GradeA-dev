@@ -120,3 +120,60 @@ e5a94d0's files, still counts 1/4, 1/2, 1/1, 1/1, matching
 `RAW_CLIENT_USERS` exactly. 0b will update H-73's base onto H-65's tip
 after bundle 4 is merged into it. Then all the repo-wide guards run again
 in their own targeted slot, before the merge (addendum 2).
+
+## Round 3: v2's static findings F1 and F2 (SM ruling: fix in H-73 before the verdict)
+
+v2's static review at debd2ab: `~/Documents/Projects/GAP-v2-handover/FINDING_h73_static_debd2ab.md`.
+- **F1:** a listed module could gain raw writes and keep its count. v2's example on the real beat_locks: a GETEX on a `with`-bound pipeline, plus a `lock()`, left it at (1, 4).
+- **F2:** `from AutoGrader import beat_locks; beat_locks._redis().set(...)` in a new module counted nothing.
+
+The SM bounded the scope: receiver-agnostic write counting, a read allow-list, and module-attribute factory resolution. Dynamic `getattr` and string dispatch are documented limits.
+
+### What changed (test-only: `AutoGrader/tests_cache_invalidation_coverage.py`)
+
+The scanner is now `_RawClientScan`. `scan_raw_client`, `raw_client_factories` and `raw_client_uses` keep their signatures; `scan_raw_client` gains an optional `module_factories`. A write is counted by either of two rules, and once when both apply:
+1. **By name, whatever the receiver.** In a module with an acquisition, every call named in `RAW_WRITE_METHODS` counts. The list gained v2's missing commands (getex, setbit, zremrangebyscore, zpopmin, sinterstore, hincrbyfloat, smove, linsert, lmove, rpoplpush, blpop, pfadd, xtrim, restore, `lock`, `register_script` and their relatives). `append` and `copy` left the by-name list, because `list.append` / `dict.copy` are everywhere; rule 2 still counts them on a client the data flow follows.
+2. **The read allow-list.** On a client the data flow follows, any method not in `RAW_READ_METHODS` / `RAW_PLUMBING_METHODS` / `RAW_CLIENT_SOURCES` counts, including a command redis-py adds later. The data flow now also follows:
+   - with-as, annotated assignments and walrus;
+   - a factory that returns a bound name;
+   - `self.<attr>`;
+   - a keyword argument to a local function;
+   - a closure, looked up through the enclosing functions.
+
+**F2:** `raw_client_uses` now resolves `from P import M`, `import M as m` and `import P.M`, followed by `M.factory()`. Each counts as an acquisition, and as a client for rule 2.
+
+**Documented limits** (in `_RawClientScan`'s docstring): dynamic `getattr`; string dispatch (except `execute_command`, which rule 1 counts); a client kept in a container, or on a non-`self` attribute, in a module with no acquisition; a client passed into another module; the django-redis wrapper under another name (`caches["x"].client`, `cache as c`); star-imports.
+
+**`RAW_CLIENT_USERS` counts.** Rule 1 counts by name, so two listed modules now pin a larger number. The reasons say which calls:
+- `beat_locks.py`: (1, 4) → **(1, 5)**. The 5th is the heartbeat's `threading.Event.set()`.
+- `cache_generation.py`: (1, 2) → **(1, 4)**. Two cache-API `cache.incr()` calls.
+- `redis_test_hygiene.py` (1, 1) and `testing/beat_locks.py` (1, 1) are unchanged.
+
+The counts are the same at 2e9dcb0 and at d5's e5a94d0.
+
+### Tests
+
+- **New:** `test_a_write_name_counts_whatever_it_is_called_on` (rule 1: a client in a container; a parameter of an unrelated function).
+- **New:** `test_any_non_read_call_on_a_client_is_a_write` (rule 2). One case per binding form, each using `vf_cmd`, a method in no list. Only the data flow can count it, so each form has a case no other rule masks: with-as, annotated, walrus, a factory returning a bound name, self attribute, keyword, closure, for over a factory, positional argument.
+- **New:** `test_a_listed_module_gaining_raw_writes_changes_its_count`. v2's F1 appended to the real `AutoGrader/beat_locks.py` raises the count by exactly 2.
+- **Extended:** the cross-module test gains F2's three import forms.
+- **Changed:** the ignore test's "name in another function" case moved to rule 1, since it is now counted. In its place: "no raw client in the module" and "reads and plumbing".
+
+### Static checks before the run (pure `ast`, no Django or DB, no slot, as v2's review)
+
+- **`RawRedisClientTests` through a unittest stub:** 10/10 OK on this tree and on an e5a94d0 snapshot. The live counts are identical on both.
+- **v2's `h73_shapes.py` / `h73_real.py`** (copies with only the new names added to their extraction set):
+  - every F1 shape and command is counted;
+  - beat_locks + pipeline/lock goes (1, 5) → **(1, 7)**;
+  - `newmod_attr` (F2) → (1, 1).
+  - Still MISS, as documented limits: `caches['default'].client` and the `cache as dc` alias, in a module with no acquisition. The standalone "module-attribute factory" shape needs `raw_client_uses`, which resolves it (the `newmod_attr` row).
+- **Kill prediction for all 22 mutants** with the same stub, on an e5a94d0 copy: **22/22 killed**, each by a named test (`r3_static_kill_prediction.txt`; harness: `static_harness.py`). It predicts the gate; it is not the gate.
+
+### Round 3 gates: ONE run on the new base (after 0b merges H-65 9887b25 into H-73)
+
+| Gate | Result | Log |
+|---|---|---|
+| Changed module + all 9 beta-line guards | see log | `r3_changed_modules.txt` |
+| Mutation: P1–P5 (production gains a write: GETSET, raw `cache.client`, pipeline GETEX, lock, F2 module-attribute), S1–S5, F1a–F1i, F2a–F2c (own DB, dropped) | see log | `r3_mutation_log.txt`, `r3_mutation_results.json` |
+
+No regression: the change is test-only (rule 15).
