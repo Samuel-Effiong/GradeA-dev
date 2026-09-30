@@ -56,10 +56,10 @@ rest_framework.exceptions.PermissionDenied: You must be a superadmin to access t
 audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
 .audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
 audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
-.audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
+.audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
 .audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
 audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
 audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
@@ -68,6 +68,7 @@ audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model
 ..audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
 .audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
 .audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
+.audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
 ..audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
 .audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
 .audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
@@ -104,7 +105,7 @@ audit event store_failed: action=AUTH_LOGOUT detail=RuntimeError
 .Cannot activate automatic trial for user emit-failure-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 .Cannot activate automatic trial for user expire-clean@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 .Cannot activate automatic trial for user expire-anomaly@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-Failed to reconcile expired bucket 2a0acaf2-24a6-49bf-b810-88f62edfdab9 (wallet: 9023573b-029d-4bb7-9fb6-02579e9eaa11): boom
+Failed to reconcile expired bucket 5919b65f-922a-45f2-931f-14e886aec379 (wallet: e4900937-3aab-44a2-a3ed-293aa7e3a252): boom
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/tasks.py", line 338, in cleanup_expired_credit_buckets
     value_lost = SubscriptionService.expire_bucket(bucket)
@@ -190,11 +191,11 @@ Traceback (most recent call last):
 RuntimeError: boom
 
 
-django.request ERROR 2026-09-30 14:36:29,075 log 3410923 126518530309056 [request_id=-] Internal Server Error: /api/v1/auth/register
+django.request ERROR 2026-09-30 14:47:22,948 log 3428911 134090209881024 [request_id=-] Internal Server Error: /api/v1/auth/register
 
 
 .Cannot activate automatic trial for user admin.site@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.API Exception
+..API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
@@ -2801,7 +2802,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 689, in partial_update
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 690, in partial_update
     raise ParseError("raw_input is required.")
 rest_framework.exceptions.ParseError: raw_input is required.
 API Exception
@@ -2875,7 +2876,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 731, in update_async
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 732, in update_async
     raise ParseError("raw_input is required.")
 rest_framework.exceptions.ParseError: raw_input is required.
 API Exception
@@ -2911,7 +2912,7 @@ Traceback (most recent call last):
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
-rest_framework.exceptions.ValidationError: {'name': [ErrorDetail(string='"CUSTOM_LICENSE_1790778990" is not a valid choice.', code='invalid_choice')]}
+rest_framework.exceptions.ValidationError: {'name': [ErrorDetail(string='"CUSTOM_LICENSE_1790779644" is not a valid choice.', code='invalid_choice')]}
 API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
@@ -3804,7 +3805,7 @@ Traceback (most recent call last):
 rest_framework.exceptions.ValidationError: {'subscription_type': [ErrorDetail(string='This field is required.', code='required')], 'subscription_id': [ErrorDetail(string='This field is required.', code='required')]}
 
 
-django.request ERROR 2026-09-30 14:36:30,544 log 3410923 126518530309056 [request_id=26b9be79f3ac4d11b28b3c0e19fbbdc9] Internal Server Error: /api/v1/qa/console/subscriber
+django.request ERROR 2026-09-30 14:47:25,401 log 3428911 134090209881024 [request_id=7e9a7aad186b4b288886ad78d72eabc9] Internal Server Error: /api/v1/qa/console/subscriber
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
@@ -4247,11 +4248,11 @@ Traceback (most recent call last):
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 ....
 ----------------------------------------------------------------------
-Ran 228 tests in 5.324s
+Ran 230 tests in 7.865s
 
 OK
 Destroying test database for alias 'default'...
-Found 228 test(s).
+Found 230 test(s).
 
   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
 

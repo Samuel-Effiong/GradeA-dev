@@ -13,7 +13,7 @@ ImportError: cannot import name 'SERVER_ERROR' from 'audit.request_audit' (/home
 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.000s
+Ran 1 test in 0.001s
 
 FAILED (errors=1)
 Found 1 test(s).

@@ -24,11 +24,11 @@ Traceback (most recent call last):
 RuntimeError: boom
 
 
-django.request ERROR 2026-09-30 14:34:42,913 log 3408297 136437897788352 [request_id=-] Internal Server Error: /api/v1/auth/register
+django.request ERROR 2026-09-30 14:44:33,568 log 3422855 139175392246720 [request_id=-] Internal Server Error: /api/v1/auth/register
 
 
 .Cannot activate automatic trial for user admin.site@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.API Exception
+..API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
@@ -2635,7 +2635,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 689, in partial_update
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 690, in partial_update
     raise ParseError("raw_input is required.")
 rest_framework.exceptions.ParseError: raw_input is required.
 API Exception
@@ -2709,7 +2709,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 731, in update_async
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 732, in update_async
     raise ParseError("raw_input is required.")
 rest_framework.exceptions.ParseError: raw_input is required.
 API Exception
@@ -2745,7 +2745,7 @@ Traceback (most recent call last):
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
-rest_framework.exceptions.ValidationError: {'name': [ErrorDetail(string='"CUSTOM_LICENSE_1790778883" is not a valid choice.', code='invalid_choice')]}
+rest_framework.exceptions.ValidationError: {'name': [ErrorDetail(string='"CUSTOM_LICENSE_1790779474" is not a valid choice.', code='invalid_choice')]}
 API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
@@ -3638,7 +3638,7 @@ Traceback (most recent call last):
 rest_framework.exceptions.ValidationError: {'subscription_type': [ErrorDetail(string='This field is required.', code='required')], 'subscription_id': [ErrorDetail(string='This field is required.', code='required')]}
 
 
-django.request ERROR 2026-09-30 14:34:44,008 log 3408297 136437897788352 [request_id=8c249582977141ab9834b794dfb88090] Internal Server Error: /api/v1/qa/console/subscriber
+django.request ERROR 2026-09-30 14:44:35,355 log 3422855 139175392246720 [request_id=446649f17af746428b89dac6bbb72de3] Internal Server Error: /api/v1/qa/console/subscriber
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
@@ -4267,13 +4267,66 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 472, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
-....
+.............API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-09-30 14:44:44,322 log 3422855 139175392246720 [request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+.API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-09-30 14:44:44,357 log 3422855 139175392246720 [request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+.API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-09-30 14:44:44,373 log 3422855 139175392246720 [request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+.API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+.API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+.............AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+.AI access denied for user ANON (feature=None): User not authenticated
+.
 ----------------------------------------------------------------------
-Ran 78 tests in 3.254s
+Ran 107 tests in 11.072s
 
 OK
 Destroying test database for alias 'default'...
-Found 78 test(s).
+Found 107 test(s).
 
   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
 
