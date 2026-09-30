@@ -615,11 +615,12 @@ class FirstMonthGraceTests(TestCase):
         SubscriptionService.apply_immediate_plan_change(sub, bigger)
 
         sub.refresh_from_db()
-        [bucket] = CreditBucket.objects.filter(
-            wallet__user=self.user,
-            bucket_type=CreditBucketType.MONTHLY,
-            is_processed=False,
-        )
+        # The new plan's bucket. (The plan change retires the old one by
+        # expiring it without marking it processed: noted in EVIDENCE.)
+        bucket = CreditBucket.objects.filter(
+            wallet__user=self.user, bucket_type=CreditBucketType.MONTHLY
+        ).latest("created_at")
+        self.assertEqual(bucket.total_credits, MONTHLY_CREDITS * 2)
         self.assertEqual(
             bucket.expires_at, sub.next_credit_grant_at + MONTHLY_BUCKET_GRACE
         )
