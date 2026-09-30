@@ -1,0 +1,45 @@
+35756c4d70c8	M13	store PI: trial conversion	KILLED	FAILED (failures=1, errors=1)	True	39.2
+35756c4d70c8	M14	store PI: fresh activation	KILLED	FAILED (errors=1)	True	38.5
+35756c4d70c8	M15	store PI: individual_subscribe	KILLED	FAILED (failures=1)	True	59.9
+35756c4d70c8	M16	store PI: license_create	KILLED	FAILED (failures=1)	True	58.1
+35756c4d70c8	M17	store PI: trial_to_paid	KILLED	FAILED (failures=1)	True	90.0
+35756c4d70c8	M19	pre-read already-set short-circuit	KILLED	FAILED (failures=1)	True	44.8
+35756c4d70c8	M20	no-reference short-circuit in fill	KILLED	FAILED (failures=1)	True	47.9
+35756c4d70c8	M21	row-missing guard	KILLED	FAILED (errors=1)	True	63.0
+35756c4d70c8	M22	short timeout	KILLED	FAILED (failures=1)	True	63.2
+35756c4d70c8	M23	no automatic retries	KILLED	FAILED (failures=1)	True	36.9
+35756c4d70c8	M24	generic exception guard	KILLED	FAILED (errors=1)	True	35.4
+35756c4d70c8	M25	StripeError guard	SURVIVED	OK	True	25.9
+35756c4d70c8	M26	unexpanded latest_charge check	KILLED	FAILED (failures=1)	True	25.4
+35756c4d70c8	M27	invoice-first priority	KILLED	FAILED (failures=2)	True	23.5
+35756c4d70c8	M28	skip when link already known	KILLED	FAILED (failures=1)	True	25.5
+35756c4d70c8	M29	skip when no Stripe reference	KILLED	FAILED (failures=1)	True	33.5
+35756c4d70c8	M30	robust on_commit	KILLED	FAILED (errors=1)	True	32.5
+35756c4d70c8	M31	broker-tolerant dispatch (safe_delay)	KILLED	FAILED (failures=2)	True	43.1
+35756c4d70c8	M32	sweep window lower bound	KILLED	FAILED (failures=1)	True	28.9
+35756c4d70c8	M33	sweep minimum age	KILLED	FAILED (failures=1)	True	21.8
+35756c4d70c8	M34	sweep excludes already-filled rows	KILLED	FAILED (failures=1)	True	23.8
+35756c4d70c8	M35	sweep excludes reference-less rows	KILLED	FAILED (failures=1)	True	24.5
+35756c4d70c8	M36	sweep newest first	KILLED	FAILED (failures=1)	True	25.9
+35756c4d70c8	M37	sweep batch bound	KILLED	FAILED (failures=1)	True	27.2
+35756c4d70c8	M38	sweep time budget	KILLED	FAILED (failures=1)	True	27.7
+35756c4d70c8	M39	hourly beat entry	KILLED	FAILED (failures=1)	True	27.8
+35756c4d70c8	M40	backfill conditional update	SURVIVED	OK	True	29.4
+35756c4d70c8	M41	backfill dry-run	KILLED	FAILED (failures=1)	True	31.3
+35756c4d70c8	P01	allow-list membership (widen to the upgrade flow)	KILLED	FAILED (failures=2)	True	32.0
+35756c4d70c8	P02	vetted-handler second gate	KILLED	FAILED (failures=2)	True	39.9
+35756c4d70c8	P03	VETTED_HANDLERS membership	KILLED	FAILED (failures=2)	True	41.3
+35756c4d70c8	P04	missing-flow guard	KILLED	FAILED (failures=1)	True	46.8
+35756c4d70c8	P05	not-allow-listed guard	KILLED	FAILED (failures=1)	True	43.9
+35756c4d70c8	P06	attempts cap in classify	KILLED	FAILED (failures=1)	True	42.7
+35756c4d70c8	P07	attempts cap in the selection query	KILLED	FAILED (failures=1)	True	45.7
+35756c4d70c8	P08	claim only from FAILED	KILLED	FAILED (failures=1)	True	41.8
+35756c4d70c8	P09	claim fenced on the attempts seen	KILLED	FAILED (failures=1)	True	37.6
+35756c4d70c8	P10	stored payload, never re-fetch Stripe	KILLED	FAILED (failures=3, errors=1)	True	39.2
+35756c4d70c8	P11	handler idempotency guard (_overage_already_granted)	KILLED	FAILED (failures=1)	True	38.9
+35756c4d70c8	P12	per-event skip reason recorded on the row	KILLED	FAILED (failures=3)	True	53.1
+35756c4d70c8	P13	direct flow handler, not the dispatcher	KILLED	FAILED (failures=1)	True	42.7
+35756c4d70c8	P14	only FAILED events selected	KILLED	FAILED (failures=1)	True	50.6
+35756c4d70c8	P15	hourly beat entry	KILLED	FAILED (failures=1)	True	42.0
+35756c4d70c8	M25	StripeError guard	SURVIVED	OK	True	23.2
+35756c4d70c8	M40	backfill conditional update	SURVIVED	OK	True	22.8

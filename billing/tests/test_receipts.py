@@ -132,11 +132,16 @@ class LookupReceiptUrlTests(TestCase):
         self.assertEqual(fake.calls, [])
 
     def test_stripe_error_returns_none(self):
+        """
+        A Stripe outage is expected and routine: WARNING, never ERROR. An
+        ERROR here would page someone for a condition the sweep heals.
+        """
         error = (500, {"error": {"type": "api_error", "message": "boom"}})
         with fake_stripe(receipt_error=error), self.assertLogs(
             "billing.receipts", "WARNING"
-        ):
+        ) as logs:
             self.assertIsNone(receipts.lookup_receipt_url(invoice_id="in_err"))
+        self.assertEqual({r.levelname for r in logs.records}, {"WARNING"})
 
     def test_network_timeout_returns_none(self):
         import stripe
@@ -459,10 +464,13 @@ class BackfillReceiptUrlsCommandTests(TestCase):
             original = fake._route
 
             def route(call, post_data):
-                # A concurrent sweep fills `kept` while the command is running.
-                BillingTransaction.objects.filter(pk=kept.pk).update(
-                    receipt_url="https://sweep-won.test/r"
-                )
+                # A concurrent sweep fills `kept` while the command is looking
+                # it up - once, and only for kept's own lookup, so the order
+                # in which the command visits rows cannot mask an overwrite.
+                if call.path.endswith("/in_backfill_kept"):
+                    BillingTransaction.objects.filter(pk=kept.pk).update(
+                        receipt_url="https://sweep-won.test/r"
+                    )
                 return original(call, post_data)
 
             fake._route = route
