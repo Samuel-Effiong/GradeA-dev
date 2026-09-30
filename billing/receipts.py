@@ -41,6 +41,7 @@ import logging
 from datetime import timedelta
 from enum import Enum
 from time import monotonic
+from typing import cast
 
 from django.db import transaction
 from django.db.models import Q
@@ -86,8 +87,10 @@ class FillOutcome(str, Enum):
 
 
 def _receipt_stripe_client():
+    # stripe.api_key is typed Optional; it is set at startup, and a missing
+    # key fails the lookup the same way it always did (cast, not a check).
     return stripe.StripeClient(
-        stripe.api_key,
+        cast(str, stripe.api_key),
         http_client=stripe.RequestsClient(timeout=RECEIPT_LOOKUP_TIMEOUT_SECONDS),
         max_network_retries=0,
     )
