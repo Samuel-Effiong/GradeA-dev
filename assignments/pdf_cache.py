@@ -41,6 +41,7 @@ single-flight the first caller renders and the rest wait for its result.
 
 import logging
 import threading
+from datetime import datetime
 
 from django.conf import settings
 from django.core.cache import cache
@@ -95,14 +96,13 @@ def _max_bytes():
 
 
 def build_cache_key(assignment, view_type: str) -> str:
-    # updated_at can be None for an in-memory instance that was never
-    # saved; such an assignment has no stable identity to cache against,
-    # so fall back to a literal that simply never matches a stored entry.
-    stamp = (
-        assignment.updated_at.isoformat()
-        if getattr(assignment, "updated_at", None)
-        else "unsaved"
-    )
+    # An in-memory instance that was never saved has no stable identity to
+    # cache against, so it falls back to a literal that never matches a
+    # stored entry. Its updated_at is not a datetime: None, or, since H-56
+    # gave the column db_default=Now(), Django's DatabaseDefault placeholder
+    # (which is truthy, so a plain truth test is not enough).
+    updated_at = getattr(assignment, "updated_at", None)
+    stamp = updated_at.isoformat() if isinstance(updated_at, datetime) else "unsaved"
     return f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment.id}:{view_type}:{stamp}"
 
 
