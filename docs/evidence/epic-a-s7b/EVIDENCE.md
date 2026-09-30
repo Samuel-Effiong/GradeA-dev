@@ -53,3 +53,60 @@
 | R8 no GRADING_REQUESTED audit | the in-place retry test |
 | R9 retry-failed ignores `reason_codes` | `test_only_the_named_codes_are_retried` |
 | R10 the trace not refreshed | the in-place retry test (reference == X-Request-ID) |
+
+---
+
+## Fix round: H-38 (v2's H1 on 923b2b8) @ **0ce44d6**
+v2 rejected 923b2b8 on H1: the retry routes authorised by batch-session ownership only, so a teacher removed from a school could still retry (and re-grade, billed to them) that school's items. v2's record is committed verbatim at `8ec3410` (`VERIFICATION_v2_923b2b8.md`).
+
+**Commits:**
+- `7fd064d`: the fix.
+- `09de32f`: a test for an item with no assignment.
+- `2e17531`: the SM ruling, a plain "This course wasn't found."
+- `e9a41d9`: 0b's base update onto epic `c393d17` (S6d), with my resolved `assignments/tasks.py`.
+- `c6e54ec`: the race-regression fix (below).
+- `0ce44d6`: the A-B-A claim test (below).
+
+### What changed
+- **retry:** **404** unless the item's course can be reached by the requesting teacher now (`reachable_courses`). The course is the assignment's course, or the batch session's when the item has no assignment. The check runs **before** `refusal_for`, so nothing about an unreachable item is said: an upload item there is 404, not "re-upload". The claim carries the same condition.
+- **retry-failed:** an unreachable item is skipped with `reason_code: null`. This is checked before the `reason_codes` filter, so its code is never reported.
+- **`grade_engine_async`:** re-checks reachability when the run starts. A lost-access run fails with `CourseNotReachableError`: uncoded (SM ruling), "This course wasn't found.", error class USER. It happens **before any provider call**, which covers retries, scheduled gradings and queued items that start after a removal. After the base update it sits after S6d's `reason_of()` classification.
+- **Sweep:** `classrooms.tests_teacher_access_sweep` is a source scanner, not a route list. `TasksNamespaceRoutesFollowTheRule` adds both retry routes as route-level cases on billing's H-38 fixture (real `add_teachers` / `remove_teachers`, wallet funded **after** the removal).
+- **Stated (v2's note):** there is no cap on `retry_count`. A PROVIDER_FAILURE item can be retried indefinitely, and each attempt charges only on success.
+
+### A regression the gates caught, and its fix
+- **The regression:** 7fd064d put the reachability **join** into the claim's queryset. With a join, Django compiles the UPDATE with every condition inside an `id IN (SELECT …)` read from the statement's snapshot. Postgres does not re-check that on the row version it finally locks, so two racing retries both won. The first changed-module run on e9a41d9 caught it (`TwoRetriesOfOneItemAtOnce`: `[202, 202]`; `h38/1_…RACE_CAUGHT.log`).
+- **The fix (`c6e54ec`):** reachability is a `pk__in` subquery beside plain column conditions on the updated row. The compiled SQL (checked with Django's update compiler, subquery elided):
+
+```
+7fd064d (both claims won):
+  UPDATE t SET … WHERE t."id" IN (SELECT … reachability …)
+c6e54ec (fixed):
+  UPDATE t SET … WHERE (t."id" = %s AND t."id" IN (SELECT … reachability …) AND t."reason_code" = %s AND t."retry_count" = %s AND t."status" = %s)
+```
+
+- **The A-B-A test (`0ce44d6`):** 0b's mutant **M7** (status and retry_count moved into the subquery, with reason_code left outside) **survived** the race test. The claim clears `reason_code`, and `reason_code` on the outer row alone serialises two claims. `AClaimWaitingOnTheLockSeesTheRowItFinallyGets` pins the case M7 gets wrong:
+  - While retry B waits on the row lock (observed in `pg_stat_activity`), the row returns to the **same** code with a new `retry_count`, i.e. it was claimed and failed again.
+  - B must lose. Under M7 it claimed the row a second time (`h38/5_aba_test_under_M7.log`).
+
+### Runs (rule 15 + addendum 2; each in 0b's slot, `systemd-run` MemoryMax=6G, `nice -n 10`, `timeout -k 60 1800`, own test DB)
+| Step | Tree | Result |
+|---|---|---|
+| Reproduce-first: new tests on the **pre-fix** tree (`item_retry.py` as at 923b2b8; `tasks.py` without the run-time check and its error-class branch) | c6e54ec | **15 run, 9 failures + 1 error**: every H-38 case, including both sweep routes. The error is the claim test patching `is_reachable`, which doesn't exist pre-fix. The two controls pass |
+| Changed modules + **all** repo-wide guards: `students.tests_item_retry_h38`, `students.tests_item_retry`, `students.tests_batch_item_results`, `AutoGrader.tests_reason_codes`, `AutoGrader.tests_codederror_serialization`, `billing.tests.test_h38_part2_removed_teacher_routes`, `billing.tests.test_h38_teacher_removal`, the 8 guards | c6e54ec | **238 OK** |
+| The A-B-A test alone | 0ce44d6 | OK; **fails under M7** |
+| Mutants (below) | 0ce44d6 | **7/7 KILLED** |
+| ONE regression: `assignments` + `students` (`grade_engine_async` is shared) | 0ce44d6 | **995 OK** (14 skipped). It includes the A-B-A test |
+
+### Mutants (author's; `h38/run_gates.py.txt`, sha-checked restore)
+| Mutant | Killed by |
+|---|---|
+| M1 no request-time check | the 404 tests (the claim then answers 409, not 404) |
+| M2 no reachability in the claim | `test_a_removal_between_the_check_and_the_claim_still_refuses` |
+| M3 retry-failed filters by code before reachability | `test_retry_failed_skips_every_item_without_saying_why` (with `reason_codes`) |
+| M4 no assignment-less fallback | `test_an_item_with_no_assignment_is_judged_by_its_batchs_course` |
+| M5 no run-time check | `test_a_run_for_a_removed_teacher_fails_before_grading` |
+| M6 lost access classed SYSTEM | the same test's `error_class` assertion |
+| M7 state conditions moved into the subquery | `AClaimWaitingOnTheLockSeesTheRowItFinallyGets` |
+
+Logs: `h38/` (trimmed to test results and summaries; full logs in `GAP-evidence-logs/epic-a-s7b-h38/`).
