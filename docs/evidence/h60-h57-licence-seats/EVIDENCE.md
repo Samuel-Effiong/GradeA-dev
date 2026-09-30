@@ -275,3 +275,18 @@ v2 verified round 2 as VERIFIED-WITH-NOTES (`VERIFICATION_h60_h57.md`).
 `pg_stat_activity` snapshots were taken before the modules and before the
 regression (`r3_pg_activity_before_*.txt`). Neither showed another
 session's rows.
+
+## After v2's VERIFIED (615e9bd): E1 test (a6adb09, test-only, rule 15.4)
+
+This is v2's round-3 note 1, added at the SM's request.
+`test_a_stripe_licences_unchanged_price_echo_is_accepted` covers a STRIPE
+licence with a stored `custom_price_cents` of 5000. A PATCH echoing 5000
+with `auto_renew: false` returns 200, auto_renew is applied, and the price
+stays 5000. The existing echo test holds a null price, so a refusal on
+`is not None` survived it. v2 checks this diff by reading it (SM), with
+no run of its own.
+
+| Gate | Result | Log |
+|---|---|---|
+| `billing.tests.test_h57_licence_patch` once (0b's slot; no regression, test-only) | 10 tests OK | `r4_e1_module.txt` |
+| Mutant (0b): the call-site `_stored_differs(self.instance, "custom_price_cents", …)` becomes `attrs["custom_price_cents"] is not None`, on the `_mut` DB, dropped | **Killed** by `test_a_stripe_licences_unchanged_price_echo_is_accepted` alone (1 failure out of 10). `billing/serializers.py` sha256 after restoring = before (`0d45bfce…60c6`), and the tree is clean | `r4_e1_mutant.txt` |
