@@ -173,7 +173,13 @@ The counts are the same at 2e9dcb0 and at d5's e5a94d0.
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed module + all 9 beta-line guards | see log | `r3_changed_modules.txt` |
-| Mutation: P1–P5 (production gains a write: GETSET, raw `cache.client`, pipeline GETEX, lock, F2 module-attribute), S1–S5, F1a–F1i, F2a–F2c (own DB, dropped) | see log | `r3_mutation_log.txt`, `r3_mutation_results.json` |
+Run at **4e2708d**: 2db3809 plus 0b's base update onto H-65's tip adf8fe0, which contains 9887b25.
 
-No regression: the change is test-only (rule 15).
+| Gate | Result | Log |
+|---|---|---|
+| Changed module + 0b's 9 beta-line guards (`tests_no_wildcard_invalidation`, `tests_cache_invalidation_coverage`, `tests_migration_rollback_defaults`, `tests_redis_test_isolation`, `tests_beat_health`, `tests_teacher_access_sweep`, `tests_course_roster_scope_sweep`, `assignments.tests_schema_extension`, `users.tests_schema_extension`) + H-65's `tests_beat_locks` | **111 tests OK** (68.5 s). The round-1 inherited `tests_no_wildcard_invalidation` failure is gone on the new base (d5's e5a94d0 fix) | `r3_changed_modules.txt` |
+| Mutation: P1–P5 (production gains a write: GETSET, raw `cache.client`, pipeline GETEX, lock, F2 module-attribute), S1–S5, F1a–F1i, F2a–F2c (own DB `test_h73_raw_redis_client_guard_mut`, dropped) | **22/22 killed** by named tests, the same killers as the static prediction. Tree clean afterwards | `r3_mutation_log.txt`, `r3_mutation_results.json` |
+
+No regression: the change is test-only (rule 15). `pg_stat_activity` snapshot before the modules: `r3_pg_activity_before_modules.txt`.
+
+**Deviation (rule 12, flagged by 0b):** the mutation step ran under `timeout -k 60 3000`, above the 1800 s cap for a targeted step. It finished in 10 m 13 s (23:36:03 → 23:46:16), so the cap was never approached. 0b let the run continue. From now on, a long battery is split into batches of 1800 s or less, or the SM is asked first.
