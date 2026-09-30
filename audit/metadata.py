@@ -85,6 +85,29 @@ ALLOWED_KEYS = frozenset(
         # S1 generic event: the URL name and HTTP method, never the path or body
         "route",
         "method",
+        # S4 before/after values: ids, statuses, flags, numbers and times of
+        # the tracked fields only (BEFORE_AFTER_ALLOWLIST below narrows them
+        # per action). Never a name, an email or any text a person wrote.
+        "score",
+        "score_percentage",
+        "max_points",
+        "graded_at",
+        "is_published",
+        "needs_review",
+        "enrollment_status",
+        "user_type",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "school_id",
+        "plan_id",
+        "is_trial",
+        "stripe_status",
+        "billing_cycle_end",
+        "cancelled_at",
+        "auto_renew",
+        "max_seats",
+        "license_id",
     }
 )
 
@@ -230,7 +253,17 @@ METADATA_ALLOWLIST = {
     AuditAction.TAG_RENAME: frozenset(),
     AuditAction.TAG_DELETE: frozenset(),
     AuditAction.ROSTER_CHANGE: frozenset(
-        {"course_id", "item_count", "succeeded_count", "failed_count", "student_id"}
+        {
+            "course_id",
+            "item_count",
+            "succeeded_count",
+            "failed_count",
+            "student_id",
+            # S4 history: which tracked fields changed, and how (save, bulk,
+            # delete).
+            "changed_fields",
+            "source",
+        }
     ),
     AuditAction.SUBMISSION_UPLOAD: frozenset(
         {"assignment_id", "file_type", "file_size_bytes", "file_count"}
@@ -248,7 +281,7 @@ METADATA_ALLOWLIST = {
     AuditAction.LIBRARY_COPY: frozenset(),
     AuditAction.ADMIN_ACTION: frozenset({"source"}),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
-    AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields"}),
+    AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields", "source"}),
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
     # summarised under its own action.
     AuditAction.STATE_CHANGE: frozenset(
@@ -260,7 +293,73 @@ METADATA_ALLOWLIST = {
     AuditAction.AUDIT_RETENTION_SWEEP: frozenset(
         {"deleted_general", "deleted_student_record", "scrubbed"}
     ),
+    AuditAction.GRADE_CHANGE: frozenset(
+        {"assignment_id", "student_id", "changed_fields", "source"}
+    ),
+    AuditAction.SUBSCRIPTION_CHANGE: frozenset({"changed_fields", "source"}),
 }
+
+
+# ---------------------------------------------------------------------------
+# Per-action allow-list for `before` / `after` (Epic A S4, plan 08 §5). An
+# action absent here carries no before/after at all. `audit.history` builds its
+# registry of tracked fields FROM this dict, so a field cannot be tracked
+# without being listed here: this is the review point for what a change
+# record may show. IDs, statuses, flags, numbers and times only - never
+# answer text, feedback, names or emails (FR-A-04).
+_GRADE_FIELDS = frozenset(
+    {
+        "score",
+        "score_percentage",
+        "max_points",
+        "graded_at",
+        "is_published",
+        "needs_review",
+    }
+)
+
+BEFORE_AFTER_ALLOWLIST = {
+    AuditAction.GRADE_CHANGE: _GRADE_FIELDS,
+    # AI grading's own before/after (SM note 2): the same grade fields, on
+    # the one GRADING_COMPLETED event, with no GRADE_CHANGE beside it.
+    AuditAction.GRADING_COMPLETED: _GRADE_FIELDS,
+    AuditAction.ROSTER_CHANGE: frozenset({"enrollment_status", "course_id"}),
+    # Not token_epoch (SM note 1): logout, password change and reset have
+    # their own events, and it would add a second event to each of them.
+    AuditAction.PERMISSION_CHANGE: frozenset(
+        {"user_type", "is_active", "is_staff", "is_superuser", "school_id"}
+    ),
+    AuditAction.SUBSCRIPTION_CHANGE: frozenset(
+        {
+            "plan_id",
+            "is_active",
+            "is_trial",
+            "stripe_status",
+            "billing_cycle_end",
+            "cancelled_at",
+            "auto_renew",
+            "max_seats",
+            "license_id",
+        }
+    ),
+}
+
+
+def sanitise_before_after_for_action(action, value):
+    """`sanitise` for a `before` or `after` object, narrowed to the action's
+    BEFORE_AFTER_ALLOWLIST entry. None stays None (a create has no `before`,
+    a delete no `after`)."""
+    if value is None:
+        return None, []
+    clean, problems = sanitise(value)
+    permitted = BEFORE_AFTER_ALLOWLIST.get(action, frozenset())
+    narrowed = {}
+    for key, item in clean.items():
+        if key in permitted:
+            narrowed[key] = item
+        else:
+            problems.append((key, "not allowed in before/after for this action"))
+    return narrowed, problems
 
 
 def metadata_allowlist_for(action) -> frozenset:
