@@ -42,7 +42,13 @@ from billing.tests.test_h38_part2_removed_teacher_routes import fund_wallet
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.exceptions import RubricMissingError
 from students.grading_gates import rubric_missing
-from students.models import BatchUploadSession, GradingState, StudentSubmission
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BatchUploadSession,
+    GradingState,
+    StudentSubmission,
+)
 from users.models import UserTypes
 
 AI = "ai_processor.services.AIProcessor._AIProcessor__ai_model"
@@ -192,6 +198,11 @@ class RubricGateRouteTests(RubricGateTestCase):
                 ai.assert_not_called()
                 dispatch.assert_not_called()
                 self.assertFalse(PeriodicTask.objects.exists(), "scheduled")
+                # The whole-request 409 creates no tracked row (the SM's
+                # ruling on S6d x S7a): it is not S7a's per-item shape.
+                self.assertFalse(
+                    BackgroundProcessingTask.objects.exists(), "tracked rows"
+                )
                 self.assert_nothing_happened(submission, ledger)
 
     def test_r1_no_questions(self):
@@ -231,6 +242,18 @@ class RubricGateAtRunTimeTests(RubricGateTestCase):
     def remove_the_rubric(self, assignment):
         Assignment.objects.filter(pk=assignment.pk).update(questions=[])
 
+    def assert_refused_as_a_tracked_item(self, submission, session):
+        """S7a's per-item shape: one refused tracked item per submission,
+        coded RUBRIC_MISSING, numbered from 1, in the batch."""
+        item = BackgroundProcessingTask.objects.get(submission=submission)
+        self.assertEqual(item.status, BackgroundTaskStatus.FAILURE)
+        self.assertEqual(item.reason_code, ReasonCode.RUBRIC_MISSING)
+        self.assertEqual(item.item_index, 1)
+        self.assertEqual(item.batch_session_id, session.id)
+        self.assertFalse(item.celery_task_id, "dispatched")
+        [event] = self.refusal_events(submission)
+        self.assertEqual(event.metadata["task_id"], str(item.id))
+
     def test_t1_auto_grade_refuses_when_it_runs(self):
         from assignments.tasks import auto_grade_due_assignment
 
@@ -239,7 +262,7 @@ class RubricGateAtRunTimeTests(RubricGateTestCase):
         ledger = CreditLedger.objects.count()
 
         with patch(AI) as ai, patch(
-            "assignments.tasks.grade_engine_async.delay"
+            "assignments.tasks.launch_processing_task"
         ) as dispatch:
             result = auto_grade_due_assignment(str(assignment.pk))
 
@@ -252,6 +275,9 @@ class RubricGateAtRunTimeTests(RubricGateTestCase):
         self.assertEqual(entry["status"], "FAILED")
         self.assertEqual(entry["error"], str(RubricMissingError()))
         self.assertEqual(self.refusal_events(submission).count(), 1)
+        self.assert_refused_as_a_tracked_item(
+            submission, BatchUploadSession.objects.get(course=self.course)
+        )
 
     def test_t2_a_scheduled_batch_refuses_when_it_runs(self):
         from assignments.tasks import grade_batch_async
@@ -261,7 +287,7 @@ class RubricGateAtRunTimeTests(RubricGateTestCase):
         ledger = CreditLedger.objects.count()
 
         with patch(AI) as ai, patch(
-            "assignments.tasks.grade_engine_async.delay"
+            "assignments.tasks.launch_processing_task"
         ) as dispatch:
             result = grade_batch_async.run(str(self.teacher.id), str(assignment.pk))
 
@@ -272,6 +298,9 @@ class RubricGateAtRunTimeTests(RubricGateTestCase):
         [session] = BatchUploadSession.objects.filter(course=self.course)
         self.assertEqual([e["status"] for e in session.results], ["FAILED"])
         self.assertEqual(self.refusal_events(submission).count(), 1)
+        self.assert_refused_as_a_tracked_item(
+            submission, BatchUploadSession.objects.get(course=self.course)
+        )
 
     def test_t3_a_scheduled_single_grade_refuses_when_it_runs(self):
         """schedule-grade-async fires grade_engine_async; grade_engine

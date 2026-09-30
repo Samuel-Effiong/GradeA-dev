@@ -59,7 +59,7 @@ from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import coded_response
-from AutoGrader.uploads import validate_upload_size
+from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -106,7 +106,11 @@ from .services import (
     upload_answers_engine,
 )
 from .signals import invalidate_submission_caches
-from .task_tracking import create_processing_task, launch_processing_task
+from .task_tracking import (
+    create_processing_task,
+    launch_processing_task,
+    record_refused_item,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1270,12 +1274,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files uploaded. Please try again.")
 
-        # Validate every file up front, before the session/Celery tasks for
-        # any of them are created - one oversized file in a batch shouldn't
-        # leave a half-queued session behind.
-        for uploaded_file in files:
-            validate_upload_size(uploaded_file)
-
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             assignment=assignment,
@@ -1286,7 +1284,31 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tasks_data = []
         task_ids = []
 
-        for uploaded_file in files:
+        # FR-A-07 (S7a): every file is an item. One too large for the batch
+        # fails as ITS item (413 FILE_TOO_LARGE) and the others still run;
+        # the whole batch is never refused, nor left half-queued.
+        for item_index, uploaded_file in enumerate(files, start=1):
+            try:
+                validate_upload_size(uploaded_file)
+            except PayloadTooLarge as exc:
+                refused = record_refused_item(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                    error=exc,
+                    batch_session=session,
+                    assignment=assignment,
+                    file_name=uploaded_file.name,
+                    item_index=item_index,
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": refused.id,
+                    }
+                )
+                continue
+
             prompt = """
             Analyze the image of an educational assignment and return a JSON
 
@@ -1309,6 +1331,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 assignment=assignment,
                 file_name=uploaded_file.name,
                 meta={"step": "Queued for batch answer extraction"},
+                item_index=item_index,
             )
             task = launch_processing_task(
                 upload_answers_engine_async,
@@ -1320,7 +1343,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 session_id=str(session.id),
                 file_name=uploaded_file.name,
             )
-            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
+            tasks_data.append(
+                {
+                    "file_name": uploaded_file.name,
+                    "task_id": task.id,
+                    "item_id": processing_task.id,
+                }
+            )
             task_ids.append(task.id)
 
         emit(

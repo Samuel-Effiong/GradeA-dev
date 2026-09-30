@@ -36,6 +36,7 @@ from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from assignments.exceptions import FileUnreadableError
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
@@ -55,7 +56,11 @@ from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.grading_gates import ensure_gradable
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
-from students.task_tracking import create_processing_task, launch_processing_task
+from students.task_tracking import (
+    create_processing_task,
+    launch_processing_task,
+    record_refused_item,
+)
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
@@ -1061,17 +1066,33 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             total_files=len(files),
         )
         tasks_data = []
-        for uploaded_file in files:
+        # FR-A-07 (S7a): every file is an item. A malformed or too-large file
+        # fails as ITS item, before anything is dispatched for it, and the
+        # rest still run: this used to raise mid-loop, after the earlier
+        # files' tasks were already queued (a half-queued session).
+        for item_index, uploaded_file in enumerate(files, start=1):
+            file_name = getattr(uploaded_file, "name", None) or f"file {item_index}"
+            refusal = None
             if not isinstance(uploaded_file, UploadedFile):
-                raise ParseError(
-                    (
-                        "The uploaded file appears to be malformed or corrupted. "
-                        "Please ensure it is a valid, readable file and try "
-                        "uploading again."
-                    )
+                refusal = FileUnreadableError(params={"file_name": file_name})
+            else:
+                try:
+                    validate_upload_size(uploaded_file)
+                except PayloadTooLarge as exc:
+                    refusal = exc
+            if refusal is not None:
+                refused = record_refused_item(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                    error=refusal,
+                    batch_session=session,
+                    file_name=file_name,
+                    item_index=item_index,
                 )
-
-            validate_upload_size(uploaded_file)
+                tasks_data.append(
+                    {"file_name": file_name, "task_id": None, "item_id": refused.id}
+                )
+                continue
 
             prompt_text = """
             Analyze the image of an educational assignment and return a JSON
@@ -1090,6 +1111,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 batch_session=session,
                 file_name=uploaded_file.name,
                 meta={"step": "Queued for batch assignment extraction"},
+                item_index=item_index,
             )
             task = launch_processing_task(
                 upload_assignment_async,
@@ -1102,7 +1124,13 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 prompt_text=prompt_text,
                 file_name=uploaded_file.name,
             )
-            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
+            tasks_data.append(
+                {
+                    "file_name": uploaded_file.name,
+                    "task_id": task.id,
+                    "item_id": processing_task.id,
+                }
+            )
 
         data = {
             "session_id": session.id,
@@ -1661,7 +1689,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         tasks_data = []
 
-        for submission in ungraded_submissions:
+        for item_index, submission in enumerate(ungraded_submissions, start=1):
             processing_task = create_processing_task(
                 requested_by=request.user,
                 task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
@@ -1670,6 +1698,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 submission=submission,
                 file_name=f"Submission for {submission.student.get_full_name()}",
                 meta={"step": "Queued for batch grading"},
+                item_index=item_index,
             )
             task = launch_processing_task(
                 grade_engine_async,

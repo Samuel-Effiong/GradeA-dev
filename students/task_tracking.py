@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from audit.emitter import resolve_trace_id
 from AutoGrader.celery import app as celery_app
 from AutoGrader.dispatch import (
     BROKER_UNAVAILABLE_ERRORS,
@@ -17,6 +18,7 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
+from AutoGrader.reason_codes import reason_of
 from billing.refusals import is_permanent_refusal, log_refusal
 
 from .exceptions import TaskCancelledError
@@ -45,12 +47,19 @@ def create_processing_task(
     submission=None,
     file_name=None,
     meta=None,
+    item_index=None,
 ):
+    """A tracked item. `item_index` is its 1-based position in its batch
+    (upload order). Its trace_id is the dispatching request's server trace
+    (resolve_trace_id), so the item's `reference` resolves to its audit
+    events (FR-A-07 S7a, QA-ERR-04)."""
     return BackgroundProcessingTask.objects.create(
         requested_by=requested_by,
         batch_session=batch_session,
         assignment=assignment,
         submission=submission,
+        item_index=item_index,
+        trace_id=resolve_trace_id(),
         task_type=task_type,
         file_name=file_name,
         meta=meta or {},
@@ -117,6 +126,7 @@ def update_processing_task(
     error=None,
     started=False,
     finished=False,
+    reason_code=None,
 ):
     if not processing_task_id:
         return None
@@ -153,6 +163,10 @@ def update_processing_task(
         if error is not None:
             task.error = error
             update_fields.append("error")
+
+        if reason_code is not None:
+            task.reason_code = reason_code
+            update_fields.append("reason_code")
 
         if started and not task.started_at:
             task.started_at = timezone.now()
@@ -240,7 +254,29 @@ def mark_processing_task_failure(
         meta=meta,
         error=describe_task_error(error, fallback_message),
         finished=True,
+        # FR-A-07 (S7a): the failure's own code. An unclassified fault
+        # stores none and reads as error_class SYSTEM (session-results).
+        reason_code=failure_reason_code(error),
     )
+
+
+def failure_reason_code(error):
+    """The FR-A-06 code a failure carries (a CodedError or one of the two
+    refusals), or "" for an unclassified fault."""
+    reason = reason_of(error) if isinstance(error, BaseException) else None
+    return reason[0].value if reason else ""
+
+
+def record_refused_item(*, requested_by, task_type, error, **fields):
+    """An item refused before anything was dispatched for it (a file too
+    large for its batch): a tracked FAILURE with the refusal's code and
+    message, and no Celery task, so the rest of the batch still runs."""
+    item = create_processing_task(
+        requested_by=requested_by, task_type=task_type, **fields
+    )
+    mark_processing_task_failure(item.id, error)
+    item.refresh_from_db()
+    return item
 
 
 def mark_processing_task_cancelled(processing_task_id, meta=None):

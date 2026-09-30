@@ -23,7 +23,7 @@ It prints:
    table's heap, index and total size.
 2. Projected (with --teachers/--students): rows per day for a school of N
    active teachers and M active students, from the per-person daily rates in
-   `audit.volume` (measured by the S8 harness, `audit/bench_volume.py`), and
+   `audit.volume` (measured by the S8 harness, `audit/tests/test_bench_volume.py`), and
    the steady-state table size at each retention class's age limit (12
    months GENERAL, 3 years STUDENT_RECORD), plus the sweeps' daily delete
    volume at steady state (= rows added per day, per class).
