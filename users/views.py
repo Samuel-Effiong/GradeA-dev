@@ -11,6 +11,7 @@ profile.
 
 import logging
 import math
+import time
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 
@@ -122,10 +123,16 @@ from users.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
     VerifyEmailThrottle,
+    clear_verify_failures,
+    lock_verify_address,
     log_register_student_refused_by_budget,
     record_register_student_failure,
     register_student_budget_retry_after,
     register_student_failure_budget_spent,
+    reserve_verify_attempt,
+    verify_attempt_over_budget,
+    verify_budget_spent,
+    verify_lock_until,
 )
 from users.tokens import EpochRefreshToken
 
@@ -800,20 +807,52 @@ returns a JWT pair, so the user is signed in straight away.
         if not email or not token:
             raise ParseError("Email and Token are required.")
 
+        # H-53: a per-address budget of attempts. While locked, every
+        # attempt is refused - a correct code and a re-sent one included - and
+        # the answer is the same whether or not the address has an account.
+        # The attempt is spent before the code is checked, so simultaneous
+        # guesses from many IPs cannot all slip in before the lock.
+        lock_until = verify_lock_until(email)
+        attempt = None if lock_until else reserve_verify_attempt(email)
+        if lock_until or verify_attempt_over_budget(attempt):
+            wait = (
+                lock_until - time.time()
+                if lock_until
+                else settings.VERIFY_EMAIL_LOCK_SECONDS
+            )
+            raise Throttled(
+                wait=max(1, int(wait)),
+                detail=(
+                    "Too many incorrect codes for this email address. Please "
+                    "wait, then request a new verification email."
+                ),
+            )
+
+        def refuse(message):
+            if verify_budget_spent(attempt):
+                # The stored code is left alone: activation_token also holds
+                # student (24 h) and school-admin (7 d) invitations, and
+                # clearing it would let anyone destroy an invitation with a
+                # few wrong guesses. A sign-up code (15 min) expires during
+                # the lock anyway.
+                lock_verify_address(email)
+            raise ParseError(message)
+
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
-            raise ParseError("Invalid email or token.")
+            refuse("Invalid email or token.")
 
         user = user.first()
 
         if user.activation_expires and timezone.now() > user.activation_expires:
-            raise ParseError("Activation link has expired.")
+            refuse("Activation link has expired.")
 
         user.email_verified_at = timezone.now()
         user.activation_token = None
         user.activation_expires = None
         user.is_active = True
         user.save()
+        clear_verify_failures(email)
 
         safe_delay(sync_user_to_mailerlite, str(user.id))
 
@@ -953,7 +992,10 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
-            send_user_activation_email(user)
+            # H-53: a locked address gets no new code (it could not be used
+            # until the lock ends), and the same reply as a send.
+            if not verify_lock_until(user.email):
+                send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
             if not user.email_verified_at:
