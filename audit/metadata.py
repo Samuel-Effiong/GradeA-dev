@@ -71,6 +71,9 @@ ALLOWED_KEYS = frozenset(
         "file_type",
         "source",
         "changed_fields",
+        # S1 generic event: the URL name and HTTP method, never the path or body
+        "route",
+        "method",
     }
 )
 
@@ -225,6 +228,7 @@ METADATA_ALLOWLIST = {
     AuditAction.ADMIN_ACTION: frozenset({"source"}),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields"}),
+    AuditAction.STATE_CHANGE: frozenset({"route", "method", "http_status"}),
 }
 
 

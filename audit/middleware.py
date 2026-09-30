@@ -1,35 +1,49 @@
 """
 audit/middleware.py
 ====================
-Finishes the automatic ADMIN_ACTION coverage `classrooms.permissions.
-IsSuperAdmin` starts (see `audit/admin_action.py`'s module docstring for
-the full design rationale).
+Request-level audit coverage (Epic A; completion slice S1, plan 08 §2).
 
-`IsSuperAdmin.has_permission` tags a GRANTED request with the view
-instance (`admin_action.REQUEST_ATTR`) because the actual outcome -
-success or failure - isn't known until the view has run. This middleware
-runs after the full response is ready and does that emission. It is a
-plain function-of-the-response check (`getattr(request, REQUEST_ATTR,
-None)`), so it costs nothing on the overwhelming majority of requests
-that never touch a superadmin endpoint.
+For every request, `AuditMiddleware`:
 
-Must be registered in MIDDLEWARE (see AutoGrader/settings.py) - anywhere
-after RequestIDMiddleware works, since RequestIDMiddleware wraps the
-entire request/response cycle and its correlation id is still live in
-context when this middleware's post-response code runs, regardless of
-where in the list this one sits.
+1. opens a fresh per-request audit state (`audit.context.request_audit_state`),
+   which the emitter marks whenever it stores an event;
+2. finishes the automatic ADMIN_ACTION coverage `classrooms.permissions.
+   IsSuperAdmin` starts: `IsSuperAdmin.has_permission` tags a GRANTED request
+   with the view instance (`admin_action.REQUEST_ATTR`) because the outcome
+   isn't known until the view has run, and the event is written here (see
+   `audit/admin_action.py`);
+3. if the request stored no event at all, writes the generic STATE_CHANGE
+   event for a state-changing request by an authenticated user
+   (`audit/request_audit.py`). So each such request ends with exactly one
+   event: its named one, or this.
+
+Registered LAST in MIDDLEWARE (AutoGrader/settings.py): it reads
+`request.user` after the view has run, and DRF's `Request` writes the
+authenticated JWT user back onto the Django request only during the view.
+RequestIDMiddleware, first in the list, keeps the correlation id live for
+the whole cycle, so the trace id is still available here.
 """
 
 from .admin_action import REQUEST_ATTR, emit_for_response
+from .context import request_audit_state
+from .request_audit import emit_generic_state_change
 
 
-class AdminActionAuditMiddleware:
+class AuditMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        response = self.get_response(request)
-        view = getattr(request, REQUEST_ATTR, None)
-        if view is not None:
-            emit_for_response(request, view, response)
+        with request_audit_state() as state:
+            response = self.get_response(request)
+            view = getattr(request, REQUEST_ATTR, None)
+            if view is not None:
+                emit_for_response(request, view, response)
+            if not state.named_emitted:
+                emit_generic_state_change(request, response)
         return response
+
+
+# The name this middleware had when it only finished ADMIN_ACTION coverage.
+# Kept so existing references (tests, older settings) keep working.
+AdminActionAuditMiddleware = AuditMiddleware

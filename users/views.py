@@ -83,6 +83,7 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.auth_audit import account_for_email, sign_in_failed, sign_in_succeeded
 from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
@@ -659,15 +660,22 @@ class AuthViewSet(viewsets.ViewSet):
         token = (request.data.get("token") or "").strip()
 
         if not email or not token:
+            sign_in_failed(
+                request, account_for_email(email), "email_verification", "CODE_MISSING"
+            )
             raise ParseError("Email and Token are required.")
 
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
+            sign_in_failed(
+                request, account_for_email(email), "email_verification", "INVALID_CODE"
+            )
             raise ParseError("Invalid email or token.")
 
         user = user.first()
 
         if user.activation_expires and timezone.now() > user.activation_expires:
+            sign_in_failed(request, user, "email_verification", "CODE_EXPIRED")
             raise ParseError("Activation link has expired.")
 
         user.email_verified_at = timezone.now()
@@ -684,6 +692,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "email_verification")
 
         return Response(
             {
@@ -822,15 +831,20 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             user = CustomUser.objects.get(email=email)
             otp_obj = PasswordResetOTP.objects.get(user=user)
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            sign_in_failed(
+                request, account_for_email(email), "password_reset", "INVALID_CODE"
+            )
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         if otp_obj.is_locked():
+            sign_in_failed(request, user, "password_reset", "RESET_LOCKED", denied=True)
             raise ParseError(
                 "Too many incorrect codes. Request a new code and try again later."
             )
 
         if not otp_obj.is_valid():
             otp_obj.delete()
+            sign_in_failed(request, user, "password_reset", "CODE_EXPIRED")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         # Constant-time compare so the response latency does not leak how
@@ -839,6 +853,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # / password was the wrong one.
         if not constant_time_compare(str(otp_obj.code), str(otp)):
             otp_obj.register_failure()
+            sign_in_failed(request, user, "password_reset", "INVALID_CODE")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -854,6 +869,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "password_reset")
 
         return Response(
             {
@@ -946,6 +962,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         otp = (serializer.validated_data.get("otp") or "").strip()
 
         if not user.check_password(current_password):
+            sign_in_failed(request, user, "password_change", "WRONG_PASSWORD")
             raise ParseError("Incorrect current password. Please try again.")
 
         # Dual-mode by design: the frontend does not send `otp` yet, so a
@@ -963,6 +980,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             otp_obj = PasswordChangeOTP.objects.filter(user=user).first()
 
             if otp_obj is None:
+                sign_in_failed(request, user, "password_change", "CODE_NOT_REQUESTED")
                 raise ParseError(
                     "No password change code has been requested for this "
                     "account. Request one and try again."
@@ -970,6 +988,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             if not otp_obj.is_valid():
                 otp_obj.delete()
+                sign_in_failed(request, user, "password_change", "CODE_EXPIRED")
                 raise ParseError(
                     "This password change code has expired. Request a new one "
                     "and try again."
@@ -978,6 +997,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # Constant-time, for the same reason reset_password does it: a
             # plain == leaks how much of the code was correct via timing.
             if not constant_time_compare(str(otp_obj.code), str(otp)):
+                sign_in_failed(request, user, "password_change", "INVALID_CODE")
                 raise ParseError("Invalid password change code. Please try again.")
 
             # Single-use: a code that has completed a change must not be
@@ -997,6 +1017,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "password_change")
 
         return Response(
             {
@@ -1235,6 +1256,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     "later; if your code has expired by then, ask for a new one."
                 ),
             )
+        # A refused code is recorded after the atomic block has rolled back,
+        # never inside it (the event would roll back too).
+        audit_failure = None
         try:
             with transaction.atomic():
                 serializer = StudentRegistrationCompletionSerializer(data=request.data)
@@ -1257,6 +1281,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 if not user:
                     record_register_student_failure("no_match")
+                    audit_failure = (None, "INVALID_CODE")
                     raise ParseError("Invalid or expired activation token")
 
                 if (
@@ -1264,6 +1289,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     or user.activation_expires < timezone.now()
                 ):
                     record_register_student_failure("expired")
+                    sign_in_failed(request, user, "student_invitation", "CODE_EXPIRED")
                     renewal_url = request.build_absolute_uri(
                         "/course/student/renew-student-token"
                     )
@@ -1325,11 +1351,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
                     enrollment.save(update_fields=["enrollment_status"])
 
+                sign_in_succeeded(request, user, "student_invitation")
                 return Response(
                     {"detail": "Student registration completed successfully"},
                     status=status.HTTP_200_OK,
                 )
         except (ParseError, ValidationError):
+            if audit_failure is not None:
+                sign_in_failed(
+                    request, audit_failure[0], "student_invitation", audit_failure[1]
+                )
             raise
         except Exception as e:
             logger.error("Student registration failed", exc_info=e)
@@ -1375,6 +1406,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_name="register-school-admin",
     )
     def register_school_admin(self, request, *args, **kwargs):
+        # A refused code is recorded after the atomic block has rolled back,
+        # never inside it (the event would roll back too).
+        audit_failure = None
         try:
             with transaction.atomic():
                 serializer = SchoolAdminRegistrationCompletionSerializer(
@@ -1401,9 +1435,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 )
 
                 if not user:
+                    audit_failure = (account_for_email(email), "INVALID_CODE")
                     raise ParseError("Invalid or expired activation token.")
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
+                    audit_failure = (user, "CODE_EXPIRED")
                     raise ParseError(
                         "This invitation link has expired. Please contact your "
                         "superadmin for a new invitation."
@@ -1422,6 +1458,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             # Track activity
             AnalyticsService.track_activity(user)
+            sign_in_succeeded(request, user, "school_admin_invitation")
 
             return Response(
                 {
@@ -1432,6 +1469,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 status=status.HTTP_200_OK,
             )
         except (ParseError, ValidationError):
+            if audit_failure is not None:
+                sign_in_failed(
+                    request,
+                    audit_failure[0],
+                    "school_admin_invitation",
+                    audit_failure[1],
+                )
             raise
         except Exception as e:
             logger.error("School admin registration failed", exc_info=e)
@@ -1499,10 +1543,36 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="google-auth",
     )
     def google_auth(self, request, *args, **kwargs):
+        # Every refusal is recorded here, after the view's own atomic block has
+        # unwound (an event written inside it would roll back with it). Each
+        # raise site in _google_auth tags its reason, and the refused account
+        # when one is known (a deactivated account).
+        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
+        self._audit_account = None
+        try:
+            return self._google_auth(request)
+        except (ParseError, ValidationError, AuthenticationFailed):
+            reason = self._audit_reason
+            sign_in_failed(
+                request,
+                self._audit_account,
+                "google",
+                reason,
+                denied=reason == "ACCOUNT_DEACTIVATED",
+                error_class=(
+                    ErrorClass.PROVIDER
+                    if reason == "GOOGLE_EXCHANGE_FAILED"
+                    else ErrorClass.USER
+                ),
+            )
+            raise
+
+    def _google_auth(self, request):
         code = request.data.get("code")
         redirect_uri = settings.GOOGLE_REDIRECT_URI
 
         if not code:
+            self._audit_reason = "GOOGLE_CODE_MISSING"
             raise ParseError("Authorization code is required")
 
         try:
@@ -1523,6 +1593,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 token_data = response.json()
             except http_requests.exceptions.RequestException as e:
                 logger.error("Google OAuth token exchange failed", exc_info=e)
+                self._audit_reason = "GOOGLE_EXCHANGE_FAILED"
                 raise ParseError(
                     describe_user_error(
                         e,
@@ -1536,6 +1607,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             expires_in = token_data.get("expires_in", 500)
 
             if not id_token_str:
+                self._audit_reason = "GOOGLE_TOKEN_INVALID"
                 raise ParseError("Google did not return an ID token")
 
             id_info = id_token.verify_oauth2_token(
@@ -1545,6 +1617,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
             if not id_info.get("email_verified"):
+                self._audit_reason = "GOOGLE_EMAIL_UNVERIFIED"
                 raise ParseError("Google has not verified your email")
 
             with transaction.atomic():
@@ -1611,11 +1684,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # this button.
                         email_errors = serializer.errors.get("email")
                         if email_errors:
+                            self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
                             raise ParseError(
                                 f"{email_errors[0]} If you are joining a "
                                 "school, ask your school admin to invite you "
                                 "and use the link in that invitation instead."
                             )
+                        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
                         raise ValidationError(serializer.errors)
 
                 else:
@@ -1636,6 +1711,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     # activating there would turn Google sign-in into a way
                     # round a deactivation.
                     if not user.is_active and user.email_verified_at is not None:
+                        self._audit_reason = "ACCOUNT_DEACTIVATED"
+                        self._audit_account = user
                         raise AuthenticationFailed(
                             "This account has been deactivated. Please "
                             "contact support.",
@@ -1715,6 +1792,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 )
 
             refresh = EpochRefreshToken.for_user(user)
+            sign_in_succeeded(request, user, "google")
 
             return Response(
                 {
@@ -1726,6 +1804,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         except ValueError as e:
+            self._audit_reason = "GOOGLE_TOKEN_INVALID"
             raise ParseError("Invalid Google token signature") from e
 
 

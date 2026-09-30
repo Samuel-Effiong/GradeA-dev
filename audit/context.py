@@ -55,3 +55,49 @@ def trace_context(trace_id=None):
         yield value
     finally:
         _trace_var.reset(token)
+
+
+# ---------------------------------------------------------------------------
+# Per-request audit state (Epic A completion S1, plan 08 §2).
+#
+# FR-A-01's "exactly one event per action" needs to know, when a request ends,
+# whether any NAMED event (login, grading, credit, CRUD, admin ...) was already
+# recorded for it; only if none was does `audit.middleware.AuditMiddleware`
+# write the generic STATE_CHANGE. The emitter sets the flag on every stored
+# event, so no call site has to remember to.
+#
+# A ContextVar, not a request attribute, because the emitter is called from
+# services and model methods that never see the request. Outside a request
+# (Celery, management commands, tests without the middleware) there is no
+# state and marking is a no-op.
+
+
+class RequestAuditState:
+    __slots__ = ("named_emitted",)
+
+    def __init__(self):
+        self.named_emitted = False
+
+
+_request_state_var: ContextVar[Optional[RequestAuditState]] = ContextVar(
+    "audit_request_state", default=None
+)
+
+
+@contextmanager
+def request_audit_state():
+    """Open a fresh per-request state for the block, and always restore the
+    previous one after it, even if the block raises."""
+    state = RequestAuditState()
+    token = _request_state_var.set(state)
+    try:
+        yield state
+    finally:
+        _request_state_var.reset(token)
+
+
+def mark_named_emitted() -> None:
+    """Record that an event was stored for the current request, if any."""
+    state = _request_state_var.get()
+    if state is not None:
+        state.named_emitted = True
