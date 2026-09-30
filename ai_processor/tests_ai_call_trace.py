@@ -235,6 +235,69 @@ class EveryCallerNamesItsPromptTests(SimpleTestCase):
             with self.subTest(line=node.lineno):
                 self.assertIn("prompt_version", {kw.arg for kw in node.keywords})
 
+    # v2's N1: the VALUE, not just the presence. Each caller must name the
+    # prompt it actually sends; the three grading sites send
+    # GRADING_ASSIGNMENT_PROMPT (plus a per-assignment custom block, which is
+    # data). A caller passing None or another prompt's version fails here.
+    EXPECTED = {
+        "extract_assignment": "system_prompt.version",
+        "extract_assignment_image": "system_prompt.version",
+        "_extract_prosemirror_chunked": "ASSIGNMENT_EXTRACTION_PROMPT.version",
+        "_extract_assignment_chunked": "system_prompt.version",
+        "_extract_answers_chunked": "ANSWERS_EXTRACTION_PROMPT.version",
+        "extract_answer_image": "ANSWERS_EXTRACTION_PROMPT.version",
+        "_verify_blank_answers": "BLANK_VERIFICATION_INSTRUCTION.version",
+        "_grade_question_batch": "GRADING_ASSIGNMENT_PROMPT.version",
+        "_build_overall_grading_summary": "GRADING_ASSIGNMENT_PROMPT.version",
+        "_grade_student_submission_impl": "GRADING_ASSIGNMENT_PROMPT.version",
+        "generate_assignment_from_prompt": "GENERATE_ASSIGNMENT_PROMPT.version",
+        "formatted_grade": "GRADE_FORMATTER.version",
+        "custom_ai_prompt": "system_prompt.version",
+        "generate_student_summary": "STUDENT_SUMMARY_PROMPT.version",
+        "generate_weekly_course_summary_narrative": (
+            "WEEKLY_COURSE_SUMMARY_PROMPT.version"
+        ),
+        "generate_weekly_school_admin_summary_narrative": (
+            "WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.version"
+        ),
+    }
+
+    def calls_by_function(self):
+        tree = ast.parse(self.SOURCE.read_text(encoding="utf-8"))
+        found = {}
+        for function in ast.walk(tree):
+            if not isinstance(function, ast.FunctionDef):
+                continue
+            for node in ast.walk(function):
+                if (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "execute_graded_task"
+                ):
+                    passed = {kw.arg: kw.value for kw in node.keywords}
+                    found.setdefault(function.name, []).append(
+                        ast.unparse(passed["prompt_version"])
+                    )
+        return found
+
+    def test_each_caller_passes_its_own_prompts_version(self):
+        found = self.calls_by_function()
+        self.assertEqual(set(found), set(self.EXPECTED))
+        for function, expressions in found.items():
+            with self.subTest(function=function):
+                self.assertEqual(set(expressions), {self.EXPECTED[function]})
+
+    def test_the_grading_sites_send_the_grading_prompts_version(self):
+        """The NFR-OBS-04 core: a grade traces to its grading prompt."""
+        found = self.calls_by_function()
+        for function in (
+            "_grade_question_batch",
+            "_build_overall_grading_summary",
+            "_grade_student_submission_impl",
+        ):
+            with self.subTest(function=function):
+                self.assertEqual(found[function], ["GRADING_ASSIGNMENT_PROMPT.version"])
+
     def test_omitting_it_is_refused(self):
         user = SimpleNamespace(user_type="TEACHER")
         with self.assertRaises(TypeError):

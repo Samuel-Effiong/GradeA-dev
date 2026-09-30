@@ -97,6 +97,21 @@ MUTANTS = {
         '            "model",\n            "prompt_version",\n            "feature",\n',
         '            "model",\n            "feature",\n',
     ),
+    # v2's V1 / V2 (VERIFICATION_v2_424ca49): a grading site's VALUE.
+    "V1_grading_site_passes_none": (
+        SVC,
+        "            response = self.execute_graded_task(\n"
+        "                prompt_version=GRADING_ASSIGNMENT_PROMPT.version,\n",
+        "            response = self.execute_graded_task(\n"
+        "                prompt_version=None,\n",
+    ),
+    "V2_grading_site_passes_another_prompt": (
+        SVC,
+        "            response = self.execute_graded_task(\n"
+        "                prompt_version=GRADING_ASSIGNMENT_PROMPT.version,\n",
+        "            response = self.execute_graded_task(\n"
+        "                prompt_version=ANSWERS_EXTRACTION_PROMPT.version,\n",
+    ),
 }
 
 TESTS = [
