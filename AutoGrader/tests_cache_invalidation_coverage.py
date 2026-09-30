@@ -125,6 +125,26 @@ FAMILIES = {
     "<UserCacheMixin base>": ("SCOPE_USER",),
 }
 
+#: Mixin viewsets whose key also carries scopes returned by
+#: `extra_cache_scopes` (users/mixins.py appends them after the viewer's
+#: own). The scan above reads the mixin's `*extra` as nothing, so these are
+#: listed here, asserted against every override in the code, and exercised
+#: in layer 3 as families of their own. CourseViewSet: a student's course
+#: list and detail carry each course's `crs`, which an enrolment bumps in
+#: place of every classmate's own generation (stage 3 rework, cc14bb0).
+MIXIN_EXTRA_SCOPES = {
+    "classrooms/views.py::CourseViewSet": ("SCOPE_COURSE",),
+}
+
+#: FAMILIES plus each MIXIN_EXTRA_SCOPES variant, for the Redis layer.
+ALL_FAMILIES = {
+    **FAMILIES,
+    **{
+        f"<UserCacheMixin base> + {site}": ("SCOPE_USER", *extra)
+        for site, extra in MIXIN_EXTRA_SCOPES.items()
+    },
+}
+
 #: The viewsets `UserCacheMixin` serves, as the key prefix each produces.
 #: Asserted against the code so a new mixin user is noticed.
 MIXIN_PREFIXES = {
@@ -234,6 +254,32 @@ def versioned_key_calls():
     return found
 
 
+def extra_cache_scope_overrides():
+    """{"path::Class": scope names} for every `extra_cache_scopes` override
+    outside the mixin's own default."""
+    found = {}
+    for rel, path in production_python_files():
+        if rel == "users/mixins.py":
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef) and item.name == (
+                    "extra_cache_scopes"
+                ):
+                    found[f"{rel}::{node.name}"] = tuple(
+                        sorted(
+                            {
+                                n.id
+                                for n in ast.walk(item)
+                                if isinstance(n, ast.Name) and n.id in SCOPE_CONSTANTS
+                            }
+                        )
+                    )
+    return found
+
+
 def _enclosing_functions(tree):
     parents = {}
     for node in ast.walk(tree):
@@ -310,6 +356,23 @@ class KeyMapIsTheCodeTests(SimpleTestCase):
                 {FAMILIES[template]},
                 f"{template}: the code's scopes differ from the key map",
             )
+
+    def test_every_extra_cache_scopes_override_is_listed(self):
+        self.assertEqual(extra_cache_scope_overrides(), MIXIN_EXTRA_SCOPES)
+
+    def test_the_mixin_appends_the_extra_scopes_to_its_key(self):
+        """Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds."""
+        tree = ast.parse((REPO / "users/mixins.py").read_text())
+        starred = [
+            node.lineno
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and _call_name(node) == "versioned_key"
+            and any(
+                isinstance(e, ast.Starred) for e in getattr(node.args[1], "elts", [])
+            )
+        ]
+        self.assertEqual(len(starred), 1, "one mixin key must spread the extras")
 
     def test_every_family_embeds_at_least_one_generation(self):
         for template, scopes in FAMILIES.items():
@@ -389,7 +452,7 @@ class EveryFamilyIsReachableByItsScopeTests(SimpleTestCase):
         return versioned_key(base, pairs)
 
     def test_bumping_any_scope_of_a_family_makes_its_entry_unreachable(self):
-        for template, scopes in FAMILIES.items():
+        for template, scopes in ALL_FAMILIES.items():
             for name in scopes:
                 with self.subTest(family=template, scope=name):
                     cache.clear()
@@ -412,7 +475,7 @@ class EveryFamilyIsReachableByItsScopeTests(SimpleTestCase):
         """The over-invalidation half, stated as a property. Under the
         wildcards, "*user*" fired by user 2's save destroyed user 1's page;
         a per-entity scope cannot."""
-        for template, scopes in FAMILIES.items():
+        for template, scopes in ALL_FAMILIES.items():
             per_entity = [
                 n for n in scopes if SCOPE_CONSTANTS[n] not in SINGLETON_SCOPES
             ]
@@ -437,7 +500,7 @@ class EveryFamilyIsReachableByItsScopeTests(SimpleTestCase):
         pdf_key = f"assignmentpdf:v1:{OBJ}:student:stamp"
         other_pdf = f"assignmentpdf:v1:{U2}:student:stamp"
         response_keys = [
-            self._key(template, scopes, U1) for template, scopes in FAMILIES.items()
+            self._key(template, scopes, U1) for template, scopes in ALL_FAMILIES.items()
         ]
         for key in [pdf_key, other_pdf, *response_keys]:
             cache.set(key, "x", 60)
