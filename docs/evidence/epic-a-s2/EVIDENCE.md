@@ -5,7 +5,7 @@ Branch `task/epic-a-s2`. Cut from phase2/epic-a `3bbafdd` (after S1), then merge
 Plan: `08_epic_a_completion_plan.md` §3, plus the SM's rulings of 2026-09-30.
 
 ## The guard (`audit/tests_route_coverage.py`)
-- **Enumerate.** Walk `get_resolver()` recursively: DRF router routes by their `actions` map, class views by their handler methods, and function views, which are probed with POST. The Django admin is left out and has its own test (D7). This finds **196 write routes**.
+- **Enumerate.** Walk `get_resolver()` recursively: DRF router routes by their `actions` map, class views by their handler methods, and function views, which are probed with POST. The Django admin is left out and has its own test (D7). This finds **153 (route, method) write pairs over 117 named routes** (v2's N2: an earlier "196" counted DRF's format-suffix twins).
 - **Anonymous reachability, tested behaviourally.** Every write route is fired anonymously with an empty body. Anything not refused with 401/403, or sent to a login page, is reachable, and must be an anonymous door (`ANONYMOUS_AUDITED_ROUTES`) or excluded with a reason (`EXCLUDED_ROUTES`). Permission classes aren't read: `login`'s view, for example, doesn't declare `AllowAny`.
 - **The sweep.** Every other write route is fired as a superadmin with an empty body and made-up ids (a UUID, else 1). Each must leave **exactly one event naming the requester**, plus any side-effect events naming others (SM wording). A 400, 404 or 405 is fine, since FAILURE is recorded too.
   - Each route runs in its own savepoint and is rolled back, so side effects never reach the next route.
@@ -46,5 +46,16 @@ The doors are `login` (`password`), `auth-verify`, `auth-reset-password`, `auth-
 - `DjangoAdminTests`: an admin write leaves exactly one event naming the superadmin (route `admin:users_waitlist_add`).
 - `AnonymousDoorRefusalUnitTests`: 400 → one INVALID_REQUEST; 429 → nothing; 500 → nothing; a non-door route → nothing; a signed-in requester → nothing (that's the generic event's job).
 
-## Gates
-_pending_ (rule 15).
+## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
+Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time, on `7b9151e`.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | d7f2737's source for the 6 changed files (`prefix_d7f2737_failing.txt`): the guard **cannot import** (`INVALID_REQUEST` and the door registry don't exist there). The substantive reproduction is what the guard found on the real tree (the table above). The first fix-run also caught the QA console's deliberate 404, now in `CONCEALED_ROUTES`. |
+| Changed modules | `audit.tests_route_coverage` + `users.tests_auth_audit_doors` + `audit.tests_state_change`: **71 OK** (`changed_modules.txt`). The sweep fires every write route (153 pairs). |
+| 2 Mutation | `mutate.py`, **8 mutants, 8 killed** (`mutation_log.txt`): a door left out of the registry, the refusal never recorded, a throttled (429) request recorded, a signed-in requester recorded as a door refusal, the refusal written although the door recorded its own, the Stripe exclusion removed, ACCOUNT_REGISTER not emitted, and ACCOUNT_REGISTER naming the new account as actor. |
+| 1 Regression (owning app) | `audit`: **221 OK** (`regression_audit.txt`) |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** |
+| Migrations | none needed (`action` has no choices) |
+
+**Found while running the gates:** the QA console views answer 404 to anyone but a signed-in superadmin ("no hint this exists"). The guard treated that as reachable; `CONCEALED_ROUTES` now lists them explicitly (stale-checked). A 404 in general stays "reachable", since an open route given a made-up id answers 404 too.

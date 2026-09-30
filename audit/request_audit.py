@@ -31,7 +31,7 @@ import uuid
 
 from .admin_action import _outcome_for_status
 from .emitter import emit
-from .enums import AuditAction
+from .enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,10 @@ ANONYMOUS_AUDITED_ROUTES = {
     "auth-google-auth": (AuditAction.AUTH_LOGIN, "google"),
     "auth-register": (AuditAction.ACCOUNT_REGISTER, "self_registration"),
 }
-INVALID_REQUEST = "INVALID_REQUEST"
+# Audit-only reason codes, from the FR-A-06 catalogue (S6a): the emitter
+# refuses any code outside audit.enums.ReasonCode.
+INVALID_REQUEST = ReasonCode.INVALID_REQUEST.value
+SERVER_ERROR = ReasonCode.SERVER_ERROR.value
 
 
 def _target(match):
@@ -127,36 +130,72 @@ def should_record(request, response) -> bool:
     return match.view_name not in EXCLUDED_ROUTES
 
 
-def emit_anonymous_door_refusal(request, response) -> None:
-    """Record an anonymous sign-in door's refused request that left no event
-    (S2). Called by the middleware only when no event stored during the
-    request survives. Never raises."""
+def emit_anonymous_refusal(request, response) -> None:
+    """Record an anonymous write that left no event (S2). Called by the
+    middleware only when no event stored during the request survives.
+
+    - A sign-in door refused with a 4xx (a malformed body, a missing field)
+      records one FAILURE, reason INVALID_REQUEST.
+    - ANY non-excluded write that crashed (5xx) records one FAILURE,
+      error_class SYSTEM, reason SERVER_ERROR (SM ruling on v2's N1): a
+      crash must not leave zero trace. A door keeps its own action; any
+      other route is a STATE_CHANGE naming the route.
+
+    Actor ANONYMOUS, no body, never a 429 (the throttle refused it before the
+    view ran). Never raises."""
     try:
         status_code = response.status_code
-        if not 400 <= status_code < 500 or status_code == 429:
+        if status_code < 400 or status_code == 429:
+            return
+        if request.method not in STATE_CHANGING_METHODS:
             return
         user = getattr(request, "user", None)
         if user is not None and user.is_authenticated:
             return
         match = getattr(request, "resolver_match", None)
-        door = ANONYMOUS_AUDITED_ROUTES.get(getattr(match, "view_name", "") or "")
-        if door is None:
+        view_name = getattr(match, "view_name", "") or ""
+        if match is None or view_name in EXCLUDED_ROUTES:
             return
-        action, auth_method = door
-        outcome, error_class = _outcome_for_status(status_code)
+        door = ANONYMOUS_AUDITED_ROUTES.get(view_name)
+        crashed = status_code >= 500
+        if door is None and not crashed:
+            return
+
+        if crashed:
+            outcome, error_class, reason = (
+                AuditOutcome.FAILURE,
+                ErrorClass.SYSTEM,
+                SERVER_ERROR,
+            )
+        else:
+            outcome, error_class = _outcome_for_status(status_code)
+            reason = INVALID_REQUEST
+        if door is not None:
+            action, auth_method = door
+            target_type, target_id = "CustomUser", None
+            metadata = {"auth_method": auth_method, "http_status": status_code}
+        else:
+            action = AuditAction.STATE_CHANGE
+            target_type, target_id = _target(match)
+            metadata = {
+                "route": view_name,
+                "method": request.method,
+                "http_status": status_code,
+            }
         emit(
             action,
             actor=user,
             request=request,
-            target_type="CustomUser",
+            target_type=target_type,
+            target_id=target_id,
             outcome=outcome,
             error_class=error_class,
-            reason_code=INVALID_REQUEST,
-            metadata={"auth_method": auth_method, "http_status": status_code},
+            reason_code=reason,
+            metadata=metadata,
         )
     except Exception as exc:  # noqa: BLE001 - FR-A-11: never fail the response
         logger.error(
-            "audit anonymous door refusal event failed: %s",
+            "audit anonymous refusal event failed: %s",
             type(exc).__name__,
             extra={"audit_kind": "generic_failed"},
         )

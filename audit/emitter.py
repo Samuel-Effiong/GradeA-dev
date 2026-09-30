@@ -53,6 +53,7 @@ from .enums import (
     AuditAction,
     AuditOutcome,
     ErrorClass,
+    ReasonCode,
     RetentionClass,
 )
 from .metadata import sanitise, sanitise_metadata_for_action
@@ -71,7 +72,6 @@ _GRADING_ACTIONS = frozenset(
 logger = logging.getLogger(__name__)
 
 _TARGET_TYPE = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
-_REASON_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 _CLIENT_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")
 _SAFE_ACTION = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 
@@ -175,12 +175,16 @@ def emit(
             extra={"audit_kind": "metadata_dropped", "audit_action": label},
         )
 
-    if not _bypass_failed_auth_cap and _failed_auth_cap_applies(fields):
-        verdict = failed_auth_cap.admit(fields.get("target_id"))
+    scope = None if _bypass_failed_auth_cap else _failed_auth_cap_scope(fields)
+    if scope is not None:
+        cap_target, global_cap = scope
+        verdict = failed_auth_cap.admit(cap_target, global_cap=global_cap)
         if not verdict.write:
             record_suppressed_event()
             if verdict.summary is not None:
-                _emit_failed_auth_summary(action, request, verdict.summary)
+                _emit_failed_auth_summary(
+                    action, request, verdict.summary, outcome, error_class
+                )
             return None
 
     try:
@@ -210,18 +214,35 @@ _CAPPED_ACTIONS = frozenset(
 )
 
 
-def _failed_auth_cap_applies(fields) -> bool:
-    """S1b's scope: an anonymous requester's failed sign-in or registration.
-    Successes, DENIED (locked) events and signed-in requesters are never
-    capped; see audit.failed_auth_cap."""
-    return (
-        fields.get("action") in _CAPPED_ACTIONS
-        and fields.get("outcome") == AuditOutcome.FAILURE.value
-        and fields.get("actor_role") == ActorRole.ANONYMOUS.value
-    )
+def _failed_auth_cap_scope(fields):
+    """S1b's scope for an ANONYMOUS requester's event: None if uncapped, else
+    (the target id to count against, whether the global cap applies).
+
+    - An anonymous crash (S2's SERVER_ERROR, on a door or any route): the
+      global, no-target bucket (SM ruling).
+    - A failed sign-in or registration: floor, per-target and global caps.
+    - A DENIED sign-in (a locked account): floor and per-target cap only, so
+      the lock stays visible (its first events are always written) and its
+      volume is bounded (SM ruling on v2's flag).
+    Successes and signed-in requesters are never capped."""
+    if fields.get("actor_role") != ActorRole.ANONYMOUS.value:
+        return None
+    outcome = fields.get("outcome")
+    if (
+        fields.get("reason_code") == ReasonCode.SERVER_ERROR.value
+        and outcome == AuditOutcome.FAILURE.value
+    ):
+        return None, True
+    if fields.get("action") not in _CAPPED_ACTIONS:
+        return None
+    if outcome == AuditOutcome.FAILURE.value:
+        return fields.get("target_id"), True
+    if outcome == AuditOutcome.DENIED.value:
+        return fields.get("target_id"), False
+    return None
 
 
-def _emit_failed_auth_summary(action, request, summary) -> None:
+def _emit_failed_auth_summary(action, request, summary, outcome, error_class) -> None:
     """The summary written in place of suppressed failures (S1b). Scoped to
     the targeted account's school, like the failures it stands for."""
     from django.contrib.auth import get_user_model
@@ -242,8 +263,8 @@ def _emit_failed_auth_summary(action, request, summary) -> None:
         target_type="CustomUser",
         target_id=summary.target_id,
         school_id=school_id,
-        outcome=AuditOutcome.FAILURE,
-        error_class=ErrorClass.USER,
+        outcome=outcome,
+        error_class=error_class or ErrorClass.USER,
         reason_code=failed_auth_cap.FAILED_AUTH_CAPPED,
         metadata={
             "cap": summary.cap,
@@ -312,10 +333,12 @@ def _build(
     if outcome != AuditOutcome.SUCCESS and error_class is None:
         raise AuditValidationError("error_class: a non-success needs one")
 
-    if reason_code is not None and not (
-        isinstance(reason_code, str) and _REASON_CODE.fullmatch(reason_code)
-    ):
-        raise AuditValidationError("reason_code: not a valid code")
+    if reason_code is not None:
+        # FR-A-06: only a code in the catalogue (audit.enums.ReasonCode). A
+        # new code is added there first, with its spec or as audit-only
+        # (AutoGrader/reason_codes.py), so the vocabulary stays closed.
+        if not isinstance(reason_code, str) or reason_code not in ReasonCode.values:
+            raise AuditValidationError("reason_code: not a known code")
 
     role, actor_id, actor_email, actor_school = _actor_fields(actor)
     is_student = role == ActorRole.STUDENT

@@ -1,66 +1,208 @@
 Creating test database for alias 'default'...
+Got an error creating the test database: database "test_epic_a_s2" already exists
+
+Destroying old test database for alias 'default'...
 System check identified some issues:
 
 WARNINGS:
 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
 
 System check identified 1 issue (0 silenced).
-Cannot activate automatic trial for user cap.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+.Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user teacher.admin-action@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+....Cannot activate automatic trial for user still.works@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user secret.teacher@example.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.audit event metadata dropped: action=ASSIGNMENT_COPY keys=credits (not allowed for this action)
+...audit event metadata dropped: action=ASSIGNMENT_COPY keys=answer_text (not on the allow-list)
+...audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+.audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
+.audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
+.audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+..audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
+.audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
+.audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
+..audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
+.audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
+.audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+.audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event rejected: action=ASSIGNMENT_COPY detail=unexpected AttributeError
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+.audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+audit event rejected: action=MADE_UP detail=action: not a known action
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ctx.teacher@example.org (validation): Free trial plan not found. Please create one in the admin panel.
+........audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (looks like an email address)
+............Cannot activate automatic trial for user emit.teacher@emit.edu (validation): Free trial plan not found. Please create one in the admin panel.
+....Cannot activate automatic trial for user solo@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+..Cannot activate automatic trial for user role.teacher@emit.edu (validation): Free trial plan not found. Please create one in the admin panel.
+...Cannot activate automatic trial for user frozen@emit.edu (validation): Free trial plan not found. Please create one in the admin panel.
+..Cache backend ConnectionProxy has no delete_pattern(); wildcard cache invalidation is disabled for this process. Cached responses will serve stale data until they expire, including for users whose access was just revoked.
+Cannot activate automatic trial for user teacher@attribution.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@attribution.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user emit-failure-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+audit event rejected: action=AUTH_LOGOUT detail=target_type: must be a model name
+.Cannot activate automatic trial for user emit-failure-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+audit event store_failed: action=AUTH_LOGOUT detail=RuntimeError
+.Cannot activate automatic trial for user emit-failure-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user expire-clean@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user expire-anomaly@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Failed to reconcile expired bucket 2a0acaf2-24a6-49bf-b810-88f62edfdab9 (wallet: 9023573b-029d-4bb7-9fb6-02579e9eaa11): boom
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/tasks.py", line 338, in cleanup_expired_credit_buckets
+    value_lost = SubscriptionService.expire_bucket(bucket)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+.Cannot activate automatic trial for user ledger-balance-anomaly@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ledger-balance-anomaly@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user refund-anomaly@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user refund-anomaly@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user grading-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user grading-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user grading-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user grading-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user grading-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+........Cannot activate automatic trial for user reason-code-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user reason-code-metrics@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a school admin to access this endpoint.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher.audit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.............Cannot activate automatic trial for user door.signed.in@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+....API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
-    raise ParseError("Invalid email or token.")
-rest_framework.exceptions.ParseError: Invalid email or token.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
-    raise ParseError("Invalid email or token.")
-rest_framework.exceptions.ParseError: Invalid email or token.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
-    raise ParseError("Invalid email or token.")
-rest_framework.exceptions.ParseError: Invalid email or token.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-failed-auth cap unavailable, event written uncapped: ConnectionError
-.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-....Cannot activate automatic trial for user door.signed.in@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-..Cannot activate automatic trial for user admin.site@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1542, in register
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+
+
+django.request ERROR 2026-09-30 14:36:29,075 log 3410923 126518530309056 [request_id=-] Internal Server Error: /api/v1/auth/register
+
+
+.Cannot activate automatic trial for user admin.site@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 .API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1894, in google_auth
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1894, in google_auth
     return self._google_auth(request)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1917, in _google_auth
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1917, in _google_auth
     raise ParseError("Authorization code is required")
 rest_framework.exceptions.ParseError: Authorization code is required
 API Exception
@@ -68,7 +210,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1542, in register
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1542, in register
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -78,7 +220,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1760, in register_school_admin
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1760, in register_school_admin
     raise ValidationError(serializer.errors)
 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This field is required.', code='required')], 'token': [ErrorDetail(string='This field is required.', code='required')], 'password': [ErrorDetail(string='This field is required.', code='required')]}
 API Exception
@@ -86,7 +228,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1608, in register_student
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1608, in register_student
     raise ValidationError(serializer.errors)
 rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='This field is required.', code='required')], 'last_name': [ErrorDetail(string='This field is required.', code='required')], 'password': [ErrorDetail(string='This field is required.', code='required')], 'token': [ErrorDetail(string='This field is required.', code='required')]}
 API Exception
@@ -94,7 +236,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1137, in reset_password
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1137, in reset_password
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -104,7 +246,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 807, in verify
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 807, in verify
     raise ParseError("Email and Token are required.")
 rest_framework.exceptions.ParseError: Email and Token are required.
 API Exception
@@ -430,7 +572,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/classrooms/views.py", line 1554, in handle_expired_token
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/classrooms/views.py", line 1554, in handle_expired_token
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -715,10 +857,10 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1894, in google_auth
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1894, in google_auth
     return self._google_auth(request)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1917, in _google_auth
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1917, in _google_auth
     raise ParseError("Authorization code is required")
 rest_framework.exceptions.ParseError: Authorization code is required
 API Exception
@@ -737,7 +879,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 945, in otp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 945, in otp
     raise ParseError(
 rest_framework.exceptions.ParseError: Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`
 API Exception
@@ -745,7 +887,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1542, in register
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1542, in register
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -755,7 +897,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1760, in register_school_admin
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1760, in register_school_admin
     raise ValidationError(serializer.errors)
 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This field is required.', code='required')], 'token': [ErrorDetail(string='This field is required.', code='required')], 'password': [ErrorDetail(string='This field is required.', code='required')]}
 API Exception
@@ -763,7 +905,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1608, in register_student
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1608, in register_student
     raise ValidationError(serializer.errors)
 rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='This field is required.', code='required')], 'last_name': [ErrorDetail(string='This field is required.', code='required')], 'password': [ErrorDetail(string='This field is required.', code='required')], 'token': [ErrorDetail(string='This field is required.', code='required')]}
 API Exception
@@ -782,7 +924,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1137, in reset_password
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1137, in reset_password
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -792,7 +934,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 807, in verify
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 807, in verify
     raise ParseError("Email and Token are required.")
 rest_framework.exceptions.ParseError: Email and Token are required.
 API Exception
@@ -1902,7 +2044,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/classrooms/views.py", line 263, in create_with_admin
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/classrooms/views.py", line 263, in create_with_admin
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -1963,7 +2105,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/classrooms/views.py", line 248, in destroy
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/classrooms/views.py", line 248, in destroy
     school = self.get_object()
              ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -2308,7 +2450,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 350, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 350, in create
     return super().create(request, *args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 18, in create
@@ -2339,7 +2481,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 329, in partial_update
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 329, in partial_update
     instance = self.get_object()
                ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -2386,7 +2528,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1287, in change_password
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1287, in change_password
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -2400,7 +2542,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1452, in logout
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1452, in logout
     raise ParseError("Refresh token is required.") from KeyError
 rest_framework.exceptions.ParseError: Refresh token is required.
 API Exception
@@ -2408,7 +2550,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 2360, in cancel
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 2360, in cancel
     raise NotFound("Tracked task not found for this user.")
 rest_framework.exceptions.NotFound: Tracked task not found for this user.
 API Exception
@@ -2426,7 +2568,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 2413, in cancel_session
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 2413, in cancel_session
     session = get_object_or_404(
               ^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
@@ -2587,7 +2729,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 2812, in transfer
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 2812, in transfer
     waitlist_user = self.get_object()
                     ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -2659,7 +2801,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/students/views.py", line 689, in partial_update
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 689, in partial_update
     raise ParseError("raw_input is required.")
 rest_framework.exceptions.ParseError: raw_input is required.
 API Exception
@@ -2733,7 +2875,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/students/views.py", line 731, in update_async
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/students/views.py", line 731, in update_async
     raise ParseError("raw_input is required.")
 rest_framework.exceptions.ParseError: raw_input is required.
 API Exception
@@ -2765,11 +2907,11 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/views.py", line 246, in create_custom_license
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/views.py", line 246, in create_custom_license
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
-rest_framework.exceptions.ValidationError: {'name': [ErrorDetail(string='"CUSTOM_LICENSE_1790777248" is not a valid choice.', code='invalid_choice')]}
+rest_framework.exceptions.ValidationError: {'name': [ErrorDetail(string='"CUSTOM_LICENSE_1790778990" is not a valid choice.', code='invalid_choice')]}
 API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
@@ -2936,7 +3078,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 242, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 242, in create
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3008,7 +3150,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 314, in add_teachers
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 314, in add_teachers
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3035,7 +3177,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 881, in cancel
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 881, in cancel
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3062,7 +3204,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 578, in change_plan
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 578, in change_plan
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3089,7 +3231,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 847, in convert_to_offline
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 847, in convert_to_offline
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3116,7 +3258,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 811, in convert_to_stripe
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 811, in convert_to_stripe
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3143,7 +3285,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 909, in grant_teacher_overage
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 909, in grant_teacher_overage
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3170,7 +3312,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 702, in purchase_overage
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 702, in purchase_overage
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3197,7 +3339,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 365, in remove_teachers
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 365, in remove_teachers
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3224,7 +3366,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 779, in renew_offline
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 779, in renew_offline
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3251,7 +3393,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 949, in setup_payment_method
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 949, in setup_payment_method
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3278,7 +3420,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_views.py", line 632, in update_seats
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_views.py", line 632, in update_seats
     license_sub = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3469,7 +3611,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/views.py", line 849, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/views.py", line 849, in create
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3479,7 +3621,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/views.py", line 1291, in purchase_overage
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/views.py", line 1291, in purchase_overage
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3489,7 +3631,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/views.py", line 1243, in select_plan
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/views.py", line 1243, in select_plan
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3499,7 +3641,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/views.py", line 2531, in custom_ai_prompt
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/views.py", line 2531, in custom_ai_prompt
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3591,7 +3733,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/views_admin_credits.py", line 124, in grant
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/views_admin_credits.py", line 124, in grant
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3611,7 +3753,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_overage_offline_views.py", line 106, in approve
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_overage_offline_views.py", line 106, in approve
     request_obj = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3638,7 +3780,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/license_overage_offline_views.py", line 134, in reject
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/license_overage_offline_views.py", line 134, in reject
     request_obj = self.get_object()
                   ^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
@@ -3655,14 +3797,14 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/qa_time_travel.py", line 983, in post
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/qa_time_travel.py", line 983, in post
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
 rest_framework.exceptions.ValidationError: {'subscription_type': [ErrorDetail(string='This field is required.', code='required')], 'subscription_id': [ErrorDetail(string='This field is required.', code='required')]}
 
 
-django.request ERROR 2026-09-30 14:07:29,354 log 3348617 128557077949376 [request_id=90846ede634b47e2b6b9fe5a7c9d8e91] Internal Server Error: /api/v1/qa/console/subscriber
+django.request ERROR 2026-09-30 14:36:30,544 log 3410923 126518530309056 [request_id=26b9be79f3ac4d11b28b3c0e19fbbdc9] Internal Server Error: /api/v1/qa/console/subscriber
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
@@ -3671,19 +3813,19 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
     response = wrapped_callback(request, *callback_args, **callback_kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/qa_console.py", line 132, in _wrapped
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/qa_console.py", line 132, in _wrapped
     return view_func(request, *args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/views/decorators/http.py", line 64, in inner
     return func(request, *args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/qa_console.py", line 467, in qa_console_new_subscriber
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/qa_console.py", line 467, in qa_console_new_subscriber
     plan = _monthly_plan()
            ^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/qa_console.py", line 208, in _monthly_plan
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/qa_console.py", line 208, in _monthly_plan
     return require_plan(tier=PlanTier.STANDARD, interval=BillingInterval.MONTHLY)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/billing/stripe_live_qa.py", line 366, in require_plan
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/billing/stripe_live_qa.py", line 366, in require_plan
     raise LiveQAConfigurationError(
 billing.stripe_live_qa.LiveQAConfigurationError: No active INDIVIDUAL STANDARD/MONTHLY plan with a stripe_price_id exists. The live-QA suite needs real plans wired to real Stripe test prices — seed them before running.
 API Exception
@@ -3691,7 +3833,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/dashboard/views.py", line 1163, in custom_ai_prompt
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/dashboard/views.py", line 1163, in custom_ai_prompt
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
@@ -3718,207 +3860,19 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
     raise exceptions.PermissionDenied(detail=message, code=code)
 rest_framework.exceptions.PermissionDenied: You must be a teacher to access this endpoint.
-..API Exception
+...API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1542, in register
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/views.py", line 1542, in register
     serializer.is_valid(raise_exception=True)
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
     raise ValidationError(self.errors)
 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='Enter a valid email address.', code='invalid')], 'password': [ErrorDetail(string='This password is too short. It must contain at least 8 characters.', code='password_too_short'), ErrorDetail(string='This password is too common.', code='password_too_common')]}
 .Cannot activate automatic trial for user route.coverage.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user change.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user change.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1296, in change_password
-    raise ParseError("Incorrect current password. Please try again.")
-rest_framework.exceptions.ParseError: Incorrect current password. Please try again.
-.Cannot activate automatic trial for user g.door@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1894, in google_auth
-    return self._google_auth(request)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 2057, in _google_auth
-    raise AuthenticationFailed(
-rest_framework.exceptions.AuthenticationFailed: This account has been deactivated. Please contact support.
-.Google OAuth token exchange failed
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1932, in _google_auth
-    response = http_requests.post(token_url, data=payload)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
-    return self._mock_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
-    return self._execute_mock_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
-    raise effect
-requests.exceptions.ConnectionError: dns
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1932, in _google_auth
-    response = http_requests.post(token_url, data=payload)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
-    return self._mock_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
-    return self._execute_mock_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
-    raise effect
-requests.exceptions.ConnectionError: dns
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1894, in google_auth
-    return self._google_auth(request)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1938, in _google_auth
-    raise ParseError(
-rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
-.Cannot activate automatic trial for user g.door@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
-.API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1894, in google_auth
-    return self._google_auth(request)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1962, in _google_auth
-    raise ParseError("Google has not verified your email")
-rest_framework.exceptions.ParseError: Google has not verified your email
-.Cache backend ConnectionProxy has no delete_pattern(); wildcard cache invalidation is disabled for this process. Cached responses will serve stale data until they expire, including for users whose access was just revoked.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1780, in register_school_admin
-    raise ParseError("Invalid or expired activation token.")
-rest_framework.exceptions.ParseError: Invalid or expired activation token.
-..register_student failed attempt
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1626, in register_student
-    raise ParseError("Invalid or expired activation token")
-rest_framework.exceptions.ParseError: Invalid or expired activation token
-.Cannot activate automatic trial for user reset.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user reset.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user reset.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1187, in reset_password
-    raise ParseError("Invalid email, OTP code, or new password.")
-rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1187, in reset_password
-    raise ParseError("Invalid email, OTP code, or new password.")
-rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1187, in reset_password
-    raise ParseError("Invalid email, OTP code, or new password.")
-rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1187, in reset_password
-    raise ParseError("Invalid email, OTP code, or new password.")
-rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
-password_reset_otp_locked
-.Cannot activate automatic trial for user reset.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Exception
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1155, in reset_password
-    raise ParseError("Invalid email, OTP code, or new password.") from Exception
-rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
-.Cannot activate automatic trial for user reset.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 1187, in reset_password
-    raise ParseError("Invalid email, OTP code, or new password.")
-rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
-.Cannot activate automatic trial for user verify.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
-    raise ParseError("Invalid email or token.")
-rest_framework.exceptions.ParseError: Invalid email or token.
-.Cannot activate automatic trial for user verify.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 820, in verify
-    raise ParseError("Activation link has expired.")
-rest_framework.exceptions.ParseError: Activation link has expired.
-.Cannot activate automatic trial for user verify.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-.Cannot activate automatic trial for user verify.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-audit event store_failed: action=AUTH_LOGIN detail=RuntimeError
-.API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
-    raise ParseError("Invalid email or token.")
-rest_framework.exceptions.ParseError: Invalid email or token.
-.Cannot activate automatic trial for user verify.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-API Exception
-Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
-    raise ParseError("Invalid email or token.")
-rest_framework.exceptions.ParseError: Invalid email or token.
-.Cannot activate automatic trial for user scope.t.a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+................Cannot activate automatic trial for user gone@example.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.........Cannot activate automatic trial for user scope.t.a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 Cannot activate automatic trial for user scope.t.b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 API Exception
 Traceback (most recent call last):
@@ -3933,7 +3887,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
     value = self.validate(value)
             ^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/serializers.py", line 487, in validate
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/serializers.py", line 487, in validate
     data = super().validate(attrs)
            ^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
@@ -3957,7 +3911,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
     value = self.validate(value)
             ^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/serializers.py", line 487, in validate
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/serializers.py", line 487, in validate
     data = super().validate(attrs)
            ^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
@@ -3981,7 +3935,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
     value = self.validate(value)
             ^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/serializers.py", line 487, in validate
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/serializers.py", line 487, in validate
     data = super().validate(attrs)
            ^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
@@ -4005,7 +3959,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
     value = self.validate(value)
             ^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/serializers.py", line 487, in validate
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/serializers.py", line 487, in validate
     data = super().validate(attrs)
            ^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
@@ -4027,7 +3981,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
     value = self.validate(value)
             ^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/serializers.py", line 487, in validate
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/users/serializers.py", line 487, in validate
     data = super().validate(attrs)
            ^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
@@ -4205,7 +4159,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 424, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 424, in create
     raise ValidationError("refused after a named event")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused after a named event', code='invalid')]
 .Cannot activate automatic trial for user rb.savepoint@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4214,7 +4168,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 421, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 421, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 .Cannot activate automatic trial for user rb.savepoint@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4224,7 +4178,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 523, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 523, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 .Cannot activate automatic trial for user rb.savepoint@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4233,7 +4187,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 472, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 472, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 .Cannot activate automatic trial for user rb.savepoint@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4242,17 +4196,16 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 472, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 472, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
-.Cannot activate automatic trial for user cap.race.4cb7529f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-......Cannot activate automatic trial for user rb.commit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+........................................Cannot activate automatic trial for user rb.commit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 424, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 424, in create
     raise ValidationError("refused after a named event")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused after a named event', code='invalid')]
 .Cannot activate automatic trial for user rb.commit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4261,7 +4214,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 421, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 421, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 .Cannot activate automatic trial for user rb.commit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4271,7 +4224,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 523, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 523, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 .Cannot activate automatic trial for user rb.commit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4280,7 +4233,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 472, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 472, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 .Cannot activate automatic trial for user rb.commit@example.com (validation): Free trial plan not found. Please create one in the admin panel.
@@ -4289,16 +4242,16 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_state_change.py", line 472, in create
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s2/audit/tests_state_change.py", line 472, in create
     raise ValidationError("refused")
 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
 ....
 ----------------------------------------------------------------------
-Ran 83 tests in 5.644s
+Ran 228 tests in 5.324s
 
 OK
 Destroying test database for alias 'default'...
-Found 83 test(s).
+Found 228 test(s).
 
   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
 

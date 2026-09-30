@@ -243,7 +243,11 @@ METADATA_ALLOWLIST = {
     AuditAction.ADMIN_ACTION: frozenset({"source"}),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields"}),
-    AuditAction.STATE_CHANGE: frozenset({"route", "method", "http_status"}),
+    # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
+    # summarised under its own action.
+    AuditAction.STATE_CHANGE: frozenset(
+        {"route", "method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
+    ),
     AuditAction.ACCOUNT_REGISTER: frozenset(
         {"auth_method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
     ),

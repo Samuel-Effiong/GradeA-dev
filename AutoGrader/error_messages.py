@@ -62,10 +62,14 @@ def _passthrough_message(error):
     """The verbatim message for a known user-authored exception, or None.
     InsufficientCreditsError is the exception: its text can carry internal
     billing state, so every one gets the same fixed message."""
+    from AutoGrader.reason_codes import CodedError
     from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 
     if isinstance(error, InsufficientCreditsError):
         return INSUFFICIENT_CREDITS_MESSAGE
+    if isinstance(error, CodedError):
+        # Rendered from the spec and whitelisted params only (QA-ERR-03).
+        return error.message
     if isinstance(error, _user_facing_exception_types()):
         message = str(error).strip()
         if message:
@@ -76,7 +80,15 @@ def _passthrough_message(error):
 def is_user_facing_error(error):
     """True when `error` is one of the exceptions written to be shown to a
     user - i.e. a refusal of the request, not a server fault. Views use
-    this to answer 4xx instead of 500."""
+    this to answer 4xx instead of 500.
+
+    A coded failure (FR-A-06) is user-facing when the user can act on it:
+    its error class is USER or VALIDATION. A PROVIDER failure is not."""
+    from audit.enums import ErrorClass
+    from AutoGrader.reason_codes import CodedError
+
+    if isinstance(error, CodedError):
+        return error.spec.error_class in (ErrorClass.USER, ErrorClass.VALIDATION)
     return isinstance(error, _user_facing_exception_types())
 
 

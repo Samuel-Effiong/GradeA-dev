@@ -45,10 +45,12 @@ from django.conf import settings
 from django.core.cache import cache
 
 from . import metrics as audit_metrics
+from .enums import ReasonCode
 
 logger = logging.getLogger(__name__)
 
-FAILED_AUTH_CAPPED = "FAILED_AUTH_CAPPED"
+# Audit-only, in the FR-A-06 catalogue (S6a's emitter refuses codes outside it).
+FAILED_AUTH_CAPPED = ReasonCode.FAILED_AUTH_CAPPED.value
 CAP_TARGET = "target"
 CAP_GLOBAL = "global"
 
@@ -95,14 +97,17 @@ def _is_threshold(n):
     return n == 1
 
 
-def admit(target_id) -> Verdict:
-    """Decide whether one capped-scope failure may be written. `target_id` is
-    the targeted account's id, or None."""
+def admit(target_id, *, global_cap=True) -> Verdict:
+    """Decide whether one capped-scope event may be written. `target_id` is
+    the targeted account's id, or None. `global_cap=False` (a DENIED lock
+    event) applies the per-target floor and cap only."""
     try:
         seconds, bucket = _window()
         ttl = seconds * 2
         prefix = f"audit:failed_auth:{bucket}"
-        global_count = _count(f"{prefix}:global", ttl)
+        global_count = _count(f"{prefix}:global", ttl) if global_cap else 0
+        if not global_cap and target_id is None:
+            return WRITE
 
         if target_id is not None:
             target_count = _count(f"{prefix}:target:{target_id}", ttl)

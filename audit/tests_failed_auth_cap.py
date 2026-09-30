@@ -136,7 +136,7 @@ class FailedAuthCapTests(TestCase):
         self.assertEqual(summary.metadata["cap"], "global")
         self.assertEqual(summary.metadata["limit"], 6)
 
-    def test_successes_and_lock_denials_are_never_capped(self):
+    def test_successes_are_never_capped(self):
         for _ in range(10):
             fail(self.account)
 
@@ -146,10 +146,60 @@ class FailedAuthCapTests(TestCase):
             target_type="CustomUser",
             target_id=self.account.pk,
         )
-        fail(self.account, outcome=AuditOutcome.DENIED)
 
         self.assertTrue(individual().filter(outcome=AuditOutcome.SUCCESS).exists())
-        self.assertTrue(individual().filter(outcome=AuditOutcome.DENIED).exists())
+
+    def test_lock_denials_get_the_floor_then_the_per_target_cap(self):
+        """SM ruling on v2's flag: the lock stays visible (its first events
+        are always written) and lock-then-spray is bounded."""
+        for _ in range(4 + 1):
+            fail(self.account, outcome=AuditOutcome.DENIED)
+
+        self.assertEqual(individual().filter(outcome=AuditOutcome.DENIED).count(), 4)
+        summary = summaries().get()
+        self.assertEqual(summary.outcome, AuditOutcome.DENIED)
+        self.assertEqual(summary.metadata["cap"], "target")
+
+    def test_lock_denials_are_not_under_the_global_cap(self):
+        for _ in range(6 + 3):
+            fail(target=None)  # spend the global cap
+        fail(self.account, outcome=AuditOutcome.DENIED)
+        fail(self.account, outcome=AuditOutcome.DENIED)
+        fail(self.account, outcome=AuditOutcome.DENIED)
+
+        self.assertEqual(individual().filter(outcome=AuditOutcome.DENIED).count(), 3)
+
+    def test_an_anonymous_crash_is_capped_in_the_global_bucket(self):
+        """S2's SERVER_ERROR (SM ruling): under the caps, no target."""
+        for _ in range(6 + 1):
+            emit(
+                AuditAction.STATE_CHANGE,
+                actor=AnonymousUser(),
+                target_type="View",
+                target_id=uuid.uuid4(),
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.SYSTEM,
+                reason_code="SERVER_ERROR",
+                metadata={
+                    "route": "some-open-route",
+                    "method": "POST",
+                    "http_status": 500,
+                },
+            )
+
+        self.assertEqual(individual().count(), 6)
+        summary = summaries().get()
+        self.assertEqual(summary.action, AuditAction.STATE_CHANGE)
+        self.assertEqual(summary.metadata["cap"], "global")
+        self.assertIsNone(summary.target_id)
+        self.assertEqual(summary.error_class, ErrorClass.SYSTEM)
+
+    def test_the_summary_code_is_in_the_catalogue(self):
+        """S6a's emitter refuses codes outside audit.enums.ReasonCode."""
+        from audit.enums import ReasonCode
+        from AutoGrader.reason_codes import AUDIT_ONLY_CODES
+
+        self.assertIn(ReasonCode(FAILED_AUTH_CAPPED), AUDIT_ONLY_CODES)
 
     def test_a_signed_in_requesters_failures_are_never_capped(self):
         """v2's H2: change-password failures; suppressing one would make S1's

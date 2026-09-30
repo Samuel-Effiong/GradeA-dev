@@ -61,15 +61,32 @@ MUTANTS = {
         "        cache.set(key, value, timeout=timeout)\n"
         "        return value\n",
     ),
-    "E1_successes_and_denials_capped": (
+    "E1_successes_capped": (
         EM,
-        '        and fields.get("outcome") == AuditOutcome.FAILURE.value\n',
-        "",
+        "    if outcome == AuditOutcome.FAILURE.value:\n"
+        '        return fields.get("target_id"), True\n',
+        "    if True:\n" '        return fields.get("target_id"), True\n',
     ),
     "E2_signed_in_requesters_capped": (
         EM,
-        '        and fields.get("actor_role") == ActorRole.ANONYMOUS.value\n',
+        '    if fields.get("actor_role") != ActorRole.ANONYMOUS.value:\n'
+        "        return None\n",
         "",
+    ),
+    "E4_lock_denials_under_the_global_cap": (
+        EM,
+        '        return fields.get("target_id"), False\n',
+        '        return fields.get("target_id"), True\n',
+    ),
+    "E5_lock_denials_uncapped": (
+        EM,
+        "    if outcome == AuditOutcome.DENIED.value:\n",
+        "    if False:\n",
+    ),
+    "E6_crashes_uncapped": (
+        EM,
+        "        return None, True\n",
+        "        return None\n",
     ),
     "E3_suppression_not_marked": (
         EM,
