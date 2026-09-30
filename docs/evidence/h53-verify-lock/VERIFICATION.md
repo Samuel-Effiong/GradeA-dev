@@ -58,3 +58,13 @@ Please add one test that pins both timeouts to `VERIFY_EMAIL_LOCK_SECONDS`. For 
   - `users.tests_verify_email_budget` plus my probes: **19 OK**;
   - the real-Redis burst is still exactly 5 × 400 and 15 × 429, with both TTLs at 1800.
 - **My mutants:** **N2** (attempt window 60 s) and **N3** (lock entry 60 s) are now **killed by ed's `test_both_windows_last_the_whole_lock_period`**, as well as by my probe. All restores were sha-checked. **N1 is closed.**
+
+## Re-verification: N4 (rebase) @ d883ce5. Verification Engineer 1a, 2026-09-30
+**Verdict for d883ce5 (task/h53-verify-lock-2, on beta 755aa27): VERIFIED-WITH-NOTES.** Nothing is required. N4 is closed.
+
+- **Rebase integrity:** d883ce5 is one commit on 755aa27. Its tree is **identical** to an independent 3-way apply of the verified range `e7e4bdf..2eb80cf` onto 755aa27 (`git merge-tree --merge-base=e7e4bdf 755aa27 2eb80cf`), except for the one conflict, in the `users/views.py` imports. ed resolved it by keeping both beta's `import math` and H-53's `import time`, which is correct. The squash dropped the superseded WIP history; no content is lost.
+- **Combined tree** (`systemd-run` 6G, nice, timeout):
+  - `users.tests_verify_email_budget` plus my probes: **19 OK**. The real-Redis burst still gives 5 × 400 and 15 × 429; both TTLs are 1800.
+  - My N1 (non-atomic counter), N2 (60 s attempt window) and N3 (60 s lock entry) are all **killed** by ed's tests as well as my probes.
+  - `users` app: **Ran 647, OK (skipped=4)**.
+- **Composition with H-43 (bundle 3):** a trial merge of d883ce5 into bundle 3 (28c4b03) has **no conflict**. In `AuthViewSet.otp`, the locked `VERIFY_EMAIL` branch skips the send and falls through to the single `{"detail": OTP_SENT_DETAIL}` 202, so a locked address gets the same bytes as every other 202. I'll confirm this by test on the bundle tip.
