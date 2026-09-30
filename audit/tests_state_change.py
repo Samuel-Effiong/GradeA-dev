@@ -438,12 +438,40 @@ class RolledBackNamedEventMixin(_MixinBase):
     one event - the generic one - not zero."""
 
     def post_with(self, keep_event):
+        return self.post_as_session_create(_emit_then_refuse(keep_event))
+
+    def post_as_session_create(self, create):
         from classrooms.views import SessionViewSet
 
-        with patch.object(SessionViewSet, "create", _emit_then_refuse(keep_event)):
+        with patch.object(SessionViewSet, "create", create):
             return self.client.post(
                 reverse("session-list"), {"name": "T1"}, format="json"
             )
+
+    def kept_and_gone(self, kept_first):
+        """1a's two-event cases (their N1): two named events in one request,
+        exactly one of which survives, in either order."""
+        from django.db import transaction
+        from rest_framework.exceptions import ValidationError
+
+        from audit.emitter import emit
+
+        def create(view, request, *args, **kwargs):
+            if kept_first:
+                emit(AuditAction.DATA_EXPORT, actor=request.user, target_type="Kept")
+            try:
+                with transaction.atomic():
+                    emit(
+                        AuditAction.DATA_EXPORT, actor=request.user, target_type="Gone"
+                    )
+                    raise RuntimeError("inner block rolls back")
+            except RuntimeError:
+                pass
+            if not kept_first:
+                emit(AuditAction.DATA_EXPORT, actor=request.user, target_type="Kept")
+            raise ValidationError("refused")
+
+        return create
 
     def test_a_rolled_back_named_event_leaves_exactly_the_generic_one(self):
         response = self.post_with(keep_event=False)
@@ -462,6 +490,52 @@ class RolledBackNamedEventMixin(_MixinBase):
             list(AuditEvent.objects.values_list("action", flat=True)),
             [AuditAction.DATA_EXPORT],
         )
+
+    def test_the_first_event_survives_and_the_second_is_rolled_back(self):
+        self.post_as_session_create(self.kept_and_gone(kept_first=True))
+
+        self.assertEqual(
+            list(AuditEvent.objects.values_list("action", "target_type")),
+            [(AuditAction.DATA_EXPORT, "Kept")],
+        )
+
+    def test_the_first_event_is_rolled_back_and_the_second_survives(self):
+        self.post_as_session_create(self.kept_and_gone(kept_first=False))
+
+        self.assertEqual(
+            list(AuditEvent.objects.values_list("action", "target_type")),
+            [(AuditAction.DATA_EXPORT, "Kept")],
+        )
+
+    def test_an_event_naming_someone_else_does_not_stand_in(self):
+        """V1 (v2): a surviving event whose actor is another user (a
+        teacher's credit grant during an admin's write) is a side effect,
+        not the requester's trace, so the generic event is still written,
+        naming the requester."""
+        from rest_framework.exceptions import ValidationError
+
+        from audit.emitter import emit
+
+        other = make_user("rb.someone.else@example.com")
+
+        def create(view, request, *args, **kwargs):
+            emit(AuditAction.DATA_EXPORT, actor=other, target_type="SideEffect")
+            raise ValidationError("refused")
+
+        self.post_as_session_create(create)
+
+        rows = list(
+            AuditEvent.objects.order_by("occurred_at").values_list("action", "actor_id")
+        )
+        requester = AuditEvent.objects.get(action=AuditAction.STATE_CHANGE).actor_id
+        self.assertEqual(
+            rows,
+            [
+                (AuditAction.DATA_EXPORT, other.pk),
+                (AuditAction.STATE_CHANGE, requester),
+            ],
+        )
+        self.assertNotEqual(requester, other.pk)
 
 
 @override_settings(CACHES=LOCMEM_CACHE)
@@ -498,10 +572,10 @@ class SurvivalCheckFailsSafeTests(SimpleTestCase):
         with patch.object(
             AuditEvent.objects, "filter", side_effect=DatabaseError("db down")
         ):
-            self.assertFalse(audit_context.a_stored_event_survives(state))
+            self.assertFalse(audit_context.a_surviving_event_names(state, None))
 
     def test_no_stored_event_needs_no_query(self):
         state = audit_context.RequestAuditState()
         with patch.object(AuditEvent.objects, "filter") as query:
-            self.assertFalse(audit_context.a_stored_event_survives(state))
+            self.assertFalse(audit_context.a_surviving_event_names(state, None))
         query.assert_not_called()

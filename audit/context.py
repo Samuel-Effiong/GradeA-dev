@@ -108,16 +108,25 @@ def record_stored_event(event_id) -> None:
         state.stored_event_ids.append(event_id)
 
 
-def a_stored_event_survives(state) -> bool:
-    """Whether any event stored during the request still exists. One stored in
-    an atomic block that later rolled back is gone with it. On any error this
-    answers False, so the generic event is written: a second event is better
-    than none."""
+def a_surviving_event_names(state, user) -> bool:
+    """Whether an event stored during the request still exists AND names
+    `user` (the requester) as its actor.
+
+    - One stored in an atomic block that later rolled back is gone with it
+      (R1).
+    - One that names someone else does not count (V1): a school admin's
+      add_teachers stores the TEACHER's CREDIT_TRANSACTION (the wallet owner
+      is its actor), and that must not stand in for the admin's own trace.
+
+    On any error this answers False, so the generic event is written: a
+    second event is better than none."""
     if not state.stored_event_ids:
         return False
     try:
         from .models import AuditEvent
 
-        return AuditEvent.objects.filter(pk__in=state.stored_event_ids).exists()
+        return AuditEvent.objects.filter(
+            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)
+        ).exists()
     except Exception:  # noqa: BLE001 - never fail the response
         return False
