@@ -73,10 +73,10 @@ STARTED grading task.
 
 | Gate | Result | Log |
 |---|---|---|
-| Reproduce-first on abeda10 (routes + tasks reverted) | see log | `prefix_abeda10_failing.txt` |
-| Changed modules and all repo-wide guards present on beta | see log | `changed_modules.txt` |
-| Mutation (M1–M8) | see log | `mutation_log.txt`, `mutation_results.json` |
-| ONE owning-app regression: billing | see log | `regression_billing.txt` |
+| Reproduce-first on abeda10 (routes + tasks reverted) | 14 FAIL + 2 ERROR of 14 tests, as expected. T2's 200 body carries the sentinel student name; T3 left the task CANCELLED; the beat dispatched. Both ERRORs are `ImportError: COURSE_NOT_REACHABLE`, the new constant. The two controls pass on the prefix. | `prefix_abeda10_failing.txt` |
+| Changed modules and all repo-wide guards present on beta | 126 tests OK | `changed_modules.txt` |
+| Mutation (M1–M8) | 8/8 killed, 0 survivors, source clean after | `mutation_log.txt`, `mutation_results.json` |
+| ONE owning-app regression: `users assignments` in one run (0b's call: the changed code lives there; billing's H-38 modules are in the changed set) | 1281 tests OK (17 skipped), 336 s | `regression_users_assignments.txt` (trimmed; full log in GAP-evidence-logs) |
 | `pre-commit run mypy --all-files`, `makemigrations --check` | pass (at commit) | n/a |
 
 The changed set follows rule 15 addendum 2. It includes every repo-wide guard
