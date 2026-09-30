@@ -125,3 +125,24 @@ This branch edits the same file elsewhere (cancel, update_seats, convert).
 | Mutation (A1–A11 for H-60, B1–B6 for H-57) | see log | `mutation_log.txt`, `mutation_results.json` |
 | ONE owning-app regression: billing | see log | `regression_billing.txt` |
 | `pre-commit run mypy --all-files`, `makemigrations --check` | pass | n/a |
+
+## Behaviour change: four H-28 tests pinned Stripe's text
+
+Run 1 (at 230be2d) stopped at changed modules. 203 of 207 tests passed.
+The 4 failures were H-28 tests whose expected client message contained
+Stripe's own text, which is the disclosure H-60 removes. Each now asserts
+the fixed message. The detail it used to find in the message is asserted
+on the intent's `failure_reason` instead, where H-28's reconciliation reads
+it and where Stripe's text still goes. Every other assertion is untouched:
+the revert, the void, the guard and the intent state.
+
+| Test | Old expected message | New expected message | Detail now asserted on the intent |
+|---|---|---|---|
+| test_h28_seat_phases `test_F5_a_card_error_is_not_taken_as_a_refusal` | "card error" (from `f"… ({why})"`) | "Seat increase payment failed" | `"card error" in failure_reason` |
+| test_h28_seat_phases `test_the_licence_stays_guarded_while_a_card_error_is_undone` | "card error" | "Seat increase payment failed" | `"card error" in failure_reason` |
+| test_h28_seat_phases `test_with_no_new_invoice_an_older_open_one_is_left_alone` | "card error" | "Seat increase payment failed" | `"card error" in failure_reason` |
+| test_h28_cancel_phases `test_a_lost_response_that_did_not_land_is_read_back_and_failed` | "Request timed out" (Stripe's exception text) | "Failed to schedule Stripe cancellation" | `"Request timed out" in failure_reason` |
+
+The refusals themselves are unchanged. The same exception type is raised
+at the same point, and the intent ends in the same state. Only the client
+wording changed. The stopped log is `changed_modules_run1_stopped_230be2d.txt`.

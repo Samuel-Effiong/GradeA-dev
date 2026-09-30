@@ -150,10 +150,12 @@ class SeatPhaseTests(LicencePhaseTestCase):
         merely reported."""
         self.stripe.card_error_on_modify = True
 
-        with self.assertRaisesRegex(ValueError, "card error"):
+        # H-60: the client sees fixed text; the card error is on the intent.
+        with self.assertRaisesRegex(ValueError, "Seat increase payment failed"):
             self.update_seats(self.SEATS + 5)
 
         self._assert_reverted_and_voided(self.only_intent())
+        self.assertIn("card error", self.only_intent().failure_reason)
 
     def test_the_licence_stays_guarded_while_a_card_error_is_undone(self):
         """A CardError is not a refusal: the intent stays in flight (so the
@@ -172,11 +174,12 @@ class SeatPhaseTests(LicencePhaseTestCase):
         with patch.object(
             LicenceStripe, "modify_subscription", side_effect=revert_while_checking
         ):
-            with self.assertRaisesRegex(ValueError, "card error"):
+            with self.assertRaisesRegex(ValueError, "Seat increase payment failed"):
                 self.update_seats(self.SEATS + 5)
 
         self.assertEqual(seen, [LicenseStripeMutationStatus.PENDING])
         self.assertEqual(self.only_intent().status, LicenseStripeMutationStatus.FAILED)
+        self.assertIn("card error", self.only_intent().failure_reason)
 
     def test_with_no_new_invoice_an_older_open_one_is_left_alone(self):
         """A declined change that raised no invoice of its own: the older
@@ -199,9 +202,10 @@ class SeatPhaseTests(LicencePhaseTestCase):
         with patch.object(
             LicenceStripe, "modify_subscription", side_effect=decline_before_invoicing
         ):
-            with self.assertRaisesRegex(ValueError, "card error"):
+            with self.assertRaisesRegex(ValueError, "Seat increase payment failed"):
                 self.update_seats(self.SEATS + 5)
 
+        self.assertIn("card error", self.only_intent().failure_reason)
         self.assertEqual(self.stripe.invoices["in_h28_renewal"]["status"], "open")
         self.assertEqual(self.void_calls(), [])
 
