@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
+from audit import history
+
 from .models import (
     BetaWhitelist,
     CustomUser,
@@ -94,14 +96,16 @@ class CustomUserAdmin(UserAdmin):
     @admin.action(description="Mark selected users as active")
     def activate_users(self, request, queryset):
         users = list(queryset.only("pk", "school_id"))
-        updated = queryset.update(is_active=True)
+        # Epic A S4: one PERMISSION_CHANGE per user actually changed, naming
+        # the admin who ran the action.
+        updated = history.record_bulk(queryset, is_active=True)
         invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully activated.")
 
     @admin.action(description="Mark selected users as inactive")
     def deactivate_users(self, request, queryset):
         users = list(queryset.only("pk", "school_id"))
-        updated = queryset.update(is_active=False)
+        updated = history.record_bulk(queryset, is_active=False)
         invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully deactivated.")
 

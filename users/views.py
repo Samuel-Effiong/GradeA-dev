@@ -60,6 +60,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
@@ -881,7 +882,10 @@ returns a JWT pair, so the user is signed in straight away.
         user.activation_token = None
         user.activation_expires = None
         user.is_active = True
-        user.save()
+        # Epic A S4 (SM ruling): the activation's PERMISSION_CHANGE names the
+        # account that just proved the code - their own action, not SYSTEM.
+        with history.acting_as(user):
+            user.save()
         clear_verify_failures(email)
 
         safe_delay(sync_user_to_mailerlite, str(user.id))
@@ -1738,7 +1742,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.activation_token = None
                 user.activation_expires = None
                 user.email_verified_at = timezone.now()
-                user.save()
+                # Epic A S4: the invited student who just proved the
+                # invitation code is the actor of their own activation.
+                with history.acting_as(user):
+                    user.save()
 
                 safe_delay(sync_user_to_mailerlite, str(user.id))
 
@@ -1845,7 +1852,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.email_verified_at = timezone.now()
                 user.activation_token = None
                 user.activation_expires = None
-                user.save()
+                # Epic A S4: the invited school admin who just proved the
+                # invitation code is the actor of their own activation.
+                with history.acting_as(user):
+                    user.save()
 
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
@@ -2135,7 +2145,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         resurrected_fields.append("password")
 
                     if resurrected_fields:
-                        user.save(update_fields=resurrected_fields)
+                        # Epic A S4 (SM ruling): the account Google's token
+                        # check just established is the actor of its own
+                        # activation.
+                        with history.acting_as(user):
+                            user.save(update_fields=resurrected_fields)
                         # Only now does this account become a real, usable
                         # one, so this is the first point it should reach
                         # the mailing list (queue_sync no-ops on inactive).
@@ -2162,10 +2176,17 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # and Google has just proven mailbox ownership of
                         # the exact address the teacher invited - strictly
                         # stronger evidence than the emailed code.
-                        promoted = StudentCourse.objects.filter(
-                            student=user,
-                            enrollment_status=EnrollmentStatusType.PENDING,
-                        ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+                        # Epic A S4 (SM R3): one ROSTER_CHANGE per promoted
+                        # enrolment, naming `user` - the account Google's
+                        # token check just established, not request input.
+                        promoted = history.record_bulk(
+                            StudentCourse.objects.filter(
+                                student=user,
+                                enrollment_status=EnrollmentStatusType.PENDING,
+                            ),
+                            actor=user,
+                            enrollment_status=EnrollmentStatusType.ENROLLED,
+                        )
                         if promoted:
                             logger.info(
                                 "Promoted %s pending enrollment(s) to ENROLLED "

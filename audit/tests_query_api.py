@@ -18,6 +18,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from audit import history
 from classrooms.models import School
 
 from .enums import ActorRole, AuditOutcome
@@ -65,34 +66,37 @@ class _TwoSchools(TestCase):
         self.school_a_id = self.school_a.id
         self.school_b_id = self.school_b.id
 
-        self.admin_a = CustomUser.objects.create_user(
-            email="admin.a@example.com",
-            password="testpass123",  # pragma: allowlist secret
-            user_type="SCHOOL_ADMIN",
-            school=self.school_a,
-            is_active=True,
-        )
-        self.admin_b = CustomUser.objects.create_user(
-            email="admin.b@example.com",
-            password="testpass123",  # pragma: allowlist secret
-            user_type="SCHOOL_ADMIN",
-            school=self.school_b,
-            is_active=True,
-        )
-        self.superadmin = CustomUser.objects.create_user(
-            email="root.audit@example.com",
-            password="testpass123",  # pragma: allowlist secret
-            user_type="SUPER_ADMIN",
-            is_active=True,
-            is_staff=True,
-            is_superuser=True,
-        )
-        self.teacher = CustomUser.objects.create_user(
-            email="teacher.audit@example.com",
-            password="testpass123",  # pragma: allowlist secret
-            user_type="TEACHER",
-            is_active=True,
-        )
+        # Epic A S4: these fixture accounts are privileged, so creating them
+        # is itself a PERMISSION_CHANGE; these tests are about something else.
+        with history.suppressed():
+            self.admin_a = CustomUser.objects.create_user(
+                email="admin.a@example.com",
+                password="testpass123",  # pragma: allowlist secret
+                user_type="SCHOOL_ADMIN",
+                school=self.school_a,
+                is_active=True,
+            )
+            self.admin_b = CustomUser.objects.create_user(
+                email="admin.b@example.com",
+                password="testpass123",  # pragma: allowlist secret
+                user_type="SCHOOL_ADMIN",
+                school=self.school_b,
+                is_active=True,
+            )
+            self.superadmin = CustomUser.objects.create_user(
+                email="root.audit@example.com",
+                password="testpass123",  # pragma: allowlist secret
+                user_type="SUPER_ADMIN",
+                is_active=True,
+                is_staff=True,
+                is_superuser=True,
+            )
+            self.teacher = CustomUser.objects.create_user(
+                email="teacher.audit@example.com",
+                password="testpass123",  # pragma: allowlist secret
+                user_type="TEACHER",
+                is_active=True,
+            )
 
         self.event_a = _make_event(school_id=self.school_a_id)
         self.event_b = _make_event(school_id=self.school_b_id)

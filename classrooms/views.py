@@ -1534,15 +1534,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        emit(
-            AuditAction.ROSTER_CHANGE,
-            actor=request.user,
-            request=request,
-            target_type="Course",
-            target_id=course.id,
-            outcome=AuditOutcome.SUCCESS,
-            metadata={"course_id": str(course.id), "student_id": str(student_id)},
-        )
+        # Epic A S4 (SM ruling): the enrolment's history delete event
+        # (audit.history) is this removal's one ROSTER_CHANGE - target the
+        # StudentCourse, metadata course_id + student_id, the teacher as
+        # actor, before {enrollment_status, course_id}.
 
         return Response(
             {"detail": "Student removed from course successfully."},

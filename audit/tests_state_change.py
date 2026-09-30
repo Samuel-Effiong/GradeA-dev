@@ -141,11 +141,20 @@ class ExactlyOneEventTests(APITestCase):
         )
 
     def test_a_superadmin_write_records_only_its_admin_action(self):
-        response = self.post_as(make_superadmin(), reverse("school-list"), {})
+        # Updated on purpose for Epic A S4: creating a superadmin is itself a
+        # PERMISSION_CHANGE (a privileged account), so only the events the
+        # request wrote are compared.
+        admin = make_superadmin()
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+        response = self.post_as(admin, reverse("school-list"), {})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            list(AuditEvent.objects.values_list("action", "outcome")),
+            list(
+                AuditEvent.objects.exclude(pk__in=before).values_list(
+                    "action", "outcome"
+                )
+            ),
             [(AuditAction.ADMIN_ACTION, AuditOutcome.FAILURE)],
         )
 
@@ -382,14 +391,20 @@ class AnonymousFailureScopingTests(APITestCase):
     def test_school_admin_sees_attempts_on_its_own_accounts(self):
         self.failed_login(self.teacher_a)
 
-        rows = self.rows_for(self.admin_a, "school-admin-audit-events")
+        # ?action: since Epic A S4 the admin's own creation (a privileged
+        # account) is a PERMISSION_CHANGE in its school too.
+        rows = self.rows_for(
+            self.admin_a, "school-admin-audit-events", "?action=AUTH_LOGIN"
+        )
 
         self.assertEqual([r["target_id"] for r in rows], [str(self.teacher_a.id)])
 
     def test_school_admin_never_sees_attempts_on_another_schools_accounts(self):
         self.failed_login(self.teacher_b)
 
-        rows = self.rows_for(self.admin_a, "school-admin-audit-events")
+        rows = self.rows_for(
+            self.admin_a, "school-admin-audit-events", "?action=AUTH_LOGIN"
+        )
 
         self.assertEqual(rows, [])
 

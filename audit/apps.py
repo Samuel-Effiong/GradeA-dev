@@ -12,3 +12,8 @@ class AuditConfig(AppConfig):
         from .models import AuditEvent
 
         register_append_only_guards(AuditEvent)
+
+        # Epic A S4: before/after history for the tracked models.
+        from .history import connect
+
+        connect()

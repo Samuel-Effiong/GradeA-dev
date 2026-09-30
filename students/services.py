@@ -10,9 +10,12 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from ai_processor.services import ai_processor
+from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
+from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.celery import app as celery_app
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
@@ -285,6 +288,49 @@ def _coerce_confidence(value):
     return min(100, max(0, confidence))
 
 
+def emit_grading_completed(submission, *, actor, before, task_id=None):
+    """The one GRADING_COMPLETED event for an AI grading, from either path
+    (the Celery task, or the synchronous grade route).
+
+    Epic A S4 (SM note 2 and R2): the grade's before/after go on this event,
+    in its before/after columns, and the grading save itself writes no
+    GRADE_CHANGE. `before` is `history.snapshot(submission)` taken before
+    `grade_engine` ran; the after is read back from the saved row."""
+    # BE-A-09 #2: the model that actually served THIS grading run - not
+    # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
+    # GRADING_FALLBACK_MODELS - is already captured on the graded result as
+    # `grading_model` (ai_processor/services.py) and threaded onto the
+    # submission via `submission.feedback = grading`. Reading it back here is
+    # the only way this emit, which only sees the persisted submission,
+    # learns it too.
+    grading_model = (
+        submission.feedback.get("grading_model")
+        if isinstance(submission.feedback, dict)
+        else None
+    )
+    changed_before, changed_after = history.grade_change(
+        before, history.snapshot(submission)
+    )
+    return emit(
+        AuditAction.GRADING_COMPLETED,
+        actor=actor,
+        request=None,
+        target_type="StudentSubmission",
+        target_id=submission.id,
+        outcome=AuditOutcome.SUCCESS,
+        before=changed_before,
+        after=changed_after,
+        metadata={
+            "assignment_id": str(submission.assignment_id),
+            "submission_id": str(submission.id),
+            "task_id": str(task_id) if task_id else None,
+            "model": grading_model,
+            # S5 (NFR-OBS-04): the exact grading prompt behind this grade.
+            "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
+        },
+    )
+
+
 def grade_engine(user, submission, processing_task_id=None):
     if not _claim_submission_for_grading(submission.id):
         raise SubmissionGradingInProgressError(
@@ -444,7 +490,9 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
         answer_html
     )
 
-    with cancellable_final_save(processing_task_id):
+    # Epic A S4 (SM note 2): AI grading writes no GRADE_CHANGE. Its
+    # before/after go onto the one GRADING_COMPLETED event its caller emits.
+    with cancellable_final_save(processing_task_id), history.suppressed():
         submission.save(update_fields=GRADING_RESULT_FIELDS)
 
 

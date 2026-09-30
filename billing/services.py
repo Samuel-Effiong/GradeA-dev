@@ -9,6 +9,7 @@ from django.db.models.functions import Greatest
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from audit import history
 from audit import metrics as audit_metrics
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
@@ -189,9 +190,11 @@ class SubscriptionService:
             )
         )
 
-        # 1. Deactivate any existing active subscriptions
-        UserSubscription.objects.filter(user=user, is_active=True).update(
-            is_active=False
+        # 1. Deactivate any existing active subscriptions. Epic A S4: one
+        # SUBSCRIPTION_CHANGE per subscription switched off.
+        history.record_bulk(
+            UserSubscription.objects.filter(user=user, is_active=True),
+            is_active=False,
         )
 
         # 2. Create new UserSubscription

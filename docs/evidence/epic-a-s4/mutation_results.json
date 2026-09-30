@@ -1,0 +1,158 @@
+{
+  "H1_is_published_untracked": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deleted_submission_is_a_grade_change_with_no_after",
+      "test_a_distinct_or_annotated_queryset_is_accepted",
+      "test_a_publish_and_a_score_save_each_record_their_own_change",
+      "test_it_returns_the_update_count_and_skips_unchanged_rows",
+      "test_publish_all_gives_one_grade_change_per_student_published",
+      "test_publish_records_the_flip_once",
+      "test_the_actor_is_keyword_only_and_used_as_given"
+    ]
+  },
+  "H2_unchanged_fields_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_google_sign_in_activates_and_names_the_student",
+      "test_a_password_sign_in_activates_and_names_the_student",
+      "test_a_publish_and_a_score_save_each_record_their_own_change",
+      "test_a_role_change_is_recorded_and_a_session_revoke_is_not",
+      "test_a_seat_taken_and_released_is_recorded",
+      "test_admin_actions_record_each_user_they_change",
+      "test_an_untracked_bulk_write_records_nothing",
+      "test_an_untracked_or_unchanged_save_records_nothing",
+      "test_bulk_add_students_emits_exactly_one_event",
+      "test_email_verification_names_the_account_that_proved_the_code",
+      "test_it_returns_the_update_count_and_skips_unchanged_rows",
+      "test_mark_reviewed_records_needs_review_only",
+      "test_publish_all_gives_one_grade_change_per_student_published",
+      "test_publish_records_the_flip_once"
+    ]
+  },
+  "H3_actor_ignores_the_request": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deleted_submission_is_a_grade_change_with_no_after",
+      "test_admin_actions_record_each_user_they_change",
+      "test_an_authenticated_request_names_its_user_not_the_system",
+      "test_bulk_add_students_emits_exactly_one_event",
+      "test_mark_reviewed_records_needs_review_only",
+      "test_publish_all_gives_one_grade_change_per_student_published",
+      "test_publish_records_the_flip_once",
+      "test_remove_student_emits_exactly_one_event",
+      "test_update_grade_records_the_score_it_replaced"
+    ]
+  },
+  "H4_acting_as_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_google_sign_in_activates_and_names_the_student",
+      "test_a_school_admin_invitation_names_the_invitee",
+      "test_a_student_invitation_names_the_invitee",
+      "test_acting_as_names_the_given_user_for_the_block_only",
+      "test_email_verification_names_the_account_that_proved_the_code"
+    ]
+  },
+  "H5_every_user_create_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deleted_user_keeps_only_allow_listed_fields",
+      "test_a_google_sign_in_activates_and_names_the_student",
+      "test_a_role_change_is_recorded_and_a_session_revoke_is_not",
+      "test_bulk_add_students_emits_exactly_one_event",
+      "test_email_verification_names_the_account_that_proved_the_code",
+      "test_one_call_writes_exactly_one_complete_row",
+      "test_only_a_privileged_account_is_recorded_when_created",
+      "test_remove_student_emits_exactly_one_event"
+    ]
+  },
+  "H6_deletes_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deleted_submission_is_a_grade_change_with_no_after",
+      "test_a_deleted_user_keeps_only_allow_listed_fields",
+      "test_remove_student_emits_exactly_one_event"
+    ]
+  },
+  "H7_bulk_writes_record_nothing": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_distinct_or_annotated_queryset_is_accepted",
+      "test_a_google_sign_in_activates_and_names_the_student",
+      "test_a_password_sign_in_activates_and_names_the_student",
+      "test_a_publish_and_a_score_save_each_record_their_own_change",
+      "test_admin_actions_record_each_user_they_change",
+      "test_it_returns_the_update_count_and_skips_unchanged_rows",
+      "test_mark_reviewed_records_needs_review_only",
+      "test_publish_all_gives_one_grade_change_per_student_published",
+      "test_publish_records_the_flip_once",
+      "test_the_actor_is_keyword_only_and_used_as_given"
+    ]
+  },
+  "H8_school_scope_dropped": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_seat_count_change_is_recorded"
+    ]
+  },
+  "H9_request_not_passed": {
+    "killed": true,
+    "failing_tests": [
+      "test_update_grade_records_the_score_it_replaced"
+    ]
+  },
+  "B1_before_after_not_narrowed_per_action": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_action_without_an_entry_carries_no_before_or_after",
+      "test_before_and_after_follow_the_actions_own_allow_list"
+    ]
+  },
+  "G1_ai_save_not_suppressed": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_celery_task_records_one_completed_event",
+      "test_the_suppression_allow_list_has_no_stale_entries",
+      "test_the_synchronous_route_records_one_completed_event_for_the_requester"
+    ]
+  },
+  "G2_completed_without_before_after": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_celery_task_records_one_completed_event",
+      "test_the_synchronous_route_records_one_completed_event_for_the_requester"
+    ]
+  },
+  "R1_sign_in_activation_actor_implicit": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_password_sign_in_activates_and_names_the_student"
+    ]
+  },
+  "P1_verify_activation_not_acting_as": {
+    "killed": true,
+    "failing_tests": [
+      "test_email_verification_names_the_account_that_proved_the_code"
+    ]
+  },
+  "P2_publish_all_bypasses_history": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_unlisted_bulk_write_of_a_tracked_field",
+      "test_publish_all_gives_one_grade_change_per_student_published"
+    ]
+  },
+  "S1_unlisted_suppression": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_unlisted_production_use_of_suppressed"
+    ]
+  },
+  "X1_export_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_download_pdf_records_what_left_and_how_big"
+    ]
+  }
+}

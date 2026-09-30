@@ -31,6 +31,7 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
+from audit import history
 from audit.middleware import AdminActionAuditMiddleware
 from audit.models import AuditEvent
 from classrooms.permissions import IsSuperAdmin
@@ -72,20 +73,23 @@ def _run(view_class, user):
 
 class _Users(TestCase):
     def setUp(self):
-        self.superadmin = CustomUser.objects.create_user(
-            email="root.admin-action@example.com",
-            password="testpass123",  # pragma: allowlist secret
-            user_type="SUPER_ADMIN",
-            is_active=True,
-            is_staff=True,
-            is_superuser=True,
-        )
-        self.teacher = CustomUser.objects.create_user(
-            email="teacher.admin-action@example.com",
-            password="testpass123",  # pragma: allowlist secret
-            user_type="TEACHER",
-            is_active=True,
-        )
+        # Epic A S4: these fixture accounts are privileged, so creating them
+        # is itself a PERMISSION_CHANGE; these tests are about something else.
+        with history.suppressed():
+            self.superadmin = CustomUser.objects.create_user(
+                email="root.admin-action@example.com",
+                password="testpass123",  # pragma: allowlist secret
+                user_type="SUPER_ADMIN",
+                is_active=True,
+                is_staff=True,
+                is_superuser=True,
+            )
+            self.teacher = CustomUser.objects.create_user(
+                email="teacher.admin-action@example.com",
+                password="testpass123",  # pragma: allowlist secret
+                user_type="TEACHER",
+                is_active=True,
+            )
 
 
 class AutomaticCoverageTests(_Users):
