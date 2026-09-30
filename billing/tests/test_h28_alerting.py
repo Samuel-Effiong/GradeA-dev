@@ -35,6 +35,15 @@ from users.models import CustomUser, UserTypes
 S = LicenseStripeMutationStatus
 
 
+def licence_row(licence):
+    """Every concrete column of a licence except updated_at."""
+    return {
+        field.attname: getattr(licence, field.attname)
+        for field in type(licence)._meta.concrete_fields
+        if field.name != "updated_at"
+    }
+
+
 class AlertingTestCase(LicencePhaseTestCase):
     SUB_ID = "sub_h28_alerts"
 
@@ -249,9 +258,9 @@ class ResolveCommandTests(AlertingTestCase):
         self.make_intent(S.PENDING)
         # It touched neither Stripe nor the licence.
         self.assertEqual(self.stripe.calls, [])
-        after = self.fresh_licence()
-        for field in ("max_seats", "auto_renew", "plan_id", "billing_method"):
-            self.assertEqual(getattr(after, field), getattr(licence_before, field))
+        # Every column of the licence, not a chosen few (1a R2): a write to
+        # any field (is_active, say) must fail this.
+        self.assertEqual(licence_row(self.fresh_licence()), licence_row(licence_before))
 
     def test_not_applied_closes_as_failed(self):
         intent = self.make_intent(S.PENDING)

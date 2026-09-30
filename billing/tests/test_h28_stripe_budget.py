@@ -419,18 +419,37 @@ class NoLegacyStripeCallTests(SimpleTestCase):
         "billing/stripe_service.py": {"apply_licence_price_at_stripe"},
         "billing/license_stripe_mutation.py": None,  # the whole module...
     }
-    ADAPTER = "LicenceStripe"  # ...except the adapter itself
+    # ...except the adapter itself and the client it builds.
+    ADAPTER = {"LicenceStripe", "_client"}
+    #: The flows may name Stripe's exceptions, and nothing else of it.
+    ALLOWED_STRIPE_ATTRIBUTES = {"error"}
 
     def legacy_calls(self, node):
-        return [
-            f"{n.value.value.id}.{n.value.attr}.{n.attr}"
-            for n in ast.walk(node)
-            if isinstance(n, ast.Attribute)
-            and isinstance(n.value, ast.Attribute)
-            and isinstance(n.value.value, ast.Name)
-            and n.value.value.id == "stripe"
-            and n.value.attr in ("Subscription", "Invoice", "Price")
-        ]
+        """Anything that could reach Stripe other than through the adapter
+        (widened after 1a's N1): any use of the stripe module but its
+        exceptions, a module imported by name at run time (__import__,
+        import_module), or a StripeClient built outside the adapter."""
+        found = []
+        for n in ast.walk(node):
+            if (
+                isinstance(n, ast.Attribute)
+                and isinstance(n.value, ast.Name)
+                and n.value.id == "stripe"
+                and n.attr not in self.ALLOWED_STRIPE_ATTRIBUTES
+            ):
+                found.append(f"stripe.{n.attr}")
+            elif isinstance(n, ast.Call) and (
+                (isinstance(n.func, ast.Name) and n.func.id == "__import__")
+                or (
+                    isinstance(n.func, ast.Attribute) and n.func.attr == "import_module"
+                )
+            ):
+                found.append("a module imported at run time")
+            elif (isinstance(n, ast.Name) and n.id == "StripeClient") or (
+                isinstance(n, ast.Attribute) and n.attr == "StripeClient"
+            ):
+                found.append("StripeClient")
+        return found
 
     def test_no_licence_flow_calls_the_legacy_api(self):
         root = settings.BASE_DIR
@@ -438,13 +457,14 @@ class NoLegacyStripeCallTests(SimpleTestCase):
         for rel, names in self.FLOWS.items():
             tree = ast.parse((root / rel).read_text())
             for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef) and node.name == self.ADAPTER:
-                    continue
                 if names is None and isinstance(node, ast.Module):
                     body = [
                         n
                         for n in node.body
-                        if not (isinstance(n, ast.ClassDef) and n.name == self.ADAPTER)
+                        if not (
+                            isinstance(n, (ast.ClassDef, ast.FunctionDef))
+                            and n.name in self.ADAPTER
+                        )
                     ]
                     calls = [c for n in body for c in self.legacy_calls(n)]
                     if calls:
@@ -456,6 +476,22 @@ class NoLegacyStripeCallTests(SimpleTestCase):
         self.assertEqual(found, {})
 
     def test_the_scan_sees_a_legacy_call(self):
-        """Guard on the guard."""
-        tree = ast.parse("def f():\n    stripe.Subscription.modify('sub_x')\n")
-        self.assertEqual(self.legacy_calls(tree), ["stripe.Subscription.modify"])
+        """Guard on the guard, including 1a's V3 (an aliased module)."""
+        for source, expected in (
+            ("stripe.Subscription.modify('sub_x')", "stripe.Subscription"),
+            ("stripe.Customer.create()", "stripe.Customer"),
+            (
+                "__import__('stripe').Subscription.modify('x')",
+                "a module imported at run time",
+            ),
+            ("importlib.import_module('stripe')", "a module imported at run time"),
+            ("stripe.StripeClient('k')", "stripe.StripeClient"),
+            ("StripeClient('k')", "StripeClient"),
+        ):
+            with self.subTest(source=source):
+                tree = ast.parse(f"def f():\n    {source}\n")
+                self.assertIn(expected, self.legacy_calls(tree))
+
+    def test_the_scan_allows_stripes_exceptions(self):
+        tree = ast.parse("def f():\n    raise stripe.error.CardError('x', None, 'c')\n")
+        self.assertEqual(self.legacy_calls(tree), [])

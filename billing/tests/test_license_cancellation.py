@@ -155,6 +155,12 @@ class LicenseCancellationServiceTests(TransactionTestCase):
         with self.assertRaises(ValueError):
             LicenseSubscriptionService.cancel_license_subscription(license_sub)
 
+        # The failure must be the adapter's (1a R1): without this, a cancel
+        # routed around LicenceStripe still passed, on the H-39 network
+        # guard's own refusal.
+        mock_modify.assert_called_once_with(
+            "sub_test123", cancel_at_period_end=True, idempotency_key=ANY
+        )
         license_sub.refresh_from_db()
         self.assertTrue(license_sub.is_active)
         self.assertTrue(
