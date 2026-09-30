@@ -17,7 +17,7 @@ from rest_framework.test import APIClient
 
 from audit import failed_auth_cap
 from audit.emitter import emit
-from audit.enums import ActorRole, AuditAction, AuditOutcome
+from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass
 from audit.failed_auth_cap import FAILED_AUTH_CAPPED
 from audit.models import AuditEvent
 from users.models import UserTypes
@@ -52,6 +52,7 @@ def fail(target=None, actor=None, outcome=AuditOutcome.FAILURE, action=None):
         target_type="CustomUser",
         target_id=target.pk if target is not None else None,
         outcome=outcome,
+        error_class=ErrorClass.USER,
         reason_code="INVALID_CODE",
         metadata={"auth_method": "password"},
     )
