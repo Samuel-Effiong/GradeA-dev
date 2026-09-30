@@ -213,6 +213,22 @@ class RetryOneItem(RetryFixture, TestCase):
         self.assertEqual(item.retry_count, 2)
         self.assertEqual(BackgroundProcessingTask.objects.count(), 1)
 
+    def test_a_stale_copy_of_an_item_retried_since_is_refused(self):
+        # The claim's own fence, deterministically: a copy loaded before
+        # another retry claimed the item still looks FAILED and retryable,
+        # and only the conditional UPDATE can refuse it.
+        from students import item_retry
+
+        item = self.item(code="PROVIDER_FAILURE")
+        stale = BackgroundProcessingTask.objects.get(pk=item.pk)
+        self.assertEqual(self.retry(item).status_code, 202)
+
+        with self.assertRaises(item_retry.ItemNotRetryable):
+            item_retry.retry_item(stale, self.teacher)
+        item.refresh_from_db()
+        self.assertEqual(item.retry_count, 1)
+        self.assertEqual(len(self.launched), 1)
+
     def test_a_code_that_is_not_retryable_as_it_is_is_a_409(self):
         for code in ("", "RUBRIC_MISSING", "FILE_UNREADABLE"):
             with self.subTest(code=code or "none"):
