@@ -1,0 +1,6 @@
+users.tests_cache_matrix_payload_viewers.PayloadViewerFreshnessTests.test_gap3_student_rename_refreshes_the_school_admin ... ok
+users.tests_cache_matrix_payload_viewers.PayloadViewerFreshnessTests.test_gap3_student_settings_save_refreshes_teacher_and_school_admin ... ok
+users.tests_cache_matrix_payload_viewers.PayloadViewerFreshnessTests.test_gap4_credit_consumption_refreshes_admin_and_superadmin ... ok
+users.tests_cache_matrix_payload_viewers.PayloadViewerFreshnessTests.test_gap5_bio_edit_refreshes_the_school_admin ... ok
+Ran 4 tests in 9.003s
+OK
