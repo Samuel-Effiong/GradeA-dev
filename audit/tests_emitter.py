@@ -115,9 +115,11 @@ class WhatOneEventRecordsTest(TestCase):
         self.assertIsNone(event.actor_email)
 
     def test_an_anonymous_visitor_is_recorded_as_no_identity(self):
+        """Epic A S1: ANONYMOUS, not SYSTEM - the app did not do it."""
         event = call(actor=AnonymousUser())
-        self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+        self.assertEqual(event.actor_role, ActorRole.ANONYMOUS)
         self.assertIsNone(event.actor_id)
+        self.assertIsNone(event.actor_email)
 
     def test_the_actor_is_captured_as_values_and_the_role_is_frozen_at_write_time(self):
         user = make_user("frozen@emit.edu", UserTypes.TEACHER, self.school)

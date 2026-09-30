@@ -62,6 +62,7 @@ ALLOWED_KEYS = frozenset(
         # short labels and versions
         "http_status",
         "auth_method",
+        "lock_triggered",
         "model",
         "prompt_version",
         "grading_config_version",
@@ -71,6 +72,9 @@ ALLOWED_KEYS = frozenset(
         "file_type",
         "source",
         "changed_fields",
+        # S1 generic event: the URL name and HTTP method, never the path or body
+        "route",
+        "method",
     }
 )
 
@@ -165,7 +169,9 @@ def sanitise(value):
 # call site that needs the extra key is actually being built, in the same
 # reviewed change - not ahead of time "in case it's useful".
 METADATA_ALLOWLIST = {
-    AuditAction.AUTH_LOGIN: frozenset({"auth_method", "http_status"}),
+    # lock_triggered: the password-reset guess that spent the budget and set
+    # the lock (L2), recorded as the failure it was plus this flag.
+    AuditAction.AUTH_LOGIN: frozenset({"auth_method", "http_status", "lock_triggered"}),
     AuditAction.AUTH_LOGOUT: frozenset(),
     AuditAction.GRADING_REQUESTED: frozenset(
         {"assignment_id", "submission_id", "task_id", "task_type"}
@@ -226,6 +232,7 @@ METADATA_ALLOWLIST = {
     AuditAction.ADMIN_ACTION: frozenset({"source"}),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields"}),
+    AuditAction.STATE_CHANGE: frozenset({"route", "method", "http_status"}),
 }
 
 

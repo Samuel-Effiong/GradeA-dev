@@ -10,7 +10,9 @@ profile.
 """
 
 import logging
+import math
 from datetime import timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.core.cache import cache
@@ -83,6 +85,7 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.auth_audit import account_for_email, sign_in_failed, sign_in_succeeded
 from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
@@ -113,7 +116,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     VerifyCustomUserSerializer,
     WaitlistSerializer,
 )
-from users.services import send_user_activation_email
+from users.services import send_user_activation_email, stamp_last_login
 from users.tasks import sync_user_to_mailerlite
 from users.throttling import (
     GoogleAuthThrottle,
@@ -130,6 +133,15 @@ from users.throttling import (
 from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
+
+# Founder-approved wording (2026-09-28) for the password-reset email.
+# Wording only: no link.
+RESET_EMAIL_WARNING = (
+    "Didn't ask for this? Someone may be trying to get into your account. "
+    "Don't share this code with anyone, including Grade A+ staff. Your "
+    "password hasn't been changed. If you didn't request this, you can ignore "
+    "this email."
+)
 
 # Create your views here.
 
@@ -627,6 +639,65 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
+def _reset_locked_response(otp_obj):
+    """429 for POST /auth/reset-password while the reset code is locked.
+
+    Informative by founder decision (2026-09-28): the person resetting is
+    usually the owner, so they're told why, when and that nothing changed.
+    /auth/otp stays generic while locked (anti-enumeration).
+    """
+    locked_until = otp_obj.locked_until.astimezone(dt_timezone.utc)
+    retry_after = max(1, math.ceil((locked_until - timezone.now()).total_seconds()))
+    minutes = max(1, math.ceil(retry_after / 60))
+    message = (
+        "For your security, password reset is paused on this account because "
+        f"the code was entered incorrectly {PasswordResetOTP.MAX_ATTEMPTS} times. "
+        f"You can request a new code after {locked_until:%H:%M} UTC "
+        f"(in {minutes} minute{'' if minutes == 1 else 's'}). "
+        "Your password has not been changed, and you can still sign in with "
+        "your current password. If you didn't try to reset your password, "
+        "someone else may have. Your account is still safe."
+    )
+    response = Response(
+        {
+            "code": "RESET_LOCKED",
+            "message": message,
+            "locked_until": locked_until.isoformat(),
+            "retry_after_seconds": retry_after,
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+    response["Retry-After"] = str(retry_after)
+    return response
+
+
+# --- OpenAPI documentation for the public auth code flows -------------------
+# Every response goes through users.renderers.APIJSONRenderer, so the frontend
+# sees {"success", "message", "data"} on success and {"success": false,
+# "message", "error": {"field_errors": {...}}} on failure. The examples below
+# show the rendered (on-the-wire) bodies, not the raw view payloads.
+
+
+def _auth_error_example(name, message, summary=None):
+    return OpenApiExample(
+        name,
+        summary=summary or message,
+        value={
+            "success": False,
+            "message": message,
+            "error": {"field_errors": {"detail": message}},
+        },
+        response_only=True,
+    )
+
+
+_THROTTLED_EXAMPLE = _auth_error_example(
+    "Throttled",
+    "Request was throttled. Expected available in 3599 seconds.",
+    summary="Per-IP rate limit hit (also sets the Retry-After header)",
+)
+
+
 class AuthViewSet(viewsets.ViewSet):
     """
     Handles user authentication actions
@@ -636,10 +707,81 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Verify email and activate account",
-        description="""Verify the email address of a user.""",
+        summary="Verify email and activate account (signs the user in)",
+        description="""
+Activates an account with the 6-digit code from the activation email and
+returns a JWT pair, so the user is signed in straight away.
+
+**Frontend flow**
+1. The activation email links to `<frontend>/verify-email?email=<email>&token=<6 digits>`.
+   Read both query parameters and POST them here unchanged.
+2. On **202**, store `data.access` / `data.refresh` and treat the user as signed in
+   (`data.user` is the full user object, same shape as `GET /users/me`).
+3. On **400** show `message`. If it is "Activation link has expired.", offer
+   "Send a new link", which calls `POST /auth/otp` with `otp_type: "VERIFY_EMAIL"`.
+
+**Values**
+- `email`: the address from the link (string, required).
+- `token`: the 6-digit code from the link, sent as a **string** (keep leading zeros).
+- The code from a self-registration email is valid for **15 minutes**; requesting a
+  new one (`/auth/otp`) replaces the old code.
+- Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+""",
         request=VerifyCustomUserSerializer,
-        responses=VerifyCustomUserSerializer,
+        examples=[
+            OpenApiExample(
+                "Verify request",
+                value={"email": "teacher@example.com", "token": "048213"},
+                request_only=True,
+            ),
+        ],
+        responses={
+            202: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Account activated; JWT pair issued (user is signed in).",
+                examples=[
+                    OpenApiExample(
+                        "Activated",
+                        value={
+                            "success": True,
+                            "message": "Request Successful",
+                            "data": {
+                                "refresh": "<jwt refresh token>",
+                                "access": "<jwt access token>",
+                                "user": {
+                                    "id": "<uuid>",
+                                    "email": "teacher@example.com",
+                                    "...": "...",
+                                },
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Missing fields, wrong code or email, or an expired code. Show `message`.",
+                examples=[
+                    _auth_error_example(
+                        "Missing fields", "Email and Token are required."
+                    ),
+                    _auth_error_example(
+                        "Wrong email or code", "Invalid email or token."
+                    ),
+                    _auth_error_example(
+                        "Expired code",
+                        "Activation link has expired.",
+                        summary="Expired: offer a resend via POST /auth/otp (VERIFY_EMAIL)",
+                    ),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Too many attempts from this IP (5/hour). Wait for `Retry-After` seconds.",
+                examples=[_THROTTLED_EXAMPLE],
+            ),
+        },
     )
     @action(
         detail=False,
@@ -659,15 +801,22 @@ class AuthViewSet(viewsets.ViewSet):
         token = (request.data.get("token") or "").strip()
 
         if not email or not token:
+            sign_in_failed(
+                request, account_for_email(email), "email_verification", "CODE_MISSING"
+            )
             raise ParseError("Email and Token are required.")
 
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
+            sign_in_failed(
+                request, account_for_email(email), "email_verification", "INVALID_CODE"
+            )
             raise ParseError("Invalid email or token.")
 
         user = user.first()
 
         if user.activation_expires and timezone.now() > user.activation_expires:
+            sign_in_failed(request, user, "email_verification", "CODE_EXPIRED")
             raise ParseError("Activation link has expired.")
 
         user.email_verified_at = timezone.now()
@@ -684,6 +833,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "email_verification")
 
         return Response(
             {
@@ -696,19 +846,86 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Send verification email",
-        description="""Send a verification email to the specified email address.""",
+        summary="Send a verification link or a password-reset code",
+        description="""
+Sends one of two emails, chosen by `otp_type`:
+
+| `otp_type` | Sends | Next call |
+|---|---|---|
+| `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
+| `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
+
+**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
+"If an account exists for that address, we've sent an email") for every 202 and
+never branch on `message`: its wording can differ between cases. The two 400s
+below only happen for existing accounts in the wrong state.
+
+**Values**
+- `email`: string, required, must be a valid email address.
+- `otp_type`: exactly `"VERIFY_EMAIL"` or `"RESET_PASSWORD"` (upper case).
+
+**400 cases** (show `message`):
+- invalid `otp_type` or email → "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
+- `VERIFY_EMAIL` for an account that is already active → "Email already verified. Please login."
+  (send the user to sign in)
+- `RESET_PASSWORD` for an account that never verified its email → "Email not verified."
+  (offer `VERIFY_EMAIL` instead)
+
+While a password reset is locked after 5 wrong codes, this endpoint still answers
+202 but sends no code; the lock is reported by `POST /auth/reset-password` (429
+`RESET_LOCKED`).
+
+Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+""",
         request=OTPSerializer,
+        examples=[
+            OpenApiExample(
+                "Resend verification link",
+                value={"email": "teacher@example.com", "otp_type": "VERIFY_EMAIL"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request password-reset code",
+                value={"email": "teacher@example.com", "otp_type": "RESET_PASSWORD"},
+                request_only=True,
+            ),
+        ],
         responses={
             202: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Verification email sent successfully",
+                description="Accepted. Show one neutral confirmation for every 202; don't branch on `message`.",
                 examples=[
                     OpenApiExample(
-                        "Verification Email Sent",
-                        value={"Detail": "Verification email sent successfully"},
+                        "Accepted",
+                        value={
+                            "success": True,
+                            "message": "An OTP has been sent if an account with that email exists.",
+                            "data": {
+                                "detail": "An OTP has been sent if an account with that email exists."
+                            },
+                        },
+                        response_only=True,
                     )
                 ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Bad input, or the account is in the wrong state for this otp_type.",
+                examples=[
+                    _auth_error_example(
+                        "Invalid otp_type or email",
+                        "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
+                    ),
+                    _auth_error_example(
+                        "Already verified", "Email already verified. Please login."
+                    ),
+                    _auth_error_example("Email not verified", "Email not verified."),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Too many requests from this IP (5/hour). Wait for `Retry-After` seconds.",
+                examples=[_THROTTLED_EXAMPLE],
             ),
         },
     )
@@ -755,6 +972,15 @@ class AuthViewSet(viewsets.ViewSet):
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
+            if otp_code is None:
+                # Locked out (AUTHZ-L2): no new code and no email, but the
+                # same reply as a send, so this is not an enumeration signal.
+                return Response(
+                    {
+                        "detail": "An OTP has been sent if an account with that email exists."
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
 
             message = f"""
 Hello {user.first_name},
@@ -763,8 +989,9 @@ We received a request to reset your Grade A+ password
 
 Your Password reset code is: {otp_code}
 
-Enter this code in the app to continue. If you did not request a password reset,
-you can ignore this email and your account will remain secure.
+Enter this code in the app to continue.
+
+{RESET_EMAIL_WARNING}
 
 The Grade A+ Team
 
@@ -786,15 +1013,115 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Reset the password using an OTP",
+        summary="Reset the password with the emailed code (signs the user in)",
         description="""
-        Resets a user's password after a valid OTP has been provided via the `forgot-password` endpoint.
-        This endpoint is public and does not require authentication.
-        """,
+Sets a new password using the 6-digit code from `POST /auth/otp`
+(`otp_type: "RESET_PASSWORD"`), signs the user out of every other device and
+returns a fresh JWT pair.
+
+**Values**
+- `email`: string, required.
+- `otp`: the 6-digit code from the email, sent as a **string** (keep leading zeros).
+- `new_password`: string, must pass the password rules (errors come back under
+  `error.field_errors.new_password`).
+- The code is valid for **15 minutes**.
+
+**Wrong code handling.** Every wrong email / code / expired code gives the same
+400 "Invalid email, OTP code, or new password." After **5 wrong codes** the reset
+is locked for **30 minutes**: the answer becomes **429** with
+`error.field_errors.code == "RESET_LOCKED"`, plus `locked_until` (UTC ISO time),
+`retry_after_seconds` and a `Retry-After` header. Show `message` as is; it tells
+the user their password was not changed. Requesting a new code during the lock
+sends nothing.
+
+**Telling the two 429s apart:** `RESET_LOCKED` has `error.field_errors.code`;
+the plain rate limit (10 requests/hour per IP) does not.
+""",
         request=ResetPasswordSerializer,
+        examples=[
+            OpenApiExample(
+                "Reset request",
+                value={
+                    "email": "teacher@example.com",
+                    "otp": "731904",
+                    "new_password": "a-new-strong-passphrase",  # pragma: allowlist secret
+                },
+                request_only=True,
+            ),
+        ],
         responses={
-            200: {"description": "Password has been reset successfully."},
-            400: {"description": "Invalid email, OTP code, or new password."},
+            200: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Password changed; other sessions revoked; JWT pair issued.",
+                examples=[
+                    OpenApiExample(
+                        "Reset done",
+                        value={
+                            "success": True,
+                            "message": "Password has been reset successfully. You are now logged in.",
+                            "data": {
+                                "detail": "Password has been reset successfully. You are now logged in.",
+                                "access": "<jwt access token>",
+                                "refresh": "<jwt refresh token>",
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Wrong or expired code (one generic message), or a password-rule failure.",
+                examples=[
+                    _auth_error_example(
+                        "Wrong or expired code",
+                        "Invalid email, OTP code, or new password.",
+                    ),
+                    OpenApiExample(
+                        "Weak password",
+                        value={
+                            "success": False,
+                            "message": "New password: This password is too common.",
+                            "error": {
+                                "field_errors": {
+                                    "new_password": ["This password is too common."]
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="RESET_LOCKED after 5 wrong codes (30 min), or the plain per-IP rate limit.",
+                examples=[
+                    OpenApiExample(
+                        "Reset locked",
+                        value={
+                            "success": False,
+                            "message": (
+                                "For your security, password reset is paused on this account because "
+                                "the code was entered incorrectly 5 times. You can request a new code "
+                                "after 14:32 UTC (in 30 minutes). Your password has not been changed, "
+                                "and you can still sign in with your current password. If you didn't "
+                                "try to reset your password, someone else may have. Your account is "
+                                "still safe."
+                            ),
+                            "error": {
+                                "field_errors": {
+                                    "code": "RESET_LOCKED",
+                                    "message": "For your security, password reset is paused … (same text)",
+                                    "locked_until": "2026-09-30T14:32:05+00:00",
+                                    "retry_after_seconds": 1800,
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                    _THROTTLED_EXAMPLE,
+                ],
+            ),
         },
     )
     @action(
@@ -822,15 +1149,20 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             user = CustomUser.objects.get(email=email)
             otp_obj = PasswordResetOTP.objects.get(user=user)
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            sign_in_failed(
+                request, account_for_email(email), "password_reset", "INVALID_CODE"
+            )
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         if otp_obj.is_locked():
-            raise ParseError(
-                "Too many incorrect codes. Request a new code and try again later."
-            )
+            # Merge of batch-2a (L2) into Epic A: L2's 429 answer, and the
+            # attempt is recorded as refused because the reset is locked.
+            sign_in_failed(request, user, "password_reset", "RESET_LOCKED", denied=True)
+            return _reset_locked_response(otp_obj)
 
         if not otp_obj.is_valid():
             otp_obj.delete()
+            sign_in_failed(request, user, "password_reset", "CODE_EXPIRED")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         # Constant-time compare so the response latency does not leak how
@@ -839,6 +1171,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # / password was the wrong one.
         if not constant_time_compare(str(otp_obj.code), str(otp)):
             otp_obj.register_failure()
+            # The guess that spends the budget gets the lockout answer
+            # straight away, not one more generic 400. Audit records what
+            # happened to THIS attempt: a wrong code, which also set the lock.
+            if otp_obj.is_locked():
+                sign_in_failed(
+                    request,
+                    user,
+                    "password_reset",
+                    "INVALID_CODE",
+                    extra_metadata={"lock_triggered": True},
+                )
+                return _reset_locked_response(otp_obj)
+            sign_in_failed(request, user, "password_reset", "INVALID_CODE")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -854,6 +1199,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "password_reset")
 
         return Response(
             {
@@ -946,6 +1292,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         otp = (serializer.validated_data.get("otp") or "").strip()
 
         if not user.check_password(current_password):
+            sign_in_failed(request, user, "password_change", "WRONG_PASSWORD")
             raise ParseError("Incorrect current password. Please try again.")
 
         # Dual-mode by design: the frontend does not send `otp` yet, so a
@@ -963,6 +1310,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             otp_obj = PasswordChangeOTP.objects.filter(user=user).first()
 
             if otp_obj is None:
+                sign_in_failed(request, user, "password_change", "CODE_NOT_REQUESTED")
                 raise ParseError(
                     "No password change code has been requested for this "
                     "account. Request one and try again."
@@ -970,6 +1318,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             if not otp_obj.is_valid():
                 otp_obj.delete()
+                sign_in_failed(request, user, "password_change", "CODE_EXPIRED")
                 raise ParseError(
                     "This password change code has expired. Request a new one "
                     "and try again."
@@ -978,6 +1327,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # Constant-time, for the same reason reset_password does it: a
             # plain == leaks how much of the code was correct via timing.
             if not constant_time_compare(str(otp_obj.code), str(otp)):
+                sign_in_failed(request, user, "password_change", "INVALID_CODE")
                 raise ParseError("Invalid password change code. Please try again.")
 
             # Single-use: a code that has completed a change must not be
@@ -997,6 +1347,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "password_change")
 
         return Response(
             {
@@ -1235,6 +1586,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     "later; if your code has expired by then, ask for a new one."
                 ),
             )
+        # A refused code is recorded after the atomic block has rolled back,
+        # never inside it (the event would roll back too).
+        audit_failure = None
         try:
             with transaction.atomic():
                 serializer = StudentRegistrationCompletionSerializer(data=request.data)
@@ -1257,6 +1611,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 if not user:
                     record_register_student_failure("no_match")
+                    audit_failure = (None, "INVALID_CODE")
                     raise ParseError("Invalid or expired activation token")
 
                 if (
@@ -1264,6 +1619,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     or user.activation_expires < timezone.now()
                 ):
                     record_register_student_failure("expired")
+                    sign_in_failed(request, user, "student_invitation", "CODE_EXPIRED")
                     renewal_url = request.build_absolute_uri(
                         "/course/student/renew-student-token"
                     )
@@ -1325,11 +1681,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
                     enrollment.save(update_fields=["enrollment_status"])
 
+                sign_in_succeeded(request, user, "student_invitation")
                 return Response(
                     {"detail": "Student registration completed successfully"},
                     status=status.HTTP_200_OK,
                 )
         except (ParseError, ValidationError):
+            if audit_failure is not None:
+                sign_in_failed(
+                    request, audit_failure[0], "student_invitation", audit_failure[1]
+                )
             raise
         except Exception as e:
             logger.error("Student registration failed", exc_info=e)
@@ -1375,6 +1736,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_name="register-school-admin",
     )
     def register_school_admin(self, request, *args, **kwargs):
+        # A refused code is recorded after the atomic block has rolled back,
+        # never inside it (the event would roll back too).
+        audit_failure = None
         try:
             with transaction.atomic():
                 serializer = SchoolAdminRegistrationCompletionSerializer(
@@ -1401,9 +1765,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 )
 
                 if not user:
+                    audit_failure = (account_for_email(email), "INVALID_CODE")
                     raise ParseError("Invalid or expired activation token.")
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
+                    audit_failure = (user, "CODE_EXPIRED")
                     raise ParseError(
                         "This invitation link has expired. Please contact your "
                         "superadmin for a new invitation."
@@ -1422,6 +1788,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             # Track activity
             AnalyticsService.track_activity(user)
+            sign_in_succeeded(request, user, "school_admin_invitation")
 
             return Response(
                 {
@@ -1432,6 +1799,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 status=status.HTTP_200_OK,
             )
         except (ParseError, ValidationError):
+            if audit_failure is not None:
+                sign_in_failed(
+                    request,
+                    audit_failure[0],
+                    "school_admin_invitation",
+                    audit_failure[1],
+                )
             raise
         except Exception as e:
             logger.error("School admin registration failed", exc_info=e)
@@ -1499,10 +1873,36 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="google-auth",
     )
     def google_auth(self, request, *args, **kwargs):
+        # Every refusal is recorded here, after the view's own atomic block has
+        # unwound (an event written inside it would roll back with it). Each
+        # raise site in _google_auth tags its reason, and the refused account
+        # when one is known (a deactivated account).
+        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
+        self._audit_account = None
+        try:
+            return self._google_auth(request)
+        except (ParseError, ValidationError, AuthenticationFailed):
+            reason = self._audit_reason
+            sign_in_failed(
+                request,
+                self._audit_account,
+                "google",
+                reason,
+                denied=reason == "ACCOUNT_DEACTIVATED",
+                error_class=(
+                    ErrorClass.PROVIDER
+                    if reason == "GOOGLE_EXCHANGE_FAILED"
+                    else ErrorClass.USER
+                ),
+            )
+            raise
+
+    def _google_auth(self, request):
         code = request.data.get("code")
         redirect_uri = settings.GOOGLE_REDIRECT_URI
 
         if not code:
+            self._audit_reason = "GOOGLE_CODE_MISSING"
             raise ParseError("Authorization code is required")
 
         try:
@@ -1523,6 +1923,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 token_data = response.json()
             except http_requests.exceptions.RequestException as e:
                 logger.error("Google OAuth token exchange failed", exc_info=e)
+                self._audit_reason = "GOOGLE_EXCHANGE_FAILED"
                 raise ParseError(
                     describe_user_error(
                         e,
@@ -1536,6 +1937,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             expires_in = token_data.get("expires_in", 500)
 
             if not id_token_str:
+                self._audit_reason = "GOOGLE_TOKEN_INVALID"
                 raise ParseError("Google did not return an ID token")
 
             id_info = id_token.verify_oauth2_token(
@@ -1545,6 +1947,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
             if not id_info.get("email_verified"):
+                self._audit_reason = "GOOGLE_EMAIL_UNVERIFIED"
                 raise ParseError("Google has not verified your email")
 
             with transaction.atomic():
@@ -1611,11 +2014,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # this button.
                         email_errors = serializer.errors.get("email")
                         if email_errors:
+                            self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
                             raise ParseError(
                                 f"{email_errors[0]} If you are joining a "
                                 "school, ask your school admin to invite you "
                                 "and use the link in that invitation instead."
                             )
+                        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
                         raise ValidationError(serializer.errors)
 
                 else:
@@ -1636,6 +2041,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     # activating there would turn Google sign-in into a way
                     # round a deactivation.
                     if not user.is_active and user.email_verified_at is not None:
+                        self._audit_reason = "ACCOUNT_DEACTIVATED"
+                        self._audit_account = user
                         raise AuthenticationFailed(
                             "This account has been deactivated. Please "
                             "contact support.",
@@ -1714,7 +2121,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     },
                 )
 
+            # A Google sign-in is a sign-in too (has_signed_in), and it mints
+            # tokens here rather than through the login serializer.
+            stamp_last_login(user)
             refresh = EpochRefreshToken.for_user(user)
+            sign_in_succeeded(request, user, "google")
 
             return Response(
                 {
@@ -1726,6 +2137,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         except ValueError as e:
+            self._audit_reason = "GOOGLE_TOKEN_INVALID"
             raise ParseError("Invalid Google token signature") from e
 
 

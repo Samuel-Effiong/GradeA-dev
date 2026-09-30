@@ -45,7 +45,7 @@ from django.db import transaction
 from AutoGrader.request_context import client_request_id_from_header, get_request_id
 
 from . import metrics as audit_metrics
-from .context import current_trace_id
+from .context import current_trace_id, record_stored_event
 from .enums import (
     STUDENT_RECORD_ACTIONS,
     ActorRole,
@@ -190,6 +190,10 @@ def emit(
         audit_metrics.count("audit_emit_failures_total", tags={"action": label})
         return None
 
+    # S1: the request has an event, so the generic STATE_CHANGE fallback is
+    # not written - provided this row survives the request (the middleware
+    # checks; see audit.context). A rejected or failed write records nothing.
+    record_stored_event(event.pk)
     _emit_alertable_metrics(action, outcome, fields)
     return event
 
@@ -345,8 +349,12 @@ def _uuid_or_none(value, field):
 
 def _actor_fields(actor):
     """(role, actor_id, actor_email, school_id), captured as values."""
-    if actor is None or not getattr(actor, "is_authenticated", True):
+    if actor is None:
         return ActorRole.SYSTEM, None, None, None
+    if not getattr(actor, "is_authenticated", True):
+        # A request by someone not signed in. Never SYSTEM: the audit must not
+        # say the app did what an unauthenticated caller did.
+        return ActorRole.ANONYMOUS, None, None, None
     try:
         role = ActorRole(actor.user_type)
     except ValueError:
