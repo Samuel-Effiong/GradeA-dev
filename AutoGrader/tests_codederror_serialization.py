@@ -37,12 +37,13 @@ import pickle
 from typing import Any
 from unittest.mock import patch
 
-from celery import current_app, shared_task
+from celery import shared_task
 from django.apps import apps
 from django.conf import settings
 from django.test import SimpleTestCase
 
 from audit.enums import ReasonCode
+from AutoGrader.celery import app as celery_app
 from AutoGrader.reason_codes import REASON_CODES, CodedError, coded_body
 
 JSON_AND_PICKLE = ("json", "pickle")
@@ -103,8 +104,11 @@ def sample(cls, detail="server-side"):
 
 
 def through_celery(error, serializer):
-    # Typed as celery's bare base class; the configured backend has these.
-    backend: Any = current_app.backend
+    # The project's app, which the workers run, not celery.current_app: in
+    # a full test run another module can make a default app current, with
+    # other settings (it gave the 1-day default expiry). Typed as celery's
+    # bare base class; the configured backend has these methods.
+    backend: Any = celery_app.backend
     with patch.object(backend, "serializer", serializer):
         stored = backend.prepare_exception(error)
         if serializer == "json":
@@ -209,7 +213,7 @@ class StoredFormPersonalDataTests(SimpleTestCase):
                         self.assertIn(name, {"dimension", "actual", "limit"})
 
     def test_stored_results_expire(self):
-        expires = current_app.conf.result_expires
+        expires = celery_app.conf.result_expires
         self.assertEqual(expires, settings.CELERY_RESULT_EXPIRES)
         seconds = getattr(expires, "total_seconds", lambda: expires)()
         self.assertLessEqual(seconds, 24 * 3600)
