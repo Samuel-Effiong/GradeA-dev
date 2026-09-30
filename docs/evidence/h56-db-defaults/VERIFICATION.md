@@ -77,3 +77,29 @@ b029f5c..1f52219 is test-only. Rule (b)'s wiring is now a named `state_before(lo
 - `test_the_guard_uses_the_state_before_each_migration`: a wraps-spy asserts the guard calls `state_before` exactly once.
 
 **Runs** (`systemd-run` 6G): guard module **9 OK**. My **H6a** (the guard inlines a final-state lambda) is killed by the spy test. My **H6b** (`state_before` returns the final state) is killed by the state test. H5 is still killed. Per rule 15, the author's run is relied on for the rest. N4 (the failure message's "or inserts NULL") stands as a wording note.
+
+## Correction (Verification Engineer 1a, 2026-09-30): a regression missed at 1f52219
+Bundle 3's strict full run (0b, f9ad0dc) failed on `assignments.tests_pdf_cache…test_unsaved_assignment_gets_a_never_matching_key`.
+- **Cause:** `Assignment.updated_at` got `db_default=Now()` and has no Python `default=` (it can't: `auto_now` excludes `default`). So an **unsaved** instance now holds Django's `DatabaseDefault` sentinel instead of `None`. `assignments/pdf_cache.build_cache_key` tests `updated_at` for truth; the sentinel is truthy, so `.isoformat()` raises.
+- **Scope, checked against the 4 migrations:** the other 13 fields all have a Python `default=`, so unsaved instances get real values. `bulk_create` paths (e.g. `classrooms/scale_my_students.py`) get `updated_at` from `auto_now`'s `pre_save`. The assignment serializers exposing `updated_at` serialize saved rows. `pdf_cache` is the only affected reader found.
+- **Why I missed it:** I ran the guard module and my probes only. H-56 changed models in 4 apps, and the author's evidence had no owning-app regression. Under rule 15 a missing author regression must be flagged and run, and I didn't do that. The earlier VERIFIED-WITH-NOTES at 1f52219 is **withdrawn** until the fix is verified.
+- **Required:** fix the reader (not the field), with a test that pins it, and commit the owning-app regressions for assignments, users, billing and dashboard.
+
+## Re-verification: the pdf_cache regression fix @ 2247007 (code 7c28742). Verification Engineer 1a, 2026-09-30
+**Verdict for the tip 2247007: VERIFIED-WITH-NOTES.** Nothing is required. The correction above is closed.
+
+- **Fix.** `assignments/pdf_cache.build_cache_key` now keys on `updated_at.isoformat()` only when `updated_at` is a real `datetime`, and on the never-matching `"unsaved"` otherwise (`None`, or H-56's `DatabaseDefault` placeholder). The `db_default` stays, as the rollback needs it.
+- **New pins** (`UnsavedInstanceTests`):
+  - an `apps.get_models()` scan asserts that `Assignment.updated_at` is the **only** field in the project with a `db_default` and no Python default;
+  - an unsaved assignment's key ends `:unsaved`;
+  - one with a real timestamp keys on its isoformat.
+- **Runs** (`systemd-run` 6G): the guard module + my probes + `assignments.tests_pdf_cache`, **50 OK**.
+- **My mutants:**
+  - P1 (the truth test restored) is killed by the new test and the original `test_unsaved_assignment_gets_a_never_matching_key`;
+  - P2 (`_state.adding` instead of the type check) is killed by the real-timestamp test, which pins the type-based rule;
+  - P3 (a second `db_default`-only field added to `dashboard.StudentRiskAlertState`) is killed by the scan test, so the next such field can't slip through.
+- **Regression evidence (rule 15 addendum).**
+  - The author's assignments run: 613 OK (`docs/evidence/h56-db-defaults/pdf_cache_fix_7c28742/`).
+  - users, billing and dashboard are covered by 0b's bundle-3 strict run at f9ad0dc. That run had H-56 in and ran 5014 tests, and its only error was this pdf_cache one.
+  - Bundle 3's re-run will confirm the whole combination.
+- **Audit of other readers:** matches mine. `scale_my_students`' `bulk_create` sets `updated_at` via `auto_now`, and the serializers exposing it see saved rows only.
