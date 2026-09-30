@@ -14,8 +14,11 @@ are not mailboxes, so those need a teacher or admin to set a new password.
 Guarantees:
 - Dry-run is the default and writes nothing (no DB rows, no report file).
 - Only accounts for which ``check_password("student123!")`` is true are
-  touched, and only their ``password`` column. Nothing is deleted;
-  enrollments, submissions and every other column are untouched.
+  touched, and only their ``password`` and ``token_epoch`` columns: the
+  epoch bump revokes every access and refresh token already issued to the
+  account, so a session opened with the literal does not outlive the reset.
+  Nothing is deleted; enrollments, submissions and every other column are
+  untouched.
 - Idempotent: after a reset the literal no longer verifies, so a re-run finds
   nothing to do.
 - Each account is reset in its own transaction by compare-and-set on the hash
@@ -42,6 +45,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import F
 
 LITERAL = "student123!"  # pragma: allowlist secret
 
@@ -156,9 +160,12 @@ class Command(BaseCommand):
             for pk, old_hash in matches:
                 with transaction.atomic():
                     # Compare-and-set on the verified hash: only writes if the
-                    # row still holds exactly what we checked.
+                    # row still holds exactly what we checked. The epoch bump
+                    # rides the same write, so any session opened with the
+                    # literal is revoked with it, and a skipped row keeps its
+                    # sessions.
                     updated = User.objects.filter(pk=pk, password=old_hash).update(
-                        password=unusable
+                        password=unusable, token_epoch=F("token_epoch") + 1
                     )
                 if not updated:
                     skipped_changed += 1

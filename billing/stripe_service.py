@@ -748,6 +748,18 @@ class StripeCheckoutService:
         # eligible admin must fail here rather than after it has paid.
         admin_user = LicenseSubscriptionService.resolve_admin_user(school, admin_user)
 
+        # The same seat check the webhook's create_license_subscription()
+        # makes, run BEFORE checkout: otherwise a school could pay for a
+        # license the webhook then refuses to create.
+        LicenseSubscriptionService.check_seat_capacity(
+            existing_license=LicenseSubscription.objects.filter(
+                school=school, is_active=True
+            ).first(),
+            teacher_emails=teacher_emails,
+            max_seats=max_seats,
+            carry_forward_teachers=carry_forward_teachers,
+        )
+
         if custom_price_cents:
             line_item = {
                 "price_data": {

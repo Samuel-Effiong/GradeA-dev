@@ -67,6 +67,7 @@ def sign_in_failed(
     *,
     denied=False,
     error_class=ErrorClass.USER,
+    extra_metadata=None,
 ):
     emit(
         AuditAction.AUTH_LOGIN,
@@ -80,5 +81,5 @@ def sign_in_failed(
         outcome=AuditOutcome.DENIED if denied else AuditOutcome.FAILURE,
         error_class=error_class,
         reason_code=reason_code,
-        metadata={"auth_method": method},
+        metadata={"auth_method": method, **(extra_metadata or {})},
     )
