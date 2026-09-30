@@ -1,0 +1,12 @@
+# R18: cleanup: an overdue refresh is logged
+# file: billing/tasks.py (occurrence 1)
+# old: '            if bucket.expires_at <= now - OWED_REFRESH_OVERDUE:\n'
+# new: '            if False:\n'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 4.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_refresh_overdue_by_a_week_is_logged_and_still_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_refresh_overdue_by_a_week_is_logged_and_still_kept)
+
+FAILED (failures=1)

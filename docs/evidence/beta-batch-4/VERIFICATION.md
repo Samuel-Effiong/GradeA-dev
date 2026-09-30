@@ -28,3 +28,42 @@
 **N2 (carried).** The H-28 notes, all non-blocking: N1, the helper case of the Stripe scan (latent, stated); N2, the licence customer and set-up-intent calls on the legacy API; N3, the per-read socket timeout; N4, Gate 7 in Stripe test mode. H-62's N7 (a null `payment_intent`) was closed by its Gate 4, and S1 became backlog H-66.
 
 **N3 (deploy, from 0b's notes).** `ENABLE_STRIPE_LIVE_QA` must be off wherever live Stripe keys are used (H-62 Gate 4 S2: a config read for the founder). The new command `resolve_licence_stripe_intent` is dry-run by default.
+
+---
+
+## Gate 1 refresh @ 0c95c56 (after the F6 fold-in). Verification Engineer 1a, 2026-09-30
+**Verdict for the tip 0c95c56: VERIFIED.** Bundle 4 is still exactly its verified items. The four F6 fixes are each their verified SHA plus docs only, merged cleanly, and the one strict full run passed on the exact final code tree. Nothing is required before the push; the founder still has to confirm that specific push.
+
+**The range since my Gate 1 at d28d4de (recorded at 8de3078):**
+
+| Check | Result |
+|---|---|
+| Ancestry | 8de3078 is an ancestor of 0c95c56. First-parent commits: 3b94aa8, 7faaedf, e190f06, 9627f7d, 4e629d4 (merges) and 0c95c56 (docs). |
+| Evil merges | For all **5** merges, `git merge-tree --write-tree <p1> <p2>` equals the merge's own tree. |
+| Each F6 item is its verified SHA plus docs only | • **Item 1, the add_teachers school-name leak:** **`152a8da`** (1a VERIFIED-WITH-NOTES) → `82e724a`, merged at 3b94aa8<br>• **Item 2, H-38 tasks namespace and auto-grade:** **`970c010`** (1a VERIFIED, round 2) → `d755926`, merged at 7faaedf<br>• **Item 3, the mid-cycle grant and trial-expiry re-checks:** **`128adf5`** (1a VERIFIED re-check; round 1 VERIFIED-WITH-NOTES) → `2bfa2e8`, merged at e190f06<br>• **Item 4, the monthly rollover lost to the 05:00 cleanup:** **`4da21c3`** (1a VERIFIED, round 2; round 1 REJECTED), merged at 9627f7d. Its record `52dbdc8` (docs only) is merged at 4e629d4<br>Each verified SHA is an ancestor of what was merged, with **0** non-docs changes after it. |
+| Records in the tree, byte for byte | My four records match my copies exactly: `docs/evidence/add-teachers-school-leak/VERIFICATION_1a_152a8da.md`, `docs/evidence/h38-tasks-namespace/VERIFICATION_h38_tasks_namespace.md`, `docs/evidence/midcycle-grant-recheck/VERIFICATION.md` and `docs/evidence/monthly-rollover-cleanup-race/VERIFICATION.md`. So does this Gate 1 record at 8de3078 (`docs/evidence/beta-batch-4/VERIFICATION.md`). |
+| Code in the range | `assignments/tasks.py`, `users/views.py`, `students/task_access.py`, `billing/{license_service,services,tasks,refresh_timing}.py`, and tests. Nothing else. |
+| Migrations, settings | **None** in 8de3078..0c95c56 (no `migrations/` or settings file). **No new beat entries**, so my N1 (the three `PeriodicTask` rows) is unchanged. |
+| After 4e629d4 | **Docs only:** `docs/evidence/beta-batch-4/FULL_SUITE.md`. The strict run's tree (4e629d4) therefore equals the push tip's code. |
+
+## Gate 10 (0b's strict full run after the fold-in; rule 15, not repeated)
+| Tip | Result |
+|---|---|
+| `4e629d4` (the final code tip) | **Ran 5382 tests, OK (skipped=28)**, 0 blocked outbound. `RACE_COST_*` and `AUDIT_BENCH` unset; whole-repo mypy and `makemigrations --check` clean first (0b's `FULL_SUITE.md`, 0c95c56) |
+
+- **The count checks out:** 5382 − 5303 = **79**. The range adds 72 `def test_` methods and removes none. The rollover module's `RefreshRaceFixture` mixin puts its 7 shared tests in both path classes (annual and licence), so they run twice: 72 + 7 = 79.
+- **The wall clock** (3096 s) includes a laptop suspend from 22:48:01 to 23:30:31, which 0b cites from `journalctl`. Django's own time (514 s) comes from a monotonic clock, which doesn't advance while suspended, so the run was paused, not hung. No test failed or errored.
+- **It was the first strict run on the final code tree, and it passed**, with no re-run.
+
+## Notes (not blocking)
+- **R1 (scope: H-55 is not in bundle 4).** `5fd88ff` (H-55, the token_epoch pin test, 1a VERIFIED, test only) is **not** an ancestor of 0c95c56. The bundle's F6 list names four items, and this matches it. I'm noting it only because H-55 was verified alongside them; it ships with the next bundle unless the SM says otherwise.
+- **R2 (rollback to beta abeda10, code only).** There are no migrations, so the rollback is clean.
+  - Monthly buckets granted by the new code keep their later expiry (up to 2 days past the due time). The old code still retires them by the newest unprocessed bucket, so nothing is spendable twice.
+  - Buckets the new cleanup kept back are written off by the old cleanup at its next 05:00. That's the pre-fix behaviour returning, with no new harm.
+- **R3 (carried open items, the SM's to rule on; none blocks):**
+  - add_teachers N1 (a sibling path);
+  - H-38 N3 (no `GRADING_FAILED` event on a refusal) and N4 (no run-time check on extraction);
+  - mid-cycle N1 (if card-on-file trials are ever introduced, `expire_active_trials` must leave Stripe-trialing rows to the webhooks);
+  - H-76 (`apply_immediate_plan_change` leaves the old bucket unprocessed; bundle 5).
+- **R4 (production actions).** Running the F6 read-only detection queries against production (`detect_*`, including `detect_monthly_rollovers_lost_to_cleanup.sql`) is a production action and needs founder approval. The outputs are ids and amounts only.
+- Everything under **N1 to N3 above** (the beat rows on rollback, the H-28 notes, `ENABLE_STRIPE_LIVE_QA`) still applies unchanged.

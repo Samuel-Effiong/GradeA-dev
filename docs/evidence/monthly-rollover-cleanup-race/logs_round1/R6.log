@@ -1,0 +1,12 @@
+# R6: annual re-check: a due time capped at the cycle end is excluded
+# file: billing/services.py (occurrence 1)
+# old: '            or user_subscription.next_credit_grant_at\n            >= user_subscription.billing_cycle_end\n'
+# new: ''
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 4.6
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK

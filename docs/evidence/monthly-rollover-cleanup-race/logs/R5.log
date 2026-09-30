@@ -1,0 +1,12 @@
+# R5: annual task: a due time capped at the cycle end is excluded
+# file: billing/tasks.py (occurrence 1)
+# old: '        next_credit_grant_at__lt=F("billing_cycle_end"),\n'
+# new: ''
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 0
+# elapsed_s: 6.1
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK
