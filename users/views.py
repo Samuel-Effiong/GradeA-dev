@@ -1211,7 +1211,18 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         serializer = CustomUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        serializer.save()
+        user = serializer.save()
+        # Epic A S2: the new account is traceable. The requester was not
+        # signed in, so the actor is ANONYMOUS and the account is the target;
+        # a refused (malformed) registration is recorded by AuditMiddleware.
+        emit(
+            AuditAction.ACCOUNT_REGISTER,
+            actor=request.user,
+            request=request,
+            target_type="CustomUser",
+            target_id=user.pk,
+            metadata={"auth_method": "self_registration"},
+        )
 
         return Response(serializer.data)
 

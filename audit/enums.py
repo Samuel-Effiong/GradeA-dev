@@ -82,6 +82,10 @@ class AuditAction(models.TextChoices):
     # Epic A completion S1: the generic event for a state-changing request
     # that recorded no named event. `metadata.route` says which route.
     STATE_CHANGE = "STATE_CHANGE", "State-changing request"
+    # Epic A completion S2: a new account from self-registration
+    # (POST /auth/register). Not AUTH_LOGIN - nobody is signed in until the
+    # address is verified, and that /auth/verify success is the AUTH_LOGIN.
+    ACCOUNT_REGISTER = "ACCOUNT_REGISTER", "Account registered"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

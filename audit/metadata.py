@@ -229,6 +229,7 @@ METADATA_ALLOWLIST = {
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields"}),
     AuditAction.STATE_CHANGE: frozenset({"route", "method", "http_status"}),
+    AuditAction.ACCOUNT_REGISTER: frozenset({"auth_method", "http_status"}),
 }
 
 

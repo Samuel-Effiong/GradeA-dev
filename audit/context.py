@@ -108,6 +108,21 @@ def record_stored_event(event_id) -> None:
         state.stored_event_ids.append(event_id)
 
 
+def a_stored_event_survives(state) -> bool:
+    """Whether any event stored during the request still exists, whoever it
+    names. Used for anonymous sign-in doors (S2), where the door's own event
+    names the targeted account or no one. Errors answer False: a second
+    event is better than none."""
+    if not state.stored_event_ids:
+        return False
+    try:
+        from .models import AuditEvent
+
+        return AuditEvent.objects.filter(pk__in=state.stored_event_ids).exists()
+    except Exception:  # noqa: BLE001 - never fail the response
+        return False
+
+
 def a_surviving_event_names(state, user) -> bool:
     """Whether an event stored during the request still exists AND names
     `user` (the requester) as its actor.
