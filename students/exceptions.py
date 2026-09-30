@@ -1,5 +1,32 @@
+from audit.enums import ReasonCode
+from AutoGrader.reason_codes import REASON_CODES, CodedError
+
+
 class CannotAssociateStudentError(Exception):
-    pass
+    """A teacher's (proxy) upload could not be attributed to a student.
+
+    FR-A-06 (S6c): raised as one of the two coded subclasses below, each with
+    its own reason code. Subclassing keeps them upload refusals
+    (assignments.tasks.UPLOAD_REFUSALS, never retried) and user-facing.
+    """
+
+
+class StudentNameUnmatchedError(CodedError, CannotAssociateStudentError):
+    """#1 MISSING_STUDENT_NAME (422): no name on the paper, a name that
+    matches nobody (the paper's own text is quoted, never stored data), or
+    one that matches more than one enrolled student."""
+
+    reason_code = ReasonCode.MISSING_STUDENT_NAME
+    status_code = REASON_CODES[ReasonCode.MISSING_STUDENT_NAME].http_status
+
+
+class StudentNotOnRosterError(CodedError, CannotAssociateStudentError):
+    """#2 STUDENT_NOT_ON_ROSTER (422): the name is one of the uploading
+    teacher's OWN students who isn't enrolled in this course (pending,
+    withdrawn, or in another of their courses). Never another teacher's."""
+
+    reason_code = ReasonCode.STUDENT_NOT_ON_ROSTER
+    status_code = REASON_CODES[ReasonCode.STUDENT_NOT_ON_ROSTER].http_status
 
 
 class SubmissionAlreadyGradedError(Exception):

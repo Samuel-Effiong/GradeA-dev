@@ -840,12 +840,15 @@ def upload_answers_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
         ensure_task_not_cancelled(processing_task_id)
+        outcome: dict = {}
         submission = upload_answers_engine(
             assignment=assignment,
             content=content,
             request_user=user,
             is_proxy_upload=is_teacher,
             processing_task_id=processing_task_id,
+            file_name=file_name or getattr(uploaded_file, "name", None),
+            upload_outcome=outcome,
         )
 
         if session_id:
@@ -863,6 +866,9 @@ def upload_answers_engine_async(
                 "step": "Answers extracted successfully",
                 "submission_id": str(submission.id),
                 "assignment_id": assignment_id,
+                # F3 (S6c): true when this upload overwrote an existing
+                # ungraded submission; S7a lifts it into the per-item result.
+                "replaced_existing": bool(outcome.get("replaced_existing")),
             },
         )
         return {
