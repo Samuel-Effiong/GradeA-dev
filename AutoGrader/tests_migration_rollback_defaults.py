@@ -42,6 +42,8 @@ When production moves, move PRODUCTION_HEADS to its new heads.
 
 import sys
 import uuid
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -307,6 +309,45 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
             ("students", "backgroundprocessingtask", "task_type"),
         ]:
             self.assertNotIn(key, candidates)
+
+
+class UnsavedInstanceTests(SimpleTestCase):
+    """A field with a db_default but no Python default holds Django's
+    DatabaseDefault placeholder on an unsaved instance, and code that reads
+    it before the save breaks (bundle 3's strict run: pdf_cache called
+    .isoformat() on it). Every other H-56 field kept its Python `default`;
+    Assignment.updated_at cannot, being auto_now, so its readers must not
+    assume a datetime before the save."""
+
+    def test_only_assignment_updated_at_has_a_db_default_without_a_default(self):
+        from django.apps import apps
+
+        placeholders = sorted(
+            f"{model._meta.label}.{field.name}"
+            for model in apps.get_models()
+            for field in model._meta.concrete_fields
+            if field.db_default is not NOT_PROVIDED and not field.has_default()
+        )
+        self.assertEqual(placeholders, ["assignments.Assignment.updated_at"])
+
+    def test_an_unsaved_assignment_gets_the_never_matching_pdf_key(self):
+        from assignments import pdf_cache
+
+        unsaved = Assignment(title="Unsaved")
+        self.assertTrue(
+            pdf_cache.build_cache_key(unsaved, "student").endswith(":unsaved")
+        )
+
+    def test_an_assignment_with_a_real_timestamp_keys_on_it(self):
+        from assignments import pdf_cache
+
+        stamp = datetime(2026, 9, 30, 12, 0, tzinfo=dt_timezone.utc)
+        assignment = Assignment(title="Saved", updated_at=stamp)
+        self.assertTrue(
+            pdf_cache.build_cache_key(assignment, "student").endswith(
+                f":{stamp.isoformat()}"
+            )
+        )
 
 
 class Column:
