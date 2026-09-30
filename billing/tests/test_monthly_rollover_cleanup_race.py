@@ -32,16 +32,24 @@ start coincide, and the bug can't show).
 
 Beat times are taken from settings: grants 02:00, licence refreshes 03:00,
 cleanup 05:00.
+
+billing.refresh_timing (the fix) is imported inside the tests that need it,
+so this module also loads on the pre-fix tree, where the lost-rollover
+test's first assertion shows the F6 query catching the real damage.
 """
 
+import re
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.db import connection
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 
 from billing.immutable import allow_unsafe_mutation
 from billing.models import (
@@ -59,6 +67,7 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
+from billing.services import SubscriptionService
 from billing.tasks import (
     cleanup_expired_credit_buckets,
     process_annual_plan_credit_grants,
@@ -69,10 +78,27 @@ from billing.tests.test_annual_mid_cycle_grants import (
     MONTHLY_CREDITS,
     make_annual_plan,
 )
+from billing.tests.tests_free_trial import make_individual_plan
 from classrooms.models import School
 from users.models import UserTypes
 
 CustomUser = get_user_model()
+
+LOST_MONTHS_SQL = (
+    settings.BASE_DIR
+    / "docs"
+    / "evidence"
+    / "monthly-rollover-cleanup-race"
+    / "detect_monthly_rollovers_lost_to_cleanup.sql"
+)
+
+
+def detect_lost_rollovers():
+    with connection.cursor() as cursor:
+        cursor.execute(LOST_MONTHS_SQL.read_text())
+        columns = [c.name for c in cursor.description]
+        return [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
+
 
 #: A day the Beat schedule fires; the hour is set per task.
 DAY_0 = datetime(2026, 3, 10, tzinfo=dt_timezone.utc)
@@ -132,6 +158,10 @@ class RefreshRaceFixture(_MixinBase):
         patcher = patch("django.utils.timezone.now", self.clock)
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    def next_due(self):
+        """The refreshed row's next due time; each path class defines it."""
+        raise NotImplementedError
 
     def run_refresh_on(self, day):
         self.clock.at(day + self.refresh_at)
@@ -210,8 +240,17 @@ class RefreshRaceFixture(_MixinBase):
             "was not granted",
         )
 
+    def test_the_monthly_bucket_outlives_its_due_time_by_the_grace(self):
+        from billing.refresh_timing import MONTHLY_BUCKET_GRACE
+
+        [bucket] = self.live_monthly()
+        self.assertEqual(bucket.expires_at, self.next_due() + MONTHLY_BUCKET_GRACE)
+
     def test_month_1s_unused_credits_roll_over(self):
         month_1, _, _ = self.drive_month_2()
+        # First, so that on the pre-fix code the failure shows what the F6
+        # query finds on the real lost rollover.
+        self.assertEqual(detect_lost_rollovers(), [])
         self.assertEqual(self.rollovers(), [EXPECTED_ROLLOVER])
         self.assertEqual(
             self.expire_rows(month_1),
@@ -254,6 +293,40 @@ class AnnualMidCycleGrantRaceTests(RefreshRaceFixture, TestCase):
         )
         # Month 1, through the real task at its scheduled time.
         self.assertIn("1 granted", self.run_refresh_on(DAY_0))
+
+    def next_due(self):
+        return UserSubscription.objects.get(user=self.user).next_credit_grant_at
+
+    def test_the_lost_months_query_finds_a_write_off_before_the_refresh(self):
+        """The ledger exactly as the pre-fix code left it: the cleanup wrote
+        month 1 off while its refresh was owed (here by making the owner
+        briefly not entitled, the only way the fixed cleanup still expires
+        a monthly bucket), and the refresh came the next day."""
+        month_1 = self.use_month_1()
+        day = DAY_0 + relativedelta(months=1)
+        UserSubscription.objects.filter(user=self.user).update(is_active=False)
+        self.clock.at(month_1.expires_at + timedelta(minutes=1))
+        cleanup_expired_credit_buckets()
+        UserSubscription.objects.filter(user=self.user).update(is_active=True)
+        self.run_refresh_on(day + timedelta(days=3))
+
+        [row] = detect_lost_rollovers()
+        self.assertEqual(row["wallet_id"], self.wallet.pk)
+        self.assertEqual(row["user_id"], self.user.pk)
+        self.assertEqual(row["months_lost"], 1)
+        self.assertEqual(
+            row["unused_credits_written_off_raw"], MONTHLY_CREDITS - USED_IN_MONTH_1
+        )
+        self.assertNotIn("@", " ".join(str(v) for v in row.values()))
+
+    def test_a_due_time_capped_at_the_cycle_end_is_not_granted_early(self):
+        """The tolerance must not grant the renewal's month mid-cycle."""
+        sub = UserSubscription.objects.get(user=self.user)
+        UserSubscription.objects.filter(pk=sub.pk).update(
+            next_credit_grant_at=sub.billing_cycle_end
+        )
+        self.clock.at(sub.billing_cycle_end - timedelta(minutes=3))
+        self.assertIn("0 granted", process_annual_plan_credit_grants())
 
 
 class LicenceMonthlyRefreshRaceTests(RefreshRaceFixture, TestCase):
@@ -318,3 +391,180 @@ class LicenceMonthlyRefreshRaceTests(RefreshRaceFixture, TestCase):
         )
         self.run_refresh_on(DAY_0)
         self.assertEqual(self.live_monthly().count(), 1, "month 1 not granted")
+
+    def next_due(self):
+        return SchoolCreditAllocation.objects.get(user=self.user).next_credit_grant_at
+
+
+class CleanupKeepsOwedMonthlyBucketsTests(TestCase):
+    """Defence 3: the cleanup never writes off a monthly bucket its owner's
+    refresh or renewal still has to roll over."""
+
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email="owed-refresh@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        self.wallet = clear_signal_state(self.user)
+        self.plan = make_individual_plan()
+        now = timezone.now()
+        # A monthly plan whose cycle ended an hour ago: its renewal (the
+        # Stripe webhook, or the 04:00 reconcile) hasn't arrived yet.
+        self.sub = UserSubscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            is_active=True,
+            billing_cycle_start=now - relativedelta(months=1, hours=1),
+            billing_cycle_end=now - timedelta(hours=1),
+            next_credit_grant_at=now - timedelta(hours=1),
+        )
+        self.bucket = self.monthly(expired_ago=timedelta(hours=1))
+
+    def monthly(self, expired_ago, used=4_000_000):
+        return CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=self.plan.monthly_credits,
+            used_credits=used,
+            expires_at=timezone.now() - expired_ago,
+        )
+
+    def written_off(self, bucket):
+        bucket.refresh_from_db()
+        return (
+            bucket.is_processed
+            or CreditLedger.objects.filter(
+                bucket=bucket, ledger_type=CreditLedgerType.EXPIRE
+            ).exists()
+        )
+
+    def test_an_entitled_owners_newest_monthly_bucket_is_kept(self):
+        summary = cleanup_expired_credit_buckets()
+        self.assertFalse(self.written_off(self.bucket))
+        self.assertIn("1 monthly buckets kept for an owed refresh", summary)
+
+    def test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over(self):
+        """The monthly individual renewal path: the webhook after 05:00."""
+        cleanup_expired_credit_buckets()
+        SubscriptionService.process_rollover_and_renewal(self.sub)
+
+        self.bucket.refresh_from_db()
+        self.assertTrue(self.bucket.is_processed)
+        self.assertFalse(
+            CreditLedger.objects.filter(
+                bucket=self.bucket, ledger_type=CreditLedgerType.EXPIRE
+            ).exists()
+        )
+        self.assertEqual(
+            CreditBucket.objects.filter(
+                wallet=self.wallet, bucket_type=CreditBucketType.CARRY_OVER
+            ).count(),
+            1,
+        )
+
+    def test_it_is_written_off_once_the_owner_is_no_longer_entitled(self):
+        UserSubscription.objects.filter(pk=self.sub.pk).update(is_active=False)
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(self.bucket))
+
+    def test_an_older_unprocessed_monthly_bucket_is_still_written_off(self):
+        older = self.monthly(expired_ago=timedelta(days=40))
+        CreditBucket.objects.filter(pk=older.pk).update(
+            created_at=timezone.now() - timedelta(days=70)
+        )
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(older))
+        self.assertFalse(self.written_off(self.bucket))
+
+    def test_a_licence_teacher_is_entitled_too(self):
+        UserSubscription.objects.filter(pk=self.sub.pk).delete()
+        school = School.objects.create(name="Owed High")
+        admin = CustomUser.objects.create_user(
+            email="owed-admin@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+        )
+        licence = LicenseSubscription.objects.create(
+            school=school,
+            admin_user=admin,
+            plan=self.plan,
+            contract_months=12,
+            max_seats=1,
+            billing_cycle_start=timezone.now() - relativedelta(months=2),
+            billing_cycle_end=timezone.now() + relativedelta(months=10),
+            is_active=True,
+        )
+        SchoolCreditAllocation.objects.create(
+            license_subscription=licence,
+            user=self.user,
+            monthly_allocation=self.plan.monthly_credits,
+            is_active=True,
+            next_credit_grant_at=timezone.now() - timedelta(hours=1),
+        )
+        cleanup_expired_credit_buckets()
+        self.assertFalse(self.written_off(self.bucket))
+
+    def test_other_bucket_types_are_still_written_off(self):
+        carry = CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.CARRY_OVER,
+            total_credits=1_000,
+            used_credits=0,
+            expires_at=timezone.now() - timedelta(hours=1),
+        )
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(carry))
+
+    def test_a_refresh_overdue_by_a_week_is_logged_and_still_kept(self):
+        from billing.refresh_timing import OWED_REFRESH_OVERDUE
+
+        CreditBucket.objects.filter(pk=self.bucket.pk).update(
+            expires_at=timezone.now() - OWED_REFRESH_OVERDUE - timedelta(hours=1)
+        )
+        with self.assertLogs("billing.tasks", "ERROR") as logs:
+            cleanup_expired_credit_buckets()
+        self.assertFalse(self.written_off(self.bucket))
+        self.assertIn(str(self.bucket.id), logs.output[0])
+        self.assertNotIn("@", logs.output[0])
+
+
+class FirstMonthGraceTests(TestCase):
+    """Defence 2 for the first month: an annual activation's monthly bucket
+    outlives the first grant's due time; a monthly plan's is unchanged."""
+
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email="first-month@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        clear_signal_state(self.user)
+
+    def monthly_bucket(self):
+        return CreditBucket.objects.get(
+            wallet__user=self.user, bucket_type=CreditBucketType.MONTHLY
+        )
+
+    def test_an_annual_activation_gets_the_grace(self):
+        from billing.refresh_timing import MONTHLY_BUCKET_GRACE
+
+        sub = SubscriptionService.activate_subscription(self.user, make_annual_plan())
+        self.assertEqual(
+            self.monthly_bucket().expires_at,
+            sub.next_credit_grant_at + MONTHLY_BUCKET_GRACE,
+        )
+
+    def test_a_monthly_activation_is_unchanged(self):
+        sub = SubscriptionService.activate_subscription(
+            self.user, make_individual_plan()
+        )
+        self.assertEqual(self.monthly_bucket().expires_at, sub.billing_cycle_end)
+
+
+class LostMonthsQueryIsReadOnlyTests(SimpleTestCase):
+    def test_it_writes_nothing(self):
+        sql = re.sub(r"--[^\n]*", "", LOST_MONTHS_SQL.read_text()).upper()
+        for verb in ("INSERT", "UPDATE", "DELETE", "ALTER", "DROP", "TRUNCATE"):
+            self.assertNotRegex(sql, rf"\b{verb}\b", verb)

@@ -36,6 +36,7 @@ from .models import (
     BetaProfile,
     BillingInterval,
     CreditBucket,
+    CreditBucketType,
     CreditWallet,
     LicenseBillingMethod,
     LicenseSubscription,
@@ -45,6 +46,7 @@ from .models import (
     StripeSubscriptionStatus,
     UserSubscription,
 )
+from .refresh_timing import OWED_REFRESH_OVERDUE, refresh_due_by
 from .services import AnalyticsService, SubscriptionService
 from .stripe_service import (
     RENEWAL_BILLING_REASONS,
@@ -302,6 +304,50 @@ def process_license_renewals(self):
     return summary
 
 
+def _monthly_buckets_owed_a_refresh(expired_buckets):
+    """
+    Ids of the expired buckets cleanup must leave alone: each wallet's
+    NEWEST unprocessed MONTHLY bucket, while its owner is still entitled
+    (an active subscription, or an active allocation under an active
+    licence). For them an expired monthly bucket means a refresh or renewal
+    is still owed, and that refresh is what rolls the bucket over
+    (billing/refresh_timing.py, defence 3). Older unprocessed MONTHLY
+    buckets, and everyone no longer entitled, are cleaned up as before.
+    """
+    wallet_ids = {
+        b.wallet_id
+        for b in expired_buckets
+        if b.bucket_type == CreditBucketType.MONTHLY
+    }
+    if not wallet_ids:
+        return set()
+
+    entitled_users = set(
+        UserSubscription.objects.filter(
+            is_active=True, user__credit_wallet__in=wallet_ids
+        ).values_list("user_id", flat=True)
+    ) | set(
+        SchoolCreditAllocation.objects.filter(
+            is_active=True,
+            license_subscription__is_active=True,
+            user__credit_wallet__in=wallet_ids,
+        ).values_list("user_id", flat=True)
+    )
+    newest = {}
+    for bucket_id, wallet_id in (
+        CreditBucket.objects.filter(
+            wallet_id__in=wallet_ids,
+            wallet__user_id__in=entitled_users,
+            bucket_type=CreditBucketType.MONTHLY,
+            is_processed=False,
+        )
+        .order_by("wallet_id", "-created_at")
+        .values_list("id", "wallet_id")
+    ):
+        newest.setdefault(wallet_id, bucket_id)
+    return set(newest.values())
+
+
 @shared_task(bind=True, max_retries=0)
 def cleanup_expired_credit_buckets(self):
     """
@@ -326,12 +372,28 @@ def cleanup_expired_credit_buckets(self):
         expires_at__lte=now,
         is_processed=False,
     ).select_related("wallet__user")
+    owed = _monthly_buckets_owed_a_refresh(expired_buckets)
 
     total_expired_count = 0
     total_value_lost = 0
     failed_count = 0
+    kept_for_refresh_count = 0
 
     for bucket in expired_buckets:
+        if bucket.pk in owed:
+            # The refresh or renewal still owed to this customer rolls this
+            # bucket over; writing it off first loses their carry-over.
+            kept_for_refresh_count += 1
+            if bucket.expires_at <= now - OWED_REFRESH_OVERDUE:
+                logger.error(
+                    "Monthly bucket %s (wallet %s) expired at %s and is still "
+                    "waiting for its owner's refresh or renewal; the refresh "
+                    "has stopped. Kept unexpired so it can still roll over.",
+                    bucket.id,
+                    bucket.wallet_id,
+                    bucket.expires_at,
+                )
+            continue
         try:
             value_lost = SubscriptionService.expire_bucket(bucket)
             total_expired_count += 1
@@ -350,6 +412,7 @@ def cleanup_expired_credit_buckets(self):
     summary = (
         f"Credit bucket cleanup: "
         f"{total_expired_count} buckets processed, "
+        f"{kept_for_refresh_count} monthly buckets kept for an owed refresh, "
         f"{total_value_lost} raw credits expired, "
         f"{failed_count} failed."
     )
@@ -375,11 +438,16 @@ def process_annual_plan_credit_grants(self):
     """
     now = timezone.now()
 
+    # Due up to a small tolerance past this run's start, and one "now" for
+    # the whole run (billing/refresh_timing.py): otherwise each grant fell
+    # due a moment after the next month's run started, waited a day, and
+    # the 05:00 cleanup wrote off the bucket it should have rolled over.
     due_subs = UserSubscription.objects.filter(
         is_active=True,
         is_trial=False,
         plan__interval=BillingInterval.ANNUAL,
-        next_credit_grant_at__lte=now,
+        next_credit_grant_at__lte=refresh_due_by(now),
+        next_credit_grant_at__lt=F("billing_cycle_end"),
         billing_cycle_end__gt=now,
     ).select_related("user", "plan")
 
@@ -389,7 +457,7 @@ def process_annual_plan_credit_grants(self):
 
     for sub in due_subs:
         try:
-            if SubscriptionService.process_mid_cycle_credit_grant(sub) is None:
+            if SubscriptionService.process_mid_cycle_credit_grant(sub, now=now) is None:
                 already_granted_count += 1
             else:
                 granted_count += 1
@@ -992,9 +1060,11 @@ def process_license_monthly_credit_refreshes(self):
     now = timezone.now()
 
     # Get all active allocations that need a refresh, within active licenses.
+    # Due up to a small tolerance past this run's start, with one "now" for
+    # the whole run (billing/refresh_timing.py).
     due_allocations = SchoolCreditAllocation.objects.filter(
         is_active=True,
-        next_credit_grant_at__lte=now,
+        next_credit_grant_at__lte=refresh_due_by(now),
         license_subscription__is_active=True,
         license_subscription__billing_cycle_end__gt=now,
     ).select_related("license_subscription", "user", "license_subscription__plan")
@@ -1021,11 +1091,13 @@ def process_license_monthly_credit_refreshes(self):
                     continue
 
                 # Check if next_credit_grant_at is still due (avoid race)
-                if locked_allocation.next_credit_grant_at > now:
+                if locked_allocation.next_credit_grant_at > refresh_due_by(now):
                     continue
 
                 # Perform the refresh
-                LicenseSubscriptionService._refresh_teacher_credits(locked_allocation)
+                LicenseSubscriptionService._refresh_teacher_credits(
+                    locked_allocation, now=now
+                )
                 refreshed_count += 1
 
         except Exception as exc:

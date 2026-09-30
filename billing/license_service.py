@@ -64,6 +64,7 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
+from .refresh_timing import monthly_bucket_expiry as grace_expiry
 
 logger = logging.getLogger(__name__)
 
@@ -684,7 +685,7 @@ class LicenseSubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=raw_amount,
             used_credits=0,
-            expires_at=next_refresh,
+            expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end),
         )
 
         CreditLedger.record(
@@ -1534,7 +1535,7 @@ class LicenseSubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=grant_amount,
             used_credits=0,
-            expires_at=next_refresh,
+            expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end),
         )
 
         # 7. Create audit ledger entry with the actual grant amount
@@ -1882,7 +1883,9 @@ class LicenseSubscriptionService:
                         wallet=wallet,
                         plan=license_sub.plan,
                         grant_amount=allocation.monthly_allocation,
-                        new_expiry=now + relativedelta(months=1),
+                        new_expiry=grace_expiry(
+                            now + relativedelta(months=1), renewal_end
+                        ),
                         now=now,
                         reference=(
                             f"Renewal allocation for LICENSE subscription {license_sub.id} "
@@ -3348,17 +3351,18 @@ class LicenseSubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def _refresh_teacher_credits(allocation: SchoolCreditAllocation) -> None:
+    def _refresh_teacher_credits(allocation: SchoolCreditAllocation, now=None) -> None:
         """
         Refresh a teacher's monthly credits: expire current monthly bucket,
         apply rollover, and create a new monthly bucket.
-        Called by the monthly refresh task.
+        Called by the monthly refresh task, which passes its start time as
+        `now` (billing/refresh_timing.py).
         """
 
         teacher = allocation.user
         wallet = teacher.credit_wallet
         license_sub = allocation.license_subscription
-        now = timezone.now()
+        now = now or timezone.now()
         next_refresh = now + relativedelta(months=1)
 
         # Open a new monthly consumption window, at most once per month per
@@ -3389,7 +3393,7 @@ class LicenseSubscriptionService:
             wallet=wallet,
             plan=license_sub.plan,
             grant_amount=allocation.monthly_allocation,
-            new_expiry=next_refresh,
+            new_expiry=grace_expiry(next_refresh, license_sub.billing_cycle_end),
             now=now,
             reference=f"Monthly grant for license {license_sub.id}",
             metadata={
@@ -3478,7 +3482,9 @@ class LicenseSubscriptionService:
                         wallet=wallet,
                         plan=license_sub.plan,
                         grant_amount=allocation.monthly_allocation,
-                        new_expiry=now + relativedelta(months=1),
+                        new_expiry=grace_expiry(
+                            now + relativedelta(months=1), new_billing_cycle_end
+                        ),
                         now=now,
                         reference=f"Offline renewal allocation for license {license_sub.id}",
                         metadata={
