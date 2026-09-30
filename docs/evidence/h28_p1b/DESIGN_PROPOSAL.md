@@ -8,7 +8,8 @@ Tree: `b744c9f`. Gate-8 class: environment-sensitive / billing.
 
 ## 1. The finding that shapes everything: the asymmetry
 
-**Six of the seven confirmed sites are NOT equally dangerous, and must NOT get one remedy.**
+**The seven confirmed sites are NOT equally dangerous, and must NOT get one remedy.**
+Five are view-layer, two are webhook.
 
 | | Webhook layer | View layer |
 |---|---|---|
@@ -64,12 +65,12 @@ Priority is blast radius per incident × irreversibility × absence of recovery.
 
 | P | Site | Layer | What goes wrong | Proposed remedy |
 |---|---|---|---|---|
-| **P0** | `license_service.py:3465` `convert_license_to_offline` | view | `Subscription.delete` is **unrecoverable** — no un-delete. Rollback leaves the school's subscription gone while the app still bills it as STRIPE | **Pattern 2a**, plus: write an intent row and COMMIT it **before** the Stripe call, so a death leaves a durable trace instead of nothing. Delete, then a short local transaction, then compensation is impossible — so the loud log and the intent row ARE the safety net |
+| **P0** | `license_service.py:3465` `convert_license_to_offline` | view | `Subscription.delete` is **unrecoverable** — no un-delete. Rollback leaves the school's subscription gone while the app still bills it as STRIPE | **Pattern 2a**, plus a **state-machine intent row** (`PENDING` -> `STRIPE_DELETED` -> `COMPLETE`, terminal `FAILED`; see §8b.3) committed **before** the Stripe call, with `STRIPE_DELETED` committed **immediately after** it returns. Compensation is impossible here, so the intent row and the loud log ARE the safety net. Stripe `idempotency_key` from the intent row id |
 | **P1** | `license_service.py:2062` -> `stripe_service.py:1680` `change_license_plan` | view | school charged (`always_invoice`); custom-price path can orphan a `stripe.Price` (:2257) | **Pattern 2a.** Move `Price.create` out too — an orphan Price is harmless but should be recorded |
 | **P1** | `license_service.py:2224`/`:2249` `update_seats` | view | school charged; **revert at :2249 is inside the doomed transaction** | **Pattern 2a**, and move the revert OUT so it can actually run |
 | **P1** | `license_service.py:1969` `cancel_license_subscription` | view | Stripe stops renewing; app says it will renew | **Pattern 2a** |
 | **P2** | `views.py:754`/`:766` `cancel` | view | two irreversible calls under one `atomic` + `select_for_update`; lock held across both | **Pattern 2a**; release the lock before the Stripe calls. Individual population is larger, value per incident smaller |
-| **P3** | `stripe_service.py:3397`/`:3399`/`:3406` via `handle_checkout_completed` | webhook | upgrade applied at Stripe, DB rolled back | **Pattern 2b** — verify/complete idempotency so redelivery converges. Lower priority **because recovery machinery already exists**, not because the bug is less real |
+| **P1** *(was P3 — re-ranked in review, see §8)* | `stripe_service.py:3397`/`:3399`/`:3406` via `handle_checkout_completed` | webhook | upgrade applied at Stripe, DB rolled back | **Pattern 2b** — establish handler-level idempotency **by test**, so redelivery provably converges. Ranked alongside the P1s **until that is proven**; recovery machinery only heals an idempotent handler |
 | **P4** | `sync_price` `:1813` via `handle_invoice_payment_succeeded` | webhook | next cycle billed at new price, app on old plan | **Verify only.** Already idempotent (:1806-1810 early return). Add a regression test pinning that property so a future edit cannot remove it |
 
 **Explicitly NOT changed:** `stripe_service.py:1054` (the reference pattern — changing it
@@ -100,11 +101,79 @@ this audit into evidence and is the Gate-2 mutant target for every site.
    is durable-intent + loud log + the reconciliation detector, and a **human** decides.
 2. **Should the P0 flow be gated behind a confirmation or made async?** Out of scope for
    H-28 as a bug fix; flagging as a product question.
-3. **Scope discipline.** Seven sites is already large. I propose landing **P0 + the three
-   P1s (all licence-layer, all `license_service.py`) as one change**, then P2, then P3/P4
-   separately — rather than one sweeping diff. Reviewability, and it matches the board's
-   preference for batched-but-bounded changes.
+3. **Scope discipline.** Seven sites is already large. Proposed landing order, each its own
+   bounded change rather than one sweeping diff:
+   - **Change 1 — licence layer:** P0 + the three licence P1s, all in `license_service.py`.
+   - **Change 2 — `handle_checkout_completed`** (the re-ranked webhook site, now P1 per §8a).
+     Same priority as change 1 but a **different file and a different remedy class**
+     (idempotency-by-test, not compensation), so it does not join the licence batch. It can
+     proceed in parallel with change 1.
+   - **Change 3 — P2** `views.py cancel`.
+   - **Change 4 — P4** `sync_price`: a regression test pinning its idempotency; no behaviour change.
 4. **The detector is the safety net, not the fix** — and it is blocked on prod read access.
+
+## 8. Review round 1 — fixes-coordinator (95), 2026-09-18
+
+### 8a. P3 re-ranked to P1 — conclusion ACCEPTED, stated mechanism CORRECTED
+
+**Accepted:** my original P3 ranking said "lower priority because recovery machinery already
+exists." That does not follow. **Redelivery only heals a handler that is idempotent**, and I
+had not established that for this handler. e2, reviewing the same code independently for the
+P1c sweep, **DENIED** auto-replay of `individual_upgrade_checkout` for exactly this reason
+(`team/sessions/fix-overage-lock.md`, "Denied, with reasons"). An independent reviewer's
+caution on the same path is evidence, and I should not rank below it on an assumption.
+
+**Corrected, because d4 should decide on the right mechanism:** the review predicted that on
+redelivery the void/refund step would error at Stripe, drive the claim to `FAILED`, and retry
+without converging for ~3 days. **Reading `_void_or_refund_side_effect_invoice`
+(`stripe_service.py:1490-1580`) shows that step does NOT behave that way:**
+- it **re-reads state first** — retrieves the subscription, its `latest_invoice`, and that
+  invoice's status — before acting;
+- `open` -> void; once voided, a re-run sees a non-`open` status and **does nothing**;
+- `paid` -> `Refund.create` **with `idempotency_key=f"interval-change-refund-{pi_id}"`**, so
+  Stripe itself refuses a second refund;
+- `StripeError` is **caught and logged, not raised** (it logs MANUAL RECONCILIATION NEEDED),
+  so it **cannot** drive the claim to `FAILED`.
+
+So the void/refund step is idempotent, verified by reading. **What is NOT established is the
+main `Subscription.modify` (:3399) plus the interval-crossing anchor reset** converging on a
+re-run. My expectation is that re-applying the same price is a no-op at Stripe and the second
+run finds the same side-effect invoice already neutralised — but that rests on Stripe API
+semantics I am **inferring, not testing**. Inferred is not proven, which is exactly why the
+ranking moves up until a test settles it.
+
+**P4 note, same logic:** e2 also denied `invoice.payment_succeeded` ("reaches `sync_price`, a
+Stripe mutation"). My claim is narrower than "the handler is safe": the **Stripe call** in
+`sync_price` is idempotent (early return, :1806-1810), which is what matters for Stripe's own
+redelivery after a *full* rollback. e2's sweep replays events **long after the fact**, when
+local state may have moved on — a different risk. Both positions hold; they answer different
+questions. P4 stays verify-only for H-28.
+
+### 8b. Three design conditions — ALL ACCEPTED
+
+1. **Stripe `idempotency_key` on every view-layer mutation, derived from the intent row id.**
+   Accepted. My injection point 4 promised "no duplicate mutation" with nothing enforcing it;
+   a double-clicked Cancel, or a retry after a gunicorn timeout, issues a second
+   `Subscription.modify`. **This also has in-tree precedent** — the very helper above already
+   uses `interval-change-refund-{pi_id}` — so it stays consistent with house style.
+2. **P2's lock release needs a named replacement guard.** Accepted. Removing
+   `select_for_update` without a replacement trades divergence for a concurrent-cancel race.
+   Named: **(a) locally**, the intent row carries a **unique constraint on (subscription,
+   operation) while in a non-terminal state**, so a second concurrent cancel fails to insert
+   and never reaches Stripe; **(b) at Stripe**, the idempotency key from condition 1. Both, not
+   either — (a) stops the local race, (b) stops a duplicate that slips past it.
+3. **P0's intent row needs explicit states.** Accepted, and this is the sharpest point in the
+   review. Proposed: **`PENDING` -> `STRIPE_DELETED` -> `COMPLETE`**, plus terminal `FAILED`.
+   **"Never attempted" and "deleted at Stripe but never finalised" need opposite responses** —
+   the first is safe to retry, the second must NOT be retried and needs a human — and a single
+   existence flag cannot tell them apart. On P0, where no compensation exists, the intent row
+   **is** the safety net, so its precision is the whole design. The `STRIPE_DELETED` write must
+   commit **immediately after** the Stripe call returns, in its own short transaction, before
+   any other local work.
+
+### 8c. Typo fixed
+
+§1 said "Six of the seven". Leftover from before site 7. Now: five view-layer, two webhook.
 
 ## 7. What is NOT claimed here
 
