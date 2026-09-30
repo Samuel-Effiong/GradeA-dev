@@ -119,6 +119,19 @@ class ProviderCallTests(SimpleTestCase):
         self.assertNotIn("provider timed out", lines[0])
 
 
+class AttemptTests(SimpleTestCase):
+    def test_a_retried_task_logs_its_attempt_number(self):
+        """Celery's retry count + 1: the third try of a task is attempt 3."""
+        from unittest.mock import patch
+
+        third_try = SimpleNamespace(request=SimpleNamespace(id="task-1", retries=2))
+        with patch("celery.current_task", third_try):
+            with self.assertLogs(LOGGER, logging.INFO) as logs:
+                call(processor_with(FakeCompletions()))
+
+        self.assertIn("attempt=3", ai_call_lines(logs)[0])
+
+
 class ClientChosenIdIsNeverTheTraceTests(SimpleTestCase):
     """X-5 (S5 part 0): a client's X-Request-ID never becomes the trace id
     on the AI call - it stays the server's."""
