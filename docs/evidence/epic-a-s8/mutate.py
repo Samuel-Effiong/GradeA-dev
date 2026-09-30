@@ -50,6 +50,12 @@ MUTANTS = {
         "    RetentionClass.STUDENT_RECORD.value: 365 * 3,\n",
         "    RetentionClass.STUDENT_RECORD.value: 365,\n",
     ),
+    # v2's N1: the per-class count is unwindowed again (a full scan).
+    "V8_class_count_scans_the_table": (
+        CMD,
+        '            recent.values("retention_class")\n',
+        '            AuditEvent.objects.values("retention_class")\n',
+    ),
 }
 
 TESTS = ["audit.tests_volume_report"]

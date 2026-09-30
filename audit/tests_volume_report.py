@@ -53,8 +53,10 @@ class MeasuredTests(TestCase):
         self.assertIn(f"day {today} ASSIGNMENT_CREATE 3", output)
         self.assertIn(f"day {today} GRADE_CHANGE 1", output)
         self.assertIn("total ASSIGNMENT_CREATE 3", output)
-        self.assertIn("class GENERAL 3", output)
-        self.assertIn("class STUDENT_RECORD 1", output)
+        self.assertIn("class GENERAL 3 (last 7 days)", output)
+        self.assertIn("class STUDENT_RECORD 1 (last 7 days)", output)
+        self.assertIn("(planner estimate, not a count)", output)
+        self.assertNotIn("all time, exact", output)
         self.assertRegex(output, r"bytes_per_row \d+ \(sample of \d+\)")
         self.assertRegex(output, r"table_total_bytes \d+")
 
@@ -88,10 +90,22 @@ class MeasuredTests(TestCase):
         for sql in sized:
             self.assertIn("LIMIT", sql)
         self.assertTrue(any("TABLESAMPLE" in sql for sql in sized))
-        # The only unwindowed statements are the catalogue lookups.
+        # v2's N1: by default nothing counts the whole table. Every other
+        # statement touching it is windowed (occurred_at) or a catalogue
+        # lookup (the planner estimate, the size functions).
         for sql in touching:
             if "occurred_at" not in sql and "pg_column_size" not in sql:
-                self.assertRegex(sql, r"reltuples|pg_relation_size|retention_class")
+                self.assertRegex(sql, r"reltuples|pg_relation_size")
+
+    def test_exact_all_time_is_opt_in_and_counts_everything(self):
+        with allow_unsafe_mutation():
+            AuditEvent.objects.filter(action=AuditAction.GRADE_CHANGE).update(
+                occurred_at=timezone.now() - timedelta(days=400)
+            )
+        default = run("--days", "7")
+        exact = run("--days", "7", "--exact-all-time")
+        self.assertNotIn("class STUDENT_RECORD", default)
+        self.assertIn("class STUDENT_RECORD 1 (all time, exact)", exact)
 
 
 class ProjectionTests(TestCase):

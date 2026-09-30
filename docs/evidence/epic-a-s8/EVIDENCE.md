@@ -102,3 +102,20 @@ Run on **`80eac88`**: 0b's merge of phase2/epic-a `b2890d9` (S6c N1) into `c321e
 | mypy | whole-repo: **Passed** |
 | Migrations | **No changes detected** |
 | Real infra | Postgres: the read-only transaction, TABLESAMPLE, `pg_column_size`, `reltuples` and the size functions all run against the real test database, not a mock. |
+
+## N1 (v2's record `VERIFICATION_v2_3511833.md`, SM ruling): no full scan by default
+v2's EXPLAIN showed that the "class … (all time)" line, an unwindowed per-class count, was a full sequential scan. My statement-capture test had let it through, because its allowed pattern included `retention_class`.
+
+**Fix:**
+- The per-class counts cover the `--days` window, labelled "(last N days)".
+- The all-time figure is the planner's estimate: `rows_all_time N (planner estimate, not a count)`.
+- A new **`--exact-all-time`** flag, off by default, adds exact all-time per-class counts. Its help text says it is a full scan.
+- The statement-capture test is tightened: in the default path, any statement touching the table is windowed (`occurred_at`), sampled (`pg_column_size` with `LIMIT`), or a catalogue lookup (`reltuples`, the size functions). Nothing else is allowed.
+- A new test shows `--exact-all-time` counts rows outside the window and the default doesn't.
+- New mutant **V8** puts the unwindowed class count back.
+
+An EXPLAIN-based assertion was considered and not used: on the test database's tiny table Postgres seq-scans even a windowed query, so it could not tell the two apart. The structural test can.
+
+v2 also checked that `SET TRANSACTION READ ONLY` does not leak into a caller's transaction: `transaction_read_only` is off before and after.
+
+**N1 gates** (only the touched module, per the SM): _pending_

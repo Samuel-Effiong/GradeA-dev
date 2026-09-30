@@ -57,18 +57,27 @@ class Command(BaseCommand):
         parser.add_argument("--days", type=int, default=30)
         parser.add_argument("--teachers", type=int, default=None)
         parser.add_argument("--students", type=int, default=None)
+        parser.add_argument(
+            "--exact-all-time",
+            action="store_true",
+            help=(
+                "Also count every row per retention class exactly. This is a "
+                "FULL SCAN of the audit table - off by default; the default "
+                "all-time figure is the planner's estimate."
+            ),
+        )
 
-    def handle(self, *args, days, teachers, students, **options):
+    def handle(self, *args, days, teachers, students, exact_all_time, **options):
         with transaction.atomic():
             with connection.cursor() as cursor:
                 cursor.execute("SET TRANSACTION READ ONLY")
-            self.measured(days)
+            self.measured(days, exact_all_time)
             if teachers is not None or students is not None:
                 self.projected(teachers or 0, students or 0)
 
     # ------------------------------------------------------------ measured
 
-    def measured(self, days):
+    def measured(self, days, exact_all_time=False):
         since = timezone.now() - timedelta(days=days)
         recent = AuditEvent.objects.filter(occurred_at__gte=since)
         out = self.stdout.write
@@ -84,12 +93,22 @@ class Command(BaseCommand):
         totals = recent.values("action").annotate(n=Count("pk")).order_by("-n")
         for row in totals:
             out(f"total {row['action']} {row['n']} ({row['n'] / days:.1f}/day)")
+        # Per class over the window only (v2's N1, SM ruling): an unwindowed
+        # count is a full scan. All-time is the planner's estimate below,
+        # unless --exact-all-time asks for the scan explicitly.
         for row in (
-            AuditEvent.objects.values("retention_class")
+            recent.values("retention_class")
             .annotate(n=Count("pk"))
             .order_by("retention_class")
         ):
-            out(f"class {row['retention_class']} {row['n']} (all time)")
+            out(f"class {row['retention_class']} {row['n']} (last {days} days)")
+        if exact_all_time:
+            for row in (
+                AuditEvent.objects.values("retention_class")
+                .annotate(n=Count("pk"))
+                .order_by("retention_class")
+            ):
+                out(f"class {row['retention_class']} {row['n']} (all time, exact)")
 
         table = AuditEvent._meta.db_table
         quoted = connection.ops.quote_name(table)  # from the model, not input
@@ -120,7 +139,7 @@ class Command(BaseCommand):
                 [table, table, table],
             )
             heap, indexes, total = cursor.fetchone()
-        out(f"rows_estimated {rows}")
+        out(f"rows_all_time {rows} (planner estimate, not a count)")
         out(f"bytes_per_row {float(avg_bytes):.0f} (sample of {sampled})")
         out(f"table_heap_bytes {heap}")
         out(f"table_index_bytes {indexes}")
