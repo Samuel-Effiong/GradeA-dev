@@ -1134,6 +1134,11 @@ REGISTER_STUDENT_FAILURE_WINDOW_SECONDS = env.int(
     "REGISTER_STUDENT_FAILURE_WINDOW_SECONDS", default=3600
 )
 
+# H-53: per-address budget of attempts on POST /auth/verify; see
+# users.throttling.reserve_verify_attempt.
+VERIFY_EMAIL_MAX_FAILURES = env.int("VERIFY_EMAIL_MAX_FAILURES", default=5)
+VERIFY_EMAIL_LOCK_SECONDS = env.int("VERIFY_EMAIL_LOCK_SECONDS", default=1800)
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
