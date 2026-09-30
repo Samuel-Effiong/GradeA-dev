@@ -1,0 +1,275 @@
+"""
+billing/license_stripe_mutation.py
+==================================
+Running one irreversible Stripe change to a licence without holding a
+database transaction open across it (H-28).
+
+THE PROBLEM THIS SOLVES
+-----------------------
+Django rolls back the database half of a failed operation; Stripe does not.
+The licence operations used to make their Stripe call inside the same
+transaction as their local write — and, for all of them, while holding a
+row lock. Production and beta run `idle_in_transaction_session_timeout =
+60s`, shorter than stripe-python's 80 s request timeout, so a slow Stripe
+call could have its transaction terminated underneath it: Stripe changed,
+the local write rolled back, and for a web request nothing ever retries.
+See docs/evidence/h28_p1b/.
+
+THE SHAPE
+---------
+Four phases, following the pattern stripe_service.reactivate_if_cancelling
+already uses in-tree:
+
+  A  a short transaction: lock the licence, validate, record an intent
+     (PENDING). Committed — and the lock released — before Stripe is called.
+  B  the Stripe call, in NO transaction, carrying the intent's
+     idempotency key.
+  C  a short transaction recording that Stripe applied it (STRIPE_APPLIED),
+     committed on its own so that fact survives whatever happens next.
+  D  a short transaction re-checking the licence and writing the local
+     state; the intent becomes COMPLETE.
+
+At most one intent per licence may be in flight (a database constraint), so
+these operations are serialised the way the row lock serialised them —
+without a transaction open while Stripe is slow.
+
+Every transaction here is `durable=True`: Django raises if one is ever
+opened inside another transaction. No caller does that today; this makes it
+impossible to do by accident, because wrapping these operations in an outer
+transaction would put the Stripe call straight back inside it.
+
+A STRIPE EXCEPTION IS NOT PROOF OF FAILURE
+------------------------------------------
+A timeout or a 5xx means the request may have landed. Treating it as a
+failure is how a change that Stripe applied gets left out of the database.
+So those outcomes are READ BACK from Stripe before being classified; only a
+refusal (the request was processed and turned down) counts as not applied.
+"""
+
+import logging
+
+from django.db import IntegrityError, transaction
+from django.utils import timezone
+
+from .imports import stripe
+from .models import (
+    LicenseStripeMutationIntent,
+    LicenseStripeMutationStatus,
+    LicenseSubscription,
+)
+
+logger = logging.getLogger(__name__)
+
+GUARD_CONSTRAINT = "one_inflight_stripe_mutation_per_licence"
+
+
+class LicenceBillingChangeInProgress(ValueError):
+    """Another Stripe change to this licence is still in flight, or is
+    awaiting reconciliation. A ValueError, so the views' existing contract
+    turns it into a 400 the caller can retry later."""
+
+
+class LicenceStripeChangeNotRecorded(Exception):
+    """Stripe applied the change but the application could not record it.
+
+    Deliberately NOT a ValueError: this is the server's failure, not a bad
+    request, so the views report it as a 500 — as they did before, when the
+    same failure surfaced as a database error. Whether Stripe was put back
+    (COMPENSATED) or a human is needed (ESCALATED) is on the intent."""
+
+
+class LicenceMovedOn(Exception):
+    """The licence changed between recording the intent and writing the
+    local result, so the result can no longer be applied as planned."""
+
+
+def outcome_unknown(exc: Exception) -> bool:
+    """True when a Stripe error does not tell us whether the request landed:
+    a connection failure (including a timeout) or a server error. Everything
+    else means Stripe processed the request and refused it."""
+    if isinstance(exc, stripe.error.APIConnectionError):
+        return True
+    if isinstance(exc, stripe.error.APIError):
+        status = getattr(exc, "http_status", None)
+        return status is None or status >= 500
+    return False
+
+
+def is_guard_violation(exc: IntegrityError) -> bool:
+    return GUARD_CONSTRAINT in str(exc)
+
+
+def busy_error() -> LicenceBillingChangeInProgress:
+    return LicenceBillingChangeInProgress(
+        "Another billing change for this licence is still in progress or "
+        "awaiting reconciliation. Please try again shortly."
+    )
+
+
+def record_intent(
+    licence: LicenseSubscription,
+    operation: str,
+    requested_change: dict,
+    performed_by=None,
+) -> LicenseStripeMutationIntent:
+    """Phase A's write. Call inside the phase-A transaction, after
+    validating; the caller turns a guard IntegrityError into busy_error()."""
+    sub_id = licence.stripe_subscription_id
+    if not sub_id:
+        # Callers handle a licence with no Stripe subscription locally,
+        # before recording anything; an intent must name what it changes.
+        raise ValueError(f"Licence {licence.id} has no Stripe subscription to change.")
+    return LicenseStripeMutationIntent.objects.create(
+        license_subscription=licence,
+        operation=operation,
+        stripe_subscription_id=sub_id,
+        requested_change=requested_change,
+        performed_by=performed_by,
+    )
+
+
+def _set_status(intent, status, **fields) -> bool:
+    """Advance an intent in its own short transaction. Best effort: if the
+    database itself is what failed, the intent keeps its last committed
+    state, which the stale-intent check reports. Returns whether it saved."""
+    intent.status = status
+    for name, value in fields.items():
+        setattr(intent, name, value)
+    try:
+        with transaction.atomic(durable=True):
+            intent.save(update_fields=["status", "updated_at", *fields])
+        return True
+    except Exception:  # noqa: BLE001 - a failed record must not mask the cause
+        logger.exception(
+            "Could not record H-28 intent %s as %s; it keeps its last "
+            "committed state for the stale-intent check to report.",
+            intent.id,
+            status,
+        )
+        return False
+
+
+def _reconciliation_needed(intent, why: str) -> None:
+    logger.error(
+        "MANUAL RECONCILIATION NEEDED — Stripe and local state may now "
+        "disagree for licence %s (intent %s, %s on Stripe subscription %s): %s",
+        intent.license_subscription_id,
+        intent.id,
+        intent.operation,
+        intent.stripe_subscription_id,
+        why,
+    )
+
+
+def apply_at_stripe(intent, call, reached):
+    """
+    Phase B, then phase C.
+
+    `call(idempotency_key=...)` makes the Stripe mutation. `reached()` reads
+    Stripe (read-only) and says whether the target state is in place; it is
+    consulted only when the outcome of `call` is unknown.
+
+    Returns what `call` returned — or None when the call's response was lost
+    but the read-back shows it applied. Re-raises the Stripe error when the
+    change did not happen (the intent is then FAILED) or when it cannot be
+    determined (the intent stays PENDING and a human is told).
+    """
+    try:
+        result = call(idempotency_key=intent.idempotency_key("apply"))
+    except stripe.error.StripeError as exc:
+        if not outcome_unknown(exc):
+            _set_status(
+                intent,
+                LicenseStripeMutationStatus.FAILED,
+                failure_reason=f"Stripe refused: {exc}",
+            )
+            raise
+        try:
+            applied = reached()
+        except stripe.error.StripeError as read_exc:
+            _reconciliation_needed(
+                intent,
+                f"outcome unknown ({exc}) and the read-back also failed "
+                f"({read_exc}); the intent is left PENDING",
+            )
+            raise exc from read_exc
+        if not applied:
+            _set_status(
+                intent,
+                LicenseStripeMutationStatus.FAILED,
+                failure_reason=f"Outcome unknown ({exc}); read-back shows not applied",
+            )
+            raise
+        logger.warning(
+            "H-28 intent %s: Stripe response lost (%s) but the read-back shows "
+            "the change applied; continuing.",
+            intent.id,
+            exc,
+        )
+        result = None
+
+    _set_status(intent, LicenseStripeMutationStatus.STRIPE_APPLIED)
+    return result
+
+
+def finalise(intent, revalidate, write, compensate=None):
+    """
+    Phase D: re-lock the licence, re-check it, write the local result and
+    mark the intent COMPLETE — all in one short transaction.
+
+    If that fails, the Stripe change is undone by `compensate(
+    idempotency_key=...)` where one is given — only for changes where no
+    money has moved — and the intent becomes COMPENSATED. With no
+    compensation, or if it fails, the intent becomes ESCALATED and a human
+    is told: once money has moved or an object was destroyed, the code never
+    moves more money to put things back.
+
+    Raises LicenceStripeChangeNotRecorded in either failure case.
+    """
+    try:
+        with transaction.atomic(durable=True):
+            licence = LicenseSubscription.objects.select_for_update().get(
+                pk=intent.license_subscription_id
+            )
+            revalidate(licence)
+            write(licence)
+            intent.status = LicenseStripeMutationStatus.COMPLETE
+            intent.completed_at = timezone.now()
+            intent.save(update_fields=["status", "completed_at", "updated_at"])
+        return licence
+    except Exception as exc:  # noqa: BLE001 - every failure takes this path
+        cause = f"{type(exc).__name__}: {exc}"
+
+        if compensate is not None:
+            try:
+                compensate(idempotency_key=intent.idempotency_key("revert"))
+            except stripe.error.StripeError as revert_exc:
+                cause = f"{cause}; the revert at Stripe also failed: {revert_exc}"
+            else:
+                _set_status(
+                    intent,
+                    LicenseStripeMutationStatus.COMPENSATED,
+                    failure_reason=f"Local write failed ({cause}); reverted at Stripe",
+                )
+                logger.warning(
+                    "H-28 intent %s: the local write failed (%s), so the "
+                    "Stripe change was reverted. Nothing was changed.",
+                    intent.id,
+                    cause,
+                )
+                raise LicenceStripeChangeNotRecorded(
+                    "The change could not be recorded, so it was undone. "
+                    "Nothing was changed; please try again."
+                ) from exc
+
+        _set_status(
+            intent,
+            LicenseStripeMutationStatus.ESCALATED,
+            escalated_at=timezone.now(),
+            failure_reason=cause,
+        )
+        _reconciliation_needed(intent, cause)
+        raise LicenceStripeChangeNotRecorded(
+            "The change was applied at our payment provider but could not be "
+            "recorded. It has been flagged for manual reconciliation."
+        ) from exc

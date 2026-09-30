@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import F, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -35,6 +35,7 @@ from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import generate_temporary_password
 from users.utils import is_business_email, is_exempt_email_domain
 
+from . import license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
@@ -56,6 +57,7 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     LicenseOverageOfflineRequestStatus,
     LicenseOveragePurchaseIntent,
     LicenseOveragePurchaseStatus,
+    LicenseStripeMutationOperation,
     LicenseSubscription,
     PlanCategory,
     PlanTier,
@@ -2033,7 +2035,6 @@ class LicenseSubscriptionService:
         sync_teachers_under_license_to_mailerlite(license_sub)
 
     @staticmethod
-    @transaction.atomic
     def cancel_license_subscription(
         license_sub: LicenseSubscription,
         performed_by: Optional[CustomUser] = None,
@@ -2068,59 +2069,125 @@ class LicenseSubscriptionService:
         scheduled to cancel (auto_renew=False) -- idempotency guard,
         matching change_license_plan/update_seats's "no-op" rejections
         elsewhere in this file.
+
+        H-28: the Stripe call runs in NO transaction (see
+        billing/license_stripe_mutation.py). The change is recorded as an
+        intent first, so a failure at any point leaves a record; if the
+        local write then fails, cancel_at_period_end is put back — no money
+        has moved, so undoing it is safe.
         """
-        license_sub = LicenseSubscription.objects.select_for_update().get(
-            pk=license_sub.pk
-        )
 
-        if not license_sub.is_active:
-            raise ValueError("License is already inactive.")
-        if not license_sub.auto_renew:
-            raise ValueError("License is already scheduled to cancel.")
+        def validate(licence):
+            if not licence.is_active:
+                raise ValueError("License is already inactive.")
+            if not licence.auto_renew:
+                raise ValueError("License is already scheduled to cancel.")
 
-        if license_sub.billing_method == LicenseBillingMethod.STRIPE:
-            if license_sub.stripe_subscription_id:
-                try:
-                    stripe.Subscription.modify(
-                        license_sub.stripe_subscription_id,
-                        cancel_at_period_end=True,
-                    )
-                except stripe.error.StripeError as exc:
-                    raise ValueError(
-                        f"Failed to schedule Stripe cancellation: {exc}"
-                    ) from exc
-            else:
-                logger.warning(
-                    "License %s is STRIPE-billed but has no "
-                    "stripe_subscription_id; cancelling locally only.",
-                    license_sub.id,
+        def record_cancellation(licence, log_suffix):
+            LicenseBillingRecord.objects.create(
+                license_subscription=licence,
+                record_type=LicenseBillingRecordType.CANCELLED,
+                notes=notes,
+                performed_by=performed_by,
+            )
+            logger.info(
+                "Cancelled license subscription %s for school %s "
+                "(billing_method=%s). %s",
+                licence.id,
+                licence.school.name,
+                licence.billing_method,
+                log_suffix,
+            )
+
+        # Phase A — or the whole operation, where Stripe is not involved.
+        try:
+            with transaction.atomic(durable=True):
+                licence = LicenseSubscription.objects.select_for_update().get(
+                    pk=license_sub.pk
                 )
-            license_sub.auto_renew = False
-            license_sub.save(update_fields=["auto_renew", "updated_at"])
-            log_suffix = "Teachers keep access until billing_cycle_end."
-        else:
-            license_sub.is_active = False
-            license_sub.auto_renew = False
-            license_sub.save(update_fields=["is_active", "auto_renew", "updated_at"])
-            sync_teachers_under_license_to_mailerlite(license_sub)
-            log_suffix = "Teachers lose access immediately (OFFLINE billing)."
+                validate(licence)
 
-        LicenseBillingRecord.objects.create(
-            license_subscription=license_sub,
-            record_type=LicenseBillingRecordType.CANCELLED,
-            notes=notes,
-            performed_by=performed_by,
+                if licence.billing_method != LicenseBillingMethod.STRIPE:
+                    licence.is_active = False
+                    licence.auto_renew = False
+                    licence.save(
+                        update_fields=["is_active", "auto_renew", "updated_at"]
+                    )
+                    sync_teachers_under_license_to_mailerlite(licence)
+                    record_cancellation(
+                        licence, "Teachers lose access immediately (OFFLINE billing)."
+                    )
+                    return licence
+
+                if not licence.stripe_subscription_id:
+                    logger.warning(
+                        "License %s is STRIPE-billed but has no "
+                        "stripe_subscription_id; cancelling locally only.",
+                        licence.id,
+                    )
+                    licence.auto_renew = False
+                    licence.save(update_fields=["auto_renew", "updated_at"])
+                    record_cancellation(
+                        licence, "Teachers keep access until billing_cycle_end."
+                    )
+                    return licence
+
+                intent = license_stripe_mutation.record_intent(
+                    licence,
+                    LicenseStripeMutationOperation.CANCEL,
+                    {"auto_renew": [True, False]},
+                    performed_by,
+                )
+        except IntegrityError as exc:
+            if license_stripe_mutation.is_guard_violation(exc):
+                raise license_stripe_mutation.busy_error() from exc
+            raise
+
+        sub_id = intent.stripe_subscription_id
+
+        # Phases B and C.
+        try:
+            license_stripe_mutation.apply_at_stripe(
+                intent,
+                call=lambda **key: stripe.Subscription.modify(
+                    sub_id, cancel_at_period_end=True, **key
+                ),
+                reached=lambda: bool(
+                    stripe.Subscription.retrieve(sub_id).get("cancel_at_period_end")
+                ),
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Failed to schedule Stripe cancellation: {exc}") from exc
+
+        # Phase D.
+        def revalidate(licence):
+            if (
+                not licence.is_active
+                or not licence.auto_renew
+                or licence.billing_method != LicenseBillingMethod.STRIPE
+                or licence.stripe_subscription_id != sub_id
+            ):
+                raise license_stripe_mutation.LicenceMovedOn(
+                    f"licence {licence.id} changed while Stripe was being updated"
+                )
+
+        def write(licence):
+            licence.auto_renew = False
+            licence.save(update_fields=["auto_renew", "updated_at"])
+            record_cancellation(
+                licence, "Teachers keep access until billing_cycle_end."
+            )
+
+        return license_stripe_mutation.finalise(
+            intent,
+            revalidate=revalidate,
+            write=write,
+            # No money moves when a cancellation is scheduled, so undoing it
+            # is safe (DESIGN_PROPOSAL.md §9d).
+            compensate=lambda **key: stripe.Subscription.modify(
+                sub_id, cancel_at_period_end=False, **key
+            ),
         )
-
-        logger.info(
-            "Cancelled license subscription %s for school %s (billing_method=%s). %s",
-            license_sub.id,
-            license_sub.school.name,
-            license_sub.billing_method,
-            log_suffix,
-        )
-
-        return license_sub
 
     @staticmethod
     def get_teacher_allocation_info(teacher: CustomUser) -> Optional[dict]:
