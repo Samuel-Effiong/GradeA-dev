@@ -10,7 +10,7 @@ Every refused upload answers with its own reason code and the status F7 fixed fo
 |---|---|---|---|
 | 3 | `FILE_UNREADABLE` | 422 | An image or PDF the parser can't read (damaged, truncated, encrypted); a file whose bytes aren't its declared type (a photo labelled `application/pdf`) |
 | 4 | `FILE_TYPE_UNSUPPORTED` | 415 | A declared type that is neither an accepted image type nor PDF. `detected_type` is the extension in upper case (`TXT`), else the declared type |
-| 5 | `FILE_TOO_LARGE` | 413 | Bytes (`validate_upload_size`: `PayloadTooLarge`, now coded); pages (`PDFService.MAX_PAGE_COUNT`); pixels (`MAX_IMAGE_PIXELS`, or Pillow's own bomb limit); an image no compression brings under the cap. `params`: `actual`, `limit`, `dimension` (`bytes`/`pages`/`pixels`) |
+| 5 | `FILE_TOO_LARGE` | 413 | Bytes (`validate_upload_size`: `PayloadTooLarge`, now coded); pages (`PDFService.MAX_PAGE_COUNT`); pixels (`MAX_IMAGE_PIXELS`, or Pillow's own bomb limit); an image no compression brings under the cap. `params`: `dimension` (`bytes`/`pages`/`pixels`) and `actual`/`limit` as **integers** in that unit (see the N1 section); the message shows them formatted |
 | 6 | `SUBMISSION_EMPTY` | 422 | An empty **file** only: zero bytes, or a PDF with zero pages (08a §6.1's final ruling; blank answers are not refused) |
 
 **Order of checks** in `prepare_ai_content`: the declared type first (415), then zero bytes (422), then what reading the bytes finds. So an empty `.txt` file is an unsupported type, not an empty submission.
@@ -87,3 +87,25 @@ Every refused upload answers with its own reason code and the status F7 fixed fo
 **Not mutated, because nothing can observe them (stated, not hidden):**
 - Restoring the library text inside `PDFService`'s own message: that text no longer reaches any message, since the user sees only the spec's template (pinned by the QA-ERR-03 sentinel tests).
 - A coded type's `status_code` attribute: the handler answers with the spec's status.
+
+## N1 fix (v2's note; SM ruling, 2026-09-30) @ 49ff6ca
+v2 verified the slice at `46c8c15` with N1: `FILE_TOO_LARGE`'s `params.actual` and `params.limit` were display strings. The SM ruled they follow 08a §4.2 and are **machine-readable numbers**:
+- `dimension` is `bytes` / `pages` / `pixels`;
+- `actual` and `limit` are ints in that unit (bytes as integer bytes, and pixels as width × height);
+- "63.2 MB", "3 pages" and "9000x9000 px" appear **only in the display message**.
+
+| Change | Where |
+|---|---|
+| `CodedError(..., display={...})`: the text for a placeholder, used to render the message and never exposed in `params`. A key that is no placeholder, or a non-text value, is refused. | `AutoGrader/reason_codes.py` (`ReasonSpec.render`, `CodedError.__init__`) |
+| Bytes: `actual=size`, `limit=cap`, both `int`, displayed with `human_size` | `AutoGrader/uploads.py` |
+| Pages: `actual=page_count`, `limit=MAX_PAGE_COUNT`; pixels: `actual=width*height`, `limit=MAX_IMAGE_PIXELS`; compression: `actual=smallest`, `limit=cap` | `assignments/services.py` |
+| **An unknown size is absent, never invented.** Pillow refuses a decompression bomb before it reports dimensions, and in rare cases no compression attempt produces output. In both, `actual` is left out of `params`, and the message states the bound ("over 179 MP", "too large even after compression"). | `assignments/services.py` |
+
+Tests: each `FILE_TOO_LARGE` test asserts `type(...) is int` and the exact value, plus the formatted text in the message (`assertSizeParams`). The security tests assert the int pixel counts, and `actual` absent for Pillow's own refusal. `AutoGrader.tests_reason_codes` covers the display rules (4 tests).
+
+| Run (0b's slot, 6G, `nice -n 10`, `timeout`) | Result | Log |
+|---|---|---|
+| The touched modules at `49ff6ca`: `assignments.tests_file_reason_codes`, `assignments.tests_security`, `AutoGrader.tests_reason_codes`, `AutoGrader.tests_uploads`, `AutoGrader.tests_error_messages`, `users.tests_renderers` (the envelope renderer), `billing.tests.test_refusal_handling` (`coded_response`) | **Ran 163, OK**, 322 MB peak | `n1_touched_modules.txt` |
+| N1 mutants (`n1_mutate.py`), each restore sha-checked | **6 of 6 killed**: bytes, pages, pixels and compression `actual` reverted to text (each by its own test); `display` ignored (6 tests, including the display rule tests); an unknown bomb size given an invented number (`test_a_bomb_beyond_pillows_own_limit…`) | `n1_SUMMARY.txt` |
+
+Under rule 15 this is a narrow fix, so only the touched modules re-ran. The `assignments` regression (661 OK) and the changed modules outside `assignments` (293 OK) at `2e0c5f9` stand. The only production files changed since then are `reason_codes.py`, `uploads.py` and `services.py`, and the modules above cover them.
