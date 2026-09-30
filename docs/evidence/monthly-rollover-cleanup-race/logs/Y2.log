@@ -1,0 +1,13 @@
+# Y2: cleanup: an inactive allocation no longer entitles (1a's Y2)
+# file: billing/tasks.py (occurrence 1)
+# old: '        SchoolCreditAllocation.objects.filter(\n            is_active=True,\n            license_subscription__is_active=True,\n'
+# new: '        SchoolCreditAllocation.objects.filter(\n            license_subscription__is_active=True,\n'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 5.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_teacher_removed_through_the_real_path_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_teacher_removed_through_the_real_path_is_written_off)
+FAIL: test_an_inactive_allocation_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_inactive_allocation_is_written_off)
+
+FAILED (failures=2)

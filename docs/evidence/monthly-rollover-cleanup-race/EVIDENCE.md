@@ -76,3 +76,27 @@ No model or migration change, so no other app reads changed fields. `audit.*` gu
 ## Merge with bundle 4
 
 `git merge-tree --write-tree e190f06 edc0306` (bundle 4's tip, with the other three F6 items) **exits 0: clean.** The branch is stacked on the mid-cycle fix (`2bfa2e8`), which e190f06 already contains. In the merged tree, every MONTHLY bucket creation site has the grace (checked by listing them all).
+
+## Round 2: 1a's REJECTED at fc08945, reworked at 4a80558
+
+1a's record: `VERIFICATION.md` (to be committed with 1a's re-check). 1a found that the three defences hold, but the 5-minute due tolerance (B1) had two side effects. The SM accepted all four items:
+
+- **F1: the licence consumption window missed its reset on an early run.** `LicenseSubscriptionService._refresh_teacher_credits` reopened the window with `consumption_window_start <= now - 1 month`. A run a few seconds earlier than last month's refreshed the teacher through the tolerance but didn't match, so last month's usage stayed on `total_credits_consumed` and capped new-teacher enrolments (`_enroll_teacher_internal`) for that month: about one month in two. **Fix:** `consumption_window_start <= refresh_due_by(now) - 1 month`.
+- **F2: a month's bucket for a contract's last minutes.** A due time just before (not capped at) the contract's end was due within the tolerance of the anniversary run, and was granted a month's bucket that lived a few minutes. **Fix:** a contract ending within the tolerance counts as ended: `billing_cycle_end__gt=refresh_due_by(now)` in `process_annual_plan_credit_grants`' filter, `license_subscription__billing_cycle_end__gt=refresh_due_by(now)` in `process_license_monthly_credit_refreshes`' filter, and `billing_cycle_end <= refresh_due_by(now)` in `process_mid_cycle_credit_grant`'s re-check.
+- **Q4: the lost-months query couldn't tell a plan with no carry-over apart.** It now reports the owner's plan (`plan_id`, `carry_over_percent`, `max_bank`) and `estimated_carry_over_lost_raw`, and leaves out rows where nothing was lost.
+- **N1: licence entitlement edges.** 1a's tests (a deactivated licence, an inactive allocation, a teacher removed through the real `remove_teacher_from_license`, a kept bucket isn't spendable, a lapsed subscriber) and 1a's F1 (both offsets) and F2 (both paths) tests are in the module. New mutants: F1, F2a/b/c, and 1a's Y1 and Y2.
+
+**Two deviations from the suggestions, for 1a to judge:**
+- **(a)** In `billing/tasks.py`, `process_license_monthly_credit_refreshes`, the re-check under the allocation lock still reads **`license_sub.billing_cycle_end <= now`** (the `LicenseSubscription.billing_cycle_end` field, no tolerance). The task's filter makes the tolerance decision (`license_subscription__billing_cycle_end__gt=refresh_due_by(now)`); mirroring it in the re-check would make the filter's comparison untestable (the re-check would refuse the same rows), so mutant F2b could not be killed. The annual path keeps both, because its task summary shows whether a row was selected at all ("0 granted, 0 already granted"), so F2a and F2c are each tested.
+- **(b)** Q4's estimate does not apply `carry_over_max`: the rollover (`CreditWallet.compute_capped_rollover`) computes `int(unused * carry_over_percent / 100)` and caps it only by `max_bank`, which the query outputs. The estimate is therefore an upper bound.
+
+### Round 2 runs (each under `systemd-run` MemoryMax=6G, MemorySwapMax=0, `nice -n 10`, `timeout`, `EXEMPT_EMAIL_DOMAINS` empty; the tree frozen at `4a80558` and asserted clean before the chain)
+
+| Run | Tree | Result | Log |
+|---|---|---|---|
+| The module | `4a80558` | **39 OK** (1a's F1 both offsets, F2 both paths, licence edges, and the Q4 query cases included) | `round2_module_4a80558.log` |
+| **Mutation battery** (25 mutants, one disposable worktree, sha256-checked restores, DB dropped after) | `4a80558` | **23 of 25 killed**, including all six new ones (F1, F2a, F2b, F2c, Y1, Y2). **R5 and R6 (the cycle-end cap exclusion, in the task filter and the re-check) now SURVIVE, as equivalent mutants:** the cap exclusion only matters when `next_credit_grant_at >= billing_cycle_end`; selection requires `next_credit_grant_at <= refresh_due_by(now)`; together they imply `billing_cycle_end <= refresh_due_by(now)`, which the new F2 comparison already excludes, in the same filter and the same re-check. So since F2 the cap exclusion can't change any outcome (it was killed in round 2 at `64b7c8b`, before F2). It is left in place, harmless, rather than change verified code again; removing it is offered to 1a and the SM. | `round2_mutation_battery_4a80558.log`, `logs/` (now round 2's), `results.tsv` |
+| **ONE billing regression** (rule 15: production code changed after verification), stamped, `-v 2` | `4a80558` | **1739 tests, OK**, 158 s (184 s wall) | `round2_app_billing_4a80558.log.gz` |
+| Bundle 4 dry run: `git merge-tree --write-tree e190f06 4a80558` | | **exit 0, clean** | |
+
+No module added or moved, so no guard re-run (the SM's ruling); 1a ran the six other beta-line guards at fc08945 (49 OK), and no guard reads what round 2 changed.

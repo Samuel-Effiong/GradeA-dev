@@ -17,3 +17,28 @@
 64b7c8beb9ba	R17	cleanup: an active licence allocation entitles	KILLED	FAILED (failures=1)	True	5.2
 64b7c8beb9ba	R19	immediate plan change: bucket grace	KILLED	FAILED (failures=1)	True	5.1
 64b7c8beb9ba	R18	cleanup: an overdue refresh is logged	KILLED	FAILED (failures=1)	True	5.2
+4a80558d443c	R1	annual task: due tolerance	KILLED	FAILED (failures=2)	True	21.4
+4a80558d443c	R2	annual service: the run's now, not its own	KILLED	FAILED (failures=1)	True	5.6
+4a80558d443c	R3	annual task passes its start time	KILLED	FAILED (failures=1)	True	5.0
+4a80558d443c	R4	annual re-check: due tolerance	KILLED	FAILED (failures=2)	True	5.8
+4a80558d443c	R5	annual task: a due time capped at the cycle end is excluded	SURVIVED	OK	True	6.1
+4a80558d443c	R6	annual re-check: a due time capped at the cycle end is excluded	SURVIVED	OK	True	4.9
+4a80558d443c	R7	annual grant: bucket grace	KILLED	FAILED (failures=1)	True	6.1
+4a80558d443c	R8	activation: first month's bucket grace	KILLED	FAILED (failures=1)	True	6.1
+4a80558d443c	R9	licence task: due tolerance	KILLED	FAILED (failures=3)	True	6.1
+4a80558d443c	R10	licence re-check: due tolerance	KILLED	FAILED (failures=3)	True	5.6
+4a80558d443c	R11	licence task passes its start time	KILLED	FAILED (failures=1)	True	5.6
+4a80558d443c	R12	licence service: the run's now, not its own	KILLED	FAILED (failures=1)	True	5.0
+4a80558d443c	R13	licence refresh: bucket grace	KILLED	FAILED (failures=1)	True	5.4
+4a80558d443c	R14	cleanup keeps an owed bucket at all	KILLED	FAILED (failures=7)	True	4.8
+4a80558d443c	R15	cleanup keeps only the NEWEST monthly bucket	KILLED	FAILED (failures=1)	True	5.5
+4a80558d443c	R16	cleanup: only an ACTIVE subscription entitles	KILLED	FAILED (failures=2, errors=1)	True	5.3
+4a80558d443c	R17	cleanup: an active licence allocation entitles	KILLED	FAILED (failures=1)	True	5.0
+4a80558d443c	R19	immediate plan change: bucket grace	KILLED	FAILED (failures=1)	True	5.3
+4a80558d443c	F1	licence window: the due tolerance (1a's F1)	KILLED	FAILED (failures=1)	True	5.8
+4a80558d443c	F2a	annual task: a contract ending within the tolerance is ended (1a's F2)	KILLED	FAILED (failures=1)	True	5.3
+4a80558d443c	F2b	licence task: a contract ending within the tolerance is ended	KILLED	FAILED (failures=1)	True	5.1
+4a80558d443c	F2c	annual re-check: a contract ending within the tolerance is ended	KILLED	FAILED (failures=1)	True	5.3
+4a80558d443c	Y1	cleanup: a deactivated licence no longer entitles (1a's Y1)	KILLED	FAILED (failures=1)	True	5.2
+4a80558d443c	Y2	cleanup: an inactive allocation no longer entitles (1a's Y2)	KILLED	FAILED (failures=2)	True	5.3
+4a80558d443c	R18	cleanup: an overdue refresh is logged	KILLED	FAILED (failures=1)	True	4.9

@@ -2,11 +2,11 @@
 # file: billing/tasks.py (occurrence 1)
 # old: '        next_credit_grant_at__lt=F("billing_cycle_end"),\n'
 # new: ''
-# commit: 64b7c8beb9baa7a2af1eb71e740f80e5360eda2e
-# exit: 1
-# elapsed_s: 5.0
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 0
+# elapsed_s: 6.1
 # restored_sha256_matches_commit_blob: True
 
-FAIL: test_a_due_time_capped_at_the_cycle_end_is_not_granted_early (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_due_time_capped_at_the_cycle_end_is_not_granted_early)
 
-FAILED (failures=1)
+
+OK

@@ -2,9 +2,9 @@
 # file: billing/services.py (occurrence 1)
 # old: 'expires_at=grace_expiry(monthly_bucket_expiry, billing_end),'
 # new: 'expires_at=monthly_bucket_expiry,'
-# commit: 64b7c8beb9baa7a2af1eb71e740f80e5360eda2e
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
 # exit: 1
-# elapsed_s: 5.2
+# elapsed_s: 6.1
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_an_annual_activation_gets_the_grace (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_an_annual_activation_gets_the_grace)
