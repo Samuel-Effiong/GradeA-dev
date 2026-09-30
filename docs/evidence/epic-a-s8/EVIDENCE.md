@@ -104,18 +104,35 @@ Run on **`80eac88`**: 0b's merge of phase2/epic-a `b2890d9` (S6c N1) into `c321e
 | Real infra | Postgres: the read-only transaction, TABLESAMPLE, `pg_column_size`, `reltuples` and the size functions all run against the real test database, not a mock. |
 
 ## N1 (v2's record `VERIFICATION_v2_3511833.md`, SM ruling): no full scan by default
-v2's EXPLAIN showed that the "class … (all time)" line, an unwindowed per-class count, was a full sequential scan. My statement-capture test had let it through, because its allowed pattern included `retention_class`.
+v2's EXPLAIN showed that the "class … (all time)" line, an unwindowed per-class count, was a full sequential scan. My statement-capture test had let it through, because its allowed pattern included `retention_class`. When 0b asked for the EXPLAIN plan to be recorded, a second gap showed: **no audit index leads with `occurred_at`**. The indexes are (school, action, actor, department, reason_code, retention_class) + `occurred_at`, and the trace id. So a window alone (`occurred_at >= X`) would still scan a large table.
 
 **Fix:**
-- The per-class counts cover the `--days` window, labelled "(last N days)".
-- The all-time figure is the planner's estimate: `rows_all_time N (planner estimate, not a count)`.
-- A new **`--exact-all-time`** flag, off by default, adds exact all-time per-class counts. Its help text says it is a full scan.
-- The statement-capture test is tightened: in the default path, any statement touching the table is windowed (`occurred_at`), sampled (`pg_column_size` with `LIMIT`), or a catalogue lookup (`reltuples`, the size functions). Nothing else is allowed.
-- A new test shows `--exact-all-time` counts rows outside the window and the default doesn't.
-- New mutant **V8** puts the unwindowed class count back.
-
-An EXPLAIN-based assertion was considered and not used: on the test database's tiny table Postgres seq-scans even a windowed query, so it could not tell the two apart. The structural test can.
+- **Every count names an index's leading column with an equality and bounds `occurred_at`, its second column.** Per day and per action, the query is `action = A AND occurred_at >= X`, one query per action on `audit_action_time_ix (action, -occurred_at)`. Per class, it is `retention_class = C AND occurred_at >= X` on `audit_retention_ix (retention_class, occurred_at)`. Each is an index range scan over the window. There are about 30 small queries instead of one grouped scan.
+- **All-time is the planner's estimate:** `rows_all_time N (planner estimate, not a count)`. A new **`--exact-all-time`** flag, off by default, adds exact all-time per-class counts. Its help text says it is a full scan.
+- **Tests:**
+  - `test_every_windowed_count_has_an_index_path` captures every windowed statement the report runs and EXPLAINs each with `enable_seqscan = off`. It asserts no `Seq Scan on audit_auditevent` and an Index node. **What this proves:** a usable index path exists for every count, so none *has* to scan the table. **What it does not prove:** what the planner picks at production size. On the test database's tiny table the planner would choose a seq scan anyway, which is why seq scans are disabled for the check.
+  - The statement-capture test is tightened: in the default path, anything touching the table is windowed, sampled with a `LIMIT`, or a catalogue lookup.
+  - `--exact-all-time` is shown to count rows outside the window, and the default is shown not to.
+- **Mutants:** V5 and V8 are re-anchored to the per-action and per-class queries (V8 drops the class equality, so no index leads the count).
 
 v2 also checked that `SET TRANSACTION READ ONLY` does not leak into a caller's transaction: `transaction_read_only` is off before and after.
+
+### Before the first run on production (founder, read-only)
+Run these on main via Railway's psql. They are plain `EXPLAIN`, not `ANALYZE`, so nothing is executed and no row is read:
+
+```sql
+EXPLAIN SELECT count(*) FROM audit_auditevent
+ WHERE action = 'AUTH_LOGIN' AND occurred_at >= now() - interval '30 days';
+EXPLAIN SELECT count(*) FROM audit_auditevent
+ WHERE retention_class = 'GENERAL' AND occurred_at >= now() - interval '30 days';
+EXPLAIN SELECT count(*), avg(pg_column_size(s.*))
+  FROM (SELECT * FROM audit_auditevent TABLESAMPLE SYSTEM (1) LIMIT 5000) s;
+```
+
+Expected:
+- the first two: an `Index Only Scan` or `Index Scan` (or a `Bitmap Index Scan`) on `audit_action_time_ix` / `audit_retention_ix`;
+- the third: a `Sample Scan` under a `Limit`.
+
+If either count shows `Seq Scan on audit_auditevent` on a large table, don't run the report; send the plan to the team.
 
 **N1 gates** (only the touched module, per the SM): _pending_

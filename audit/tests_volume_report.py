@@ -97,6 +97,31 @@ class MeasuredTests(TestCase):
             if "occurred_at" not in sql and "pg_column_size" not in sql:
                 self.assertRegex(sql, r"reltuples|pg_relation_size")
 
+    def test_every_windowed_count_has_an_index_path(self):
+        """v2's N1: each count the report runs can be served by an index
+        range scan. With seq scans disabled, EXPLAIN shows which statements
+        have NO index path at all - those would scan the whole table. (This
+        proves a usable index exists; what the planner picks at production
+        size is for the founder's read-only EXPLAIN in EVIDENCE.)"""
+        with CaptureQueriesContext(connection) as queries:
+            run("--days", "30")
+        table = AuditEvent._meta.db_table
+        counts = [
+            q["sql"]
+            for q in queries.captured_queries
+            if table in q["sql"]
+            and "occurred_at" in q["sql"]
+            and q["sql"].lstrip().upper().startswith("SELECT")
+        ]
+        self.assertGreater(len(counts), 30)  # one per action, one per class
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL enable_seqscan = off")
+            for sql in counts:
+                cursor.execute("EXPLAIN " + sql)
+                plan = "\n".join(row[0] for row in cursor.fetchall())
+                self.assertNotIn(f"Seq Scan on {table}", plan, sql)
+                self.assertIn("Index", plan, sql)
+
     def test_exact_all_time_is_opt_in_and_counts_everything(self):
         with allow_unsafe_mutation():
             AuditEvent.objects.filter(action=AuditAction.GRADE_CHANGE).update(
@@ -136,7 +161,7 @@ class ReadOnlyTests(TransactionTestCase):
     production: any write inside the report is refused by Postgres."""
 
     def test_a_write_inside_the_report_is_refused(self):
-        def writes(self, days):
+        def writes(self, days, exact_all_time=False):
             # Any write statement will do; this one matches no row, so only
             # the transaction's read-only mode can refuse it.
             with connection.cursor() as cursor:

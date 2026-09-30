@@ -30,15 +30,15 @@ MUTANTS = {
     ),
     "V4_an_email_reaches_the_output": (
         CMD,
-        "            out(f\"day {row['day']} {row['action']} {row['n']}\")\n",
-        "            out(f\"day {row['day']} {row['action']} {row['n']} \"\n"
-        '                f"{AuditEvent.objects.exclude(actor_email=None)'
+        "                out(f\"day {row['day']} {action} {row['n']}\")\n",
+        "                out(f\"day {row['day']} {action} {row['n']} \"\n"
+        '                    f"{AuditEvent.objects.exclude(actor_email=None)'
         ".values_list('actor_email', flat=True).first()}\")\n",
     ),
     "V5_window_ignored": (
         CMD,
-        "        recent = AuditEvent.objects.filter(occurred_at__gte=since)\n",
-        "        recent = AuditEvent.objects.all()\n",
+        "                AuditEvent.objects.filter(action=action, occurred_at__gte=since)\n",
+        "                AuditEvent.objects.filter(action=action)\n",
     ),
     "V6_student_rate_dropped": (
         CMD,
@@ -53,8 +53,8 @@ MUTANTS = {
     # v2's N1: the per-class count is unwindowed again (a full scan).
     "V8_class_count_scans_the_table": (
         CMD,
-        '            recent.values("retention_class")\n',
-        '            AuditEvent.objects.values("retention_class")\n',
+        "                retention_class=retention_class, occurred_at__gte=since\n",
+        "                occurred_at__gte=since\n",
     ),
 }
 

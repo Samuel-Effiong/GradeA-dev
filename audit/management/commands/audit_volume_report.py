@@ -37,7 +37,7 @@ from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from audit.enums import RetentionClass
+from audit.enums import AuditAction, RetentionClass
 from audit.models import AuditEvent
 from audit.volume import (
     PER_STUDENT_DAY,
@@ -79,29 +79,37 @@ class Command(BaseCommand):
 
     def measured(self, days, exact_all_time=False):
         since = timezone.now() - timedelta(days=days)
-        recent = AuditEvent.objects.filter(occurred_at__gte=since)
         out = self.stdout.write
         out(f"== Measured: the last {days} day(s)")
-        per_day = (
-            recent.annotate(day=TruncDate("occurred_at"))
-            .values("day", "action")
-            .annotate(n=Count("pk"))
-            .order_by("day", "action")
-        )
-        for row in per_day:
-            out(f"day {row['day']} {row['action']} {row['n']}")
-        totals = recent.values("action").annotate(n=Count("pk")).order_by("-n")
-        for row in totals:
-            out(f"total {row['action']} {row['n']} ({row['n'] / days:.1f}/day)")
-        # Per class over the window only (v2's N1, SM ruling): an unwindowed
-        # count is a full scan. All-time is the planner's estimate below,
-        # unless --exact-all-time asks for the scan explicitly.
-        for row in (
-            recent.values("retention_class")
-            .annotate(n=Count("pk"))
-            .order_by("retention_class")
-        ):
-            out(f"class {row['retention_class']} {row['n']} (last {days} days)")
+        # Every count below names the leading column of an existing index
+        # with an equality and bounds occurred_at, its second column, so each
+        # is an index range scan over the window: (action, -occurred_at) per
+        # action, (retention_class, occurred_at) per class. No index LEADS
+        # with occurred_at, so a window alone would scan the table (v2's
+        # N1; the EXPLAIN is asserted in tests_volume_report).
+        totals = {}
+        for action in AuditAction.values:
+            per_day = (
+                AuditEvent.objects.filter(action=action, occurred_at__gte=since)
+                .annotate(day=TruncDate("occurred_at"))
+                .values("day")
+                .annotate(n=Count("pk"))
+                .order_by("day")
+            )
+            for row in per_day:
+                out(f"day {row['day']} {action} {row['n']}")
+                totals[action] = totals.get(action, 0) + row["n"]
+        for action, n in sorted(totals.items(), key=lambda item: -item[1]):
+            out(f"total {action} {n} ({n / days:.1f}/day)")
+        # Per class over the window only (SM ruling): all-time is the
+        # planner's estimate below, unless --exact-all-time asks for the
+        # scan explicitly.
+        for retention_class in RetentionClass.values:
+            n = AuditEvent.objects.filter(
+                retention_class=retention_class, occurred_at__gte=since
+            ).count()
+            if n:
+                out(f"class {retention_class} {n} (last {days} days)")
         if exact_all_time:
             for row in (
                 AuditEvent.objects.values("retention_class")
