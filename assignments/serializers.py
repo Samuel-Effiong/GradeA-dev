@@ -808,7 +808,10 @@ class TaskInfoSerializer(serializers.Serializer):
     """
 
     file_name = serializers.CharField()
-    task_id = serializers.UUIDField()
+    # FR-A-07 (S7a): null for an item refused before dispatch (a file too
+    # large for the batch); its result is in session-results under item_id.
+    task_id = serializers.UUIDField(allow_null=True)
+    item_id = serializers.UUIDField(required=False)
 
 
 class BatchUploadResponseSerializer(serializers.Serializer):

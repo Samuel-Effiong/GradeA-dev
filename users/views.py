@@ -79,6 +79,7 @@ from classrooms.serializers import (
     SchoolAdminRegistrationCompletionSerializer,
     StudentRegistrationCompletionSerializer,
 )
+from students.item_results import UNCLASSIFIED, failure_summary, item_result
 from students.models import BackgroundTaskStatus, BatchUploadSession
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
@@ -2655,13 +2656,8 @@ class TaskViewSet(viewsets.ViewSet):
                 # Get context for this specific task
                 task_context = get_task_context(processing_task)
 
-                task_entry = {
-                    "status": processing_task.status,
-                    "file_name": processing_task.file_name,
-                    "task_id": processing_task.celery_task_id,
-                    "error": processing_task.error,
-                    "context": task_context,  # add context
-                }
+                # FR-A-07 (S7a): the old keys, plus the item's own result.
+                task_entry = item_result(processing_task, task_context)
 
                 if processing_task.status == "SUCCESS":
                     success.append(task_entry)
@@ -2697,6 +2693,7 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failures,
                 "cancelled_list": cancelled,
                 "pending_list": pending,
+                **failure_summary(failures),
             }
         else:
             # Fallback to session.results (legacy, for sessions without tracked tasks)
@@ -2749,6 +2746,13 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failure_entries,
                 "cancelled_list": [],
                 "pending_list": [],
+                # FR-A-07: a legacy session has no codes; its failures count
+                # as unclassified.
+                "failure_codes": (
+                    {UNCLASSIFIED: len(failure_entries)} if failure_entries else {}
+                ),
+                "stopped_at_item": None,
+                "resumable": False,
             }
 
         # Use the new serializer
