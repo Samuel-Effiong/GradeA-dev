@@ -324,6 +324,11 @@ class BulkEnrollmentInputLimitsTest(ClassroomTenancyBase):
         response = self.client.post(self.url, {"raw_data": rows})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        envelope = response.json()["error"]["field_errors"]
+        self.assertEqual(envelope["reason_code"], "ROSTER_TOO_MANY_ROWS")
+        self.assertEqual(
+            envelope["params"], {"row_count": MAX_ROWS + 1, "max_rows": MAX_ROWS}
+        )
         self.assertFalse(StudentCourse.objects.filter(course=self.course_a).exists())
 
     def test_an_oversized_file_is_rejected_without_being_read(self):
@@ -336,7 +341,20 @@ class BulkEnrollmentInputLimitsTest(ClassroomTenancyBase):
 
         response = self.client.post(self.url, {"file": payload}, format="multipart")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Epic A S7d (catalogue D1): the shared FILE_TOO_LARGE, now 413 (it
+        # was a 400), with the sizes as ints.
+        self.assertEqual(response.status_code, status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+        envelope = response.json()["error"]["field_errors"]
+        self.assertEqual(envelope["reason_code"], "FILE_TOO_LARGE")
+        self.assertEqual(
+            envelope["params"],
+            {
+                "file_name": "roster.csv",
+                "actual": (MAX_FILE_BYTES // 4 + 1) * 4,
+                "limit": MAX_FILE_BYTES,
+                "dimension": "bytes",
+            },
+        )
 
     def test_a_non_utf8_file_is_a_400_not_a_500(self):
         import io
@@ -347,6 +365,9 @@ class BulkEnrollmentInputLimitsTest(ClassroomTenancyBase):
         response = self.client.post(self.url, {"file": payload}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        envelope = response.json()["error"]["field_errors"]
+        self.assertEqual(envelope["reason_code"], "ROSTER_FILE_UNREADABLE")
+        self.assertEqual(envelope["params"], {"file_name": "roster.csv"})
 
 
 class DirectAddStudentPasswordTest(ClassroomTenancyBase):

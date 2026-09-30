@@ -27,7 +27,6 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.services import (
-    CROSS_SCHOOL_REJECTION_MESSAGE,
     EnrollmentError,
     check_existing_account_may_join,
     enroll_student_by_email,
@@ -299,11 +298,22 @@ class RejectionDisclosesLittle(CrossSchoolBase):
     def test_the_message_does_not_name_the_other_school_in_bulk_either(self):
         victim = self.student_of("quiet2@b.test", self.course_b)
 
-        response = self.bulk_add(self.teacher_a, self.course_a, f"Q,Two,{victim.email}")
+        # "Qu", not "Q": a one-letter name is now ROW_NAME_INVALID before
+        # the account is even looked up (Epic A S7d, catalogue D2).
+        response = self.bulk_add(
+            self.teacher_a, self.course_a, f"Qu,Two,{victim.email}"
+        )
 
-        error = response.data["results"][0]["error"]
-        self.assertEqual(error, CROSS_SCHOOL_REJECTION_MESSAGE)
-        self.assertNotIn(self.school_b.name, error)
+        row = response.data["results"][0]
+        # S7d: the row code ROW_OTHER_SCHOOL, the same generic sentence with
+        # the row number, never the other school.
+        self.assertEqual(row["reason_code"], "ROW_OTHER_SCHOOL")
+        self.assertEqual(
+            row["error"],
+            "Row 1: this account can't be added to this school. If you believe "
+            "this is a mistake, contact your school administrator.",
+        )
+        self.assertNotIn(self.school_b.name, str(row))
 
     def test_the_reason_is_recorded_server_side_for_administrators(self):
         victim = self.student_of("logged@b.test", self.course_b)

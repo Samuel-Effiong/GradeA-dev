@@ -6,6 +6,10 @@ Two concerns, kept apart on purpose:
   * `import_roster` decides what each parsed row means for a course.
 
 Callers must have already scoped `course` to the requesting teacher.
+
+Epic A S7d (QA catalogue section D, approved 2026-09-30): a refusal of the
+whole request is a coded error (ROSTER_*, FILE_TOO_LARGE), and every row that
+isn't added carries its `row` number and a ROW_* code.
 """
 
 import csv
@@ -17,12 +21,16 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 
-from AutoGrader.error_messages import describe_user_error
+from audit.enums import ReasonCode
+from AutoGrader.reason_codes import CodedError, coded_entry
+from AutoGrader.uploads import file_name_of, validate_upload_size
 from users.models import CustomUser, UserTypes
 
 from ..models import EnrollmentStatusType, StudentCourse, teacher_course_access_q
 from ..serializers import DirectAddStudentSerializer
 from .enrollment import (
+    CROSS_SCHOOL_REJECTION_MESSAGE,
+    NOT_A_STUDENT_MESSAGE,
     AccountDisabledError,
     EnrollmentError,
     enroll_student_by_email,
@@ -49,17 +57,30 @@ HEADER_VARIATIONS = {
 }
 
 
-class RosterImportError(Exception):
-    """Input the caller must fix before anything can be imported.
+#: A name's length rule, as the direct-add serializer and the user model
+#: hold it (ROW_NAME_INVALID). Checked before either path touches the
+#: database, so a 151-character name is refused, not a failed INSERT.
+NAME_MIN_LENGTH = 2
+NAME_MAX_LENGTH = 150
+
+#: EnrollmentError texts that are a row's own code, not a generic failure.
+#: The texts are the shared constants (H-71's is carried byte-identical from
+#: beta), so the mapping is by identity with them, never by a substring.
+ENROLLMENT_REFUSAL_CODES = {
+    NOT_A_STUDENT_MESSAGE: ReasonCode.ROW_STAFF_EMAIL,
+    CROSS_SCHOOL_REJECTION_MESSAGE: ReasonCode.ROW_OTHER_SCHOOL,
+}
+
+
+class RosterImportError(CodedError):
+    """Input the caller must fix before anything can be imported: a coded
+    refusal of the whole request (ROSTER_NO_INPUT, ROSTER_EMPTY,
+    ROSTER_FILE_UNREADABLE, ROSTER_TOO_MANY_ROWS), answered with its own
+    status and envelope by the exception handler.
 
     Distinct from a per-row failure, which is reported in the result rather
     than raised - one bad row must not abort the other 1999.
     """
-
-    def __init__(self, message, field="detail"):
-        super().__init__(message)
-        self.message = message
-        self.field = field
 
 
 @dataclass
@@ -68,6 +89,10 @@ class RosterRow:
     last_name: str = ""
     middle_name: str = ""
     email: str = ""
+    #: The row as the teacher sees it in their sheet: its position among the
+    #: data rows, blank rows counted (SM ruling Q3). With a header, row 1 is
+    #: the file's line 2.
+    row: int = 0
 
     @property
     def display_name(self):
@@ -76,6 +101,32 @@ class RosterRow:
     @property
     def is_named(self):
         return bool(self.first_name and self.last_name)
+
+    @property
+    def names_are_valid(self):
+        """First and last name 2-150 characters; a middle name (an initial
+        is fine) at most 150."""
+        return (
+            all(
+                NAME_MIN_LENGTH <= len(name) <= NAME_MAX_LENGTH
+                for name in (self.first_name, self.last_name)
+            )
+            and len(self.middle_name) <= NAME_MAX_LENGTH
+        )
+
+    @property
+    def duplicate_key(self):
+        """What makes a later row a repeat of this one, within one request
+        (SM ruling Q5): the same address after normalize_email, or, with no
+        address, the same first, middle and last name, case-insensitively."""
+        if self.email:
+            return ("email", normalize_email(self.email))
+        return (
+            "name",
+            self.first_name.casefold(),
+            self.middle_name.casefold(),
+            self.last_name.casefold(),
+        )
 
 
 def _is_email_value(value):
@@ -89,10 +140,12 @@ def _is_email_value(value):
         return False
 
 
-def _row_without_headers(row):
+def _row_without_headers(row, number=0):
     """Map a headerless row by position, detecting the email by its value.
 
-    Order is first, last, middle - the email may sit in any column.
+    Order is first, last, middle - the email may sit in any column. An
+    invalid address is taken as a name part, so ROW_EMAIL_INVALID applies to
+    a header-mapped email column only (SM ruling Q7, a documented limit).
     """
     email = ""
     name_parts = []
@@ -112,6 +165,7 @@ def _row_without_headers(row):
         last_name=name_parts[1] if len(name_parts) > 1 else "",
         middle_name=name_parts[2] if len(name_parts) > 2 else "",
         email=email,
+        row=number,
     )
 
 
@@ -141,21 +195,17 @@ def read_rows(*, input_file=None, raw_data=None):
     would already have done.
     """
     if input_file is not None:
-        if input_file.size > MAX_FILE_BYTES:
-            raise RosterImportError(
-                "This file is too large. Upload a roster of at most "
-                f"{MAX_FILE_BYTES // 1024} KB.",
-                field="file",
-            )
+        # FILE_TOO_LARGE (413, catalogue D1): the shared coded refusal, with
+        # the sizes as ints and the message formatted ("2 MB").
+        validate_upload_size(input_file, MAX_FILE_BYTES)
         try:
             decoded = input_file.read().decode("utf-8").splitlines()
         except UnicodeDecodeError as exc:
             # A filename is never trusted for control flow: an .xlsx or an
             # ISO-8859-1 export renamed to .csv used to surface as a 500.
             raise RosterImportError(
-                "This file isn't readable as UTF-8 text. Export your roster "
-                "as a CSV file and try again.",
-                field="file",
+                ReasonCode.ROSTER_FILE_UNREADABLE,
+                params={"file_name": file_name_of(input_file)},
             ) from exc
         return list(csv.reader(decoded))
 
@@ -171,19 +221,19 @@ def parse_roster(*, input_file=None, raw_data=None):
     raw_rows = read_rows(input_file=input_file, raw_data=raw_data)
 
     if not raw_rows:
-        raise RosterImportError("No valid student data found in input")
+        raise RosterImportError(ReasonCode.ROSTER_EMPTY)
 
     if len(raw_rows) > MAX_ROWS:
         raise RosterImportError(
-            f"This roster has {len(raw_rows)} rows. Upload at most "
-            f"{MAX_ROWS} rows at a time."
+            ReasonCode.ROSTER_TOO_MANY_ROWS,
+            params={"row_count": len(raw_rows), "max_rows": MAX_ROWS},
         )
 
     column_map = _detect_header([str(cell).strip() for cell in raw_rows[0]])
     data_rows = raw_rows[1:] if column_map else raw_rows
 
     parsed = []
-    for row in data_rows:
+    for number, row in enumerate(data_rows, start=1):
         if not any(row):
             continue
         if column_map:
@@ -200,10 +250,15 @@ def parse_roster(*, input_file=None, raw_data=None):
                     last_name=cell("last_name"),
                     middle_name=cell("middle_name"),
                     email=cell("email"),
+                    row=number,
                 )
             )
         else:
-            parsed.append(_row_without_headers(row))
+            parsed.append(_row_without_headers(row, number))
+
+    # A header alone, or only blank rows: nothing to import (SM ruling Q4).
+    if not parsed:
+        raise RosterImportError(ReasonCode.ROSTER_EMPTY)
 
     return parsed, len(data_rows)
 
@@ -234,6 +289,35 @@ def _find_existing_student_by_name(*, course, row):
     ).first()
 
 
+SUCCEEDED, FAILED, SKIPPED = "succeeded", "failed", "skipped"
+
+
+def _added(row, student, status, kind):
+    return {
+        "row": row.row,
+        "name": student.get_full_name(),
+        "status": status,
+        "type": kind,
+    }, SUCCEEDED
+
+
+def _not_added(row, code, outcome, **params):
+    """A row that wasn't added: its coded entry (catalogue D2). The message
+    comes from the approved template and these params only (QA-ERR-03)."""
+    error = CodedError(code, params={"row": row.row, **params})
+    status = "skipped" if outcome == SKIPPED else "failed"
+    return (
+        coded_entry(error, row=row.row, name=row.display_name, status=status),
+        outcome,
+    )
+
+
+def _full_display(row):
+    return " ".join(
+        part for part in (row.first_name, row.middle_name, row.last_name) if part
+    )
+
+
 def _import_row_with_email(*, course, row):
     """An emailed row goes through exactly the single-add path
     (enrollment.enroll_student_by_email): a new student is created active
@@ -255,11 +339,12 @@ def _import_row_with_email(*, course, row):
         existing is not None
         and StudentCourse.objects.filter(student=existing, course=course).exists()
     ):
-        return {
-            "name": row.display_name,
-            "status": "skipped",
-            "error": "Already enrolled",
-        }, False
+        return _not_added(
+            row,
+            ReasonCode.ROW_ALREADY_ENROLLED,
+            SKIPPED,
+            student_display=row.display_name,
+        )
 
     try:
         student, invited = enroll_student_by_email(
@@ -269,36 +354,29 @@ def _import_row_with_email(*, course, row):
             middle_name=row.middle_name,
             last_name=row.last_name,
         )
-    except AccountDisabledError as exc:
+    except AccountDisabledError:
         # A deactivated account is left exactly as it is (no reactivation,
         # no email, no enrollment); the row says so rather than failing.
-        return {
-            "name": row.display_name,
-            "status": "skipped",
-            "error": str(exc),
-        }, False
+        return _not_added(row, ReasonCode.ROW_ACCOUNT_DISABLED, SKIPPED)
     except EnrollmentError as exc:
-        return {
-            "name": row.display_name,
-            "status": "failed",
-            "error": str(exc),
-        }, None
+        # The staff and cross-school refusals are the row's own codes, both
+        # neutral (no role, no school). Anything else is the generic
+        # ROW_FAILED: its text stays in the log, never in the row.
+        code = ENROLLMENT_REFUSAL_CODES.get(exc.args[0] if exc.args else "")
+        if code is None:
+            logger.warning(
+                "Bulk-add refused row %s of course %s: %s", row.row, course.id, exc
+            )
+            code = ReasonCode.ROW_FAILED
+        return _not_added(row, code, FAILED)
 
     if invited:
         # New account, or one that has never signed in: a fresh temporary
         # password went out by email.
-        return {
-            "name": student.get_full_name(),
-            "status": "invited",
-            "type": "invitation",
-        }, True
+        return _added(row, student, "invited", "invitation")
     # An existing student who has signed in: enrolled as-is, password and
     # sessions untouched, told they were added.
-    return {
-        "name": student.get_full_name(),
-        "status": "enrolled",
-        "type": "existing_student",
-    }, True
+    return _added(row, student, "enrolled", "existing_student")
 
 
 def _import_row_without_email(*, course, row):
@@ -306,11 +384,12 @@ def _import_row_without_email(*, course, row):
 
     if student is not None:
         if StudentCourse.objects.filter(student=student, course=course).exists():
-            return {
-                "name": student.get_full_name(),
-                "status": "skipped",
-                "error": "Already enrolled",
-            }, False
+            return _not_added(
+                row,
+                ReasonCode.ROW_ALREADY_ENROLLED,
+                SKIPPED,
+                student_display=row.display_name,
+            )
 
         StudentCourse.objects.create(
             student=student,
@@ -318,11 +397,23 @@ def _import_row_without_email(*, course, row):
             enrollment_status=EnrollmentStatusType.ENROLLED,
             auto_added=True,
         )
-        return {
-            "name": student.get_full_name(),
-            "status": "enrolled",
-            "type": "direct_add",
-        }, True
+        return _added(row, student, "enrolled", "direct_add")
+
+    # Another student of this course with exactly this name: a new account
+    # would be indistinguishable from them (the direct-add serializer's own
+    # rule, checked here so the row gets its code).
+    if StudentCourse.find_name_conflicts(
+        course=course,
+        first_name=row.first_name,
+        last_name=row.last_name,
+        middle_name=row.middle_name,
+    ).exists():
+        return _not_added(
+            row,
+            ReasonCode.ROW_NAME_CLASH,
+            FAILED,
+            student_display=_full_display(row),
+        )
 
     serializer = DirectAddStudentSerializer(
         data={
@@ -333,18 +424,30 @@ def _import_row_without_email(*, course, row):
         context={"course": course},
     )
     if not serializer.is_valid():
-        return {
-            "name": row.display_name,
-            "status": "failed",
-            "error": next(iter(serializer.errors.values()))[0],
-        }, None
+        logger.warning(
+            "Bulk-add row %s of course %s failed validation on %s",
+            row.row,
+            course.id,
+            sorted(serializer.errors),
+        )
+        return _not_added(row, ReasonCode.ROW_FAILED, FAILED)
 
     student = serializer.save()
-    return {
-        "name": student.get_full_name(),
-        "status": "enrolled",
-        "type": "direct_add",
-    }, True
+    return _added(row, student, "enrolled", "direct_add")
+
+
+def _refusal_before_import(row):
+    """The checks that need no database, in the order a teacher fixes them:
+    (code, outcome) or None."""
+    if not row.names_are_valid:
+        return ReasonCode.ROW_NAME_INVALID, {}
+    if row.email:
+        try:
+            validate_email(row.email.strip())
+        except DjangoValidationError:
+            # Nothing is created and nothing is queued for this row.
+            return ReasonCode.ROW_EMAIL_INVALID, {"email": row.email}
+    return None
 
 
 def import_roster(*, course, rows, total_processed):
@@ -352,63 +455,62 @@ def import_roster(*, course, rows, total_processed):
 
     Per-row isolation is deliberate: a roster is entered by hand, so a bad
     row is expected. One failure reports itself and the rest still import.
+
+    Every row that isn't added says why with a ROW_* code and its `row`
+    number (catalogue D2). success_count + failure_count + skipped_count is
+    the number of non-blank rows; total_processed still counts the blank
+    ones, as before.
     """
     results = []
-    success_count = 0
-    failure_count = 0
+    counts = {SUCCEEDED: 0, FAILED: 0, SKIPPED: 0}
+    first_seen = {}
 
-    for row_index, row in enumerate(rows):
+    for row in rows:
         if not row.is_named:
-            results.append(
-                {
-                    "name": row.display_name,
-                    "status": "failed",
-                    "error": "First and last names are required.",
-                }
+            result, outcome = _not_added(row, ReasonCode.ROW_NAME_MISSING, FAILED)
+        elif row.duplicate_key in first_seen:
+            # A repeat within this request creates and sends nothing, even
+            # when the first occurrence failed (SM ruling Q5).
+            result, outcome = _not_added(
+                row,
+                ReasonCode.ROW_DUPLICATE,
+                SKIPPED,
+                first_row=first_seen[row.duplicate_key],
             )
-            failure_count += 1
-            continue
-
-        try:
-            with transaction.atomic():
-                if row.email:
-                    result, succeeded = _import_row_with_email(course=course, row=row)
-                else:
-                    result, succeeded = _import_row_without_email(
-                        course=course, row=row
-                    )
-        except Exception as exc:
-            logger.error(
-                "Failed to bulk-add student at row %s of course %s",
-                row_index,
-                course.id,
-                exc_info=exc,
-            )
-            results.append(
-                {
-                    "name": row.display_name,
-                    "status": "failed",
-                    "error": describe_user_error(
-                        exc,
-                        fallback_message=(
-                            "Could not add this student — check the row data "
-                            "and try again."
-                        ),
-                    ),
-                }
-            )
-            failure_count += 1
-            continue
-
+        else:
+            first_seen[row.duplicate_key] = row.row
+            refusal = _refusal_before_import(row)
+            if refusal is not None:
+                code, params = refusal
+                result, outcome = _not_added(row, code, FAILED, **params)
+            else:
+                result, outcome = _import_one(course, row)
         results.append(result)
-        if succeeded is True:
-            success_count += 1
-        elif succeeded is None:
-            failure_count += 1
+        counts[outcome] += 1
 
     return {
         "total_processed": total_processed,
-        "success_count": success_count,
-        "failure_count": failure_count,
+        "success_count": counts[SUCCEEDED],
+        "failure_count": counts[FAILED],
+        "skipped_count": counts[SKIPPED],
         "results": results,
     }
+
+
+def _import_one(course, row):
+    """One row in its own transaction: a failure, even a database error,
+    rolls back this row alone and reports it as ROW_FAILED, with no
+    exception text in the row."""
+    try:
+        with transaction.atomic():
+            if row.email:
+                return _import_row_with_email(course=course, row=row)
+            return _import_row_without_email(course=course, row=row)
+    except Exception as exc:
+        logger.error(
+            "Failed to bulk-add student at row %s of course %s",
+            row.row,
+            course.id,
+            exc_info=exc,
+        )
+        return _not_added(row, ReasonCode.ROW_FAILED, FAILED)
