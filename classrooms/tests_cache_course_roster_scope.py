@@ -259,12 +259,13 @@ class EnrolmentBumpCostTests(RosterBase):
             results[300],
             f"Redis commands for one enrolment must not grow with the class: {results}",
         )
-        # Pinned exactly: one pipeline of SET NX + INCR per scope, sent
-        # twice, because the enrolment commits inside an atomic block and
-        # H-25 replays every in-transaction bump once at commit (stage 3
-        # alone, without H-25, pins {"SET": 5, "INCR": 5}). The old
-        # per-classmate fan-out sent 2 per enrolled student on top.
-        self.assertEqual(results[30], {"SET": 10, "INCR": 10})
+        # Pinned exactly: one pipeline of SET NX + INCRBY per scope (redis-py
+        # sends a pipelined incr as INCRBY), sent twice, because the
+        # enrolment commits inside an atomic block and H-25 replays every
+        # in-transaction bump once at commit (stage 3 alone, without H-25,
+        # pins {"SET": 5, "INCRBY": 5}). The old per-classmate fan-out sent
+        # 2 per enrolled student on top.
+        self.assertEqual(results[30], {"SET": 10, "INCRBY": 10})
 
 
 class StudentCourseKeyShapeTests(RosterBase):
