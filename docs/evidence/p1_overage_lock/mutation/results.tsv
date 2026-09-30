@@ -45,3 +45,6 @@
 35756c4d70c8	M40	backfill conditional update	SURVIVED	OK	True	22.8
 acdd29dca5e3	M25	StripeError guard	KILLED	FAILED (failures=1)	True	4.6
 acdd29dca5e3	M40	backfill conditional update	KILLED	FAILED (failures=1)	True	4.7
+91e1626a8c31	M01	on_commit deferral (all flows)	KILLED	FAILED (failures=17, errors=4)	True	89.5
+91e1626a8c31	M02	lookup inline at overage grant site (put lookup back inside)	KILLED	FAILED (failures=8, errors=1)	True	84.6
+91e1626a8c31	M18	conditional UPDATE (fill-if-null)	KILLED	FAILED (failures=2)	True	21.4
