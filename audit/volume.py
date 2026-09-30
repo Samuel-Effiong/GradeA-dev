@@ -1,6 +1,6 @@
 """Epic A S8 (plan 08 §8.1): the rates `audit_volume_report` projects from.
 
-Every number here was MEASURED by the S8 harness (`audit/bench_volume.py`, run
+Every number here was MEASURED by the S8 harness (`audit/tests/test_bench_volume.py`, run
 by label on the test database), which drives the real routes and tasks
 through a busy school day - see docs/evidence/epic-a-s8/EVIDENCE.md for the
 run. Re-run the harness and update this file whenever a slice adds or

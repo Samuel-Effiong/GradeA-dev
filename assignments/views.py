@@ -54,6 +54,7 @@ from classrooms.models import (
 )
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
+from students.grading_gates import ensure_gradable
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
 from students.task_tracking import (
     create_processing_task,
@@ -1671,6 +1672,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def grade_all_submission(self, request, pk=None):
 
         assignment = self.get_object()
+        # 409 RUBRIC_MISSING before any item is queued (S6d).
+        ensure_gradable(assignment)
 
         # Get only ungraded submissions (skip already graded ones)
         ungraded_submissions = assignment.submissions.filter(Q(graded_at__isnull=True))
@@ -1748,6 +1751,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def schedule_grade_all_submission(self, request, pk=None):
         assignment = self.get_object()
+        # 409 RUBRIC_MISSING before anything is scheduled (S6d); the run
+        # re-checks, since the rubric can be removed meanwhile.
+        ensure_gradable(assignment)
 
         serializer = ScheduleGradingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

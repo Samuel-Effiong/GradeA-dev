@@ -1,0 +1,12 @@
+# S15: an upload's chunk charges are refunded (F1)
+# file: students/services.py (occurrence 1)
+# old: '    with billing_refund_scope(\n        reason="answer upload failed before the submission was persisted"\n    ):\n'
+# new: '    if True:\n'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 9.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_mid_chunk_failure_nets_the_ledger_to_zero (students.tests_s6d_extraction_refund.ExtractionRefundTests.test_a_mid_chunk_failure_nets_the_ledger_to_zero)
+
+FAILED (failures=1, skipped=1)

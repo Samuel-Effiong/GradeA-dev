@@ -3,7 +3,7 @@ audit trail. Test tooling, not app code: nothing imports it, and it is not
 in the suite (the file name doesn't match the test pattern). Run it by label
 on the test database:
 
-    python manage.py test audit.bench_volume --settings=settings_worktree
+    AUDIT_BENCH=1 python manage.py test audit.tests.test_bench_volume --settings=settings_worktree
 
 It drives the real routes and tasks - with Celery dispatch and the AI
 provider patched out, as the suite's own tests do - and prints the events
@@ -13,10 +13,12 @@ Those numbers are copied into `audit/volume.py`, which the
 """
 
 import json
+import os
 import uuid
 from collections import Counter
 from datetime import timedelta
 from types import SimpleNamespace
+from unittest import skipUnless
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
@@ -65,6 +67,10 @@ def _tally(since):
 
 
 @override_settings(CACHES=LOCMEM_CACHE, GRADING_SECOND_OPINION_ENABLED=False)
+@skipUnless(
+    os.environ.get("AUDIT_BENCH") == "1",
+    "a benchmark, run by label with AUDIT_BENCH=1 only",
+)
 class BusySchoolDay(APITestCase):
     def setUp(self):
         cache.clear()

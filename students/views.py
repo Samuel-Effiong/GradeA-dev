@@ -38,6 +38,7 @@ from rest_framework.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from assignments.exceptions import SubmissionEmptyError
 from assignments.models import Assignment, AssignmentStatus
 from assignments.serializers import (
     BatchUploadResponseSerializer,
@@ -72,6 +73,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .grading_gates import ensure_gradable
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -92,6 +94,7 @@ from .serializers import (
     StudentSubmissionUploadAsyncSerializer,
 )
 from .services import (
+    SUBMITTED_TEXT,
     emit_grading_completed,
     ensure_no_active_extraction,
     ensure_student_may_submit,
@@ -693,8 +696,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         graded, refund on failure, column-scoped save) cannot diverge.
         """
         raw_input = request.data.get("raw_input")
-        if not raw_input or not str(raw_input).strip():
+        if raw_input is None:
             raise ParseError("raw_input is required.")
+        if not str(raw_input).strip():
+            # S6d: present but empty is SUBMISSION_EMPTY (422), not a
+            # malformed request; nothing is extracted or charged.
+            raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})
 
         submission = self.get_object()
         if submission.assignment.status != AssignmentStatus.PUBLISHED:
@@ -735,8 +742,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def update_async(self, request, pk=None):
         raw_input = request.data.get("raw_input")
-        if not raw_input or not str(raw_input).strip():
+        if raw_input is None:
             raise ParseError("raw_input is required.")
+        if not str(raw_input).strip():
+            # S6d: present but empty is SUBMISSION_EMPTY (422), not a
+            # malformed request; nothing is extracted or charged.
+            raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})
 
         submission = self.get_object()
         if submission.assignment.status != AssignmentStatus.PUBLISHED:
@@ -848,6 +859,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def grade_async(self, request, pk=None):
         submission = self.get_object()
+        # 409 RUBRIC_MISSING before anything is queued (S6d).
+        ensure_gradable(submission.assignment)
 
         processing_task = create_processing_task(
             requested_by=request.user,
@@ -903,6 +916,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def schedule_grade_async(self, request, pk=None):
         submission = self.get_object()
+        # 409 RUBRIC_MISSING before anything is scheduled (S6d); the run
+        # re-checks, since the rubric can be removed meanwhile.
+        ensure_gradable(submission.assignment)
 
         serializer = ScheduleGradingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

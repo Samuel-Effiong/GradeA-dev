@@ -101,7 +101,15 @@ class BatchFixture:
             title="Homework",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
-            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_text": "Q1?",
+                    "points": 10,
+                    # A marking guide, or S6d refuses grading (RUBRIC_MISSING).
+                    "model_answer": "4",
+                }
+            ],
         )
         self.students = [
             self.enrol(f"Pupil{i:02d}", "Enrolled") for i in range(students)
