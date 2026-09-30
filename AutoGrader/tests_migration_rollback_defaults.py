@@ -40,7 +40,9 @@ Two halves:
 When production moves, move PRODUCTION_HEADS to its new heads.
 """
 
+import sys
 import uuid
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import connection, models, transaction
@@ -104,6 +106,17 @@ def fields_touched_since_production(loader=None):
     return {field: tuple(sorted(where)) for field, where in touched.items()}
 
 
+def state_before(loader):
+    """`state_before(app, name)`: the migration state just before that
+    migration. Rule (b) reads a column's previous nullability here; the
+    final state would already show it NOT NULL, and (b) would never fire."""
+
+    def before(app, name):
+        return loader.project_state((app, name), at_end=False)
+
+    return before
+
+
 def rollback_candidates(migrations, state_before):
     """{(app, model, field): ("app.migration", ...)}: the columns rule (a)
     or (b) covers. `state_before(app, name)` is the migration state just
@@ -165,7 +178,7 @@ def fields_a_rollback_would_break(loader=None, state=None):
     loader = loader or MigrationLoader(None, ignore_no_migrations=True)
     candidates = rollback_candidates(
         migrations_since_production(loader),
-        lambda app, name: loader.project_state((app, name), at_end=False),
+        state_before(loader),
     )
     return broken_fields(candidates, state or loader.project_state())
 
@@ -189,7 +202,7 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
         loader = MigrationLoader(None, ignore_no_migrations=True)
         candidates = rollback_candidates(
             migrations_since_production(loader),
-            lambda app, name: loader.project_state((app, name), at_end=False),
+            state_before(loader),
         )
         for field in ROLLBACK_COLUMNS:
             self.assertIn(field.key, candidates)
@@ -257,6 +270,28 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
             {"synthetic.thing.tightened"},
         )
 
+    def test_rule_b_reads_the_state_before_each_migration(self):
+        """The production wiring (the Verification Engineer's H6 on
+        b029f5c): before billing 0070 the wallet's deficit counter has no
+        db_default; the final state has one. Reading the final state here
+        would make rule (b) blind on every real migration."""
+        loader = MigrationLoader(None, ignore_no_migrations=True)
+        before = state_before(loader)("billing", "0070_db_defaults_for_rollback")
+        wallet = before.models[("billing", "creditwallet")]
+        self.assertIs(wallet.fields["dispute_deficit_credits"].db_default, NOT_PROVIDED)
+        final = loader.project_state().models[("billing", "creditwallet")]
+        self.assertIsNot(
+            final.fields["dispute_deficit_credits"].db_default, NOT_PROVIDED
+        )
+
+    def test_the_guard_uses_the_state_before_each_migration(self):
+        """fields_a_rollback_would_break wires rule (b) to state_before, not to
+        any other state."""
+        module = sys.modules[__name__]
+        with patch.object(module, "state_before", wraps=state_before) as wired:
+            fields_a_rollback_would_break()
+        self.assertEqual(wired.call_count, 1)
+
     def test_a_nullability_preserving_alter_on_the_real_graph_is_skipped(self):
         """The eight AlterFields since production that change choices,
         defaults or FK details of a column that was already NOT NULL are
@@ -264,7 +299,7 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
         loader = MigrationLoader(None, ignore_no_migrations=True)
         candidates = rollback_candidates(
             migrations_since_production(loader),
-            lambda app, name: loader.project_state((app, name), at_end=False),
+            state_before(loader),
         )
         for key in [
             ("billing", "creditusagelog", "wallet"),
