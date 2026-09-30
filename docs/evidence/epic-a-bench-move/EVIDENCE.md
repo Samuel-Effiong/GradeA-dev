@@ -20,4 +20,10 @@ A static pre-check with the guards' own scanners, before the run:
 - S4's bulk and suppression scans show nothing unlisted and nothing stale.
 
 ## Gates (rule 15 after a full run + addendum 2: the touched modules + ALL repo-wide guards; no second full run)
-_pending_
+Run on **`47b21e1`**, one step at a time at 6G in 0b's slot. 0b checked the tree against `3d6575c`: production files change only in doc strings.
+
+| Step | Result |
+|---|---|
+| All repo-wide guards + touched modules: `AutoGrader.tests_no_wildcard_invalidation` (the failing guard), `tests_cache_invalidation_coverage` (incl. the raw-cache-write guard), `tests_reason_codes`, `tests_migration_rollback_defaults`, `audit.tests_route_coverage`, `audit.tests_history_guard` (history-registry + suppression guards), `audit.tests_volume_report` | **103 OK** (`guards_and_touched.txt`) |
+| The whole `audit` app, run as the suite runs it | **334 OK (skipped=2)**: the two benches, skipped with "a benchmark, run by label with AUDIT_BENCH=1 only" (`audit_app.txt`) |
+| Both benches by label, `AUDIT_BENCH=1` | **2 OK**; both print their results (S8_VOLUME, S4_GATE6) (`benches_by_label.txt`) |
