@@ -4,10 +4,11 @@ The commit-race fix bumps every counter a second time once the transaction
 commits. This measures that second bump against the same workload with the
 fix switched off, on two shapes:
 
-* the worst case: 6,000 enrollments in ONE transaction. No production path
-  does this today, since roster import commits per row, but a future bulk
-  path could. Every in-transaction bump queues its own callback, so the
-  commit replays all of them back to back.
+* the worst case: many enrollments in ONE transaction (600 by default,
+  6,000 in the recorded evidence; see SINGLE_TRANSACTION_STUDENTS). No
+  production path does this today, since roster import commits per row,
+  but a future bulk path could. Every in-transaction bump queues its own
+  callback, so the commit replays all of them back to back.
 * production's shape: `import_roster` with its 2,000-row cap, where every
   row is its own transaction and pays its second bump at its own commit.
   Its students have signed in before, so each row is one enrollment and
@@ -30,6 +31,7 @@ Real Redis + real Postgres.
 """
 
 import os
+import signal
 import statistics
 import time
 import tracemalloc
@@ -42,6 +44,7 @@ import redis
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db import connection, transaction
+from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -60,11 +63,47 @@ from users.models import UserTypes
 
 User = get_user_model()
 
-# The scale the evidence is measured at. The environment variables exist only
-# to smoke-test this harness cheaply; every recorded figure comes from a run
-# that leaves them unset.
-SINGLE_TRANSACTION_STUDENTS = int(os.environ.get("RACE_COST_ENROLLMENTS", 6000))
+# The single-transaction case runs at 600 enrollments by default. The H-25
+# evidence was measured at 6,000 (docs/evidence/CACHE_COMMIT_RACE_EVIDENCE.md);
+# re-measuring at that scale is an explicit opt-in with
+# RACE_COST_ENROLLMENTS=6000, and it needs a longer RACE_COST_TIMEOUT too. The
+# default is capped because a per-classmate fan-out, which stage 3 had until
+# cc14bb0, turned 6,000 into a 19-hour run that nothing stopped. The
+# per-row assertions hold at any size.
+SINGLE_TRANSACTION_STUDENTS = int(os.environ.get("RACE_COST_ENROLLMENTS", 600))
 ROSTER_IMPORT_ROWS = int(os.environ.get("RACE_COST_ROWS", 2000))
+# Wall-clock budget per test, in seconds. A test over budget fails with
+# the budget in its message instead of hanging the run: a cost regression
+# here shows up as time before it shows up as a wrong count.
+TEST_BUDGET_SECONDS = int(os.environ.get("RACE_COST_TIMEOUT", 900))
+
+
+class OverBudget(AssertionError):
+    pass
+
+
+@contextmanager
+def wall_clock_budget(seconds):
+    """Fail the test (not the run) once it has used `seconds` of wall time.
+
+    SIGALRM, so main thread only; the cost tests run there. The handler
+    raises in the test's own frame, which then unwinds and cleans up like
+    any other failure. The runner's outer `timeout` stays the backstop for a
+    hang the signal cannot interrupt."""
+
+    def over_budget(signum, frame):
+        raise OverBudget(
+            f"over the {seconds}s budget (RACE_COST_TIMEOUT). A cost "
+            "regression, or an opted-in scale without a longer budget."
+        )
+
+    previous = signal.signal(signal.SIGALRM, over_budget)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 def percentile(values, fraction):
@@ -162,6 +201,7 @@ class Meter:
 
 class RosterScaleCostBase(CommitRaceBase):
     def setUp(self):
+        self.enterContext(wall_clock_budget(TEST_BUDGET_SECONDS))
         super().setUp()
         school = School.objects.create(name="Race cost school")
         self.teacher.school = school
@@ -342,7 +382,7 @@ class SingleTransactionRosterCostTests(RosterScaleCostBase):
         )
         return fixed_queries
 
-    def test_one_transaction_at_600_and_6000_enrollments(self):
+    def test_one_transaction_at_a_tenth_and_at_full_scale(self):
         size = SINGLE_TRANSACTION_STUDENTS // 10
         small = self.measure_size(size)
         large = self.measure_size(SINGLE_TRANSACTION_STUDENTS)
@@ -487,3 +527,23 @@ class PerRowRosterImportCostTests(RosterScaleCostBase):
             )
         small, large = per_row.values()
         self.assertEqual(large, small)
+
+
+class WallClockBudgetTests(SimpleTestCase):
+    """The budget that stops a runaway cost test really fires, and leaves
+    no alarm or handler behind."""
+
+    def test_a_test_over_budget_fails_instead_of_running_on(self):
+        before = signal.getsignal(signal.SIGALRM)
+        started = time.monotonic()
+        with self.assertRaisesRegex(OverBudget, "over the 1s budget"):
+            with wall_clock_budget(1):
+                time.sleep(30)
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertEqual(signal.alarm(0), 0, "an alarm was left pending")
+        self.assertIs(signal.getsignal(signal.SIGALRM), before)
+
+    def test_a_test_within_budget_is_untouched(self):
+        with wall_clock_budget(5):
+            pass
+        self.assertEqual(signal.alarm(0), 0)
