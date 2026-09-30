@@ -104,19 +104,24 @@ class OverageFixture:
     #: Supplied by the TestCase this mixin is combined with.
     addCleanup: Callable[..., Any]
 
-    def stub_receipt_lookup(self):
+    def stub_receipt_scheduling(self):
         """
-        Every grant path resolves a receipt link through a LIVE Stripe call
-        (resolve_stripe_receipt_url -> stripe.PaymentIntent.retrieve), inside
-        the grant's own transaction. None of the tests here check that link,
-        and the call is a real round trip whose latency they then inherit:
-        it is what made the concurrency tests flaky. Its own behaviour
-        belongs in a test that stubs stripe itself.
+        Every grant path ends by queueing a receipt-link fill
+        (schedule_receipt_url_fill), the last call inside the grant's own
+        transaction. After commit that fill makes a LIVE Stripe call
+        (billing.receipts.lookup_receipt_url) through Celery. None of the
+        tests here check that link, so the queueing is stubbed: no broker,
+        no network. Its own behaviour is tested in test_receipts.
+
+        It replaced the in-transaction lookup (resolve_stripe_receipt_url)
+        this stub used to target (H-62). It is still the one seam inside
+        the transaction, after the grant is written, which the slow-worker
+        test blocks on.
         """
         patcher = patch(
-            "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+            "billing.stripe_service.schedule_receipt_url_fill", return_value=None
         )
-        self.receipt_lookup = patcher.start()
+        self.receipt_scheduling = patcher.start()
         self.addCleanup(patcher.stop)
 
     def build(self, email="overage@billing.test", plan=None, school=None):
@@ -208,7 +213,7 @@ class IndividualCheckoutOverageTests(TestCase, OverageFixture):
     """Flow 1 — the one that had the defects."""
 
     def setUp(self):
-        self.stub_receipt_lookup()
+        self.stub_receipt_scheduling()
         self.plan = make_plan()
         self.user, self.wallet = self.build()
 
@@ -468,7 +473,7 @@ class DirectPaymentIntentOverageTests(TestCase, OverageFixture):
     """Flow 2 — the off-session PaymentIntent path."""
 
     def setUp(self):
-        self.stub_receipt_lookup()
+        self.stub_receipt_scheduling()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="pi.overage@billing.test")
 
@@ -553,7 +558,7 @@ class OverageConsumptionOrderingTests(TestCase, OverageFixture):
     """Purchased overage must be spent LAST, after every free bucket."""
 
     def setUp(self):
-        self.stub_receipt_lookup()
+        self.stub_receipt_scheduling()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="ordering@billing.test")
         now = timezone.now()
@@ -617,7 +622,7 @@ class SchoolLicenseOverageIsolationTests(TestCase, OverageFixture):
     """
 
     def setUp(self):
-        self.stub_receipt_lookup()
+        self.stub_receipt_scheduling()
         self.plan = make_plan()
         self.school = School.objects.create(name="Overage School")
         self.other_school = School.objects.create(name="Other School")
@@ -711,7 +716,7 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
         # Unstubbed, this call's latency is what made these tests flaky: one
         # that outlived the join left the assertions reading a grant that was
         # written but not yet committed ("0 != 500").
-        self.stub_receipt_lookup()
+        self.stub_receipt_scheduling()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="concurrent.ov@billing.test")
 
@@ -844,7 +849,8 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
         self,
     ):
         """
-        THE FLAKE, made deterministic. One teacher's receipt lookup blocks
+        THE FLAKE, made deterministic. One teacher's grant blocks inside its
+        transaction (at the receipt scheduling, after the grant is written)
         past the join timeout, so that thread's grant is written but not
         committed when the waiting stops. The harness must fail and name
         the thread, never go on to the ledger assertions.
@@ -857,13 +863,13 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
         slow_intent = "pi_slow_3"
         entered, release = threading.Event(), threading.Event()
 
-        def lookup(*, invoice_id=None, payment_intent_id=None, **_):
-            if payment_intent_id == slow_intent:
+        def schedule(billing_transaction):
+            if billing_transaction.stripe_payment_intent_id == slow_intent:
                 entered.set()
                 release.wait(timeout=120)
             return None
 
-        self.receipt_lookup.side_effect = lookup
+        self.receipt_scheduling.side_effect = schedule
 
         try:
             with self.assertRaisesRegex(
@@ -872,8 +878,8 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
                 self._run(lambda i: self._buy_as(wallets[i], f"slow_{i}"), 4, 5)
             self.assertTrue(
                 entered.is_set(),
-                "the slow thread never reached the lookup, so this did not "
-                "exercise a written-but-uncommitted grant",
+                "the slow thread never reached the receipt scheduling, so this "
+                "did not exercise a written-but-uncommitted grant",
             )
             # What the old harness asserted on: the grant isn't visible yet.
             self.assertEqual(self.granted_credits(wallets[3]), 0)

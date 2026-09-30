@@ -79,25 +79,25 @@ BLOCK = 500
 PRICE = 1000  # cents per block
 
 # Every purchase in this file goes through handle_checkout_completed, which
-# resolves a receipt link with a LIVE Stripe call
-# (resolve_stripe_receipt_url -> stripe.PaymentIntent.retrieve) inside the
-# grant's transaction. Stripe errors are swallowed, so it never fails a
-# test here; it just makes each purchase a real network round trip, and
-# in ConcurrentRefundTests a slow one would leave the purchase uncommitted
-# while the refund threads raced it. No test here checks that link.
+# queues a receipt-link fill (schedule_receipt_url_fill) that, after commit,
+# makes a LIVE Stripe call through Celery (billing.receipts). Before H-62
+# that lookup ran inside the grant's transaction (resolve_stripe_receipt_url);
+# this stub targeted it then. No test here checks that link, so the queueing
+# is stubbed: no broker, no network, including in ConcurrentRefundTests,
+# where on_commit callbacks do run.
 # Patched once for the whole module, from the main thread: a patch entered
 # inside worker threads is not thread-safe.
-_receipt_lookup = patch(
-    "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+_receipt_scheduling = patch(
+    "billing.stripe_service.schedule_receipt_url_fill", return_value=None
 )
 
 
 def setUpModule():
-    _receipt_lookup.start()
+    _receipt_scheduling.start()
 
 
 def tearDownModule():
-    _receipt_lookup.stop()
+    _receipt_scheduling.stop()
 
 
 def make_plan(name=PlanType.STANDARD, tier=PlanTier.STANDARD, max_blocks=10):
