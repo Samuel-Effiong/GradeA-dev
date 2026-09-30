@@ -27,7 +27,12 @@ from students.exceptions import (
     SubmissionLimitReachedError,
     TaskCancelledError,
 )
-from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
+from students.models import (
+    BackgroundTaskType,
+    BatchUploadSession,
+    BatchUploadType,
+    StudentSubmission,
+)
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
     emit_grading_completed,
@@ -39,8 +44,10 @@ from students.task_tracking import (
     cancellable_final_save,
     claim_processing_task_start,
     cleanup_cancelled_task_artifacts,
+    create_processing_task,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
+    launch_processing_task,
     mark_processing_task_cancelled,
     mark_processing_task_failure,
     mark_processing_task_started,
@@ -1107,12 +1114,57 @@ def grade_batch_async(
         logger.error(f"Failed to clear scheduling info or create session: {e}")
         pass
 
-    for submission in submissions:
-        ensure_task_not_cancelled(processing_task_id)
-        grade_engine_async.delay(
-            user_id,
+    ensure_task_not_cancelled(processing_task_id)
+    if submissions.exists():
+        # With no session (its creation failed above, and was logged) the
+        # items are still tracked, just not grouped: grading is never dropped.
+        _dispatch_tracked_grading(
+            CustomUser.objects.get(id=user_id),
+            Assignment.objects.get(id=assignment_id),
+            submissions,
+            (
+                BatchUploadSession.objects.filter(id=batch_id).first()
+                if batch_id
+                else None
+            ),
+        )
+
+
+def _dispatch_tracked_grading(teacher, assignment, submissions, session):
+    """Grade each submission as a tracked batch item, as grade-all does
+    (FR-A-07 S7a): the session then answers in session-results' per-item
+    shape, with codes, instead of the legacy results list. Items are
+    numbered 1..n in dispatch order."""
+    for item_index, submission in enumerate(submissions, start=1):
+        processing_task = create_processing_task(
+            requested_by=teacher,
+            task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+            batch_session=session,
+            assignment=assignment,
+            submission=submission,
+            file_name=f"Submission for {submission.student.get_full_name()}",
+            meta={"step": "Queued for batch grading"},
+            item_index=item_index,
+        )
+        launch_processing_task(
+            grade_engine_async,
+            processing_task,
+            str(teacher.id),
             str(submission.id),
-            batch_id=batch_id,
+            batch_id=str(session.id) if session else None,
+        )
+        emit(
+            AuditAction.GRADING_REQUESTED,
+            actor=teacher,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "submission_id": str(submission.id),
+                "task_id": str(processing_task.id),
+                "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+            },
         )
         logger.info("Starting grading of submission %s", submission.id)
 
@@ -1137,18 +1189,16 @@ def auto_grade_due_assignment(assignment_id):
             total_files=ungraded_submissions.count(),
         )
 
-        for submission in ungraded_submissions:
-            grade_engine_async.delay(
-                str(assignment.course.teacher.id),
-                str(submission.id),
-                batch_id=str(session.id),
-            )
+        _dispatch_tracked_grading(
+            assignment.course.teacher, assignment, ungraded_submissions, session
+        )
 
         return f"Auto-grading started for {ungraded_submissions.count()} submissions."
-    except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+    except Exception:
+        # Logged with its traceback; the task result (Celery's backend) never
+        # carries exception text (QA-ERR-03).
+        logger.exception("Auto-grading could not start for %s", assignment_id)
+        return "Error: auto-grading could not start."
 
 
 @shared_task(name="assignments.tasks.send_assignment_due_reminder")

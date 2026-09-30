@@ -396,6 +396,38 @@ class BackgroundProcessingTask(models.Model):
     file_name = models.CharField(max_length=255, null=True, blank=True)
     meta = models.JSONField(default=dict, blank=True)
     error = models.TextField(null=True, blank=True)
+    # FR-A-07 (S7a, 08a §4.3; 03a §4.5 minus the Epic B `job` FK). NOT NULL
+    # columns carry a db_default, so a code-only rollback still inserts
+    # (H-56); item_index and trace_id are nullable, since rows made before
+    # S7a have neither.
+    reason_code = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_default="",
+        help_text=_(
+            "The failure's FR-A-06 reason code, or empty for a success or an "
+            "unclassified fault (shown as error_class SYSTEM)."
+        ),
+    )
+    retry_count = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=_("How many times this item was retried in place (S7b)."),
+    )
+    item_index = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("The item's 1-based position in its batch, in upload order."),
+    )
+    trace_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "The dispatching request's server trace id, the item's reference "
+            "(QA-ERR-04); it resolves to the item's audit events."
+        ),
+    )
     cancel_requested_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
