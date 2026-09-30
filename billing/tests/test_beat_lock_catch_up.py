@@ -510,7 +510,8 @@ class ExpiredBucketCleanupCatchUpTests(CatchUpTestCase):
             )
 
         def processed(summary):
-            self.assertIn("1 buckets processed, 600 raw credits expired", summary)
+            self.assertIn("1 buckets processed", summary)
+            self.assertIn("600 raw credits expired", summary)
             bucket.refresh_from_db()
             self.assertTrue(bucket.is_processed, "the next run did not expire it")
             [row] = expire_rows()
