@@ -126,6 +126,6 @@ If any source changes before the merge-down, the copy here is re-synced.
 | Reproduce-first: S7d's new test modules on ca35971's production files | see log | `prefix_ca35971_failing.txt` |
 | Changed and updated modules + all 11 repo-wide guards | see log | `changed_modules_and_guards.txt` |
 | Mutation, 39 mutants in 3 batches (≤1800 s each, own DB, dropped) | see log | `mutation_log_batch{1,2,3}.txt`, `mutation_results_batch{1,2,3}.json` |
-| Regressions: students, classrooms, billing | see log | `regression_{students,classrooms,billing}.txt` |
+| ONE combined regression over every app whose production code S7d changes (SM ruling): students, classrooms, billing, users, assignments, ai_processor. ai_processor is included because C's change there is more than text: a new `PDFNotAPdfError`, and `PDFService.extract` raises it. Run in the 12G slot, timeout 1800 | see log | `regression_combined.txt` |
 
 A dev run before E (0b's grant, no result claimed) found the emailed-row clash and the test-harness fallout, both fixed above.
