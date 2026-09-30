@@ -448,7 +448,9 @@ def process_annual_plan_credit_grants(self):
         plan__interval=BillingInterval.ANNUAL,
         next_credit_grant_at__lte=refresh_due_by(now),
         next_credit_grant_at__lt=F("billing_cycle_end"),
-        billing_cycle_end__gt=now,
+        # A contract ending within the tolerance counts as ended (1a's F2):
+        # a grant then would be a month's bucket for its last minutes.
+        billing_cycle_end__gt=refresh_due_by(now),
     ).select_related("user", "plan")
 
     granted_count = 0
@@ -1066,7 +1068,8 @@ def process_license_monthly_credit_refreshes(self):
         is_active=True,
         next_credit_grant_at__lte=refresh_due_by(now),
         license_subscription__is_active=True,
-        license_subscription__billing_cycle_end__gt=now,
+        # A contract ending within the tolerance counts as ended (1a's F2).
+        license_subscription__billing_cycle_end__gt=refresh_due_by(now),
     ).select_related("license_subscription", "user", "license_subscription__plan")
 
     refreshed_count = 0

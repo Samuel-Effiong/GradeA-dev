@@ -180,6 +180,58 @@ MUTANTS = [
         1,
     ),
     (
+        "F1",
+        "licence window: the due tolerance (1a's F1)",
+        LS,
+        "                consumption_window_start__lte=refresh_due_by(now)\n",
+        "                consumption_window_start__lte=now\n",
+        1,
+    ),
+    (
+        "F2a",
+        "annual task: a contract ending within the tolerance is ended (1a's F2)",
+        TK,
+        "        billing_cycle_end__gt=refresh_due_by(now),\n",
+        "        billing_cycle_end__gt=now,\n",
+        1,
+    ),
+    (
+        "F2b",
+        "licence task: a contract ending within the tolerance is ended",
+        TK,
+        "        license_subscription__billing_cycle_end__gt=refresh_due_by(now),\n",
+        "        license_subscription__billing_cycle_end__gt=now,\n",
+        1,
+    ),
+    (
+        "F2c",
+        "annual re-check: a contract ending within the tolerance is ended",
+        SV,
+        "            or user_subscription.billing_cycle_end <= refresh_due_by(now)\n",
+        "            or user_subscription.billing_cycle_end <= now\n",
+        1,
+    ),
+    (
+        "Y1",
+        "cleanup: a deactivated licence no longer entitles (1a's Y1)",
+        TK,
+        "            license_subscription__is_active=True,\n"
+        "            user__credit_wallet__in=wallet_ids,\n",
+        "            user__credit_wallet__in=wallet_ids,\n",
+        1,
+    ),
+    (
+        "Y2",
+        "cleanup: an inactive allocation no longer entitles (1a's Y2)",
+        TK,
+        "        SchoolCreditAllocation.objects.filter(\n"
+        "            is_active=True,\n"
+        "            license_subscription__is_active=True,\n",
+        "        SchoolCreditAllocation.objects.filter(\n"
+        "            license_subscription__is_active=True,\n",
+        1,
+    ),
+    (
         "R18",
         "cleanup: an overdue refresh is logged",
         TK,

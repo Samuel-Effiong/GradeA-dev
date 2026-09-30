@@ -65,6 +65,7 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
 )
 from .overage_pricing import assert_overage_price_in_sync
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
+from .refresh_timing import refresh_due_by
 
 logger = logging.getLogger(__name__)
 
@@ -3381,7 +3382,13 @@ class LicenseSubscriptionService:
         LicenseSubscription.objects.filter(
             Q(pk=license_sub.pk),
             Q(consumption_window_start__isnull=True)
-            | Q(consumption_window_start__lte=now - relativedelta(months=1)),
+            # The same tolerance as the refresh's due check (1a's F1): a run
+            # a few seconds earlier than last month's refreshes the teacher,
+            # so it must reopen the window too.
+            | Q(
+                consumption_window_start__lte=refresh_due_by(now)
+                - relativedelta(months=1)
+            ),
         ).update(
             total_credits_consumed=0,
             consumption_window_start=now,

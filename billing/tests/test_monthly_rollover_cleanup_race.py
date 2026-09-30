@@ -52,6 +52,7 @@ from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
 from billing.immutable import allow_unsafe_mutation
+from billing.license_service import LicenseSubscriptionService
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -328,13 +329,7 @@ class AnnualMidCycleGrantRaceTests(RefreshRaceFixture, TestCase):
         month 1 off while its refresh was owed (here by making the owner
         briefly not entitled, the only way the fixed cleanup still expires
         a monthly bucket), and the refresh came the next day."""
-        month_1 = self.use_month_1()
-        day = DAY_0 + relativedelta(months=1)
-        UserSubscription.objects.filter(user=self.user).update(is_active=False)
-        self.clock.at(month_1.expires_at + timedelta(minutes=1))
-        cleanup_expired_credit_buckets()
-        UserSubscription.objects.filter(user=self.user).update(is_active=True)
-        self.run_refresh_on(day + timedelta(days=3))
+        self.write_off_month_1_before_its_refresh()
 
         [row] = detect_lost_rollovers()
         self.assertEqual(row["wallet_id"], self.wallet.pk)
@@ -343,7 +338,59 @@ class AnnualMidCycleGrantRaceTests(RefreshRaceFixture, TestCase):
         self.assertEqual(
             row["unused_credits_written_off_raw"], MONTHLY_CREDITS - USED_IN_MONTH_1
         )
+        # The plan's carry-over applied to it, as the rollover would have.
+        self.assertEqual(row["plan_id"], self.plan.pk)
+        self.assertEqual(row["carry_over_percent"], CARRY_PERCENT)
+        self.assertEqual(row["estimated_carry_over_lost_raw"], EXPECTED_ROLLOVER)
         self.assertNotIn("@", " ".join(str(v) for v in row.values()))
+
+    def test_the_lost_months_query_leaves_out_a_plan_with_no_carry_over(self):
+        """1a's Q4: nothing was lost on a plan with no carry-over."""
+        SubscriptionPlan.objects.filter(pk=self.plan.pk).update(carry_over_percent=0)
+        self.write_off_month_1_before_its_refresh()
+        self.assertEqual(detect_lost_rollovers(), [])
+
+    def write_off_month_1_before_its_refresh(self):
+        month_1 = self.use_month_1()
+        day = DAY_0 + relativedelta(months=1)
+        UserSubscription.objects.filter(user=self.user).update(is_active=False)
+        self.clock.at(month_1.expires_at + timedelta(minutes=1))
+        cleanup_expired_credit_buckets()
+        UserSubscription.objects.filter(user=self.user).update(is_active=True)
+        self.run_refresh_on(day + timedelta(days=3))
+
+    def test_no_grant_for_the_last_minutes_of_the_contract(self):
+        """1a's F2. The last grant set a due time 2 minutes BEFORE the cycle
+        ends (a contract starting a few minutes after 02:00 UTC), so it is
+        not capped; the anniversary run starts 4 minutes before the end. A
+        contract ending within the tolerance counts as ended."""
+        sub = UserSubscription.objects.get(user=self.user)
+        end = sub.billing_cycle_end
+        UserSubscription.objects.filter(pk=sub.pk).update(
+            next_credit_grant_at=end - timedelta(minutes=2)
+        )
+        self.clock.at(end - timedelta(minutes=4))
+        before = self.monthly_buckets_granted()
+        summary = self.refresh_task()
+        self.assertEqual(
+            self.monthly_buckets_granted() - before,
+            0,
+            "a full month's credits granted for the contract's last minutes",
+        )
+        # Not even selected (the service's own re-check is tested below).
+        self.assertIn("0 granted, 0 already granted", summary)
+
+    def test_the_service_refuses_the_last_minutes_of_the_contract(self):
+        sub = UserSubscription.objects.get(user=self.user)
+        end = sub.billing_cycle_end
+        UserSubscription.objects.filter(pk=sub.pk).update(
+            next_credit_grant_at=end - timedelta(minutes=2)
+        )
+        almost = end - timedelta(minutes=4)
+        self.clock.at(almost)
+        self.assertIsNone(
+            SubscriptionService.process_mid_cycle_credit_grant(sub, now=almost)
+        )
 
     def test_a_due_time_capped_at_the_cycle_end_is_not_granted_early(self):
         """The tolerance must not grant the renewal's month mid-cycle."""
@@ -433,6 +480,49 @@ class LicenceMonthlyRefreshRaceTests(RefreshRaceFixture, TestCase):
 
     def next_due(self):
         return SchoolCreditAllocation.objects.get(user=self.user).next_credit_grant_at
+
+    def run_with_last_months_usage(self, offset):
+        """1a's F1. The licence used a whole seat's month in month 1; this
+        month's run starts `offset` from last month's. The refresh must
+        reopen the licence's consumption window with it, or last month's
+        usage caps this month's new-teacher enrolments
+        (_enroll_teacher_internal)."""
+        licence = LicenseSubscription.objects.get()
+        opened = licence.consumption_window_start
+        self.assertIsNotNone(opened, "month 1 opened no window")
+        LicenseSubscription.objects.filter(pk=licence.pk).update(
+            total_credits_consumed=MONTHLY_CREDITS
+        )
+        before = self.monthly_buckets_granted()
+        self.clock.at(DAY_0 + relativedelta(months=1) + self.refresh_at + offset)
+        self.refresh_task()
+        licence.refresh_from_db()
+        self.assertEqual(self.monthly_buckets_granted() - before, 1)
+        self.assertEqual(
+            licence.total_credits_consumed,
+            0,
+            "refreshed, but last month's usage still counts against this month",
+        )
+        reopened = licence.consumption_window_start
+        assert reopened is not None and opened is not None
+        self.assertGreater(reopened, opened)
+
+    def test_a_run_2s_early_reopens_the_consumption_window(self):
+        self.run_with_last_months_usage(-timedelta(seconds=2))
+
+    def test_a_run_2s_late_reopens_the_consumption_window(self):
+        self.run_with_last_months_usage(timedelta(seconds=2))
+
+    def test_no_refresh_for_the_last_minutes_of_the_contract(self):
+        """1a's F2, the licence path."""
+        end = LicenseSubscription.objects.get().billing_cycle_end
+        SchoolCreditAllocation.objects.filter(user=self.user).update(
+            next_credit_grant_at=end - timedelta(minutes=2)
+        )
+        self.clock.at(end - timedelta(minutes=4))
+        before = self.monthly_buckets_granted()
+        self.refresh_task()
+        self.assertEqual(self.monthly_buckets_granted() - before, 0)
 
 
 class CleanupKeepsOwedMonthlyBucketsTests(TestCase):
@@ -555,6 +645,67 @@ class CleanupKeepsOwedMonthlyBucketsTests(TestCase):
         )
         cleanup_expired_credit_buckets()
         self.assertTrue(self.written_off(carry))
+
+    # -- 1a's licence edges (Q2): no longer entitled means written off ----
+
+    def licence_for(self, *, licence_active=True, allocation_active=True):
+        UserSubscription.objects.filter(pk=self.sub.pk).delete()
+        school = School.objects.create(name="Edge High")
+        admin = CustomUser.objects.create_user(
+            email="edge-admin@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+        )
+        licence = LicenseSubscription.objects.create(
+            school=school,
+            admin_user=admin,
+            plan=self.plan,
+            contract_months=12,
+            max_seats=1,
+            billing_cycle_start=timezone.now() - relativedelta(months=2),
+            billing_cycle_end=timezone.now() + relativedelta(months=10),
+            is_active=licence_active,
+        )
+        SchoolCreditAllocation.objects.create(
+            license_subscription=licence,
+            user=self.user,
+            monthly_allocation=self.plan.monthly_credits,
+            is_active=allocation_active,
+            next_credit_grant_at=timezone.now() - timedelta(hours=1),
+        )
+        return licence
+
+    def test_a_deactivated_licences_teacher_is_written_off(self):
+        self.licence_for(licence_active=False)
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(self.bucket))
+
+    def test_an_inactive_allocation_is_written_off(self):
+        self.licence_for(allocation_active=False)
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(self.bucket))
+
+    def test_a_teacher_removed_through_the_real_path_is_written_off(self):
+        licence = self.licence_for()
+        live = self.monthly(expired_ago=-timedelta(days=20))
+        with patch("users.tasks.sync_user_to_mailerlite.delay"):
+            LicenseSubscriptionService.remove_teacher_from_license(licence, self.user)
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(live), "the removed teacher's bucket kept")
+        self.assertTrue(self.written_off(self.bucket))
+
+    def test_a_kept_bucket_is_not_spendable(self):
+        cleanup_expired_credit_buckets()
+        self.assertFalse(self.written_off(self.bucket))
+        self.assertEqual(self.wallet.total_remaining_credits(), 0)
+
+    def test_a_lapsed_subscriber_is_written_off_on_the_next_cleanup(self):
+        cleanup_expired_credit_buckets()
+        self.assertFalse(self.written_off(self.bucket))
+        UserSubscription.objects.filter(pk=self.sub.pk).update(is_active=False)
+        cleanup_expired_credit_buckets()
+        self.assertTrue(self.written_off(self.bucket))
 
     def test_a_refresh_overdue_by_a_week_is_logged_and_still_kept(self):
         from billing.refresh_timing import OWED_REFRESH_OVERDUE

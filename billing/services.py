@@ -692,7 +692,8 @@ class SubscriptionService:
             or user_subscription.is_trial
             or user_subscription.next_credit_grant_at is None
             or user_subscription.next_credit_grant_at > refresh_due_by(now)
-            or user_subscription.billing_cycle_end <= now
+            # A contract ending within the tolerance counts as ended.
+            or user_subscription.billing_cycle_end <= refresh_due_by(now)
             # A due time capped at the cycle's end is the renewal's, not a
             # mid-cycle grant (it can only be "due" through the tolerance).
             or user_subscription.next_credit_grant_at
