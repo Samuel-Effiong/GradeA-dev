@@ -35,4 +35,12 @@ Out of scope (pre-existing and documented; 1a's N3): the 400s "Email already ver
 The sends are patched, and their return values never reach a response (rule 14).
 
 ## Gates
-_pending_ (runs through 0b, rules 12–14).
+Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | 974aa59's `users/views.py` against the new test (`prefix_974aa59_failing.txt`). **3 of 4 subtests fail**: verification sent, reset code sent and reset locked each differ from the unknown-address bytes. "Unknown, reset" matches, as expected, since both are unknown-address replies. |
+| On the fix | `users.tests_otp_no_oracle`: **OK** |
+| 1 Regression | `users`: **629 OK** (skipped=4) |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** |
+| 2 Mutation | The fix is one constant. Its only meaningful mutant, restoring any branch's own wording, is exactly what reproduce-first ran and saw killed, branch by branch. |
