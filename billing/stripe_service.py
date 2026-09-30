@@ -1612,7 +1612,9 @@ class StripeSubscriptionMutationService:
 
         # What the change needs from Stripe, read before changing it.
         try:
-            before = stripe.Subscription.retrieve(sub_id)
+            before = license_stripe_mutation.call_stripe(
+                stripe.Subscription.retrieve, sub_id
+            )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
                 intent, f"could not read the subscription: {exc}"
@@ -1643,7 +1645,8 @@ class StripeSubscriptionMutationService:
                 else new_plan.price_cents
             )
             try:
-                price = stripe.Price.create(
+                price = license_stripe_mutation.call_stripe(
+                    stripe.Price.create,
                     product=new_plan.product_id,
                     unit_amount=int(monthly_cents * contract_months),
                     currency="usd",
@@ -1717,8 +1720,10 @@ class StripeSubscriptionMutationService:
                 sub_id, invoice_before
             )
             invoice = (
-                stripe.Invoice.retrieve(
-                    invoice_id, expand=INVOICE_PAYMENT_INTENT_EXPAND
+                license_stripe_mutation.call_stripe(
+                    stripe.Invoice.retrieve,
+                    invoice_id,
+                    expand=INVOICE_PAYMENT_INTENT_EXPAND,
                 )
                 if invoice_id
                 else None

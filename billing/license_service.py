@@ -2035,6 +2035,7 @@ class LicenseSubscriptionService:
         sync_teachers_under_license_to_mailerlite(license_sub)
 
     @staticmethod
+    @license_stripe_mutation.with_stripe_budget
     def cancel_license_subscription(
         license_sub: LicenseSubscription,
         performed_by: Optional[CustomUser] = None,
@@ -2240,6 +2241,7 @@ class LicenseSubscriptionService:
         }
 
     @staticmethod
+    @license_stripe_mutation.with_stripe_budget
     def change_license_plan(
         license_sub: LicenseSubscription,
         new_plan: SubscriptionPlan,
@@ -2469,6 +2471,7 @@ class LicenseSubscriptionService:
         return updated
 
     @staticmethod
+    @license_stripe_mutation.with_stripe_budget
     def update_seats(
         license_sub: LicenseSubscription,
         new_max_seats: int,
@@ -2557,7 +2560,9 @@ class LicenseSubscriptionService:
 
         # Phase B: what the change needs from Stripe, read before changing it.
         try:
-            before = stripe.Subscription.retrieve(sub_id)
+            before = license_stripe_mutation.call_stripe(
+                stripe.Subscription.retrieve, sub_id
+            )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
                 intent, f"could not read the subscription: {exc}"
@@ -2623,7 +2628,13 @@ class LicenseSubscriptionService:
         if is_increase:
             try:
                 invoice_id = invoice_of_this_change()
-                invoice = stripe.Invoice.retrieve(invoice_id) if invoice_id else None
+                invoice = (
+                    license_stripe_mutation.call_stripe(
+                        stripe.Invoice.retrieve, invoice_id
+                    )
+                    if invoice_id
+                    else None
+                )
             except stripe.error.StripeError as exc:
                 # Applied at Stripe, and whether it was paid is unknown: money
                 # may have moved, so nothing is undone automatically.
@@ -3829,6 +3840,7 @@ class LicenseSubscriptionService:
         return license_sub
 
     @staticmethod
+    @license_stripe_mutation.with_stripe_budget
     def convert_license_to_offline(
         license_sub: LicenseSubscription,
         performed_by: CustomUser,

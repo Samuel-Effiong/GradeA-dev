@@ -132,7 +132,11 @@ class _FakeLicenceStripe:
     # -- helpers -------------------------------------------------------------
 
     def _mutated(self):
-        if connection.in_atomic_block:
+        # The CALLER's transaction: under H-28's request budget, Stripe
+        # calls run on a worker thread whose own connection never has one.
+        from billing.license_stripe_mutation import caller_in_atomic_block
+
+        if caller_in_atomic_block():
             self.kill.arm()
 
     def _sub_object(self):

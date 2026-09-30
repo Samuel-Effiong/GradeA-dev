@@ -29,7 +29,7 @@ a mock (rule 14).
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.db import OperationalError, connection, transaction
+from django.db import OperationalError, transaction
 from django.test import TransactionTestCase
 from django.utils import timezone
 
@@ -125,7 +125,11 @@ class LicencePhaseTestCase(TransactionTestCase):
 
     def _recording(self, fake_method):
         def call(*args, **kwargs):
-            self.in_transaction_at_call.append(connection.in_atomic_block)
+            # The caller's transaction state: under the request budget the
+            # call itself runs on a worker thread (call_stripe).
+            self.in_transaction_at_call.append(
+                license_stripe_mutation.caller_in_atomic_block()
+            )
             return fake_method(*args, **kwargs)
 
         return call

@@ -26,7 +26,8 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 | 6 | `83dd6c2` | `convert_license_to_offline` (P0) on it: no compensation, and a refused or lost delete is read back |
 | — | `8e450e6` | merge of bundle 4 (`bd29d1f`: H-62's final tip and the `expire_bucket` race fix), so H-28's rule-15 runs cover what it lands beside; then `04314f6` logs H-67 (backlog only) |
 | 7 | `f3e8d4d` | the bounded retry of the local write (§9e); the named Gate-5 assertion is `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` (see *The kill in commit 7's test* below) |
-| 8 | (next) | a human is told (§9g–§9i): every reconciliation alert also emails every active super admin; the stale-intent periodic task `escalate-stale-licence-stripe-intents` (every 5 min, one query, no Stripe call; beat entry and health expectation added); and `manage.py resolve_licence_stripe_intent` (§9h-bis) |
+| 8 | `0cfe219` | a human is told (§9g–§9i): every reconciliation alert also emails every active super admin; the stale-intent periodic task `escalate-stale-licence-stripe-intents` (every 5 min, one query, no Stripe call; beat entry and health expectation added); and `manage.py resolve_licence_stripe_intent` (§9h-bis) |
+| 9 | (next) | the per-request Stripe budget (§9i (2)); the named Gate-5 assertion is `test_h28_stripe_budget.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time` (see *The request budget* below) |
 
 ## F1: the 4-point behaviour-change record
 
@@ -49,6 +50,14 @@ The named Gate-5 assertion needs Postgres to really end a session, as the 60 s i
 - Just before, it reads that session's `(pg_backend_pid(), current_database())`. The test asserts the database is the test's own (`connection.settings_dict["NAME"]`, starting `test_`), and that the retry then committed on a **different** backend pid.
 - It fires only on phase D's row lock (`FOR UPDATE`) after Stripe applied the change, so it tests the retry of the local write, not phase C's status write.
 
+## The request budget (commit 9)
+
+stripe-python 14.4.1 has no per-call timeout: its HTTP timeout is process-wide (80 s, with two retries), and gunicorn runs threads, so it cannot be changed per request. So each licence operation runs under one deadline (`REQUEST_BUDGET_SECONDS`, 75 s, which is 25 s inside gunicorn's 100 s), and each Stripe call runs on a short-lived daemon thread that is waited for only as long as the deadline allows (`call_stripe`). Consequences, each tested:
+
+- **An abandoned call is not cancelled, and may still land.** So a mutation abandoned after it started is never read back and never classified "not applied": its intent stays PENDING, a human is alerted, and the stale-intent task escalates it. Only a call the budget never started is FAILED. The named test joins the abandoned modify, sees it land at the fake, and checks the intent is still PENDING.
+- **The worker thread only calls Stripe**, and closes any database connection its thread opened (`connections.close_all()` is per-thread), so none can leak against Postgres's limit.
+- **The proof that no Stripe call runs inside a transaction survives the thread:** the worker carries its caller's `in_atomic_block` (`caller_in_atomic_block()`), which the test fake and the idle-in-transaction kill read.
+
 ## Runs
 
 Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout`), with logs in `port_h62/`:
@@ -62,5 +71,6 @@ Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout
 | Commit 6's modules | commit-6 tree | **119 ran, OK: all 18 reproductions pass** |
 | Commit 7's modules | commit-7 tree, over `04314f6` | 123 ran, OK |
 | Commit 8's modules, with `AutoGrader.tests_beat_health` and `AutoGrader.test_health` (a new beat entry) | commit-8 tree | 165 ran, OK |
+| Commit 9's modules | commit-9 tree | 173 ran, **1 failure in a new test of mine**: `test_the_worker_thread_leaves_no_database_connection_open` compared `django.db.connection`, a proxy shared by every thread. Fixed to compare each thread's `connections["default"]`; `test_h28_stripe_budget` re-run: 8 OK. The other 172 passed in the first run |
 
 Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.

@@ -46,8 +46,12 @@ So those outcomes are READ BACK from Stripe before being classified; only a
 refusal (the request was processed and turned down) counts as not applied.
 """
 
+import contextvars
+import functools
 import logging
+import threading
 import time
+from contextlib import contextmanager
 from datetime import timedelta
 
 from django.db import (
@@ -55,6 +59,7 @@ from django.db import (
     InterfaceError,
     OperationalError,
     connection,
+    connections,
     transaction,
 )
 from django.utils import timezone
@@ -67,6 +72,19 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+#: The Stripe work of one licence operation must end well inside gunicorn's
+#: 100 s request timeout (Dockerfile; WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS),
+#: leaving time for the local write, a compensation and the alert
+#: (DESIGN_PROPOSAL.md §9i (2)). Per REQUEST, not per call: stripe-python's
+#: own default (80 s, two retries) is ~240 s for ONE call, and an operation
+#: makes up to four.
+REQUEST_BUDGET_SECONDS = 75.0
+
+_deadline: contextvars.ContextVar = contextvars.ContextVar(
+    "h28_licence_stripe_deadline", default=None
+)
+_CALLER_IN_ATOMIC = "h28_caller_in_atomic_block"
 
 GUARD_CONSTRAINT = "one_inflight_stripe_mutation_per_licence"
 
@@ -100,9 +118,103 @@ class LicenceStripeChangeNotRecorded(Exception):
     (COMPENSATED) or a human is needed (ESCALATED) is on the intent."""
 
 
+class StripeBudgetExhausted(stripe.error.APIConnectionError):
+    """This request's Stripe time ran out. `started` says whether the call
+    had been sent: if so, it may still land, so its outcome is unknown."""
+
+    def __init__(self, message, *, started):
+        super().__init__(message)
+        self.started = started
+
+
 class LicenceMovedOn(Exception):
     """The licence changed between recording the intent and writing the
     local result, so the result can no longer be applied as planned."""
+
+
+@contextmanager
+def stripe_budget(seconds=None):
+    """Give the Stripe calls made inside a shared deadline. Nested budgets
+    keep the earlier deadline, so a delegating call cannot extend it."""
+    seconds = REQUEST_BUDGET_SECONDS if seconds is None else seconds
+    new = time.monotonic() + seconds
+    current = _deadline.get()
+    token = _deadline.set(new if current is None else min(current, new))
+    try:
+        yield
+    finally:
+        _deadline.reset(token)
+
+
+def with_stripe_budget(operation):
+    """Run a licence operation under one request budget."""
+
+    @functools.wraps(operation)
+    def run(*args, **kwargs):
+        with stripe_budget():
+            return operation(*args, **kwargs)
+
+    return run
+
+
+def caller_in_atomic_block() -> bool:
+    """Whether the code that asked for this Stripe call held a transaction
+    open. A call run on a budget thread reports its caller's state,
+    recorded when it was dispatched; the thread's own connection never has
+    a transaction, so reading that instead would prove nothing."""
+    return getattr(
+        threading.current_thread(), _CALLER_IN_ATOMIC, connection.in_atomic_block
+    )
+
+
+def call_stripe(fn, *args, **kwargs):
+    """
+    Make one Stripe call within the current request's budget.
+
+    With no budget set it simply calls `fn`. With one, the call runs on a
+    short-lived daemon thread and is waited for only as long as the budget
+    allows, because stripe-python 14 has no per-call timeout (its HTTP
+    timeout is process-wide). A call that outlives the budget is NOT
+    cancelled: it may still land at Stripe. So StripeBudgetExhausted says
+    whether it had started, and callers never conclude that a started
+    call did not happen.
+    """
+    deadline = _deadline.get()
+    if deadline is None:
+        return fn(*args, **kwargs)
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise StripeBudgetExhausted(
+            "This request's Stripe time budget ran out before the call was made.",
+            started=False,
+        )
+
+    outcome = {}
+
+    def run():
+        try:
+            outcome["result"] = fn(*args, **kwargs)
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the caller
+            outcome["error"] = exc
+        finally:
+            # The worker only calls Stripe. Should anything on it ever touch
+            # the database, its thread's connection is closed here, so no
+            # connection leaks against Postgres's limit.
+            connections.close_all()
+
+    worker = threading.Thread(target=run, name="h28-stripe-call", daemon=True)
+    setattr(worker, _CALLER_IN_ATOMIC, connection.in_atomic_block)
+    worker.start()
+    worker.join(remaining)
+    if worker.is_alive():
+        raise StripeBudgetExhausted(
+            "No reply from Stripe within this request's time budget "
+            f"({REQUEST_BUDGET_SECONDS:.0f} s); the call may still land.",
+            started=True,
+        )
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["result"]
 
 
 def outcome_unknown(exc: Exception) -> bool:
@@ -183,7 +295,9 @@ def new_invoice_since(sub_id: str, invoice_before):
     is not the one that was latest before the change. Never an older one,
     so an unpaid renewal is never mistaken for the change's own invoice.
     Reads Stripe; a StripeError propagates."""
-    latest = stripe_id(stripe.Subscription.retrieve(sub_id).get("latest_invoice"))
+    latest = stripe_id(
+        call_stripe(stripe.Subscription.retrieve, sub_id).get("latest_invoice")
+    )
     return latest if latest and latest != invoice_before else None
 
 
@@ -367,8 +481,23 @@ def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
     which makes a delete that happened look like one that did not (§9j).
     """
     try:
-        result = call(idempotency_key=intent.idempotency_key("apply"))
+        result = call_stripe(call, idempotency_key=intent.idempotency_key("apply"))
     except payment_errors:
+        raise
+    except StripeBudgetExhausted as exc:
+        if exc.started:
+            # Still in flight at Stripe: a read-back now could miss it and
+            # call a change that later lands "not applied". Leave it
+            # PENDING, loudly; the stale-intent check follows it up.
+            _reconciliation_needed(
+                intent, f"{exc} The intent is left PENDING: check Stripe."
+            )
+        else:
+            _set_status(
+                intent,
+                LicenseStripeMutationStatus.FAILED,
+                failure_reason=f"Not attempted: {exc}",
+            )
         raise
     except stripe.error.StripeError as exc:
         if not (outcome_unknown(exc) or isinstance(exc, read_back_on)):
@@ -379,7 +508,7 @@ def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
             )
             raise
         try:
-            applied = reached()
+            applied = call_stripe(reached)
         except stripe.error.StripeError as read_exc:
             _reconciliation_needed(
                 intent,
@@ -421,16 +550,18 @@ def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
     """
     problems = []
     try:
-        revert(idempotency_key=intent.idempotency_key("revert"))
+        call_stripe(revert, idempotency_key=intent.idempotency_key("revert"))
     except stripe.error.StripeError as exc:
         problems.append(f"the revert failed: {exc}")
     try:
         invoice_id = find_invoice()
         if invoice_id:
-            invoice = stripe.Invoice.retrieve(invoice_id)
+            invoice = call_stripe(stripe.Invoice.retrieve, invoice_id)
             if invoice.get("status") == "open":
-                stripe.Invoice.void_invoice(
-                    invoice_id, idempotency_key=intent.idempotency_key("void")
+                call_stripe(
+                    stripe.Invoice.void_invoice,
+                    invoice_id,
+                    idempotency_key=intent.idempotency_key("void"),
                 )
     except stripe.error.StripeError as exc:
         problems.append(f"voiding the change's invoice failed: {exc}")
@@ -481,7 +612,9 @@ def finalise(intent, revalidate, write, compensate=None):
 
         if compensate is not None:
             try:
-                compensate(idempotency_key=intent.idempotency_key("revert"))
+                call_stripe(
+                    compensate, idempotency_key=intent.idempotency_key("revert")
+                )
             except stripe.error.StripeError as revert_exc:
                 cause = f"{cause}; the revert at Stripe also failed: {revert_exc}"
             else:
