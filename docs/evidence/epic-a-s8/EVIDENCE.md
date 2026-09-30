@@ -35,7 +35,7 @@ One **busy school day**, deliberately an upper bound, driven through the real ro
 - **A student:** one sign-in (viewing writes nothing).
 - **The system:** the two audit sweeps.
 
-Results: _pending_ (§5).
+Results: see *Harness results* below.
 
 ## 3. Alerting: `docs/ops/epic_a_alert_rules.md` (a proposal for the founder)
 Nine Sentry rules, each with its signal, condition, priority, environment (staging/beta/main) and owner (the founder, for now), plus a step-by-step UI walkthrough and the FR-A-10 staging acceptance step:
@@ -61,8 +61,44 @@ Nine Sentry rules, each with its signal, condition, priority, environment (stagi
   The other entry is the test tooling above.
 - **The harness is also scanned by S4's guards:** its one setup write to a tracked field goes through `record_bulk`, as production code must.
 
-## Harness results
-_pending_
+## Harness results (`harness.txt`; measured 2026-09-30 on the S8 branch)
+| Flow | Events written | Retention |
+|---|---|---|
+| roster import of 30 | 31 ROSTER_CHANGE (30 enrolments + 1 aggregate) | STUDENT_RECORD |
+| batch upload of 30 | 1 SUBMISSION_UPLOAD (one per batch) | STUDENT_RECORD |
+| grade-all of 30 (the request) | 30 GRADING_REQUESTED | STUDENT_RECORD |
+| the 30 grading runs (the Celery task) | 30 GRADING_COMPLETED (with before/after, S4) | STUDENT_RECORD |
+| publish-all of 30 | 30 GRADE_CHANGE | STUDENT_RECORD |
+| 3 grade edits | 3 GRADE_CHANGE | STUDENT_RECORD |
+| a student's sign-in | 1 AUTH_LOGIN | GENERAL |
+| Beat: the two audit sweeps | 2 AUDIT_RETENTION_SWEEP | GENERAL |
 
-## Gates
-_pending_
+Bytes per row: **485** (`pg_column_size`, over 129 rows).
+
+**Derived, not measured: CREDIT_TRANSACTION, 30 per busy teacher day.** The harness patches the AI call (`execute_graded_task`), which is also where a grading consumes credits. In production each grading writes one CONSUME per bucket drawn, usually one. `audit/volume.py` marks this as derived.
+
+**Example projection** (worked by hand from `audit/volume.py`; the command prints the same). A school of **20 active teachers and 600 students**, with every teacher having a busy day **every calendar day**, so a deliberate upper bound:
+- **Rows per day:**
+  - STUDENT_RECORD: 125 × 20 = **2,500**;
+  - GENERAL: 30 × 20 (credits) + 600 (sign-ins) + 2 (sweeps) = **1,202**.
+- **Steady state:** 2,500 × 1,095 + 1,202 × 365 ≈ **3.18 M rows**, ≈ **1.5 GB of heap** at 485 B/row. With indexes, ×(1 + 1.75) ≈ 4.2 GB, but that index ratio is from a tiny table and overstates it.
+- **12 months:** ≈ 1.35 M rows. **3 years:** ≈ 3.18 M.
+- **The sweeps' daily deletes at steady state:** ≈ 2,500 STUDENT_RECORD + 1,202 GENERAL.
+- **Reading it:**
+  - a school year has about 190 school days, not 365;
+  - most teachers aren't grading 30 scripts every day.
+
+  So the real volume should be several times lower. The founder's D5 run of the command on main replaces this estimate with measured usage.
+
+## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
+Run on **`80eac88`**: 0b's merge of phase2/epic-a `b2890d9` (S6c N1) into `c321e4a`, one step at a time at 6G. The harness pass ran first, on `32e57ad`.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | `fda47d7`, with no command and no rates module, against `audit.tests_volume_report` (`prefix_fda47d7_failing.txt`): the module fails to import. The command is new. |
+| Changed modules | `audit.tests_volume_report` + `audit.tests_history_guard`: **20 OK** (`changed_modules.txt`) |
+| 2 Mutation | **7 mutants, 7 killed** (`mutation_log.txt`, `mutation_results.json`): V1 not read-only; V2 no TABLESAMPLE; V3 an unbounded sample; V4 an email in the output; V5 the window ignored; V6 the student rate dropped; V7 three years kept as one. |
+| 1 Regression (owning app) | `audit`: **330 OK** (`regression_audit.txt`). S8 touches only the audit app and docs. |
+| mypy | whole-repo: **Passed** |
+| Migrations | **No changes detected** |
+| Real infra | Postgres: the read-only transaction, TABLESAMPLE, `pg_column_size`, `reltuples` and the size functions all run against the real test database, not a mock. |
