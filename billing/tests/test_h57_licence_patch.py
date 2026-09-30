@@ -164,6 +164,21 @@ class LicencePatchTests(APITestCase):
         )
         self.assertEqual(self.stored(), before)
 
+    def test_a_stripe_licences_unchanged_price_echo_is_accepted(self):
+        """v2's E1: the echo test above holds a null price, so a refusal of
+        any non-null price would still pass it. A set price echoed back
+        unchanged is no change, so the rest of the PATCH applies."""
+        LicenseSubscription.objects.filter(pk=self.licence.pk).update(
+            custom_price_cents=5000
+        )
+        response = self.client.patch(
+            self.url, {"custom_price_cents": 5000, "auto_renew": False}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        after = self.stored()
+        self.assertEqual(after["custom_price_cents"], 5000)
+        self.assertFalse(after["auto_renew"])
+
     def test_an_offline_licences_price_is_still_patchable(self):
         LicenseSubscription.objects.filter(pk=self.licence.pk).update(
             billing_method=LicenseBillingMethod.OFFLINE, stripe_subscription_id=None
