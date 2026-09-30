@@ -9,6 +9,7 @@ from django.db.models.functions import Greatest
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from audit import history
 from audit import metrics as audit_metrics
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
@@ -189,9 +190,11 @@ class SubscriptionService:
             )
         )
 
-        # 1. Deactivate any existing active subscriptions
-        UserSubscription.objects.filter(user=user, is_active=True).update(
-            is_active=False
+        # 1. Deactivate any existing active subscriptions. Epic A S4: one
+        # SUBSCRIPTION_CHANGE per subscription switched off.
+        history.record_bulk(
+            UserSubscription.objects.filter(user=user, is_active=True),
+            is_active=False,
         )
 
         # 2. Create new UserSubscription
@@ -1032,11 +1035,19 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def expire_bucket(bucket):
+    def expire_bucket(bucket, reference=None):
         """
-        Formalizes the loss of credits due to expiration
+        Formalizes the loss of credits due to expiration. `reference` names
+        why (default: an automatic expiry); a licence removal passes its own
+        (Epic A S3, D4).
         """
         bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
+        # Re-checked under the lock: two expiries of one bucket (the Beat
+        # cleanup and a licence clawback, or two cleanups) used to both write
+        # an EXPIRE row - the second waited on the lock, then expired the
+        # same credits again.
+        if bucket.is_processed:
+            return 0
         unused_amount = max(0, bucket.total_credits - bucket.used_credits)
 
         if unused_amount > 0:
@@ -1046,7 +1057,8 @@ class SubscriptionService:
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
                 amount=unused_amount,
-                reference=f"Automatic expiration of {bucket.bucket_type} bucket.",
+                reference=reference
+                or f"Automatic expiration of {bucket.bucket_type} bucket.",
                 metadata={
                     "expired_amount": unused_amount,
                     "total_at_start": bucket.total_credits,

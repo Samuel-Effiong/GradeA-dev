@@ -168,8 +168,12 @@ def _infra_error_categories():
                 PDFSyntaxError,
                 PDFPageCountError,
             ),
-            "We couldn't read this file — it may be corrupted, "
-            "password-protected, or in an unsupported format.",
+            # A parser that fails says the file is unreadable (FR-A-06 #3).
+            # An unsupported TYPE is decided before any parser runs and is
+            # its own coded refusal (#4), so this no longer says "or in an
+            # unsupported format".
+            "We couldn't read this file. It may be damaged, password-protected "
+            "or incomplete.",
         ),
         (
             # PDFInfoNotInstalledError subclasses PopplerNotInstalledError, so

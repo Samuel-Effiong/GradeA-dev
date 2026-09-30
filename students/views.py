@@ -51,6 +51,7 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
@@ -91,6 +92,7 @@ from .serializers import (
     StudentSubmissionUploadAsyncSerializer,
 )
 from .services import (
+    emit_grading_completed,
     ensure_no_active_extraction,
     ensure_student_may_submit,
     ensure_submission_open,
@@ -794,7 +796,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission = self.get_object()
 
         try:
+            # Epic A S4 (SM R2): the synchronous route records the same one
+            # GRADING_COMPLETED as the Celery path, with the grade's
+            # before/after. It names the requester, so it replaces S1's
+            # generic event for this request.
+            grade_before = history.snapshot(submission)
             submission = grade_engine(request.user, submission)
+            emit_grading_completed(submission, actor=request.user, before=grade_before)
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_200_OK)
@@ -1356,9 +1364,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # requests both saw is_published=False above, but only one matches
         # this WHERE clause — so the student gets exactly one notification
         # instead of one per click.
-        newly_published = StudentSubmission.objects.filter(
-            pk=submission.pk, is_published=False
-        ).update(is_published=True)
+        # Epic A S4: through record_bulk, which writes the GRADE_CHANGE
+        # (is_published false -> true) for the row it actually flipped.
+        newly_published = history.record_bulk(
+            StudentSubmission.objects.filter(pk=submission.pk, is_published=False),
+            is_published=True,
+        )
         submission.is_published = True
 
         if newly_published:
@@ -1400,9 +1411,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # requests only one matches needs_review=True, so the resolution
         # entry is appended exactly once. Already-resolved submissions are
         # an idempotent no-op, not an error.
-        resolved = StudentSubmission.objects.filter(
-            pk=submission.pk, needs_review=True
-        ).update(
+        # Epic A S4 (SM R1): record_bulk writes the GRADE_CHANGE
+        # (needs_review true -> false); the actor is the "by", the event time
+        # the "at". review_reasons (grader text) is never tracked.
+        resolved = history.record_bulk(
+            StudentSubmission.objects.filter(pk=submission.pk, needs_review=True),
             needs_review=False,
             review_reasons=(submission.review_reasons or [])
             + [

@@ -22,6 +22,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
+from audit import history
 from audit.enums import AuditAction, AuditOutcome
 from audit.models import AuditEvent
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
@@ -66,11 +67,14 @@ class SubmissionUploadAuditTest(APITestCase):
             first_name="Upload",
             last_name="Student",
         )
-        StudentCourse.objects.create(
-            student=self.student,
-            course=self.course,
-            enrollment_status=EnrollmentStatusType.ENROLLED,
-        )
+        # Epic A S4: the fixture enrolment would itself be a ROSTER_CHANGE;
+        # these tests are about the upload's one event.
+        with history.suppressed():
+            StudentCourse.objects.create(
+                student=self.student,
+                course=self.course,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+            )
 
     def _file(self):
         return SimpleUploadedFile("answers.pdf", PDF, content_type="application/pdf")

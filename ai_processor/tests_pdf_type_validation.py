@@ -79,7 +79,11 @@ class ImageLabelledAsPdfTest(SimpleTestCase):
                         labelled_pdf(image_bytes(image_format), "photo.pdf"), "p"
                     )
 
-                self.assertIn("not a PDF", str(caught.exception.detail))
+                # FR-A-06 S6b: coded FILE_UNREADABLE naming the file; the
+                # precise reason stays server-side on the cause.
+                self.assertEqual(caught.exception.reason_code, "FILE_UNREADABLE")
+                self.assertIn("photo.pdf", str(caught.exception.detail))
+                self.assertIn("not a PDF", str(caught.exception.__cause__))
 
     def test_a_real_pdf_is_still_rasterized_page_by_page(self):
         """The check must scope, not refuse every PDF."""
@@ -136,7 +140,7 @@ class ImageLabelledAsPdfOverHttpTest(TenancyAttackFixture, APITestCase):
         "assignments.views.AssignmentProcessingService.extract_assignment_data",
         side_effect=AssertionError("no AI work may run for a refused file"),
     )
-    def test_teacher_assignment_upload_is_a_400_not_a_500(self, _extract):
+    def test_teacher_assignment_upload_is_a_refusal_not_a_500(self, _extract):
         before = Assignment.objects.count()
         self.as_user(self.teacher_a)
 
@@ -149,17 +153,19 @@ class ImageLabelledAsPdfOverHttpTest(TenancyAttackFixture, APITestCase):
             format="multipart",
         )
 
+        # Every file failed: the per-file list answers 400 (its shape and
+        # codes are S7d's). The file's own coded message, never a 500.
         self.assertEqual(
             response.status_code, status.HTTP_400_BAD_REQUEST, response.content[:300]
         )
-        self.assertIn("not a PDF", response.content.decode())
+        self.assertIn("couldn't read photo.pdf", response.content.decode())
         self.assertEqual(Assignment.objects.count(), before)
 
     @patch(
         "students.views.upload_answers_engine",
         side_effect=AssertionError("no AI work may run for a refused file"),
     )
-    def test_student_answer_upload_is_a_400_not_a_500(self, _engine):
+    def test_student_answer_upload_is_a_422_not_a_500(self, _engine):
         self.as_user(self.student_a)
 
         with patch(
@@ -175,6 +181,10 @@ class ImageLabelledAsPdfOverHttpTest(TenancyAttackFixture, APITestCase):
             )
 
         self.assertEqual(
-            response.status_code, status.HTTP_400_BAD_REQUEST, response.content[:300]
+            response.status_code,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            response.content[:300],
         )
-        self.assertIn("not a PDF", response.content.decode())
+        body = response.json()["error"]["field_errors"]
+        self.assertEqual(body["reason_code"], "FILE_UNREADABLE")
+        self.assertIn("answers.pdf", body["error"])

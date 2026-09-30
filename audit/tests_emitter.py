@@ -156,13 +156,18 @@ class WhatOneEventRecordsTest(TestCase):
         self.assertEqual(event.reason_code, "PROVIDER_FAILURE")
 
     def test_before_and_after_are_stored_when_given_and_null_when_not(self):
-        event = call(
+        # Updated on purpose for Epic A S4: before/after are narrowed per
+        # action (BEFORE_AFTER_ALLOWLIST), so this uses a tracked action.
+        event = emit(
+            AuditAction.GRADE_CHANGE,
             actor=self.teacher,
-            before={"item_count": 1},
-            after={"item_count": 2},
+            target_type="StudentSubmission",
+            target_id=uuid.uuid4(),
+            before={"score": "1.00"},
+            after={"score": "2.00"},
         )
-        self.assertEqual(event.before, {"item_count": 1})
-        self.assertEqual(event.after, {"item_count": 2})
+        self.assertEqual(event.before, {"score": "1.00"})
+        self.assertEqual(event.after, {"score": "2.00"})
         plain = call(actor=self.teacher)
         self.assertIsNone(plain.before)
         self.assertIsNone(plain.after)
@@ -527,14 +532,23 @@ class MetadataAtTheEmitterTest(TestCase):
         self.assertIn("student_name", text)
         self.assertNotIn("Ada Lovelace", text)
 
-    def test_before_and_after_follow_the_same_allow_list(self):
-        key = sorted(ALLOWED_KEYS)[0]
-        event = call(
-            before={key: 1, "answer_text": "the mitochondria"},
-            after={key: 2, "answer_text": "the powerhouse"},
+    def test_before_and_after_follow_the_actions_own_allow_list(self):
+        """Updated on purpose for Epic A S4: before/after pass the shared
+        pool AND the action's BEFORE_AFTER_ALLOWLIST entry. A pooled key the
+        action doesn't track is dropped; an action with no entry keeps
+        nothing."""
+        tracked = emit(
+            AuditAction.GRADE_CHANGE,
+            target_type="StudentSubmission",
+            target_id=uuid.uuid4(),
+            before={"score": "1.00", "item_count": 1, "answer_text": "mito"},
+            after={"score": "2.00", "item_count": 2, "answer_text": "power"},
         )
-        self.assertEqual(event.before, {key: 1})
-        self.assertEqual(event.after, {key: 2})
+        self.assertEqual(tracked.before, {"score": "1.00"})
+        self.assertEqual(tracked.after, {"score": "2.00"})
+        key = sorted(ALLOWED_KEYS)[0]
+        untracked = call(before={key: 1}, after={key: 2})
+        self.assertEqual((untracked.before, untracked.after), ({}, {}))
 
     def test_metadata_defaults_to_an_empty_object(self):
         self.assertEqual(call().metadata, {})

@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from audit.enums import AuditAction, AuditOutcome
+from audit.enums import AuditAction
 from audit.models import AuditEvent
 from audit.tests_state_change import LOCMEM_CACHE
 from billing.models import (
@@ -25,6 +25,7 @@ from billing.models import (
     PlanCategory,
     PlanTier,
     PlanType,
+    SchoolCreditAllocation,
     SubscriptionPlan,
 )
 from billing.tests.test_h38_part2_removed_teacher_routes import (
@@ -75,32 +76,44 @@ class SchoolAdminLicenceChangesNameTheAdminTests(TestCase):
     def add_teacher(self):
         return self.post("add_teachers", {"teacher_emails": [self.teacher.email]})
 
-    def test_add_teachers_names_the_admin_and_keeps_the_teachers_credit_grant(self):
+    def test_add_teachers_names_the_admin_on_the_teachers_credit_grant(self):
+        """Epic A S3 (SM pin): the credit grant now names the INITIATOR - the
+        school admin - with the teacher as target, so it IS the admin's
+        trace and the generic STATE_CHANGE is not written (S1's invariant:
+        exactly one event naming the requester)."""
         response, events = self.add_teacher()
 
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data["successful"], 1)
-        self.assertTrue(
-            events.filter(
-                action=AuditAction.CREDIT_TRANSACTION, actor_id=self.teacher.id
-            ).exists(),
-            "the teacher's credit grant is a side effect and must stay",
+        # Epic A S4, updated on purpose: the admin's add also records the
+        # seat taken (SUBSCRIPTION_CHANGE on the allocation, SM R4) and the
+        # teacher's school set (PERMISSION_CHANGE) - all naming the admin.
+        # Every event names the admin, so there is still no STATE_CHANGE.
+        seat = SchoolCreditAllocation.objects.get(
+            license_subscription=self.licence, user=self.teacher
         )
-        by_admin = events.filter(actor_id=self.admin.id)
         self.assertEqual(
-            list(by_admin.values_list("action", "outcome", "metadata__route")),
-            [
-                (
-                    AuditAction.STATE_CHANGE,
-                    AuditOutcome.SUCCESS,
-                    "license-subscription-add-teachers",
-                )
-            ],
+            set(events.values_list("actor_id", flat=True)), {self.admin.id}
         )
+        self.assertEqual(
+            sorted(
+                events.values_list("action", "target_id", "metadata__ledger_type"),
+                key=str,
+            ),
+            sorted(
+                [
+                    (AuditAction.CREDIT_TRANSACTION, self.teacher.id, "GRANT"),
+                    (AuditAction.SUBSCRIPTION_CHANGE, seat.id, None),
+                    (AuditAction.PERMISSION_CHANGE, self.teacher.id, None),
+                ],
+                key=str,
+            ),
+        )
+        self.assertFalse(events.filter(action=AuditAction.STATE_CHANGE).exists())
 
-    def test_remove_teachers_names_the_admin(self):
-        """Control: no ledger row today, so the generic event always named
-        the admin here; it must keep doing so once S3 adds one (G7)."""
+    def test_remove_teachers_names_the_admin_on_the_clawback(self):
+        """S3 (G7): the clawback goes through the ledger - an EXPIRE naming
+        the admin, the teacher as target - and is the admin's one event."""
         self.add_teacher()
 
         response, events = self.post(
@@ -108,4 +121,26 @@ class SchoolAdminLicenceChangesNameTheAdminTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.data)
-        self.assertEqual(events.filter(actor_id=self.admin.id).count(), 1)
+        # Epic A S4, updated on purpose: plus the seat released and the
+        # teacher's school cleared, all naming the admin.
+        seat = SchoolCreditAllocation.objects.get(
+            license_subscription=self.licence, user=self.teacher
+        )
+        self.assertEqual(
+            set(events.values_list("actor_id", flat=True)), {self.admin.id}
+        )
+        self.assertEqual(
+            sorted(
+                events.values_list("action", "target_id", "metadata__ledger_type"),
+                key=str,
+            ),
+            sorted(
+                [
+                    (AuditAction.CREDIT_TRANSACTION, self.teacher.id, "EXPIRE"),
+                    (AuditAction.SUBSCRIPTION_CHANGE, seat.id, None),
+                    (AuditAction.PERMISSION_CHANGE, self.teacher.id, None),
+                ],
+                key=str,
+            ),
+        )
+        self.assertFalse(events.filter(action=AuditAction.STATE_CHANGE).exists())

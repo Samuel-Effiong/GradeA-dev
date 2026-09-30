@@ -56,7 +56,7 @@ from .enums import (
     ReasonCode,
     RetentionClass,
 )
-from .metadata import sanitise, sanitise_metadata_for_action
+from .metadata import sanitise_before_after_for_action, sanitise_metadata_for_action
 from .models import AuditEvent
 
 # BE-A-09 #2: grading never falls back to a nano-tier model (see
@@ -358,8 +358,9 @@ def _build(
     request_fields = _request_fields(request, is_student)
 
     clean_metadata, dropped = sanitise_metadata_for_action(action, metadata)
-    clean_before, dropped_before = sanitise(before)
-    clean_after, dropped_after = sanitise(after)
+    # S4: before/after are narrowed per action, as metadata is.
+    clean_before, dropped_before = sanitise_before_after_for_action(action, before)
+    clean_after, dropped_after = sanitise_before_after_for_action(action, after)
     dropped = dropped + dropped_before + dropped_after
 
     student_record = touches_student_record or action in STUDENT_RECORD_ACTIONS

@@ -86,6 +86,16 @@ class AuditAction(models.TextChoices):
     # (POST /auth/register). Not AUTH_LOGIN - nobody is signed in until the
     # address is verified, and that /auth/verify success is the AUTH_LOGIN.
     ACCOUNT_REGISTER = "ACCOUNT_REGISTER", "Account registered"
+    # Epic A completion S3 (D6): a retention sweep's record of its own run,
+    # zero-count runs included, so a stopped sweep shows as a gap.
+    AUDIT_RETENTION_SWEEP = "AUDIT_RETENTION_SWEEP", "Audit retention sweep"
+    # Epic A completion S4 (plan 08 §5, D6): a human or bulk change to a
+    # grade - update-grade, publish, publish-all, mark-reviewed, an admin
+    # edit, a delete. AI grading is recorded on GRADING_COMPLETED instead.
+    GRADE_CHANGE = "GRADE_CHANGE", "Grade changed"
+    # Epic A completion S4: a plan, status, period or seat change on a
+    # subscription or a school licence.
+    SUBSCRIPTION_CHANGE = "SUBSCRIPTION_CHANGE", "Subscription changed"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.
@@ -99,6 +109,7 @@ STUDENT_RECORD_ACTIONS = frozenset(
         AuditAction.GRADING_FAILED,
         AuditAction.ROSTER_CHANGE,
         AuditAction.SUBMISSION_UPLOAD,
+        AuditAction.GRADE_CHANGE,
     }
 )
 
