@@ -1,0 +1,8 @@
+classrooms.tests_fail_closed_ownership_validators.CourseValidateSessionFailClosedTest.test_other_teachers_are_refused ... ok
+classrooms.tests_fail_closed_ownership_validators.CourseValidateSessionFailClosedTest.test_owner_is_accepted ... ok
+classrooms.tests_fail_closed_ownership_validators.CourseValidateSessionFailClosedTest.test_unauthenticated_request_in_context_is_refused ... ok
+classrooms.tests_fail_closed_ownership_validators.TopicValidateCourseFailClosedTest.test_no_request_in_context_is_refused ... ok
+classrooms.tests_fail_closed_ownership_validators.TopicValidateCourseFailClosedTest.test_other_teachers_are_refused ... ok
+classrooms.tests_fail_closed_ownership_validators.TopicValidateCourseFailClosedTest.test_owner_is_accepted ... ok
+Ran 6 tests in 0.656s
+OK

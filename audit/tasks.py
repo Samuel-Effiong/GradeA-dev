@@ -13,7 +13,8 @@ from django.utils import timezone
 
 from billing.immutable import allow_unsafe_mutation
 
-from .enums import RetentionClass
+from .emitter import emit
+from .enums import AuditAction, RetentionClass
 from .models import AuditEvent
 
 # X-4: source_ip/user_agent are blanked after this many days regardless of
@@ -48,6 +49,17 @@ def sweep_audit_retention(self):
             occurred_at__lt=student_cutoff,
         ).delete()
 
+    # S3 (G6): the sweep records its own run - counts only, actor SYSTEM -
+    # including a run that deleted nothing, so a stopped sweep is a gap.
+    emit(
+        AuditAction.AUDIT_RETENTION_SWEEP,
+        target_type="AuditEvent",
+        metadata={
+            "deleted_general": deleted_general,
+            "deleted_student_record": deleted_student,
+        },
+    )
+
     summary = (
         f"Audit retention sweep: deleted general={deleted_general} "
         f"student_record={deleted_student}"
@@ -76,6 +88,13 @@ def sweep_audit_pii_short_retention(self):
         AuditEvent.objects.filter(occurred_at__lt=cutoff)
         .exclude(source_ip__isnull=True, user_agent__isnull=True)
         .update(source_ip=None, user_agent=None)
+    )
+
+    # S3 (G6): as above - one self-record per run, zero included.
+    emit(
+        AuditAction.AUDIT_RETENTION_SWEEP,
+        target_type="AuditEvent",
+        metadata={"scrubbed": updated},
     )
 
     summary = f"Audit PII short-retention sweep: nulled {updated} rows"

@@ -323,9 +323,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # Queryset .update(), NOT instance.save(): this is a lazy
             # backfill of derived display data on a GET. A save() here
             # fires post_save, which recalculates the course final grade
-            # and pattern-deletes every dashboard cache — a teacher merely
-            # paging through submissions repeatedly flushed deployment-wide
-            # caches. Nothing grade-bearing changes, so skipping signals is
+            # and invalidates the student's, teacher's, course's and school's
+            # caches (before H-1 it pattern-deleted every dashboard cache
+            # deployment-wide) — a teacher merely paging through submissions
+            # would keep throwing that work away. Nothing grade-bearing changes, so skipping signals is
             # correct, not just cheaper.
             StudentSubmission.objects.filter(pk=submission.pk).update(
                 raw_input=submission.raw_input

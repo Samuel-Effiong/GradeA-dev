@@ -5,10 +5,12 @@ distributed attack could write an unbounded number of failed-auth rows.
 
 What is capped: failed AUTH_LOGIN / ACCOUNT_REGISTER events whose requester
 is ANONYMOUS - outcome FAILURE, and outcome DENIED (a locked or deactivated
-account; SM re-ruling). DENIED shares the account's per-target counter but is
-not under the global cap, so a lock-then-spray is bounded at the target
-limit, while its first FLOOR denials (the signal an account is under attack)
-are always written. An anonymous request that crashed (FAILURE,
+account; SM re-ruling). A known account's DENIED shares its per-target
+counter but is not under the global cap, so a lock-then-spray is bounded at
+the target limit, while its first FLOOR denials (the signal an account is
+under attack) are always written. A DENIED with NO account (/auth/verify's
+H-53 lock is per address, known or not) gets no floor and the global cap (SM
+ruling for the beta merge). An anonymous request that crashed (FAILURE,
 SERVER_ERROR) has no account and is under the global cap. Never capped:
 - a success;
 - a failure by a signed-in requester (change-password): it needs a valid

@@ -10,6 +10,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import override_settings
@@ -17,8 +18,9 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass
+from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass, ReasonCode
 from audit.models import AuditEvent
+from AutoGrader.reason_codes import AUDIT_ONLY_CODES
 from classrooms.models import School
 from users.models import PasswordResetOTP, UserTypes
 
@@ -101,10 +103,36 @@ class VerifyEmailDoorTests(DoorBase):
             **overrides,
         )
 
-    def verify(self, email, token):
+    def verify(self, email, token, ip="127.0.0.1"):
+        """`ip` varies per attempt in the H-53 tests, so the per-IP
+        VerifyEmailThrottle (5/hour) never answers in place of the
+        per-address budget."""
         return self.client.post(
-            reverse("auth-verify"), {"email": email, "token": token}, format="json"
+            reverse("auth-verify"),
+            {"email": email, "token": token},
+            format="json",
+            REMOTE_ADDR=ip,
         )
+
+    def spend_the_budget(self, email):
+        """H-53: VERIFY_EMAIL_MAX_FAILURES wrong codes, one event each; the
+        last one also sets the lock."""
+        limit = settings.VERIFY_EMAIL_MAX_FAILURES
+        for attempt in range(1, limit + 1):
+            with self.subTest(attempt=attempt):
+                before = set(AuditEvent.objects.values_list("pk", flat=True))
+                response = self.verify(email, "000000", ip=f"10.53.0.{attempt}")
+                new = AuditEvent.objects.exclude(pk__in=before)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(new.count(), 1)
+                event = new.get()
+                self.assertEqual(event.outcome, AuditOutcome.FAILURE)
+                self.assertEqual(event.reason_code, "INVALID_CODE")
+                self.assertEqual(
+                    event.metadata.get("lock_triggered"),
+                    True if attempt == limit else None,
+                )
 
     def test_success(self):
         user = self.pending()
@@ -161,6 +189,69 @@ class VerifyEmailDoorTests(DoorBase):
             account=user,
             reason="CODE_EXPIRED",
         )
+
+    def test_the_guess_that_spends_the_budget_is_a_failure_that_set_the_lock(self):
+        """SM ruling for the beta (H-53) merge: one event per attempt. Every
+        wrong code is FAILURE INVALID_CODE; the one that spends the budget
+        is flagged lock_triggered (H-53 still answers it 400)."""
+        user = self.pending()
+        self.spend_the_budget(user.email)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                target_id=user.id, metadata__lock_triggered=True
+            ).exists()
+        )
+
+    def test_a_locked_attempt_is_denied_even_with_the_right_code(self):
+        """H-53's 429, recorded as one DENIED VERIFY_LOCKED naming the
+        account. The right code does not verify while locked."""
+        user = self.pending()
+        self.spend_the_budget(user.email)
+
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+        response = self.verify(user.email, "123456", ip="10.53.1.1")
+
+        self.assertEqual(response.status_code, 429)
+        new = AuditEvent.objects.exclude(pk__in=before)
+        self.assertEqual(new.count(), 1)
+        self.assert_event(
+            new.get(),
+            outcome=AuditOutcome.DENIED,
+            method="email_verification",
+            account=user,
+            reason="VERIFY_LOCKED",
+        )
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertIsNone(user.email_verified_at)
+
+    def test_a_locked_unknown_address_is_denied_with_no_account_and_no_email(self):
+        self.spend_the_budget("nobody@example.com")
+
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+        response = self.verify("nobody@example.com", "000000", ip="10.53.1.2")
+
+        self.assertEqual(response.status_code, 429)
+        new = AuditEvent.objects.exclude(pk__in=before)
+        self.assertEqual(new.count(), 1)
+        self.assert_event(
+            new.get(),
+            outcome=AuditOutcome.DENIED,
+            method="email_verification",
+            account=None,
+            reason="VERIFY_LOCKED",
+        )
+        self.assertNotIn(
+            "nobody@example.com",
+            " ".join(str(v) for v in AuditEvent.objects.values().values()),
+        )
+
+    def test_every_code_verify_records_is_in_the_catalogue(self):
+        """S6a's emitter refuses a code outside the catalogue, which would
+        leave a locked attempt with no event at all."""
+        for code in ("CODE_MISSING", "INVALID_CODE", "CODE_EXPIRED", "VERIFY_LOCKED"):
+            with self.subTest(code=code):
+                self.assertIn(ReasonCode(code), AUDIT_ONLY_CODES)
 
     def test_the_user_still_signs_in_when_the_audit_store_is_down(self):
         """FR-A-11."""

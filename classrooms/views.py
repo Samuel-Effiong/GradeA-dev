@@ -45,7 +45,12 @@ from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
-from AutoGrader.cache_generation import SCOPE_GLOBAL, SCOPE_USER, versioned_key
+from AutoGrader.cache_generation import (
+    SCOPE_COURSE,
+    SCOPE_GLOBAL,
+    SCOPE_USER,
+    versioned_key,
+)
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from billing.models import CreditUsageLog
@@ -1285,6 +1290,37 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         else:
             return Course.objects.none()
 
+    def extra_cache_scopes(self, action):
+        """A student's course payload also depends on each course's roster.
+
+        CourseSerializer shows a student their classmates and the course's
+        `student_count`, which change when ANOTHER student enrols or leaves.
+        That write bumps the course's `crs` generation, so the student's
+        cached list or detail is keyed on it too. Before this, the enrolment
+        bumped every classmate's own generation instead: O(class size) per
+        enrolment, O(n^2) for a roster import.
+
+        Teachers need nothing extra: every enrolment in their course already
+        bumps their own generation.
+        """
+        user = self.request.user
+        if user.user_type != UserTypes.STUDENT:
+            return []
+        if action == "retrieve":
+            try:
+                course_id = uuid.UUID(str(self.kwargs.get("pk")))
+            except ValueError:
+                return []  # not a course id; the lookup 404s
+            return [(SCOPE_COURSE, course_id)]
+        course_ids = sorted(
+            StudentCourse.objects.filter(
+                student=user,
+                enrollment_status__in=COURSE_ACCESS_ENROLLMENT_STATUSES,
+            ).values_list("course_id", flat=True),
+            key=str,
+        )
+        return [(SCOPE_COURSE, course_id) for course_id in course_ids]
+
     @extend_schema(
         tags=["02 Course"],
         summary="Add student to a particular course",
@@ -1607,6 +1643,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # production while this key's 5-minute TTL expires 288 times/day, so
         # the extra invalidation is ~2% of misses - not worth a per-edit
         # fan-out query.
+        #
+        # `global` also covers the roster this payload shows (classmates,
+        # `student_count`): every enrolment write bumps `global`, so this
+        # key needs no per-course `crs` scope, unlike the mixin list and
+        # detail (see extra_cache_scopes). Its roster freshness therefore
+        # DEPENDS on the StudentCourse receiver in classrooms/signals.py
+        # bumping `global`. Dropping that bump, or dropping `global` from
+        # this key, leaves classmates stale for the TTL.
+        # The classmate freshness tests in tests_cache_course_roster_scope
+        # pin this, and mutant M4 in the stage 3 evidence shows they fail.
         cache_key = versioned_key(
             f"courses:user_id__{request.user.id}",
             [(SCOPE_USER, request.user.id), (SCOPE_GLOBAL, None)],

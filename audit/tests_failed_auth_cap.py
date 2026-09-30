@@ -171,6 +171,32 @@ class FailedAuthCapTests(TestCase):
 
         self.assertEqual(individual().filter(outcome=AuditOutcome.DENIED).count(), 3)
 
+    @override_settings(
+        FAILED_AUTH_TARGET_FLOOR=5,
+        FAILED_AUTH_TARGET_LIMIT=30,
+        FAILED_AUTH_GLOBAL_LIMIT=6,
+    )
+    def test_a_no_account_denial_spray_stops_at_the_caps_a_known_floor_does_not(
+        self,
+    ):
+        """SM ruling for the beta (H-53) merge: /auth/verify locks an
+        ADDRESS, known or not, so a locked unknown address gives a DENIED
+        with no target. It gets no floor and the global cap - it must not be
+        the one uncapped path. A known account's DENIED keeps S1b's rule: its
+        first FLOOR are written even with the global cap spent."""
+        for _ in range(6 + 4):
+            fail(target=None, outcome=AuditOutcome.DENIED)
+
+        self.assertEqual(individual().count(), 6)
+        self.assertEqual(
+            [(s.outcome, s.target_id, s.metadata["cap"]) for s in summaries()],
+            [(AuditOutcome.DENIED, None, "global")],
+        )
+
+        for _ in range(5):
+            fail(self.account, outcome=AuditOutcome.DENIED)
+        self.assertEqual(individual().filter(target_id=self.account.pk).count(), 5)
+
     def test_an_anonymous_crash_is_capped_in_the_global_bucket(self):
         """S2's SERVER_ERROR (SM ruling): under the caps, no target."""
         for _ in range(6 + 1):

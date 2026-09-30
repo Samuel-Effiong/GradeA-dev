@@ -230,6 +230,12 @@ def _failed_auth_cap_scope(fields):
     - A DENIED sign-in (a locked account): floor and per-target cap only, so
       the lock stays visible (its first events are always written) and its
       volume is bounded (SM ruling on v2's flag).
+    - A DENIED with no account (H-53 locks /auth/verify per ADDRESS, known
+      or not; SM ruling for the beta merge): no floor, and the global cap.
+      The floor protects known accounts only, and a hammered unknown address
+      is the spray noise the global cap is for. There is no per-target
+      bucket to count it in: keys hold an account id, never an email.
+      Otherwise it would be the one path written without bound.
     Successes and signed-in requesters are never capped."""
     if fields.get("actor_role") != ActorRole.ANONYMOUS.value:
         return None
@@ -244,7 +250,8 @@ def _failed_auth_cap_scope(fields):
     if outcome == AuditOutcome.FAILURE.value:
         return fields.get("target_id"), True
     if outcome == AuditOutcome.DENIED.value:
-        return fields.get("target_id"), False
+        target_id = fields.get("target_id")
+        return target_id, target_id is None
     return None
 
 

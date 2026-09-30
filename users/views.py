@@ -11,6 +11,7 @@ profile.
 
 import logging
 import math
+import time
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 
@@ -125,14 +126,25 @@ from users.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
     VerifyEmailThrottle,
+    clear_verify_failures,
+    lock_verify_address,
     log_register_student_refused_by_budget,
     record_register_student_failure,
     register_student_budget_retry_after,
     register_student_failure_budget_spent,
+    reserve_verify_attempt,
+    verify_attempt_over_budget,
+    verify_budget_spent,
+    verify_lock_until,
 )
 from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
+
+# H-43: the ONE reply /auth/otp gives for every 202 - an unknown address, a
+# sent code, and a locked reset alike - so its text says nothing about
+# whether an account exists.
+OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
 
 # Founder-approved wording (2026-09-28) for the password-reset email.
 # Wording only: no link.
@@ -806,24 +818,71 @@ returns a JWT pair, so the user is signed in straight away.
             )
             raise ParseError("Email and Token are required.")
 
+        # H-53: a per-address budget of attempts. While locked, every
+        # attempt is refused - a correct code and a re-sent one included - and
+        # the answer is the same whether or not the address has an account.
+        # The attempt is spent before the code is checked, so simultaneous
+        # guesses from many IPs cannot all slip in before the lock.
+        lock_until = verify_lock_until(email)
+        attempt = None if lock_until else reserve_verify_attempt(email)
+        if lock_until or verify_attempt_over_budget(attempt):
+            wait = (
+                lock_until - time.time()
+                if lock_until
+                else settings.VERIFY_EMAIL_LOCK_SECONDS
+            )
+            # Merge of beta (H-53) into Epic A (SM ruling): a locked attempt
+            # is recorded as refused, one event per attempt.
+            sign_in_failed(
+                request,
+                account_for_email(email),
+                "email_verification",
+                "VERIFY_LOCKED",
+                denied=True,
+            )
+            raise Throttled(
+                wait=max(1, int(wait)),
+                detail=(
+                    "Too many incorrect codes for this email address. Please "
+                    "wait, then request a new verification email."
+                ),
+            )
+
+        def refuse(message, account, reason_code):
+            # Audit records what happened to THIS attempt; the guess that
+            # spends the budget also set the lock (as reset_password's L2).
+            lock_triggered = verify_budget_spent(attempt)
+            if lock_triggered:
+                # The stored code is left alone: activation_token also holds
+                # student (24 h) and school-admin (7 d) invitations, and
+                # clearing it would let anyone destroy an invitation with a
+                # few wrong guesses. A sign-up code (15 min) expires during
+                # the lock anyway.
+                lock_verify_address(email)
+            sign_in_failed(
+                request,
+                account,
+                "email_verification",
+                reason_code,
+                extra_metadata={"lock_triggered": True} if lock_triggered else None,
+            )
+            raise ParseError(message)
+
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
-            sign_in_failed(
-                request, account_for_email(email), "email_verification", "INVALID_CODE"
-            )
-            raise ParseError("Invalid email or token.")
+            refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
 
         user = user.first()
 
         if user.activation_expires and timezone.now() > user.activation_expires:
-            sign_in_failed(request, user, "email_verification", "CODE_EXPIRED")
-            raise ParseError("Activation link has expired.")
+            refuse("Activation link has expired.", user, "CODE_EXPIRED")
 
         user.email_verified_at = timezone.now()
         user.activation_token = None
         user.activation_expires = None
         user.is_active = True
         user.save()
+        clear_verify_failures(email)
 
         safe_delay(sync_user_to_mailerlite, str(user.id))
 
@@ -899,10 +958,8 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
                         "Accepted",
                         value={
                             "success": True,
-                            "message": "An OTP has been sent if an account with that email exists.",
-                            "data": {
-                                "detail": "An OTP has been sent if an account with that email exists."
-                            },
+                            "message": OTP_SENT_DETAIL,
+                            "data": {"detail": OTP_SENT_DETAIL},
                         },
                         response_only=True,
                     )
@@ -953,10 +1010,7 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             return Response(
-                {
-                    "detail": "If an account with that email exists, an OTP has been sent."
-                },
-                status=status.HTTP_202_ACCEPTED,
+                {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
             )
 
         if otp_type == "VERIFY_EMAIL":
@@ -964,7 +1018,10 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
-            send_user_activation_email(user)
+            # H-53: a locked address gets no new code (it could not be used
+            # until the lock ends), and the same reply as a send.
+            if not verify_lock_until(user.email):
+                send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
             if not user.email_verified_at:
@@ -976,10 +1033,7 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
                 # Locked out (AUTHZ-L2): no new code and no email, but the
                 # same reply as a send, so this is not an enumeration signal.
                 return Response(
-                    {
-                        "detail": "An OTP has been sent if an account with that email exists."
-                    },
-                    status=status.HTTP_202_ACCEPTED,
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
                 )
 
             message = f"""
@@ -1007,7 +1061,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         return Response(
-            {"detail": "An OTP has been sent if an account with that email exists."},
+            {"detail": OTP_SENT_DETAIL},
             status=status.HTTP_202_ACCEPTED,
         )
 

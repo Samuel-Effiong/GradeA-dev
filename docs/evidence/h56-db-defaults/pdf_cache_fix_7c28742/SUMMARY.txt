@@ -1,0 +1,5 @@
+started 2026-09-30T15:07:36+01:00
+repro_pdf_cache_e4f3932    e4f3932  rc=1     28s Ran 36 tests in 3.462s FAILED (errors=1)
+changed_modules            7c28742  rc=0     34s Ran 48 tests in 4.817s OK
+app_assignments            7c28742  rc=0    164s Ran 613 tests in 139.695s OK (skipped=13)
+app_assignments            7c28742  rc=0    164s Ran 613 tests in 139.695s OK (skipped=13)

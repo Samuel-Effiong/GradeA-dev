@@ -8,9 +8,11 @@ actually racing the writes can.
 """
 
 import threading
+from contextlib import ExitStack
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
@@ -258,6 +260,28 @@ class BrokerOutageResilienceTests(ThreadSafeTransactionTestCase):
         self.assertTrue(User.objects.filter(pk=student.pk).exists())
 
 
+def cache_down(error=None):
+    """Make every Redis call a generation bump can take fail.
+
+    Since H-1 step 4 the only cache invalidation a write runs is a
+    generation bump (AutoGrader/cache_generation.py): a pipelined
+    `SET NX` + `INCR` through `cache.client.get_client`, falling back to
+    `cache.incr` / `cache.add` per counter. All three are forced to raise,
+    which is what an unreachable Redis looks like to those paths. (Until
+    step 4 the thing that failed here was the wildcard `delete_pattern`.)
+    """
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    error = error or RedisConnectionError("redis unreachable")
+    stack = ExitStack()
+    stack.enter_context(patch.object(cache, "incr", side_effect=error))
+    stack.enter_context(patch.object(cache, "add", side_effect=error))
+    client = getattr(cache, "client", None)
+    if client is not None and hasattr(client, "get_client"):
+        stack.enter_context(patch.object(client, "get_client", side_effect=error))
+    return stack
+
+
 class CacheOutageResilienceTests(ThreadSafeTransactionTestCase):
     """A Redis outage must not fail an enrollment either.
 
@@ -265,7 +289,9 @@ class CacheOutageResilienceTests(ThreadSafeTransactionTestCase):
     executes inside the caller's transaction. Before this was handled, a
     raising `delete_pattern` propagated out of the receiver and took the
     write down with it - so a Redis blip made enrolling a student
-    impossible, despite enrollment needing nothing from Redis.
+    impossible, despite enrollment needing nothing from Redis. The wildcard
+    is gone (H-1 step 4); the same invariant is now held by the generation
+    bump, which never raises.
     """
 
     def setUp(self):
@@ -278,13 +304,7 @@ class CacheOutageResilienceTests(ThreadSafeTransactionTestCase):
         self.student = make_user("cache-s@x.test", UserTypes.STUDENT, self.school)
 
     def _cache_down(self):
-        from redis.exceptions import ConnectionError as RedisConnectionError
-
-        return patch(
-            "django.core.cache.cache.delete_pattern",
-            create=True,
-            side_effect=RedisConnectionError("redis unreachable"),
-        )
+        return cache_down()
 
     def test_enrollment_survives_a_cache_outage(self):
         with self._cache_down():
@@ -331,7 +351,9 @@ class CacheOutageResilienceTests(ThreadSafeTransactionTestCase):
         effect, so it has to be alertable.
         """
         with self._cache_down():
-            with self.assertLogs("classrooms.signals", level="ERROR") as captured:
+            with self.assertLogs(
+                "AutoGrader.cache_generation", level="ERROR"
+            ) as captured:
                 StudentCourse.objects.create(
                     student=self.student,
                     course=self.course,
@@ -343,20 +365,38 @@ class CacheOutageResilienceTests(ThreadSafeTransactionTestCase):
             "the outage was swallowed without warning that reads may be stale",
         )
 
-    def test_a_genuine_bug_still_raises(self):
-        """Only unreachability is tolerated. A TypeError from a bad call is
-        a defect and must not be hidden behind the outage handler."""
-        with patch(
-            "django.core.cache.cache.delete_pattern",
-            create=True,
-            side_effect=TypeError("bad pattern"),
-        ):
-            with self.assertRaises(TypeError):
-                Course.objects.create(
+    def test_a_genuine_bug_is_logged_with_its_traceback_not_hidden(self):
+        """The contract changed with the mechanism, deliberately.
+
+        The wildcard helper tolerated only unreachability and let a
+        TypeError (a defect) raise. `bump_generation` is documented NEVER
+        RAISES (AutoGrader/cache_generation.py, H-1 design §6): any failure
+        costs a stale cache, never a lost write. What must still hold is
+        that a defect is not SILENT - it is logged at ERROR with the
+        exception attached, so it is alertable and debuggable.
+        """
+        with cache_down(TypeError("bad counter call")):
+            with self.assertLogs(
+                "AutoGrader.cache_generation", level="ERROR"
+            ) as captured:
+                course = Course.objects.create(
                     name="Bug surfaces",
                     teacher=self.teacher,
                     session=self.session,
                 )
+
+        self.assertTrue(Course.objects.filter(pk=course.pk).exists())
+        self.assertTrue(
+            any(record.exc_info for record in captured.records),
+            "the failure was logged without its exception",
+        )
+        self.assertTrue(
+            any(
+                isinstance(record.exc_info[1], TypeError)
+                for record in captured.records
+                if record.exc_info
+            )
+        )
 
 
 class CacheOutageAcrossAppsTests(ThreadSafeTransactionTestCase):
@@ -364,9 +404,9 @@ class CacheOutageAcrossAppsTests(ThreadSafeTransactionTestCase):
 
     `students/signals.py` and `users/signals.py` had the identical shape -
     an unguarded `cache.delete_pattern` inside a post_save receiver - so a
-    Redis blip failed a submission save or a user save outright. Both now
-    route through `AutoGrader.cache_utils.delete_cache_patterns`, the
-    project's existing best-effort helper.
+    Redis blip failed a submission save or a user save outright. They were
+    routed through a best-effort wildcard helper; since H-1 step 4 their
+    only invalidation is a generation bump, which never raises.
 
     These live here rather than in those apps' own suites because they are
     verifying one cross-cutting invariant: a cache failure must never lose
@@ -374,13 +414,7 @@ class CacheOutageAcrossAppsTests(ThreadSafeTransactionTestCase):
     """
 
     def _cache_down(self):
-        from redis.exceptions import ConnectionError as RedisConnectionError
-
-        return patch(
-            "django.core.cache.cache.delete_pattern",
-            create=True,
-            side_effect=RedisConnectionError("redis unreachable"),
-        )
+        return cache_down()
 
     def test_saving_a_user_survives_a_cache_outage(self):
         with self._cache_down():
@@ -425,45 +459,51 @@ class CacheOutageAcrossAppsTests(ThreadSafeTransactionTestCase):
 
 
 class MissingCachePatternSupportTests(ThreadSafeTransactionTestCase):
-    """A backend without `delete_pattern` disables invalidation entirely.
+    """A backend without `delete_pattern` no longer disables invalidation.
 
-    That must be visible - it silently turns a revocation into a
-    stale-cache window - but it is a static property of the configured
-    backend, so it is reported once per process rather than on every save.
-    Before that, a single test run emitted the same warning 1330 times.
+    Until H-1 step 4 this pinned a warn-once log: on a backend without the
+    django-redis `delete_pattern` extension (LocMem), wildcard invalidation
+    silently did nothing, turning a revocation into a stale-cache window.
+    The wildcard and its warning are gone. Generation bumps use only
+    Django's standard cache API (`incr`/`add`/`get`), so the SAME backend
+    now invalidates for real - asserted end to end on a revocation.
     """
 
-    # patch.object rather than assigning the module attribute directly: it
-    # restores the flag afterwards, so consuming the single warning here
-    # cannot silence an unrelated test that runs later in the same process.
-    def _unreported(self):
-        return patch.object(signals, "_warned_backend_lacks_delete_pattern", False)
-
     @override_settings(
         CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
     )
-    def test_it_warns_once_and_then_stays_quiet(self):
-        with self._unreported():
-            with self.assertLogs("classrooms.signals", level="WARNING") as captured:
-                signals.delete_cache_patterns("a:*", "b:*")
-                signals.delete_cache_patterns("c:*")
-                signals.delete_cache_patterns("d:*")
+    def test_withdrawal_revokes_a_cached_course_list_without_delete_pattern(self):
+        from django.core.cache import caches
 
-        warnings = [line for line in captured.output if "no delete_pattern" in line]
-        self.assertEqual(
-            len(warnings),
-            1,
-            f"expected exactly one warning per process, got {len(warnings)}",
+        live = caches["default"]
+        self.assertFalse(hasattr(live, "delete_pattern"))
+        self.assertFalse(hasattr(signals, "_warned_backend_lacks_delete_pattern"))
+
+        school = School.objects.create(name="LocMem School")
+        teacher = make_user("locmem-t@x.test", UserTypes.TEACHER, school)
+        student = make_user("locmem-s@x.test", UserTypes.STUDENT)
+        session = Session.objects.create(name="LocMem", teacher=teacher)
+        course = Course.objects.create(
+            name="LocMem 101", teacher=teacher, session=session
         )
+        enrollment = StudentCourse.objects.create(
+            student=student,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        client = APIClient()
+        client.force_authenticate(student)
+        url = reverse("course-list")
 
-    @override_settings(
-        CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
-    )
-    def test_the_warning_names_the_backend_and_the_consequence(self):
-        with self._unreported():
-            with self.assertLogs("classrooms.signals", level="WARNING") as captured:
-                signals.delete_cache_patterns("a:*")
+        before = client.get(url)
+        self.assertEqual(before.status_code, 200)
+        self.assertEqual(len(before.data["results"]), 1)
 
-        message = captured.output[0]
-        self.assertIn("stale", message.lower())
-        self.assertIn("revoked", message.lower())
+        enrollment.withdrawn()
+
+        after = client.get(url)
+        self.assertEqual(
+            len(after.data["results"]),
+            0,
+            "a withdrawn student still read their cached course list",
+        )

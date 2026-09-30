@@ -46,36 +46,34 @@ class PasswordLoginStampTests(APITestCase):
         )
 
     def login_recording_invalidation(self, email):
-        with patch.object(
-            signals, "bump_many", wraps=signals.bump_many
-        ) as bumps, patch.object(
-            signals, "delete_cache_patterns", wraps=signals.delete_cache_patterns
-        ) as sweeps:
+        # H-1 step 4 removed the wildcard sweep (and the
+        # delete_cache_patterns this recorded next to bump_many); its guard,
+        # AutoGrader/tests_no_wildcard_invalidation.py, keeps it gone. A
+        # generation bump is the only invalidation left to record.
+        with patch.object(signals, "bump_many", wraps=signals.bump_many) as bumps:
             response = self.client.post(
                 reverse("login"), {"email": email, "password": PASSWORD}, format="json"
             )
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
-        return bumps, sweeps
+        return bumps
 
     def test_a_student_login_stamps_last_login_with_no_cache_invalidation(self):
         student = self.make("stamp.student@example.com", UserTypes.STUDENT)
 
-        bumps, sweeps = self.login_recording_invalidation(student.email)
+        bumps = self.login_recording_invalidation(student.email)
 
         student.refresh_from_db()
         self.assertIsNotNone(student.last_login)
         self.assertEqual(bumps.call_count, 0, bumps.call_args_list)
-        self.assertEqual(sweeps.call_count, 0, sweeps.call_args_list)
 
     def test_a_teacher_login_stamps_last_login_with_no_cache_invalidation(self):
         teacher = self.make("stamp.teacher@example.com", UserTypes.TEACHER)
 
-        bumps, sweeps = self.login_recording_invalidation(teacher.email)
+        bumps = self.login_recording_invalidation(teacher.email)
 
         teacher.refresh_from_db()
         self.assertIsNotNone(teacher.last_login)
         self.assertEqual(bumps.call_count, 0, bumps.call_args_list)
-        self.assertEqual(sweeps.call_count, 0, sweeps.call_args_list)
 
     def test_a_failed_login_stamps_nothing(self):
         student = self.make("stamp.wrong@example.com", UserTypes.STUDENT)

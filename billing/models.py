@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from audit import metrics as audit_metrics
+from audit.context import current_request_actor
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 
@@ -620,6 +621,7 @@ class CreditWallet(models.Model):
     # really cost us; hiding it would make the ledger lie.
     dispute_deficit_credits = models.PositiveIntegerField(
         default=0,
+        db_default=0,
         help_text=(
             "Credits owed back after a lost chargeback that were already "
             "consumed and so could not be reclaimed from a bucket."
@@ -633,6 +635,7 @@ class CreditWallet(models.Model):
     # identical. See billing/payment_refunds.py.
     refund_deficit_credits = models.PositiveIntegerField(
         default=0,
+        db_default=0,
         help_text=(
             "Credits owed back after a refund that were already consumed "
             "and so could not be reclaimed from a bucket."
@@ -645,6 +648,7 @@ class CreditWallet(models.Model):
     # clear each other's block.
     is_consumption_blocked = models.BooleanField(
         default=False,
+        db_default=False,
         help_text=(
             "Blocks further credit consumption while an unsettled dispute "
             "or refund deficit exists. Cleared by hand once the account is "
@@ -1249,26 +1253,39 @@ def _credit_transaction_action(ledger_type):
     return AuditAction.CREDIT_TRANSACTION
 
 
-def _emit_credit_transaction(row, actor):
+def _emit_credit_transaction(row, owner):
     """One `CREDIT_TRANSACTION` audit event for one written `CreditLedger`
     row. Called from both `record()` (the ~18 `billing/services.py` sites)
     and `after_bulk_create()` (the consume/batch-refund paths that bypass
     `record()` - see docs/decisions and §0.6 of the epic A plan). Never
     called for the paired `CreditUsageLog` row: that row is the same
     economic event as its `CreditLedger` row, not a second transaction.
+
+    Epic A S3 (G5): the ACTOR is whoever made it happen - the signed-in
+    user of the request being handled, or SYSTEM in Celery / Beat - and the
+    wallet OWNER is the target. It used to name the owner as actor, so a
+    Celery grant looked like the teacher's own action, and a school admin's
+    add_teachers left no event naming the admin. Scoped to the owner's
+    school, as the owner's own events are.
     """
+    owner_id = getattr(owner, "pk", None) or row.user_id
     emit(
         _credit_transaction_action(row.ledger_type),
-        actor=actor,
-        target_type="CreditLedger",
-        target_id=row.id,
+        actor=current_request_actor(),
+        target_type="CustomUser",
+        target_id=owner_id,
+        school_id=getattr(owner, "school_id", None),
         outcome=AuditOutcome.SUCCESS,
-        metadata={"ledger_type": row.ledger_type, "credits": row.amount},
+        metadata={
+            "ledger_type": row.ledger_type,
+            "credits": row.amount,
+            "ledger_id": str(row.id),
+        },
     )
-    _check_ledger_anomaly(row, actor)
+    _check_ledger_anomaly(row, owner)
 
 
-def _check_ledger_anomaly(row, actor):
+def _check_ledger_anomaly(row, owner):
     """BE-A-09 #3: alert on a wallet left with a negative running balance
     by this row. Reuses CreditWallet.total_remaining_credits() - the same
     aggregate the rest of the app already reads the balance through -
@@ -1276,14 +1293,14 @@ def _check_ledger_anomaly(row, actor):
 
     Best-effort, not a strict invariant check: this reads the wallet AFTER
     the ledger row (and, for CONSUME, the bucket update that normally goes
-    with it) have been written, and only when `actor` is the wallet's own
-    user - `after_bulk_create`'s batch resolution can leave `actor` None for
-    a row whose user no longer exists. A negative balance that briefly
+    with it) have been written, and only when the wallet's `owner` is known
+    - `after_bulk_create`'s batch resolution can leave `owner` None for a
+    row whose user no longer exists. A negative balance that briefly
     exists mid-transaction and self-corrects before the next check is
     outside what this can see; that trade-off is acceptable for an ALERT
     (false negatives on a transient dip), not for enforcement.
     """
-    wallet = getattr(actor, "credit_wallet", None)
+    wallet = getattr(owner, "credit_wallet", None)
     if wallet is None:
         return
     try:
@@ -2299,6 +2316,7 @@ class StripeEvent(models.Model):
     )
     recovery_attempts = models.PositiveIntegerField(
         default=0,
+        db_default=0,
         help_text=_(
             "How many times the sweeper has re-dispatched this event after "
             "a worker abandoned its claim. Capped, so a task that dies the "
@@ -2676,7 +2694,11 @@ class PaymentDispute(models.Model):
     #: answer there, being one teacher at best and null for a license
     #: payment. Without this, a won chargeback would leave teachers
     #: permanently unable to spend.
-    deficit_by_wallet = models.JSONField(default=dict, blank=True)
+    deficit_by_wallet = models.JSONField(
+        default=dict,
+        blank=True,
+        db_default=models.Value({}, output_field=models.JSONField()),
+    )
 
     opened_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
@@ -2997,7 +3019,7 @@ class PriceReconciliationRun(models.Model):
     plans_checked = models.PositiveIntegerField(default=0)
     prices_checked = models.PositiveIntegerField(default=0)
     matched_count = models.PositiveIntegerField(default=0)
-    synced_count = models.PositiveIntegerField(default=0)
+    synced_count = models.PositiveIntegerField(default=0, db_default=0)
     alert_count = models.PositiveIntegerField(default=0)
     unavailable_count = models.PositiveIntegerField(default=0)
     summary = models.TextField(blank=True, default="")
@@ -3060,10 +3082,16 @@ class PriceReconciliationResult(models.Model):
     #: what the application used to charge, which is why it is stored
     #: rather than merely logged: a log line rotates away, and this is the
     #: answer to "when did this price change, and from what?".
-    synced = models.BooleanField(default=False)
-    synced_fields = models.JSONField(default=list, blank=True)
+    synced = models.BooleanField(default=False, db_default=False)
+    synced_fields = models.JSONField(
+        default=list,
+        blank=True,
+        db_default=models.Value([], output_field=models.JSONField()),
+    )
     previous_local_amount = models.IntegerField(null=True, blank=True)
-    previous_local_product = models.CharField(max_length=255, blank=True, default="")
+    previous_local_product = models.CharField(
+        max_length=255, blank=True, default="", db_default=""
+    )
 
     error_code = models.CharField(max_length=100, blank=True, default="")
     error_message = models.TextField(blank=True, default="")

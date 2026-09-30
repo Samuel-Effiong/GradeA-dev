@@ -78,14 +78,18 @@ def trace_context(trace_id=None):
 
 
 class RequestAuditState:
-    __slots__ = ("stored_event_ids", "suppressed")
+    __slots__ = ("stored_event_ids", "suppressed", "request")
 
-    def __init__(self):
+    def __init__(self, request=None):
         self.stored_event_ids = []
         # S1b: an event this request would have written was held back by the
         # failed-auth cap (and is counted in its summary), so no fallback
         # event may stand in for it.
         self.suppressed = False
+        # S3: the Django request, so a chokepoint deep in the call stack
+        # (the credit ledger) can name the request's actor. DRF writes the
+        # authenticated user back onto it during the view.
+        self.request = request
 
 
 _request_state_var: ContextVar[Optional[RequestAuditState]] = ContextVar(
@@ -94,15 +98,26 @@ _request_state_var: ContextVar[Optional[RequestAuditState]] = ContextVar(
 
 
 @contextmanager
-def request_audit_state():
+def request_audit_state(request=None):
     """Open a fresh per-request state for the block, and always restore the
     previous one after it, even if the block raises."""
-    state = RequestAuditState()
+    state = RequestAuditState(request)
     token = _request_state_var.set(state)
     try:
         yield state
     finally:
         _request_state_var.reset(token)
+
+
+def current_request_actor():
+    """S3's actor rule: the signed-in user of the request being handled, or
+    None - which the emitter records as SYSTEM - outside a request (Celery,
+    Beat, management commands) or for an anonymous request."""
+    state = _request_state_var.get()
+    user = getattr(getattr(state, "request", None), "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        return user
+    return None
 
 
 def record_stored_event(event_id) -> None:

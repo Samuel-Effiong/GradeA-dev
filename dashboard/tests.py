@@ -1485,8 +1485,9 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.data["assignments_graded"], 1)
-        # Submitted/not-submitted/overdue counts are unaffected by release.
-        self.assertEqual(response.data["assignments_submitted"], 2)
+        # Release moves a1 from Submitted to Graded (the tiles partition the
+        # total); not-submitted/overdue are unaffected.
+        self.assertEqual(response.data["assignments_submitted"], 1)
         self.assertEqual(response.data["assignments_not_submitted"], 2)
         self.assertEqual(response.data["assignments_due_no_submission"], 1)
 
@@ -1520,43 +1521,34 @@ class StudentDashboardOverviewAPITest(APITestCase):
         self.assertEqual(response.data["assignments_graded"], 0)
 
     def test_tiles_sum_to_total_assignment_count(self):
-        """Not Submitted, Overdue and Submitted are mutually exclusive and
-        must sum to the total assignment count. Graded is excluded from the
-        sum by design - it is an informational subset of Submitted (a
-        released, scored submission), not a competing bucket, so it is
-        reported separately rather than summed in. Exercised end-to-end
-        through the real API, not just against the shared helper directly,
-        via both endpoints that use it."""
+        """The four tiles (Submitted, Graded, Not Submitted, Overdue) are
+        mutually exclusive and sum to the total assignment count (founder
+        decision 2026-09-30: Graded is no longer a subset of Submitted).
+        Exercised end-to-end through the real API, via both endpoints that
+        use the shared helper, before and after a grade is released."""
         total_assignments = 5  # a1, a2, a3, a5, a6 (a_inactive/a_withdrawn excluded)
 
+        def tiles(data):
+            return (
+                data["assignments_submitted"]
+                + data["assignments_graded"]
+                + data["assignments_not_submitted"]
+                + data["assignments_due_no_submission"]
+            )
+
         overview = self.client.get(reverse("student-overview")).data
-        self.assertEqual(
-            overview["assignments_submitted"]
-            + overview["assignments_not_submitted"]
-            + overview["assignments_due_no_submission"],
-            total_assignments,
-        )
-
+        self.assertEqual(tiles(overview), total_assignments)
         status_summary = self.client.get(reverse("student-status-summary")).data
-        self.assertEqual(
-            status_summary["assignments_submitted"]
-            + status_summary["assignments_not_submitted"]
-            + status_summary["assignments_due_no_submission"],
-            total_assignments,
-        )
+        self.assertEqual(tiles(status_summary), total_assignments)
 
-        # Same check after a release, so a graded submission (still counted
-        # under Submitted, not moved out of it) cannot throw the sum off.
+        # A release moves a submission from Submitted to Graded; the sum
+        # must not change.
         StudentSubmission.objects.filter(assignment=self.a1).update(is_published=True)
         cache.clear()
         overview_after_release = self.client.get(reverse("student-overview")).data
         self.assertEqual(overview_after_release["assignments_graded"], 1)
-        self.assertEqual(
-            overview_after_release["assignments_submitted"]
-            + overview_after_release["assignments_not_submitted"]
-            + overview_after_release["assignments_due_no_submission"],
-            total_assignments,
-        )
+        self.assertEqual(overview_after_release["assignments_submitted"], 1)
+        self.assertEqual(tiles(overview_after_release), total_assignments)
 
     def test_status_summary_for_a_course_the_student_is_not_enrolled_in_404s(self):
         other_teacher = CustomUser.objects.create_user(
@@ -1683,13 +1675,12 @@ class StudentCourseSummaryAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # 4 published assignments total (a1-a4; the draft a5 is excluded).
-        # Submitted: a1, a2 = 2. Not submitted: a3 = 1 (a4 is overdue, not
-        # "not submitted" - the two are mutually exclusive and sum to the
-        # total: 2 + 1 + 1 = 4). Overdue: a4 = 1. Graded (released only):
-        # a1 = 1 - a2 has a score but is_published=False, so it does not
-        # count yet.
+        # Graded (released): a1 = 1. Submitted (grade not visible to the
+        # student yet): a2 = 1 - it has a score but is_published=False.
+        # Not submitted: a3 = 1. Overdue: a4 = 1. The four partition the
+        # total of four, one assignment each.
         self.assertEqual(response.data["assignment_assigned"], 4)
-        self.assertEqual(response.data["assignment_submitted"], 2)
+        self.assertEqual(response.data["assignment_submitted"], 1)
         self.assertEqual(response.data["assignment_not_submitted"], 1)
         self.assertEqual(response.data["missing_or_overdue"], 1)
         self.assertEqual(response.data["assignment_graded"], 1)
@@ -1703,24 +1694,159 @@ class StudentCourseSummaryAPITest(APITestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.data["assignment_graded"], 2)
-        self.assertEqual(response.data["assignment_submitted"], 2)
+        # a2 moved from Submitted to Graded.
+        self.assertEqual(response.data["assignment_submitted"], 0)
+
+    def test_a_published_but_unscored_submission_stays_submitted(self):
+        """Graded is a grade the student can see: published AND scored. A
+        submission published without a score has no grade to show, so it
+        stays under Submitted (the Verification Engineer's N1 on f908aaf:
+        without this, Graded could drop its score condition unnoticed)."""
+        unscored = Assignment.objects.create(
+            title="A6 Published Unscored",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=1),
+        )
+        StudentSubmission.objects.create(
+            assignment=unscored,
+            student=self.student,
+            answers={"q1": "a"},
+            is_published=True,
+        )
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        data = self.client.get(url).data
+
+        # a2 (graded, unpublished) and a6 (published, unscored) are
+        # Submitted; only a1 is Graded.
+        self.assertEqual(data["assignment_submitted"], 2)
+        self.assertEqual(data["assignment_graded"], 1)
+        self.assertEqual(data["assignment_assigned"], 5)
+
+    def test_completion_rate_counts_graded_and_ungraded_submissions(self):
+        """Submitted no longer includes Graded, so the completion rate must
+        count both, and a release must not change it: 2 of 4 assignments
+        have a submission either way."""
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        self.assertEqual(self.client.get(url).data["completion_rate"], 50.0)
+
+        StudentSubmission.objects.filter(assignment=self.a2).update(is_published=True)
+        cache.clear()
+        self.assertEqual(self.client.get(url).data["completion_rate"], 50.0)
 
     def test_tiles_sum_to_total_assignment_count(self):
-        """Submitted, Not Submitted and Overdue (missing_or_overdue) are
-        mutually exclusive and must sum to assignment_assigned. Graded is
-        excluded from the sum by design - see the identical check on
-        StudentDashboardOverviewAPITest. Exercised through the real API,
-        which now goes through the shared _assignment_status_counts helper
-        instead of this endpoint's own former hand-rolled copy."""
+        """Submitted, Graded, Not Submitted and Overdue (missing_or_overdue)
+        are mutually exclusive and sum to assignment_assigned (founder
+        decision 2026-09-30). Exercised through the real API, which goes
+        through the shared _assignment_status_counts helper."""
         url = reverse("student-summary", kwargs={"course_id": self.course.id})
         response = self.client.get(url)
 
         self.assertEqual(
             response.data["assignment_submitted"]
+            + response.data["assignment_graded"]
             + response.data["assignment_not_submitted"]
             + response.data["missing_or_overdue"],
             response.data["assignment_assigned"],
         )
+
+
+class StudentTilesPartitionFounderExampleTest(APITestCase):
+    """The founder's example (2026-09-30): 20 assignments that read
+    Submitted 17, Graded 6, Not Submitted 1, Overdue 2 when Graded was a
+    subset of Submitted, and must read Submitted 11, Graded 6, Not Submitted
+    1, Overdue 2 now that the four tiles partition the total. Of the 11,
+    three are graded but unpublished: the student cannot see those grades
+    yet, so they stay under Submitted."""
+
+    def setUp(self):
+        now = timezone.now()
+        teacher = CustomUser.objects.create_user(
+            email="tiles-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        self.student = CustomUser.objects.create_user(
+            email="tiles-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+        )
+        self.course = Course.objects.create(
+            name="Tiles Course",
+            teacher=teacher,
+            session=Session.objects.create(name="Tiles Term", teacher=teacher),
+            is_active=True,
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+
+        def assignment(n, due):
+            return Assignment.objects.create(
+                title=f"Tiles {n}",
+                course=self.course,
+                status=AssignmentStatus.PUBLISHED,
+                due_date=due,
+            )
+
+        past, future = now - timedelta(days=1), now + timedelta(days=3)
+        rows = (
+            [("ungraded", past)] * 8  # submitted, no grade yet
+            + [("graded_unpublished", past)] * 3  # grade not released
+            + [("released", past)] * 6  # grade released
+            + [("none", future)]  # not submitted
+            + [("none", past)] * 2  # overdue
+        )
+        for n, (kind, due) in enumerate(rows):
+            a = assignment(n, due)
+            if kind == "none":
+                continue
+            graded = kind != "ungraded"
+            StudentSubmission.objects.create(
+                assignment=a,
+                student=self.student,
+                answers={"q1": "a"},
+                score=70 if graded else None,
+                score_percentage=70 if graded else None,
+                graded_at=now if graded else None,
+                is_published=kind == "released",
+            )
+        self.client.force_authenticate(user=self.student)
+
+    def test_the_four_tiles_partition_the_total(self):
+        expected = {
+            "assignments_submitted": 11,
+            "assignments_graded": 6,
+            "assignments_not_submitted": 1,
+            "assignments_due_no_submission": 2,
+        }
+        for url, params in (
+            (reverse("student-overview"), {}),
+            (reverse("student-status-summary"), {}),
+            (reverse("student-status-summary"), {"course": str(self.course.id)}),
+        ):
+            with self.subTest(url=url, params=params):
+                data = self.client.get(url, params).data
+                self.assertEqual({k: data[k] for k in expected}, expected)
+                self.assertEqual(sum(expected.values()), 20)
+
+        summary = self.client.get(
+            reverse("student-summary", kwargs={"course_id": self.course.id})
+        ).data
+        self.assertEqual(
+            (
+                summary["assignment_submitted"],
+                summary["assignment_graded"],
+                summary["assignment_not_submitted"],
+                summary["missing_or_overdue"],
+            ),
+            (11, 6, 1, 2),
+        )
+        self.assertEqual(summary["assignment_assigned"], 20)
+        # 17 of 20 have a submission, graded or not.
+        self.assertEqual(summary["completion_rate"], 85.0)
 
 
 class StudentDashboardOverviewGPAAPITest(APITestCase):

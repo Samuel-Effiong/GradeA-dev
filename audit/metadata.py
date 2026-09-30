@@ -48,7 +48,12 @@ ALLOWED_KEYS = frozenset(
         "credits_estimated",
         "credits_actual",
         "ledger_type",
+        # S3: the retention sweeps' own record (counts only)
+        "deleted_general",
+        "deleted_student_record",
+        "scrubbed",
         # identifiers of the things involved (ids, never names)
+        "ledger_id",
         "batch_id",
         "job_id",
         "task_id",
@@ -231,7 +236,7 @@ METADATA_ALLOWLIST = {
         {"assignment_id", "file_type", "file_size_bytes", "file_count"}
     ),
     AuditAction.CREDIT_TRANSACTION: frozenset(
-        {"credits", "credits_estimated", "credits_actual", "ledger_type"}
+        {"credits", "credits_estimated", "credits_actual", "ledger_type", "ledger_id"}
     ),
     AuditAction.DEPARTMENT_CREATE: frozenset(),
     AuditAction.DEPARTMENT_UPDATE: frozenset(),
@@ -251,6 +256,9 @@ METADATA_ALLOWLIST = {
     ),
     AuditAction.ACCOUNT_REGISTER: frozenset(
         {"auth_method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
+    ),
+    AuditAction.AUDIT_RETENTION_SWEEP: frozenset(
+        {"deleted_general", "deleted_student_record", "scrubbed"}
     ),
 }
 
