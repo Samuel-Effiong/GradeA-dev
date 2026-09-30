@@ -1,0 +1,98 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-retire-student-token-signup/users/serializers.py", line 470, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.FCannot activate automatic trial for user stamp.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FFCannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user backfill-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+FAIL: test_a_google_sign_in_stamps_last_login (users.tests_last_login_stamp.GoogleSignInStampTests.test_a_google_sign_in_stamps_last_login)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-retire-student-token-signup/users/tests_last_login_stamp.py", line 145, in test_a_google_sign_in_stamps_last_login
+    self.assertIsNotNone(student.last_login)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_a_student_login_stamps_last_login_with_no_cache_invalidation (users.tests_last_login_stamp.PasswordLoginStampTests.test_a_student_login_stamps_last_login_with_no_cache_invalidation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-retire-student-token-signup/users/tests_last_login_stamp.py", line 67, in test_a_student_login_stamps_last_login_with_no_cache_invalidation
+    self.assertEqual(bumps.call_count, 0, bumps.call_args_list)
+AssertionError: 1 != 0 : [call([('usr', UUID('387efc68-7371-48a2-9560-f954bcc1c6e9')), ('anyusr', None), ('global', None)])]
+
+======================================================================
+FAIL: test_a_teacher_login_stamps_last_login_with_no_cache_invalidation (users.tests_last_login_stamp.PasswordLoginStampTests.test_a_teacher_login_stamps_last_login_with_no_cache_invalidation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-retire-student-token-signup/users/tests_last_login_stamp.py", line 77, in test_a_teacher_login_stamps_last_login_with_no_cache_invalidation
+    self.assertEqual(bumps.call_count, 0, bumps.call_args_list)
+AssertionError: 1 != 0 : [call([('usr', UUID('740f639d-374d-463b-b2b3-78dc9d4bab18')), ('anyusr', None), ('global', None)])]
+
+======================================================================
+FAIL: test_simplejwt_update_last_login_stays_off (users.tests_last_login_stamp.PasswordLoginStampTests.test_simplejwt_update_last_login_stays_off)
+Turning it back on reintroduces the save() and its fan-out.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-retire-student-token-signup/users/tests_last_login_stamp.py", line 95, in test_simplejwt_update_last_login_stays_off
+    self.assertFalse(api_settings.UPDATE_LAST_LOGIN)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_a_deactivated_account_only_loses_its_code (classrooms.tests_backfill_pending_student_invites.BackfillPendingStudentInvitesTest.test_a_deactivated_account_only_loses_its_code)
+SM product rule 2026-09-29: an account that was ever verified or
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-retire-student-token-signup/classrooms/tests_backfill_pending_student_invites.py", line 208, in test_a_deactivated_account_only_loses_its_code
+    self.assertFalse(self.student.is_active)
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 14 tests in 6.180s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 14 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+convert: student 1a517bad-7a5a-4f7f-8d49-bc1afbab7ac2 (pending course 86992b31-458a-4974-827d-b2271d4d5900)
+Backfill complete: 1 converted, 0 code-only cleared (no pending enrollment), 0 code-only cleared (placeholder address, left inactive, not emailed). Inactive students still holding a code: 0.
+Backfill complete: 0 converted, 0 code-only cleared (no pending enrollment), 0 code-only cleared (placeholder address, left inactive, not emailed). Inactive students still holding a code: 0.

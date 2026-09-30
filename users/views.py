@@ -113,7 +113,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     VerifyCustomUserSerializer,
     WaitlistSerializer,
 )
-from users.services import send_user_activation_email
+from users.services import send_user_activation_email, stamp_last_login
 from users.tasks import sync_user_to_mailerlite
 from users.throttling import (
     GoogleAuthThrottle,
@@ -1715,6 +1715,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     },
                 )
 
+            # A Google sign-in is a sign-in too (has_signed_in), and it mints
+            # tokens here rather than through the login serializer.
+            stamp_last_login(user)
             refresh = EpochRefreshToken.for_user(user)
 
             return Response(
