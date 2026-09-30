@@ -194,7 +194,10 @@ class FailedAuthCapTests(TestCase):
 )
 class CappedDoorThroughTheMiddlewareTests(TestCase):
     """A door failure held back by the cap is counted in its summary; S2's
-    door fallback must not write an INVALID_REQUEST in its place."""
+    door fallback must not write an INVALID_REQUEST in its place. Three
+    attempts: written (the floor), suppressed with the first summary, and
+    suppressed with no summary - the one where only the request's
+    `suppressed` mark stops the fallback."""
 
     def test_a_suppressed_door_failure_leaves_only_the_summary(self):
         cache.clear()
@@ -204,7 +207,7 @@ class CappedDoorThroughTheMiddlewareTests(TestCase):
             is_active=False, activation_token="123456"
         )
 
-        for index in range(2):
+        for index in range(3):
             APIClient().post(
                 reverse("auth-verify"),
                 {"email": account.email, "token": "000000"},
