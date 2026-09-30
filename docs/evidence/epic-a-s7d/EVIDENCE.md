@@ -123,9 +123,15 @@ If any source changes before the merge-down, the copy here is re-synced.
 
 | Gate | Result | Log |
 |---|---|---|
-| Reproduce-first: S7d's new test modules with S7d's production files reverted to the epic tip 830bf8d (S7c included) | see log | `prefix_830bf8d_failing.txt` |
-| Changed and updated modules + all 11 repo-wide guards | see log | `changed_modules_and_guards.txt` |
-| Mutation, 39 mutants in 3 batches (≤1800 s each, own DB, dropped) | see log | `mutation_log_batch{1,2,3}.txt`, `mutation_results_batch{1,2,3}.json` |
+| Reproduce-first: S7d's new test modules with S7d's production files reverted to the epic tip 830bf8d (S7c included) | **Fails, as expected**, at import (`ReasonCode` has no `REGISTRATION_PAUSED`). The new modules name the new codes, so on the base they cannot load. That is the weak, import-level form, accepted as before | `prefix_830bf8d_failing.txt` |
+| Changed and updated modules (23) + all 11 repo-wide guards (the 8 Epic A guards, `assignments`/`users.tests_schema_extension`, `AutoGrader.tests_error_messages`), at **023a51a** | **509 tests OK** (88.4 s) | `changed_modules_and_guards.txt` (last 200 lines; the full log is `epic-a-s7d_changed_modules_and_guards_023a51a_full.txt` in GAP-evidence-logs, chmod 600) |
+| Mutation, 39 mutants in 3 batches (≤1800 s each, own DB `test_epic_a_s7d_mut`, dropped) at 023a51a | **39/39 killed** by named tests, no survivors. Batch 1 (catalogue, B, C, F): 12/12. Batch 2 (D): 14/14. Batch 3 (E): 13/13. Source clean after each batch. 4 min 7 s in all | `mutation_log_batch{1,2,3}.txt`, `mutation_results_batch{1,2,3}.json` |
 | ONE combined regression over every app whose production code S7d changes (SM ruling): students, classrooms, billing, users, assignments, ai_processor. ai_processor is included because C's change there is more than text: a new `PDFNotAPdfError`, and `PDFService.extract` raises it. Run in the 12G slot, timeout 1800 | see log | `regression_combined.txt` |
 
-A dev run before E (0b's grant, no result claimed) found the emailed-row clash and the test-harness fallout, both fixed above.
+**Runs before this record, disclosed:**
+- **Dev run** (0b's grant, no result claimed, before E): it found the emailed-row clash and the test-harness fallout, both fixed above.
+- **Gate run 1** (at e475967, stopped at step 2): 509 tests, 3 failures, all in the copied H-78 test module.
+  - Two were a bug in that test, which also fails on beta: it checked for billing words over `logs.output`, whose lines carry the logger name `billing.license_service`. d5 fixed it at 45c36f2, re-copied here byte-identical at 023a51a.
+  - One was S7d-side: S7d's add route runs its own unit and didn't emit H-78's "Skipped enrolling" line. The unit now emits that exact ids-only line (79b29f8).
+  - Logs: `run1_stopped_*` (the module log is trimmed; the full copy is outside the repo).
+- **Gate run 2** (at 023a51a): steps 1 and 2 passed (above), but the script stopped after step 2. Its stop check, `grep FAILED`, matched a licence-creation log line ("…teacher invitations FAILED…"), not the runner's summary. That was a script defect. The check now matches the runner's `FAILED (` only, and step 3 ran on its own without repeating steps 1–2.
