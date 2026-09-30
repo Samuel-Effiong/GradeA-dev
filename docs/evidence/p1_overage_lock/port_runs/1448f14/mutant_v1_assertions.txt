@@ -1,0 +1,2 @@
+AssertionError: 6000 != 500 : round 0: replays and live duplicates granted more than once
+AssertionError: 1000 != 500 : a stale replay and its re-claim both granted: {'first': <ReplayOutcome.REPLAYED: 'replayed'>, 'second': {'replayed': 1, 'failed_again': 0, 'not_allow_listed': 0, 'no_flow_in_payload': 0, 'handler_not_vetted': 0, 'attempts_exhausted': 0, 'claim_lost': 0}}

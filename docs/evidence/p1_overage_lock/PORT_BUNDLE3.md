@@ -40,6 +40,18 @@ In the first battery, M02 and M26 were marked BROKEN, although they were caught 
 
 The marker is now `unittest.loader._FailedTest`, which is how unittest reports a class or module it cannot load. No other battery log contains any load-failure marker, so the change reclassifies only these two, and both were re-run with the fixed runner.
 
+### After verification: the replay path's wallet lock (`1448f14`, 1a's N3)
+
+H-62's replay race tests reuse one event id, so they exercise only the ledger claim. Two real paths bypass the claim and rest on the overage handler's wallet lock alone. At the SM's request, 1a's probes P1 and P2 are adopted into `test_event_replay`:
+
+- `ReplayConcurrencyTests.test_replays_racing_live_duplicate_events_for_one_session_grant_once`: different event ids for one checkout session, with live deliveries racing replays of two FAILED copies (20 threads × 10 rounds);
+- `StaleReplayClaimTests`: a replay whose claim goes stale mid-handler is settled FAILED by the sweep and re-claimed by a second replay. The probe's fixed sleep became a wait for Postgres to show a lock waiter.
+
+| Run | Tree | Result | Log |
+|---|---|---|---|
+| The changed module, `billing.tests.test_event_replay` (rule 15) | `1448f14` | 29 OK | `1448f14/test_event_replay.log` |
+| 1a's mutant V1 (the handler's wallet `select_for_update` removed), the two new tests only, in a disposable worktree | `1448f14` + V1 | **both fail**: 6000 granted against 500 (duplicate ids), 1000 against 500 (stale re-claim) | `1448f14/mutant_v1.log`, `mutant_v1_assertions.txt` |
+
 **Hooks over the whole range:** `pre-commit run --from-ref 6212ce9 --to-ref HEAD` at `fa05589` passes every hook (`port_range_hooks.log`), as the SM required because of the `--no-verify` commit. That range covers every port commit, the two fixes above, the merge of beta `abeda10` and this evidence. Every commit after `81c913f` was made through the hooks.
 
 ## Runs (rule 15; every run under `systemd-run` MemoryMax=6G, `nice -n 10`, `timeout`)
@@ -61,9 +73,8 @@ Logs are in `port_runs/<tip>/`, trimmed to one outcome line per test with emails
 
 - **Migration 0071** adds exactly two fields, `StripeEvent.auto_replay_attempts` and `auto_replay_note`, and changes nothing else. Outside `billing` and `docs`, the only code that names `StripeEvent` or its table is `AutoGrader.tests_migration_rollback_defaults` (the H-56 guard). It ran with the changed modules. No app outside `billing` reads the two fields.
 - **`BillingTransaction`**: H-62 changes only when `receipt_url` is written (after commit), and nothing outside `billing` names the model.
-- **`AutoGrader/settings.py`** gains two `CELERY_BEAT_SCHEDULE` entries and their two `BEAT_HEALTH_EXPECTATIONS` thresholds. These are new keys, and no existing key changes. The readers outside `billing` do not look at them:
-  - `AutoGrader.tests_beat_health` overrides `BEAT_HEALTH_EXPECTATIONS` with its own;
-  - `AutoGrader.test_health` sets up only the watchdog's own row;
-  - `dashboard/tests.py` reads its three named entries only.
+- **`AutoGrader/settings.py`** gains two `CELERY_BEAT_SCHEDULE` entries and their two `BEAT_HEALTH_EXPECTATIONS` thresholds. These are new keys, and no existing key changes.
+  - **Corrected after verification (1a's N2):** `AutoGrader/beat_health.py` and `AutoGrader/health.py` read **every** `BEAT_HEALTH_EXPECTATIONS` entry, so AutoGrader reads the new ones at run time. Their tests (`AutoGrader.tests_beat_health`, `AutoGrader.test_health`) use their own expectations and the watchdog's own row, so they would not catch a bad entry, but they are the readers. 1a ran both at `f3002bc`: 30 OK. So no further regression is owed.
+  - `dashboard/tests.py` reads only its three named schedule entries.
 
   `billing.tests.test_event_replay` and `test_receipts` assert that the new entries exist, and both ran.
