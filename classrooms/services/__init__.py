@@ -14,6 +14,7 @@ Authorization is NOT handled here: every function takes an already-scoped
 from .enrollment import (
     CROSS_SCHOOL_REJECTION_MESSAGE,
     DEACTIVATED_ACCOUNT_MESSAGE,
+    NOT_A_STUDENT_MESSAGE,
     AccountDisabledError,
     EnrollmentError,
     check_existing_account_may_join,
@@ -36,6 +37,7 @@ from .roster_import import (
 __all__ = [
     "CROSS_SCHOOL_REJECTION_MESSAGE",
     "DEACTIVATED_ACCOUNT_MESSAGE",
+    "NOT_A_STUDENT_MESSAGE",
     "AccountDisabledError",
     "EnrollmentError",
     "check_existing_account_may_join",
