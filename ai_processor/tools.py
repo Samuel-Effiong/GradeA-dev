@@ -35,7 +35,16 @@ FETCH_URL_BLOCKED_HOSTNAMES = {
 
 
 class ImageCompressionError(Exception):
-    """Raised when an image cannot be compressed under the hard size cap."""
+    """Raised when an image cannot be compressed under the hard size cap.
+
+    `smallest_bytes` is the smallest size any attempt reached (None when no
+    attempt produced output) and `cap_bytes` the cap it missed, so a caller
+    can say how far over it was (FR-A-06 FILE_TOO_LARGE)."""
+
+    def __init__(self, message, *, smallest_bytes=None, cap_bytes=None):
+        super().__init__(message)
+        self.smallest_bytes = smallest_bytes
+        self.cap_bytes = cap_bytes
 
 
 class BlockedURLError(Exception):
@@ -350,5 +359,7 @@ def compress_image_for_upload(
 
     raise ImageCompressionError(
         "Unable to compress image under the maximum allowed size "
-        f"({hard_cap_bytes} bytes) even at minimum quality/dimensions."
+        f"({hard_cap_bytes} bytes) even at minimum quality/dimensions.",
+        smallest_bytes=len(best_bytes) if best_bytes is not None else None,
+        cap_bytes=hard_cap_bytes,
     )
