@@ -52,6 +52,7 @@ from .enums import (
     AuditAction,
     AuditOutcome,
     ErrorClass,
+    ReasonCode,
     RetentionClass,
 )
 from .metadata import sanitise, sanitise_metadata_for_action
@@ -70,7 +71,6 @@ _GRADING_ACTIONS = frozenset(
 logger = logging.getLogger(__name__)
 
 _TARGET_TYPE = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
-_REASON_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 _CLIENT_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")
 _SAFE_ACTION = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 
@@ -258,10 +258,12 @@ def _build(
     if outcome != AuditOutcome.SUCCESS and error_class is None:
         raise AuditValidationError("error_class: a non-success needs one")
 
-    if reason_code is not None and not (
-        isinstance(reason_code, str) and _REASON_CODE.fullmatch(reason_code)
-    ):
-        raise AuditValidationError("reason_code: not a valid code")
+    if reason_code is not None:
+        # FR-A-06: only a code in the catalogue (audit.enums.ReasonCode). A
+        # new code is added there first, with its spec or as audit-only
+        # (AutoGrader/reason_codes.py), so the vocabulary stays closed.
+        if not isinstance(reason_code, str) or reason_code not in ReasonCode.values:
+            raise AuditValidationError("reason_code: not a known code")
 
     role, actor_id, actor_email, actor_school = _actor_fields(actor)
     is_student = role == ActorRole.STUDENT
