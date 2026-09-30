@@ -33,8 +33,6 @@ from users.models import CustomUser, UserTypes
 class SuperadminTenancySeparationTest(APITestCase):
     def setUp(self):
         cache.clear()
-        if not hasattr(cache, "delete_pattern"):
-            cache.delete_pattern = lambda x: None
 
         self.school = School.objects.create(name="Tenancy School")
         self.superadmin = CustomUser.objects.create_superuser(

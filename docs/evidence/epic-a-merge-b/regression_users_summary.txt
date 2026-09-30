@@ -1,0 +1,7 @@
+# users regression at 6ae18c4: summary (the full 781 KB log exceeds the large-file hook; it is kept at ~/Documents/Projects/GAP-1a-records/epic-a-merge-b/runs/regression_users.log)
+# command: python manage.py test --settings=settings_worktree --noinput users --parallel 2 (6G scope, nice 10, timeout -k 60 1800), 16:36:30-16:37:13 WAT
+4:System check identified some issues:
+9:System check identified 1 issue (0 silenced).
+10:Found 686 test(s).
+9695:Ran 686 tests in 26.668s
+9697:OK (skipped=4)

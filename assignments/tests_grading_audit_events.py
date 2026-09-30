@@ -13,6 +13,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from ai_processor.services import GRADING_ASSIGNMENT_PROMPT
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import grade_engine_async
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
@@ -189,6 +190,10 @@ class GradeEngineAsyncOutcomeAuditEventTest(TestCase):
         self.assertEqual(event.target_id, self.submission.id)
         self.assertEqual(event.metadata["assignment_id"], str(self.assignment.id))
         self.assertEqual(event.metadata["model"], "x-ai/grok-4.3")
+        # S5 (NFR-OBS-04): the exact grading prompt behind this grade.
+        self.assertEqual(
+            event.metadata["prompt_version"], GRADING_ASSIGNMENT_PROMPT.version
+        )
 
     @patch("assignments.tasks.grade_engine")
     def test_a_successful_grade_with_no_captured_model_has_no_model_metadata(
@@ -221,6 +226,9 @@ class GradeEngineAsyncOutcomeAuditEventTest(TestCase):
         self.assertEqual(event.error_class, ErrorClass.SYSTEM)
         self.assertEqual(event.actor_id, self.teacher.id)
         self.assertEqual(event.target_id, self.submission.id)
+        self.assertEqual(
+            event.metadata["prompt_version"], GRADING_ASSIGNMENT_PROMPT.version
+        )
 
     @patch("assignments.tasks.classify_infra_error")
     @patch("assignments.tasks.grade_engine")

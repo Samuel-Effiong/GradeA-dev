@@ -1,4 +1,4 @@
-"""Generation counters for cache invalidation (H-1, Option D, stage 1).
+"""Generation counters: the project's cache invalidation (H-1, Option D).
 
 Invalidation by *versioning* rather than by deletion. Each cacheable entity
 (a user, a school, a course, plus one global scope) owns an integer
@@ -6,7 +6,7 @@ generation. A cache key embeds the generations it depends on, so bumping a
 counter makes every dependent key unreachable in **one `INCR`** - no
 keyspace SCAN, no DEL, and no way to touch a key belonging to anyone else.
 
-This replaces wildcard `delete_pattern` invalidation, which was measured
+This replaced wildcard `delete_pattern` invalidation, which was measured
 (see `docs/HARDENING_BACKLOG.md`) at 29 SCAN + 432 Redis commands per
 imported row, and which destroyed all 10,000 cached keys - every tenant's
 cache - on a 25-row import, because `*user*` matches 29 of the 35 cache-key
@@ -14,10 +14,10 @@ families in the project.
 
 Design: `docs/H1_CACHE_INVALIDATION_DESIGN.md`.
 
-STAGE 1 SCOPE: counters and key construction only. Nothing reads these keys
-yet; the existing wildcard receivers are still in place and still the live
-invalidation mechanism. This module is inert until stage 2 wires read sites
-to it, which is what makes stage 1 reversible.
+The wildcard mechanism was removed in H-1 step 4
+(`docs/evidence/H1_STEP4_WILDCARD_REMOVAL_EVIDENCE.md`); a bump here is now
+the only thing that refreshes a cached response, and
+`AutoGrader/tests_no_wildcard_invalidation.py` keeps it that way.
 """
 
 import logging
@@ -42,7 +42,9 @@ logger = logging.getLogger(__name__)
 #: constraint, which is exactly the kind of fragile guarantee this project
 #: is replacing - so it is enforced by a test
 #: (`test_no_live_invalidation_pattern_can_destroy_a_counter`), not by this
-#: comment. The constraint disappears at stage 3 when the wildcards go.
+#: comment. The wildcards were removed in H-1 step 4, so no live pattern
+#: can reach a counter any more; the names are kept (renaming every counter
+#: would reset every generation) and the guard test forbids a new pattern.
 GENERATION_KEY_PREFIX = "cachegen"
 
 #: The generation a counter is assumed to hold when Redis has never seen it.
@@ -296,7 +298,46 @@ def _bump_pipelined(pairs):
         return None
 
 
-def versioned_key(base, scopes):
+def get_generations(pairs):
+    """Current generations for several entities, in ONE Redis round trip.
+
+    The batched twin of `get_generation`, with the same rule: a missing
+    counter, an unreachable Redis or a corrupted value all read as
+    DEFAULT_GENERATION, and it never raises. Returns a list in `pairs` order.
+    """
+    keys = [generation_key(scope, entity_id) for scope, entity_id in pairs]
+    try:
+        values = cache.get_many(keys)
+    except Exception:
+        logger.error(
+            "Cache generation read failed for %d counters; falling back to "
+            "the default generation, so responses may be served from a "
+            "stale key until Redis recovers.",
+            len(keys),
+            exc_info=True,
+        )
+        return [DEFAULT_GENERATION] * len(keys)
+
+    generations = []
+    for key in keys:
+        value = values.get(key)
+        if value is None:
+            generations.append(DEFAULT_GENERATION)
+            continue
+        try:
+            generations.append(int(value))
+        except (TypeError, ValueError):
+            logger.error(
+                "Cache generation key %s holds a non-integer value %r; using "
+                "the default generation.",
+                key,
+                value,
+            )
+            generations.append(DEFAULT_GENERATION)
+    return generations
+
+
+def versioned_key(base, scopes, *, batched=False):
     """Build a cache key carrying the generations it depends on.
 
     `scopes` is an ordered iterable of (scope, entity_id) pairs. Order is
@@ -309,9 +350,20 @@ def versioned_key(base, scopes):
     A key built this way is unreachable the moment ANY of its generations
     advances, which is what lets one response depend on several entities
     without needing a pattern that spans them.
+
+    `batched=True` reads every generation in one round trip (`get_many`)
+    instead of one GET per scope. It is for keys whose scope list grows with
+    the data, such as one `crs` scope per enrolled course. The key text is
+    identical either way.
     """
+    scopes = list(scopes)
+    if batched:
+        generations = get_generations(scopes)
+    else:
+        generations = [get_generation(scope, entity_id) for scope, entity_id in scopes]
     parts = [
-        f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+        f"{scope}={generation}"
+        for (scope, _), generation in zip(scopes, generations, strict=True)
     ]
     if not parts:
         raise ValueError(

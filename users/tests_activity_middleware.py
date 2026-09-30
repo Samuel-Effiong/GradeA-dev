@@ -32,7 +32,8 @@ from users.models import CustomUser, UserActivity, UserTypes
 #
 # Historical note, because it explains the class below: this used to be
 # order-dependent on the shared real Redis. users.signals.clear_user_cache
-# fires `delete_pattern("*user*")` on every CustomUser and Settings save,
+# fired `delete_pattern("*user*")` on every CustomUser and Settings save
+# (until H-1 step 4 removed every wildcard),
 # and the heartbeat key was called `active_user:<type>:<id>` - which that
 # glob matches. An unrelated suite creating a user wiped the heartbeat
 # mid-test and let a second activity row through.
@@ -185,9 +186,12 @@ class HeartbeatKeyNamespaceTests(TestCase):
     swept namespace - which is precisely how the original defect arrived.
     """
 
-    # Every delete_pattern glob used anywhere in the project, gathered from
+    # Every delete_pattern glob the project used, gathered from
     # users/signals.py, classrooms/signals.py, assignments/signals.py,
-    # students/signals.py and students/views.py.
+    # students/signals.py and students/views.py. H-1 step 4 removed all of
+    # them and AutoGrader/tests_no_wildcard_invalidation.py forbids their
+    # return; this stays as defence in depth, so a key never drifts back
+    # into a namespace a reintroduced sweep would hit.
     SWEPT_SUBSTRINGS = [
         "superadmin",
         "schooladmin",

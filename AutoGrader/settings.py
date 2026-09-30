@@ -38,12 +38,16 @@ LOGGING = {
             # from a request - it reads "-" outside any request/task).
             "format": (
                 "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} "
-                "[request_id={request_id}] {message}\n\n"
+                "[request_id={request_id} client_request_id={client_request_id}] "
+                "{message}\n\n"
             ),
             "style": "{",
         },
         "simple": {
-            "format": "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s] %(message)s\n\n",
+            "format": (
+                "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s "
+                "client_request_id=%(client_request_id)s] %(message)s\n\n"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
@@ -1169,6 +1173,17 @@ REGISTER_STUDENT_FAILURE_WINDOW_SECONDS = env.int(
     "REGISTER_STUDENT_FAILURE_WINDOW_SECONDS", default=3600
 )
 
+# Epic A S1b: the bound on failed-sign-in audit rows; see audit.failed_auth_cap.
+FAILED_AUTH_TARGET_FLOOR = env.int("FAILED_AUTH_TARGET_FLOOR", default=5)
+FAILED_AUTH_TARGET_LIMIT = env.int("FAILED_AUTH_TARGET_LIMIT", default=30)
+FAILED_AUTH_GLOBAL_LIMIT = env.int("FAILED_AUTH_GLOBAL_LIMIT", default=300)
+FAILED_AUTH_WINDOW_SECONDS = env.int("FAILED_AUTH_WINDOW_SECONDS", default=3600)
+
+# H-53: per-address budget of attempts on POST /auth/verify; see
+# users.throttling.reserve_verify_attempt.
+VERIFY_EMAIL_MAX_FAILURES = env.int("VERIFY_EMAIL_MAX_FAILURES", default=5)
+VERIFY_EMAIL_LOCK_SECONDS = env.int("VERIFY_EMAIL_LOCK_SECONDS", default=1800)
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
@@ -1264,9 +1279,10 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
-        # Namespaces cache keys so wildcard delete_pattern calls (e.g.
-        # "*user*") can only ever match cache entries — never Celery
-        # broker/result keys living in the same Redis instance.
+        # Namespaces cache keys so the one remaining pattern delete (the PDF
+        # cache's exact-prefix clear, assignments/pdf_cache.py) can only
+        # ever match cache entries — never Celery broker/result keys living
+        # in the same Redis instance.
         "KEY_PREFIX": "gaplus",
     }
 }
@@ -1335,9 +1351,11 @@ if "test" in sys.argv:
 TEST_RUNNER = "AutoGrader.redis_test_runner.RedisHygieneRunner"
 
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
-# ~10 keys when delete_pattern walks the keyspace. Signal handlers call
-# delete_pattern on every user/course/enrollment save, so on a remote Redis
-# that default turns each save into seconds of scanning.
+# ~10 keys when delete_pattern walks the keyspace. The legacy wildcard
+# receivers that ran it on every save were removed (H-1 step 4); the PDF
+# cache's exact-prefix clear on an assignment save still walks it, so on a
+# remote Redis the default would still turn that save into seconds of
+# scanning.
 DJANGO_REDIS_SCAN_ITERSIZE = 100_000
 
 CACHE_TTL = 60 * 5

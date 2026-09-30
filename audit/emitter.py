@@ -42,16 +42,18 @@ from typing import Optional
 
 from django.db import transaction
 
-from AutoGrader.request_context import get_request_id
+from AutoGrader.request_context import client_request_id_from_header, get_request_id
 
+from . import failed_auth_cap
 from . import metrics as audit_metrics
-from .context import current_trace_id, record_stored_event
+from .context import current_trace_id, record_stored_event, record_suppressed_event
 from .enums import (
     STUDENT_RECORD_ACTIONS,
     ActorRole,
     AuditAction,
     AuditOutcome,
     ErrorClass,
+    ReasonCode,
     RetentionClass,
 )
 from .metadata import sanitise, sanitise_metadata_for_action
@@ -70,7 +72,6 @@ _GRADING_ACTIONS = frozenset(
 logger = logging.getLogger(__name__)
 
 _TARGET_TYPE = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
-_REASON_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 _CLIENT_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")
 _SAFE_ACTION = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 
@@ -92,12 +93,11 @@ def _resolve_trace_id() -> uuid.UUID:
     wins first. Otherwise, the id `AutoGrader.request_context` already
     propagates across the web request and every Celery hop it dispatches
     (`RequestIDMiddleware`, `celery_signals.py` - confirmed wired end to end).
-    That value is a `uuid4().hex` when server-generated, but an INBOUND
-    `X-Request-ID` is accepted on a much broader charset for logging purposes
-    (`is_valid_request_id`), so it is not assumed to be a well-formed UUID
-    just because it passed that check - a value that does not parse is
-    dropped, never used as-is. With neither available, a fresh id is minted
-    so every event still gets one.
+    That id is always minted by the server (S5 part 0): the middleware never
+    adopts an inbound `X-Request-ID`, which it keeps apart as
+    `client_request_id`. Anything else that set it is still parsed, never
+    used as-is: a value that is not a UUID is dropped. With neither
+    available, a fresh id is minted so every event still gets one.
     """
     explicit = current_trace_id()
     if explicit is not None:
@@ -109,6 +109,13 @@ def _resolve_trace_id() -> uuid.UUID:
         except ValueError:
             pass
     return uuid.uuid4()
+
+
+def resolve_trace_id() -> uuid.UUID:
+    """The server trace id for the current request or task (see
+    `_resolve_trace_id`). Public for other layers that log against the same
+    trace, e.g. the AI provider call (S5)."""
+    return _resolve_trace_id()
 
 
 def emit(
@@ -128,6 +135,7 @@ def emit(
     metadata=None,
     touches_student_record=False,
     strict=False,
+    _bypass_failed_auth_cap=False,
 ):
     """Record one audit event. Returns the saved `AuditEvent`, or None if it
     was rejected or could not be stored.
@@ -173,6 +181,18 @@ def emit(
             extra={"audit_kind": "metadata_dropped", "audit_action": label},
         )
 
+    scope = None if _bypass_failed_auth_cap else _failed_auth_cap_scope(fields)
+    if scope is not None:
+        cap_target, global_cap = scope
+        verdict = failed_auth_cap.admit(cap_target, global_cap=global_cap)
+        if not verdict.write:
+            record_suppressed_event()
+            if verdict.summary is not None:
+                _emit_failed_auth_summary(
+                    action, request, verdict.summary, outcome, error_class
+                )
+            return None
+
     try:
         with transaction.atomic():
             event = AuditEvent.objects.create(**fields)
@@ -193,6 +213,80 @@ def emit(
 
 
 # ---------------------------------------------------------------------------
+
+
+_CAPPED_ACTIONS = frozenset(
+    {AuditAction.AUTH_LOGIN.value, AuditAction.ACCOUNT_REGISTER.value}
+)
+
+
+def _failed_auth_cap_scope(fields):
+    """S1b's scope for an ANONYMOUS requester's event: None if uncapped, else
+    (the target id to count against, whether the global cap applies).
+
+    - An anonymous crash (S2's SERVER_ERROR, on a door or any route): the
+      global, no-target bucket (SM ruling).
+    - A failed sign-in or registration: floor, per-target and global caps.
+    - A DENIED sign-in (a locked account): floor and per-target cap only, so
+      the lock stays visible (its first events are always written) and its
+      volume is bounded (SM ruling on v2's flag).
+    - A DENIED with no account (H-53 locks /auth/verify per ADDRESS, known
+      or not; SM ruling for the beta merge): no floor, and the global cap.
+      The floor protects known accounts only, and a hammered unknown address
+      is the spray noise the global cap is for. There is no per-target
+      bucket to count it in: keys hold an account id, never an email.
+      Otherwise it would be the one path written without bound.
+    Successes and signed-in requesters are never capped."""
+    if fields.get("actor_role") != ActorRole.ANONYMOUS.value:
+        return None
+    outcome = fields.get("outcome")
+    if (
+        fields.get("reason_code") == ReasonCode.SERVER_ERROR.value
+        and outcome == AuditOutcome.FAILURE.value
+    ):
+        return None, True
+    if fields.get("action") not in _CAPPED_ACTIONS:
+        return None
+    if outcome == AuditOutcome.FAILURE.value:
+        return fields.get("target_id"), True
+    if outcome == AuditOutcome.DENIED.value:
+        target_id = fields.get("target_id")
+        return target_id, target_id is None
+    return None
+
+
+def _emit_failed_auth_summary(action, request, summary, outcome, error_class) -> None:
+    """The summary written in place of suppressed failures (S1b). Scoped to
+    the targeted account's school, like the failures it stands for."""
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import AnonymousUser
+
+    school_id = None
+    if summary.target_id is not None:
+        school_id = (
+            get_user_model()
+            .objects.filter(pk=summary.target_id)
+            .values_list("school_id", flat=True)
+            .first()
+        )
+    emit(
+        action,
+        actor=AnonymousUser(),
+        request=request,
+        target_type="CustomUser",
+        target_id=summary.target_id,
+        school_id=school_id,
+        outcome=outcome,
+        error_class=error_class or ErrorClass.USER,
+        reason_code=failed_auth_cap.FAILED_AUTH_CAPPED,
+        metadata={
+            "cap": summary.cap,
+            "suppressed_so_far": summary.suppressed_so_far,
+            "limit": summary.limit,
+            "window_seconds": summary.window_seconds,
+        },
+        _bypass_failed_auth_cap=True,
+    )
 
 
 def _safe_label(action) -> str:
@@ -252,10 +346,12 @@ def _build(
     if outcome != AuditOutcome.SUCCESS and error_class is None:
         raise AuditValidationError("error_class: a non-success needs one")
 
-    if reason_code is not None and not (
-        isinstance(reason_code, str) and _REASON_CODE.fullmatch(reason_code)
-    ):
-        raise AuditValidationError("reason_code: not a valid code")
+    if reason_code is not None:
+        # FR-A-06: only a code in the catalogue (audit.enums.ReasonCode). A
+        # new code is added there first, with its spec or as audit-only
+        # (AutoGrader/reason_codes.py), so the vocabulary stays closed.
+        if not isinstance(reason_code, str) or reason_code not in ReasonCode.values:
+            raise AuditValidationError("reason_code: not a known code")
 
     role, actor_id, actor_email, actor_school = _actor_fields(actor)
     is_student = role == ActorRole.STUDENT
@@ -375,7 +471,11 @@ def _request_fields(request, is_student):
     if not isinstance(meta, dict):
         return fields
 
-    client_id = getattr(request, "request_id", None) or meta.get("HTTP_X_REQUEST_ID")
+    # The client's own id (a UUID, or nothing), never the server's request
+    # id, which is this event's trace id (S5 part 0).
+    client_id = getattr(
+        request, "client_request_id", None
+    ) or client_request_id_from_header(meta.get("HTTP_X_REQUEST_ID"))
     if isinstance(client_id, str) and _CLIENT_ID.fullmatch(client_id):
         fields["client_correlation_id"] = client_id
 

@@ -27,8 +27,12 @@ the whole cycle, so the trace id is still available here.
 """
 
 from .admin_action import REQUEST_ATTR, emit_for_response
-from .context import a_surviving_event_names, request_audit_state
-from .request_audit import emit_generic_state_change
+from .context import (
+    a_stored_event_survives,
+    a_surviving_event_names,
+    request_audit_state,
+)
+from .request_audit import emit_anonymous_refusal, emit_generic_state_change
 
 
 class AuditMiddleware:
@@ -46,6 +50,10 @@ class AuditMiddleware:
             # (a teacher's credit grant) are side effects, not their trace.
             if not a_surviving_event_names(state, getattr(request, "user", None)):
                 emit_generic_state_change(request, response)
+            # S2: an anonymous write refused or crashed before any event. Not
+            # when S1b's cap held that event back: it is counted in a summary.
+            if not a_stored_event_survives(state) and not state.suppressed:
+                emit_anonymous_refusal(request, response)
         return response
 
 

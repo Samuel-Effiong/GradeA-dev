@@ -1,0 +1,3 @@
+AutoGrader.tests_cache_matrix_tenant_isolation.TenantAMutationBurstLeavesTenantBUntouchedTests.test_a_full_burst_of_tenant_a_mutations_leaves_tenant_b_byte_identical ... ok
+Ran 1 test in 1.257s
+OK

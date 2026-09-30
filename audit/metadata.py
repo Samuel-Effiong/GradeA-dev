@@ -63,6 +63,11 @@ ALLOWED_KEYS = frozenset(
         "http_status",
         "auth_method",
         "lock_triggered",
+        # S1b failed-auth summaries (counts and settings, never identities)
+        "cap",
+        "suppressed_so_far",
+        "limit",
+        "window_seconds",
         "model",
         "prompt_version",
         "grading_config_version",
@@ -168,10 +173,17 @@ def sanitise(value):
 # (Lesson/Tag/Department/Library, Epics C/D/F). Widen an entry only when the
 # call site that needs the extra key is actually being built, in the same
 # reviewed change - not ahead of time "in case it's useful".
+# S1b: the summary written in place of capped failed sign-ins.
+_FAILED_AUTH_SUMMARY_KEYS = frozenset(
+    {"cap", "suppressed_so_far", "limit", "window_seconds"}
+)
+
 METADATA_ALLOWLIST = {
     # lock_triggered: the password-reset guess that spent the budget and set
     # the lock (L2), recorded as the failure it was plus this flag.
-    AuditAction.AUTH_LOGIN: frozenset({"auth_method", "http_status", "lock_triggered"}),
+    AuditAction.AUTH_LOGIN: frozenset(
+        {"auth_method", "http_status", "lock_triggered"} | _FAILED_AUTH_SUMMARY_KEYS
+    ),
     AuditAction.AUTH_LOGOUT: frozenset(),
     AuditAction.GRADING_REQUESTED: frozenset(
         {"assignment_id", "submission_id", "task_id", "task_type"}
@@ -195,6 +207,7 @@ METADATA_ALLOWLIST = {
             "task_id",
             "attempt",
             "model",
+            "prompt_version",
             "feature",
             "http_status",
         }
@@ -231,7 +244,14 @@ METADATA_ALLOWLIST = {
     AuditAction.ADMIN_ACTION: frozenset({"source"}),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields"}),
-    AuditAction.STATE_CHANGE: frozenset({"route", "method", "http_status"}),
+    # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
+    # summarised under its own action.
+    AuditAction.STATE_CHANGE: frozenset(
+        {"route", "method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
+    ),
+    AuditAction.ACCOUNT_REGISTER: frozenset(
+        {"auth_method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
+    ),
 }
 
 
