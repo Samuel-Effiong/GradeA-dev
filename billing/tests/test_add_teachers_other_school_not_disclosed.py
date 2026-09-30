@@ -26,6 +26,8 @@ from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
 RIVAL = "Rival Academy of Secret Names"
+STUDENT_EMAIL = "a.student@rival-academy.edu"
+NOT_A_TEACHER = "This email can't be added as a teacher."
 TEACHER_EMAIL = "taken.teacher@rival-academy.edu"
 GENERIC = "This teacher already belongs to another school."
 
@@ -90,6 +92,37 @@ class AddTeachersOtherSchoolTest(APITestCase):
         self.assertNotIn(RIVAL, logged)
         self.assertNotIn(TEACHER_EMAIL, logged)
         self.assertIn(str(self.taken.id), logged)
+
+    def test_a_non_teacher_account_is_refused_without_naming_its_role(self):
+        """SM ruling: the role of an arbitrary address is not disclosed
+        either - not in the response, not in the log."""
+        student = CustomUser.objects.create_user(
+            email=STUDENT_EMAIL,
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+        )
+        with self.assertLogs("billing.license_service", level="DEBUG") as logs:
+            response = self.client.post(
+                reverse(
+                    "license-subscription-add-teachers",
+                    kwargs={"pk": self.licence.pk},
+                ),
+                {"teacher_emails": [STUDENT_EMAIL]},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        data = response.json()["data"]
+        self.assertEqual(data["errors"][0]["error"], NOT_A_TEACHER)
+        body = response.content.decode().lower()
+        for role in ("student", "school admin", "school_admin", "super"):
+            self.assertNotIn(role, body.replace(STUDENT_EMAIL.lower(), ""))
+        logged = "\n".join(logs.output)
+        self.assertNotIn(STUDENT_EMAIL, logged)
+        for role in ("student", "school admin", "school_admin", "super"):
+            self.assertNotIn(role, logged.lower())
+        self.assertIn(str(student.id), logged)
 
     def test_the_teacher_is_still_refused(self):
         self.add()

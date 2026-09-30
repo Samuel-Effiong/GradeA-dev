@@ -1157,11 +1157,13 @@ class LicenseSubscriptionService:
         if user:
             # 2. Validate user type
             if user.user_type != UserTypes.TEACHER:
-                error_msg = f"Email {email} already belongs to a {user.user_type} account, not a teacher."
-
+                # Generic on purpose (SM ruling): naming the account's role
+                # told any school admin what kind of account an arbitrary
+                # address has on the platform. The log carries ids only.
+                error_msg = "This email can't be added as a teacher."
+                logger.warning("User %s is not a teacher: not enrolled.", user.id)
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # 3. Check for active individual subscription

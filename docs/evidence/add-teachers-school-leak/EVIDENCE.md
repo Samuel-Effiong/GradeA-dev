@@ -19,9 +19,9 @@ Any school admin could learn which school an arbitrary address belongs to: a **c
 - **The per-teacher seat-limit and "does not belong to school {name}" messages:** they name the licence's **own** school, the admin's own.
 - **Roster import:** the other-school refusal is already generic ("This account cannot be added to this school…").
 - **Invitation and overage emails:** they go to the right school's own people.
-- **Related, not fixed here (raised with the SM):** two other add_teachers per-teacher errors are weaker cross-tenant disclosures about an arbitrary address:
-  - "already belongs to a {role} account, not a teacher" reveals the account's role;
-  - "has an active individual subscription" reveals its billing status.
+- **Related, raised with the SM:**
+  - **Fixed here (SM ruling 1):** "Email X already belongs to a {STUDENT/SCHOOL_ADMIN/…} account, not a teacher." told any school admin the role of an arbitrary address. It is now **"This email can't be added as a teacher."**, and its log line carries the user id only: no email, no role. A test checks that no role word ("student", "school admin", "super") reaches the response or the log.
+  - **Left for QA (SM ruling 2):** "Teacher X has an active individual subscription…" discloses the billing status of an arbitrary teacher. It is actionable for a legitimate admin, so the founder and QA decide it via the proposal's `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`, which now notes the disclosure.
 
 ## Gates
 _pending_

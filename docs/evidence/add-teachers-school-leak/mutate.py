@@ -29,6 +29,12 @@ MUTANTS = {
         "            if user.school and user.school != school:\n",
         "            if False:\n",
     ),
+    # SM ruling: the role of a non-teacher account is not disclosed.
+    "N4_names_the_role_again": (
+        LS,
+        '                error_msg = "This email can\'t be added as a teacher."\n',
+        '                error_msg = f"This email belongs to a {user.user_type} account."\n',
+    ),
 }
 
 TESTS = ["billing.tests.test_add_teachers_other_school_not_disclosed"]
