@@ -26,7 +26,7 @@ class StudentRiskAlertState(models.Model):
     #: with the alert still undelivered (the email queue was down), and the
     #: daily task must keep retrying until it is delivered rather than treat
     #: the student as "already alerted".
-    alert_pending = models.BooleanField(default=False)
+    alert_pending = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         constraints = [
