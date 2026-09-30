@@ -80,6 +80,7 @@ from .payment_refunds import (
     SYSTEM_REFUND_INTERVAL_CHANGE_DUPLICATE,
     SYSTEM_REFUND_METADATA_KEY,
 )
+from .receipts import schedule_receipt_url_fill
 from .services import SubscriptionService
 from .subscription_resolver import (
     SOURCE_INDIVIDUAL,
@@ -296,54 +297,6 @@ def extract_subscription_billing_period(stripe_subscription):
         return start, end
 
     return None, None
-
-
-def resolve_stripe_receipt_url(
-    *,
-    invoice=None,
-    invoice_id=None,
-    charge=None,
-    charge_id=None,
-    payment_intent_id=None,
-):
-    """
-    Resolves the Stripe-hosted receipt/invoice link for a purchase, in
-    priority order invoice -> charge -> payment_intent (mirrors
-    BillingTransactionService._resolve_lookup's specificity ordering).
-
-    Prefers an already-fetched `invoice`/`charge` object (zero extra API
-    calls) over fetching by id. Never raises — a receipt link is a
-    nice-to-have, not something that should break webhook processing or
-    any surrounding business-logic transaction.
-    """
-    try:
-        if invoice is not None:
-            return invoice.get("hosted_invoice_url")
-        if invoice_id:
-            return stripe.Invoice.retrieve(invoice_id).get("hosted_invoice_url")
-
-        if charge is not None:
-            return charge.get("receipt_url")
-        if charge_id:
-            return stripe.Charge.retrieve(charge_id).get("receipt_url")
-
-        if payment_intent_id:
-            pi = stripe.PaymentIntent.retrieve(
-                payment_intent_id, expand=["latest_charge"]
-            )
-            latest_charge = pi.get("latest_charge")
-            return latest_charge.get("receipt_url") if latest_charge else None
-    except stripe.error.StripeError as exc:
-        logger.warning(
-            "resolve_stripe_receipt_url failed (invoice_id=%s, charge_id=%s, "
-            "payment_intent_id=%s): %s",
-            invoice_id,
-            charge_id,
-            payment_intent_id,
-            exc,
-        )
-
-    return None
 
 
 class StripeCustomerService:
@@ -2858,7 +2811,7 @@ class StripeWebhookHandler:
                 stripe_subscription_id=session["subscription"],
             )
 
-            BillingTransactionService.record(
+            billing_transaction = BillingTransactionService.record(
                 source=BillingTransactionSource.INDIVIDUAL,
                 transaction_type=BillingTransactionType.INDIVIDUAL_TRIAL_CONVERSION_CHARGE,
                 status=BillingTransactionStatus.PAID,
@@ -2868,14 +2821,12 @@ class StripeWebhookHandler:
                 user=user,
                 user_subscription=updated_sub,
                 stripe_invoice_id=session.get("invoice"),
+                stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
                 stripe_subscription_id=session.get("subscription"),
-                receipt_url=resolve_stripe_receipt_url(
-                    invoice_id=session.get("invoice"),
-                    payment_intent_id=session.get("payment_intent"),
-                ),
                 description=f"Trial converted to {plan.display_name or plan.name}",
             )
+            schedule_receipt_url_fill(billing_transaction)
 
             logger.info(
                 "Checkout completed: trial %s finalized to paid plan %s for "
@@ -2909,7 +2860,7 @@ class StripeWebhookHandler:
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.INDIVIDUAL,
             transaction_type=BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE,
             status=BillingTransactionStatus.PAID,
@@ -2919,14 +2870,12 @@ class StripeWebhookHandler:
             user=user,
             user_subscription=subscription,
             stripe_invoice_id=session.get("invoice"),
+            stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
-            receipt_url=resolve_stripe_receipt_url(
-                invoice_id=session.get("invoice"),
-                payment_intent_id=session.get("payment_intent"),
-            ),
             description=f"New subscription — {plan.display_name or plan.name}",
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         logger.info(
             "Checkout completed: fresh activation of plan %s for user %s "
@@ -3047,7 +2996,7 @@ class StripeWebhookHandler:
             stripe_payment_intent_id=session.get("payment_intent"),
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.INDIVIDUAL,
             transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
             status=BillingTransactionStatus.PAID,
@@ -3058,15 +3007,12 @@ class StripeWebhookHandler:
             stripe_invoice_id=session.get("invoice"),
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
-            receipt_url=resolve_stripe_receipt_url(
-                invoice_id=session.get("invoice"),
-                payment_intent_id=session.get("payment_intent"),
-            ),
             description=(
                 f"Overage purchase — "
                 f"{quantity * plan.display_overage_block_size:,} AI credit(s)"
             ),
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         logger.info(
             "Overage checkout completed for wallet %s: granted %s block(s) of plan %s.",
@@ -3186,7 +3132,7 @@ class StripeWebhookHandler:
                     "updated_at",
                 ]
             )
-            BillingTransactionService.record(
+            billing_transaction = BillingTransactionService.record(
                 source=BillingTransactionSource.LICENSE,
                 transaction_type=BillingTransactionType.LICENSE_OVERAGE_PURCHASE,
                 status=BillingTransactionStatus.PAID,
@@ -3196,9 +3142,6 @@ class StripeWebhookHandler:
                 license_subscription=license_sub,
                 stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
-                receipt_url=resolve_stripe_receipt_url(
-                    payment_intent_id=session.get("payment_intent")
-                ),
                 performed_by=intent.initiated_by,
                 description=(
                     f"Overage purchase "
@@ -3207,6 +3150,7 @@ class StripeWebhookHandler:
                     f"time — credits NOT granted, needs manual refund."
                 ),
             )
+            schedule_receipt_url_fill(billing_transaction)
             return
 
         # Re-validate every teacher is STILL active — one may have been
@@ -3281,7 +3225,7 @@ class StripeWebhookHandler:
             ]
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.LICENSE,
             transaction_type=BillingTransactionType.LICENSE_OVERAGE_PURCHASE,
             status=BillingTransactionStatus.PAID,
@@ -3291,9 +3235,6 @@ class StripeWebhookHandler:
             license_subscription=license_sub,
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
-            receipt_url=resolve_stripe_receipt_url(
-                payment_intent_id=session.get("payment_intent")
-            ),
             performed_by=intent.initiated_by,
             description=(
                 f"Overage purchase — "
@@ -3302,6 +3243,7 @@ class StripeWebhookHandler:
                 + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
             ),
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         if skipped:
             logger.error(
@@ -3377,7 +3319,7 @@ class StripeWebhookHandler:
                 current_active_sub.id if current_active_sub else "none",
             )
 
-            BillingTransactionService.record(
+            billing_transaction = BillingTransactionService.record(
                 source=BillingTransactionSource.INDIVIDUAL,
                 transaction_type=BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE,
                 status=BillingTransactionStatus.PAID,
@@ -3389,14 +3331,12 @@ class StripeWebhookHandler:
                 stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
-                receipt_url=resolve_stripe_receipt_url(
-                    payment_intent_id=session.get("payment_intent")
-                ),
                 description=(
                     "Upgrade checkout paid but the user's active subscription "
                     "changed before this could be applied — needs manual review."
                 ),
             )
+            schedule_receipt_url_fill(billing_transaction)
 
             return
 
@@ -3438,7 +3378,7 @@ class StripeWebhookHandler:
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.INDIVIDUAL,
             transaction_type=BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE,
             status=BillingTransactionStatus.PAID,
@@ -3451,11 +3391,9 @@ class StripeWebhookHandler:
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=stripe_subscription_id,
-            receipt_url=resolve_stripe_receipt_url(
-                payment_intent_id=session.get("payment_intent")
-            ),
             description=f"Upgrade from {old_user_sub.plan.name} to {new_plan.name}",
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         logger.info(
             "Upgrade checkout completed for user %s: %s -> %s (subscription "
@@ -3483,7 +3421,7 @@ class StripeWebhookHandler:
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.INDIVIDUAL,
             transaction_type=BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE,
             status=BillingTransactionStatus.PAID,
@@ -3493,14 +3431,12 @@ class StripeWebhookHandler:
             user=user,
             user_subscription=subscription,
             stripe_invoice_id=session.get("invoice"),
+            stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
-            receipt_url=resolve_stripe_receipt_url(
-                invoice_id=session.get("invoice"),
-                payment_intent_id=session.get("payment_intent"),
-            ),
             description=f"New subscription — {plan.display_name or plan.name}",
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         logger.info(
             "Stripe checkout completed: individual subscribe for user %s, plan %s.",
@@ -3568,7 +3504,7 @@ class StripeWebhookHandler:
             ]
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.LICENSE,
             transaction_type=BillingTransactionType.LICENSE_INITIAL_CHARGE,
             status=BillingTransactionStatus.PAID,
@@ -3578,14 +3514,12 @@ class StripeWebhookHandler:
             user=admin_user,
             license_subscription=license_sub,
             stripe_invoice_id=session.get("invoice"),
+            stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
-            receipt_url=resolve_stripe_receipt_url(
-                invoice_id=session.get("invoice"),
-                payment_intent_id=session.get("payment_intent"),
-            ),
             description=f"License created — {plan.display_name or plan.name}",
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         enrollment_results = getattr(
             license_sub,
@@ -3694,7 +3628,7 @@ class StripeWebhookHandler:
             stripe_subscription_id=stripe_subscription_id,
         )
 
-        BillingTransactionService.record(
+        billing_transaction = BillingTransactionService.record(
             source=BillingTransactionSource.INDIVIDUAL,
             transaction_type=BillingTransactionType.INDIVIDUAL_TRIAL_CONVERSION_CHARGE,
             status=BillingTransactionStatus.PAID,
@@ -3704,14 +3638,12 @@ class StripeWebhookHandler:
             user=user,
             user_subscription=trial_sub,
             stripe_invoice_id=session.get("invoice"),
+            stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=stripe_subscription_id,
-            receipt_url=resolve_stripe_receipt_url(
-                invoice_id=session.get("invoice"),
-                payment_intent_id=session.get("payment_intent"),
-            ),
             description=f"Trial converted to {new_plan.display_name or new_plan.name}",
         )
+        schedule_receipt_url_fill(billing_transaction)
 
         logger.info(
             "Stripe checkout completed: trial-to-paid conversion for user %s. "
