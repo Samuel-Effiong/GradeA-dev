@@ -130,7 +130,7 @@ class CodedSeeingTheClientId(APIView):
     seen: dict = {}
 
     def get(self, request):
-        self.seen["client_request_id"] = request.client_request_id
+        self.seen["client_request_id"] = getattr(request, "client_request_id", None)
         raise CodedError(ReasonCode.PROVIDER_FAILURE, detail=SENTINEL)
 
 
