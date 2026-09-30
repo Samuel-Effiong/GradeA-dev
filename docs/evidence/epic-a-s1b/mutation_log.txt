@@ -1,0 +1,16 @@
+C1_no_floor_for_known_accounts {'killed': True, 'failing_tests': ['test_a_known_accounts_floor_is_written_even_when_the_global_cap_is_spent', 'test_past_the_floor_the_global_cap_applies_to_a_known_account']}
+C2_no_per_target_cap {'killed': True, 'failing_tests': ['test_a_suppressed_door_failure_leaves_only_the_summary', 'test_each_threshold_summary_is_written_exactly_once', 'test_lock_denials_get_the_floor_then_the_per_target_cap', 'test_past_the_target_limit_failures_become_a_summary', 'test_summaries_are_written_at_1_and_10_suppressed']}
+C3_no_global_cap {'killed': True, 'failing_tests': ['test_account_registration_failures_are_capped_too', 'test_an_anonymous_crash_is_capped_in_the_global_bucket', 'test_an_unknown_target_is_under_the_global_cap_from_the_first', 'test_past_the_floor_the_global_cap_applies_to_a_known_account']}
+C4_fails_closed {'killed': True, 'failing_tests': ['test_the_cap_fails_open']}
+C5_no_summaries {'killed': True, 'failing_tests': ['test_a_suppressed_door_failure_leaves_only_the_summary', 'test_account_registration_failures_are_capped_too', 'test_an_anonymous_crash_is_capped_in_the_global_bucket', 'test_an_unknown_target_is_under_the_global_cap_from_the_first', 'test_each_threshold_summary_is_written_exactly_once', 'test_lock_denials_get_the_floor_then_the_per_target_cap', 'test_past_the_floor_the_global_cap_applies_to_a_known_account', 'test_past_the_target_limit_failures_become_a_summary', 'test_summaries_are_written_at_1_and_10_suppressed']}
+C6_a_summary_for_every_suppression {'killed': True, 'failing_tests': ['test_a_suppressed_door_failure_leaves_only_the_summary', 'test_each_threshold_summary_is_written_exactly_once', 'test_summaries_are_written_at_1_and_10_suppressed']}
+C7_wrong_thresholds {'killed': True, 'failing_tests': ['test_each_threshold_summary_is_written_exactly_once', 'test_summaries_are_written_at_1_and_10_suppressed']}
+C8_counter_not_atomic {'killed': True, 'failing_tests': ['test_each_threshold_summary_is_written_exactly_once']}
+E1_successes_capped {'killed': True, 'failing_tests': ['test_lock_denials_are_not_under_the_global_cap']}
+E2_signed_in_requesters_capped {'killed': True, 'failing_tests': ['test_a_signed_in_requesters_failures_are_never_capped']}
+E4_lock_denials_under_the_global_cap {'killed': True, 'failing_tests': ['test_lock_denials_are_not_under_the_global_cap']}
+E5_lock_denials_uncapped {'killed': True, 'failing_tests': ['test_lock_denials_get_the_floor_then_the_per_target_cap']}
+E6_crashes_uncapped {'killed': True, 'failing_tests': ['test_an_anonymous_crash_is_capped_in_the_global_bucket']}
+E3_suppression_not_marked {'killed': True, 'failing_tests': ['test_a_suppressed_door_failure_leaves_only_the_summary']}
+M1_door_fallback_ignores_suppression {'killed': True, 'failing_tests': ['test_a_suppressed_door_failure_leaves_only_the_summary']}
+SURVIVORS: []

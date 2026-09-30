@@ -1,0 +1,164 @@
+Creating test database for alias 'default'...
+Got an error creating the test database: database "test_epic_a_s1b" already exists
+
+Destroying old test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user cap.door@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
+    raise ParseError("Invalid email or token.")
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
+    raise ParseError("Invalid email or token.")
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/users/views.py", line 814, in verify
+    raise ParseError("Invalid email or token.")
+rest_framework.exceptions.ParseError: Invalid email or token.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user cap.target@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cap.race.b103672e@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F
+======================================================================
+ERROR: test_account_registration_failures_are_capped_too (audit.tests_failed_auth_cap.FailedAuthCapTests.test_account_registration_failures_are_capped_too)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 217, in test_account_registration_failures_are_capped_too
+    self.assertEqual(summaries().get().action, AuditAction.ACCOUNT_REGISTER)
+                     ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+FAIL: test_a_suppressed_door_failure_leaves_only_the_summary (audit.tests_failed_auth_cap.CappedDoorThroughTheMiddlewareTests.test_a_suppressed_door_failure_leaves_only_the_summary)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 271, in test_a_suppressed_door_failure_leaves_only_the_summary
+    self.assertEqual(reasons, [FAILED_AUTH_CAPPED, "INVALID_CODE"])
+AssertionError: Lists differ: ['INVALID_CODE', 'INVALID_CODE', 'INVALID_CODE'] != ['FAILED_AUTH_CAPPED', 'INVALID_CODE']
+
+First differing element 0:
+'INVALID_CODE'
+'FAILED_AUTH_CAPPED'
+
+First list contains 1 additional elements.
+First extra element 2:
+'INVALID_CODE'
+
+- ['INVALID_CODE', 'INVALID_CODE', 'INVALID_CODE']
++ ['FAILED_AUTH_CAPPED', 'INVALID_CODE']
+
+======================================================================
+FAIL: test_an_anonymous_crash_is_capped_in_the_global_bucket (audit.tests_failed_auth_cap.FailedAuthCapTests.test_an_anonymous_crash_is_capped_in_the_global_bucket)
+S2's SERVER_ERROR (SM ruling): under the caps, no target.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 190, in test_an_anonymous_crash_is_capped_in_the_global_bucket
+    self.assertEqual(individual().count(), 6)
+AssertionError: 7 != 6
+
+======================================================================
+FAIL: test_an_unknown_target_is_under_the_global_cap_from_the_first (audit.tests_failed_auth_cap.FailedAuthCapTests.test_an_unknown_target_is_under_the_global_cap_from_the_first)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 133, in test_an_unknown_target_is_under_the_global_cap_from_the_first
+    self.assertEqual(individual().count(), 6)
+AssertionError: 7 != 6
+
+======================================================================
+FAIL: test_lock_denials_get_the_floor_then_the_per_target_cap (audit.tests_failed_auth_cap.FailedAuthCapTests.test_lock_denials_get_the_floor_then_the_per_target_cap)
+SM ruling on v2's flag: the lock stays visible (its first events
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 158, in test_lock_denials_get_the_floor_then_the_per_target_cap
+    self.assertEqual(individual().filter(outcome=AuditOutcome.DENIED).count(), 4)
+AssertionError: 5 != 4
+
+======================================================================
+FAIL: test_past_the_floor_the_global_cap_applies_to_a_known_account (audit.tests_failed_auth_cap.FailedAuthCapTests.test_past_the_floor_the_global_cap_applies_to_a_known_account)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 126, in test_past_the_floor_the_global_cap_applies_to_a_known_account
+    self.assertEqual(individual().filter(target_id=self.account.pk).count(), 2)
+AssertionError: 3 != 2
+
+======================================================================
+FAIL: test_past_the_target_limit_failures_become_a_summary (audit.tests_failed_auth_cap.FailedAuthCapTests.test_past_the_target_limit_failures_become_a_summary)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 82, in test_past_the_target_limit_failures_become_a_summary
+    self.assertEqual(individual().count(), 4)
+AssertionError: 5 != 4
+
+======================================================================
+FAIL: test_summaries_are_written_at_1_and_10_suppressed (audit.tests_failed_auth_cap.FailedAuthCapTests.test_summaries_are_written_at_1_and_10_suppressed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 102, in test_summaries_are_written_at_1_and_10_suppressed
+    self.assertEqual(
+AssertionError: Lists differ: [] != [1, 10]
+
+Second list contains 2 additional elements.
+First extra element 0:
+1
+
+- []
++ [1, 10]
+
+======================================================================
+FAIL: test_the_keys_hold_the_account_id_never_an_email (audit.tests_failed_auth_cap.FailedAuthCapTests.test_the_keys_hold_the_account_id_never_an_email)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 224, in test_the_keys_hold_the_account_id_never_an_email
+    self.assertTrue(any(str(self.account.pk) in key for key in keys))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_each_threshold_summary_is_written_exactly_once (audit.tests_failed_auth_cap.ConcurrentSummaryTests.test_each_threshold_summary_is_written_exactly_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s1b/audit/tests_failed_auth_cap.py", line 304, in test_each_threshold_summary_is_written_exactly_once
+    self.assertEqual(individual().filter(target_id=account.pk).count(), 1)
+AssertionError: 21 != 1
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.173s
+
+FAILED (failures=9, errors=1)
+Destroying test database for alias 'default'...
+Found 16 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

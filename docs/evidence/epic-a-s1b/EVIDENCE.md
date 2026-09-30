@@ -69,3 +69,19 @@ Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, `E
 **Found while running the gates:**
 - My test helper sent a non-success event with no `error_class`, which the emitter rejects, so the first run recorded nothing. Fixed in the helper.
 - Mutants E3 and M1 survived at first. The door test's second attempt writes a summary, and that surviving summary alone stops S2's fallback. The test now makes a third attempt, suppressed with no summary, where only the request's `suppressed` mark stops the fallback.
+
+## Rework: on S2 R1 and S6a, and the SM's DENIED ruling
+- **Rebased:** onto S2 R1 (the unnamed-route guard; anonymous crashes recorded as `SERVER_ERROR`) and phase2/epic-a `75bf91a` (S6a). The middleware conflict is resolved to S2's `emit_anonymous_refusal` plus this slice's `not state.suppressed` guard.
+- **Catalogue:** `FAILED_AUTH_CAPPED` joins `audit.enums.ReasonCode` and `AUDIT_ONLY_CODES`; `failed_auth_cap` takes it from the enum. Pinned by `test_the_summary_code_is_in_the_catalogue`. Otherwise S6a's emitter would refuse every summary, and capped failures would leave zero events.
+- **DENIED lock events (SM ruling on v2's early flag):** no longer unlimited. They get the same always-write floor per target (the first 5 per window), then the per-target cap with summaries. They are **not** under the global cap, so a spent global cap never hides a lock. Their summaries carry outcome DENIED. Successes stay uncapped.
+- **Anonymous crashes (S2's `SERVER_ERROR`, SM ruling):** capped in the global, no-target bucket, on a door or any route. A crash's summary keeps its own action and `error_class` SYSTEM (STATE_CHANGE's allow-list gains the summary keys).
+- The scope now lives in `emitter._failed_auth_cap_scope(fields)`, which returns (the target to count, whether the global cap applies) or None.
+
+**Rework gates** (rule 15; on 7d1aaae + the S2 merge):
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | S2 tip 0737583's source for the 5 changed files (`prefix_0737583_failing.txt`): **10 of 16 fail**. Nothing is capped or summarised; lock denials and crashes are uncapped. |
+| Changed modules | `audit.tests_failed_auth_cap` + `audit.tests_route_coverage` + `users.tests_auth_audit_doors` + `audit.tests_state_change` + `AutoGrader.tests_reason_codes`: **123 OK** (`changed_modules.txt`) |
+| 2 Mutation | **15 mutants, 15 killed** (`mutation_log.txt`). New: successes capped; lock denials under the global cap; lock denials uncapped; crashes uncapped. |
+| 1 Regression (owning app) | `audit`: **246 OK** (`regression_audit.txt`) |
