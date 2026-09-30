@@ -119,3 +119,6 @@ Tests: each `FILE_TOO_LARGE` test asserts `type(...) is int` and the exact value
 | N1 mutants (`n1_mutate.py`), each restore sha-checked | **6 of 6 killed**: bytes, pages, pixels and compression `actual` reverted to text (each by its own test); `display` ignored (6 tests, including the display rule tests); an unknown bomb size given an invented number (`test_a_bomb_beyond_pillows_own_limit…`) | `n1_SUMMARY.txt` |
 
 Under rule 15 this is a narrow fix, so only the touched modules re-ran. The `assignments` regression (661 OK) and the changed modules outside `assignments` (293 OK) at `2e0c5f9` stand. The only production files changed since then are `reason_codes.py`, `uploads.py` and `services.py`, and the modules above cover them.
+
+### The contract follow-up @ 7965615
+The code changed only in `_too_large_after_compression` (the `limit` fallback). `assignments.tests_file_reason_codes` + `AutoGrader.tests_reason_codes`: **Ran 54, OK**. Mutant N1g (the fallback removed) is **killed** by `test_limit_is_always_present_even_when_the_raiser_omits_the_cap` (restore sha-checked). The log is `n1_limit_SUMMARY.txt`.
