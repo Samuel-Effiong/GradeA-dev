@@ -718,10 +718,14 @@ def run_one(commit, mutant, out_dir):
         # is missing at this commit, or the mutant broke an import) fails the
         # run without any assertion having caught anything. That is not a
         # kill: it would let a mutant "die" against tests that do not exist.
+        # unittest reports a missing class or module as a _FailedTest. A bare
+        # "has no attribute" is not a marker: a mutant's own AttributeError
+        # at run time (M02, M26 on the bundle-3 port) is a consequence the
+        # tests caught, not a load failure.
         load_failure = any(
             marker in output
             for marker in (
-                "has no attribute",
+                "unittest.loader._FailedTest",
                 "ImportError",
                 "ModuleNotFoundError",
                 "SyntaxError",
