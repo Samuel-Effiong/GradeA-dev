@@ -35,6 +35,7 @@ docs/evidence/H1_STEP4_WILDCARD_REMOVAL_EVIDENCE.md.
 """
 
 import ast
+import tempfile
 from pathlib import Path
 
 from django.conf import settings
@@ -681,10 +682,11 @@ def scan_raw_client(source, imported_factories=()):
     return sorted(acquisitions), sorted(writes)
 
 
-def raw_client_uses():
+def raw_client_uses(files=None):
     """{file: (acquisitions, writes)} for every non-test module that obtains
-    a raw Redis client or writes through one."""
-    files = list(production_python_files())
+    a raw Redis client or writes through one. `files` ((rel, path) pairs)
+    defaults to every production module."""
+    files = list(production_python_files() if files is None else files)
     trees = {rel: ast.parse(path.read_text()) for rel, path in files}
     factories_by_module = {
         _module_name(rel): raw_client_factories(tree) for rel, tree in trees.items()
@@ -780,6 +782,21 @@ class RawRedisClientTests(SimpleTestCase):
     def test_an_imported_factory_counts_in_the_importing_module(self):
         source = "from AutoGrader.beat_locks import _redis\n_redis().set('k', 1)\n"
         self.assertEqual(scan_raw_client(source, {"_redis"}), ([2], [2]))
+
+    def test_a_factory_imported_from_another_module_is_found_across_modules(self):
+        """raw_client_uses resolves `from <module> import <factory>`: the
+        importing module's calls count, under an alias too. No live module
+        does this yet, so the resolution is exercised on two fixtures."""
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b, c = (Path(tmp) / name for name in ("a.py", "b.py", "c.py"))
+            a.write_text("def _r():\n    return get_redis_connection()\n")
+            b.write_text(
+                "from pkg.a import _r as conn\n\ndef f():\n    conn().set('k', 1)\n"
+            )
+            # Same name, another module: not a factory.
+            c.write_text("from pkg.other import _r\n\ndef f():\n    _r().set('k', 1)\n")
+            uses = raw_client_uses([("pkg/a.py", a), ("pkg/b.py", b), ("pkg/c.py", c)])
+        self.assertEqual(uses, {"pkg/a.py": (1, 0), "pkg/b.py": (1, 1)})
 
     def test_the_scanner_ignores_what_is_not_a_raw_write(self):
         for label, source in {
