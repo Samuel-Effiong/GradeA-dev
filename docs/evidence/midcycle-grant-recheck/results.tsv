@@ -15,3 +15,4 @@ ae944e9664f7	T5	expiry: the row lock	KILLED	FAILED (failures=1)	True	4.7
 ae944e9664f7	T6	expiry: only an unprocessed trial bucket	KILLED	FAILED (failures=1)	True	5.3
 ae944e9664f7	T7	expiry returns True when it expired	KILLED	FAILED (failures=3)	True	4.0
 ae944e9664f7	T8	task counts an expiry skip as a skip	KILLED	FAILED (failures=2)	True	5.0
+6f8c536da8f5	T9	expiry re-checks on the credits (force=True) path too (1a's X1)	KILLED	FAILED (failures=1)	True	22.1

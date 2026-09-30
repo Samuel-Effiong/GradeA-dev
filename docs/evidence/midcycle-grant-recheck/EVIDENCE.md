@@ -75,3 +75,18 @@ No model or migration change, so no other app reads changed fields. `audit.tests
 
 - On this beta base `expire_bucket` doesn't re-check `is_processed` after its lock either. That's the expire-bucket race, already fixed in bundle 4.
 - The logger calls in the touched functions still pass `user.email` (pre-existing; the repo hook checks direct `.email` arguments and passed on these files). My new log lines carry ids only.
+
+## Addendum: the production checkout path (1a's N2 and N3), test only, 6f8c536
+
+1a found that the production conversion path is checkout during a trial (`checkout.session.completed` → `_handle_individual_checkout`, which locks the trial row and converts that same row). Only 1a's own probe killed a mutant that skips the re-check when `force=True` (the credits-exhausted branch). The SM asked for the fix's own suite to pin it.
+
+- `test_a_checkout_conversion_in_between_is_not_undone` (ended-trial branch) and `test_a_checkout_conversion_is_not_undone_on_the_credits_path` (credits branch, `force=True`) drive the interleaving through the real checkout handler. They assert the subscription stays active and paid, and the F6 switched-off query stays empty.
+- Mutant **T9** (1a's X1 shape: `if not force and not (...)`) joins the battery.
+- N3: the lock-waiter check now matches a waiter querying `billing_usersubscription`, not any lock waiter in the test database.
+
+| Run | Tree | Result | Log |
+|---|---|---|---|
+| The module | `6f8c536` | **23 OK** | `n2_module_6f8c536.log` |
+| Mutant T9 alone (a disposable worktree, DB dropped after) | `6f8c536` | **KILLED** by `test_a_checkout_conversion_is_not_undone_on_the_credits_path`, restore verified | `n2_mutant_T9_6f8c536.log`, `logs/T9.log`, `results.tsv` |
+
+No production code changed, so no regression (rule 15).
