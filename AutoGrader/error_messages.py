@@ -65,11 +65,13 @@ def _passthrough_message(error):
     from AutoGrader.reason_codes import CodedError
     from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 
-    if isinstance(error, InsufficientCreditsError):
-        return INSUFFICIENT_CREDITS_MESSAGE
     if isinstance(error, CodedError):
         # Rendered from the spec and whitelisted params only (QA-ERR-03).
+        # First: a coded credit refusal (S7c's mid-batch one) shows its own
+        # catalogue message, not the fixed one below.
         return error.message
+    if isinstance(error, InsufficientCreditsError):
+        return INSUFFICIENT_CREDITS_MESSAGE
     if isinstance(error, _user_facing_exception_types()):
         message = str(error).strip()
         if message:

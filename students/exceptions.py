@@ -1,5 +1,6 @@
 from audit.enums import ReasonCode
 from AutoGrader.reason_codes import REASON_CODES, CodedError
+from billing.errors import InsufficientCreditsError
 
 
 class CannotAssociateStudentError(Exception):
@@ -99,3 +100,15 @@ class SubmissionProcessingInProgressError(Exception):
     """
 
     pass
+
+
+class InsufficientCreditsMidBatchError(CodedError, InsufficientCreditsError):
+    """INSUFFICIENT_CREDITS_MID_BATCH (FR-A-07 S7c, 08a §4.5): credits ran out
+    after part of a batch had already run. Params: completed, total.
+
+    Also an InsufficientCreditsError, so every credit-refusal path already
+    treats it as one: never retried (PERMANENT_AI_REFUSALS), never charged,
+    and refunded like any refusal. Its message is the catalogue's, never
+    the wallet's own text (balance, estimate)."""
+
+    reason_code = ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH

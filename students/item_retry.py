@@ -26,7 +26,7 @@ from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.reason_codes import REASON_CODES, CodedError
 
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
-from .task_tracking import launch_processing_task
+from .task_tracking import clear_batch_credit_stop, launch_processing_task
 
 #: Items a retry re-runs: grading reads its submission, which is stored.
 GRADE_ITEM_TYPES = frozenset({BackgroundTaskType.BATCH_SUBMISSION_GRADING})
@@ -82,6 +82,7 @@ def retry_item(item, requested_by, request=None):
     if refusal is not None:
         raise refusal
 
+    refusal_code = item.reason_code
     # The claim: only a row still in the state that was judged retryable.
     claimed = BackgroundProcessingTask.objects.filter(
         pk=item.pk,
@@ -101,6 +102,9 @@ def retry_item(item, requested_by, request=None):
     if not claimed:
         # Another retry (or the item's own worker) got there first.
         raise ItemNotRetryable()
+    if refusal_code == ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH:
+        # S7c: a resume after a top-up lets the batch run again.
+        clear_batch_credit_stop(item.batch_session_id)
     item.refresh_from_db()
 
     from assignments.tasks import grade_engine_async
