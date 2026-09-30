@@ -62,7 +62,7 @@ def call(processor):
     return processor._AIProcessor__ai_model(
         system_prompt=SYSTEM_PROMPT_TEXT,
         user_prompt=STUDENT_ANSWER,
-        prompt_version="GRADING_ASSIGNMENT_PROMPT_5@0123abcd",
+        prompt_version="GRADING_ASSIGNMENT_PROMPT_5:0123abcd",
         task_type="grade_assignment",
     )
 
@@ -97,7 +97,7 @@ class ProviderCallTests(SimpleTestCase):
         for field in (
             f"trace_id={trace_id}",
             "model=provider/served-model",
-            "prompt_version=GRADING_ASSIGNMENT_PROMPT_5@0123abcd",
+            "prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd",
             "task_type=grade_assignment",
             "attempt=1",
             "outcome=ok",
@@ -240,7 +240,7 @@ class PromptVersionTests(SimpleTestCase):
         self.assertIn("GRADING_ASSIGNMENT_PROMPT", prompts)
         for name, prompt in prompts.items():
             with self.subTest(prompt=name):
-                self.assertRegex(prompt.version, r"^[A-Z0-9_]+@[0-9a-f]{8}$")
+                self.assertRegex(prompt.version, r"^[A-Z0-9_]+:[0-9a-f]{8}$")
 
     def test_editing_the_text_changes_the_version(self):
         self.assertNotEqual(
@@ -249,6 +249,6 @@ class PromptVersionTests(SimpleTestCase):
         )
         self.assertTrue(
             prompt_version_of("GRADING_ASSIGNMENT_PROMPT_5.txt", "x").startswith(
-                "GRADING_ASSIGNMENT_PROMPT_5@"
+                "GRADING_ASSIGNMENT_PROMPT_5:"
             )
         )

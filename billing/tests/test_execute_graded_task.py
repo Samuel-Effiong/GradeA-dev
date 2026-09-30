@@ -50,7 +50,7 @@ from classrooms.models import Course, School
 from users.models import CustomUser, UserTypes
 
 # S5: execute_graded_task requires one; any non-empty label will do here.
-TEST_PROMPT_VERSION = "TEST_PROMPT@00000000"
+TEST_PROMPT_VERSION = "TEST_PROMPT:00000000"
 
 
 def make_ai_response(tokens=100, content='{"result": "ok"}'):

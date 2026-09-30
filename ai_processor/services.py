@@ -95,7 +95,8 @@ PROMPT_DIR = Path(__file__).resolve().parent
 class Prompt(str):
     """A prompt's text, carrying the version NFR-OBS-04 records on every AI
     call: the file's stem plus the first 8 hex digits of the text's
-    SHA-256, e.g. "GRADING_ASSIGNMENT_PROMPT_5@1a2b3c4d". The hash changes
+    SHA-256, e.g. "GRADING_ASSIGNMENT_PROMPT_5:1a2b3c4d" (no "@": audit
+    metadata drops anything shaped like an email address). The hash changes
     whenever the text does, even if the file is edited without a rename."""
 
     version: str
@@ -108,7 +109,7 @@ class Prompt(str):
 
 def prompt_version_of(filename: str, text: str) -> str:
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
-    return f"{Path(filename).stem}@{digest}"
+    return f"{Path(filename).stem}:{digest}"
 
 
 def _load_prompt(filename: str) -> Prompt:

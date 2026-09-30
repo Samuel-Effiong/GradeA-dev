@@ -83,8 +83,8 @@ MUTANTS = {
     ),
     "P3_version_ignores_the_text": (
         SVC,
-        '    return f"{Path(filename).stem}@{digest}"\n',
-        '    return f"{Path(filename).stem}@00000000"\n',
+        '    return f"{Path(filename).stem}:{digest}"\n',
+        '    return f"{Path(filename).stem}:00000000"\n',
     ),
     "P4_grading_completed_without_prompt_version": (
         TASKS,
