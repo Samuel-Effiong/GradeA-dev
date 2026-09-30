@@ -99,6 +99,27 @@ def detect_duplicate_trial_expiries():
     return run_detection(DUPLICATE_EXPIRIES_SQL)
 
 
+def convert_via_checkout(subscription_pk):
+    """A user paying during their trial: checkout.session.completed through
+    the real handler, which locks the trial row, converts that same row to
+    paid (finalize_trial_to_paid_conversion) and records the PAID trial
+    conversion charge. This is the production conversion path."""
+    trial = UserSubscription.objects.get(pk=subscription_pk)
+    StripeWebhookHandler._handle_individual_checkout(
+        {
+            "id": f"cs_trial_{subscription_pk}",
+            "subscription": f"sub_checkout_{subscription_pk}",
+            "amount_total": 1_500,
+            "currency": "usd",
+        },
+        {
+            "user_id": str(trial.user_id),
+            "plan_id": str(trial.plan_id),
+            "trial_subscription_id": str(subscription_pk),
+        },
+    )
+
+
 def convert_via_stripe_webhook(subscription_pk):
     """Stripe's trial-end invoice.payment_succeeded, through the real
     handler: the same row converted to paid, and the PAID trial conversion
@@ -387,7 +408,8 @@ class MidCycleGrantRealLockTests(AnnualGrantFixture, TransactionTestCase):
 
 
 def _wait_for_a_lock_waiter(timeout=20.0):
-    """True once another backend of this database is waiting on a lock.
+    """True once another backend of this database is waiting on a lock
+    while querying the subscription table (the row lock under test).
 
     Called from inside the caller's open transaction, and Postgres
     snapshots pg_stat_activity once per transaction, so the snapshot is
@@ -399,7 +421,8 @@ def _wait_for_a_lock_waiter(timeout=20.0):
             cursor.execute(
                 "SELECT count(*) FROM pg_stat_activity "
                 "WHERE datname = current_database() AND pid <> pg_backend_pid() "
-                "AND wait_event_type = 'Lock'"
+                "AND wait_event_type = 'Lock' "
+                "AND query ILIKE '%%billing_usersubscription%%'"
             )
             if cursor.fetchone()[0]:
                 return True
@@ -473,6 +496,52 @@ class TrialExpiryOverlapTests(TrialExpiryFixture, TestCase):
         self.assertFalse(self.trial_sub.is_trial)
         self.assertEqual(self.trial_expire_rows().count(), 0)
         self.assertIn("1 already expired or converted", summary)
+
+    def expire_run_with_a_checkout_conversion_in_between(self):
+        real = SubscriptionService.expire_trial
+        converted = []
+
+        def run_b_acts_on_its_stale_row(row, *args, **kwargs):
+            if not converted:
+                convert_via_checkout(self.trial_sub.pk)
+                converted.append(True)
+            return real(row, *args, **kwargs)
+
+        with patch(EXPIRE, side_effect=run_b_acts_on_its_stale_row):
+            summary = expire_active_trials()
+        self.assertEqual(converted, [True], "the expiry never reached the trial")
+        return summary
+
+    def assert_still_paid(self, summary):
+        self.assertEqual(detect_switched_off_paid_subscriptions(), [])
+        self.trial_sub.refresh_from_db()
+        self.assertTrue(
+            self.trial_sub.is_active, "the paid subscription was deactivated"
+        )
+        self.assertFalse(self.trial_sub.is_trial)
+        self.assertEqual(self.trial_sub.stripe_status, "ACTIVE")
+        self.assertIn("1 already expired or converted", summary)
+
+    def test_a_checkout_conversion_in_between_is_not_undone(self):
+        """The production path, on the ended-trial (time) branch."""
+        self.assert_still_paid(self.expire_run_with_a_checkout_conversion_in_between())
+
+    def test_a_checkout_conversion_is_not_undone_on_the_credits_path(self):
+        """The production path, on the credits-exhausted branch, which calls
+        expire_trial(force=True) for a trial that hasn't ended yet."""
+        UserSubscription.objects.filter(pk=self.trial_sub.pk).update(
+            trial_end=timezone.now() + timedelta(days=3),
+            billing_cycle_end=timezone.now() + timedelta(days=3),
+        )
+        CreditBucket.objects.filter(pk=self.trial_bucket.pk).update(
+            expires_at=timezone.now() + timedelta(days=3),
+            used_credits=self.trial_bucket.total_credits,
+        )
+
+        summary = self.expire_run_with_a_checkout_conversion_in_between()
+
+        self.assertIn("0 expired (credits exhausted)", summary)
+        self.assert_still_paid(summary)
 
     def test_cleanup_first_does_not_write_a_second_expire_row(self):
         cleanup_expired_credit_buckets()

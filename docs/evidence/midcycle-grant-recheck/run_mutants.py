@@ -156,6 +156,14 @@ MUTANTS = [
     ),
     ("T7", "expiry returns True when it expired", SV, "        return True\n", "", 1),
     (
+        "T9",
+        "expiry re-checks on the credits (force=True) path too (1a's X1)",
+        SV,
+        TRIAL_RECHECK,
+        "        if not force and not (locked.is_trial and locked.is_active):\n",
+        1,
+    ),
+    (
         "T8",
         "task counts an expiry skip as a skip",
         TK,
