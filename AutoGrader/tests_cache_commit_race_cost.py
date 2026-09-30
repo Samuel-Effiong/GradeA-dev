@@ -10,6 +10,11 @@ fix switched off, on two shapes:
   commit replays all of them back to back.
 * production's shape: `import_roster` with its 2,000-row cap, where every
   row is its own transaction and pays its second bump at its own commit.
+  Its students have signed in before, so each row is one enrollment and
+  one bump. A first import of students who never signed in (the common
+  case for a new class) takes the PENDING path instead: the account is
+  saved with a fresh temporary password as well, two bumps per row, and
+  that is pinned too.
 
 Reported per run: Redis round trips and commands sent, split into those
 sent while the transaction was open and those sent by its commit; p50/p95
@@ -38,6 +43,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db import connection, transaction
 from django.urls import reverse
+from django.utils import timezone
 
 import AutoGrader.cache_generation as cache_generation
 from AutoGrader.cache_generation import SCOPE_COURSE, get_generation
@@ -179,8 +185,12 @@ class RosterScaleCostBase(CommitRaceBase):
         self.detail = reverse("course-detail", args=[self.course.pk])
         return self.course
 
-    def make_students(self, count, tag):
+    def make_students(self, count, tag, signed_in=True):
+        """Existing student accounts. `signed_in` sets the `last_login` a
+        real sign-in records; without it, enrolling one takes the PENDING
+        path (classrooms.services.enrollment has_signed_in)."""
         password = make_password("password123")  # nosec  # pragma: allowlist secret
+        last_login = timezone.now() if signed_in else None
         User.objects.bulk_create(
             User(
                 email=f"cost-{tag}-{i}@x.test",
@@ -189,6 +199,7 @@ class RosterScaleCostBase(CommitRaceBase):
                 is_active=True,
                 first_name=f"Cost{tag}x{i}",
                 last_name="Student",
+                last_login=last_login,
             )
             for i in range(count)
         )
@@ -349,7 +360,7 @@ class SingleTransactionRosterCostTests(RosterScaleCostBase):
 
 
 class PerRowRosterImportCostTests(RosterScaleCostBase):
-    def import_rows(self, students):
+    def import_rows(self, students, status=EnrollmentStatusType.ENROLLED):
         rows = [
             RosterRow(first_name=s.first_name, last_name=s.last_name, email=s.email)
             for s in students
@@ -382,6 +393,13 @@ class PerRowRosterImportCostTests(RosterScaleCostBase):
             total = time.perf_counter() - started
         self.assertEqual(result["failure_count"], 0, result["results"][:3])
         self.assertEqual(result["success_count"], len(rows))
+        self.assertEqual(
+            StudentCourse.objects.filter(
+                course=self.course, enrollment_status=status
+            ).count(),
+            len(rows),
+            f"every row should be enrolled {status}",
+        )
         return meter, {"total": total, "commit": 0.0}, row_ms
 
     def measure_size(self, size):
@@ -439,4 +457,33 @@ class PerRowRosterImportCostTests(RosterScaleCostBase):
         small = self.measure_size(ROSTER_IMPORT_ROWS // 10)
         large = self.measure_size(ROSTER_IMPORT_ROWS)
         # Round trips per row stay flat as the file grows.
+        self.assertEqual(large, small)
+
+    def test_first_import_of_never_signed_in_students_is_two_bumps_per_row(self):
+        """The PENDING path: each row saves the account (fresh temporary
+        password) and creates the enrollment, so it bumps twice, and each
+        bump is replayed once at the row's own commit. Still flat per row.
+
+        Fix ON only: the before/after comparison is the test above. Sizes
+        are a tenth of that test's, since the per-row figure is exact.
+        """
+        per_row = {}
+        for size in (max(1, ROSTER_IMPORT_ROWS // 100), ROSTER_IMPORT_ROWS // 10):
+            students = self.make_students(size, tag=f"p{size}", signed_in=False)
+            self.fresh_course(f"pending-{size}")
+            meter, timing, rows_ms = self.import_rows(
+                students, status=EnrollmentStatusType.PENDING
+            )
+            self.assertEqual(len(meter.bump_ms["open"]), 2 * size)
+            self.assertEqual(len(meter.bump_ms["commit"]), 2 * size)
+            self.assertEqual(meter.round_trips["commit"], 2 * size)
+            per_row[size] = sum(meter.round_trips.values()) / size
+            print(
+                f"\n=== {size}-row import_roster, never-signed-in students "
+                f"(PENDING), fix ON: wall={timing['total']:.2f}s "
+                f"round_trips/row={per_row[size]:.2f} per-row write "
+                f"p50={statistics.median(rows_ms):.2f}ms\n{meter.summary()}",
+                flush=True,
+            )
+        small, large = per_row.values()
         self.assertEqual(large, small)
