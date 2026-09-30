@@ -1,0 +1,47 @@
+=== mutation battery on a183fb3bb2fe8bdbf80b6401fc40199f38fd4587 started 2026-09-17T17:43:47+01:00
+Preparing worktree (detached HEAD a183fb3)
+Updating files:  59% (675/1127)Updating files:  60% (677/1127)Updating files:  61% (688/1127)Updating files:  62% (699/1127)Updating files:  63% (711/1127)Updating files:  64% (722/1127)Updating files:  65% (733/1127)Updating files:  66% (744/1127)Updating files:  67% (756/1127)Updating files:  68% (767/1127)Updating files:  69% (778/1127)Updating files:  70% (789/1127)Updating files:  71% (801/1127)Updating files:  72% (812/1127)Updating files:  73% (823/1127)Updating files:  74% (834/1127)Updating files:  75% (846/1127)Updating files:  76% (857/1127)Updating files:  77% (868/1127)Updating files:  78% (880/1127)Updating files:  79% (891/1127)Updating files:  80% (902/1127)Updating files:  81% (913/1127)Updating files:  82% (925/1127)Updating files:  83% (936/1127)Updating files:  84% (947/1127)Updating files:  85% (958/1127)Updating files:  86% (970/1127)Updating files:  87% (981/1127)Updating files:  88% (992/1127)Updating files:  89% (1004/1127)Updating files:  90% (1015/1127)Updating files:  91% (1026/1127)Updating files:  92% (1037/1127)Updating files:  93% (1049/1127)Updating files:  94% (1060/1127)Updating files:  95% (1071/1127)Updating files:  96% (1082/1127)Updating files:  97% (1094/1127)Updating files:  98% (1105/1127)Updating files:  99% (1116/1127)Updating files: 100% (1127/1127)Updating files: 100% (1127/1127), done.
+HEAD is now at a183fb3 Bump cache generations again after commit when inside a transaction
+blob_sha256(AutoGrader/cache_generation.py@a183fb3)=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1
+
+--- mutant a_drop_post_commit_bump
+applied
+mutated_sha256=9154d51fda4f6123a9d26ca991ef038479bc03dbff23dbcc362133fdd0eb8911
+test_exit=1
+FAIL: test_a_nested_caller_with_a_rolled_back_savepoint_is_not_served_stale
+FAIL: test_a_read_in_the_pre_commit_window_is_not_served_stale
+FAIL: test_a_committed_transaction_bumps_before_and_after_commit
+FAIL: test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump
+FAIL: test_nested_committed_savepoints_bump_once_after_the_outer_commit
+Ran 10 tests in 167.223s
+FAILED (failures=5)
+restored_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 MATCHES blob
+
+--- mutant b_post_commit_bump_everywhere
+applied
+mutated_sha256=280c15e3ade36feb12c410f4dfd6d24b918c778b1a4758d4c2a4b1346b3891b8
+test_exit=1
+FAIL: test_outside_a_transaction_a_bump_happens_once
+Ran 10 tests in 172.312s
+FAILED (failures=1)
+restored_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 MATCHES blob
+
+--- mutant c_skip_immediate_bump_in_transaction
+applied
+mutated_sha256=60a59aa8558c2716333c3c25b5720ccc0dce907fff4707826d4b057431e8aacf
+test_exit=1
+FAIL: test_a_bump_inside_a_rolled_back_savepoint_is_not_repeated_on_commit
+FAIL: test_a_committed_transaction_bumps_before_and_after_commit
+FAIL: test_a_rolled_back_transaction_does_not_bump_after_commit
+FAIL: test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump
+FAIL: test_nested_committed_savepoints_bump_once_after_the_outer_commit
+Ran 10 tests in 196.489s
+FAILED (failures=5)
+restored_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 MATCHES blob
+
+--- control: unmutated tree
+test_exit=0
+Ran 10 tests in 129.502s
+OK
+final_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 status_lines=0
+=== finished 2026-09-17T17:57:21+01:00; disposable worktree removed

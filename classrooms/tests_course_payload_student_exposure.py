@@ -25,6 +25,7 @@ from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -59,6 +60,9 @@ def make_user(email, user_type, **fields):
     user = User.objects.create_user(email=email, password="password123")  # nosec
     user.user_type = user_type
     user.is_active = True
+    # Has signed in: an existing student who hasn't is re-sent credentials
+    # and enrolled PENDING instead (enrollment.has_signed_in).
+    user.last_login = timezone.now()
     for name, value in fields.items():
         setattr(user, name, value)
     user.save()

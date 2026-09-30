@@ -23,6 +23,7 @@ to it, which is what makes stage 1 reversible.
 import logging
 
 from django.core.cache import cache
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -228,6 +229,20 @@ def bump_many(scopes):
     if not unique:
         return 0
 
+    bumped = _bump_now(unique)
+
+    # Inside a transaction the bump above lands before the commit. A read in
+    # that window takes the new generation but the old committed rows, and
+    # caches them under a key the bump no longer covers. Bumping again once
+    # the transaction commits orphans that entry. A rollback discards the
+    # callback, and so does rolling back the savepoint it was registered in.
+    if transaction.get_connection().in_atomic_block:
+        transaction.on_commit(lambda: _bump_now(unique))
+
+    return bumped
+
+
+def _bump_now(unique):
     pipelined = _bump_pipelined(unique)
     if pipelined is not None:
         return pipelined

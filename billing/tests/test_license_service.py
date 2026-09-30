@@ -12,7 +12,7 @@ from django.db import transaction
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from billing.license_service import LicenseSubscriptionService
+from billing.license_service import LicenseRequestError, LicenseSubscriptionService
 from billing.models import (
     CreditBucket,
     CreditBucketType,
@@ -467,7 +467,13 @@ class TestLicenseCreation(TransactionTestCase):
             LicenseSubscriptionService._enroll_teacher_internal(old_license, teacher1)
             LicenseSubscriptionService._enroll_teacher_internal(old_license, teacher2)
 
-        with pytest.raises(ValueError, match="max_seats is 2"):
+        with pytest.raises(
+            LicenseRequestError,
+            match=(
+                r"This licence has 2 seats, but 3 teachers were added "
+                r"\(2 carried over from the current licence \+ 1 new\)\."
+            ),
+        ):
             LicenseSubscriptionService.create_license_subscription(
                 school=self.school,
                 plan=self.plan,
