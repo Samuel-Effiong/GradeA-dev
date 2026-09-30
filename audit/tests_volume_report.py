@@ -120,7 +120,13 @@ class MeasuredTests(TestCase):
                 cursor.execute("EXPLAIN " + sql)
                 plan = "\n".join(row[0] for row in cursor.fetchall())
                 self.assertNotIn(f"Seq Scan on {table}", plan, sql)
-                self.assertIn("Index", plan, sql)
+                # Not just any index scan: a full index scan also has an
+                # Index node. The index condition must pin the leading
+                # column (action or retention_class) so only the window's
+                # range is read.
+                self.assertRegex(
+                    plan, r"Index Cond: .*\((action|retention_class)\)::text = ", sql
+                )
 
     def test_exact_all_time_is_opt_in_and_counts_everything(self):
         with allow_unsafe_mutation():
