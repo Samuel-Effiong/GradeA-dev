@@ -3,6 +3,7 @@ H1/H2/N3). Small limits so the edges are cheap to reach."""
 
 import threading
 import uuid
+from datetime import timedelta
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -20,6 +21,7 @@ from audit.emitter import emit
 from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass
 from audit.failed_auth_cap import FAILED_AUTH_CAPPED
 from audit.models import AuditEvent
+from classrooms.models import School
 from users.models import UserTypes
 
 User = get_user_model()
@@ -269,6 +271,54 @@ class CappedDoorThroughTheMiddlewareTests(TestCase):
             r or "" for r in AuditEvent.objects.values_list("reason_code", flat=True)
         )
         self.assertEqual(reasons, [FAILED_AUTH_CAPPED, "INVALID_CODE"])
+
+
+@override_settings(CACHES=LOCMEM_CACHE, **SMALL_CAPS)
+class LockThenSprayThroughTheLoginTests(TestCase):
+    """v2's P1 (S1b N1), adopted: a locked account sprayed from many IPs
+    through the real /auth/login. DENIED shares the per-target counter, so
+    the individual rows stop at the target limit, and every summary names
+    the account AND its school - the school scoping is what lets a school
+    admin see that one of its accounts is under attack."""
+
+    def test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped(
+        self,
+    ):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        school = School.objects.create(name="S1b Spray School")
+        account = make_user("cap.spray@example.com")
+        User.objects.filter(pk=account.pk).update(
+            school=school, locked_until=timezone.now() + timedelta(hours=1)
+        )
+
+        password = "Cap-test-pw-1"  # pragma: allowlist secret
+        for index in range(25):
+            APIClient(raise_request_exception=False).post(
+                reverse("login"),
+                {"email": account.email, "password": password},
+                format="json",
+                REMOTE_ADDR=f"10.50.0.{index + 1}",
+            )
+
+        events = AuditEvent.objects.filter(action=AuditAction.AUTH_LOGIN)
+        rows = individual().filter(action=AuditAction.AUTH_LOGIN)
+        self.assertEqual(rows.count(), SMALL_CAPS["FAILED_AUTH_TARGET_LIMIT"])
+        self.assertEqual(
+            set(rows.values_list("outcome", flat=True)), {AuditOutcome.DENIED}
+        )
+        capped = events.filter(reason_code=FAILED_AUTH_CAPPED)
+        self.assertEqual(
+            [
+                e.metadata["suppressed_so_far"]
+                for e in capped.order_by("occurred_at", "pk")
+            ],
+            [1, 10],
+        )
+        for summary in capped:
+            self.assertEqual(summary.outcome, AuditOutcome.DENIED)
+            self.assertEqual(summary.target_id, account.pk)
+            self.assertEqual(summary.school_id, school.pk)
 
 
 @override_settings(
