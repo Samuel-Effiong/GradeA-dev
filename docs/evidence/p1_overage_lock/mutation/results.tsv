@@ -43,3 +43,5 @@
 35756c4d70c8	P15	hourly beat entry	KILLED	FAILED (failures=1)	True	42.0
 35756c4d70c8	M25	StripeError guard	SURVIVED	OK	True	23.2
 35756c4d70c8	M40	backfill conditional update	SURVIVED	OK	True	22.8
+acdd29dca5e3	M25	StripeError guard	KILLED	FAILED (failures=1)	True	4.6
+acdd29dca5e3	M40	backfill conditional update	KILLED	FAILED (failures=1)	True	4.7
