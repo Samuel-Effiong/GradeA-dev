@@ -5065,6 +5065,28 @@ Turn this data into concise school-admin-facing narration.
         return {field: str(parsed[field]).strip() for field in required_fields}
 
 
+class PDFUnreadableError(ValueError):
+    """The bytes cannot be read as a PDF: damaged, truncated, encrypted, or
+    not a PDF at all. The library's own text stays on __cause__ (QA-ERR-03);
+    the caller names the file (assignments.services.prepare_ai_content)."""
+
+
+class PDFEmptyError(ValueError):
+    """A readable PDF with no pages."""
+
+
+class PDFTooManyPagesError(ValueError):
+    """More pages than one upload may carry (PDFService.MAX_PAGE_COUNT)."""
+
+    def __init__(self, page_count, limit):
+        self.page_count = page_count
+        self.limit = limit
+        super().__init__(
+            f"PDF has {page_count} pages, which exceeds the maximum "
+            f"of {limit} pages allowed per upload."
+        )
+
+
 class PDFService:
     # Lowered from 1000, then revised to 300 on 2026-08-21. 1000 pages was
     # never validated against real throughput. Sized against
@@ -5139,7 +5161,7 @@ class PDFService:
                 page_count = pdf.page_count
                 is_pdf = pdf.is_pdf
         except Exception as e:
-            raise ValueError(f"Could not read this PDF: {e}") from e
+            raise PDFUnreadableError("Could not read this PDF.") from e
 
         # filetype="pdf" is only a hint: PyMuPDF sniffs the bytes and opens a
         # PNG or JPEG as a one-page document. The Content-Type checked above
@@ -5147,19 +5169,16 @@ class PDFService:
         # application/pdf passed every check here and then crashed pdftoppm -
         # a 500 for what is an ordinary bad upload.
         if not is_pdf:
-            raise ValueError(
+            raise PDFUnreadableError(
                 "This file is not a PDF. If it is a photo or scan, upload it "
                 "as an image instead."
             )
 
         if page_count == 0:
-            raise ValueError("This PDF has no pages.")
+            raise PDFEmptyError("This PDF has no pages.")
 
         if page_count > self.MAX_PAGE_COUNT:
-            raise ValueError(
-                f"PDF has {page_count} pages, which exceeds the maximum "
-                f"of {self.MAX_PAGE_COUNT} pages allowed per upload."
-            )
+            raise PDFTooManyPagesError(page_count, self.MAX_PAGE_COUNT)
 
         images_byte = []
         tmp_dir = tempfile.mkdtemp(prefix="pdf_extract_")
@@ -5185,7 +5204,7 @@ class PDFService:
                     # A document PyMuPDF could open but poppler cannot: the
                     # file's fault, so a client error. A missing poppler
                     # install or a timeout is ours, and is left to propagate.
-                    raise ValueError(f"Could not read this PDF: {e}") from e
+                    raise PDFUnreadableError("Could not read this PDF.") from e
                 for page_path in page_paths:
                     try:
                         with Image.open(page_path) as page_image:

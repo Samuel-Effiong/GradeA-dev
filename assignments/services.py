@@ -15,13 +15,24 @@ from django.utils.html import strip_tags
 from lxml import html as lxml_html
 from PIL import Image
 from PIL.Image import DecompressionBombError
-from rest_framework.exceptions import ParseError
 
-from ai_processor.services import PDFService, ai_processor
+from ai_processor.services import (
+    PDFEmptyError,
+    PDFService,
+    PDFTooManyPagesError,
+    PDFUnreadableError,
+    ai_processor,
+)
 from ai_processor.tools import (
     ImageCompressionError,
     compress_image_for_upload,
     encode_image,
+)
+from assignments.exceptions import (
+    FileTooLargeError,
+    FileTypeUnsupportedError,
+    FileUnreadableError,
+    SubmissionEmptyError,
 )
 from assignments.prosemirror_converter import (
     html_to_prosemirror_json,
@@ -29,6 +40,7 @@ from assignments.prosemirror_converter import (
     strip_control_chars,
     strip_raw_text_elements,
 )
+from AutoGrader.uploads import file_name_of, human_size
 from students.task_tracking import (
     ensure_task_not_cancelled,
     lock_processing_task_for_final_save,
@@ -191,6 +203,49 @@ QUESTION_TYPE_LABELS = {
 #: below what would threaten a worker's memory: at 4 bytes per pixel this
 #: bounds one decode at roughly 200 MB.
 MAX_IMAGE_PIXELS = 50_000_000
+
+
+def _declared_type(uploaded_file):
+    """How to name an unsupported file's type to its owner: its extension
+    ("TXT"), else the type the client declared, else "unknown"."""
+    name = file_name_of(uploaded_file)
+    stem, dot, extension = name.rpartition(".")
+    if dot and stem and extension and len(extension) <= 10:
+        return extension.upper()
+    return str(uploaded_file.content_type or "unknown")
+
+
+def _too_many_pixels(file_name, actual=None):
+    """FILE_TOO_LARGE by pixels. Pillow refuses a decompression bomb before
+    it reports dimensions, so `actual` then states the bound it exceeded."""
+    if actual is None:
+        bomb = Image.MAX_IMAGE_PIXELS
+        actual = f"over {2 * bomb / 1_000_000:g} MP" if bomb else "too large to decode"
+    return FileTooLargeError(
+        params={
+            "file_name": file_name,
+            "actual": actual,
+            "limit": f"{MAX_IMAGE_PIXELS / 1_000_000:g} MP",
+            "dimension": "pixels",
+        }
+    )
+
+
+def _too_large_after_compression(file_name, error):
+    """FILE_TOO_LARGE for an image no compression brings under the cap."""
+    smallest, cap = error.smallest_bytes, error.cap_bytes
+    return FileTooLargeError(
+        params={
+            "file_name": file_name,
+            "actual": (
+                f"{human_size(smallest)} even after compression"
+                if smallest
+                else "too large even after compression"
+            ),
+            "limit": human_size(cap) if cap else "the upload limit",
+            "dimension": "bytes",
+        }
+    )
 
 
 def _option_letter(index: int) -> str:
@@ -374,30 +429,20 @@ class AssignmentProcessingService:
         pixels are decoded, which is the only point at which refusing is
         still cheap.
         """
+        file_name = file_name_of(uploaded_file)
         try:
             image = Image.open(BytesIO(uploaded_file.read()))
         except DecompressionBombError as exc:
-            raise ParseError(
-                f"{uploaded_file.name} declares image dimensions too large "
-                "to process safely."
-            ) from exc
+            raise _too_many_pixels(file_name) from exc
         except Exception as exc:
             # UnidentifiedImageError, a truncated file, an OSError from a
             # malformed header - all of them mean the same thing to the
             # caller, and none of them is a server fault.
-            raise ParseError(
-                f"{uploaded_file.name} could not be read as an image. It may "
-                "be corrupted, or not actually be the format its name "
-                "suggests. Please re-export it and try again."
-            ) from exc
+            raise FileUnreadableError(params={"file_name": file_name}) from exc
 
         width, height = image.size
         if width * height > MAX_IMAGE_PIXELS:
-            raise ParseError(
-                f"{uploaded_file.name} is {width}x{height} pixels, which is "
-                f"larger than the {MAX_IMAGE_PIXELS // 1_000_000} megapixel "
-                "limit. Please downscale it and try again."
-            )
+            raise _too_many_pixels(file_name, f"{width}x{height} px")
 
         try:
             # Forces the actual decode. Anything that only fails on real
@@ -406,20 +451,35 @@ class AssignmentProcessingService:
             image.load()
             return compress_image_for_upload(image)
         except ImageCompressionError as exc:
-            raise ParseError(str(exc)) from exc
+            raise _too_large_after_compression(file_name, exc) from exc
         except DecompressionBombError as exc:
-            raise ParseError(
-                f"{uploaded_file.name} expands to an unsafe size when decoded."
-            ) from exc
+            raise _too_many_pixels(file_name) from exc
         except Exception as exc:
-            raise ParseError(
-                f"{uploaded_file.name} could not be decoded. It may be "
-                "truncated or corrupted."
-            ) from exc
+            raise FileUnreadableError(params={"file_name": file_name}) from exc
 
     @classmethod
     def prepare_ai_content(cls, uploaded_file, prompt_text: str):
+        """The AI message content for one uploaded image or PDF.
+
+        Every refusal is a coded InvalidUploadFileError subclass (FR-A-06
+        S6b), checked in this order: the declared type (415), an empty file
+        (422), then what reading the bytes finds - unreadable (422), too
+        many pages or pixels or too large even compressed (413), no pages
+        (422). No library text reaches a message; it stays on __cause__.
+        """
         content: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
+        file_name = file_name_of(uploaded_file)
+
+        if uploaded_file.content_type not in (*cls.IMAGE_FORMATS, cls.PDF_FORMAT):
+            raise FileTypeUnsupportedError(
+                params={
+                    "file_name": file_name,
+                    "detected_type": _declared_type(uploaded_file),
+                }
+            )
+
+        if not uploaded_file.size:
+            raise SubmissionEmptyError(params={"file_name": file_name})
 
         if uploaded_file.content_type in cls.IMAGE_FORMATS:
             compressed_bytes = cls._compress_uploaded_image(uploaded_file)
@@ -443,8 +503,21 @@ class AssignmentProcessingService:
             # See ai_processor/tests_pdf_service_concurrency.py.
             try:
                 images = PDFService(uploaded_file).extract()
-            except (ValueError, ImageCompressionError) as exc:
-                raise ParseError(str(exc)) from exc
+            except PDFEmptyError as exc:
+                raise SubmissionEmptyError(params={"file_name": file_name}) from exc
+            except PDFTooManyPagesError as exc:
+                raise FileTooLargeError(
+                    params={
+                        "file_name": file_name,
+                        "actual": f"{exc.page_count} pages",
+                        "limit": f"{exc.limit} pages",
+                        "dimension": "pages",
+                    }
+                ) from exc
+            except ImageCompressionError as exc:
+                raise _too_large_after_compression(file_name, exc) from exc
+            except (PDFUnreadableError, ValueError) as exc:
+                raise FileUnreadableError(params={"file_name": file_name}) from exc
 
             for image in images:
                 content.append(
@@ -454,11 +527,6 @@ class AssignmentProcessingService:
                         "bytes": image,
                     }
                 )
-        else:
-            raise ParseError(
-                f"Unsupported format: {uploaded_file.name}. "
-                "Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
-            )
 
         return content
 
