@@ -1,0 +1,9 @@
+D1_a_door_left_out_of_the_registry {'killed': True, 'failing_tests': ['test_every_anonymous_write_route_is_a_door_or_excluded']}
+D2_refusal_never_recorded {'killed': True, 'failing_tests': ['test_a_malformed_registration_is_one_invalid_request_failure', 'test_a_refused_door_request_records_one_invalid_request', 'test_every_anonymous_door_records_a_refused_request']}
+D3_throttled_request_recorded {'killed': True, 'failing_tests': ['test_a_throttled_request_records_nothing']}
+D4_signed_in_requester_recorded_as_a_door_refusal {'killed': True, 'failing_tests': ['test_a_signed_in_requester_is_left_to_the_generic_event']}
+D5_refusal_recorded_even_when_the_door_recorded_its_own {'killed': True, 'failing_tests': ['test_a_deactivated_account_is_denied_and_named', 'test_a_failure_is_anonymous_and_carries_the_targets_school', 'test_a_failure_is_scoped_to_the_targets_school', 'test_every_anonymous_door_records_a_refused_request', 'test_expired_code', 'test_google_unreachable_is_a_provider_failure', 'test_school_admin_bad_code_survives_the_rollback', 'test_student_invitation_bad_code_survives_the_rollback', 'test_superadmin_can_filter_anonymous_events', 'test_the_guess_that_spends_the_budget_is_a_failure_that_set_the_lock', 'test_unknown_email', 'test_unknown_email_stores_no_account_and_no_email', 'test_unverified_google_email', 'test_wrong_code', 'test_wrong_code_names_the_account']}
+E1_stripe_webhook_exclusion_removed {'killed': True, 'failing_tests': ['test_every_anonymous_write_route_is_a_door_or_excluded', 'test_every_registry_entry_names_a_real_route']}
+A1_account_register_not_emitted {'killed': True, 'failing_tests': ['test_a_new_account_is_recorded_with_the_account_as_target']}
+A2_account_register_names_the_new_account_as_actor {'killed': True, 'failing_tests': ['test_a_new_account_is_recorded_with_the_account_as_target']}
+SURVIVORS: []
