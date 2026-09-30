@@ -150,6 +150,6 @@ stands).
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed modules and all repo-wide guards on beta | see log | `r2_changed_modules.txt` |
-| Reproduce-first: 0fbac49's helper, the rest as now | see log | `r2_prefix_0fbac49_failing.txt` |
-| Mutation M1–M11 | see log | `r2_mutation_log.txt`, `r2_mutation_results.json` |
+| Changed modules and all repo-wide guards on beta | 131 tests OK | `r2_changed_modules.txt` |
+| Reproduce-first: 0fbac49's helper, the rest as now | 6 FAIL of 12, exactly N1: ReassignedCourseTests (T1–T4 answer non-404, and grading ran as the ex-owner). Every other test, including the admin and the new-owner controls, passes on round 1's helper. | `r2_prefix_0fbac49_failing.txt` |
+| Mutation M1–M11 | 11/11 killed, 0 survivors, source clean after. M9 is killed by the Q7 tests and by the sweep (the old helper line is unlisted again); M10 by the admin control; M11 by Q1 | `r2_mutation_log.txt`, `r2_mutation_results.json` |
