@@ -10,15 +10,27 @@ carries a database default (`db_default`), set by the
 
 Two halves:
 
-* **Guard** (static, over the migration graph). Every column that an
-  AddField or AlterField after production's heads touches, on a table
-  production already has, but that production's schema does not have, must
-  in the final migration state be nullable or have a `db_default`. That is
-  exactly the column an older INSERT omits. The allow-list is empty on
-  purpose. Out of scope, for the same reason: a table production does not
-  have (older code never inserts into it; CreateModel, and the AddFields
-  after it on such a table), and an AlterField on a column production
-  already has (older code lists that column in its INSERT).
+* **Guard** (static, over the migration graph). After production's heads,
+  with an empty allow-list, it flags a NOT NULL column without a
+  `db_default` (read from the final migration state, so a later AlterField
+  that adds one counts) when either:
+
+  (a) an AddField adds it, whatever the table's age; or
+  (b) an AlterField turns it from nullable to NOT NULL. The previous
+      nullability comes from the migration state before that migration,
+      not from the models.
+
+  Why this scope: a rollback's older code omits from its INSERT exactly the
+  columns it does not know, and (a) covers every column added since
+  production. An AlterField that turns a column NOT NULL is the other way a
+  column can start refusing that INSERT, which is (b). An AlterField that
+  leaves nullability alone (a choice, default or FK change) is skipped:
+  older code already lists that column in its INSERT, or never inserts into
+  its table. None of this depends on the cutoff tracking production, so it
+  stays correct after the next release. CreateModel is out of scope (older
+  code never inserts into a table it does not know), and so are its columns;
+  any AddField after it on that table is in scope under (a). Decided by the
+  SM, 2026-09-30.
 * **Old-code INSERTs** (real PostgreSQL). For each of the nine columns a
   rollback could meet, a raw INSERT that lists every other column, as the
   older code's INSERT does, succeeds, and the row gets the default.
@@ -31,9 +43,11 @@ When production moves, move PRODUCTION_HEADS to its new heads.
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.db import connection, transaction
+from django.db import connection, models, transaction
+from django.db.migrations import Migration
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.operations import AddField, AlterField
+from django.db.migrations.state import ModelState, ProjectState
 from django.db.models import NOT_PROVIDED
 from django.test import SimpleTestCase, TransactionTestCase
 
@@ -63,23 +77,75 @@ PRODUCTION_HEADS = {
 ALLOWED = {}
 
 
+def migrations_since_production(loader):
+    """(app, name, migration) for every local migration production does not
+    have."""
+    in_production = set()
+    for app, head in PRODUCTION_HEADS.items():
+        in_production |= set(loader.graph.forwards_plan((app, head)))
+    return [
+        (app, name, migration)
+        for (app, name), migration in loader.disk_migrations.items()
+        if app in LOCAL_APPS and (app, name) not in in_production
+    ]
+
+
 def fields_touched_since_production(loader=None):
     """{(app, model, field): ("app.migration", ...)} for every AddField
     and AlterField in a migration production does not have."""
     loader = loader or MigrationLoader(None, ignore_no_migrations=True)
-    in_production = set()
-    for app, head in PRODUCTION_HEADS.items():
-        in_production |= set(loader.graph.forwards_plan((app, head)))
     touched = {}
-    for key, migration in loader.disk_migrations.items():
-        if key[0] not in LOCAL_APPS or key in in_production:
-            continue
+    for app, name, migration in migrations_since_production(loader):
         for op in migration.operations:
             if isinstance(op, (AddField, AlterField)):
                 touched.setdefault(
-                    (key[0], op.model_name_lower, op.name_lower), []
-                ).append(f"{key[0]}.{key[1]}")
+                    (app, op.model_name_lower, op.name_lower), []
+                ).append(f"{app}.{name}")
     return {field: tuple(sorted(where)) for field, where in touched.items()}
+
+
+def rollback_candidates(migrations, state_before):
+    """{(app, model, field): ("app.migration", ...)}: the columns rule (a)
+    or (b) covers. `state_before(app, name)` is the migration state just
+    before that migration."""
+    candidates = {}
+    for app, name, migration in migrations:
+        before = None
+        for op in migration.operations:
+            if not isinstance(op, (AddField, AlterField)):
+                continue
+            key = (app, op.model_name_lower, op.name_lower)
+            if isinstance(op, AddField):
+                candidates.setdefault(key, []).append(f"{app}.{name}")
+            else:
+                before = before or state_before(app, name)
+                previous = before.models.get((app, op.model_name_lower))
+                previous_field = (
+                    previous.fields.get(op.name_lower) if previous else None
+                )
+                if previous_field is not None and (
+                    previous_field.null and not op.field.null
+                ):
+                    candidates.setdefault(key, []).append(f"{app}.{name}")
+    return {field: tuple(sorted(where)) for field, where in candidates.items()}
+
+
+def broken_fields(candidates, final):
+    """The candidates that are NOT NULL with no db_default in `final`, and
+    not allow-listed, as {"app.model.field": ("app.migration", ...)}."""
+    broken = {}
+    for (app, model, name), where in candidates.items():
+        model_state = final.models.get((app, model))
+        if model_state is None or name not in model_state.fields:
+            continue  # removed again later
+        field = model_state.fields[name]
+        if field.many_to_many or field.null or field.primary_key:
+            continue
+        if field.db_default is not NOT_PROVIDED:
+            continue
+        if (app, model, name) not in ALLOWED:
+            broken[f"{app}.{model}.{name}"] = where
+    return broken
 
 
 LOCAL_APPS = {
@@ -94,30 +160,14 @@ LOCAL_APPS = {
 
 
 def fields_a_rollback_would_break(loader=None, state=None):
-    """The touched fields that are NOT NULL with no db_default in the final
-    migration state (or `state`, for the guard's own test), and not
-    allow-listed."""
+    """Rule (a) + (b) over the real migration graph, judged against the
+    final migration state (or `state`, for the guard's own test)."""
     loader = loader or MigrationLoader(None, ignore_no_migrations=True)
-    state = state or loader.project_state()
-    production = loader.project_state(nodes=list(PRODUCTION_HEADS.items()), at_end=True)
-    broken = {}
-    for (app, model, name), where in fields_touched_since_production(loader).items():
-        model_state = state.models.get((app, model))
-        if model_state is None or name not in model_state.fields:
-            continue  # removed again later
-        in_production = production.models.get((app, model))
-        if in_production is None:
-            continue  # a table older code never inserts into
-        if name in in_production.fields:
-            continue  # a column older code already lists in its INSERT
-        field = model_state.fields[name]
-        if field.many_to_many or field.null or field.primary_key:
-            continue
-        if field.db_default is not NOT_PROVIDED:
-            continue
-        if (app, model, name) not in ALLOWED:
-            broken[f"{app}.{model}.{name}"] = where
-    return broken
+    candidates = rollback_candidates(
+        migrations_since_production(loader),
+        lambda app, name: loader.project_state((app, name), at_end=False),
+    )
+    return broken_fields(candidates, state or loader.project_state())
 
 
 class RollbackDefaultsGuardTests(SimpleTestCase):
@@ -125,19 +175,24 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
         self.assertEqual(
             fields_a_rollback_would_break(),
             {},
-            "NOT NULL fields added or altered since production with no "
-            "db_default: code older than their migration omits them from "
-            "INSERT, so a code-only rollback fails every insert into the "
-            "table. Give each a db_default (same value as `default`; "
-            "db_default=Now() for a timestamp) and generate the AlterField.",
+            "NOT NULL fields added, or made NOT NULL, since production with "
+            "no db_default: code older than their migration omits them from "
+            "INSERT (or inserts NULL), so a code-only rollback fails every "
+            "insert into the table. Give each a db_default (same value as "
+            "`default`; db_default=Now() for a timestamp) and generate the "
+            "AlterField.",
         )
 
     def test_the_guard_sees_the_nine_rollback_columns(self):
-        """Guard on the guard: the fields H-56 found are in its scope, so an
-        empty result means they are fixed, not unseen."""
-        touched = fields_touched_since_production()
+        """Guard on the guard: the fields H-56 found are rule (a)
+        candidates, so an empty result means they are fixed, not unseen."""
+        loader = MigrationLoader(None, ignore_no_migrations=True)
+        candidates = rollback_candidates(
+            migrations_since_production(loader),
+            lambda app, name: loader.project_state((app, name), at_end=False),
+        )
         for field in ROLLBACK_COLUMNS:
-            self.assertIn(field.key, touched)
+            self.assertIn(field.key, candidates)
 
     def test_the_production_heads_exist(self):
         loader = MigrationLoader(None, ignore_no_migrations=True)
@@ -145,8 +200,8 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
             self.assertIn((app, head), loader.disk_migrations)
 
     def test_the_guard_flags_a_not_null_field_without_a_db_default(self):
-        """On a synthetic final state: drop one db_default and the guard
-        reports that field."""
+        """Rule (a) on the real graph with a synthetic final state: drop
+        one db_default and the guard reports that field alone."""
         loader = MigrationLoader(None, ignore_no_migrations=True)
         state = loader.project_state()
         field = state.models[("users", "customuser")].fields["token_epoch"]
@@ -159,6 +214,64 @@ class RollbackDefaultsGuardTests(SimpleTestCase):
             )
         finally:
             field.db_default = original
+
+    def test_rule_b_fires_only_when_an_alter_makes_a_column_not_null(self):
+        """Rule (b) on a synthetic migration: nullable to NOT NULL without a
+        db_default is flagged; the same with a db_default, or an alter that
+        keeps nullability, is not."""
+
+        def state_with(**fields):
+            state = ProjectState()
+            state.add_model(
+                ModelState(
+                    "synthetic",
+                    "thing",
+                    [("id", models.AutoField(primary_key=True))] + list(fields.items()),
+                )
+            )
+            return state
+
+        before = state_with(
+            tightened=models.CharField(max_length=5, null=True),
+            defaulted=models.CharField(max_length=5, null=True),
+            unchanged=models.CharField(max_length=5),
+        )
+        after = {
+            "tightened": models.CharField(max_length=5),
+            "defaulted": models.CharField(max_length=5, db_default="x"),
+            "unchanged": models.CharField(max_length=5, default="y"),
+        }
+        operations = [AlterField("thing", n, f) for n, f in after.items()]
+        migration = type("SyntheticAlter", (Migration,), {"operations": operations})(
+            "0002_alter", "synthetic"
+        )
+        candidates = rollback_candidates(
+            [("synthetic", "0002_alter", migration)], lambda app, name: before
+        )
+        self.assertEqual(
+            set(candidates),
+            {("synthetic", "thing", "tightened"), ("synthetic", "thing", "defaulted")},
+        )
+        self.assertEqual(
+            set(broken_fields(candidates, state_with(**after))),
+            {"synthetic.thing.tightened"},
+        )
+
+    def test_a_nullability_preserving_alter_on_the_real_graph_is_skipped(self):
+        """The eight AlterFields since production that change choices,
+        defaults or FK details of a column that was already NOT NULL are
+        not rule (b) candidates, and none is also added since production."""
+        loader = MigrationLoader(None, ignore_no_migrations=True)
+        candidates = rollback_candidates(
+            migrations_since_production(loader),
+            lambda app, name: loader.project_state((app, name), at_end=False),
+        )
+        for key in [
+            ("billing", "creditusagelog", "wallet"),
+            ("billing", "creditledger", "ledger_type"),
+            ("students", "backgroundprocessingtask", "task_type"),
+        ]:
+            self.assertNotIn(key, candidates)
 
 
 class Column:
