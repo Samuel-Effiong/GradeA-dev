@@ -1481,6 +1481,33 @@ to the refusal-handling cluster, not to this item.
 
 ---
 
+# AUTHZ-L2 follow-up — reset-code guess budget hardening (LOW; H-number for the SM to assign)
+
+AUTHZ-L2 made the password-reset guess budget per account: at most 5 guesses
+per 30-minute lock cycle (about 4 per 15-minute code-expiry window if the
+attacker avoids the lock), so **~384 guesses/day** worst case, however many IPs
+the attacker uses. Against a 6-digit code (1,000,000 values) that is under
+0.04%/day per targeted account. That is fine for a drive-by attacker but a
+patient one reaches meaningful odds over months against one high-value
+account, and the same budget can be burned deliberately to keep a victim's
+reset locked (recovery denial; login with the existing password is unaffected).
+
+**Options (any subset):**
+- An escalating lock (30 min, then hours, then a day after repeated lock
+  cycles on one account), which bends the daily rate down to a handful.
+- An 8-digit reset code (100x the space; changes email copy and the frontend
+  input length).
+- An audit event on lock. The audit app is not on `beta`, so the fix emits a
+  structured `password_reset_otp_locked` warning on the `users.models` logger
+  (user id and attempt count only). Replace or complement it with the audit
+  emitter once that lands, and alert on repeated locks for one account.
+
+**Acceptance:** worst-case guesses per account per day measurably lower than
+384, or the code space larger; every lock visible to an operator. Evidence
+as for AUTHZ-L2 (adversarial many-IP loop, mutation).
+
+---
+
 # H-41 — grading-redelivery concurrency test flakes under load
 
 **Found**: seen failing once on CI, never reproduced locally until now.
