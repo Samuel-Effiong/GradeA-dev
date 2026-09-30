@@ -30,3 +30,16 @@ Every run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`
 - **N1 (cosmetic).** When no file name is known (`UNNAMED_PAPER`), the #2 message starts in lower case: "the paper belongs to Pending Pupil, who isn't enrolled in this course." The template opens with `{file_name}`. Real proxy uploads pass the file name (7c7832f), so this only shows in that fallback. It could be fixed by capitalising the first character when rendering, or by a QA catalogue tweak.
 
 Logs: `runs/s6c_run1.log`, `runs/s6c_run2_mutants.log`.
+
+---
+
+## Re-check (N1) @ **43bfee2**, 2026-09-30: **VERIFIED**
+The delta from 262d1f6 is `students/services.py` (+ the test module). For the no-name stand-in only, a `display={"file_name": "The paper"}` override opens the #2 sentence; `params.file_name` stays "the paper", and a real file name is never recased. The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, timeout) in 0b's slot.
+
+| Check | Result |
+|---|---|
+| v2 S6c probes + `students.tests_identity_reason_codes` + `tests_proxy_upload_attribution` | **37 OK** |
+| C4/C5 messages | "**The** paper belongs to Pending Pupil, who isn't enrolled in this course." / "…Other Course…"; `params.file_name` = "the paper" (unchanged, machine value) |
+| ed's/1a's new tests | the capitalisation dropped → killed; over-reach (every file name recased) → killed (1a's run, committed) |
+
+N1 closed. Log: `runs/s6c_n1.log`.
