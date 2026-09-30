@@ -1,7 +1,7 @@
-......
+........
 ----------------------------------------------------------------------
-Ran 6 tests in 1.442s
+Ran 8 tests in 1.469s
 
 OK
-Found 6 test(s).
+Found 8 test(s).
 System check identified no issues (0 silenced).

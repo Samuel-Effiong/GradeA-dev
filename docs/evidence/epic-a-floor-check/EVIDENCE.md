@@ -36,3 +36,25 @@ Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout and
 | 2 Mutation | **5 mutants, 5 killed** on `16b524e` (`mutation_log.txt`, `mutation_results.json`). F1 (`>=`) is killed by the check itself: with the shipped values (all 5) it raises E001 at the test runner's startup system checks, so no test gets to run. F4 (not registered) is killed by the fresh-process test. The first run on `ed50d1b`, where F4 survived, is kept as `mutation_log_first_ed50d1b.txt`. |
 | 1 Regression (owning app) | `audit`: **259 OK** on `ed50d1b` (`regression_audit.txt`). `16b524e` adds only a test. |
 | Hooks | black, isort, flake8, mypy and bandit passed on both commits. |
+
+## N2 (v2's record `VERIFICATION_v2_8bfad77.md`, SM ruling): the limit must exceed every threshold too
+At `FAILED_AUTH_TARGET_FLOOR=5` and `FAILED_AUTH_TARGET_LIMIT=5` the check passed, yet the first refusal after a lock (attempt T+1) is past the per-target limit and would be summarised. The docstring claimed the refusals were covered.
+
+**Change (`2b1b6aa`):**
+- `audit.E001` now also fails when any threshold is **≥ `FAILED_AUTH_TARGET_LIMIT`**. It reports a separate error naming the limit and the offending thresholds. The defaults (30 > 5) pass.
+- The docstring states both conditions: T ≤ floor, and T < limit.
+- Two new tests:
+  - LIMIT == the largest threshold is an error naming `FAILED_AUTH_TARGET_LIMIT`;
+  - floor = T with LIMIT = T + 1 passes.
+- Two new mutants: F6 (`>=` becomes `>`, so the limit may equal a threshold) and F7 (the limit isn't checked at all).
+
+N1 (checks never run on deploy, because the Dockerfile CMD is gunicorn only) is the SM's backlog item for the founder. It isn't changed here.
+
+**N2 gates** (on `2b1b6aa`; only this module, per the SM):
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | F7 is `8bfad77`'s behaviour (no limit condition). It is killed by `test_a_limit_equal_to_a_threshold_is_an_error`. |
+| Changed module | `audit.tests_checks`: **8 OK** (`changed_modules.txt`) |
+| `manage.py check` | **no issues** with the shipped settings |
+| 2 Mutation | **7 mutants, 7 killed** (`mutation_log.txt`). The earlier runs are kept as `mutation_log_first_ed50d1b.txt` and `mutation_log_r1_16b524e.txt`. |

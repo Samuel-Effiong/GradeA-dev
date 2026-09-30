@@ -22,6 +22,18 @@
       "test_manage_py_check_fails_on_a_floor_set_below_a_threshold"
     ]
   },
+  "F6_limit_may_equal_a_threshold": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_limit_equal_to_a_threshold_is_an_error"
+    ]
+  },
+  "F7_limit_not_checked": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_limit_equal_to_a_threshold_is_an_error"
+    ]
+  },
   "F5_error_without_its_id": {
     "killed": true,
     "failing_tests": [
