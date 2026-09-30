@@ -179,7 +179,9 @@ NON_RESPONSE_CACHE_WRITES = {
     "billing/stripe_service.py": (3, "Stripe portal config id; lock"),
     "billing/views.py": (2, "idempotency locks"),
     "billing/license_service.py": (2, "idempotency locks"),
-    "billing/tasks.py": (1, "task lock"),
+    # billing/tasks.py's own task lock (reconcile_stripe_prices) moved onto
+    # AutoGrader/beat_locks.py (H-65), which writes through the raw Redis
+    # client (SET NX PX, Lua compare-and-delete) under "beat-lock:" keys.
     "users/middleware.py": (1, "activity heartbeat throttle"),
     "users/throttling.py": (
         5,

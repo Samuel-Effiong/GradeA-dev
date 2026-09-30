@@ -8,6 +8,8 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
 from AutoGrader.tasks import send_email_task
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import Course, School
@@ -45,6 +47,7 @@ def record_concurrent_users():
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def send_weekly_course_summaries(self):
     service = WeeklyCourseSummaryService()
     as_of = timezone.now()
@@ -146,6 +149,7 @@ def send_weekly_course_summaries(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def send_weekly_student_summaries(self):
     service = StudentWeeklySummaryService()
     as_of = timezone.now()
@@ -211,6 +215,7 @@ def send_weekly_student_summaries(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def send_weekly_school_admin_summaries(self):
     service = SchoolAdminWeeklySummaryService()
     as_of = timezone.now()
@@ -315,6 +320,7 @@ def send_weekly_school_admin_summaries(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def send_at_risk_student_alerts(self):
     """
     Daily scan across every school with at least one active school admin:
@@ -477,6 +483,7 @@ def send_at_risk_student_alerts(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def send_teacher_inactivity_alerts(self):
     """
     Daily scan: for each school with at least one opted-in admin, flags
