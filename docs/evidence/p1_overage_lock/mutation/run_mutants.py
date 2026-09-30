@@ -32,6 +32,15 @@ FLOW = "billing.tests.test_receipt_lookup_outside_transaction"
 REPRO = "billing.tests.test_overage_lock_across_network"
 UNIT = "billing.tests.test_receipts"
 CAP = "billing.tests.test_overage_cap"
+# Class-level targets: each mutant runs only the tests that should catch it,
+# which keeps a battery worker to a handful of database connections.
+LOOKUP = f"{UNIT}.LookupReceiptUrlTests"
+FILL = f"{UNIT}.FillReceiptUrlTests"
+SCHEDULE = f"{UNIT}.ScheduleReceiptUrlFillTests"
+SWEEP = f"{UNIT}.SweepMissingReceiptUrlsTests"
+BACKFILL = f"{UNIT}.BackfillReceiptUrlsCommandTests"
+RECOVERY = f"{UNIT}.WebhookReceiptRecoveryTests"
+CONCURRENCY = f"{UNIT}.ReceiptConcurrencyTests"
 ALL = [FLOW, REPRO, UNIT, CAP]
 
 SS = "billing/stripe_service.py"
@@ -207,7 +216,7 @@ MUTANTS = [
         None,
         "        BillingTransaction.objects.filter(pk=transaction_id)\n        .filter(_MISSING_RECEIPT)\n",
         "        BillingTransaction.objects.filter(pk=transaction_id)\n",
-        [UNIT],
+        [FILL, CONCURRENCY],
     ),
     (
         "M19",
@@ -216,7 +225,7 @@ MUTANTS = [
         None,
         '    if row["receipt_url"]:\n        return FillOutcome.ALREADY_SET\n',
         "",
-        [UNIT],
+        [FILL],
     ),
     (
         "M20",
@@ -225,7 +234,7 @@ MUTANTS = [
         None,
         "        return FillOutcome.NO_STRIPE_REFERENCE\n",
         "        pass\n",
-        [UNIT],
+        [FILL],
     ),
     (
         "M21",
@@ -234,7 +243,7 @@ MUTANTS = [
         None,
         "    if row is None:\n        return FillOutcome.MISSING\n",
         "",
-        [UNIT],
+        [FILL],
     ),
     # -- bounded lookup ------------------------------------------------------
     (
@@ -244,7 +253,7 @@ MUTANTS = [
         None,
         "RECEIPT_LOOKUP_TIMEOUT_SECONDS = 10",
         "RECEIPT_LOOKUP_TIMEOUT_SECONDS = 80",
-        [UNIT],
+        [LOOKUP],
     ),
     (
         "M23",
@@ -253,7 +262,7 @@ MUTANTS = [
         None,
         "        max_network_retries=0,",
         "        max_network_retries=2,",
-        [UNIT],
+        [LOOKUP],
     ),
     (
         "M24",
@@ -262,7 +271,7 @@ MUTANTS = [
         None,
         "    except Exception:  # noqa: BLE001 - a receipt link must never break a caller",
         "    except ZeroDivisionError:  # noqa: BLE001 - a receipt link must never break a caller",
-        [UNIT],
+        [LOOKUP],
     ),
     (
         "M25",
@@ -271,7 +280,7 @@ MUTANTS = [
         None,
         "    except stripe.StripeError as exc:",
         "    except ZeroDivisionError as exc:",
-        [UNIT],
+        [LOOKUP],
     ),
     (
         "M26",
@@ -280,7 +289,7 @@ MUTANTS = [
         None,
         "            if isinstance(latest_charge, str):",
         "            if False:",
-        [UNIT],
+        [LOOKUP],
     ),
     (
         "M27",
@@ -289,7 +298,7 @@ MUTANTS = [
         None,
         "        if invoice_id:\n            return client.v1.invoices",
         "        if invoice_id and False:\n            return client.v1.invoices",
-        [UNIT],
+        [LOOKUP],
     ),
     # -- scheduling ----------------------------------------------------------
     (
@@ -299,7 +308,7 @@ MUTANTS = [
         None,
         "    if billing_transaction.receipt_url:\n        return\n",
         "",
-        [UNIT],
+        [SCHEDULE],
     ),
     (
         "M29",
@@ -308,7 +317,7 @@ MUTANTS = [
         None,
         "        or billing_transaction.stripe_payment_intent_id\n    ):\n        return\n",
         "        or billing_transaction.stripe_payment_intent_id\n    ):\n        pass\n",
-        [UNIT],
+        [SCHEDULE],
     ),
     (
         "M30",
@@ -317,7 +326,7 @@ MUTANTS = [
         None,
         "transaction.on_commit(enqueue, robust=True)",
         "transaction.on_commit(enqueue)",
-        [UNIT],
+        [SCHEDULE],
     ),
     (
         "M31",
@@ -326,7 +335,7 @@ MUTANTS = [
         None,
         "        safe_delay(fill_billing_transaction_receipt_url, transaction_id)",
         "        fill_billing_transaction_receipt_url.delay(transaction_id)",
-        [UNIT],
+        [SCHEDULE, RECOVERY],
     ),
     # -- sweep ---------------------------------------------------------------
     (
@@ -336,7 +345,7 @@ MUTANTS = [
         None,
         "            occurred_at__gte=now - RECEIPT_SWEEP_WINDOW,\n",
         "",
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M33",
@@ -345,7 +354,7 @@ MUTANTS = [
         None,
         "            occurred_at__lte=now - RECEIPT_SWEEP_MIN_AGE,\n",
         "",
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M34",
@@ -354,7 +363,7 @@ MUTANTS = [
         None,
         "        BillingTransaction.objects.filter(_MISSING_RECEIPT)\n        .filter(_HAS_STRIPE_REFERENCE)\n",
         "        BillingTransaction.objects.filter(_HAS_STRIPE_REFERENCE)\n",
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M35",
@@ -363,7 +372,7 @@ MUTANTS = [
         None,
         "        BillingTransaction.objects.filter(_MISSING_RECEIPT)\n        .filter(_HAS_STRIPE_REFERENCE)\n",
         "        BillingTransaction.objects.filter(_MISSING_RECEIPT)\n",
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M36",
@@ -372,7 +381,7 @@ MUTANTS = [
         None,
         '        .order_by("-occurred_at")',
         '        .order_by("occurred_at")',
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M37",
@@ -381,7 +390,7 @@ MUTANTS = [
         None,
         '.values_list("pk", flat=True)[:RECEIPT_SWEEP_BATCH_SIZE]',
         '.values_list("pk", flat=True)',
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M38",
@@ -390,7 +399,7 @@ MUTANTS = [
         None,
         "        if monotonic() - started > RECEIPT_SWEEP_TIME_BUDGET_SECONDS:",
         "        if False:",
-        [UNIT],
+        [SWEEP],
     ),
     (
         "M39",
@@ -399,7 +408,7 @@ MUTANTS = [
         None,
         '        "task": "billing.tasks.sweep_missing_receipt_urls",',
         '        "task": "billing.tasks.sweep_stale_stripe_events",',
-        [UNIT],
+        [SWEEP],
     ),
     # -- backfill command ----------------------------------------------------
     (
@@ -409,7 +418,7 @@ MUTANTS = [
         None,
         "                    pk=txn.pk, receipt_url__isnull=True\n",
         "                    pk=txn.pk\n",
-        [UNIT],
+        [BACKFILL],
     ),
     (
         "M41",
@@ -418,7 +427,7 @@ MUTANTS = [
         None,
         "            if not dry_run:",
         "            if True:",
-        [UNIT],
+        [BACKFILL],
     ),
 ]
 

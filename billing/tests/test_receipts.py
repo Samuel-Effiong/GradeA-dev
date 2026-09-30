@@ -76,6 +76,19 @@ def pi_receipt(pi_id):
     return charge_receipt_url(f"ch_for_{pi_id}")
 
 
+def _fail_on_second_call(original):
+    """Let the pre-read through, then kill the process before the UPDATE."""
+    state = {"calls": 0}
+
+    def wrapper(*args, **kwargs):
+        state["calls"] += 1
+        if state["calls"] > 1:
+            raise RuntimeError("worker killed after Stripe answered")
+        return original(*args, **kwargs)
+
+    return wrapper
+
+
 # ---------------------------------------------------------------------------
 # Lookup
 # ---------------------------------------------------------------------------
@@ -616,6 +629,55 @@ class WebhookReceiptRecoveryTests(TransactionTestCase, OverageFixture):
         txn.refresh_from_db()
         self.assertEqual(txn.receipt_url, pi_receipt("pi_malformed"))
 
+    def test_crash_after_stripe_answers_but_before_the_local_write(self):
+        """
+        The ordering that used to lose money, now inverted: the Stripe call
+        happens AFTER the grant is durable. A process killed between Stripe
+        answering and the local UPDATE can therefore only lose the link.
+
+        App DB after: grant present, event SUCCEEDED, receipt_url NULL.
+        Stripe after: unchanged - the only call made was a GET.
+        """
+        session = self.checkout_session(
+            self.wallet, self.plan, payment_intent="pi_crash"
+        )
+
+        with fake_stripe() as fake, run_receipt_tasks_inline():
+            with mock.patch.object(
+                receipts.BillingTransaction.objects,
+                "filter",
+                side_effect=_fail_on_second_call(
+                    receipts.BillingTransaction.objects.filter
+                ),
+            ):
+                response = self.deliver("evt_crash", session)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.granted_credits(self.wallet), BLOCK)
+        self.assertEqual(
+            StripeEvent.objects.get(stripe_event_id="evt_crash").status,
+            StripeEventStatus.SUCCEEDED,
+        )
+        txn = BillingTransaction.objects.get(stripe_payment_intent_id="pi_crash")
+        self.assertIsNone(txn.receipt_url)
+        self.assert_stripe_untouched(fake)
+
+        with fake_stripe():
+            receipts.sweep_missing_receipt_urls(
+                now=timezone.now()
+                + receipts.RECEIPT_SWEEP_MIN_AGE
+                + timedelta(minutes=1)
+            )
+        txn.refresh_from_db()
+        self.assertEqual(txn.receipt_url, pi_receipt("pi_crash"))
+
+    def assert_stripe_untouched(self, fake):
+        """Stripe-side state for the G5 record: this path only ever reads."""
+        mutating = [(c.method, c.path) for c in fake.calls if c.method != "get"]
+        self.assertEqual(
+            mutating, [], f"the webhook path called Stripe to MUTATE: {mutating}"
+        )
+
     def test_handler_failure_after_record_queues_no_receipt_task(self):
         session = self.checkout_session(
             self.wallet, self.plan, payment_intent="pi_boom"
@@ -640,6 +702,69 @@ class WebhookReceiptRecoveryTests(TransactionTestCase, OverageFixture):
                 stripe_payment_intent_id="pi_boom"
             ).exists()
         )
+
+
+class ReceiptIsolationTests(TransactionTestCase, OverageFixture):
+    """
+    Gate 9: a receipt link belongs to exactly one purchase. Positive and
+    negative direction, with a second teacher's identical-shaped purchase
+    present throughout.
+    """
+
+    reset_sequences = True
+
+    def setUp(self):
+        self.plan = make_plan()
+        self.mine, self.my_wallet = self.build(email="mine@isolation.test")
+        self.theirs, self.their_wallet = self.build(email="theirs@isolation.test")
+
+    def test_link_lands_only_on_its_own_row(self):
+        from billing.stripe_service import StripeWebhookHandler
+
+        for wallet, pi, event_id in (
+            (self.my_wallet, "pi_mine", "evt_iso_mine"),
+            (self.their_wallet, "pi_theirs", "evt_iso_theirs"),
+        ):
+            event = {
+                "id": event_id,
+                "type": "checkout.session.completed",
+                "data": {
+                    "object": self.checkout_session(
+                        wallet, self.plan, session_id=f"cs_{pi}", payment_intent=pi
+                    )
+                },
+            }
+            with fake_stripe(), run_receipt_tasks_inline():
+                _, token = _claim_stripe_event(event)
+                _run_handler_inline(
+                    event,
+                    StripeWebhookHandler.handle_checkout_completed,
+                    token,
+                    log_prefix="isolation test",
+                )
+
+        mine = BillingTransaction.objects.get(stripe_payment_intent_id="pi_mine")
+        theirs = BillingTransaction.objects.get(stripe_payment_intent_id="pi_theirs")
+        self.assertEqual(mine.receipt_url, pi_receipt("pi_mine"))
+        self.assertEqual(theirs.receipt_url, pi_receipt("pi_theirs"))
+        self.assertEqual(mine.user_id, self.mine.id)
+        self.assertEqual(theirs.user_id, self.theirs.id)
+        # Negative direction: nothing of the other purchase appears anywhere
+        # in this row, and each wallet got exactly its own block.
+        self.assertNotIn("pi_theirs", str(mine.__dict__))
+        self.assertNotIn("pi_mine", str(theirs.__dict__))
+        self.assertEqual(self.granted_credits(self.my_wallet), BLOCK)
+        self.assertEqual(self.granted_credits(self.their_wallet), BLOCK)
+
+    def test_fill_writes_one_row_only(self):
+        mine = record(stripe_payment_intent_id="pi_only_mine", user=self.mine)
+        theirs = record(stripe_payment_intent_id="pi_only_theirs", user=self.theirs)
+        with fake_stripe():
+            receipts.fill_receipt_url(mine.pk)
+        mine.refresh_from_db()
+        theirs.refresh_from_db()
+        self.assertEqual(mine.receipt_url, pi_receipt("pi_only_mine"))
+        self.assertIsNone(theirs.receipt_url)
 
 
 # ---------------------------------------------------------------------------
