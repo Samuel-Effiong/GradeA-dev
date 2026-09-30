@@ -276,8 +276,29 @@ means **the school is charged**. **CONFIRMED sixth defect site.**
 | 5 | `views.py:754`/`:766` `cancel` | view | Two irreversible calls under one atomic + SFU |
 | 6 | `stripe_service.py:3397`/`:3399`/`:3406` via `handle_checkout_completed` | webhook | The board's priority site; redeliverable, unlike 1-5 |
 
-Outstanding: `sync_price` (:3927/:3991) hand-confirm. Not defects: `stripe_service.py:1054`
-(reference pattern), `:4691` (low/benign).
+| 7 | `sync_price` `:1813` via `handle_invoice_payment_succeeded` `:3720` | webhook | Next cycle billed at the new price while the app holds the old plan — **but already idempotent** |
+
+Not defects: `stripe_service.py:1054` (reference pattern), `:4691` (low/benign).
+
+### B2 hand-confirm — COMPLETE (site 7)
+
+`@transaction.atomic` at **:3718** on `handle_invoice_payment_succeeded` (:3720), reaching
+`_handle_individual_invoice_succeeded` (:3812), which calls `sync_price` at :3927 and :3991.
+`sync_price` (defined :1795) performs **`stripe.Subscription.modify` at :1813**. Confirmed
+inside a transaction.
+
+**Severity is genuinely lower, and the reason matters for the design:** `sync_price` is
+**already idempotent by construction** — it retrieves the subscription, **returns early if
+the price already matches** (:1806-1810), and only then modifies. After a rollback plus a
+Stripe redelivery it converges on the correct state.
+
+**The webhook recovery path is real and verified, not assumed:** the claim in
+`webhooks.py:150-200` is **deliberately NOT wrapped in `transaction.atomic`** (stated in its
+own docstring), so it **survives the handler's rollback**; `FAILED` and stale `PROCESSING`
+claims are re-claimable; and Stripe redelivers for ~3 days (`STRIPE_RETRY_WINDOW`).
+
+**So the asymmetry is now confirmed on BOTH sides**: the webhook layer has designed
+recovery, the view layer has none. That is the argument in `DESIGN_PROPOSAL.md`.
 
 **Five of the six are VIEW-layer — never redelivered.** Only #6 is a webhook. That ratio is
 the argument against one uniform remedy.
