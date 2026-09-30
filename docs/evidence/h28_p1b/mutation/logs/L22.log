@@ -1,0 +1,16 @@
+# L22: the budget bounds each call
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    if deadline is None:\n        return fn(*args, **kwargs)'
+# new: '    if True:\n        return fn(*args, **kwargs)'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 44.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_call_the_budget_never_started_is_failed_not_pending (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_a_call_the_budget_never_started_is_failed_not_pending)
+FAIL: test_nested_budgets_keep_the_earlier_deadline (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_nested_budgets_keep_the_earlier_deadline)
+FAIL: test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time)
+FAIL: test_the_worker_thread_leaves_no_database_connection_open (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_the_worker_thread_leaves_no_database_connection_open)
+FAIL: test_under_a_budget_the_call_reports_its_callers_transaction (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_under_a_budget_the_call_reports_its_callers_transaction)
+
+FAILED (failures=5)

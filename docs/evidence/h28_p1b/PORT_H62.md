@@ -30,7 +30,8 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 | 9 | `77e8c95` | the per-request Stripe budget (§9i (2)); the named Gate-5 assertion is `test_h28_stripe_budget.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time` (see *The request budget* below) |
 | 10 | `01bde47` | docs: the detector-spec amendment (`SPEC_audit_stripe_divergence.md`): compare price, quantity, renewal and open change-invoices, not only status, and read the intent ledger first |
 | — | `69dada7` | the mutation battery runner |
-| 11 | (next) | the SM's review of commit 9: every licence Stripe call through `LicenceStripe`, bounded at the socket (see *The request budget*) |
+| 11 | `2e770c2` | the SM's review of commit 9: every licence Stripe call through `LicenceStripe`, bounded at the socket (see *The request budget*) |
+| — | `e70d641` | test-only fixes from the rule-15 run (below) |
 
 ## F1: the 4-point behaviour-change record
 
@@ -81,4 +82,60 @@ Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout
 | Commit 9's modules | commit-9 tree | 173 ran, **1 failure in a new test of mine**: `test_the_worker_thread_leaves_no_database_connection_open` compared `django.db.connection`, a proxy shared by every thread. Fixed to compare each thread's `connections["default"]`; `test_h28_stripe_budget` re-run: 8 OK. The other 172 passed in the first run |
 | Commit 11's modules (the socket-bound rework), with `AutoGrader.tests_network_guard` and the live-QA registry | commit-11 tree | first run: 195 ran, **1 failure that found a real bug**. `test_a_hung_stripe_fails_at_the_socket_inside_the_budget` showed the outer wait firing: a new thread does not inherit contextvars, so on the worker the deadline was invisible and every call got the 30 s maximum socket timeout. Fixed by running the worker in a copy of the caller's context (mutant L29 pins it). Re-run: **195 ran, OK** |
 
-Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.
+## Rule 15: the author's gates for Change 1 (at `2e770c2`, then `e70d641`)
+
+Every run is under `systemd-run` MemoryMax=6G, `nice -n 10` and `timeout`, one process at a time, with `EXEMPT_EMAIL_DOMAINS` empty. Logs are in `port_h62/rule15/`: trimmed to one outcome line per test, with emails redacted.
+
+| Run | Result | Log |
+|---|---|---|
+| Changed modules: the 9 H-28 modules, `test_mailerlite_sync` (calls the rewritten plan change and cancel), `test_live_qa_scenario_registry`, `AutoGrader.tests_beat_health`, `AutoGrader.test_health` (the new beat entry), `AutoGrader.tests_migration_rollback_defaults` (reads 0072) | 195 ran, OK (`2e770c2`) | `rule15/changed_modules_2e770c2.log` |
+| Mutation battery: 29 mutants, one per guard (`mutation/run_mutants.py`), each running the 9 H-28 modules in a disposable worktree, restored from the commit blob and sha256-checked | 25 of 29 killed at `2e770c2`; the 4 survivors were weak tests, strengthened in `e70d641` (test-only) and then killed: **29 of 29** | `mutation/results.tsv` (every run), `mutation/logs/`, `rule15/mutation_battery_2e770c2.log`, `rule15/survivors_e70d641.log` |
+| The ONE owning-app regression: `billing` | 1882 ran at `2e770c2`: **5 failed**, all in `test_license_cancellation` (below); the rest passed. After the test-only fix, that module and the three strengthened ones: 50 ran, OK (`e70d641`). No second billing run (0b's ruling: the fixes are test-only) | `rule15/app_billing_2e770c2.log`, `rule15/touched_modules_e70d641.log` |
+
+**Regression scope.** The new model (`LicenseStripeMutationIntent`) and the four rewritten operations are read or called only in `billing`: no other app calls `cancel_license_subscription`, `update_seats`, `change_license_plan`, `change_license_price` or `convert_license_to_offline`. The one change outside `billing` is `AutoGrader/settings.py` (a beat entry and its health row), and its readers ran in the changed modules. So `billing` is the owning-app regression, and it runs with bundle 4 merged (`8e450e6`).
+
+**What the regression found.** `billing.tests.test_license_cancellation`, an existing beta module, patched the legacy `stripe.Subscription.modify`, which cancel no longer calls (it goes through `LicenceStripe` since commit 11). Five tests failed. `e70d641` retargets the patch to `LicenceStripe.modify_subscription`; the assertions are unchanged, plus the idempotency key the adapter now receives. **Its failure-path test (`test_stripe_failure_is_surfaced_and_leaves_local_state_untouched`) had kept passing only by accident:** its stale patch intercepted nothing, and the H-39 network guard blocked the real Stripe call that then went out, which still surfaced as the ValueError the test expected (0b asked for this to be recorded). My caller search missed the module because it searched for callers, not for tests patching the removed call. A wider search since then (every test file, for a legacy `stripe.Subscription/Invoice/Price` patch together with a licence operation or endpoint) found no other.
+
+The mutation table, with every mutant's result:
+
+| Mutant | Guard | Result |
+|---|---|---|
+| L01 | cancel phase A durable | KILLED (FAILED (errors=1)) |
+| L02 | seats phase A durable | KILLED (FAILED (errors=1)) |
+| L03 | unknown outcome: a timeout is read back | KILLED (FAILED (failures=7, errors=3)) |
+| L04 | a CardError is not a refusal (payment_errors) | **SURVIVED** at `2e770c2` (a weak test); KILLED at `e70d641` by `test_the_licence_stays_guarded_while_a_card_error_is_undone` |
+| L05 | a refused delete is read back (read_back_on) | KILLED (FAILED (failures=1, errors=1)) |
+| L06 | the unpaid change's invoice is voided | KILLED (FAILED (failures=16, errors=1)) |
+| L07 | only the change's own invoice (new_invoice_since) | **SURVIVED** at `2e770c2` (a weak test); KILLED at `e70d641` by `test_with_no_new_invoice_an_older_open_one_is_left_alone` |
+| L08 | finalise compensates where no money moved | KILLED (FAILED (failures=8, errors=1)) |
+| L09 | a paid seat increase is never compensated | KILLED (FAILED (failures=1)) |
+| L10 | a paid plan upgrade is never compensated | KILLED (FAILED (failures=1)) |
+| L11 | F0: a price change reaches Stripe | KILLED (FAILED (failures=21, errors=1)) |
+| L12 | the per-licence guard is reported as busy | KILLED (FAILED (errors=7)) |
+| L13 | abandon frees the licence (FAILED) | KILLED (FAILED (failures=2)) |
+| L14 | stale check: only intents older than STALE_AFTER | KILLED (FAILED (failures=1)) |
+| L15 | stale check alerts once (ESCALATED not re-selected) | **SURVIVED** at `2e770c2` (a weak test); KILLED at `e70d641` by `test_an_old_escalated_intent_is_not_alerted_again` |
+| L16 | alerts email the super admins | KILLED (FAILED (failures=3)) |
+| L17 | resolve --apply needs a note | KILLED (FAILED (failures=5)) |
+| L18 | the local write is retried | KILLED (FAILED (failures=1, errors=2)) |
+| L19 | a retry after a lost commit reply writes nothing twice | KILLED (FAILED (failures=1)) |
+| L20 | the retry runs on a fresh connection | **SURVIVED** at `2e770c2` (a weak test); KILLED at `e70d641` by the persistent-failure test now asserts a different backend pid per attempt |
+| L21 | an abandoned started call stays PENDING | KILLED (FAILED (failures=1)) |
+| L22 | the budget bounds each call | KILLED (FAILED (failures=5)) |
+| L23 | the worker reports its caller's transaction | KILLED (FAILED (failures=1)) |
+| L24 | the worker closes its own connections | KILLED (FAILED (failures=1)) |
+| L25 | convert phase A durable | KILLED (FAILED (errors=1)) |
+| L26 | plan change phase A durable | KILLED (FAILED (errors=1)) |
+| L27 | each call is bounded at the socket by the time left | KILLED (FAILED (failures=2)) |
+| L28 | licence calls use the app's Stripe API version | KILLED (FAILED (errors=1)) |
+| L29 | the worker runs in the caller's context (sees the deadline) | KILLED (FAILED (failures=1)) |
+
+
+## For the verifier
+
+- **Hooks over the whole range:** `port_range_hooks.log`, `pre-commit run --from-ref f3002bc --to-ref HEAD` (the SM's rule for a range with `--no-verify` history). No commit on this branch used `--no-verify`. The two old-branch WIPs that did are not in it as commits (see the port table).
+- **Known non-bisectable commit:** `cb2e657`, where migration 0072 still depended on 0069; fixed at `8aada3c`.
+- **Named Gate-5 assertions:** `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` (§9e) and `test_h28_stripe_budget.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time` (§9i (2)).
+- **Behaviour changes a reviewer should weigh:** F1 (its 4-point record is above); `change_license_price` now runs the whole recorded operation; and the MailerLite sync after a plan change now runs after commit.
+- **Deploy notes (0b has them):** the beat task `escalate-stale-licence-stripe-intents`, and the command `resolve_licence_stripe_intent`.
+- **Not done here, by design:** Gate 7 against Stripe test mode, including the DELETE idempotency question in §9j, and the detector itself (`SPEC_audit_stripe_divergence.md`, which needs production read access).
