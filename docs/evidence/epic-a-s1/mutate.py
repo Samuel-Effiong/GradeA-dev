@@ -19,24 +19,32 @@ MUTANTS = {
     # --- generic event and exactly-one ---
     "G1_generic_never_written": (
         MW,
-        "            if not state.named_emitted:\n",
+        "            if not a_stored_event_survives(state):\n",
         "            if False:\n",
     ),
     "G2_generic_always_written": (
         MW,
-        "            if not state.named_emitted:\n",
+        "            if not a_stored_event_survives(state):\n",
         "            if True:\n",
     ),
-    "G3_emitter_does_not_mark": (
+    "G3_emitter_does_not_record_the_event": (
         EM,
-        "    mark_named_emitted()\n    _emit_alertable_metrics(action, outcome, fields)\n",
-        "    _emit_alertable_metrics(action, outcome, fields)\n",
+        "    record_stored_event(event.pk)\n",
+        "",
     ),
-    "G4_marked_on_attempt_not_on_store": (
-        EM,
-        "    label = _safe_label(action)\n    try:\n        fields, dropped = _build(\n",
-        "    mark_named_emitted()\n    label = _safe_label(action)\n"
-        "    try:\n        fields, dropped = _build(\n",
+    # G4 (record on attempt, not on store) is now equivalent and was dropped:
+    # an id that was never stored fails the existence check anyway.
+    "G4_survival_check_fails_unsafe": (
+        CTX,
+        "    except Exception:  # noqa: BLE001 - never fail the response\n"
+        "        return False\n",
+        "    except Exception:  # noqa: BLE001 - never fail the response\n"
+        "        return True\n",
+    ),
+    "R1_rolled_back_event_still_counts": (
+        CTX,
+        "        return AuditEvent.objects.filter(pk__in=state.stored_event_ids).exists()\n",
+        "        return True\n",
     ),
     "G5_exclusions_ignored": (
         RA,

@@ -61,10 +61,15 @@ def trace_context(trace_id=None):
 # Per-request audit state (Epic A completion S1, plan 08 §2).
 #
 # FR-A-01's "exactly one event per action" needs to know, when a request ends,
-# whether any NAMED event (login, grading, credit, CRUD, admin ...) was already
-# recorded for it; only if none was does `audit.middleware.AuditMiddleware`
-# write the generic STATE_CHANGE. The emitter sets the flag on every stored
+# whether any NAMED event (login, grading, credit, CRUD, admin ...) is still
+# recorded for it; only if none is does `audit.middleware.AuditMiddleware`
+# write the generic STATE_CHANGE. The emitter records the id of every stored
 # event, so no call site has to remember to.
+#
+# Ids, not a yes/no flag (Verification Engineer's R1): an event is stored in a
+# savepoint inside the caller's transaction, so if that transaction later rolls
+# back the event is gone. A flag would still say "recorded" and the request
+# would end with no event at all. The middleware checks the ids still exist.
 #
 # A ContextVar, not a request attribute, because the emitter is called from
 # services and model methods that never see the request. Outside a request
@@ -73,10 +78,10 @@ def trace_context(trace_id=None):
 
 
 class RequestAuditState:
-    __slots__ = ("named_emitted",)
+    __slots__ = ("stored_event_ids",)
 
     def __init__(self):
-        self.named_emitted = False
+        self.stored_event_ids = []
 
 
 _request_state_var: ContextVar[Optional[RequestAuditState]] = ContextVar(
@@ -96,8 +101,23 @@ def request_audit_state():
         _request_state_var.reset(token)
 
 
-def mark_named_emitted() -> None:
-    """Record that an event was stored for the current request, if any."""
+def record_stored_event(event_id) -> None:
+    """Remember that `event_id` was stored for the current request, if any."""
     state = _request_state_var.get()
     if state is not None:
-        state.named_emitted = True
+        state.stored_event_ids.append(event_id)
+
+
+def a_stored_event_survives(state) -> bool:
+    """Whether any event stored during the request still exists. One stored in
+    an atomic block that later rolled back is gone with it. On any error this
+    answers False, so the generic event is written: a second event is better
+    than none."""
+    if not state.stored_event_ids:
+        return False
+    try:
+        from .models import AuditEvent
+
+        return AuditEvent.objects.filter(pk__in=state.stored_event_ids).exists()
+    except Exception:  # noqa: BLE001 - never fail the response
+        return False

@@ -45,7 +45,7 @@ from django.db import transaction
 from AutoGrader.request_context import get_request_id
 
 from . import metrics as audit_metrics
-from .context import current_trace_id, mark_named_emitted
+from .context import current_trace_id, record_stored_event
 from .enums import (
     STUDENT_RECORD_ACTIONS,
     ActorRole,
@@ -184,10 +184,10 @@ def emit(
         audit_metrics.count("audit_emit_failures_total", tags={"action": label})
         return None
 
-    # S1: this request now has its event, so the generic STATE_CHANGE
-    # fallback is not written. Only a STORED event counts: a rejected or
-    # failed write leaves the fallback to record the request.
-    mark_named_emitted()
+    # S1: the request has an event, so the generic STATE_CHANGE fallback is
+    # not written - provided this row survives the request (the middleware
+    # checks; see audit.context). A rejected or failed write records nothing.
+    record_stored_event(event.pk)
     _emit_alertable_metrics(action, outcome, fields)
     return event
 

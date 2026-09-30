@@ -12,7 +12,8 @@ For every request, `AuditMiddleware`:
    with the view instance (`admin_action.REQUEST_ATTR`) because the outcome
    isn't known until the view has run, and the event is written here (see
    `audit/admin_action.py`);
-3. if the request stored no event at all, writes the generic STATE_CHANGE
+3. if no event stored during the request still exists (none was stored, or
+   the transaction it was stored in rolled back), writes the generic STATE_CHANGE
    event for a state-changing request by an authenticated user
    (`audit/request_audit.py`). So each such request ends with exactly one
    event: its named one, or this.
@@ -25,7 +26,7 @@ the whole cycle, so the trace id is still available here.
 """
 
 from .admin_action import REQUEST_ATTR, emit_for_response
-from .context import request_audit_state
+from .context import a_stored_event_survives, request_audit_state
 from .request_audit import emit_generic_state_change
 
 
@@ -39,7 +40,7 @@ class AuditMiddleware:
             view = getattr(request, REQUEST_ATTR, None)
             if view is not None:
                 emit_for_response(request, view, response)
-            if not state.named_emitted:
+            if not a_stored_event_survives(state):
                 emit_generic_state_change(request, response)
         return response
 

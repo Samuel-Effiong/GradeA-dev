@@ -1,11 +1,12 @@
-G1_generic_never_written {'killed': True, 'failing_tests': ['test_a_failed_named_event_falls_back_to_the_generic_one', 'test_a_failed_write_records_one_failure', 'test_a_missing_target_records_its_id_from_the_url', 'test_a_plain_write_with_no_named_event_records_one_state_change', 'test_a_refused_write_records_one_denied', 'test_a_students_write_is_a_student_record_without_address_or_email', 'test_the_request_body_is_never_recorded', 'test_the_route_is_searchable_through_the_query_api']}
-G2_generic_always_written {'killed': True, 'failing_tests': ['test_a_denied_superadmin_route_records_only_its_admin_action', 'test_a_route_with_a_named_event_records_only_that_event', 'test_a_superadmin_write_records_only_its_admin_action', 'test_success', 'test_wrong_current_password_is_one_event_not_two']}
-G3_emitter_does_not_mark {'killed': True, 'failing_tests': ['test_a_denied_superadmin_route_records_only_its_admin_action', 'test_a_route_with_a_named_event_records_only_that_event', 'test_a_superadmin_write_records_only_its_admin_action', 'test_success', 'test_wrong_current_password_is_one_event_not_two']}
-G4_marked_on_attempt_not_on_store {'killed': True, 'failing_tests': ['test_a_failed_named_event_falls_back_to_the_generic_one']}
+G1_generic_never_written {'killed': True, 'failing_tests': ['test_a_failed_named_event_falls_back_to_the_generic_one', 'test_a_failed_write_records_one_failure', 'test_a_missing_target_records_its_id_from_the_url', 'test_a_plain_write_with_no_named_event_records_one_state_change', 'test_a_refused_write_records_one_denied', 'test_a_rolled_back_named_event_leaves_exactly_the_generic_one', 'test_a_students_write_is_a_student_record_without_address_or_email', 'test_the_request_body_is_never_recorded', 'test_the_route_is_searchable_through_the_query_api']}
+G2_generic_always_written {'killed': True, 'failing_tests': ['test_a_denied_superadmin_route_records_only_its_admin_action', 'test_a_route_with_a_named_event_records_only_that_event', 'test_a_superadmin_write_records_only_its_admin_action', 'test_a_surviving_named_event_is_the_only_one', 'test_success', 'test_wrong_current_password_is_one_event_not_two']}
+G3_emitter_does_not_record_the_event {'killed': True, 'failing_tests': ['test_a_denied_superadmin_route_records_only_its_admin_action', 'test_a_route_with_a_named_event_records_only_that_event', 'test_a_superadmin_write_records_only_its_admin_action', 'test_a_surviving_named_event_is_the_only_one', 'test_success', 'test_wrong_current_password_is_one_event_not_two']}
+G4_survival_check_fails_unsafe {'killed': True, 'failing_tests': ['test_a_failing_existence_check_writes_the_generic_event']}
+R1_rolled_back_event_still_counts {'killed': True, 'failing_tests': ['test_a_failing_existence_check_writes_the_generic_event', 'test_a_rolled_back_named_event_leaves_exactly_the_generic_one']}
 G5_exclusions_ignored {'killed': True, 'failing_tests': ['test_an_excluded_route_records_nothing']}
 G6_reads_recorded {'killed': True, 'failing_tests': ['test_a_read_records_nothing']}
 G7_anonymous_recorded {'killed': True, 'failing_tests': ['test_an_anonymous_write_records_nothing']}
-G8_throttled_recorded {'killed': False, 'failing_tests': []}
+G8_throttled_recorded {'killed': True, 'failing_tests': ['test_a_throttled_request_is_not_recorded']}
 G9_student_write_not_student_record {'killed': True, 'failing_tests': ['test_a_students_write_is_a_student_record_without_address_or_email']}
 G10_request_state_leaks {'killed': True, 'failing_tests': ['test_marking_outside_a_request_is_a_no_op', 'test_state_is_per_request_and_restored_on_exception']}
 G11_route_not_recorded {'killed': True, 'failing_tests': ['test_a_missing_target_records_its_id_from_the_url', 'test_a_plain_write_with_no_named_event_records_one_state_change', 'test_the_route_is_searchable_through_the_query_api']}
@@ -23,7 +24,4 @@ A10_anonymous_recorded_as_system {'killed': True, 'failing_tests': ['test_a_deac
 A11_login_failure_names_the_account_holder {'killed': True, 'failing_tests': ['test_a_failure_is_anonymous_and_carries_the_targets_school', 'test_a_wrong_password_emits_exactly_one_failure_event', 'test_superadmin_can_filter_anonymous_events']}
 A12_login_failure_not_scoped_to_the_target_school {'killed': True, 'failing_tests': ['test_a_failure_is_anonymous_and_carries_the_targets_school', 'test_school_admin_sees_attempts_on_its_own_accounts']}
 A13_door_failure_not_scoped_to_the_target_school {'killed': True, 'failing_tests': ['test_a_failure_is_scoped_to_the_targets_school']}
-SURVIVORS: ['G8_throttled_recorded']
-G8 re-run after strengthening test_a_throttled_request_is_not_recorded: killed ['test_a_throttled_request_is_not_recorded']
-FINAL SURVIVORS: []
-A3 re-anchored after black; A3 and G8 re-run on the formatted tree: killed
+SURVIVORS: []

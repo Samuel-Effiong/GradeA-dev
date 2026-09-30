@@ -8,11 +8,12 @@ the outcome are what production would record.
 import threading
 import uuid
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -283,7 +284,7 @@ class RequestStateIsolationTests(SimpleTestCase):
     def test_state_is_per_request_and_restored_on_exception(self):
         with self.assertRaises(ValueError):
             with audit_context.request_audit_state():
-                audit_context.mark_named_emitted()
+                audit_context.record_stored_event(uuid.uuid4())
                 raise ValueError
         self.assertIsNone(audit_context._request_state_var.get())
 
@@ -295,9 +296,9 @@ class RequestStateIsolationTests(SimpleTestCase):
             with audit_context.request_audit_state() as state:
                 barrier.wait()
                 if mark:
-                    audit_context.mark_named_emitted()
+                    audit_context.record_stored_event(uuid.uuid4())
                 barrier.wait()
-                seen[name] = state.named_emitted
+                seen[name] = bool(state.stored_event_ids)
 
         threads = [
             threading.Thread(target=run, args=("a", True)),
@@ -310,7 +311,7 @@ class RequestStateIsolationTests(SimpleTestCase):
         self.assertEqual(seen, {"a": True, "b": False})
 
     def test_marking_outside_a_request_is_a_no_op(self):
-        audit_context.mark_named_emitted()
+        audit_context.record_stored_event(uuid.uuid4())
         self.assertIsNone(audit_context._request_state_var.get())
 
     def test_a_throttled_request_is_not_recorded(self):
@@ -402,3 +403,105 @@ class AnonymousFailureScopingTests(APITestCase):
 
         self.assertEqual(len(rows), 2)
         self.assertTrue(all(r["actor_role"] == "ANONYMOUS" for r in rows))
+
+
+def _emit_then_refuse(keep_event):
+    """A stand-in `SessionViewSet.create` that stores a named event inside an
+    atomic block, then refuses. With `keep_event` the event is stored outside
+    the block that rolls back, so it survives."""
+    from django.db import transaction
+    from rest_framework.exceptions import ValidationError
+
+    from audit.emitter import emit
+
+    def create(view, request, *args, **kwargs):
+        if keep_event:
+            emit(AuditAction.DATA_EXPORT, actor=request.user, target_type="Probe")
+            with transaction.atomic():
+                raise ValidationError("refused")
+        with transaction.atomic():
+            emit(AuditAction.DATA_EXPORT, actor=request.user, target_type="Probe")
+            raise ValidationError("refused after a named event")
+
+    return create
+
+
+if TYPE_CHECKING:
+    from rest_framework.test import APITestCase as _MixinBase
+else:
+    _MixinBase = object
+
+
+class RolledBackNamedEventMixin(_MixinBase):
+    """R1 (Verification Engineer): a named event stored inside a transaction
+    that then rolls back is gone, so the request must still end with exactly
+    one event - the generic one - not zero."""
+
+    def post_with(self, keep_event):
+        from classrooms.views import SessionViewSet
+
+        with patch.object(SessionViewSet, "create", _emit_then_refuse(keep_event)):
+            return self.client.post(
+                reverse("session-list"), {"name": "T1"}, format="json"
+            )
+
+    def test_a_rolled_back_named_event_leaves_exactly_the_generic_one(self):
+        response = self.post_with(keep_event=False)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            list(AuditEvent.objects.values_list("action", "outcome")),
+            [(AuditAction.STATE_CHANGE, AuditOutcome.FAILURE)],
+        )
+
+    def test_a_surviving_named_event_is_the_only_one(self):
+        """Control: when the named event survives, no generic is added."""
+        self.post_with(keep_event=True)
+
+        self.assertEqual(
+            list(AuditEvent.objects.values_list("action", flat=True)),
+            [AuditAction.DATA_EXPORT],
+        )
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class RolledBackNamedEventSavepointTests(RolledBackNamedEventMixin, APITestCase):
+    """Inside the test's transaction: the view's block is a savepoint."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.client.force_authenticate(user=make_user("rb.savepoint@example.com"))
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class RolledBackNamedEventCommitTests(RolledBackNamedEventMixin, TransactionTestCase):
+    """Real commits (TransactionTestCase), as production runs."""
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.client = APIClient(raise_request_exception=False)
+        self.client.force_authenticate(user=make_user("rb.commit@example.com"))
+
+
+class SurvivalCheckFailsSafeTests(SimpleTestCase):
+    def test_a_failing_existence_check_writes_the_generic_event(self):
+        """If the check itself errors, answer 'nothing survived': a second
+        event is better than none."""
+        from django.db import DatabaseError
+
+        state = audit_context.RequestAuditState()
+        state.stored_event_ids.append(uuid.uuid4())
+        with patch.object(
+            AuditEvent.objects, "filter", side_effect=DatabaseError("db down")
+        ):
+            self.assertFalse(audit_context.a_stored_event_survives(state))
+
+    def test_no_stored_event_needs_no_query(self):
+        state = audit_context.RequestAuditState()
+        with patch.object(AuditEvent.objects, "filter") as query:
+            self.assertFalse(audit_context.a_stored_event_survives(state))
+        query.assert_not_called()

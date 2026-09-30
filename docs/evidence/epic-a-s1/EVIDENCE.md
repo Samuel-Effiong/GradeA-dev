@@ -5,8 +5,8 @@ Branch `task/epic-a-s1` off `phase2/epic-a` `cc34081`. Plan: `docs/phase2/archit
 **MIGRATION: `audit/migrations/0002_alter_auditevent_actor_role.py`.** Choices-only `AlterField`, adding `ActorRole.ANONYMOUS`. No data change. 0b: phase2/epic-a gains audit 0002.
 
 ## 1. Generic STATE_CHANGE event (plan §2.1, gaps G1/G2)
-- **`audit/context.py`**: a per-request `RequestAuditState` held in a ContextVar. `request_audit_state()` opens it and always restores the previous state, even when the block raises. `mark_named_emitted()` does nothing outside a request.
-- **`audit/emitter.py`**: `emit()` marks the request after a **stored** event. A rejected or failed write does not mark it, so the generic fallback still records the request.
+- **`audit/context.py`**: a per-request `RequestAuditState` held in a ContextVar. `request_audit_state()` opens it and always restores the previous state, even when the block raises. `record_stored_event()` does nothing outside a request (see the R1 section).
+- **`audit/emitter.py`**: `emit()` records the id of each **stored** event. A rejected or failed write records nothing, so the generic fallback still records the request.
 - **`audit/middleware.py`**: `AuditMiddleware` generalises `AdminActionAuditMiddleware`, which stays as an alias. It opens the state, finishes `ADMIN_ACTION` as before, then writes the generic event if nothing was stored. It is registered last in `MIDDLEWARE`, because it reads `request.user` after the view: DRF writes the authenticated JWT user back onto the Django request.
 - **`audit/request_audit.py`**: `emit_generic_state_change` writes one event:
   - `action`: `STATE_CHANGE`, a new enum value (D1).
@@ -88,3 +88,53 @@ Tests prove these events survive the rollback.
 | 5 Failure | FR-A-11 on the generic and door paths |
 | 9 Isolation | anonymous failures scoped to the target's school, both directions |
 | 6 Stress | S1 overhead p95: deferred to S8, per plan Gate 6 |
+
+## R1 fix: a rolled-back named event no longer suppresses the fallback (after the Verification Engineer's REJECTED at 419e9f6)
+**Defect.** `emit()` stores its row in a savepoint inside the caller's transaction and marked the request at once. If that transaction then rolled back, the row was gone but the mark stayed, so `AuditMiddleware` skipped STATE_CHANGE and the request ended with **zero** events. `VERIFICATION.md` has 1a's analysis and probe.
+
+**Fix (authored here; 1a's tested idea, re-implemented):**
+- `RequestAuditState` keeps `stored_event_ids` instead of a yes/no flag.
+- `emit()` records each stored row's id (`record_stored_event`).
+- At the end of the request, the middleware writes the generic event unless `a_stored_event_survives(state)`: one `EXISTS` query on those ids, run only when something was stored.
+- If that check itself errors it answers False, so the generic event is written (a second event is better than none).
+- **`transaction.on_commit` was considered and rejected.**
+  - Inside a test's transaction the callback never fires, so every exactly-one test would record two events.
+  - It also still depends on commit timing, whereas the existence check reads what actually survived.
+  - The ids approach is correct under both savepoints and real commits.
+
+**Reproduce-first** on 419e9f6's code (`prefix_419e9f6_r1_failing.txt`): the rolled-back case ends with `[]` (zero events) in both the savepoint variant and the real-commit (TransactionTestCase) variant. The surviving-event controls pass.
+
+**Tests added** (`audit/tests_state_change.py`):
+- `RolledBackNamedEventSavepointTests` and `RolledBackNamedEventCommitTests`:
+  - a rolled-back named event leaves exactly one STATE_CHANGE FAILURE;
+  - a surviving named event is the only event.
+- `SurvivalCheckFailsSafeTests`:
+  - an erroring existence check means "none survived";
+  - no stored id means no query.
+- The isolation tests now use the ids.
+
+**Mutants:**
+- **R1** (a stored id counts without the existence check) must be killed.
+- G1–G3 re-anchored.
+- G4 replaced with "survival check fails unsafe". The old G4 (record on attempt) is now equivalent: a never-stored id fails the existence check anyway.
+
+**Does a real route hit it today?** Traced:
+- `CreditLedger.record()` / `after_bulk_create()` emit CREDIT_TRANSACTION inside whatever transaction the caller holds.
+- **A school admin's `POST license-subscriptions/<id>/add_teachers`:** the view wraps `add_teachers_batch` in `transaction.atomic()`, and each enrolled teacher's credit grant records ledger rows, and so emits, inside it. An unexpected error mid-batch (e.g. a DB error on a later teacher) rolls all of it back. Before the fix, that request left zero events.
+  - The superadmin variant is not affected: its ADMIN_ACTION is written by the middleware after the view's transaction and survives.
+- **Checked safe:**
+  - `generate_assignment_from_prompt` and the dashboard `custom_ai_prompt` helper make their charged AI calls **outside** their `atomic()` blocks.
+  - `billing` `custom_ai_prompt` charges inside one, but it is superadmin-only (ADMIN_ACTION survives).
+  - Grading and extraction charges run in Celery, outside any request.
+
+**R1 gates** (on the R1 code, each run alone):
+
+| Gate | Result |
+|---|---|
+| 1 Regression | `audit users classrooms students assignments` with `EXEMPT_EMAIL_DOMAINS=`: **2037 OK** (skipped=18). That is 2031 plus the 6 R1 tests |
+| 2 Mutation | `mutate.py`: **26 mutants, 26 killed**, survivors `[]` (`mutation_log.txt`, `mutation_results.json`). R1 is killed by the rolled-back test, and G4 by the fail-safe test |
+| mypy | whole-repo `pre-commit run mypy --all-files` → Passed |
+| Reproduce-first | `prefix_419e9f6_r1_failing.txt`: zero events on 419e9f6, in both variants |
+| 5 Failure | an erroring existence check writes the generic event (test + G4) |
+
+**Note on mypy.** The first mypy run flagged the new test mixin, whose attributes are untyped. It now uses the repo's `_MixinBase` idiom, which is `object` at runtime. `audit.tests_state_change` was re-run after that change: 30 OK.

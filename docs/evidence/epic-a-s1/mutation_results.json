@@ -7,6 +7,7 @@
       "test_a_missing_target_records_its_id_from_the_url",
       "test_a_plain_write_with_no_named_event_records_one_state_change",
       "test_a_refused_write_records_one_denied",
+      "test_a_rolled_back_named_event_leaves_exactly_the_generic_one",
       "test_a_students_write_is_a_student_record_without_address_or_email",
       "test_the_request_body_is_never_recorded",
       "test_the_route_is_searchable_through_the_query_api"
@@ -18,24 +19,33 @@
       "test_a_denied_superadmin_route_records_only_its_admin_action",
       "test_a_route_with_a_named_event_records_only_that_event",
       "test_a_superadmin_write_records_only_its_admin_action",
+      "test_a_surviving_named_event_is_the_only_one",
       "test_success",
       "test_wrong_current_password_is_one_event_not_two"
     ]
   },
-  "G3_emitter_does_not_mark": {
+  "G3_emitter_does_not_record_the_event": {
     "killed": true,
     "failing_tests": [
       "test_a_denied_superadmin_route_records_only_its_admin_action",
       "test_a_route_with_a_named_event_records_only_that_event",
       "test_a_superadmin_write_records_only_its_admin_action",
+      "test_a_surviving_named_event_is_the_only_one",
       "test_success",
       "test_wrong_current_password_is_one_event_not_two"
     ]
   },
-  "G4_marked_on_attempt_not_on_store": {
+  "G4_survival_check_fails_unsafe": {
     "killed": true,
     "failing_tests": [
-      "test_a_failed_named_event_falls_back_to_the_generic_one"
+      "test_a_failing_existence_check_writes_the_generic_event"
+    ]
+  },
+  "R1_rolled_back_event_still_counts": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failing_existence_check_writes_the_generic_event",
+      "test_a_rolled_back_named_event_leaves_exactly_the_generic_one"
     ]
   },
   "G5_exclusions_ignored": {
@@ -60,8 +70,7 @@
     "killed": true,
     "failing_tests": [
       "test_a_throttled_request_is_not_recorded"
-    ],
-    "note": "survived the first run (the fake request had no user, so should_record returned before the 429 check); the test now uses an authenticated request on a real route with a 201 control; re-run killed"
+    ]
   },
   "G9_student_write_not_student_record": {
     "killed": true,
