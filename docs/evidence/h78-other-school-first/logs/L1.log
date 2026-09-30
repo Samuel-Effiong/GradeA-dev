@@ -1,0 +1,13 @@
+# L1: the Skipped-enrolling line logs the class, not the text
+# file: billing/license_service.py (occurrence 1)
+# old: '                type(exc).__name__,\n'
+# new: '                exc,\n'
+# commit: 45c36f2c3a2318160b42b305b7ba4556a207dc2e
+# exit: 1
+# elapsed_s: 3.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_adding_teachers_logs_no_address_for_either_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_adding_teachers_logs_no_address_for_either_refusal) (email='paying5@h78own.edu')
+FAIL: test_adding_teachers_logs_no_address_for_either_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_adding_teachers_logs_no_address_for_either_refusal) (email='someone@gmail.com')
+
+FAILED (failures=2)

@@ -1,0 +1,5 @@
+45c36f2c3a23	O1	the school check comes before the subscription check	KILLED	FAILED (failures=2, errors=1)	True	15.8
+45c36f2c3a23	O2	another school's teacher is refused	KILLED	FAILED (failures=3, errors=1)	True	3.4
+45c36f2c3a23	L1	the Skipped-enrolling line logs the class, not the text	KILLED	FAILED (failures=2)	True	3.1
+45c36f2c3a23	L2	the subscription refusal logs the id, not its message	KILLED	FAILED (failures=3)	True	3.1
+45c36f2c3a23	L3	the not-business refusal logs no address	KILLED	FAILED (failures=1)	True	3.4

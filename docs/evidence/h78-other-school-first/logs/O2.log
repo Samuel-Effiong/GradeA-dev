@@ -1,0 +1,15 @@
+# O2: another school's teacher is refused
+# file: billing/license_service.py (occurrence 1)
+# old: '            if user.school and user.school != school:\n'
+# new: '            if False:\n'
+# commit: 45c36f2c3a2318160b42b305b7ba4556a207dc2e
+# exit: 1
+# elapsed_s: 3.4
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_the_service_raises_the_school_refusal_first (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_service_raises_the_school_refusal_first)
+FAIL: test_another_schools_paying_teacher_gets_only_the_other_school_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_another_schools_paying_teacher_gets_only_the_other_school_refusal)
+FAIL: test_control_another_schools_teacher_without_a_plan_gets_the_school_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_control_another_schools_teacher_without_a_plan_gets_the_school_refusal)
+FAIL: test_the_non_raising_path_logs_the_school_refusal_first (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_non_raising_path_logs_the_school_refusal_first)
+
+FAILED (failures=3, errors=1)
