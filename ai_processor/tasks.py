@@ -16,6 +16,10 @@ weekly_grading_benchmark_live
     changing behaviour underneath us. Off unless ENABLE_AI_LIVE_QA is
     set, so a normal production worker no-ops at DEBUG.
 
+Both create the benchmark's own teacher, plan, subscription and credits
+in this database, so outside DEBUG both skip unless ENABLE_GRADING_BENCHMARK
+is set (H2); the weekly one needs ENABLE_AI_LIVE_QA as well.
+
 Both follow billing/tasks.py's live-QA conventions: max_retries=0
 (a failure here is a signal to investigate, not a transient to paper
 over) and ERROR-level logging naming the reproduction command.
@@ -45,6 +49,18 @@ BASELINE_PATH = (
 def live_qa_enabled():
     """Mirrors billing.stripe_live_qa.live_qa_enabled's posture."""
     return bool(getattr(settings, "ENABLE_AI_LIVE_QA", False))
+
+
+def _refused(mode, exc):
+    """H2: _resolve_user refused (outside DEBUG, ENABLE_GRADING_BENCHMARK
+    unset). Nothing was written; the run is skipped, not failed."""
+    logger.info(
+        "Grading benchmark %s skipped: not enabled in this environment "
+        "(set ENABLE_GRADING_BENCHMARK=True to run it here). %s",
+        mode,
+        exc,
+    )
+    return f"Grading benchmark {mode} skipped: not enabled in this environment."
 
 
 def _run(mode):
@@ -169,14 +185,19 @@ def _escalate(mode, report, diff):
 @single_instance(max_hold=beat_locks.DAILY)
 def nightly_grading_benchmark_replay(self):
     """
-    Replay the benchmark against recorded responses. Free, deterministic,
-    safe to run anywhere — makes no model calls and writes no submission
-    rows.
+    Replay the benchmark against recorded responses. Free and
+    deterministic — makes no model calls and writes no submission rows.
+    But it does create the benchmark teacher, plan, subscription and
+    credits (Command._resolve_user), so outside DEBUG it is skipped unless
+    ENABLE_GRADING_BENCHMARK is set (H2).
     """
     from ai_processor.benchmark.runner import MODE_REPLAY, MissingRecordingError
+    from ai_processor.management.commands.grading_benchmark import BenchmarkRefused
 
     try:
         report, diff = _run(MODE_REPLAY)
+    except BenchmarkRefused as exc:
+        return _refused(MODE_REPLAY, exc)
     except MissingRecordingError as exc:
         # Recordings go stale whenever the dataset or a prompt file
         # changes. That is a maintenance task, not a grading defect, so
@@ -211,5 +232,10 @@ def weekly_grading_benchmark_live(self):
         )
         return "Grading benchmark live skipped: not enabled in this environment."
 
-    report, diff = _run(MODE_LIVE)
+    from ai_processor.management.commands.grading_benchmark import BenchmarkRefused
+
+    try:
+        report, diff = _run(MODE_LIVE)
+    except BenchmarkRefused as exc:
+        return _refused(MODE_LIVE, exc)
     return _escalate(MODE_LIVE, report, diff)
