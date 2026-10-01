@@ -296,6 +296,20 @@ class SingleInstanceTests(LockTestCase):
         task()
         self.assertEqual(len(set(tokens)), 2, tokens)
 
+    def test_a_ttl_above_max_hold_is_capped_at_max_hold(self):
+        """No scheduled task passes ttl > max_hold since 1a's N1, so this is
+        the cap's only test (mutant L9)."""
+        seen = {}
+
+        def body():
+            seen["pttl"] = beat_locks._redis().pttl(lock_key(self.name))
+
+        task = self.locked(max_hold=2, ttl=600, body=body)
+        self.assertEqual(task.single_instance.ttl_seconds, 2)
+        task()
+        self.assertGreater(seen["pttl"], 0)
+        self.assertLessEqual(seen["pttl"], 2000)
+
 
 class HeartbeatTests(LockTestCase):
     def test_a_live_run_keeps_its_lock_past_the_ttl(self):
