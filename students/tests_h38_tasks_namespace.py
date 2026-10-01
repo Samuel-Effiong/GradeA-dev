@@ -90,7 +90,18 @@ class TasksFixture(TeacherRemovalBase):
             title="H38 tasks",
             course=course,
             status=AssignmentStatus.PUBLISHED,
-            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+            # Epic A: a one-level marking guide, so S6d's rubric gate lets
+            # the auto-grade beat dispatch (merge-down of bundle 4).
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_text": "Q1?",
+                    "points": 10,
+                    "rubric": [
+                        {"level": "Full", "description": "Complete", "points": 10}
+                    ],
+                }
+            ],
             due_date=timezone.now() - timedelta(hours=1),
             auto_grade_on_due_date=True,
         )
@@ -209,22 +220,28 @@ class TasksAfterRemovalTests(TasksFixture):
     def test_queued_grading_is_refused_and_never_charged_after_removal(self):
         """The chokepoint: work queued before the removal (a grade-all, a
         scheduled grade, the beat) reaches grade_engine_async, which refuses
-        it before grading - so nothing is graded and nothing is charged."""
+        it before grading - so nothing is graded and nothing is charged.
+
+        Epic A (merge-down of bundle 4, SM ruling): the refusal is S7b's
+        CourseNotReachableError, not beta's soft-return dict."""
         from assignments.tasks import COURSE_NOT_FOUND, grade_engine_async
+        from students.exceptions import CourseNotReachableError
 
         self.remove_teacher()
         ledger_before = CreditLedger.objects.count()
         with patch("assignments.tasks.grade_engine") as grade_engine:
-            result: dict = grade_engine_async.apply(
+            result = grade_engine_async.apply(
                 args=(str(self.teacher.id), str(self.submission.id)),
                 kwargs={"processing_task_id": str(self.task.id)},
-            ).result  # type: ignore[assignment]
+            ).result
 
         grade_engine.assert_not_called()
-        self.assertEqual(result["message"], COURSE_NOT_FOUND)
+        self.assertIsInstance(result, CourseNotReachableError)
+        self.assertEqual(str(result), COURSE_NOT_FOUND)
         self.assertEqual(CreditLedger.objects.count(), ledger_before)
         self.task.refresh_from_db()
         self.assertEqual(self.task.status, BackgroundTaskStatus.FAILURE)
+        self.assertEqual(self.task.error, COURSE_NOT_FOUND)
         self.submission.refresh_from_db()
         self.assertIsNone(self.submission.graded_at)
 
