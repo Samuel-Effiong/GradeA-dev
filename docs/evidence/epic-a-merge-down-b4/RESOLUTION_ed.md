@@ -40,6 +40,11 @@ Step 1 ran 304 tests: failures=3, errors=1, all in beta's `students.tests_h38_ta
    - Consumer grep, done first at the SM's request: nothing in production reads `grade_engine_async`'s return value. There is no synchronous, chained or `.apply` caller. The only production `AsyncResult` reads `.state` (task_tracking), task_status's AsyncResult fallback was removed earlier, and status comes from the tracking row. COURSE_NOT_FOUND's other production uses (`grade_batch_async`, `auto_grade_due_assignment`) are unchanged.
 2. **The fixture's question gets a one-level marking guide**, so S6d's rubric gate (epic only) lets the auto-grade beat dispatch. The two `delay` controls had seen 0 calls. This is test-only and epic-only (SM amendment: no beta hunk, since the module diverges anyway).
 
+**Round 2 (3603961) was red on 1 test, caught by beta's static sweep** `TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability`. It requires the literal `teacher_may_reach` in grade_engine_async, and dropping beta's block had removed it. I had grepped consumers of the return value, not guards over the deleted symbols. Lesson: a merge-down that drops a block greps guards as well as consumers (the existing "Port: grep deleted symbols" rule).
+- The fix (SM OK) is one combined check, `not teacher_may_reach(user, submission) or not reachable_courses(user)…exists()`, with the coded raise and the ids-only warning unchanged. The guard is not exempted or adapted.
+- For a teacher the halves are equivalent (teacher_can_reach_course ⇔ teacher_course_access_q). For a non-teacher, the reachable_courses half keeps S7b's refusal. Behaviour therefore equals S7b's verified behaviour and bfcf6e1's effective one.
+- New mutants: M11 drops the teacher_may_reach half (expected to be killed only by the sweep, since that half is behaviourally redundant). M12 drops the reachable_courses half (a survivor means S7b's non-teacher refusal is untested; it is reported to the SM, with no invented test).
+
 Re-gate on the new tip: step 1 + mutants (6G), then ONE combined students/classrooms/users/assignments regression (12G); assignments is added because production changed there. v2's remerge-diff review covers this resolution explicitly; I authored it, so I don't verify it.
 
 ## Gates on 0b's merged tip (mine, when 0b gives the sha)
