@@ -56,3 +56,34 @@ The run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`) 
 | Merges | `git merge-tree --write-tree 67a0681 c46fdbf` (bundle 4's final tip) is **clean**, and so is the merge with H-65 (`51fbb0e`, the other beta-line item on this base). |
 
 Log: `runs/h76_baseline_c46fdbf.log`. Probe: `h76_probe_test_vf1a_h76_probe.py`.
+
+---
+
+# Delta re-check: the N1 fold @ aa174a33
+
+**Date:** 2026-10-01. By the SM's ruling, this covers **only the N1 delta**.
+- **Commits over c46fdbf:**
+  - `951fe38`: this record
+  - `e5a75d8`: my E1 as `LicenceEnrolmentRetiresOldBucketTests`, plus the grace test's `.get(..., is_processed=False)` with its comment fixed (d5's question 2)
+  - `477eeed`: the fix, with mutants P3 and P4
+  - `91eadbd`, `aa174a33`: evidence
+- **Setup:** my scratch checkout at aa174a33, `test_vf_mcg`, in 0b's slot, with rule 16's `systemd-inhibit`, 6G and `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`.
+
+**Verdict: VERIFIED.** N1 is closed.
+
+## The fix
+- **`477eeed`** (`license_service.py:1527–1534`, `_enroll_teacher_internal`): the old MONTHLY bucket is now retired with `is_processed = True`, and `update_fields` is `["expires_at", "is_processed", "updated_at"]`. This is exactly the suggested one line, mirroring `5b25650`.
+- **Behaviour note (informational, no change asked).** The flag is set whether or not anything was rolled over: when nothing was unused, when the rollover was 0, or when max_bank suppressed it. So the cleanup no longer writes an EXPIRE for the part that isn't carried over.
+  - That is already the deliberate policy at every sibling retire site: the plan change (`services.py:593`), the mid-cycle grant (`:789`, whose comment documents it), the renewal (`:925`), `activate_subscription` (`:337`) and the licence rollover (`license_service.py:555`).
+  - Enrolment now matches them. Before the fix it was the only site that recorded the forfeited remainder, but it also recorded the carried slice a second time.
+
+## Evidence
+| Check | Result |
+|---|---|
+| **Delta run** @ aa174a33: probe E1 + `billing.tests.test_plan_change_retires_old_bucket` + `billing.tests.test_monthly_rollover_cleanup_race` | **44 tests OK** (3.6 s). E1: `rolled_over=[1500000] old_bucket_processed_after_enrolment=True expired_again_by_cleanup=[]`. At c46fdbf the result was `False` and `[6000000]`. |
+| **My mutant Z6** (on `test_vf_mcg_mut`, dropped): the flag is set and saved, but `expires_at` is dropped from `update_fields`, so the old bucket stays live. The production file's sha matched the commit blob after the restore. | **KILLED** by `test_the_old_bucket_is_retired_as_processed` (1 failure in 4). This is a different undo from d5's P3 (the flag not set) and P4 (the flag not saved). |
+| d5's gates (cited) | reproduce-first at e5a75d8: exactly the 2 new tests fail; at 477eeed: 43 OK, 4/4 killed (P1–P4); the regression at 91eadbd: billing + 9 guards, 2033 OK. |
+| Hooks | `pre-commit run --from-ref c46fdbf --to-ref aa174a33` passes, and each of the 5 commits passes. |
+| Merges | The branch is based on 67a0681. `git merge-tree --write-tree` against 67a0681 is **clean**. It is also clean against H-65 @ e3d7751 and H-78 @ b9e4ccb, the other two beta-line items, which also touch `license_service.py`. |
+
+Logs: `runs/h76_n1_aa174a33.log`, `runs/h76_n1_mutant_Z6.log`. Probe: `h76_probe_test_vf1a_h76_probe.py` (unchanged).
