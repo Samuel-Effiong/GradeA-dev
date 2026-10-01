@@ -87,3 +87,45 @@ My probes are in `h65_probe_test_vf1a_h65_probe.py` (not committed); my mutants 
 | Prefix run | Not needed: N2 and N3 are in code H-65 doesn't touch (`billing/services.py` unchanged), and N1's code is new with H-65. |
 
 Logs: `runs/h65_baseline_51fbb0e.log`, `runs/h65_mutant_Z1.log`, `runs/h65_mutant_Z3.log`.
+
+---
+
+# Delta re-check: N1 @ 6cfebed
+
+**Date:** 2026-10-01. By the SM's ruling, this covers **only the N1 delta**.
+- **Commits over 51fbb0e:**
+  - `cd03cda`: this record
+  - `1e9a27e`: the N1 tests
+  - `593d249`: the fix
+  - `8360684`: a direct test of the TTL cap
+  - `c5790bb`, `411f130`, `6cfebed`: evidence
+- **Setup:** my scratch checkout at 6cfebed, `test_vf_h65`, in 0b's slot, with rule 16's `systemd-inhibit`, 6G and `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`.
+
+**Verdict: VERIFIED.** N1 is closed.
+
+## The fix
+- **`593d249`:**
+  - `EVERY_5_MIN` goes from 4 min to **3 min**.
+  - It adds **`EVERY_5_MIN_TTL = 1 min`**.
+  - `escalate_stale_licence_stripe_intents` now declares `@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)`.
+  - The docstring now states the real bound.
+  - **Worst-case lock life:** about `max_hold + ⅔·ttl` ≈ **220 s**, against the 300 s interval. The guard's conservative bound, `max_hold + ttl` = 240 s, is also inside it.
+  - It's the only task on `EVERY_5_MIN` (`git grep` at 6cfebed). No other schedule's values changed.
+- **`1e9a27e`:**
+  - `test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run` checks `max_hold + ttl < gap` for **every** declared Beat lock, replacing the old guard's reliance on `max_hold < gap` alone. That old test is kept.
+  - `test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl`.
+  - `EveryFiveMinuteScaledTests`: my probe L, reading the task's **declared** lock and scaling it 1:60.
+- **`8360684`:** a direct test of the `ttl` cap at `max_hold`. It is needed because, after N1, no scheduled task passes `ttl > max_hold`, so mutant L9 survived at 593d249. d5 recorded that and fixed it.
+
+## Evidence
+| Check | Result |
+|---|---|
+| **Delta run** @ 6cfebed: probe L's tip case and its control + `AutoGrader.tests_beat_locks` | **29 tests OK** (23.4 s). Probe L at the tip's declared values (`max_hold=180s ttl=60s`, scaled to 3 s / 1 s, interval 5 s): the next run **RAN**. At 51fbb0e the same probe at that tip's values was **SKIPPED**. |
+| **My mutant Z5** (on `test_vf_h65_mut`, dropped): the heartbeat's compare-and-extend sets the lock's life to `max_hold` instead of `ttl`. The production file's sha matched the commit blob after the restore. | **KILLED** by both new N1 tests (`EveryFiveMinuteScaledTests`, `test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl`): 2 failures in 27. This is a different undo from d5's N1a (the guard) and N1b (the decorator's TTL): it lengthens the lock inside the heartbeat. |
+| d5's gates (cited) | reproduce-first at 1e9a27e: exactly the 2 new tests fail; the red battery at 593d249: 17/18 (L9 survived, recorded); the green battery at c5790bb: 18/18 killed, modules 220 OK; the regression at 411f130: billing + dashboard + ai_processor + 9 guards, 3115 OK. |
+| Hooks | `pre-commit run --from-ref 51fbb0e --to-ref 6cfebed` passes, and each of the 7 commits passes. |
+| Merges | The branch is still based on `4e629d4`. `git merge-tree --write-tree` against 67a0681 (bundle 4's final tip, two docs-only commits ahead) is **clean**. It is also clean against H-78 @ b9e4ccb and H-76 @ 91eadbd. |
+
+The old hard-coded probe-L case (`max_hold=4, ttl=300`) is unchanged in the probe file. It documents the pre-fix values and wasn't run here.
+
+Logs: `runs/h65_n1_6cfebed.log`, `runs/h65_n1_mutant_Z5.log`. Probe: `h65_probe_test_vf1a_h65_probe.py` (it adds `test_every_5_min_as_declared_at_the_tip`).

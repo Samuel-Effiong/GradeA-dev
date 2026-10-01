@@ -80,6 +80,22 @@ class LHungRunVsNextRun(SimpleTestCase):
             "(at 2/3 of max_hold) kept the lock a full TTL past it",
         )
 
+    def test_every_5_min_as_declared_at_the_tip(self):
+        # N1 re-check (6cfebed): the real task's declared lock, scaled 1:60.
+        from AutoGrader.beat_locks import declared_lock
+        from billing.tasks import escalate_stale_licence_stripe_intents
+
+        lock = declared_lock(escalate_stale_licence_stripe_intents)
+        print(f"\nVF1A_H65_L declared max_hold={lock.max_hold_seconds}s ttl={lock.ttl_seconds}s")
+        self.assertEqual(lock.max_hold_seconds % 60, 0)
+        self.assertEqual(lock.ttl_seconds % 60, 0)
+        self.assertTrue(
+            self.next_run_after_a_hung_one(
+                max_hold=lock.max_hold_seconds // 60, ttl=lock.ttl_seconds // 60, interval=5
+            ),
+            "the next scheduled run was skipped at the tip's declared values",
+        )
+
     def test_control_the_same_max_hold_with_a_short_ttl(self):
         self.assertTrue(self.next_run_after_a_hung_one(max_hold=4, ttl=1, interval=5))
 
