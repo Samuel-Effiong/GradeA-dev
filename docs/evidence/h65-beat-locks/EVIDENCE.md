@@ -165,3 +165,31 @@ about 16 min active. (c) ran after the resume: 22:34:29–22:44:47 UTC.
 - Two Beat tasks are exempt rather than locked (reasons in the code).
 - The dashboard emails and paid probes fail closed on a Redis error without
   a catch-up (SM's explicit exception).
+
+## N1 (after 1a's VERIFIED-WITH-NOTES at 51fbb0e)
+1a's N1: a lock's worst-case life is `max_hold + ttl` (the last heartbeat
+extension lands just before max_hold), so on EVERY_5_MIN (240 s + 240 s)
+a hung or killed run swallowed the next run. Fix: EVERY_5_MIN is 3 min
+with an explicit 1 min TTL (`EVERY_5_MIN_TTL`), used by
+`escalate_stale_licence_stripe_intents`; the guard now checks
+`max_hold + ttl < gap` for every entry, and probe L is adopted scaled 1:60.
+
+| Commit | What |
+|---|---|
+| `cd03cda` | 1a's record, verbatim |
+| `1e9a27e` | the N1 tests (guard, heartbeat bound, scaled every-5-minute) |
+| `593d249` | the fix; runner mutants N1a, N1b, L11 anchor |
+| `8360684` | a direct TTL-cap test: N1 left no task with ttl > max_hold, so L9 survived |
+| `c5790bb`, `411f130` | battery logs (red, then green) |
+
+| Gate | Result | Log |
+|---|---|---|
+| Repro at 1e9a27e | 26 tests, exactly the 2 new N1 tests fail (480 s ≥ 300 s; the next run skipped) | `repro_n1_1e9a27e.log` |
+| (a) modules at 593d249 | OK | `a_modules_593d249.log` |
+| (b) battery at 593d249 | **RED, 17/18: L9 survived**; chain stopped, (c) not run | `b_mutation_battery_593d249_red.log` |
+| (a) modules at c5790bb | 220 OK | `a_modules_c5790bb.log` |
+| (b) battery at c5790bb | 18/18 killed, sha-verified restores | `b_mutation_battery_c5790bb.log` |
+| (c) billing + dashboard + ai_processor + 9 guards at 411f130 (docs-only over c5790bb) | 3115 OK (skipped=8), wall 557 s | `c_app_billing_dashboard_ai_guards_411f130.log.gz` |
+
+All under 0b's grants, 6G, `timeout -k 60 1800`, the rule-16 prefix,
+`--settings=settings_worktree`.
