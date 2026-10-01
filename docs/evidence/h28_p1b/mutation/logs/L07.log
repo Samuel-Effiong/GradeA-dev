@@ -1,0 +1,12 @@
+# L07: only the change's own invoice (new_invoice_since)
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    return latest if latest and latest != invoice_before else None'
+# new: '    return latest'
+# commit: e70d641a3025571021dd1c9baddb5df0fdc58011
+# exit: 1
+# elapsed_s: 37.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_with_no_new_invoice_an_older_open_one_is_left_alone (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_with_no_new_invoice_an_older_open_one_is_left_alone)
+
+FAILED (failures=1)

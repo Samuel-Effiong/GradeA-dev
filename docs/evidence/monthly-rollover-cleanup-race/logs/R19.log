@@ -1,0 +1,12 @@
+# R19: immediate plan change: bucket grace
+# file: billing/services.py (occurrence 1)
+# old: 'expires_at=grace_expiry(new_bucket_expiry, user_sub.billing_cycle_end),'
+# new: 'expires_at=new_bucket_expiry,'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 5.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_annual_immediate_plan_change_gets_the_grace (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_an_annual_immediate_plan_change_gets_the_grace)
+
+FAILED (failures=1)

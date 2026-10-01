@@ -1,0 +1,12 @@
+# L21: an abandoned started call stays PENDING
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '        if exc.started:\n'
+# new: '        if False:\n'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 40.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time)
+
+FAILED (failures=1)

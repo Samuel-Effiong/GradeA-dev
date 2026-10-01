@@ -4,6 +4,7 @@
 
 ```sh
 ./scripts/task-worktree.sh new    cache-invalidation
+./scripts/task-worktree.sh new    epic-a-s6c phase2/epic-a   # from a base ref (default: HEAD)
 ./scripts/task-worktree.sh list
 ./scripts/task-worktree.sh remove cache-invalidation
 ```

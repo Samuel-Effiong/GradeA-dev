@@ -1,0 +1,12 @@
+# L15: stale check alerts once (ESCALATED not re-selected)
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '                LicenseStripeMutationStatus.STRIPE_APPLIED,\n            ],\n            updated_at__lt'
+# new: '                LicenseStripeMutationStatus.STRIPE_APPLIED,\n                LicenseStripeMutationStatus.ESCALATED,\n            ],\n            updated_at__lt'
+# commit: e70d641a3025571021dd1c9baddb5df0fdc58011
+# exit: 1
+# elapsed_s: 37.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_old_escalated_intent_is_not_alerted_again (billing.tests.test_h28_alerting.StaleIntentCheckTests.test_an_old_escalated_intent_is_not_alerted_again)
+
+FAILED (failures=1)

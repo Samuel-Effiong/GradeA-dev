@@ -1,0 +1,19 @@
+# G1: the grant re-checks at all
+# file: billing/services.py (occurrence 1)
+# old: '        if (\n            not user_subscription.is_active\n            or user_subscription.is_trial\n'
+# new: '        if False and (\n            not user_subscription.is_active\n            or user_subscription.is_trial\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 22.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_overlapping_run_does_not_grant_the_month_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_an_overlapping_run_does_not_grant_the_month_again)
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [deactivated]
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [back on a trial]
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [no next grant]
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [next grant in the future]
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [cycle already ended]
+FAIL: test_the_service_refuses_a_stale_copy_that_is_no_longer_due (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_the_service_refuses_a_stale_copy_that_is_no_longer_due)
+FAIL: test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again)
+
+FAILED (failures=8)
