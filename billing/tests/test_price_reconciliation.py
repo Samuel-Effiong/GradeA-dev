@@ -138,6 +138,17 @@ def account_returns(account_id="acct_test"):
 # Stripe's exception classes are matched by NAME in the classifier, so the
 # fakes only need the right names — that also keeps these tests from
 # depending on the stripe package's internal class layout.
+
+#: H-65 moved this task's own cache lock onto AutoGrader.beat_locks.
+PRICE_SWEEP_LOCK = "billing.tasks.reconcile_stripe_prices"
+
+
+def price_sweep_lock_holder():
+    from AutoGrader.beat_locks import BeatLock
+
+    return BeatLock(PRICE_SWEEP_LOCK, 600, 600).holder()
+
+
 class _InvalidRequestError(Exception):
     code = "resource_missing"
 
@@ -801,9 +812,10 @@ class TaskAndLockTests(TestCase):
         self.assertEqual(PriceReconciliationRun.objects.count(), 1)
 
     def test_a_second_run_is_skipped_while_one_holds_the_lock(self):
-        from billing.tasks import PRICE_RECONCILIATION_LOCK_KEY, reconcile_stripe_prices
+        from AutoGrader.beat_locks import BeatLock
+        from billing.tasks import reconcile_stripe_prices
 
-        cache.add(PRICE_RECONCILIATION_LOCK_KEY, "1", timeout=600)
+        BeatLock(PRICE_SWEEP_LOCK, 600, 600).acquire("another-run")
 
         summary = reconcile_stripe_prices()
 
@@ -811,7 +823,7 @@ class TaskAndLockTests(TestCase):
         self.assertEqual(PriceReconciliationRun.objects.count(), 0)
 
     def test_the_lock_is_released_when_the_run_finishes(self):
-        from billing.tasks import PRICE_RECONCILIATION_LOCK_KEY, reconcile_stripe_prices
+        from billing.tasks import reconcile_stripe_prices
 
         with account_returns():
             with stripe_returns(
@@ -824,14 +836,14 @@ class TaskAndLockTests(TestCase):
             ):
                 reconcile_stripe_prices()
 
-        self.assertIsNone(cache.get(PRICE_RECONCILIATION_LOCK_KEY))
+        self.assertIsNone(price_sweep_lock_holder())
 
     def test_the_lock_is_released_even_when_the_run_raises(self):
         """
         Otherwise one crash disables the nightly sweep until the TTL
         expires — a watchdog that goes quiet is worse than none.
         """
-        from billing.tasks import PRICE_RECONCILIATION_LOCK_KEY, reconcile_stripe_prices
+        from billing.tasks import reconcile_stripe_prices
 
         with patch(
             "billing.price_reconciliation.reconcile_prices",
@@ -840,14 +852,18 @@ class TaskAndLockTests(TestCase):
             with self.assertRaises(RuntimeError):
                 reconcile_stripe_prices()
 
-        self.assertIsNone(cache.get(PRICE_RECONCILIATION_LOCK_KEY))
+        self.assertIsNone(price_sweep_lock_holder())
 
     def test_the_lock_carries_a_timeout_so_a_killed_worker_cannot_wedge_it(self):
-        from billing.tasks import PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS
+        from AutoGrader.beat_locks import declared_lock
+        from billing.tasks import reconcile_stripe_prices
 
-        self.assertGreater(PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS, 0)
+        lock = declared_lock(reconcile_stripe_prices)
+        assert lock is not None
+        self.assertGreater(lock.ttl_seconds, 0)
+        self.assertLessEqual(lock.ttl_seconds, lock.max_hold_seconds)
         self.assertLess(
-            PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS,
+            lock.max_hold_seconds,
             24 * 3600,
             "the lock outlives the gap to the next nightly run, so one "
             "killed worker would silently disable the sweep",

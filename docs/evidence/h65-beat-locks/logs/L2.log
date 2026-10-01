@@ -1,0 +1,12 @@
+# L2: release is compare-and-delete
+# file: AutoGrader/beat_locks.py (occurrence 1)
+# old: '    "if redis.call(\'get\', KEYS[1]) == ARGV[1] then "\n    "return redis.call(\'del\', KEYS[1]) end return 0"\n'
+# new: '    "return redis.call(\'del\', KEYS[1])"\n'
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
+# exit: 1
+# elapsed_s: 18.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+
+FAILED (failures=1)
