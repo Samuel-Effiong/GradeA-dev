@@ -21,6 +21,7 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import F, Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -88,6 +89,7 @@ from students.models import (
     BackgroundTaskStatus,
     BatchUploadSession,
 )
+from students.task_access import teacher_may_reach
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
     TERMINAL_TASK_STATUSES,
@@ -2442,7 +2444,9 @@ class TaskViewSet(viewsets.ViewSet):
         legitimate needs it.
         """
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if not processing_task:
+        # H-38: a task whose course its owner can no longer reach answers
+        # exactly like a missing one.
+        if not processing_task or not teacher_may_reach(request.user, processing_task):
             raise NotFound("Tracked task not found for this user.")
 
         normalize_processing_task_status(processing_task)
@@ -2511,7 +2515,9 @@ class TaskViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="cancel/(?P<task_id>[^/.]+)")
     def cancel(self, request, task_id=None):
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if not processing_task:
+        # H-38: a task whose course its owner can no longer reach answers
+        # exactly like a missing one.
+        if not processing_task or not teacher_may_reach(request.user, processing_task):
             raise NotFound("Tracked task not found for this user.")
 
         already_terminal = processing_task.status in TERMINAL_TASK_STATUSES
@@ -2568,6 +2574,10 @@ class TaskViewSet(viewsets.ViewSet):
         session = get_object_or_404(
             BatchUploadSession, id=session_id, teacher=request.user
         )
+        # H-38: a session whose course its teacher can no longer reach
+        # answers exactly like a missing one.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
 
         cancellable_tasks = list(
             session.processing_tasks.exclude(
@@ -2612,6 +2622,12 @@ class TaskViewSet(viewsets.ViewSet):
     )
     def retry_item(self, request, session_id=None, item_id=None):
         session = self._own_session(request, session_id)
+        # H-38 (F6.2's rule for every tasks/ route; SM ruling at the bundle 4
+        # merge-down): a session whose course its teacher can no longer reach
+        # answers exactly like a missing one, as status and session-results
+        # do. item_retry's own per-item and in-claim checks stay behind it.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
         item = get_object_or_404(
             BackgroundProcessingTask, id=_uuid_or_404(item_id), batch_session=session
         )
@@ -2637,6 +2653,9 @@ class TaskViewSet(viewsets.ViewSet):
     )
     def retry_failed(self, request, session_id=None):
         session = self._own_session(request, session_id)
+        # H-38: the same session-level rule as the other tasks/ routes.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
         reason_codes = request.data.get("reason_codes")
         if reason_codes is not None and (
             not isinstance(reason_codes, list)
@@ -2777,6 +2796,10 @@ class TaskViewSet(viewsets.ViewSet):
         session = get_object_or_404(
             BatchUploadSession, id=session_id, teacher=request.user
         )
+        # H-38: a session whose course its teacher can no longer reach
+        # answers exactly like a missing one.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
 
         tracked_tasks = list(
             session.processing_tasks.select_related(

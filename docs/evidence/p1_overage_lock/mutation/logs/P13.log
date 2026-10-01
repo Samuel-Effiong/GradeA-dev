@@ -1,0 +1,52 @@
+# P13: direct flow handler, not the dispatcher
+# file: billing/event_replay.py line: None
+# old: '            handler(obj, obj.get("metadata") or {})'
+# new: '            StripeWebhookHandler.handle_checkout_completed(obj)'
+# modules: billing.tests.test_event_replay.ReplayOneGuardTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.3
+# restored_sha256_matches_commit_blob: True
+
+Found 4 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_exhausted_row_is_not_run_even_when_handed_over (billing.tests.test_event_replay.ReplayOneGuardTests.test_exhausted_row_is_not_run_even_when_handed_over) ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_row_already_claimed_by_a_live_worker_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_row_already_claimed_by_a_live_worker_is_not_run) ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_runs_exactly_the_mapped_handler_not_the_dispatcher (billing.tests.test_event_replay.ReplayOneGuardTests.test_runs_exactly_the_mapped_handler_not_the_dispatcher) ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+Auto-replayed FAILED Stripe event evt_direct (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+FAIL
+test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run)
+Another sweep replayed it, and it failed again, since we read it. ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+======================================================================
+FAIL: test_runs_exactly_the_mapped_handler_not_the_dispatcher (billing.tests.test_event_replay.ReplayOneGuardTests.test_runs_exactly_the_mapped_handler_not_the_dispatcher)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-P13-hd0pg_9i/wt/billing/tests/test_event_replay.py", line 238, in test_runs_exactly_the_mapped_handler_not_the_dispatcher
+    spy.assert_called_once()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'mock' to have been called once. Called 0 times.
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.117s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

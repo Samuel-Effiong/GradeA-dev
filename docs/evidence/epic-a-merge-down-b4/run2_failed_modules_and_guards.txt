@@ -1,0 +1,202 @@
+# TRIMMED: last 200 of 6664 lines. Full log (sha256 0a2cd1b670a9d560f71f26e2498314b4be7efda81e1886e6cad8ebc367b3fab1) is outside the repo at
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-merge-down-b4___full.txt (chmod 600). Round 2 at 3603961: 304 tests, FAILED (failures=1).
+01:15:48 test_display_for_no_placeholder_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_for_no_placeholder_is_refused) ... ok
+01:15:48 test_display_may_stand_in_for_an_unknown_param (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_may_stand_in_for_an_unknown_param) ... ok
+01:15:48 test_display_shapes_the_message_but_never_the_params (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_shapes_the_message_but_never_the_params) ... ok
+01:15:48 test_display_values_must_be_text (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_values_must_be_text) ... ok
+01:15:48 test_only_user_and_validation_classes_are_user_facing (AutoGrader.tests_reason_codes.CodedErrorTests.test_only_user_and_validation_classes_are_user_facing) ... ok
+01:15:48 test_refusal_response_still_answers_refusals_only (AutoGrader.tests_reason_codes.CodedErrorTests.test_refusal_response_still_answers_refusals_only) ... ok
+01:15:48 test_the_message_is_rendered_from_the_spec (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_is_rendered_from_the_spec) ... ok
+01:15:48 test_the_message_layer_shows_the_message_and_never_the_detail (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_layer_shows_the_message_and_never_the_detail)
+01:15:48 The path background-task item text and _failure_response's ... ok
+01:15:48 test_a_coded_body_flattens_to_its_display_sentence_alone (AutoGrader.tests_reason_codes.RendererMessageTests.test_a_coded_body_flattens_to_its_display_sentence_alone) ... ok
+01:15:48 test_a_balance_reason_gets_the_credits_refusal (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal) ... AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+01:15:48 AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+01:15:48 ok
+01:15:48 test_a_refused_request_gets_the_plan_refusal_without_the_reason (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_refused_request_gets_the_plan_refusal_without_the_reason) ... AI access denied for user ANON (feature=None): User not authenticated
+01:15:48 ok
+01:15:48 test_a_display_override_survives_json (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_a_display_override_survives_json)
+01:15:48 The message shows "460 bytes", not the raw int, after a rebuild. ... ok
+01:15:48 test_a_real_task_that_fails_with_one_keeps_it (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_a_real_task_that_fails_with_one_keeps_it) ... ok
+01:15:48 test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) ... ok
+01:15:48 test_reflection_finds_every_coded_class (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_reflection_finds_every_coded_class) ... ok
+01:15:48 test_through_celerys_result_backend_both_serializers (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_through_celerys_result_backend_both_serializers) ... ok
+01:15:48 test_no_param_is_an_email_or_an_id (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_no_param_is_an_email_or_an_id) ... ok
+01:15:48 test_stored_results_expire (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_stored_results_expire) ... ok
+01:15:48 test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry)
+01:15:48 Every param that is a placeholder is already in the stored ... ok
+01:15:50 test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+01:15:50 test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+01:15:52 The path exclusion above is only honest if production never ... ok
+01:15:53 test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+01:15:53 test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+01:15:53 The exception is only safe while it is one assignment's prefix: ... ok
+01:15:53 test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+01:15:53 Guard on the guard: each form is found in a synthetic module, and ... ok
+01:15:53 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+01:15:53 The over-invalidation half, stated as a property. Under the ... ok
+01:15:53 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+01:15:53 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+01:15:53 Not response caches in the generation scheme, deliberately. ... ok
+01:15:54 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+01:15:54 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+01:15:54 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+01:15:57 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+01:15:59 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+01:15:59 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+01:15:59 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+01:15:59 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+01:15:59 H-1 step 4: the one family that was still raw is on generations. ... ok
+01:15:59 test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:15:59 Cannot activate automatic trial for user h56-wallet-429abedd@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:15:59 Cannot activate automatic trial for user h56-wallet-c9863d4a@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:15:59 Cannot activate automatic trial for user h56-wallet-df55aeb7@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:15:59 ok
+01:15:59 test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+01:15:59 The eight AlterFields since production that change choices, ... ok
+01:15:59 test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+01:15:59 test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+01:15:59 Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+01:15:59 test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+01:16:00 The production wiring (the Verification Engineer's H6 on ... ok
+01:16:00 test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+01:16:00 Rule (a) on the real graph with a synthetic final state: drop ... ok
+01:16:00 test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+01:16:00 Guard on the guard: the fields H-56 found are rule (a) ... ok
+01:16:00 test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+01:16:00 fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+01:16:00 test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+01:16:00 test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+01:16:00 test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+01:16:00 test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+01:16:00 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+01:16:02 THE ACCEPTANCE TEST for broker isolation. ... ok
+01:16:02 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+01:16:02 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+01:16:02 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+01:16:02 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+01:16:02 H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+01:16:02 H38P2 assignments/views.py:1238 generate (positive control - active teacher) WRITE(paid AI) status=201 changed=True
+01:16:02 H38P2 assignments/views.py:782 upload (positive control - active teacher) WRITE status=201 changed=True
+01:16:02 H38P2 dashboard/views.py custom-ai-prompt (positive control - active teacher) READ(paid AI) status=200 changed=False
+01:16:02 H38P2 assignments/views.py:1461 generated-drafts save (positive control - active teacher) WRITE status=201 changed=True
+01:16:02 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name (positive control - active teacher) WRITE status=200 changed=True
+01:16:02 H38P2 assignments/views.py associate-topic WRITE status=404 changed=False
+01:16:02 H38P2 assignments/views.py:310 delete DELETE status=404 changed=False
+01:16:02 H38P2 assignments/views.py:1238 generate WRITE(paid AI) status=404 changed=False
+01:16:02 H38P2 assignments/views.py grade-all WRITE(paid AI) status=404 changed=False
+01:16:02 H38P2 assignments/views.py:310 list READ status=200 changed=False
+01:16:02 H38P2 assignments/views.py:310 patch WRITE status=404 changed=False
+01:16:02 H38P2 assignments/views.py publish-all-grades WRITE status=404 changed=False
+01:16:02 H38P2 assignments/views.py:310 retrieve READ status=404 changed=False
+01:16:02 H38P2 assignments/views.py:782 upload WRITE status=404 changed=False
+01:16:02 H38P2 assignments/views.py:966 upload-async WRITE status=404 changed=False
+01:16:02 H38P2 classrooms/views.py topics create WRITE status=400 changed=False
+01:16:02 H38P2 classrooms/views.py:1723 course topics WRITE status=404 changed=False
+01:16:02 H38P2 classrooms/views.py:2392 topic delete DELETE status=404 changed=False
+01:16:02 H38P2 classrooms/views.py:2392 topics list READ status=200 changed=False
+01:16:02 H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=False
+01:16:02 H38P2 classrooms/views.py:2392 topic patch WRITE status=404 changed=False
+01:16:02 H38P2 classrooms/views.py:2099 student-course delete DELETE status=404 changed=False
+01:16:02 H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=False
+01:16:02 H38P2 classrooms/views.py:2099 student-course patch WRITE status=404 changed=False
+01:16:02 H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+01:16:02 H38P2 dashboard/views.py teacher assignments/{id} READ status=404 changed=False
+01:16:02 H38P2 dashboard/views.py teacher courses/{id} READ status=404 changed=False
+01:16:02 H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+01:16:02 H38P2 dashboard/views.py teacher students/{course} READ status=404 changed=False
+01:16:02 H38P2 assignments/views.py:1461 generated-drafts save WRITE status=404 changed=False
+01:16:02 H38P2 assignments/views.py:1788 download-pdf teacher view READ status=404 changed=False
+01:16:02 H38P2 assignments/views.py:1788 download-pdf teacher view (object-level guard in isolation) READ status=403 changed=False
+01:16:02 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+01:16:02 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+01:16:02 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+01:16:02 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+01:16:02 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+01:16:02 H38P2 assignments/serializers.py validate_course create WRITE status=400 changed=False
+01:16:02 H38P2 assignments/serializers.py validate_course create-async WRITE status=400 changed=False
+01:16:02 H38P2 classrooms/filters.py my-students ?enrollments__course READ status=200 changed=False
+01:16:02 H38P2 classrooms/views.py my-students enrollments prefetch READ status=200 changed=False
+01:16:02 H38P2 classrooms/filters.py my-students ?enrollments__course__session READ status=200 changed=False
+01:16:02 H38P2 assignments/serializers.py validate_course patch WRITE status=400 changed=False
+01:16:02 H38P2 users/filters.py /users/<id>?enrollments__course READ status=404 changed=False
+01:16:02 H38P2 users/filters.py /users/<id>?enrollments__course__session READ status=404 changed=False
+01:16:02 H38P2 students/views.py:158 batch-upload WRITE status=404 changed=False
+01:16:02 H38P2 students/views.py:358 delete DELETE status=404 changed=False
+01:16:02 H38P2 students/views.py grade WRITE(paid AI) status=404 changed=False
+01:16:02 H38P2 students/views.py:358 list READ status=200 changed=False
+01:16:02 H38P2 students/views.py publish WRITE status=404 changed=False
+01:16:02 H38P2 students/views.py:358 retrieve READ status=404 changed=False
+01:16:02 H38P2 students/views.py teacher_feedback READ status=402 changed=False
+01:16:02 H38P2 students/views.py update-grade WRITE status=402 changed=False
+01:16:05 ok
+01:16:08 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+01:16:08 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+01:16:10 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+01:16:10 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+01:16:12 Same requirement, for the H-1 invariant specifically. ... ok
+01:16:12 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+01:16:12 The blast radius is wider than the Django cache. ... ok
+01:16:12 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+01:16:12 The mechanism, demonstrated deterministically in-process. ... ok
+01:16:12 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+01:16:14 THE ACCEPTANCE TEST for the regression. ... ok
+01:16:16 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+01:16:16 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+01:16:17 Server-wide Redis statistics are shared by every concurrent run. ... ok
+01:16:17 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+01:16:17 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+01:16:19 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+01:16:22 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+01:16:22 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+01:16:24 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+01:16:24 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+01:16:26 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+01:16:26 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+01:16:26 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+01:16:26 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+01:16:26 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+01:16:26 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+01:16:26 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+01:16:29 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+01:16:31 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+01:16:31 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+01:16:34 Guard on the guard, on synthetic source. ... ok
+01:16:37 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+01:16:37 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+01:16:37 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+01:16:37 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+01:16:37 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+01:16:37 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+01:16:37 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+01:16:37 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+01:16:37 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+01:16:37 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+01:16:37 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+01:16:37 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+01:16:37 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+01:16:37 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+01:16:37 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+01:16:37 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+01:16:37 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+01:16:37 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+01:16:37 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+01:16:37 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+01:16:37 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+01:16:37 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+01:16:37 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+01:16:37
+01:16:37 ======================================================================
+01:16:37 FAIL: test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) (task='grade_engine_async')
+01:16:37 ----------------------------------------------------------------------
+01:16:37 Traceback (most recent call last):
+01:16:37   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/classrooms/tests_teacher_access_sweep.py", line 347, in test_every_grading_dispatch_checks_reachability
+01:16:37     self.assertIn(rule, tasks[name])
+01:16:37 AssertionError: 'teacher_may_reach' not found in '@shared_task(bind=True, soft_time_limit=GRADING_TASK_TIME_LIMIT_SECONDS - 60, time_limit=GRADING_TASK_TIME_LIMIT_SECONDS)\ndef grade_engine_async(self, user_id, submission_id, batch_id=None, processing_task_id=None):\n    try:\n        ensure_task_not_cancelled(processing_task_id)\n        mark_processing_task_started(processing_task_id, meta={\'step\': \'Retrieving submission\'})\n        ensure_batch_has_credits(processing_task_id)\n        self.update_state(state=\'PROGRESS\', meta={\'step\': \'Retrieving submission\'})\n        submission = StudentSubmission.objects.select_related(\'assignment\').get(id=submission_id)\n        if submission.scheduled_grading_at or submission.grading_task_name:\n            submission.scheduled_grading_at = None\n            submission.grading_task_name = None\n            submission.save(update_fields=[\'scheduled_grading_at\', \'grading_task_name\'])\n        user = CustomUser.objects.get(id=user_id)\n        if not reachable_courses(user).filter(pk=submission.assignment.course_id).exists():\n            logger.warning(\'Grading refused (H-38): submission %s, user %s can no longer reach its course.\', submission.id, user.id)\n            raise CourseNotReachableError()\n        self.update_state(state=\'PROGRESS\', meta={\'step\': \'Grading\'})\n        update_processing_task(processing_task_id, meta={\'step\': \'Grading\'})\n        ensure_task_not_cancelled(processing_task_id)\n        grade_before = history.snapshot(submission)\n        submission = grade_engine(user, submission, processing_task_id=processing_task_id)\n        self.update_state(state=\'PROGRESS\', meta={\'step\': \'Completed\'})\n        completed_task = mark_processing_task_success(processing_task_id, meta={\'step\': \'Completed\', \'submission_id\': str(submission.id), \'batch_id\': str(batch_id) if batch_id else None})\n        emit_grading_completed(submission, actor=completed_task.requested_by if completed_task else None, before=grade_before, task_id=processing_task_id)\n        if batch_id:\n            session = BatchUploadSession.objects.get(id=batch_id)\n            session.update_result(f\'Submission for {submission.student.get_full_name()}\', \'SUCCESS\', batch_type=BatchUploadType.GRADE, submission_id=submission.id)\n        return {\'status\': states.SUCCESS, \'submission_id\': submission_id, \'message\': \'Grading completed successfully\'}\n    except TaskCancelledError:\n        mark_processing_task_cancelled(processing_task_id, meta={\'step\': \'Grading cancelled\', \'submission_id\': submission_id})\n        raise\n    except SubmissionGradingInProgressError:\n        tracked = get_processing_task_by_id(processing_task_id)\n        own_delivery = tracked is not None and tracked.celery_task_id in (None, \'\', str(self.request.id))\n        if own_delivery:\n            logger.info(\'Redelivered grading task %s for submission %s skipped: the original delivery still holds the claim; tracked task %s left to it.\', self.request.id, submission_id, processing_task_id)\n        else:\n            mark_processing_task_success(processing_task_id, meta={\'step\': \'Skipped — already being graded\', \'skipped\': True, \'submission_id\': submission_id})\n        return {\'status\': states.SUCCESS, \'submission_id\': submission_id, \'message\': \'This submission is already being graded by another worker — duplicate run skipped.\'}\n    except Exception as exc:\n        fallback_message = "We couldn\'t grade this submission. Please try again, or contact support if this continues."\n        task = mark_processing_task_failure(processing_task_id, exc, meta={\'step\': \'Grading failed\', \'submission_id\': submission_id}, fallback_message=fallback_message)\n        emit(AuditAction.GRADING_FAILED, actor=task.requested_by if task else None, request=None, target_type=\'StudentSubmission\', target_id=submission_id, outcome=AuditOutcome.FAILURE, error_class=_grading_failure_error_class(exc), reason_code=exc.reason_code if isinstance(exc, CodedError) else None, metadata={\'assignment_id\': str(task.assignment_id) if task and task.assignment_id else None, \'submission_id\': str(submission_id), \'task_id\': str(processing_task_id) if processing_task_id else None, \'prompt_version\': GRADING_ASSIGNMENT_PROMPT.version})\n        if batch_id:\n            session = BatchUploadSession.objects.get(id=batch_id)\n            submission_obj = locals().get(\'submission\')\n            file_name = f\'Submission for {submission_obj.student.get_full_name()}\' if isinstance(submission_obj, StudentSubmission) else f\'Submission {submission_id}\'\n            session.update_result(file_name, \'FAILED\', error=task.error if task else describe_background_task_error(exc, fallback_message), batch_type=BatchUploadType.GRADE, submission_id=submission_id)\n        raise'
+01:16:37
+01:16:37 ----------------------------------------------------------------------
+01:16:37 Ran 304 tests in 105.874s
+01:16:37
+01:16:37 FAILED (failures=1)
+01:16:37 Destroying test database for alias 'default' ('test_epic_a_merge_down_b4')...
+01:16:44 systemd-run failed with exit status 1.

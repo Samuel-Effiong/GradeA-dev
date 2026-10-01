@@ -1,0 +1,14 @@
+# L16: alerts email the super admins
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    _email_super_admins(intent, why)\n'
+# new: '    pass\n'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 45.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_escalation_emails_every_active_super_admin (billing.tests.test_h28_alerting.AlertTests.test_an_escalation_emails_every_active_super_admin)
+FAIL: test_stale_in_flight_intents_are_escalated_and_alerted_once (billing.tests.test_h28_alerting.StaleIntentCheckTests.test_stale_in_flight_intents_are_escalated_and_alerted_once)
+FAIL: test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time)
+
+FAILED (failures=3)

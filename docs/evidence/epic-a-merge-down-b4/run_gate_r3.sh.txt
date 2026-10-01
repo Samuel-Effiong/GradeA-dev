@@ -1,0 +1,36 @@
+#!/bin/bash
+# Bundle 4 merge-down gate at 6faf303 (ed): modules + ALL guards; H-38 mutants M1-M12. 6G, rules 12/13/16.
+set -u
+W=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4
+SP=/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/aac7987f-8111-4860-bdb0-5c51de8d9291/scratchpad
+OUT=$SP/md_b4_gate_r3; mkdir -p $OUT
+cd $W || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+CAP='systemd-inhibit --what=idle:sleep --who=GAP --why="GAP test run" --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0'
+STAMP='import sys,time;[sys.stdout.write(time.strftime("%H:%M:%S ")+l) for l in sys.stdin]'
+export EXEMPT_EMAIL_DOMAINS= RACE_COST_ENROLLMENTS=600 RACE_COST_ROWS=200
+[ "$(git rev-parse --short HEAD)" = "6faf303" ] || { echo "not at 6faf303"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+MODS="students.tests_item_retry_h38 classrooms.tests_teacher_access_sweep students.tests_item_retry students.tests_batch_item_results billing.tests.test_h38_part2_removed_teacher_routes billing.tests.test_h38_teacher_removal students.tests_h38_tasks_namespace AutoGrader.tests_reason_codes AutoGrader.tests_codederror_serialization"
+GUARDS="AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health audit.tests_route_coverage audit.tests_history_guard classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension AutoGrader.tests_error_messages"
+python manage.py shell --settings=settings_worktree -c "
+from django.db import connection
+with connection.cursor() as c:
+    c.execute(\"select datname, state, wait_event_type, query_start from pg_stat_activity where datname like 'test_%' order by query_start\")
+    for r in c.fetchall(): print(*r)" 2>/dev/null > $OUT/pg_activity_before_modules.txt
+echo "=== 1. modules + all guards at 6faf303 $(date +%T)"
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $MODS $GUARDS" 2>&1 | python3 -u -c "$STAMP" > $OUT/modules_and_guards.txt
+echo "exit=${PIPESTATUS[0]}"; grep -E "^.{9}Ran |^.{9}OK$|^.{9}FAILED \(|^.{9}(FAIL|ERROR): " $OUT/modules_and_guards.txt
+if grep -qE "^.{9}FAILED \(" $OUT/modules_and_guards.txt || ! grep -qE "^.{9}OK$" $OUT/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. H-38 mutants M1-M12 (own DB) $(date +%T)"
+eval "MUT_SETTINGS=settings_worktree_mut $CAP nice -n 10 timeout -k 60 1800 python $SP/md_b4_mutants.py $OUT" > $OUT/h38_mutants_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; cut -c1-230 $OUT/h38_mutants_log.txt
+git diff --quiet HEAD && echo "tree clean after mutants"
+python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" 2>&1 | tail -1
+echo "=== steps 1-2 done $(date +%T)"

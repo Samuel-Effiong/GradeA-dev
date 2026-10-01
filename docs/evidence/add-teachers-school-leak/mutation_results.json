@@ -1,0 +1,33 @@
+{
+  "N1_names_the_other_school_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_refusal_does_not_name_the_other_school"
+    ]
+  },
+  "N2_log_carries_the_email": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_refusal_does_not_name_the_other_school"
+    ]
+  },
+  "N3_the_teacher_is_enrolled_anyway": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_refusal_does_not_name_the_other_school"
+    ]
+  },
+  "N4_names_the_role_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_non_teacher_account_is_refused_without_naming_its_role"
+    ]
+  },
+  "N5_batch_log_carries_the_email_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_non_teacher_account_is_refused_without_naming_its_role",
+      "test_the_refusal_does_not_name_the_other_school"
+    ]
+  }
+}

@@ -53,9 +53,6 @@ from users.models import UserTypes
 CustomUser = get_user_model()
 
 
-RECEIPT_PI = {"latest_charge": {"receipt_url": "https://pay.stripe.test/receipt"}}
-
-
 class FakeStripeObject(dict):
     """
     Minimal stand-in for Stripe's response objects, which support both
@@ -248,7 +245,6 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
     ):
         sub = self._make_sub(self.standard_plan)
         mock_subscription.modify.return_value = None
-        mock_payment_intent.retrieve.return_value = RECEIPT_PI
 
         session = {
             "id": "cs_test_1",
@@ -256,15 +252,22 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
             "currency": "usd",
             "payment_intent": "pi_test_1",
         }
-        StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
-            session, self._webhook_metadata(sub, self.pro_plan)
-        )
+        with patch(
+            "billing.stripe_service.schedule_receipt_url_fill", return_value=None
+        ) as schedule_receipt:
+            StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
+                session, self._webhook_metadata(sub, self.pro_plan)
+            )
 
         sub.refresh_from_db()
         self.assertEqual(sub.plan_id, self.pro_plan.id)
         self.assertEqual(sub.billing_cycle_end, self.cycle_end)
-        mock_payment_intent.retrieve.assert_called_once_with(
-            "pi_test_1", expand=["latest_charge"]
+        # H-62: the handler makes no Stripe call inside its transaction; the
+        # receipt link is queued for a fill after commit (billing.receipts).
+        mock_payment_intent.retrieve.assert_not_called()
+        schedule_receipt.assert_called_once()
+        self.assertEqual(
+            schedule_receipt.call_args.args[0].stripe_payment_intent_id, "pi_test_1"
         )
 
     @patch("stripe.PaymentIntent")
@@ -275,7 +278,6 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
     ):
         sub = self._make_sub(self.standard_plan)
         mock_subscription.modify.return_value = None
-        mock_payment_intent.retrieve.return_value = RECEIPT_PI
         mock_subscription.retrieve.return_value = {
             "id": "sub_entry_1",
             "latest_invoice": None,
@@ -288,9 +290,12 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
             "payment_intent": "pi_test_2",
         }
         before = timezone.now()
-        StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
-            session, self._webhook_metadata(sub, self.annual_plan)
-        )
+        with patch(
+            "billing.stripe_service.schedule_receipt_url_fill", return_value=None
+        ) as schedule_receipt:
+            StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
+                session, self._webhook_metadata(sub, self.annual_plan)
+            )
         after = timezone.now()
 
         # Interval-crossing genuinely resets Stripe's cycle, so (like
@@ -304,8 +309,12 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
         self.assertGreaterEqual(new_sub.billing_cycle_start, before)
         self.assertLessEqual(new_sub.billing_cycle_start, after)
         self.assertGreater(new_sub.billing_cycle_end, self.cycle_end)
-        mock_payment_intent.retrieve.assert_called_once_with(
-            "pi_test_2", expand=["latest_charge"]
+        # H-62: the handler makes no Stripe call inside its transaction; the
+        # receipt link is queued for a fill after commit (billing.receipts).
+        mock_payment_intent.retrieve.assert_not_called()
+        schedule_receipt.assert_called_once()
+        self.assertEqual(
+            schedule_receipt.call_args.args[0].stripe_payment_intent_id, "pi_test_2"
         )
 
 

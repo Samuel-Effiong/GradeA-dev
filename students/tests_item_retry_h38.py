@@ -15,6 +15,7 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.http import Http404
 from django.urls import reverse
 from django.utils import timezone
 
@@ -27,7 +28,7 @@ from billing.tests.test_h38_part2_removed_teacher_routes import (
     fund_wallet,
     jwt_client,
 )
-from students import task_tracking
+from students import item_retry, task_tracking
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -148,6 +149,18 @@ class ARemovedTeacherRetrying(H38RetryFixture):
         self.assert_untouched(self.grade_item, "PROVIDER_FAILURE")
         self.assertEqual(self.requested_count(), requested)
 
+    def test_the_service_refuses_the_item_by_its_own_course(self):
+        """Behind the route's session gate (F6.2's rule, bundle 4
+        merge-down), item_retry still checks the item itself, for any
+        caller."""
+        self.removed_and_funded()
+
+        with self.assertRaises(Http404):
+            item_retry.retry_item(self.grade_item, self.teacher)
+
+        self.assertEqual(self.launched, [])
+        self.assert_untouched(self.grade_item, "PROVIDER_FAILURE")
+
     def test_an_upload_item_is_not_found_either_not_told_to_re_upload(self):
         self.removed_and_funded()
         response = self.retry(self.upload_item)
@@ -175,18 +188,37 @@ class ARemovedTeacherRetrying(H38RetryFixture):
 
         self.removed_and_funded()
         self.assertEqual(self.retry(orphan).status_code, 404)
+        # The route now stops at the session gate, so the item's own fallback
+        # (no assignment: the batch session's course) is pinned at the
+        # service, where it still decides.
+        with self.assertRaises(Http404):
+            item_retry.retry_item(orphan, self.teacher)
 
-    def test_retry_failed_skips_every_item_without_saying_why(self):
+    def test_retry_failed_is_not_found_for_a_removed_teacher(self):
+        """F6.2's session-level rule (SM ruling at the bundle 4 merge-down):
+        the route answers like a missing session, not a 202 retrying
+        nothing."""
         self.removed_and_funded()
         for body in (None, {"reason_codes": ["PROVIDER_FAILURE"]}):
             with self.subTest(body=body):
                 response = self.retry_failed(body)
-                self.assertEqual(response.status_code, 202, response.content[:400])
-                data = response.json()["data"]
-                self.assertEqual(data["retried"], [])
-                # No codes: they'd tell the removed teacher about the items.
+                self.assertEqual(response.status_code, 404, response.content[:400])
+        self.assertEqual(self.launched, [])
+        self.assert_untouched(self.grade_item, "PROVIDER_FAILURE")
+
+    def test_the_service_skips_every_item_without_saying_why(self):
+        """Behind the route's gate, retry_failed still skips each item the
+        teacher can't reach, and gives no code: a code would tell them about
+        the item."""
+        self.removed_and_funded()
+        for codes in (None, ["PROVIDER_FAILURE"]):
+            with self.subTest(reason_codes=codes):
+                retried, skipped = item_retry.retry_failed(
+                    self.session, self.teacher, reason_codes=codes
+                )
+                self.assertEqual(retried, [])
                 self.assertEqual(
-                    data["skipped"],
+                    skipped,
                     [
                         {"item_id": str(self.grade_item.id), "reason_code": None},
                         {"item_id": str(self.upload_item.id), "reason_code": None},
@@ -199,7 +231,11 @@ class ARemovedTeacherRetrying(H38RetryFixture):
         """The claim re-checks access in its conditional UPDATE: the removal
         lands after the request-time check (patched to have passed)."""
         self.removed_and_funded()
-        with patch("students.item_retry.is_reachable", return_value=True):
+        # Both request-time checks passed (the route's session gate and
+        # item_retry's item check); the removal lands before the claim.
+        with patch("users.views.teacher_may_reach", new=lambda user, work: True), patch(
+            "students.item_retry.is_reachable", new=lambda item, user: True
+        ):
             response = self.retry(self.grade_item)
         self.assertEqual(response.status_code, 409, response.content[:400])
         self.assertEqual(self.launched, [])
