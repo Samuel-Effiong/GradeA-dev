@@ -1369,7 +1369,10 @@ class LicenseSubscriptionService:
                 "Individual subscriptions cannot be converted to a license. "
                 "Please cancel the individual subscription first."
             )
-            logger.warning(error_msg)
+            logger.warning(
+                "Teacher %s has an individual subscription: not enrolled.",
+                teacher.id,
+            )
             raise IndividualSubscriptionConflictError(error_msg)
 
         now = timezone.now()
