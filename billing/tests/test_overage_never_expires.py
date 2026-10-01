@@ -133,7 +133,9 @@ class OverageWebhookNeverExpiresTestCase(TestCase):
     def test_checkout_completed_webhook_grants_non_expiring_bucket(self):
         session = {
             "id": "cs_test_1",
-            "payment_intent": None,
+            # H-66: an overage grant needs its PaymentIntent (the
+            # idempotency key); a session without one is refused.
+            "payment_intent": "pi_never_expires_1",
             "invoice": None,
             "amount_total": 500,
             "currency": "usd",
