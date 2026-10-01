@@ -1,0 +1,8 @@
+V1_variant_never_picked {'killed': True, 'failing_tests': ['test_nothing_finished_reads_before_any']}
+V2_variant_always_picked {'killed': True, 'failing_tests': ['test_once_one_finished_it_reads_after_n_of_m']}
+V3_render_ignores_the_variant {'killed': True, 'failing_tests': ['test_nothing_finished_reads_before_any', 'test_the_variant_renders_its_own_template']}
+V4_variant_lost_from_args {'killed': True, 'failing_tests': ['test_a_variant_survives_being_rebuilt_from_its_args', 'test_the_variant_survives_json_and_pickle']}
+V5_any_variant_accepted {'killed': True, 'failing_tests': ['test_an_unapproved_variant_is_refused']}
+V6_new_account_clash_default_remediation {'killed': True, 'failing_tests': ['test_the_same_name_with_different_emails_is_not_a_repeat_but_a_clash']}
+V7_existing_account_clash_default_remediation {'killed': True, 'failing_tests': ['test_an_existing_account_with_a_clashing_name_is_refused_and_untouched']}
+SURVIVORS: []
