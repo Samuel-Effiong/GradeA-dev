@@ -79,6 +79,20 @@ class OverageRequiresPaymentIntentTests(TestCase, ReplayFixture):
             self.deliver(session)
         self.assertEqual(self.granted_credits(self.wallet), 0)
 
+    def test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped(self):
+        """1a's Q1: the refusal comes before the cap check. Behind it, a
+        keyless session for a wallet at its cap would take the cap path and
+        record a paid BillingTransaction with no payment_intent."""
+        self.wallet.overage_blocks_used = self.plan.max_overage_blocks
+        self.wallet.save(update_fields=["overage_blocks_used"])
+        session = self.checkout_session(self.wallet, self.plan, payment_intent=None)
+
+        with self.assertLogs(HANDLER_LOGGER, "ERROR") as logs:
+            self.deliver(session)
+
+        self.assert_refused(logs)
+        self.assertEqual([line for line in logs.output if "exceed the cap" in line], [])
+
     def test_the_replay_path_refuses_it_too(self):
         row = self.failed_event("evt_h66_keyless", payment_intent=None)
 

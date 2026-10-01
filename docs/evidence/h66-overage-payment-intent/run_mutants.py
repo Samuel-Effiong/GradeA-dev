@@ -52,6 +52,17 @@ MUTANTS = [
         "        if (wallet.overage_blocks_used",
         1,
     ),
+    (
+        "K4",
+        "the refusal comes before the cap check (1a's Q1)",
+        SS,
+        "        if not payment_intent_id:\n",
+        "        if not payment_intent_id and (\n"
+        "            (wallet.overage_blocks_used or 0) + quantity\n"
+        "            <= plan.max_overage_blocks\n"
+        "        ):\n",
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
