@@ -1,0 +1,12 @@
+# N1b: the every-5-minute task uses its short TTL (1a's N1)
+# file: billing/tasks.py (occurrence 1)
+# old: '@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)\n'
+# new: '@single_instance(max_hold=beat_locks.EVERY_5_MIN)\n'
+# commit: 593d249fc342886c77e7bd98b224cc2654c208af
+# exit: 1
+# elapsed_s: 19.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run) [escalate-stale-licence-stripe-intents]
+
+FAILED (failures=1)

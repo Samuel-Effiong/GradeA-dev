@@ -2,9 +2,9 @@
 # file: AutoGrader/beat_locks.py (occurrence 1)
 # old: '                    released = lock.release()\n'
 # new: '                    released = True\n'
-# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# commit: 593d249fc342886c77e7bd98b224cc2654c208af
 # exit: 1
-# elapsed_s: 15.5
+# elapsed_s: 18.6
 # restored_sha256_matches_commit_blob: True
 
 ERROR: test_its_output_carries_no_email (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_its_output_carries_no_email)

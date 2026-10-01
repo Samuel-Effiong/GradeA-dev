@@ -2,9 +2,9 @@
 # file: AutoGrader/testing/beat_locks.py (occurrence 1)
 # old: '            clear_beat_locks()\n'
 # new: '            pass\n'
-# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# commit: 593d249fc342886c77e7bd98b224cc2654c208af
 # exit: 1
-# elapsed_s: 11.3
+# elapsed_s: 21.0
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping)

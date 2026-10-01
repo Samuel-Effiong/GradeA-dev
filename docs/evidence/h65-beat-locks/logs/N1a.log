@@ -1,0 +1,12 @@
+# N1a: every-5-minute max_hold + ttl is below its interval (1a's N1)
+# file: AutoGrader/beat_locks.py (occurrence 1)
+# old: 'EVERY_5_MIN_TTL = timedelta(minutes=1)\n'
+# new: 'EVERY_5_MIN_TTL = timedelta(minutes=2)\n'
+# commit: 593d249fc342886c77e7bd98b224cc2654c208af
+# exit: 1
+# elapsed_s: 19.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run) [escalate-stale-licence-stripe-intents]
+
+FAILED (failures=1)

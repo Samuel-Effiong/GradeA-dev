@@ -2,9 +2,9 @@
 # file: AutoGrader/beat_locks.py (occurrence 1)
 # old: 'nx=True, '
 # new: ''
-# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# commit: 593d249fc342886c77e7bd98b224cc2654c208af
 # exit: 1
-# elapsed_s: 26.1
+# elapsed_s: 32.4
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) [billing.tasks.process_license_renewals]

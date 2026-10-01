@@ -2,9 +2,9 @@
 # file: AutoGrader/beat_locks.py (occurrence 1)
 # old: '    "dashboard.tasks.record_concurrent_users": "one sample row per tick",\n'
 # new: ''
-# commit: adf8fe08784be98db9f6ef13dcf796caa9fc6c2f
+# commit: 593d249fc342886c77e7bd98b224cc2654c208af
 # exit: 1
-# elapsed_s: 9.6
+# elapsed_s: 19.3
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt)

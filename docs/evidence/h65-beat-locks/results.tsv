@@ -14,3 +14,21 @@ adf8fe08784b	L11	every-5-minute max_hold is below its interval	KILLED	FAILED (fa
 adf8fe08784b	L12	the watchdog reports the lock store	KILLED	FAILED (failures=1)	True	11.0
 adf8fe08784b	L13	the runner clears locks before every test	KILLED	FAILED (failures=1)	True	11.3
 adf8fe08784b	L14	a guarded task keeps its lock	KILLED	FAILED (failures=3)	True	10.0
+593d249fc342	M1	mid-cycle grant: the next_credit_grant_at re-check (lapsed lock)	KILLED	FAILED (failures=4)	True	33.9
+593d249fc342	M2	expire_trial: the active-trial re-check (lapsed lock)	KILLED	FAILED (failures=7)	True	17.4
+593d249fc342	L1	the lock is released after the run (0b)	KILLED	FAILED (failures=20, errors=1)	True	18.6
+593d249fc342	L2	release is compare-and-delete	KILLED	FAILED (failures=1)	True	18.3
+593d249fc342	L3	the heartbeat's extend is compare-and-extend	KILLED	FAILED (failures=1)	True	18.2
+593d249fc342	L4	a cache error fails CLOSED	KILLED	FAILED (failures=1)	True	18.6
+593d249fc342	L5	a held lock means skip	KILLED	FAILED (failures=34)	True	32.1
+593d249fc342	L6	acquire is SET NX	KILLED	FAILED (failures=34)	True	32.4
+593d249fc342	L7	the heartbeat stops at max_hold	KILLED	FAILED (failures=3)	True	22.5
+593d249fc342	L8	the heartbeat runs	KILLED	FAILED (failures=3, errors=32)	True	15.0
+593d249fc342	L9	the TTL never exceeds max_hold	SURVIVED	OK	True	19.0
+593d249fc342	L10	an exemption is a scheduled, named choice	KILLED	FAILED (failures=1)	True	19.3
+593d249fc342	L11	every-5-minute max_hold is below its interval	KILLED	FAILED (failures=3)	True	18.7
+593d249fc342	N1a	every-5-minute max_hold + ttl is below its interval (1a's N1)	KILLED	FAILED (failures=1)	True	19.3
+593d249fc342	N1b	the every-5-minute task uses its short TTL (1a's N1)	KILLED	FAILED (failures=1)	True	19.3
+593d249fc342	L12	the watchdog reports the lock store	KILLED	FAILED (failures=1)	True	18.9
+593d249fc342	L13	the runner clears locks before every test	KILLED	FAILED (failures=1)	True	21.0
+593d249fc342	L14	a guarded task keeps its lock	KILLED	FAILED (failures=3)	True	17.1
