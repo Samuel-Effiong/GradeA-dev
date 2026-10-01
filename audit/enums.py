@@ -149,6 +149,56 @@ class ReasonCode(models.TextChoices):
     AI_FEATURE_NOT_AVAILABLE = "AI_FEATURE_NOT_AVAILABLE", "AI feature not available"
     NOT_RETRYABLE = "NOT_RETRYABLE", "Not retryable"
 
+    # QA catalogue additions (docs/phase2/qa/catalogue_additions_proposal.md,
+    # approved as written by the founder acting as QA, 2026-09-30), built in
+    # Epic A S7d. B: student registration paused.
+    REGISTRATION_PAUSED = "REGISTRATION_PAUSED", "Student registration paused"
+    # C: a photo or scan uploaded as a PDF.
+    FILE_NOT_A_PDF = "FILE_NOT_A_PDF", "File is not a PDF"
+    # D1: roster import, whole request.
+    ROSTER_NO_INPUT = "ROSTER_NO_INPUT", "Roster: no input"
+    ROSTER_EMPTY = "ROSTER_EMPTY", "Roster: no student rows"
+    ROSTER_FILE_UNREADABLE = "ROSTER_FILE_UNREADABLE", "Roster: file unreadable"
+    ROSTER_TOO_MANY_ROWS = "ROSTER_TOO_MANY_ROWS", "Roster: too many rows"
+    # D2: roster import, per row.
+    ROW_NAME_MISSING = "ROW_NAME_MISSING", "Row: name missing"
+    ROW_NAME_INVALID = "ROW_NAME_INVALID", "Row: name invalid"
+    ROW_ALREADY_ENROLLED = "ROW_ALREADY_ENROLLED", "Row: already enrolled"
+    ROW_NAME_CLASH = "ROW_NAME_CLASH", "Row: name clash"
+    ROW_STAFF_EMAIL = "ROW_STAFF_EMAIL", "Row: email can't be added as a student"
+    ROW_OTHER_SCHOOL = "ROW_OTHER_SCHOOL", "Row: account in another school"
+    ROW_ACCOUNT_DISABLED = "ROW_ACCOUNT_DISABLED", "Row: account disabled"
+    ROW_EMAIL_INVALID = "ROW_EMAIL_INVALID", "Row: email invalid"
+    ROW_DUPLICATE = "ROW_DUPLICATE", "Row: repeats an earlier row"
+    ROW_FAILED = "ROW_FAILED", "Row: failed"
+    # E1: licence teacher management, whole request.
+    TEACHER_LIST_EMPTY = "TEACHER_LIST_EMPTY", "No teachers given"
+    LICENCE_INACTIVE = "LICENCE_INACTIVE", "Licence inactive"
+    LICENCE_SEATS_EXCEEDED = "LICENCE_SEATS_EXCEEDED", "Licence seats exceeded"
+    # E2: licence teacher management, per teacher.
+    TEACHER_EMAIL_NOT_BUSINESS = (
+        "TEACHER_EMAIL_NOT_BUSINESS",
+        "Teacher: not a school or work email",
+    )
+    TEACHER_EMAIL_OTHER_ROLE = (
+        "TEACHER_EMAIL_OTHER_ROLE",
+        "Teacher: email can't be added as a teacher",
+    )
+    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION = (
+        "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION",
+        "Teacher: has an individual subscription",
+    )
+    TEACHER_IN_OTHER_SCHOOL = "TEACHER_IN_OTHER_SCHOOL", "Teacher: in another school"
+    TEACHER_ALREADY_ON_LICENCE = (
+        "TEACHER_ALREADY_ON_LICENCE",
+        "Teacher: already on the licence",
+    )
+    TEACHER_NOT_ON_LICENCE = "TEACHER_NOT_ON_LICENCE", "Teacher: not on the licence"
+    TEACHER_ADD_FAILED = "TEACHER_ADD_FAILED", "Teacher: add failed"
+    TEACHER_REMOVE_FAILED = "TEACHER_REMOVE_FAILED", "Teacher: remove failed"
+    # F: publishing grades.
+    SUBMISSION_NOT_GRADED = "SUBMISSION_NOT_GRADED", "Submission not graded"
+
     # Sign-in and session outcomes (audit-only; FR-A-01, Epic A S1).
     ACCOUNT_LOCKED = "ACCOUNT_LOCKED", "Account locked"
     ACCOUNT_DEACTIVATED = "ACCOUNT_DEACTIVATED", "Account deactivated"

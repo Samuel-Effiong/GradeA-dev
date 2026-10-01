@@ -35,6 +35,7 @@ from classrooms.models import (
     StudentCourse,
     Topic,
 )
+from classrooms.services import NOT_A_STUDENT_MESSAGE
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -584,7 +585,8 @@ class BulkAndUploadAbuseAttacks(AttackBase):
         payload.name = "roster.csv"
         self.as_(self.teacher_a)
         response = self.client.post(self.url, {"file": payload}, format="multipart")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Epic A S7d (catalogue D1): FILE_TOO_LARGE is 413 (it was 400).
+        self.assertEqual(response.status_code, status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         self.assertEqual(StudentCourse.objects.filter(course=self.course_a).count(), 1)
 
     def test_a_binary_file_renamed_to_csv_is_a_400(self):
@@ -628,7 +630,13 @@ class BulkAndUploadAbuseAttacks(AttackBase):
         self.assertEqual(self.teacher_b.user_type, UserTypes.TEACHER)
         self.assertFalse(StudentCourse.objects.filter(student=self.teacher_b).exists())
         self.assertEqual(response.data["failure_count"], 1)
-        self.assertIn("teacher", response.data["results"][0]["error"].lower())
+        # H-71's neutral refusal, as the row code ROW_STAFF_EMAIL (Epic A
+        # S7d): no role named. At the merge-down, this line takes S7d's form
+        # over H-71's (which pins the rowless NOT_A_STUDENT_MESSAGE).
+        row = response.data["results"][0]
+        self.assertEqual(row["reason_code"], "ROW_STAFF_EMAIL")
+        self.assertEqual(row["error"], "Row 1: t" + NOT_A_STUDENT_MESSAGE[1:])
+        self.assertNotIn("teacher", row["error"].lower())
 
     def test_bulk_import_cannot_hijack_a_school_admin_account(self):
         self.as_(self.teacher_a)

@@ -800,6 +800,15 @@ class PublishAllGradesResponseSerializer(serializers.Serializer):
     ungraded_count = serializers.IntegerField(
         min_value=0, help_text="Total number of submissions that were not graded"
     )
+    skipped = serializers.ListField(
+        child=serializers.DictField(),
+        help_text=(
+            "Epic A S7d (catalogue F): each submission not published, with "
+            "its reason: submission_id, student_id, status 'skipped' and the "
+            "coded fields (reason_code SUBMISSION_NOT_GRADED, message, "
+            "remediation, ...)."
+        ),
+    )
 
 
 class TaskInfoSerializer(serializers.Serializer):

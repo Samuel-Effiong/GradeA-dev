@@ -44,7 +44,7 @@ from rest_framework.response import Response
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from audit.emitter import emit
-from audit.enums import AuditAction, AuditOutcome
+from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import (
     SCOPE_COURSE,
     SCOPE_GLOBAL,
@@ -1436,16 +1436,18 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         course = self.get_object()
         serializer = BulkAddStudentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        input_file = serializer.validated_data.get("file")
+        raw_data = serializer.validated_data.get("raw_data")
+        # Catalogue D1 (S7d): every refusal of the whole request is coded -
+        # ROSTER_NO_INPUT here, ROSTER_EMPTY / ROSTER_FILE_UNREADABLE /
+        # ROSTER_TOO_MANY_ROWS / FILE_TOO_LARGE from parse_roster - and the
+        # exception handler answers each with its status and envelope.
+        if not input_file and not raw_data:
+            raise services.RosterImportError(ReasonCode.ROSTER_NO_INPUT)
 
-        try:
-            rows, total_processed = services.parse_roster(
-                input_file=serializer.validated_data.get("file"),
-                raw_data=serializer.validated_data.get("raw_data"),
-            )
-        except services.RosterImportError as exc:
-            if exc.field == "detail" and "No valid student data" in exc.message:
-                raise ParseError(exc.message) from exc
-            raise ValidationError({exc.field: [exc.message]}) from exc
+        rows, total_processed = services.parse_roster(
+            input_file=input_file, raw_data=raw_data
+        )
 
         result = services.import_roster(
             course=course, rows=rows, total_processed=total_processed

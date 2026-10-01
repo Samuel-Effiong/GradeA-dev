@@ -30,6 +30,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.test import APITestCase
 
 from ai_processor.services import PDFService
+from assignments.exceptions import FileUnreadableError
 from assignments.models import Assignment
 from assignments.services import AssignmentProcessingService
 from assignments.tests_security import TenancyAttackFixture
@@ -79,11 +80,26 @@ class ImageLabelledAsPdfTest(SimpleTestCase):
                         labelled_pdf(image_bytes(image_format), "photo.pdf"), "p"
                     )
 
-                # FR-A-06 S6b: coded FILE_UNREADABLE naming the file; the
-                # precise reason stays server-side on the cause.
-                self.assertEqual(caught.exception.reason_code, "FILE_UNREADABLE")
-                self.assertIn("photo.pdf", str(caught.exception.detail))
+                # S7d (catalogue C) supersedes S6b's FILE_UNREADABLE: coded
+                # FILE_NOT_A_PDF naming the file, still a FileUnreadableError
+                # for every existing handler.
+                self.assertEqual(caught.exception.reason_code, "FILE_NOT_A_PDF")
+                self.assertIsInstance(caught.exception, FileUnreadableError)
+                self.assertEqual(caught.exception.params, {"file_name": "photo.pdf"})
+                self.assertIn("photo.pdf is not a PDF", str(caught.exception.detail))
                 self.assertIn("not a PDF", str(caught.exception.__cause__))
+
+    def test_a_damaged_real_pdf_is_still_file_unreadable(self):
+        """S7d (catalogue C) scopes FILE_NOT_A_PDF to bytes that aren't a PDF
+        at all: a truncated PDF stays FILE_UNREADABLE."""
+        truncated = real_pdf_bytes(pages=1)[:200]
+        with self.assertRaises(FileUnreadableError) as caught:
+            AssignmentProcessingService.prepare_ai_content(
+                labelled_pdf(truncated, "broken.pdf"), "p"
+            )
+
+        self.assertEqual(caught.exception.reason_code, "FILE_UNREADABLE")
+        self.assertIn("couldn't read broken.pdf", str(caught.exception.detail))
 
     def test_a_real_pdf_is_still_rasterized_page_by_page(self):
         """The check must scope, not refuse every PDF."""
@@ -158,7 +174,7 @@ class ImageLabelledAsPdfOverHttpTest(TenancyAttackFixture, APITestCase):
         self.assertEqual(
             response.status_code, status.HTTP_400_BAD_REQUEST, response.content[:300]
         )
-        self.assertIn("couldn't read photo.pdf", response.content.decode())
+        self.assertIn("photo.pdf is not a PDF", response.content.decode())
         self.assertEqual(Assignment.objects.count(), before)
 
     @patch(
@@ -186,5 +202,13 @@ class ImageLabelledAsPdfOverHttpTest(TenancyAttackFixture, APITestCase):
             response.content[:300],
         )
         body = response.json()["error"]["field_errors"]
-        self.assertEqual(body["reason_code"], "FILE_UNREADABLE")
-        self.assertIn("answers.pdf", body["error"])
+        # S7d (catalogue C): FILE_NOT_A_PDF, params exactly the file name.
+        self.assertEqual(body["reason_code"], "FILE_NOT_A_PDF")
+        self.assertEqual(body["params"], {"file_name": "answers.pdf"})
+        self.assertEqual(body["error_class"], "USER")
+        self.assertIs(body["retryable"], False)
+        self.assertEqual(
+            body["remediation"],
+            "Upload the photo or scan as an image (JPEG, PNG, GIF or WebP).",
+        )
+        self.assertIn("answers.pdf is not a PDF", body["error"])

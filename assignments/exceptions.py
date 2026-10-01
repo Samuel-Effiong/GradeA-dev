@@ -37,6 +37,15 @@ class FileUnreadableError(CodedError, InvalidUploadFileError):
     status_code = REASON_CODES[ReasonCode.FILE_UNREADABLE].http_status
 
 
+class FileNotAPdfError(FileUnreadableError):
+    """FILE_NOT_A_PDF (422, catalogue C, Epic A S7d): declared a PDF, but
+    the bytes are a photo or scan. It was FILE_UNREADABLE, whose text lost
+    the hint; being its subclass keeps every handler of that working."""
+
+    reason_code = ReasonCode.FILE_NOT_A_PDF
+    status_code = REASON_CODES[ReasonCode.FILE_NOT_A_PDF].http_status
+
+
 class FileTypeUnsupportedError(CodedError, InvalidUploadFileError):
     """#4 FILE_TYPE_UNSUPPORTED (415): a type we don't accept at all."""
 

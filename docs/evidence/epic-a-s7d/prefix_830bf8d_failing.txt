@@ -1,0 +1,38 @@
+00:25:00 Traceback (most recent call last):
+00:25:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7d/manage.py", line 22, in <module>
+00:25:00     main()
+00:25:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7d/manage.py", line 18, in main
+00:25:00     execute_from_command_line(sys.argv)
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+00:25:00     utility.execute()
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 436, in execute
+00:25:00     self.fetch_command(subcommand).run_from_argv(self.argv)
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 24, in run_from_argv
+00:25:00     super().run_from_argv(argv)
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 416, in run_from_argv
+00:25:00     self.execute(*args, **cmd_options)
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+00:25:00     output = self.handle(*args, **options)
+00:25:00              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 63, in handle
+00:25:00     failures = test_runner.run_tests(test_labels)
+00:25:00                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7d/AutoGrader/redis_test_runner.py", line 13, in run_tests
+00:25:00     return super().run_tests(*args, **kwargs)
+00:25:00            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1085, in run_tests
+00:25:00     suite = self.build_suite(test_labels)
+00:25:00             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 940, in build_suite
+00:25:00     tests = self.load_tests_for_label(label, discover_kwargs)
+00:25:00             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 898, in load_tests_for_label
+00:25:00     tests = self.test_loader.loadTestsFromName(label)
+00:25:00             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+00:25:00     module = __import__(module_name)
+00:25:00              ^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7d/users/tests_s7d_registration_paused.py", line 32, in <module>
+00:25:00     SPEC = REASON_CODES[ReasonCode.REGISTRATION_PAUSED]
+00:25:00                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:25:00 AttributeError: type object 'ReasonCode' has no attribute 'REGISTRATION_PAUSED'

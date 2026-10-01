@@ -26,10 +26,7 @@ from classrooms.models import (
     Session,
     StudentCourse,
 )
-from classrooms.services.enrollment import (
-    CROSS_SCHOOL_REJECTION_MESSAGE,
-    DEACTIVATED_ACCOUNT_MESSAGE,
-)
+from classrooms.services.enrollment import DEACTIVATED_ACCOUNT_MESSAGE
 from users.models import UserActivity, UserTypes
 
 User = get_user_model()
@@ -271,8 +268,14 @@ class RosterEmailRowsAreReadyToUseTests(SignInHelpers):
         response = self._import("Al,Ready,enrolled@example.com")
 
         result = response.data["results"][0]
+        # S7d (catalogue D2): coded, with the row number.
         self.assertEqual(
-            (result["status"], result["error"]), ("skipped", "Already enrolled")
+            (result["status"], result["reason_code"], result["error"]),
+            (
+                "skipped",
+                "ROW_ALREADY_ENROLLED",
+                "Row 1: Al Ready is already in this course.",
+            ),
         )
         self.notify.send_added_to_course_email.assert_not_called()
         self.notify.send_student_login_invitation_email.assert_not_called()
@@ -295,7 +298,15 @@ class RosterEmailRowsAreReadyToUseTests(SignInHelpers):
 
         result = response.data["results"][0]
         self.assertEqual(result["status"], "failed")
-        self.assertEqual(result["error"], CROSS_SCHOOL_REJECTION_MESSAGE)
+        # S7d (catalogue D2): ROW_OTHER_SCHOOL, the same generic sentence
+        # (never the other school) with the row number.
+        self.assertEqual(result["reason_code"], "ROW_OTHER_SCHOOL")
+        self.assertEqual(
+            result["error"],
+            "Row 1: this account can't be added to this school. If you believe "
+            "this is a mistake, contact your school administrator.",
+        )
+        self.assertNotIn("Other School", str(result))
         foreign.refresh_from_db()
         self.assertFalse(foreign.is_active)
         self.assertEqual(foreign.activation_token, "654321")
@@ -488,9 +499,14 @@ class DeactivatedAccountIsNeverReenabledTests(SignInHelpers):
 
         result = self.roster_import()
 
+        # S7d (catalogue D2): ROW_ACCOUNT_DISABLED, with the row number.
         self.assertEqual(
-            (result["status"], result["error"]),
-            ("skipped", DEACTIVATED_ACCOUNT_MESSAGE),
+            (result["status"], result["reason_code"], result["error"]),
+            (
+                "skipped",
+                "ROW_ACCOUNT_DISABLED",
+                "Row 1: this student's account is disabled.",
+            ),
         )
         self.assert_untouched(dee)
 

@@ -26,8 +26,10 @@ from django.db.models import F, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
 from users.mailerlite_service import queue_sync
@@ -114,6 +116,47 @@ class LicenseRequestError(ValueError):
     turn THIS into a 400 with its message, while any other ValueError is a
     programming error and must stay a loud 500.
     """
+
+
+class LicenceTeachersRefused(CodedError, LicenseRequestError):
+    """A coded refusal of a whole add-teachers request, before anything is
+    written (QA catalogue E1, Epic A S7d): LICENCE_INACTIVE or
+    LICENCE_SEATS_EXCEEDED. Still a LicenseRequestError for every existing
+    handler."""
+
+
+#: _get_or_invite_teacher's refusals whose texts ARE the approved catalogue
+#: texts (the add-teachers fix and H-78, carried byte-identical from beta).
+#: The raise sites keep their literals so the merge-down stays trivial; the
+#: code is chosen from them here (pinned through the real paths by
+#: billing/tests/test_s7d_licence_teacher_codes.py).
+TEACHER_OTHER_ROLE_TEXT = "This email can't be added as a teacher."
+TEACHER_OTHER_SCHOOL_TEXT = "This teacher already belongs to another school."
+
+
+def _not_business_text(email):
+    return f"Email {email} is not a business email. Only business emails are allowed."
+
+
+def teacher_failure(exc, email):
+    """The coded per-teacher failure (QA catalogue E2) for what adding one
+    teacher raised. Anything not recognised is TEACHER_ADD_FAILED; its own
+    text never reaches the result."""
+    if isinstance(exc, IndividualSubscriptionConflictError):
+        return CodedError(
+            ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION, params={"email": email}
+        )
+    if isinstance(exc, ValueError):
+        text = str(exc)
+        if text == _not_business_text(email):
+            return CodedError(
+                ReasonCode.TEACHER_EMAIL_NOT_BUSINESS, params={"email": email}
+            )
+        if text == TEACHER_OTHER_ROLE_TEXT:
+            return CodedError(ReasonCode.TEACHER_EMAIL_OTHER_ROLE)
+        if text == TEACHER_OTHER_SCHOOL_TEXT:
+            return CodedError(ReasonCode.TEACHER_IN_OTHER_SCHOOL)
+    return CodedError(ReasonCode.TEACHER_ADD_FAILED)
 
 
 class LicenseSubscriptionService:
@@ -768,13 +811,14 @@ class LicenseSubscriptionService:
                 "error": None,
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
-            # No address here: this line used to carry the email next to a
-            # refusal that named another school. The refusals it can log
-            # for a cross-tenant case are generic now.
+            # Class and ids only, never the refusal's text (H-78): the
+            # not-business and individual-subscription refusals carry the
+            # address. Each refusal logs its own ids-only line.
             logger.warning(
-                "Skipped enrolling a teacher in license %s: %s",
+                "Skipped enrolling a teacher in license %s (school %s): %s",
                 license_sub.id,
-                exc,
+                school.id,
+                type(exc).__name__,
             )
             return {
                 "email": email,
@@ -1152,11 +1196,9 @@ class LicenseSubscriptionService:
         # 1. Business email validation
         if not is_exempt_email_domain(email) and not is_business_email(email):
             error_msg = f"Email {email} is not a business email. Only business emails are allowed."
-
+            logger.warning("Not a business email: teacher not enrolled.")
             if raise_on_conflict:
                 raise ValueError(error_msg)
-            logger.warning(error_msg)
-
             return None
 
         # Check if user with this email already exists, whatever its case
@@ -1174,22 +1216,8 @@ class LicenseSubscriptionService:
                     raise ValueError(error_msg)
                 return None
 
-            # 3. Check for active individual subscription
-            has_individual_sub = user.subscriptions.filter(is_active=True).exists()
-
-            if has_individual_sub:
-                error_msg = (
-                    f"Teacher {email} has an active individual subscription. "
-                    "Individual subscriptions cannot be converted to a license. "
-                    "Please cancel the individual subscription first."
-                )
-
-                if raise_on_conflict:
-                    raise IndividualSubscriptionConflictError(error_msg)
-                logger.warning(error_msg)
-                return None
-
-            # 4. School validation
+            # 3. School validation. Before the subscription check (H-78): another
+            # school's teacher's billing status is not this admin's to learn.
             if user.school and user.school != school:
                 # Generic on purpose: naming the other school told any school
                 # admin which school an arbitrary address belongs to (a
@@ -1203,6 +1231,23 @@ class LicenseSubscriptionService:
                 )
                 if raise_on_conflict:
                     raise ValueError(error_msg)
+                return None
+
+            # 4. Check for active individual subscription
+            has_individual_sub = user.subscriptions.filter(is_active=True).exists()
+
+            if has_individual_sub:
+                error_msg = (
+                    f"Teacher {email} has an active individual subscription. "
+                    "Individual subscriptions cannot be converted to a license. "
+                    "Please cancel the individual subscription first."
+                )
+                logger.warning(
+                    "Teacher %s has an individual subscription: not enrolled.",
+                    user.id,
+                )
+                if raise_on_conflict:
+                    raise IndividualSubscriptionConflictError(error_msg)
                 return None
 
             # Associate the teacher with the school if they don't have one
@@ -1369,7 +1414,10 @@ class LicenseSubscriptionService:
                 "Individual subscriptions cannot be converted to a license. "
                 "Please cancel the individual subscription first."
             )
-            logger.warning(error_msg)
+            logger.warning(
+                "Teacher %s has an individual subscription: not enrolled.",
+                teacher.id,
+            )
             raise IndividualSubscriptionConflictError(error_msg)
 
         now = timezone.now()
@@ -1641,20 +1689,86 @@ class LicenseSubscriptionService:
         return LicenseSubscriptionService._enroll_teacher_internal(license_sub, teacher)
 
     @staticmethod
-    def _no_seats_message(license_sub, adding: int, remaining: int) -> str:
-        """The school admin's message when a licence can't take the teachers
-        being added. Plain wording, and the seat counts they can act on."""
-        in_use = f"{license_sub.teacher_count} of {license_sub.max_seats} in use"
-        if remaining == 0:
-            return (
-                f"Your licence has no seats left ({in_use}). "
-                "Remove a teacher or ask us to add seats."
+    def _seats_exceeded(license_sub, adding: int, remaining: int):
+        """LICENCE_SEATS_EXCEEDED (QA catalogue E1). The numbers stay
+        machine-readable in params; the message reads as the approved text
+        in its two forms, "{remaining} seats left, but you're adding
+        {adding} teachers" and "no seats left" (with one seat left, "1 seat
+        left")."""
+        if remaining:
+            availability = (
+                f"{remaining} seat{'' if remaining == 1 else 's'} left, but "
+                f"you're adding {adding} teachers"
             )
-        return (
-            f"Your licence has {remaining} seat{'' if remaining == 1 else 's'} "
-            f"left, but you're adding {adding} teachers ({in_use}). "
-            "Add fewer teachers, remove a teacher, or ask us to add seats."
+        else:
+            availability = "no seats left"
+        return LicenceTeachersRefused(
+            ReasonCode.LICENCE_SEATS_EXCEEDED,
+            params={
+                "remaining": int(remaining),
+                "adding": int(adding),
+                "in_use": int(license_sub.teacher_count),
+                "max_seats": int(license_sub.max_seats),
+            },
+            display={"availability": availability},
         )
+
+    @staticmethod
+    def _add_one_teacher(license_sub: LicenseSubscription, email: str):
+        """add_teachers_batch's unit for one teacher: (teacher, None) or
+        (None, CodedError).
+
+        One savepoint around the whole unit (Epic A S7d, SM ruling Q2): the
+        account, the school link, the seat and the on_commit invitation
+        commit together or not at all. A database error no longer aborts the
+        batch's transaction (losing the good teachers too), and a failure
+        after the account exists leaves no account, no seat and no invite:
+        Django discards on_commit callbacks registered in a rolled-back
+        savepoint. The log carries ids and the code, never the address or
+        the exception's text (SM condition b)."""
+        try:
+            with transaction.atomic():
+                teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                    email,
+                    license_sub.school,
+                    license_sub.admin_user,
+                    raise_on_conflict=True,
+                )
+                if teacher is None:  # never with raise_on_conflict=True
+                    raise ValueError("Teacher could not be resolved or created.")
+                LicenseSubscriptionService._enroll_teacher_internal(
+                    license_sub, teacher
+                )
+        except Exception as exc:
+            failure = teacher_failure(exc, email)
+            if isinstance(exc, (IndividualSubscriptionConflictError, ValueError)):
+                # The same ids-only line as the copied
+                # _invite_and_enroll_one_teacher (H-78), so both lines log a
+                # refused teacher alike: the exception's class, never its
+                # text (the not-business and subscription refusals carry
+                # the address).
+                logger.warning(
+                    "Skipped enrolling a teacher in license %s (school %s): %s",
+                    license_sub.id,
+                    license_sub.school_id,
+                    type(exc).__name__,
+                )
+            else:
+                logger.error(
+                    "Unexpected error adding a teacher to license %s (school %s): %s",
+                    license_sub.id,
+                    license_sub.school_id,
+                    type(exc).__name__,
+                )
+            # Epic A only: the reason code, on its own line (SM ruling).
+            logger.info(
+                "Teacher not added to license %s (school %s): %s",
+                license_sub.id,
+                license_sub.school_id,
+                failure.reason_code,
+            )
+            return None, failure
+        return teacher, None
 
     @staticmethod
     @transaction.atomic
@@ -1669,17 +1783,20 @@ class LicenseSubscriptionService:
             license_sub: License subscription
             teacher_emails: List of teacher emails
 
-        Returns:
+        Returns (QA catalogue E2, Epic A S7d):
             dict: {
                 'successful': int,
                 'failed': int,
-                'errors': [{'teacher_id': str, 'error': str}]
+                'errors': [coded entry per teacher not added],
+                'added': [{'teacher_email', 'teacher_id', 'status': 'added'}],
+                'skipped': [coded entry per teacher already on the licence],
             }
+
+        Raises LicenceTeachersRefused (LICENCE_INACTIVE,
+        LICENCE_SEATS_EXCEEDED) before anything is written.
         """
         if not license_sub.is_active:
-            raise LicenseRequestError(
-                "This licence isn't active, so teachers can't be added to it."
-            )
+            raise LicenceTeachersRefused(ReasonCode.LICENCE_INACTIVE)
 
         # Lock License row to prevent concurrent modification
         license_sub = LicenseSubscription.objects.select_for_update().get(
@@ -1696,37 +1813,58 @@ class LicenseSubscriptionService:
         # Determine which emails are NOT already active. Each address once,
         # matched case-insensitively (H-58), so one teacher is one seat.
         new_teacher_emails = []
+        results: Dict[str, Any] = {
+            "successful": 0,
+            "failed": 0,
+            "errors": [],
+            "added": [],
+            "skipped": [],
+        }
 
         for email in LicenseSubscriptionService.normalize_teacher_emails(
             teacher_emails
         ):
             user = LicenseSubscriptionService.teacher_account_for_email(email)
             if user and user.id in active_teacher_ids:
-                # Already active - skip (they won't consume a seat)
+                # Already active - skipped, and now said so (it was silent);
+                # they won't consume a seat.
+                results["skipped"].append(
+                    coded_entry(
+                        CodedError(
+                            ReasonCode.TEACHER_ALREADY_ON_LICENCE,
+                            params={"email": email},
+                        ),
+                        teacher_email=email,
+                        status="skipped",
+                    )
+                )
                 continue
             new_teacher_emails.append(email)
 
         # Check seats
         seats_remaining = license_sub.seats_remaining
         if seats_remaining is not None and len(new_teacher_emails) > seats_remaining:
-            raise LicenseRequestError(
-                LicenseSubscriptionService._no_seats_message(
-                    license_sub, len(new_teacher_emails), seats_remaining
-                )
+            raise LicenseSubscriptionService._seats_exceeded(
+                license_sub, len(new_teacher_emails), seats_remaining
             )
-
-        results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
 
         for email in new_teacher_emails:
-            result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
-                license_sub, license_sub.school, license_sub.admin_user, email
+            teacher, failure = LicenseSubscriptionService._add_one_teacher(
+                license_sub, email
             )
-            if result["successful"]:
+            if failure is None:
                 results["successful"] += 1
+                results["added"].append(
+                    {
+                        "teacher_email": email,
+                        "teacher_id": str(teacher.id),
+                        "status": "added",
+                    }
+                )
             else:
                 results["failed"] += 1
                 results["errors"].append(
-                    {"teacher_email": email, "error": result["error"]}
+                    coded_entry(failure, teacher_email=email, status="failed")
                 )
 
         logger.info(

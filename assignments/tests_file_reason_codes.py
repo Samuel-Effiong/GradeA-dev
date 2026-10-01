@@ -209,14 +209,15 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
         )
         self.assertNoInternals(response)
 
-    def test_a_photo_labelled_as_a_pdf_is_unreadable_as_a_pdf(self):
+    def test_a_photo_labelled_as_a_pdf_is_not_a_pdf(self):
+        # S7d: a photo uploaded as a PDF has its own code (catalogue addition C).
         response = self.post(
             upload("photo.pdf", image_bytes("JPEG"), "application/pdf")
         )
 
         self.assertCoded(
             response,
-            ReasonCode.FILE_UNREADABLE,
+            ReasonCode.FILE_NOT_A_PDF,
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "photo.pdf",
         )
