@@ -1,0 +1,12 @@
+# K4: the refusal comes before the cap check (1a's Q1)
+# file: billing/stripe_service.py (occurrence 1)
+# old: '        if not payment_intent_id:\n'
+# new: '        if not payment_intent_id and (\n            (wallet.overage_blocks_used or 0) + quantity\n            <= plan.max_overage_blocks\n        ):\n'
+# commit: 58d5efb31c2e0affe0c5f851c195e01ea905a59d
+# exit: 1
+# elapsed_s: 2.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped)
+
+FAILED (failures=1)
