@@ -1,0 +1,6 @@
+5b2565023794	P1	the old bucket is marked processed	KILLED	FAILED (failures=2)	True	18.7
+5b2565023794	P2	is_processed is saved	KILLED	FAILED (failures=2)	True	3.8
+477eeeda1396	P1	the old bucket is marked processed	KILLED	FAILED (failures=2)	True	17.0
+477eeeda1396	P2	is_processed is saved	KILLED	FAILED (failures=2)	True	2.7
+477eeeda1396	P3	the licence enrolment marks the old bucket processed (1a's N1)	KILLED	FAILED (failures=2)	True	2.8
+477eeeda1396	P4	the licence enrolment saves is_processed (1a's N1)	KILLED	FAILED (failures=2)	True	2.4

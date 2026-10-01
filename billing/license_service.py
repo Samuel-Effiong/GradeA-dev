@@ -1529,9 +1529,14 @@ class LicenseSubscriptionService:
                         cap_meta,
                     )
 
-            # Expire the old bucket
+            # Expire the old bucket, retired like the plan change's (H-76):
+            # without is_processed the 05:00 cleanup expired its unused
+            # credits again, after they had been rolled over above.
             existing_monthly.expires_at = now
-            existing_monthly.save(update_fields=["expires_at", "updated_at"])
+            existing_monthly.is_processed = True
+            existing_monthly.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
             logger.info(
                 "Expired old MONTHLY bucket for teacher %s",
                 teacher.email,
