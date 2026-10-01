@@ -1,0 +1,20 @@
+G1	the grant re-checks at all	KILLED	FAILED (failures=8)	True	22.1
+G2	grant: next_credit_grant_at still due	KILLED	FAILED (failures=4)	True	5.3
+G3	grant: still active	KILLED	FAILED (failures=1)	True	5.4
+G4	grant: not a trial	KILLED	FAILED (failures=1)	True	5.8
+G5	grant: cycle not ended	KILLED	FAILED (failures=1)	True	4.6
+G6	grant: a NULL next grant is not due	KILLED	FAILED (errors=1)	True	5.5
+G7	grant: the row lock	KILLED	FAILED (failures=1)	True	5.0
+G8	grant: a skip returns None	KILLED	FAILED (failures=8)	True	3.6
+G9	task counts a skip as a skip	KILLED	FAILED (failures=4)	True	3.9
+T1	expiry re-checks at all	KILLED	FAILED (failures=5)	True	3.7
+T2	expiry: still active	KILLED	FAILED (failures=1)	True	4.4
+T3	expiry: still a trial	KILLED	FAILED (failures=3)	True	4.5
+T4	expiry acts on the locked row	KILLED	FAILED (failures=1)	True	4.0
+T5	expiry: the row lock	KILLED	FAILED (failures=1)	True	4.7
+T6	expiry: only an unprocessed trial bucket	KILLED	FAILED (failures=1)	True	5.3
+T7	expiry returns True when it expired	KILLED	FAILED (failures=3)	True	4.0
+T8	task counts an expiry skip as a skip	KILLED	FAILED (failures=2)	True	5.0
+
+17/17 killed with verified restore
+exit=0

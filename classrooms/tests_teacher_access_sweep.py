@@ -13,10 +13,13 @@ for entries that no longer match, so it cannot rot.
 
 import os
 import re
+import uuid
 from pathlib import Path
 
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
+from billing.tests.test_h38_part2_removed_teacher_routes import jwt_client
 from classrooms.models import (
     Course,
     School,
@@ -258,19 +261,103 @@ class HelperAgreementTests(TestCase):
 
 class TasksNamespaceRoutesFollowTheRule(H38RetryFixture):
     """H-38 on the tasks/ routes that act on a batch's items. The batch
-    session stays the removed teacher's own, so these must check the item's
-    course, not the session's owner (v2's H1 on S7b 923b2b8). The full cases
-    are in students.tests_item_retry_h38; these keep the routes on the
-    sweep's list."""
+    session stays the removed teacher's own, so ownership alone can't decide:
+    the route checks the session's course (F6.2's rule, like every tasks/
+    route) and item_retry checks each item's course, also inside the claim
+    (v2's H1 on S7b 923b2b8). The full cases are in
+    students.tests_item_retry_h38; these keep the routes on the sweep's
+    list."""
 
     def test_retry_item_is_not_found_for_a_removed_teacher(self):
+        """The session-level rule answers, not item_retry's own item check
+        (its bare "Not found."): exactly like a batch that doesn't exist."""
         self.removed_and_funded()
-        self.assertEqual(self.retry(self.grade_item).status_code, 404)
+
+        response = self.retry(self.grade_item)
+        missing = jwt_client(self.teacher.email).post(
+            reverse(
+                "task-retry-item",
+                kwargs={
+                    "session_id": str(uuid.uuid4()),
+                    "item_id": str(self.grade_item.id),
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 404, response.content[:400])
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(response.json()["message"], missing.json()["message"])
         self.assertEqual(self.launched, [])
 
-    def test_retry_failed_retries_nothing_for_a_removed_teacher(self):
+    def test_retry_failed_is_not_found_for_a_removed_teacher(self):
+        """F6.2's session-level rule, as on status and session-results (SM
+        ruling at the bundle 4 merge-down): the removed teacher's own batch
+        answers exactly like a batch that doesn't exist. It used to be a 202
+        retrying nothing, which read as success."""
         self.removed_and_funded()
+
         response = self.retry_failed()
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(response.json()["data"]["retried"], [])
+        missing = jwt_client(self.teacher.email).post(
+            reverse("task-retry-failed", kwargs={"session_id": str(uuid.uuid4())}),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404, response.content[:400])
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(response.json()["message"], missing.json()["message"])
         self.assertEqual(self.launched, [])
+
+
+# ---------------------------------------------------------------------------
+# The tasks/ namespace and the grading dispatches (v2's finding, beta abeda10)
+#
+# The line patterns above look for a course's owner; background work is
+# scoped on its own owner (`requested_by`, a session's `teacher`, the
+# auto-grade beat's `course.teacher`) and so slipped past them. These checks
+# pin the H-38 rule into every such entry point, so the namespace can't be
+# left out again.
+
+
+def _functions(rel):
+    """{name: source} for every function in `rel`."""
+    import ast
+
+    tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+    return {
+        node.name: ast.unparse(node)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+
+
+class TasksNamespaceSweepTests(SimpleTestCase):
+    def test_every_tasks_route_checks_reachability(self):
+        import ast
+
+        tree = ast.parse((ROOT / "users/views.py").read_text(encoding="utf-8"))
+        viewset = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef) and node.name == "TaskViewSet"
+        )
+        actions = [
+            node
+            for node in viewset.body
+            if isinstance(node, ast.FunctionDef)
+            and any("action" in ast.unparse(d) for d in node.decorator_list)
+        ]
+        self.assertGreaterEqual(len(actions), 4)
+        for action in actions:
+            with self.subTest(action=action.name):
+                self.assertIn("teacher_may_reach", ast.unparse(action))
+
+    def test_every_grading_dispatch_checks_reachability(self):
+        tasks = _functions("assignments/tasks.py")
+        for name, rule in (
+            ("grade_engine_async", "teacher_may_reach"),
+            ("grade_batch_async", "teacher_may_reach"),
+            ("auto_grade_due_assignment", "teacher_can_reach_course"),
+        ):
+            with self.subTest(task=name):
+                self.assertIn(rule, tasks[name])
