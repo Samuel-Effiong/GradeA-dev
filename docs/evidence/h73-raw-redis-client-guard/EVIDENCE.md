@@ -183,3 +183,11 @@ Run at **4e2708d**: 2db3809 plus 0b's base update onto H-65's tip adf8fe0, which
 No regression: the change is test-only (rule 15). `pg_stat_activity` snapshot before the modules: `r3_pg_activity_before_modules.txt`.
 
 **Deviation (rule 12, flagged by 0b):** the mutation step ran under `timeout -k 60 3000`, above the 1800 s cap for a targeted step. It finished in 10 m 13 s (23:36:03 → 23:46:16), so the cap was never approached. 0b let the run continue. From now on, a long battery is split into batches of 1800 s or less, or the SM is asked first.
+
+## Guard step on the new base (addendum 2), after v2's verdict
+
+0b base-updated H-73 onto H-65 e3d7751 (beat locks, in task/beta-batch-5), giving c5fff3dc. It was a clean merge; merge-tree against batch-5 d6bc400b is also clean. The base brings no raw Redis client use, only beat-lock timing constants (`EVERY_5_MIN`, `EVERY_5_MIN_TTL`) and their tests, so `RAW_CLIENT_USERS` is unchanged.
+
+| Gate | Result | Log |
+|---|---|---|
+| The changed module + all beta-line guards, `AutoGrader.tests_beat_locks` included (0b's grant; 6G, rule-16 prefix, timeout -k 60 1800, own DB `test_h73_raw_redis_client_guard`), at c5fff3dc | **115 tests OK** (68.0 s). Round 3 had 111; the extra 4 are H-65's beat-lock tests from the base | `r4_guard_step_c5fff3dc.txt`, `r4_pg_activity_before_guards.txt` |
