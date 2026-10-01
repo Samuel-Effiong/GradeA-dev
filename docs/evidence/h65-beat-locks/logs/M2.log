@@ -2,9 +2,9 @@
 # file: billing/services.py (occurrence 1)
 # old: '        if not (locked.is_trial and locked.is_active):\n'
 # new: '        if False:\n'
-# commit: 593d249fc342886c77e7bd98b224cc2654c208af
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
 # exit: 1
-# elapsed_s: 17.4
+# elapsed_s: 18.8
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_a_checkout_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_checkout_conversion_in_between_is_not_undone)

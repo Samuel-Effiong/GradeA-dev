@@ -2,9 +2,9 @@
 # file: AutoGrader/beat_locks.py (occurrence 1)
 # old: '    "if redis.call(\'get\', KEYS[1]) == ARGV[1] then "\n    "return redis.call(\'pexpire\', KEYS[1], ARGV[2]) end return 0"\n'
 # new: '    "return redis.call(\'pexpire\', KEYS[1], ARGV[2])"\n'
-# commit: 593d249fc342886c77e7bd98b224cc2654c208af
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
 # exit: 1
-# elapsed_s: 18.2
+# elapsed_s: 19.1
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)

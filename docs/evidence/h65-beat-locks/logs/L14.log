@@ -2,9 +2,9 @@
 # file: billing/tasks.py (occurrence 1)
 # old: '@single_instance(max_hold=beat_locks.DAILY)\ndef cleanup_expired_credit_buckets('
 # new: 'def cleanup_expired_credit_buckets('
-# commit: 593d249fc342886c77e7bd98b224cc2654c208af
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
 # exit: 1
-# elapsed_s: 17.1
+# elapsed_s: 20.0
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it)

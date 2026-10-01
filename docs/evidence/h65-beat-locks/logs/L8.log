@@ -2,9 +2,9 @@
 # file: AutoGrader/beat_locks.py (occurrence 1)
 # old: '            heartbeat.start()\n'
 # new: '            pass\n'
-# commit: 593d249fc342886c77e7bd98b224cc2654c208af
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
 # exit: 1
-# elapsed_s: 15.0
+# elapsed_s: 15.4
 # restored_sha256_matches_commit_blob: True
 
 ERROR: test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping)
@@ -38,9 +38,10 @@ ERROR: test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks
 ERROR: test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds)
 ERROR: test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
 ERROR: test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock)
+ERROR: test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
 ERROR: test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token)
 FAIL: test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises)
 FAIL: test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
 FAIL: test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again)
 
-FAILED (failures=3, errors=32)
+FAILED (failures=3, errors=33)
