@@ -538,35 +538,22 @@ def grade_engine_async(
         # H-38, checked when the run starts, not only when it was requested:
         # a retry, a scheduled grading or a queued batch item must not grade
         # (or bill) for a teacher since removed from the course's school.
+        # This is the one chokepoint every grading route, the scheduled
+        # grading and the auto-grade beat go through. Merge-down of bundle 4
+        # (SM ruling): Epic A keeps this coded refusal; beta's H-38 soft
+        # return is intentionally not carried here. Ids only.
         if (
             not reachable_courses(user)
             .filter(pk=submission.assignment.course_id)
             .exists()
         ):
-            raise CourseNotReachableError()
-
-        # H-38: never grade - or charge - as a teacher who can no longer
-        # reach the course. This is the one chokepoint every grading route,
-        # the scheduled grading and the auto-grade beat go through, so work
-        # queued before a teacher's removal is refused too. Ids only.
-        if not teacher_may_reach(user, submission):
             logger.warning(
                 "Grading refused (H-38): submission %s, user %s can no longer "
                 "reach its course.",
                 submission.id,
                 user.id,
             )
-            mark_processing_task_failure(
-                processing_task_id,
-                None,
-                meta={"step": "Refused"},
-                fallback_message=COURSE_NOT_FOUND,
-            )
-            return {
-                "status": states.FAILURE,
-                "submission_id": submission_id,
-                "message": COURSE_NOT_FOUND,
-            }
+            raise CourseNotReachableError()
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
