@@ -169,4 +169,10 @@ Folded in at the SM's instruction. Step 4's first attempt was **stopped** at abo
     - **Beta-only, expected:** H-76's `existing_monthly.is_processed = True` retirement. H-76 is in bundle 5 and arrives with the bundle 5 merge-down.
 - **The guard-limits docstring** (v2's S7d note 2, SM): `sync_only_violations` now names its two blind spots, an error bound to a variable and raised later, and a task reaching `import_roster` or `add_teachers_batch` through a helper module. Comment only.
 - `makemigrations --check`: no changes detected.
-- **Re-run on the new base** (the changed modules + all guards + the billing regression, in 0b's slot): see below.
+- **Re-run on the new base, at 734bef49** (0b's grants; rule-16 prefix):
+
+| Step | Result | Log |
+|---|---|---|
+| 0. Reproduce-first: the fold's test module on 32d941ef's `license_service.py` (6G, own `_mut` DB, dropped; source restored and checked) | **Fails as expected**: 9 tests, exactly 1 FAIL, the new `test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address` | `bu_prefix_fold_failing.txt` |
+| 1. The changed modules (S7d's 6 new + 22 updated, including the wording, photo-as-PDF and item-retry modules) + all 12 guards (bundle 4's `AutoGrader.tests_beat_health` included); 6G, timeout -k 60 1800 | **590 tests OK** (120.4 s) | `bu_modules_and_guards.txt` (trimmed; full log outside the repo) |
+| 2. ONE billing regression (production changed in `billing/license_service.py`); 12G + flock, timeout -k 60 3600, RACE_COST_*/AUDIT_BENCH* unset | **1976 tests OK** (284.0 s) | `bu_regression_billing.txt` (trimmed; full log outside the repo) |
