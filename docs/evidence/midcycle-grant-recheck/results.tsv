@@ -1,0 +1,18 @@
+ae944e9664f7	G1	the grant re-checks at all	KILLED	FAILED (failures=8)	True	22.1
+ae944e9664f7	G2	grant: next_credit_grant_at still due	KILLED	FAILED (failures=4)	True	5.3
+ae944e9664f7	G3	grant: still active	KILLED	FAILED (failures=1)	True	5.4
+ae944e9664f7	G4	grant: not a trial	KILLED	FAILED (failures=1)	True	5.8
+ae944e9664f7	G5	grant: cycle not ended	KILLED	FAILED (failures=1)	True	4.6
+ae944e9664f7	G6	grant: a NULL next grant is not due	KILLED	FAILED (errors=1)	True	5.5
+ae944e9664f7	G7	grant: the row lock	KILLED	FAILED (failures=1)	True	5.0
+ae944e9664f7	G8	grant: a skip returns None	KILLED	FAILED (failures=8)	True	3.6
+ae944e9664f7	G9	task counts a skip as a skip	KILLED	FAILED (failures=4)	True	3.9
+ae944e9664f7	T1	expiry re-checks at all	KILLED	FAILED (failures=5)	True	3.7
+ae944e9664f7	T2	expiry: still active	KILLED	FAILED (failures=1)	True	4.4
+ae944e9664f7	T3	expiry: still a trial	KILLED	FAILED (failures=3)	True	4.5
+ae944e9664f7	T4	expiry acts on the locked row	KILLED	FAILED (failures=1)	True	4.0
+ae944e9664f7	T5	expiry: the row lock	KILLED	FAILED (failures=1)	True	4.7
+ae944e9664f7	T6	expiry: only an unprocessed trial bucket	KILLED	FAILED (failures=1)	True	5.3
+ae944e9664f7	T7	expiry returns True when it expired	KILLED	FAILED (failures=3)	True	4.0
+ae944e9664f7	T8	task counts an expiry skip as a skip	KILLED	FAILED (failures=2)	True	5.0
+6f8c536da8f5	T9	expiry re-checks on the credits (force=True) path too (1a's X1)	KILLED	FAILED (failures=1)	True	22.1

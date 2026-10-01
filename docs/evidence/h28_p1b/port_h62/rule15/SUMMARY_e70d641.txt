@@ -1,0 +1,6 @@
+started 2026-09-30T18:11:52+01:00 tip e70d641
+touched_modules   e70d641 rc=0 16s Ran 50 tests in 12.833s OK
+survivors         e70d641 rc=0 166s 4/4 killed with verified restore
+
+dropped test_h28_mut
+finished 2026-09-30T18:15:01+01:00

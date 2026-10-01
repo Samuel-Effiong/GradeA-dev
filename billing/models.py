@@ -1947,6 +1947,153 @@ class LicenseOveragePurchaseIntent(models.Model):
         ]
 
 
+class LicenseStripeMutationOperation(models.TextChoices):
+    CANCEL = "CANCEL", _("Cancel at period end")
+    UPDATE_SEATS = "UPDATE_SEATS", _("Update seats")
+    CHANGE_PLAN = "CHANGE_PLAN", _("Change plan")
+    CONVERT_TO_OFFLINE = "CONVERT_TO_OFFLINE", _("Convert to offline billing")
+
+
+class LicenseStripeMutationStatus(models.TextChoices):
+    # Non-terminal: the licence's Stripe state is in flight or unresolved.
+    PENDING = "PENDING", _("Pending")
+    STRIPE_APPLIED = "STRIPE_APPLIED", _("Applied at Stripe, not yet recorded locally")
+    ESCALATED = "ESCALATED", _("Escalated to a human")
+    # Terminal: Stripe and the application agree.
+    COMPLETE = "COMPLETE", _("Complete")
+    COMPENSATED = "COMPENSATED", _("Reverted at Stripe")
+    FAILED = "FAILED", _("Not applied at Stripe")
+
+
+LICENSE_STRIPE_MUTATION_IN_FLIGHT = (
+    LicenseStripeMutationStatus.PENDING,
+    LicenseStripeMutationStatus.STRIPE_APPLIED,
+    LicenseStripeMutationStatus.ESCALATED,
+)
+
+
+class LicenseStripeMutationIntent(models.Model):
+    """
+    A durable record of one irreversible Stripe change to a licence's
+    subscription, written BEFORE the Stripe call and advanced as it proceeds
+    (H-28).
+
+    Django rolls back the database half of a failed operation; Stripe does
+    not. These operations used to make their Stripe call inside the same
+    transaction as the local write, so a failure after the call left the two
+    systems disagreeing with nothing recording that it had happened. The
+    intent is committed on its own, before Stripe is touched, so a process
+    that dies at any point leaves a row saying how far it got:
+
+      PENDING         recorded; Stripe not yet called — or called with the
+                      outcome unknown, if the process died during the call
+      STRIPE_APPLIED  Stripe changed; the local write not yet committed
+      ESCALATED       the code gave up and a human was alerted
+      COMPLETE        both sides agree, change applied
+      COMPENSATED     Stripe was reverted after a failure where no money had
+                      moved; both sides agree, change not applied
+      FAILED          Stripe never applied the change; local untouched
+
+    At most one intent per licence may be in flight (the first three). That
+    constraint replaces the row lock these operations used to hold across
+    the network call: it serialises them just as the lock did, without
+    keeping a transaction open while Stripe is slow.
+
+    `idempotency_key(step)` gives every Stripe call made for this intent a
+    key of its own, so a repeated call — by our retry, or a resubmitted
+    request — is one Stripe change, not two.
+
+    The licence FK is PROTECT: this is the evidence that Stripe was changed,
+    and deleting a licence must not take it along.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        on_delete=models.PROTECT,
+        related_name="stripe_mutation_intents",
+    )
+    operation = models.CharField(
+        max_length=32, choices=LicenseStripeMutationOperation.choices
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=LicenseStripeMutationStatus.choices,
+        default=LicenseStripeMutationStatus.PENDING,
+    )
+
+    # Snapshotted, because convert-to-offline clears it on the licence.
+    stripe_subscription_id = models.CharField(max_length=255)
+    requested_change = models.JSONField(
+        help_text=(
+            "What was asked for and what it replaced, e.g. "
+            '{"old_max_seats": 10, "new_max_seats": 15} — enough to finish '
+            "the local write, or to revert Stripe, without re-deriving it."
+        )
+    )
+    stripe_result = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="What Stripe returned that the local write needs (invoice id, amount paid).",
+    )
+    failure_reason = models.TextField(null=True, blank=True)
+
+    performed_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="license_stripe_mutation_intents",
+    )
+
+    escalated_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    # Set only when a human closes an ESCALATED intent, so a licence is never
+    # left unable to change its billing because of one past failure. The
+    # human reconciles Stripe first; closing the intent moves no money.
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="resolved_license_stripe_mutation_intents",
+    )
+    resolution_note = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["license_subscription", "status"]),
+            # The stale-intent check: in-flight rows older than a cutoff.
+            models.Index(fields=["status", "updated_at"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["license_subscription"],
+                condition=models.Q(status__in=LICENSE_STRIPE_MUTATION_IN_FLIGHT),
+                name="one_inflight_stripe_mutation_per_licence",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_operation_display()} [{self.status}] {self.license_subscription_id}"
+
+    @property
+    def is_in_flight(self) -> bool:
+        return self.status in LICENSE_STRIPE_MUTATION_IN_FLIGHT
+
+    def idempotency_key(self, step: str) -> str:
+        """One key per distinct Stripe call. Stripe rejects a reused key sent
+        with different parameters, so apply and revert must never share."""
+        return f"h28-licence-{self.id}-{step}"
+
+
 class LicenseOverageOfflineRequestStatus(models.TextChoices):
     PENDING = "PENDING", _("Pending")
     APPROVED = "APPROVED", _("Approved")
@@ -2224,6 +2371,26 @@ class StripeEvent(models.Model):
             "a worker abandoned its claim. Capped, so a task that dies the "
             "same way every time stops being retried and starts being "
             "reported."
+        ),
+    )
+    auto_replay_attempts = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=_(
+            "How many times the allow-listed auto-replay task has re-run "
+            "this event's handler (billing/event_replay.py). Capped, so an "
+            "event that fails the same way forever stops being retried and "
+            "starts being reported."
+        ),
+    )
+    auto_replay_note = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        db_default="",
+        help_text=_(
+            "Why the auto-replay task did or did not re-run this event, "
+            "recorded on the row so the decision outlives the logs."
         ),
     )
     last_error = models.TextField(

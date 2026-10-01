@@ -1,0 +1,52 @@
+# P04: missing-flow guard
+# file: billing/event_replay.py line: None
+# old: '    if not flow:\n        return ReplayOutcome.NO_FLOW_IN_PAYLOAD, None\n'
+# new: ''
+# modules: billing.tests.test_event_replay.DenyByDefaultTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.2
+# restored_sha256_matches_commit_blob: True
+
+Found 5 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_attempts_are_capped (billing.tests.test_event_replay.DenyByDefaultTests.test_attempts_are_capped) ... Cannot activate automatic trial for user deny@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_disallowed_event_type_is_never_even_selected (billing.tests.test_event_replay.DenyByDefaultTests.test_disallowed_event_type_is_never_even_selected) ... Cannot activate automatic trial for user deny@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_missing_flow (billing.tests.test_event_replay.DenyByDefaultTests.test_missing_flow) ... Cannot activate automatic trial for user deny@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_succeeded_events_are_never_replayed (billing.tests.test_event_replay.DenyByDefaultTests.test_succeeded_events_are_never_replayed) ... Cannot activate automatic trial for user deny@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_unknown_flow_on_an_allowed_event_type (billing.tests.test_event_replay.DenyByDefaultTests.test_unknown_flow_on_an_allowed_event_type) ... Cannot activate automatic trial for user deny@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+======================================================================
+FAIL: test_missing_flow (billing.tests.test_event_replay.DenyByDefaultTests.test_missing_flow)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-P04-zvzw72jx/wt/billing/tests/test_event_replay.py", line 159, in test_missing_flow
+    self.assert_skipped(row, ReplayOutcome.NO_FLOW_IN_PAYLOAD)
+  File "/tmp/p1mut-P04-zvzw72jx/wt/billing/tests/test_event_replay.py", line 146, in assert_skipped
+    self.assertIn(outcome.value, row.auto_replay_note)
+AssertionError: 'no_flow_in_payload' not found in '2026-09-30 14:50 auto-replay: not_allow_listed (no flow)'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.103s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

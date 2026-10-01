@@ -1,0 +1,162 @@
+# M31: broker-tolerant dispatch (safe_delay)
+# file: billing/receipts.py line: None
+# old: '        safe_delay(fill_billing_transaction_receipt_url, transaction_id)'
+# new: '        fill_billing_transaction_receipt_url.delay(transaction_id)'
+# modules: billing.tests.test_receipts.ScheduleReceiptUrlFillTests billing.tests.test_receipts.WebhookReceiptRecoveryTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 7.4
+# restored_sha256_matches_commit_blob: True
+
+Found 11 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_broker_down_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_broker_down_after_commit_does_not_fail_the_caller) ...
+
+django.db.backends.base ERROR 2026-09-30 14:49:39,433 base 3434044 139960494574528 [request_id=-] Error calling schedule_receipt_url_fill.<locals>.enqueue in on_commit() during transaction (broker unreachable).
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 760, in run_and_clear_commit_hooks
+    func()
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/receipts.py", line 223, in enqueue
+    fill_billing_transaction_receipt_url.delay(transaction_id)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+kombu.exceptions.OperationalError: broker unreachable
+FAIL
+test_nothing_queued_when_link_already_known_or_no_reference (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_nothing_queued_when_link_already_known_or_no_reference) ... BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+ok
+test_queued_only_after_commit (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_queued_only_after_commit) ... FAIL
+test_rollback_queues_nothing (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_rollback_queues_nothing) ... ok
+test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller) ... ok
+test_broker_down_at_commit_grant_succeeds (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_broker_down_at_commit_grant_succeeds) ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+django.db.backends.base ERROR 2026-09-30 14:49:40,745 base 3434044 139960494574528 [request_id=-] Error calling schedule_receipt_url_fill.<locals>.enqueue in on_commit() during transaction (broker unreachable).
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 760, in run_and_clear_commit_hooks
+    func()
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/receipts.py", line 223, in enqueue
+    fill_billing_transaction_receipt_url.delay(transaction_id)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+kombu.exceptions.OperationalError: broker unreachable
+ok
+test_crash_after_stripe_answers_but_before_the_local_write (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_crash_after_stripe_answers_but_before_the_local_write)
+The ordering that used to lose money, now inverted: the Stripe call ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+django.db.backends.base ERROR 2026-09-30 14:49:41,163 base 3434044 139960494574528 [request_id=-] Error calling schedule_receipt_url_fill.<locals>.enqueue in on_commit() during transaction (worker killed after Stripe answered).
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 760, in run_and_clear_commit_hooks
+    func()
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/receipts.py", line 223, in enqueue
+    fill_billing_transaction_receipt_url.delay(transaction_id)
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 88, in delay
+    return apply_async(task, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 80, in apply_async
+    return task.run(*(args or ()), **(kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/tasks.py", line 1620, in fill_billing_transaction_receipt_url
+    outcome = fill_receipt_url(transaction_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/receipts.py", line 190, in fill_receipt_url
+    BillingTransaction.objects.filter(pk=transaction_id)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/tests/test_receipts.py", line 87, in wrapper
+    raise RuntimeError("worker killed after Stripe answered")
+RuntimeError: worker killed after Stripe answered
+ok
+test_handler_failure_after_record_queues_no_receipt_task (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_handler_failure_after_record_queues_no_receipt_task) ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+receipt recovery test: error processing event evt_boom (checkout.session.completed).
+Traceback (most recent call last):
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/webhooks.py", line 399, in _run_handler_inline
+    handler(event["data"]["object"])
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/stripe_service.py", line 2764, in handle_checkout_completed
+    StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/stripe_service.py", line 3017, in _handle_overage_checkout_completed
+    logger.info(
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: crash after the record, before commit
+ok
+test_malformed_stripe_reply_leaves_grant_intact_and_is_backfilled (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_malformed_stripe_reply_leaves_grant_intact_and_is_backfilled)
+The behaviour fix-flaky-test's dropped P2 was to have guaranteed: a ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_stripe_down_during_receipt_task_grant_succeeds (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_stripe_down_during_receipt_task_grant_succeeds) ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+Receipt lookup failed (invoice=None, charge=None, payment_intent=pi_sdown): unavailable
+ok
+test_worker_lost_before_receipt_task_is_healed_by_sweep (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_worker_lost_before_receipt_task_is_healed_by_sweep) ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+======================================================================
+FAIL: test_broker_down_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_broker_down_after_commit_does_not_fail_the_caller)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/tests/test_receipts.py", line 322, in test_broker_down_after_commit_does_not_fail_the_caller
+    ), self.assertLogs("AutoGrader.dispatch", "ERROR"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on AutoGrader.dispatch
+
+======================================================================
+FAIL: test_queued_only_after_commit (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_queued_only_after_commit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M31-ikgnc238/wt/billing/tests/test_receipts.py", line 285, in test_queued_only_after_commit
+    safe_delay.assert_called_once()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'safe_delay' to have been called once. Called 0 times.
+
+----------------------------------------------------------------------
+Ran 11 tests in 4.097s
+
+FAILED (failures=2)
+Preserving test database for alias 'default' ('test_h62_mut')...
