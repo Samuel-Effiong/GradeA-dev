@@ -3034,6 +3034,26 @@ class StripeWebhookHandler:
             )
             return
 
+        # H-66: no PaymentIntent, no grant. It is this flow's idempotency
+        # key (the duplicate check above runs only when there is one) and
+        # what refunds and disputes are matched on. A paid, payment-mode
+        # session with a positive amount always carries one today, so only
+        # a forged payload or a future flow change (coupons, a $0 session,
+        # a wider AUTO_REPLAYABLE) can reach this; refuse it as an unpaid
+        # session is refused, loudly, rather than grant without a key.
+        if not payment_intent_id:
+            logger.error(
+                "Overage checkout session %s completed for wallet %s with "
+                "payment_status=%r but no payment_intent — credits NOT "
+                "granted: without it the grant has no idempotency key and "
+                "can't be matched to a refund or dispute. Needs manual "
+                "reconciliation.",
+                session.get("id"),
+                wallet.id,
+                payment_status,
+            )
+            return
+
         if (wallet.overage_blocks_used or 0) + quantity > plan.max_overage_blocks:
             logger.error(
                 "Overage checkout session %s completed for wallet %s but "
