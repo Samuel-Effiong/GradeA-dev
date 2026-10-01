@@ -232,3 +232,36 @@ class OtherSchoolBeforeSubscriptionTest(APITestCase):
                     self.add([email])
                 self.assertLogsIdsNotAddress(logs.output, email, *ids)
                 self.assertIn("Skipped enrolling", "\n".join(logs.output))
+
+    def test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address(
+        self,
+    ):
+        """1a's R1: the invite check passes, then the teacher subscribes
+        before _enroll_teacher_internal re-checks; that refusal's line too."""
+        teacher = self.teacher("race@h78own.edu", self.school, paying=False)
+
+        def invite_then_subscribe(*args, **kwargs):
+            UserSubscription.objects.create(
+                user=teacher,
+                plan=self.individual_plan,
+                is_active=True,
+                billing_cycle_start=timezone.now(),
+                billing_cycle_end=timezone.now() + timedelta(days=30),
+            )
+            return teacher
+
+        with patch.object(
+            LicenseSubscriptionService,
+            "_get_or_invite_teacher",
+            side_effect=invite_then_subscribe,
+        ):
+            with self.assertLogs(level="DEBUG") as logs:
+                result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                    self.licence, self.school, self.admin, teacher.email
+                )
+
+        self.assertFalse(result["successful"])
+        self.assertNotEnrolled(teacher)
+        self.assertLogsIdsNotAddress(
+            logs.output, teacher.email, teacher.id, self.licence.id
+        )
