@@ -83,3 +83,29 @@ message.
   approved them.
 - Out of scope, logged as **H-80**: about 30 other logger calls in
   `license_service.py` still carry addresses.
+
+## N1a fold (after 1a's VERIFIED-WITH-NOTES at 2d94c43)
+On the SM's ruling, 1a's N1(a) is folded in: `_enroll_teacher_internal`
+logged the individual-subscription refusal's text (the address) when the
+teacher subscribed between the invite check and enrolment. It now logs
+the same ids-only line as `_get_or_invite_teacher`; the raised message is
+unchanged.
+
+| Commit | What |
+|---|---|
+| `1b056b3` | 1a's record, verbatim |
+| `8c248e8` | 1a's probe R1 adopted as `test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address` |
+| `9675d17` | the fix (one log call) |
+| `0c6af7d` | mutant L4 |
+
+| Gate | Result | Log |
+|---|---|---|
+| Repro at 8c248e8 (h78-repro worktree) | 9 tests, exactly 1 FAIL: the new test | `repro_n1a_8c248e8.log` |
+| (a) module at 0c6af7d | 9 OK | `a_modules_0c6af7d.log` |
+| (b) battery at 0c6af7d (`test_h78_mut`) | 6/6 killed, sha-verified restores; L4 kills the fold | `b_mutation_battery_0c6af7d.log` |
+| (c) billing + 9 guards at 0c6af7d | 2038 OK, wall 329 s | `c_app_billing_guards_0c6af7d.log.gz` |
+
+All under 0b's grant, 6G, `timeout -k 60 1800`, the rule-16 prefix,
+`--settings=settings_worktree`. The seat-limit ids-only line (1a's R3) is
+not folded: backlog H-86. `create_license_subscription`'s failed_results
+log goes to H-80.

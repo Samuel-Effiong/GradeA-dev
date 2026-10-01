@@ -2,9 +2,9 @@
 # file: billing/license_service.py (occurrence 1)
 # old: '            logger.warning("Not a business email: teacher not enrolled.")\n'
 # new: '            logger.warning(error_msg)\n'
-# commit: 45c36f2c3a2318160b42b305b7ba4556a207dc2e
+# commit: 0c6af7d93cf5456e87a6c368893a692ad37a3f1d
 # exit: 1
-# elapsed_s: 3.4
+# elapsed_s: 3.2
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_adding_teachers_logs_no_address_for_either_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_adding_teachers_logs_no_address_for_either_refusal) (email='someone@gmail.com')

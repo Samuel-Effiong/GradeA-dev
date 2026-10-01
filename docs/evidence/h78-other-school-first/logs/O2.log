@@ -2,9 +2,9 @@
 # file: billing/license_service.py (occurrence 1)
 # old: '            if user.school and user.school != school:\n'
 # new: '            if False:\n'
-# commit: 45c36f2c3a2318160b42b305b7ba4556a207dc2e
+# commit: 0c6af7d93cf5456e87a6c368893a692ad37a3f1d
 # exit: 1
-# elapsed_s: 3.4
+# elapsed_s: 3.1
 # restored_sha256_matches_commit_blob: True
 
 ERROR: test_the_service_raises_the_school_refusal_first (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_service_raises_the_school_refusal_first)
