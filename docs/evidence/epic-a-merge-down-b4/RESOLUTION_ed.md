@@ -29,6 +29,19 @@ The route tests now stop at the session gate. So the item-level checks are pinne
   - `test_the_service_skips_every_item_without_saying_why`: `item_retry.retry_failed(...)` skips every item with `reason_code: None`, and nothing is launched.
 - `test_a_removal_between_the_check_and_the_claim_still_refuses`: it now lets BOTH request-time checks pass (`users.views.teacher_may_reach` and `item_retry.is_reachable`, each patched with a real function), so the claim's recheck is still what refuses (409).
 
+## After gate step 1 at bfcf6e1 went red (SM ruling, 2026-10-01): two follow-up commits
+
+Step 1 ran 304 tests: failures=3, errors=1, all in beta's `students.tests_h38_tasks_namespace`, and all 11 guards passed. `assignments/tasks.py` auto-merged with no conflict. The cause is two pieces of Epic A behaviour that beta's tests were never written against. This was not a resolution error.
+
+1. **`grade_engine_async` intentionally diverges: beta keeps H-38's soft return, epic keeps the S7b coded refusal.** Future merge-downs keep the epic side there.
+   - The merge put both run-time checks in a row. S7b's (7fd064d, VERIFIED: `reachable_courses` → `raise CourseNotReachableError()`) came first, so beta's (`teacher_may_reach` → a warning, `mark_processing_task_failure`, `return {"message": COURSE_NOT_FOUND}`) could never run.
+   - The epic now has one check, S7b's, and logs beta's ids-only "Grading refused (H-38): submission %s, user %s …" warning before raising. Beta's dead block is dropped.
+   - Beta's `test_queued_grading_is_refused_and_never_charged_after_removal` is adapted on the epic side. It asserts a `CourseNotReachableError` result whose text is COURSE_NOT_FOUND, `task.error == COURSE_NOT_FOUND`, FAILURE, grade_engine not called, the ledger unchanged, and nothing graded.
+   - Consumer grep, done first at the SM's request: nothing in production reads `grade_engine_async`'s return value. There is no synchronous, chained or `.apply` caller. The only production `AsyncResult` reads `.state` (task_tracking), task_status's AsyncResult fallback was removed earlier, and status comes from the tracking row. COURSE_NOT_FOUND's other production uses (`grade_batch_async`, `auto_grade_due_assignment`) are unchanged.
+2. **The fixture's question gets a one-level marking guide**, so S6d's rubric gate (epic only) lets the auto-grade beat dispatch. The two `delay` controls had seen 0 calls. This is test-only and epic-only (SM amendment: no beta hunk, since the module diverges anyway).
+
+Re-gate on the new tip: step 1 + mutants (6G), then ONE combined students/classrooms/users/assignments regression (12G); assignments is added because production changed there. v2's remerge-diff review covers this resolution explicitly; I authored it, so I don't verify it.
+
 ## Gates on 0b's merged tip (mine, when 0b gives the sha)
 
 - My modules + ALL guards + ONE students/classrooms/users regression.
