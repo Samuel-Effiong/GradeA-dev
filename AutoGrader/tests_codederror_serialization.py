@@ -247,7 +247,14 @@ def _defines_a_task(tree):
 
 def sync_only_violations(sources):
     """[(module, why)] for a raise of a sync-only email code anywhere, and
-    for a task module that names one of those codes or their builders."""
+    for a task module that names one of those codes or their builders.
+
+    A static scan, so bounded. It does not see:
+    (1) an error bound to a variable and raised later (`error = ...;
+        raise error`): only the raise expression itself is read;
+    (2) a task that reaches import_roster or add_teachers_batch through a
+        helper in another module: only the task's own module is read.
+    """
     codes = {code.value for code in SYNC_ONLY_EMAIL_CODES}
     found = []
     for rel, source in sources:
