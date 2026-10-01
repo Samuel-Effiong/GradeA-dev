@@ -312,6 +312,11 @@ BATCHES = {
         ],
     ),
 }
+# After step 4 run 1 (SM ruling): C's mutants against the fixed S6b module.
+BATCHES["5"] = (
+    {k: v for k, v in BATCHES["1"][0].items() if k.startswith("C")},
+    ["assignments.tests_file_reason_codes"],
+)
 
 batch = os.environ["MUT_BATCH"]
 MUTANTS, TESTS = BATCHES[batch]
