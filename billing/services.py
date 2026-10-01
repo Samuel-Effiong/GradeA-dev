@@ -32,6 +32,8 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     SubscriptionPlan,
     UserSubscription,
 )
+from .refresh_timing import monthly_bucket_expiry as grace_expiry
+from .refresh_timing import refresh_due_by
 from .subscription_resolver import (
     SOURCE_INDIVIDUAL,
     SOURCE_LICENSE_ADMIN,
@@ -347,7 +349,9 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=plan.monthly_credits,
             used_credits=0,
-            expires_at=monthly_bucket_expiry,
+            # A grace past the first grant's due time (billing/refresh_timing.py);
+            # for a MONTHLY plan both are billing_end, so nothing changes.
+            expires_at=grace_expiry(monthly_bucket_expiry, billing_end),
         )
 
         # 6 Create immutable audit ledger
@@ -593,7 +597,9 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=new_plan.monthly_credits,
             used_credits=0,
-            expires_at=new_bucket_expiry,
+            # A grace past the next grant's due time (billing/refresh_timing.py);
+            # for a MONTHLY plan both are billing_cycle_end, so nothing changes.
+            expires_at=grace_expiry(new_bucket_expiry, user_sub.billing_cycle_end),
         )
 
         CreditLedger.record(
@@ -642,7 +648,7 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def process_mid_cycle_credit_grant(user_subscription):
+    def process_mid_cycle_credit_grant(user_subscription, now=None):
         """
         For ANNUAL-interval plans only. Stripe bills once a year, but credits
         still refresh monthly throughout that year. This grants the next
@@ -654,6 +660,10 @@ class SubscriptionService:
 
         Returns the subscription after a grant, or None when, under the row
         lock, the subscription is no longer due (see below).
+
+        `now` is the run's start time, passed by the task so the due check
+        and the next due time come from the same moment (billing/
+        refresh_timing.py). Direct callers may omit it.
         """
         user_subscription = UserSubscription.objects.select_for_update().get(
             id=user_subscription.id
@@ -666,7 +676,7 @@ class SubscriptionService:
             )
 
         user = user_subscription.user
-        now = timezone.now()
+        now = now or timezone.now()
         wallet = user.credit_wallet
 
         # Re-check, under the lock, what process_annual_plan_credit_grants
@@ -681,8 +691,13 @@ class SubscriptionService:
             not user_subscription.is_active
             or user_subscription.is_trial
             or user_subscription.next_credit_grant_at is None
-            or user_subscription.next_credit_grant_at > now
-            or user_subscription.billing_cycle_end <= now
+            or user_subscription.next_credit_grant_at > refresh_due_by(now)
+            # A contract ending within the tolerance counts as ended.
+            or user_subscription.billing_cycle_end <= refresh_due_by(now)
+            # A due time capped at the cycle's end is the renewal's, not a
+            # mid-cycle grant (it can only be "due" through the tolerance).
+            or user_subscription.next_credit_grant_at
+            >= user_subscription.billing_cycle_end
         ):
             logger.info(
                 "Mid-cycle credit grant skipped for subscription %s: no longer "
@@ -780,7 +795,9 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=plan.monthly_credits,
             used_credits=0,
-            expires_at=bucket_expiry,
+            # A grace past the next due time, so the customer keeps monthly
+            # credits until the next grant retires this bucket.
+            expires_at=grace_expiry(bucket_expiry, user_subscription.billing_cycle_end),
         )
         CreditLedger.record(
             user=user,
@@ -1643,7 +1660,7 @@ class SubscriptionService:
             # across twelve. _resolve_billing_period returns
             # grant_at == period_end for MONTHLY plans, so monthly behaviour
             # is bit-for-bit unchanged — that is what makes this safe.
-            expires_at=grant_at,
+            expires_at=grace_expiry(grant_at, billing_end),
         )
 
         CreditLedger.record(
@@ -1805,7 +1822,8 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=new_plan.monthly_credits,
             used_credits=0,
-            expires_at=monthly_bucket_expiry,
+            # A grace past the first grant's due time (billing/refresh_timing.py).
+            expires_at=grace_expiry(monthly_bucket_expiry, billing_cycle_end),
         )
 
         # --- STEP 5: Audit ledger entry ---
