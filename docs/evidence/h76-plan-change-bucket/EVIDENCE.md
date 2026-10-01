@@ -68,3 +68,30 @@ it.
 - 41f3acc's commit message names the module
   `billing.tests.test_plan_change_bucket_processed`; the module is
   `billing.tests.test_plan_change_retires_old_bucket`.
+
+## N1 (after 1a's VERIFIED-WITH-NOTES at c46fdbf)
+1a's N1 (probe E1): the licence enrolment (`license_service.
+_enroll_teacher_internal`) also retires the teacher's MONTHLY bucket but
+left it `is_processed=False`, so the 05:00 cleanup could expire what was
+rolled over. It now sets `is_processed=True` and saves it
+(`update_fields=["expires_at", "is_processed", "updated_at"]`).
+`test_monthly_rollover_cleanup_race` now selects the live bucket with
+`is_processed=False`.
+
+| Commit | What |
+|---|---|
+| `951fe38` | 1a's record, verbatim |
+| `e5a75d8` | `LicenceEnrolmentRetiresOldBucketTests` (1a's E1); the race test's selector |
+| `477eeed` | the fix; runner mutants P3, P4 |
+| `91eadbd` | the repro, module and battery logs |
+
+| Gate | Result | Log |
+|---|---|---|
+| Repro at e5a75d8 (disposable worktree) | 43 tests, exactly the 2 `LicenceEnrolmentRetiresOldBucketTests` fail | `repro_n1_e5a75d8.log` |
+| (a) the 2 modules at 477eeed | 43 OK | `a_modules_477eeed.log` |
+| (b) battery at 477eeed (`test_h76_mut`) | 4/4 killed (P1–P4), sha-verified restores | `b_mutation_battery_477eeed.log` |
+| (c) billing + 9 guards at 91eadbd (docs-only over 477eeed) | 2033 OK, wall 296 s | `c_app_billing_guards_91eadbd.log.gz` |
+
+All under 0b's grants, 6G, `timeout -k 60 1800`, the rule-16 prefix,
+`--settings=settings_worktree` (the deviation recorded above is not
+repeated).
