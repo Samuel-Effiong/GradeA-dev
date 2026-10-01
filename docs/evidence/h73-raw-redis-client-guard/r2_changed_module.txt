@@ -1,0 +1,31 @@
+22:12:15 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+22:12:15 The over-invalidation half, stated as a property. Under the ... ok
+22:12:15 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+22:12:15 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+22:12:15 Not response caches in the generation scheme, deliberately. ... ok
+22:12:17 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+22:12:17 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+22:12:17 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+22:12:19 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+22:12:20 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+22:12:20 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+22:12:20 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+22:12:20 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+22:12:20 H-1 step 4: the one family that was still raw is on generations. ... ok
+22:12:20 test_a_factory_imported_from_another_module_is_found_across_modules (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_factory_imported_from_another_module_is_found_across_modules)
+22:12:20 raw_client_uses resolves `from <module> import <factory>`: the ... ok
+22:12:20 test_an_imported_factory_counts_in_the_importing_module (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_an_imported_factory_counts_in_the_importing_module) ... ok
+22:12:20 test_every_entry_gives_a_reason (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_entry_gives_a_reason) ... ok
+22:12:27 test_every_raw_client_user_is_listed (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_raw_client_user_is_listed) ... ok
+22:12:27 test_the_live_modules_are_found_by_the_scan (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_live_modules_are_found_by_the_scan)
+22:12:33 The table is not vacuous: each listed module really is found. ... ok
+22:12:33 test_the_scanner_finds_every_shape_it_exists_to_catch (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_finds_every_shape_it_exists_to_catch) ... ok
+22:12:33 test_the_scanner_ignores_what_is_not_a_raw_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_ignores_what_is_not_a_raw_write) ... ok
+22:12:33
+22:12:33 ----------------------------------------------------------------------
+22:12:33 Ran 17 tests in 18.677s
+22:12:33
+22:12:33 OK
+22:12:33 Found 17 test(s).
+22:12:33 Skipping setup of unused database(s): default.
+22:12:33 System check identified no issues (0 silenced).

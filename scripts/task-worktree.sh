@@ -3,8 +3,11 @@
 # over a single staging area.
 #
 #   ./scripts/task-worktree.sh new    cache-invalidation
+#   ./scripts/task-worktree.sh new    epic-a-s6c phase2/epic-a
 #   ./scripts/task-worktree.sh list
 #   ./scripts/task-worktree.sh remove cache-invalidation
+#
+# `new` branches from the main checkout's HEAD unless a base ref is given.
 #
 # WHY THIS EXISTS
 # ---------------
@@ -34,7 +37,7 @@ PARENT=$(dirname "$ROOT")
 PREFIX=$(basename "$ROOT")
 
 usage() {
-    sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
     exit 64
 }
 
@@ -46,7 +49,15 @@ list)
     git -C "$ROOT" worktree list
     exit 0
     ;;
-new|remove)
+new)
+    # An optional base ref: without one the branch starts at the main
+    # checkout's HEAD (beta), which is wrong for Phase 2 work - and moving
+    # a fresh branch afterwards means a reset.
+    [ $# -eq 2 ] || [ $# -eq 3 ] || usage
+    TASK=$2
+    BASE=${3:-}
+    ;;
+remove)
     [ $# -eq 2 ] || usage
     TASK=$2
     ;;
@@ -83,7 +94,15 @@ fi
 # --- new ---------------------------------------------------------------
 [ ! -e "$DIR" ] || { echo "$DIR already exists" >&2; exit 1; }
 
-git -C "$ROOT" worktree add -b "$BRANCH" "$DIR"
+if [ -n "${BASE:-}" ]; then
+    git -C "$ROOT" rev-parse --verify --quiet "$BASE^{commit}" >/dev/null || {
+        echo "unknown base ref: $BASE" >&2
+        exit 64
+    }
+    git -C "$ROOT" worktree add -b "$BRANCH" "$DIR" "$BASE"
+else
+    git -C "$ROOT" worktree add -b "$BRANCH" "$DIR"
+fi
 
 # .env is gitignored, so a fresh worktree has none and Django cannot start.
 # Symlinked rather than copied: secrets should live in one place, so rotating
@@ -133,7 +152,7 @@ cat <<EOF
 Worktree ready.
 
     cd $DIR
-    git branch            -> $BRANCH
+    git branch            -> $BRANCH (from ${BASE:-HEAD})
     test database         -> $TEST_DB
     tests                 -> python manage.py test --settings=settings_worktree
 

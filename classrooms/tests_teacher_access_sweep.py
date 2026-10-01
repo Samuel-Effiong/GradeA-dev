@@ -253,3 +253,57 @@ class HelperAgreementTests(TestCase):
                             by_object,
                             expected[name] and name != "own in my school",
                         )
+
+
+# ---------------------------------------------------------------------------
+# The tasks/ namespace and the grading dispatches (v2's finding, beta abeda10)
+#
+# The line patterns above look for a course's owner; background work is
+# scoped on its own owner (`requested_by`, a session's `teacher`, the
+# auto-grade beat's `course.teacher`) and so slipped past them. These checks
+# pin the H-38 rule into every such entry point, so the namespace can't be
+# left out again.
+
+
+def _functions(rel):
+    """{name: source} for every function in `rel`."""
+    import ast
+
+    tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+    return {
+        node.name: ast.unparse(node)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+    }
+
+
+class TasksNamespaceSweepTests(SimpleTestCase):
+    def test_every_tasks_route_checks_reachability(self):
+        import ast
+
+        tree = ast.parse((ROOT / "users/views.py").read_text(encoding="utf-8"))
+        viewset = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef) and node.name == "TaskViewSet"
+        )
+        actions = [
+            node
+            for node in viewset.body
+            if isinstance(node, ast.FunctionDef)
+            and any("action" in ast.unparse(d) for d in node.decorator_list)
+        ]
+        self.assertGreaterEqual(len(actions), 4)
+        for action in actions:
+            with self.subTest(action=action.name):
+                self.assertIn("teacher_may_reach", ast.unparse(action))
+
+    def test_every_grading_dispatch_checks_reachability(self):
+        tasks = _functions("assignments/tasks.py")
+        for name, rule in (
+            ("grade_engine_async", "teacher_may_reach"),
+            ("grade_batch_async", "teacher_may_reach"),
+            ("auto_grade_due_assignment", "teacher_can_reach_course"),
+        ):
+            with self.subTest(task=name):
+                self.assertIn(rule, tasks[name])

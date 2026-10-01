@@ -1,0 +1,6 @@
+started 2026-09-30T16:00:53+01:00 tip 8e7e865
+mutation_m02_m26         8e7e865 rc=0 47s 2/2 killed with verified restore
+
+dropped test_h62_mut
+app_billing              8e7e865  rc=0     216s Ran 1758 tests in 211.096s OK
+finished 2026-09-30T16:05:18+01:00

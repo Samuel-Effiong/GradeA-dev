@@ -32,6 +32,9 @@ from pathlib import Path
 from celery import shared_task
 from django.conf import settings
 
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
+
 logger = logging.getLogger(__name__)
 
 BASELINE_PATH = (
@@ -163,6 +166,7 @@ def _escalate(mode, report, diff):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def nightly_grading_benchmark_replay(self):
     """
     Replay the benchmark against recorded responses. Free, deterministic,
@@ -189,6 +193,7 @@ def nightly_grading_benchmark_replay(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def weekly_grading_benchmark_live(self):
     """
     Grade the benchmark against the LIVE model and diff against baseline.

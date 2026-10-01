@@ -1,0 +1,12 @@
+# L01: cancel phase A durable
+# file: billing/license_service.py (occurrence 1)
+# old: '        # Phase A — or the whole operation, where Stripe is not involved.\n        try:\n            with transaction.atomic(durable=True):'
+# new: '        # Phase A — or the whole operation, where Stripe is not involved.\n        try:\n            with transaction.atomic():'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 49.6
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_refuses_to_run_inside_a_callers_transaction (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_refuses_to_run_inside_a_callers_transaction)
+
+FAILED (errors=1)

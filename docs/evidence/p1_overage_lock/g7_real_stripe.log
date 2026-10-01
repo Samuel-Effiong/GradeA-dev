@@ -1,0 +1,12 @@
+run at 2026-09-18T12:10:57Z
+35756c4
+stripe-python 14.4.1; key mode TEST
+bounded client: timeout=10s, max_network_retries=0
+PaymentIntent pi_3UH0d7Aq8voEV6Ea1MmDGUf5: status=succeeded amount=500 usd livemode=False
+lookup by payment intent -> https://pay.stripe.com/receipts/payment/<token> in 1031 ms
+lookup by charge ch_3UH0d7Aq8voEV6Ea1nVMAS3W -> https://pay.stripe.com/receipts/payment/<token> in 855 ms
+identical strings: False (expected False: tokens re-mint)
+GET receipt from payment intent lookup -> HTTP 200
+GET receipt from charge lookup -> HTTP 200
+RESULT: PASS
+exit=0

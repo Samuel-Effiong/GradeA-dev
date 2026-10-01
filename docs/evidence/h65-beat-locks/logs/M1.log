@@ -1,0 +1,15 @@
+# M1: mid-cycle grant: the next_credit_grant_at re-check (lapsed lock)
+# file: billing/services.py (occurrence 1)
+# old: '            or user_subscription.next_credit_grant_at > refresh_due_by(now)\n'
+# new: ''
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
+# exit: 1
+# elapsed_s: 20.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_overlapping_run_does_not_grant_the_month_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_an_overlapping_run_does_not_grant_the_month_again)
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [next grant in the future]
+FAIL: test_the_service_refuses_a_stale_copy_that_is_no_longer_due (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_the_service_refuses_a_stale_copy_that_is_no_longer_due)
+FAIL: test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again)
+
+FAILED (failures=4)

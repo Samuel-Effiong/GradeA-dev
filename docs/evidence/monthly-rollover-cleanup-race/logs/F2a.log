@@ -1,0 +1,12 @@
+# F2a: annual task: a contract ending within the tolerance is ended (1a's F2)
+# file: billing/tasks.py (occurrence 1)
+# old: '        billing_cycle_end__gt=refresh_due_by(now),\n'
+# new: '        billing_cycle_end__gt=now,\n'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 5.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_grant_for_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_no_grant_for_the_last_minutes_of_the_contract)
+
+FAILED (failures=1)
