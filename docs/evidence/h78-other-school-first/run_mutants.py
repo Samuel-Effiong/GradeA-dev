@@ -111,6 +111,17 @@ MUTANTS = [
         "            logger.warning(error_msg)\n",
         1,
     ),
+    (
+        "L4",
+        "the enrolment re-check's refusal logs the id, not its message (1a's R1)",
+        LS,
+        "            logger.warning(\n"
+        '                "Teacher %s has an individual subscription: not enrolled.",\n'
+        "                teacher.id,\n"
+        "            )\n",
+        "            logger.warning(error_msg)\n",
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
