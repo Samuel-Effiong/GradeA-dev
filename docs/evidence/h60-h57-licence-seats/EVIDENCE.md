@@ -290,3 +290,7 @@ no run of its own.
 |---|---|---|
 | `billing.tests.test_h57_licence_patch` once (0b's slot; no regression, test-only) | 10 tests OK | `r4_e1_module.txt` |
 | Mutant (0b): the call-site `_stored_differs(self.instance, "custom_price_cents", …)` becomes `attrs["custom_price_cents"] is not None`, on the `_mut` DB, dropped | **Killed** by `test_a_stripe_licences_unchanged_price_echo_is_accepted` alone (1 failure out of 10). `billing/serializers.py` sha256 after restoring = before (`0d45bfce…60c6`), and the tree is clean | `r4_e1_mutant.txt` |
+
+## Re-run after 0b's base update onto batch-5 499a3950 (2026-10-01)
+
+0b base-updated this branch onto task/beta-batch-5 499a3950 (clean; the trial merge-trees were clean). The changed modules + all 10 beta-line guards (AutoGrader.tests_beat_health and tests_beat_locks included) ran at **7551593e** in one 6G slot shared with the other bundle 5 re-runs (0b's grant; rule-16 prefix, timeout -k 60 1800, settings_worktree): **283 tests OK**. Log: `bu_499a3950_modules_and_guards.txt`.
