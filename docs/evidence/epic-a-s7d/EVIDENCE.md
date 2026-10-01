@@ -153,3 +153,20 @@ Folded in at the SM's instruction. Step 4's first attempt was **stopped** at abo
   - Inside the six apps, every other FILE_UNREADABLE hit is a different case: a garbage PNG, a rasterizer error, a truncated PDF, or item-retry and batch-result codes. All of them passed in step 4 run 1. Every photo-as-PDF hit already expects FILE_NOT_A_PDF.
   - So the 6G re-run is `assignments.tests_file_reason_codes` alone, plus mutation batch 5 (C1–C3, a superset of the ruled C1/C3) against it.
 - **The ruled re-run, at 8b42ae8** (0b's grant, 6G, rule-16 prefix): `assignments.tests_file_reason_codes` gave **22 tests OK** (`step4_fix_module.txt`). Mutation batch 5 (own DB, dropped): **C1–C3 3/3 killed**, source clean after (`mutation_log_batch5.txt`, `mutation_results_batch5.json`). The fixed test kills C1 and C2; C3 is killed by the module's damaged-PDF tests. The step-4 rule-15 record is therefore: run 1 at 41ba153 (4634/4635), plus this re-run for the one test-only change. Production is identical to 41ba153.
+
+## Base update onto the epic after the bundle 4 merge-down (dc0475aa)
+
+- **The merge, 32d941ef (0b; parents 08f8d9b and dc0475aa).** It conflicted in `billing/license_service.py`. The SM ruled S7d's side for both hunks; 0b resolved, and I reviewed the uncommitted merge read-only, by AST function segments, against both parents and batch-5 c4ac9e08.
+  - Hunk 1 (~:818): S7d's ids-only "Skipped enrolling a teacher in license %s (school %s): %s" line, with (license_sub.id, school.id, type(exc).__name__). It equals batch-5's. The epic's older 2-arg form logged `exc` itself, whose text can carry the address.
+  - Hunk 2 (`_enroll_teacher_internal`): S7d's version, plus one non-conflicting bundle 4 line (`expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end)`). The duplicate post-subscription school check is gone on both sides.
+- **The H-78 fold, copied byte-identical (291d8ca7).** The source is task/h78-other-school-first-b4, 1a VERIFIED at 560eced.
+  - 9675d17's hunk: `_enroll_teacher_internal` logs the individual-subscription refusal as "Teacher %s has an individual subscription: not enrolled." with teacher.id, not the address-bearing `error_msg`.
+  - `billing/tests/test_other_school_before_subscription.py` is byte-identical to b9e4ccb (= 8c248e8; b9e4ccb added docs only).
+- **The carried functions against batch-5 c4ac9e08** (the SM's byte-identity check):
+  - `_invite_and_enroll_one_teacher` and `_get_or_invite_teacher`: **byte-identical**.
+  - `_enroll_teacher_internal`: identical apart from two differences.
+    - **Epic-only:** "Created CreditWallet for teacher %s" logs `teacher.id` on the epic and `teacher.email` on batch-5. The epic's is the ids-only form, so it is kept.
+    - **Beta-only, expected:** H-76's `existing_monthly.is_processed = True` retirement. H-76 is in bundle 5 and arrives with the bundle 5 merge-down.
+- **The guard-limits docstring** (v2's S7d note 2, SM): `sync_only_violations` now names its two blind spots, an error bound to a variable and raised later, and a task reaching `import_roster` or `add_teachers_batch` through a helper module. Comment only.
+- `makemigrations --check`: no changes detected.
+- **Re-run on the new base** (the changed modules + all guards + the billing regression, in 0b's slot): see below.
