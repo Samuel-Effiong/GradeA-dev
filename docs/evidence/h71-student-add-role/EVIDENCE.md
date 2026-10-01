@@ -93,3 +93,7 @@ non-student with a 400 at validation. Before, school admins and super admins
 got a 500 from the create path, and teachers got a 400. That status change
 is the intended fix (widening b, SM-approved), and it is pinned by
 `test_every_role_gets_the_same_answer`.
+
+## Re-run after 0b's base update onto batch-5 499a3950 (2026-10-01)
+
+0b base-updated this branch onto task/beta-batch-5 499a3950 (clean; the trial merge-trees were clean). The changed modules + all 10 beta-line guards (AutoGrader.tests_beat_health and tests_beat_locks included) ran at **f70b30ca** in one 6G slot shared with the other bundle 5 re-runs (0b's grant; rule-16 prefix, timeout -k 60 1800, settings_worktree): **246 tests OK**. Log: `bu_499a3950_modules_and_guards.txt`.
