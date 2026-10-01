@@ -269,8 +269,24 @@ class TasksNamespaceRoutesFollowTheRule(H38RetryFixture):
     list."""
 
     def test_retry_item_is_not_found_for_a_removed_teacher(self):
+        """The session-level rule answers, not item_retry's own item check
+        (its bare "Not found."): exactly like a batch that doesn't exist."""
         self.removed_and_funded()
-        self.assertEqual(self.retry(self.grade_item).status_code, 404)
+
+        response = self.retry(self.grade_item)
+        missing = jwt_client(self.teacher.email).post(
+            reverse(
+                "task-retry-item",
+                kwargs={
+                    "session_id": str(uuid.uuid4()),
+                    "item_id": str(self.grade_item.id),
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 404, response.content[:400])
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(response.json()["message"], missing.json()["message"])
         self.assertEqual(self.launched, [])
 
     def test_retry_failed_is_not_found_for_a_removed_teacher(self):
