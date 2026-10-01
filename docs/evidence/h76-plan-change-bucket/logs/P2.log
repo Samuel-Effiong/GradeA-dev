@@ -2,9 +2,9 @@
 # file: billing/services.py (occurrence 1)
 # old: 'update_fields=["expires_at", "is_processed", "updated_at"]\n            )\n\n        # --- Grant'
 # new: 'update_fields=["expires_at", "updated_at"]\n            )\n\n        # --- Grant'
-# commit: 5b2565023794ef409ee8ae96fc57453b5fe08e0c
+# commit: 477eeeda13968ef25c0775c37ed55ef716001a9c
 # exit: 1
-# elapsed_s: 3.8
+# elapsed_s: 2.7
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_the_cleanup_does_not_expire_what_was_rolled_over (billing.tests.test_plan_change_retires_old_bucket.PlanChangeRetiresOldBucketTests.test_the_cleanup_does_not_expire_what_was_rolled_over)
