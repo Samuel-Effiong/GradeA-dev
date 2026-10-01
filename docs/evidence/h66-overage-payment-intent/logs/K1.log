@@ -2,15 +2,16 @@
 # file: billing/stripe_service.py (occurrence 1)
 # old: '        if not payment_intent_id:\n'
 # new: '        if False:\n'
-# commit: c23e71f46d490eb0615ac7c601252d304925eb02
+# commit: 58d5efb31c2e0affe0c5f851c195e01ea905a59d
 # exit: 1
-# elapsed_s: 18.5
+# elapsed_s: 4.0
 # restored_sha256_matches_commit_blob: True
 
+FAIL: test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped)
 FAIL: test_a_paid_session_without_a_payment_intent_is_refused (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_paid_session_without_a_payment_intent_is_refused)
 FAIL: test_a_session_without_payment_status_or_payment_intent_is_refused (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_session_without_payment_status_or_payment_intent_is_refused)
 FAIL: test_an_empty_payment_intent_is_refused_too (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_an_empty_payment_intent_is_refused_too)
 FAIL: test_the_replay_path_refuses_it_too (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_the_replay_path_refuses_it_too)
 FAIL: test_two_deliveries_of_a_keyless_session_grant_nothing (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_two_deliveries_of_a_keyless_session_grant_nothing)
 
-FAILED (failures=5)
+FAILED (failures=6)
