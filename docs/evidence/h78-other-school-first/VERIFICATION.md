@@ -74,3 +74,40 @@ Under rule 15 I cite these of d5's results and don't repeat them:
 | Merges | `git merge-tree --write-tree` against 67a0681 (bundle 4's final tip) is **clean**. It is also clean against `task/h65-beat-locks` @ c5790bb and `task/h76-plan-change-bucket-processed` @ 477eeed, the other beta-line items on this base. |
 
 Log: `runs/h78_baseline_2d94c43.log`. Probe: `h78_probe_test_vf1a_h78_probe.py`.
+
+---
+
+# Delta re-check: the N1(a) fold @ 560eced
+
+**Date:** 2026-10-01. By the SM's ruling, this covers **only the delta**: the fold diff, R1 and the changed modules.
+- **Commits over 2d94c43:**
+  - `1b056b3`: this record
+  - `8c248e8`: R1 adopted as `test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address`
+  - `9675d17`: the fix
+  - `0c6af7d`: mutant L4
+  - `560eced`: evidence
+- **Setup:** my scratch checkout at 560eced, `test_vf_h78`, in 0b's slot, with the same wrapper as above.
+
+**Verdict: VERIFIED.** N1(a) is closed. N1(b) (`:1099–1105`) and `:859` stay with H-80, as the SM ruled.
+
+## The fold
+- **`9675d17`** changes the one line at `license_service.py:1372` (`_enroll_teacher_internal`): from `logger.warning(error_msg)` to `logger.warning("Teacher %s has an individual subscription: not enrolled.", teacher.id)`.
+  - This matches `:1196` word for word.
+  - The raised `IndividualSubscriptionConflictError(error_msg)` is unchanged, so the admin-facing text and every caller's handling stay the same.
+  - No other production line changed (`git diff 2d94c43 560eced -- billing/license_service.py` is this hunk only).
+- **`8c248e8`** is my R1 adopted, and stricter than mine:
+  - It captures the **root logger at DEBUG**, not only `billing`.
+  - It asserts no `@` at all, that the teacher id and licence id are present, and that the teacher is not enrolled.
+
+## Evidence
+| Check | Result |
+|---|---|
+| **Delta run** @ 560eced: my probe + `billing.tests.test_other_school_before_subscription` + `billing.tests.test_add_teachers_other_school_not_disclosed` | **16 tests, 1 failure, exactly R2, which stays with H-80.** R1 now passes (`lines_with_address=[]`). R2's address lines are now exactly the two H-80 sites, `:859` (carry-forward) and `:1100` (creation ERROR); the `:1372` line is gone. **Every d5 test passes**, including the new one. Run time 21 s. |
+| **My mutant Z4** (on `test_vf_h78_mut`, dropped): the new line logs `teacher.email` instead of `teacher.id`. The production file's sha matched the commit blob after the restore. | **KILLED** by exactly the new test (1 failure in 9). This is a different undo from d5's L4, which reverts to `error_msg`. |
+| d5's gates (cited) | reproduce-first at 8c248e8: exactly 1 FAIL; the modules: 9 OK; the battery: 6/6 killed, including L4; the regression: billing + 9 guards, 2038 OK. |
+| Hooks | `pre-commit run --from-ref 2d94c43 --to-ref 560eced` passes, and each of the 5 commits passes. |
+| Merges | `git merge-tree --write-tree` against 67a0681 is **clean**. It is also clean against `task/h65-beat-locks` @ 411f130 and `task/h76-plan-change-bucket-processed` @ 477eeed. |
+
+**For H-80:** R2 (`h78_probe_test_vf1a_h78_probe.py`, unchanged) is ready as its end-to-end test for the licence carry-forward. It goes green once `:859` and `:1100` log ids only.
+
+Logs: `runs/h78_fold_560eced.log`, `runs/h78_fold_mutant_Z4.log`.
