@@ -254,3 +254,24 @@ class AnnualGrantAnchorTests(TestCase):
                 timedelta(days=1),
                 f"the bucket granted at {run_at} expires at {expires_at}",
             )
+
+    def test_a_catch_up_at_the_cycle_end_never_outlives_the_contract(self):
+        """1a's V3: an outage over the last two anchors, ending two days
+        before the contract does. The two owed grants are made on the last
+        days, and their buckets end with the contract, not a month later."""
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        sub = self.subscribe(start)
+        end = sub.billing_cycle_end
+        outage = (
+            start + relativedelta(months=10) - timedelta(days=1),
+            end - timedelta(days=2),
+        )
+
+        self.drive(sub, outage=outage)
+
+        self.assertEqual(len(self.mid_cycle_grants(sub)) + 1, 12)
+        for run_at, expires_at in self.births:
+            self.assertGreater(expires_at, run_at)
+            self.assertLessEqual(
+                expires_at, end, f"the bucket granted at {run_at} outlives {end}"
+            )

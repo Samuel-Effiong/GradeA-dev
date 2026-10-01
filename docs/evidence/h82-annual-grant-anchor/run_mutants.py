@@ -93,6 +93,14 @@ MUTANTS = [
         "        user_subscription.next_credit_grant_at = bucket_expiry\n",
         1,
     ),
+    (
+        "H8",
+        "a caught-up bucket ends by the contract end (1a's Y2)",
+        SV,
+        "else min(now + relativedelta(months=1), user_subscription.billing_cycle_end)",
+        "else now + relativedelta(months=1)",
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
