@@ -1,0 +1,3 @@
+c23e71f46d49	K1	a keyless session is refused at all	KILLED	FAILED (failures=5)	True	18.5
+c23e71f46d49	K2	an EMPTY payment_intent is refused too	KILLED	FAILED (failures=1)	True	3.4
+c23e71f46d49	K3	the refusal returns before granting	KILLED	FAILED (failures=5)	True	3.4
