@@ -45,6 +45,19 @@ Step 1 ran 304 tests: failures=3, errors=1, all in beta's `students.tests_h38_ta
 - For a teacher the halves are equivalent (teacher_can_reach_course ⇔ teacher_course_access_q). For a non-teacher, the reachable_courses half keeps S7b's refusal. Behaviour therefore equals S7b's verified behaviour and bfcf6e1's effective one.
 - New mutants: M11 drops the teacher_may_reach half (expected to be killed only by the sweep, since that half is behaviourally redundant). M12 drops the reachable_courses half (a survivor means S7b's non-teacher refusal is untested; it is reported to the SM, with no invented test).
 
+**Round 3 → 4 (SM rulings):** M8 and M12 survived. Each got one isolating test in a test-only commit (581fa46). The SM ruled S7b's non-teacher strictness intended: grading fails closed, so a run is accepted only for the course's own reachable teacher. No S7b doc says admins may grade, and `docs/backend/billing-licenses.md` says school admins cannot.
+
+**Who dispatches grade_engine_async (read-only survey, SM-accepted): no real path passes a user who isn't the course's owner.**
+1. grade-all (`assignments/views.py`): request.user, behind IsTeacher.
+2. grade-async (`students/views.py`): request.user, behind IsTeacher.
+3. schedule-grade (a PeriodicTask): stores request.user.id, behind IsTeacher.
+4. schedule-grade-all → grade_batch_async → `_dispatch_tracked_grading`: request.user.id, behind IsTeacher.
+5. The auto-grade beat: `course.teacher`.
+6. Item retry (`students/item_retry.py`): request.user, with `_own_session` requiring `session.teacher == request.user`. GRADE sessions come only from routes 1 and 4 and the beat.
+
+IsTeacher is strictly `user_type == TEACHER`. No admin action, management command, script, backfill or support tool dispatches grading.
+- Edge, not broken: `Course.teacher` has no `limit_choices_to`, and CourseAdmin uses raw_id_fields, so an operator could set a non-teacher as a course's owner. The check is "own & reachable", not "is a teacher", so that owner is still accepted. No backlog row (SM).
+
 Re-gate on the new tip: step 1 + mutants (6G), then ONE combined students/classrooms/users/assignments regression (12G); assignments is added because production changed there. v2's remerge-diff review covers this resolution explicitly; I authored it, so I don't verify it.
 
 ## Gates on 0b's merged tip (mine, when 0b gives the sha)

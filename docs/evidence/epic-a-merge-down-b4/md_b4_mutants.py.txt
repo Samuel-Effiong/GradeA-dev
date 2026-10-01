@@ -1,0 +1,62 @@
+"""Bundle 4 merge-down (bfcf6e1, then the follow-up tip): S7b's H-38 mutants M1-M7 re-run on the merged
+tree (1a's masking check), plus M8/M9 for the new route gates. Each mutant runs
+the three modules that pin H-38 on the tasks/ routes; restore is sha-checked."""
+import hashlib, json, os, pathlib, re, subprocess, sys
+
+W = pathlib.Path("/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4")
+SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
+OUT = pathlib.Path(sys.argv[1])
+TESTS = ["students.tests_item_retry_h38", "students.tests_item_retry", "classrooms.tests_teacher_access_sweep",
+         "students.tests_h38_tasks_namespace"]  # added after the red step 1 (SM ruling)
+S7B = (W / "docs/evidence/epic-a-s7b/h38/run_gates.py.txt").read_text()
+ns = {}
+exec(S7B[S7B.index("MUTANTS = {"):S7B.index("def test(")], ns)
+MUTANTS = dict(ns["MUTANTS"])
+MUTANTS["M8 retry_item's session gate removed"] = ("users/views.py",
+    "            raise Http404(\"No BatchUploadSession matches the given query.\")\n        item = get_object_or_404(",
+    "            pass\n        item = get_object_or_404(")
+MUTANTS["M9 retry_failed's session gate removed"] = ("users/views.py",
+    "            raise Http404(\"No BatchUploadSession matches the given query.\")\n        reason_codes = request.data.get(\"reason_codes\")",
+    "            pass\n        reason_codes = request.data.get(\"reason_codes\")")
+# After the red step 1 (SM ruling): the epic keeps S7b's refusal and logs beta's ids-only line.
+MUTANTS["M10 the refusal's ids-only log line dropped"] = ("assignments/tasks.py",
+    "            logger.warning(\n"
+    "                \"Grading refused (H-38): submission %s, user %s can no longer \"\n"
+    "                \"reach its course.\",\n"
+    "                submission.id,\n"
+    "                user.id,\n"
+    "            )\n"
+    "            raise CourseNotReachableError()\n",
+    "            raise CourseNotReachableError()\n")
+# Round 3 (SM OK): the combined check, one isolating mutant per half.
+MUTANTS["M11 the teacher_may_reach half dropped"] = ("assignments/tasks.py",
+    "        if not teacher_may_reach(user, submission) or not (\n",
+    "        if not (\n")
+MUTANTS["M12 the reachable_courses half dropped"] = ("assignments/tasks.py",
+    "            reachable_courses(user).filter(pk=submission.assignment.course_id).exists()\n",
+    "            True\n")
+if os.environ.get("MUT_ONLY"):  # a single re-run after a survivor's test is added
+    MUTANTS = {k: v for k, v in MUTANTS.items() if k.startswith(os.environ["MUT_ONLY"] + " ")}
+    assert len(MUTANTS) == 1, MUTANTS
+files = sorted({f for f, _, _ in MUTANTS.values()})
+before = {f: hashlib.sha256((W / f).read_bytes()).hexdigest() for f in files}
+results = {}
+try:
+    for name, (f, a, b) in MUTANTS.items():
+        text = (W / f).read_text()
+        assert text.count(a) == 1, name
+        (W / f).write_text(text.replace(a, b))
+        try:
+            p = subprocess.run([sys.executable, "manage.py", "test", *TESTS, f"--settings={SETTINGS}", "--keepdb", "--noinput"],
+                               cwd=W, capture_output=True, text=True, env={**os.environ, "EXEMPT_EMAIL_DOMAINS": ""})
+            out = p.stdout + p.stderr
+            failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", out, re.M)))
+            results[name] = {"killed": p.returncode != 0, "failing_tests": failed}
+            print(name, results[name], flush=True)
+        finally:
+            (W / f).write_text(text)
+finally:
+    after = {f: hashlib.sha256((W / f).read_bytes()).hexdigest() for f in files}
+    print("sha256 restored:", after == before, flush=True)
+(OUT / "h38_mutants_results.json").write_text(json.dumps(results, indent=2) + "\n")
+print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])

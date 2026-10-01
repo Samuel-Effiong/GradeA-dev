@@ -1,0 +1,3 @@
+M12 the reachable_courses half dropped {'killed': True, 'failing_tests': ['test_a_school_admin_of_the_same_school_cannot_run_grading']}
+sha256 restored: True
+SURVIVORS: []

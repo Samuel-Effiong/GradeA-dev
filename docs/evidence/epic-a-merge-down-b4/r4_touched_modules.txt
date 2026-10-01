@@ -1,0 +1,663 @@
+01:27:23 Creating test database for alias 'default' ('test_epic_a_merge_down_b4')...
+01:27:23 Found 22 test(s).
+01:27:23 Operations to perform:
+01:27:23   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+01:27:23   Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+01:27:23 Synchronizing apps without migrations:
+01:27:23   Creating tables...
+01:27:23     Running deferred SQL...
+01:27:23 Running migrations:
+01:27:23   Applying contenttypes.0001_initial... OK
+01:27:23   Applying contenttypes.0002_remove_content_type_name... OK
+01:27:23   Applying auth.0001_initial... OK
+01:27:23   Applying auth.0002_alter_permission_name_max_length... OK
+01:27:23   Applying auth.0003_alter_user_email_max_length... OK
+01:27:24   Applying auth.0004_alter_user_username_opts... OK
+01:27:24   Applying auth.0005_alter_user_last_login_null... OK
+01:27:24   Applying auth.0006_require_contenttypes_0002... OK
+01:27:24   Applying auth.0007_alter_validators_add_error_messages... OK
+01:27:24   Applying auth.0008_alter_user_username_max_length... OK
+01:27:24   Applying auth.0009_alter_user_last_name_max_length... OK
+01:27:24   Applying auth.0010_alter_group_name_max_length... OK
+01:27:24   Applying auth.0011_update_proxy_permissions... OK
+01:27:24   Applying auth.0012_alter_user_first_name_max_length... OK
+01:27:24   Applying users.0001_initial... OK
+01:27:24   Applying admin.0001_initial... OK
+01:27:24   Applying admin.0002_logentry_remove_auto_add... OK
+01:27:24   Applying admin.0003_logentry_add_action_flag_choices... OK
+01:27:24   Applying classrooms.0001_initial... OK
+01:27:24   Applying ai_processor.0001_initial... OK
+01:27:24   Applying ai_processor.0002_initial... OK
+01:27:24   Applying ai_processor.0003_chatsession_user... OK
+01:27:24   Applying ai_processor.0004_chatsession_assistant_type... OK
+01:27:24   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+01:27:24   Applying classrooms.0002_initial... OK
+01:27:24   Applying classrooms.0003_coursecategory_course_categories... OK
+01:27:24   Applying classrooms.0004_course_teacher... OK
+01:27:24   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+01:27:24   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+01:27:24   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+01:27:24   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+01:27:24   Applying classrooms.0009_school... OK
+01:27:24   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+01:27:24   Applying classrooms.0011_remove_course_categories_topic... OK
+01:27:24   Applying classrooms.0012_studentcourse_auto_added... OK
+01:27:24   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+01:27:24   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+01:27:24   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+01:27:24   Applying classrooms.0016_school_is_active... OK
+01:27:24   Applying assignments.0001_initial... OK
+01:27:24   Applying assignments.0002_initial... OK
+01:27:24   Applying assignments.0003_initial... OK
+01:27:24   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+01:27:24   Applying assignments.0005_alter_assignment_options... OK
+01:27:24   Applying assignments.0006_assignment_estimated_time... OK
+01:27:24   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+01:27:24   Applying assignments.0008_alter_assignment_due_date... OK
+01:27:24   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+01:27:25   Applying assignments.0010_assignment_custom_ai_prompt... OK
+01:27:25   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+01:27:25   Applying assignments.0012_assignment_was_overridden... OK
+01:27:25   Applying assignments.0013_alter_assignment_ai_generated... OK
+01:27:25   Applying assignments.0014_assignment_self_assessment_and_more... OK
+01:27:25   Applying assignments.0015_alter_assignment_potential_issues... OK
+01:27:25   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+01:27:25   Applying assignments.0017_assignment_grading_status... OK
+01:27:25   Applying assignments.0018_assignment_topic... OK
+01:27:25   Applying assignments.0019_alter_assignment_title_and_more... OK
+01:27:25   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+01:27:25   Applying assignments.0021_assignment_overridden_at... OK
+01:27:25   Applying assignments.0022_assignment_raw_input... OK
+01:27:25   Applying assignments.0023_delete_rubric... OK
+01:27:25   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+01:27:25   Applying assignments.0025_alter_assignment_instructions... OK
+01:27:25   Applying assignments.0026_assignment_status... OK
+01:27:25   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+01:27:25   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+01:27:25   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+01:27:25   Applying assignments.0030_alter_assignment_status... OK
+01:27:25   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+01:27:25   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+01:27:25   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+01:27:25   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+01:27:25   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+01:27:25   Applying assignments.0036_backfill_assignment_rigor... OK
+01:27:26   Applying assignments.0037_assignment_course_title_index... OK
+01:27:26   Applying assignments.0038_assignment_updated_at... OK
+01:27:26   Applying assignments.0039_assignment_upload_fingerprint... OK
+01:27:26   Applying assignments.0040_db_defaults_for_rollback... OK
+01:27:26   Applying audit.0001_initial... OK
+01:27:26   Applying audit.0002_alter_auditevent_actor_role... OK
+01:27:26   Applying authtoken.0001_initial... OK
+01:27:26   Applying authtoken.0002_auto_20160226_1747... OK
+01:27:26   Applying authtoken.0003_tokenproxy... OK
+01:27:26   Applying authtoken.0004_alter_tokenproxy_options... OK
+01:27:26   Applying users.0002_customuser_activation_expires_and_more... OK
+01:27:26   Applying users.0003_passwordresetotp... OK
+01:27:26   Applying users.0004_customuser_email_verified_at... OK
+01:27:26   Applying users.0005_alter_passwordresetotp_code... OK
+01:27:26   Applying users.0006_alter_passwordresetotp_code... OK
+01:27:26   Applying users.0007_passwordchangeotp... OK
+01:27:26   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+01:27:26   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+01:27:26   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+01:27:26   Applying billing.0001_initial... OK
+01:27:27   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+01:27:27   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+01:27:27   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+01:27:27   Applying billing.0005_usersubscription_pending_plan... OK
+01:27:27   Applying billing.0006_alter_subscriptionplan_name... OK
+01:27:27   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+01:27:27   Applying billing.0008_betaprofile... OK
+01:27:27   Applying billing.0009_betaprofile_uuid_and_more... OK
+01:27:27   Applying billing.0010_alter_betaprofile_id... OK
+01:27:27   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+01:27:27   Applying billing.0012_populate_beta_profile_uuids... OK
+01:27:27   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+01:27:27   Applying billing.0014_rename_uid_betaprofile_id... OK
+01:27:28   Applying billing.0015_betaprofile_credits_used_feedback... OK
+01:27:28   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+01:27:28   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+01:27:28   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+01:27:28   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+01:27:28   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+01:27:28   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+01:27:28   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+01:27:28   Applying billing.0023_alter_subscriptionplan_name... OK
+01:27:28   Applying billing.0024_licensesubscription_custom_price_cents... OK
+01:27:28   Applying billing.0025_alter_subscriptionplan_name... OK
+01:27:28   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+01:27:29   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+01:27:29   Applying billing.0028_alter_usersubscription_is_trial... OK
+01:27:29   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+01:27:29   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+01:27:29   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+01:27:29   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+01:27:29   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+01:27:29   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+01:27:29   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+01:27:29   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+01:27:29   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+01:27:29   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+01:27:29   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+01:27:30   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+01:27:30   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+01:27:30   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+01:27:30   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+01:27:30   Applying billing.0044_alter_creditusagelog_feature... OK
+01:27:30   Applying billing.0045_billingtransaction... OK
+01:27:30   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+01:27:30   Applying billing.0047_subscriptionplan_carry_over_max... OK
+01:27:30   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+01:27:30   Applying billing.0049_billingtransaction_receipt_url... OK
+01:27:30   Applying billing.0050_creditusagelog_course... OK
+01:27:30   Applying billing.0051_creditusagelog_task_id_index... OK
+01:27:30   Applying billing.0052_creditusagelog_school... OK
+01:27:31   Applying billing.0053_backfill_creditusagelog_school... OK
+01:27:31   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+01:27:31   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+01:27:31   Applying billing.0056_liveqarun... OK
+01:27:31   Applying billing.0057_usersubscription_cancelled_at... OK
+01:27:31   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+01:27:31   Applying billing.0059_append_only_audit_tables... OK
+01:27:31   Applying billing.0060_backfill_audit_identity...
+01:27:31   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+01:27:31  OK
+01:27:31   Applying billing.0061_add_audit_table_time_indexes... OK
+01:27:31   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+01:27:32   Applying billing.0063_payment_disputes... OK
+01:27:32   Applying billing.0064_refund_credit_reversal... OK
+01:27:32   Applying billing.0065_backfill_ledger_payment_intent...
+01:27:32   attributed 0 ledger row(s) to their Stripe payment
+01:27:32  OK
+01:27:32   Applying billing.0066_dispute_deficit_by_wallet... OK
+01:27:32   Applying billing.0067_stripe_event_recovery... OK
+01:27:32   Applying billing.0068_price_reconciliation... OK
+01:27:32   Applying billing.0069_price_sync_audit... OK
+01:27:32   Applying billing.0070_db_defaults_for_rollback... OK
+01:27:32   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+01:27:33   Applying billing.0072_license_stripe_mutation_intent... OK
+01:27:33   Applying dashboard.0001_initial... OK
+01:27:33   Applying dashboard.0002_schoolatrisksnapshot... OK
+01:27:33   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+01:27:33   Applying dashboard.0004_db_defaults_for_rollback... OK
+01:27:33   Applying django_celery_beat.0001_initial... OK
+01:27:33   Applying django_celery_beat.0002_auto_20161118_0346... OK
+01:27:33   Applying django_celery_beat.0003_auto_20161209_0049... OK
+01:27:33   Applying django_celery_beat.0004_auto_20170221_0000... OK
+01:27:33   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+01:27:33   Applying django_celery_beat.0006_auto_20180322_0932... OK
+01:27:33   Applying django_celery_beat.0007_auto_20180521_0826... OK
+01:27:33   Applying django_celery_beat.0008_auto_20180914_1922... OK
+01:27:33   Applying django_celery_beat.0006_auto_20180210_1226... OK
+01:27:33   Applying django_celery_beat.0006_periodictask_priority... OK
+01:27:33   Applying django_celery_beat.0009_periodictask_headers... OK
+01:27:34   Applying django_celery_beat.0010_auto_20190429_0326... OK
+01:27:34   Applying django_celery_beat.0011_auto_20190508_0153... OK
+01:27:34   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+01:27:34   Applying django_celery_beat.0013_auto_20200609_0727... OK
+01:27:34   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+01:27:34   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+01:27:34   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+01:27:34   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+01:27:34   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+01:27:34   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+01:27:34   Applying django_celery_results.0001_initial... OK
+01:27:34   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+01:27:34   Applying django_celery_results.0003_auto_20181106_1101... OK
+01:27:34   Applying django_celery_results.0004_auto_20190516_0412... OK
+01:27:34   Applying django_celery_results.0005_taskresult_worker... OK
+01:27:34   Applying django_celery_results.0006_taskresult_date_created... OK
+01:27:34   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+01:27:34   Applying django_celery_results.0008_chordcounter... OK
+01:27:35   Applying django_celery_results.0009_groupresult... OK
+01:27:35   Applying django_celery_results.0010_remove_duplicate_indices... OK
+01:27:35   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+01:27:35   Applying django_celery_results.0012_taskresult_date_started... OK
+01:27:35   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+01:27:35   Applying django_celery_results.0014_alter_taskresult_status... OK
+01:27:35   Applying sessions.0001_initial... OK
+01:27:35   Applying users.0011_concurrentusersnapshot_useractivity... OK
+01:27:35   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+01:27:35   Applying users.0013_customuser_middle_name... OK
+01:27:35   Applying users.0014_alter_customuser_middle_name... OK
+01:27:35   Applying users.0015_customuser_bio_settings... OK
+01:27:35   Applying users.0016_remove_customuser_bio_delete_settings... OK
+01:27:35   Applying users.0017_settings... OK
+01:27:36   Applying users.0018_customuser_bio... OK
+01:27:36   Applying users.0019_betawhitelist... OK
+01:27:36   Applying users.0020_waitlist_betawhitelist_mode... OK
+01:27:36   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+01:27:36   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+01:27:36   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+01:27:36   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+01:27:36   Applying users.0025_customuser_profile_image... OK
+01:27:36   Applying students.0001_initial... OK
+01:27:36   Applying students.0002_initial... OK
+01:27:36   Applying students.0003_studentsubmission_graded_at_and_more... OK
+01:27:36   Applying students.0004_alter_studentsubmission_graded_at... OK
+01:27:37   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+01:27:37   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+01:27:37   Applying students.0007_studentsubmission_extraction_confidence... OK
+01:27:37   Applying students.0008_studentsubmission_formatted_grade... OK
+01:27:37   Applying students.0009_studentsubmission_raw_input... OK
+01:27:37   Applying students.0010_batchuploadsession... OK
+01:27:38   Applying students.0011_batchuploadsession_course_and_more... OK
+01:27:38   Applying students.0012_alter_batchuploadsession_task_type... OK
+01:27:38   Applying students.0013_studentsubmission_max_points_and_more... OK
+01:27:38   Applying students.0014_alter_studentsubmission_score_percentage... OK
+01:27:38   Applying students.0015_studentsubmission_is_published... OK
+01:27:38   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+01:27:38   Applying students.0017_backgroundprocessingtask... OK
+01:27:38   Applying students.0018_studentsubmission_attempt_count... OK
+01:27:38   Applying students.0019_alter_studentsubmission_attempt_count... OK
+01:27:38   Applying students.0020_studentsubmission_grading_state... OK
+01:27:39   Applying students.0021_studentsubmission_needs_review... OK
+01:27:39   Applying students.0022_studentsubmission_review_severity... OK
+01:27:39   Applying students.0023_studentsubmission_review_tier_and_more... OK
+01:27:39   Applying students.0024_repair_raw_input_json... OK
+01:27:39   Applying students.0025_student_submission_hot_path_indexes... OK
+01:27:39   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+01:27:39   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+01:27:39   Applying students.0028_backfill_ai_grading_completed_at... OK
+01:27:39   Applying students.0029_background_task_item_result... OK
+01:27:39   Applying students.0030_batch_session_credits_exhausted_at... OK
+01:27:39   Applying token_blacklist.0001_initial... OK
+01:27:40   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+01:27:40   Applying token_blacklist.0003_auto_20171017_2007... OK
+01:27:40   Applying token_blacklist.0004_auto_20171017_2013... OK
+01:27:40   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+01:27:40   Applying token_blacklist.0006_auto_20171017_2113... OK
+01:27:40   Applying token_blacklist.0007_auto_20171017_2214... OK
+01:27:40   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+01:27:40   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+01:27:40   Applying token_blacklist.0011_linearizes_history... OK
+01:27:40   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+01:27:40   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+01:27:40   Applying users.0026_customuser_registration_method... OK
+01:27:40   Applying users.0027_customuser_profile_image_url... OK
+01:27:40   Applying users.0028_alter_customuser_middle_name... OK
+01:27:40   Applying users.0029_usergooglecredentials... OK
+01:27:41   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+01:27:41   Applying users.0031_settings_notify_new_assignment_posted... OK
+01:27:41   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+01:27:41   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+01:27:41   Applying users.0034_passwordresetotp_attempts_and_more... OK
+01:27:41   Applying users.0035_settings_notify_assignment_edited... OK
+01:27:41   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+01:27:41   Applying users.0037_customuser_must_change_password... OK
+01:27:41   Applying users.0038_alter_customuser_must_change_password... OK
+01:27:41   Applying users.0039_customuser_token_epoch... OK
+01:27:42   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+01:27:42
+01:27:42 WARNINGS:
+01:27:42 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+01:27:42
+01:27:42 System check identified 1 issue (0 silenced).
+01:27:42 test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:42 Cannot activate automatic trial for user stranger@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:42 ok
+01:27:42 test_retry_failed_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_failed_is_not_found_for_a_removed_teacher)
+01:27:42 F6.2's session-level rule, as on status and session-results (SM ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:43 API Exception
+01:27:43 Traceback (most recent call last):
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:43     response = handler(request, *args, **kwargs)
+01:27:43                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2658, in retry_failed
+01:27:43     raise Http404("No BatchUploadSession matches the given query.")
+01:27:43 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:43 API Exception
+01:27:43 Traceback (most recent call last):
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+01:27:43     return queryset.get(*args, **kwargs)
+01:27:43            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+01:27:43     raise self.model.DoesNotExist(
+01:27:43 students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+01:27:43
+01:27:43 During handling of the above exception, another exception occurred:
+01:27:43
+01:27:43 Traceback (most recent call last):
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:43     response = handler(request, *args, **kwargs)
+01:27:43                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2655, in retry_failed
+01:27:43     session = self._own_session(request, session_id)
+01:27:43               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2674, in _own_session
+01:27:43     return get_object_or_404(
+01:27:43            ^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+01:27:43     raise Http404(
+01:27:43 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:43 ok
+01:27:43 test_retry_item_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_item_is_not_found_for_a_removed_teacher)
+01:27:43 The session-level rule answers, not item_retry's own item check ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:43 API Exception
+01:27:43 Traceback (most recent call last):
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:43     response = handler(request, *args, **kwargs)
+01:27:43                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2630, in retry_item
+01:27:43     raise Http404("No BatchUploadSession matches the given query.")
+01:27:43 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:43 API Exception
+01:27:43 Traceback (most recent call last):
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+01:27:43     return queryset.get(*args, **kwargs)
+01:27:43            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+01:27:43     raise self.model.DoesNotExist(
+01:27:43 students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+01:27:43
+01:27:43 During handling of the above exception, another exception occurred:
+01:27:43
+01:27:43 Traceback (most recent call last):
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:43     response = handler(request, *args, **kwargs)
+01:27:43                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2624, in retry_item
+01:27:43     session = self._own_session(request, session_id)
+01:27:43               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2674, in _own_session
+01:27:43     return get_object_or_404(
+01:27:43            ^^^^^^^^^^^^^^^^^^
+01:27:43   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+01:27:43     raise Http404(
+01:27:43 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:43 ok
+01:27:43 test_a_non_teacher_polling_their_own_task_is_not_blocked (students.tests_h38_tasks_namespace.AdminsOwnTasksTests.test_a_non_teacher_polling_their_own_task_is_not_blocked)
+01:27:43 The rule is for teachers. A super admin's own task on the school ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:43 ok
+01:27:43 test_a_school_admin_of_the_same_school_cannot_run_grading (students.tests_h38_tasks_namespace.GradingFailsClosedForNonTeachersTests.test_a_school_admin_of_the_same_school_cannot_run_grading) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:44 Grading refused (H-38): submission 47b6cf4c-02d7-40a5-b02b-b53178cb3630, user 062a89d8-492d-4d70-87ad-1d5568480275 can no longer reach its course.
+01:27:44
+01:27:44
+01:27:44 students.task_tracking ERROR 2026-10-01 00:27:44,133 task_tracking 288403 135824028662720 [request_id=- client_request_id=-] Background task 6d6b23df-72ad-4397-89cd-8535d29b11f2 failed
+01:27:44
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 556, in grade_engine_async
+01:27:44     raise CourseNotReachableError()
+01:27:44 students.exceptions.CourseNotReachableError: This course wasn't found.
+01:27:44 ok
+01:27:44 test_routes_the_refused_run_and_the_beat_log_ids_only (students.tests_h38_tasks_namespace.NothingLeaksToTheLogsTests.test_routes_the_refused_run_and_the_beat_log_ids_only)
+01:27:44 1a's Q6: no student name or email in any record, from any ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:44 API Exception
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:44     response = handler(request, *args, **kwargs)
+01:27:44                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2802, in session_results
+01:27:44     raise Http404("No BatchUploadSession matches the given query.")
+01:27:44 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:44
+01:27:44
+01:27:44 django.request WARNING 2026-10-01 00:27:44,531 log 288403 135824028662720 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/session-results/af3a7001-a495-40da-80f5-771997c821a3
+01:27:44
+01:27:44
+01:27:44 API Exception
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:44     response = handler(request, *args, **kwargs)
+01:27:44                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2450, in task_status
+01:27:44     raise NotFound("Tracked task not found for this user.")
+01:27:44 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:44
+01:27:44
+01:27:44 django.request WARNING 2026-10-01 00:27:44,544 log 288403 135824028662720 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/status/e0b1cadc-0c51-40e7-8523-11174df8c12f
+01:27:44
+01:27:44
+01:27:44 API Exception
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:44     response = handler(request, *args, **kwargs)
+01:27:44                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2521, in cancel
+01:27:44     raise NotFound("Tracked task not found for this user.")
+01:27:44 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:44
+01:27:44
+01:27:44 django.request WARNING 2026-10-01 00:27:44,569 log 288403 135824028662720 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/cancel/e0b1cadc-0c51-40e7-8523-11174df8c12f
+01:27:44
+01:27:44
+01:27:44 API Exception
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:44     response = handler(request, *args, **kwargs)
+01:27:44                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2580, in cancel_session
+01:27:44     raise Http404("No BatchUploadSession matches the given query.")
+01:27:44 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:44
+01:27:44
+01:27:44 django.request WARNING 2026-10-01 00:27:44,577 log 288403 135824028662720 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/cancel-session/af3a7001-a495-40da-80f5-771997c821a3
+01:27:44
+01:27:44
+01:27:44 Grading refused (H-38): submission c133ff29-15e9-4f1b-a91d-955adfbd0f67, user ca4d7034-d0bd-4439-91e4-7670e6bb3dbe can no longer reach its course.
+01:27:44
+01:27:44
+01:27:44 students.task_tracking ERROR 2026-10-01 00:27:44,589 task_tracking 288403 135824028662720 [request_id=- client_request_id=-] Background task 8de115eb-de9f-4b1a-9009-26a7fe909d36 failed
+01:27:44
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 556, in grade_engine_async
+01:27:44     raise CourseNotReachableError()
+01:27:44 students.exceptions.CourseNotReachableError: This course wasn't found.
+01:27:44 Auto-grade skipped (H-38): assignment d670c191-1dc8-48c3-82ce-37289ca260f3, course be8e3f00-736e-45f0-850a-e47819a369d9 is no longer reachable by its teacher ca4d7034-d0bd-4439-91e4-7670e6bb3dbe.
+01:27:44 ok
+01:27:44 test_queued_grading_does_not_run_as_the_ex_owner (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_queued_grading_does_not_run_as_the_ex_owner) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:44 Cannot activate automatic trial for user colleague@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:44 Grading refused (H-38): submission 53d7dda4-861e-4fd2-bca0-fb9f76c8dbee, user 6a97afc3-9482-4c90-b522-36c694871165 can no longer reach its course.
+01:27:44
+01:27:44
+01:27:44 students.task_tracking ERROR 2026-10-01 00:27:44,950 task_tracking 288403 135824028662720 [request_id=- client_request_id=-] Background task f0fa0d40-4a9a-4c29-85a9-d70a47ca774d failed
+01:27:44
+01:27:44 Traceback (most recent call last):
+01:27:44   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 556, in grade_engine_async
+01:27:44     raise CourseNotReachableError()
+01:27:44 students.exceptions.CourseNotReachableError: This course wasn't found.
+01:27:44 ok
+01:27:44 test_the_beat_now_grades_as_the_new_owner (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_beat_now_grades_as_the_new_owner)
+01:27:45 Control: the course isn't blocked, only the ex-owner is. ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:45 Cannot activate automatic trial for user colleague@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:45 ok
+01:27:45 test_the_ex_owner_regains_no_route (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_ex_owner_regains_no_route) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:45 Cannot activate automatic trial for user colleague@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:45 API Exception
+01:27:45 Traceback (most recent call last):
+01:27:45   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:45     response = handler(request, *args, **kwargs)
+01:27:45                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:45   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2802, in session_results
+01:27:45     raise Http404("No BatchUploadSession matches the given query.")
+01:27:45 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:45 API Exception
+01:27:45 Traceback (most recent call last):
+01:27:45   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:45     response = handler(request, *args, **kwargs)
+01:27:45                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:45   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2450, in task_status
+01:27:45     raise NotFound("Tracked task not found for this user.")
+01:27:45 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:45 API Exception
+01:27:45 Traceback (most recent call last):
+01:27:45   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:45     response = handler(request, *args, **kwargs)
+01:27:45                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:45   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2521, in cancel
+01:27:45     raise NotFound("Tracked task not found for this user.")
+01:27:45 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:45 API Exception
+01:27:45 Traceback (most recent call last):
+01:27:45   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:45     response = handler(request, *args, **kwargs)
+01:27:45                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:45   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2580, in cancel_session
+01:27:45     raise Http404("No BatchUploadSession matches the given query.")
+01:27:45 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:45 ok
+01:27:45 test_a_batch_grading_run_is_refused_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_a_batch_grading_run_is_refused_after_removal) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:45 Batch grading refused (H-38): assignment 57c977f5-d723-4e53-94b6-ebcbda9b9ed1, user 55f54828-097e-4094-b8fb-031965a68e11 can no longer reach its course.
+01:27:45 ok
+01:27:45 test_every_route_answers_an_unreachable_id_like_a_missing_one (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_every_route_answers_an_unreachable_id_like_a_missing_one)
+01:27:46 1a's Q1: byte-identical bodies, on all four routes. ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2802, in session_results
+01:27:46     raise Http404("No BatchUploadSession matches the given query.")
+01:27:46 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2450, in task_status
+01:27:46     raise NotFound("Tracked task not found for this user.")
+01:27:46 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2521, in cancel
+01:27:46     raise NotFound("Tracked task not found for this user.")
+01:27:46 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2580, in cancel_session
+01:27:46     raise Http404("No BatchUploadSession matches the given query.")
+01:27:46 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+01:27:46     return queryset.get(*args, **kwargs)
+01:27:46            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+01:27:46     raise self.model.DoesNotExist(
+01:27:46 students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+01:27:46
+01:27:46 During handling of the above exception, another exception occurred:
+01:27:46
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2796, in session_results
+01:27:46     session = get_object_or_404(
+01:27:46               ^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+01:27:46     raise Http404(
+01:27:46 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2450, in task_status
+01:27:46     raise NotFound("Tracked task not found for this user.")
+01:27:46 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2521, in cancel
+01:27:46     raise NotFound("Tracked task not found for this user.")
+01:27:46 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:46 API Exception
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+01:27:46     return queryset.get(*args, **kwargs)
+01:27:46            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+01:27:46     raise self.model.DoesNotExist(
+01:27:46 students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+01:27:46
+01:27:46 During handling of the above exception, another exception occurred:
+01:27:46
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:46     response = handler(request, *args, **kwargs)
+01:27:46                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2574, in cancel_session
+01:27:46     session = get_object_or_404(
+01:27:46               ^^^^^^^^^^^^^^^^^^
+01:27:46   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+01:27:46     raise Http404(
+01:27:46 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:46 ok
+01:27:46 test_queued_grading_is_refused_and_never_charged_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_queued_grading_is_refused_and_never_charged_after_removal)
+01:27:46 The chokepoint: work queued before the removal (a grade-all, a ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:46 Grading refused (H-38): submission 063565b9-f2e7-4986-86e5-15152cc0f47f, user 7a96c4a5-ef2e-4b28-b03d-b1c8d7915b1b can no longer reach its course.
+01:27:46
+01:27:46
+01:27:46 students.task_tracking ERROR 2026-10-01 00:27:46,624 task_tracking 288403 135824028662720 [request_id=- client_request_id=-] Background task 0f133f70-c147-40ea-a1c9-8ab6a669663e failed
+01:27:46
+01:27:46 Traceback (most recent call last):
+01:27:46   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 556, in grade_engine_async
+01:27:46     raise CourseNotReachableError()
+01:27:46 students.exceptions.CourseNotReachableError: This course wasn't found.
+01:27:46 ok
+01:27:46 test_t1_to_t4_answer_404_after_removal_and_change_nothing (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t1_to_t4_answer_404_after_removal_and_change_nothing) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:47 API Exception
+01:27:47 Traceback (most recent call last):
+01:27:47   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:47     response = handler(request, *args, **kwargs)
+01:27:47                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:47   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2802, in session_results
+01:27:47     raise Http404("No BatchUploadSession matches the given query.")
+01:27:47 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:47 API Exception
+01:27:47 Traceback (most recent call last):
+01:27:47   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:47     response = handler(request, *args, **kwargs)
+01:27:47                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:47   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2450, in task_status
+01:27:47     raise NotFound("Tracked task not found for this user.")
+01:27:47 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:47 API Exception
+01:27:47 Traceback (most recent call last):
+01:27:47   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:47     response = handler(request, *args, **kwargs)
+01:27:47                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:47   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2521, in cancel
+01:27:47     raise NotFound("Tracked task not found for this user.")
+01:27:47 rest_framework.exceptions.NotFound: Tracked task not found for this user.
+01:27:47 API Exception
+01:27:47 Traceback (most recent call last):
+01:27:47   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+01:27:47     response = handler(request, *args, **kwargs)
+01:27:47                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:27:47   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2580, in cancel_session
+01:27:47     raise Http404("No BatchUploadSession matches the given query.")
+01:27:47 django.http.response.Http404: No BatchUploadSession matches the given query.
+01:27:47 ok
+01:27:47 test_t5_the_auto_grade_beat_grades_nothing_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t5_the_auto_grade_beat_grades_nothing_after_removal) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:47 Auto-grade skipped (H-38): assignment 6fab0577-c22a-433a-b3a2-1406400e0579, course 91063af5-7463-43ec-b88a-9f1f4b82b561 is no longer reachable by its teacher 588ae3e3-1622-4b70-9add-9f21e4558fef.
+01:27:47 ok
+01:27:47 test_the_auto_grade_beat_still_grades_before_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_the_auto_grade_beat_still_grades_before_removal)
+01:27:47 Control: a member's due assignment is still auto-graded. ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:47 ok
+01:27:47 test_the_owner_still_reaches_their_tasks_before_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_the_owner_still_reaches_their_tasks_before_removal)
+01:27:47 Control: the fix blocks nothing a current member may do. ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:27:47 ok
+01:27:47 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+01:27:47 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+01:27:48 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+01:27:48 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+01:27:48 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+01:27:48 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+01:27:48
+01:27:48 ----------------------------------------------------------------------
+01:27:48 Ran 22 tests in 6.231s
+01:27:48
+01:27:48 OK
+01:27:48 Destroying test database for alias 'default' ('test_epic_a_merge_down_b4')...
+01:27:49  OK
