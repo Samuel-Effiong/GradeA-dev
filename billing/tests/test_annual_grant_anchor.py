@@ -95,7 +95,9 @@ class AnnualGrantAnchorTests(TestCase):
     def drive(self, sub, outage=None):
         """Run the grant task on every day a grant is due, to the cycle end.
         `outage` = (first, last): no run happens between them; the first run
-        after it is at 02:00 on the day after `last`."""
+        after it is the next 02:00 after `last`. Runs are a day apart, as
+        Beat's are."""
+        last_run = None
         while True:
             sub.refresh_from_db()
             due = sub.next_credit_grant_at
@@ -103,7 +105,11 @@ class AnnualGrantAnchorTests(TestCase):
                 return
             run_at = run_time_for(due)
             if outage and outage[0] <= run_at <= outage[1]:
-                run_at = run_time_for(outage[1] + timedelta(days=1))
+                run_at = run_time_for(outage[1])
+            if last_run is not None and run_at <= last_run:
+                # One run a day: a grant still owed waits for the next one.
+                run_at = last_run + timedelta(days=1)
+            last_run = run_at
             self.assertLess(run_at, sub.billing_cycle_end, "the loop ran away")
             self.clock.moment = run_at
             process_annual_plan_credit_grants()
