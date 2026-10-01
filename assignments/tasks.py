@@ -542,10 +542,10 @@ def grade_engine_async(
         # grading and the auto-grade beat go through. Merge-down of bundle 4
         # (SM ruling): Epic A keeps this coded refusal; beta's H-38 soft
         # return is intentionally not carried here. Ids only.
-        if (
-            not reachable_courses(user)
-            .filter(pk=submission.assignment.course_id)
-            .exists()
+        # For a teacher the two halves agree; the reachable_courses half
+        # keeps S7b's refusal of a non-teacher who isn't the course's teacher.
+        if not teacher_may_reach(user, submission) or not (
+            reachable_courses(user).filter(pk=submission.assignment.course_id).exists()
         ):
             logger.warning(
                 "Grading refused (H-38): submission %s, user %s can no longer "
