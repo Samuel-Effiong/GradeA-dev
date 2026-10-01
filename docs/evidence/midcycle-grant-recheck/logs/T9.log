@@ -1,0 +1,12 @@
+# T9: expiry re-checks on the credits (force=True) path too (1a's X1)
+# file: billing/services.py (occurrence 1)
+# old: '        if not (locked.is_trial and locked.is_active):\n'
+# new: '        if not force and not (locked.is_trial and locked.is_active):\n'
+# commit: 6f8c536da8f515c089a4c0d79c60b61115a2892c
+# exit: 1
+# elapsed_s: 22.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_checkout_conversion_is_not_undone_on_the_credits_path (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_checkout_conversion_is_not_undone_on_the_credits_path)
+
+FAILED (failures=1)

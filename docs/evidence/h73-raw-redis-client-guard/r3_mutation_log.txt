@@ -1,0 +1,23 @@
+P1_beat_locks_gains_a_raw_write {'killed': True, 'failing_tests': ['test_every_raw_client_user_is_listed']}
+P2_health_probe_moves_to_the_raw_client {'killed': True, 'failing_tests': ['test_every_raw_client_user_is_listed', 'test_nothing_is_cached_under_a_raw_key']}
+P3_beat_locks_gains_a_pipeline_getex {'killed': True, 'failing_tests': ['test_every_raw_client_user_is_listed']}
+P4_beat_locks_gains_a_lock {'killed': True, 'failing_tests': ['test_every_raw_client_user_is_listed']}
+P5_beat_health_uses_beat_locks_redis_via_the_module {'killed': True, 'failing_tests': ['test_every_raw_client_user_is_listed']}
+S1_yield_factories_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+S2_for_targets_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+S3_positional_parameters_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+S4_cache_client_wrapper_missed {'killed': True, 'failing_tests': ['test_the_scanner_finds_every_shape_it_exists_to_catch']}
+S5_imported_factories_missed {'killed': True, 'failing_tests': ['test_a_factory_imported_from_another_module_is_found_across_modules']}
+F1a_write_names_only_on_followed_clients {'killed': True, 'failing_tests': ['test_a_write_name_counts_whatever_it_is_called_on', 'test_every_raw_client_user_is_listed']}
+F1b_no_read_allow_list {'killed': True, 'failing_tests': ['test_a_factory_imported_from_another_module_is_found_across_modules', 'test_any_non_read_call_on_a_client_is_a_write']}
+F1c_with_as_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F1d_annotated_assign_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F1e_walrus_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F1f_factory_returning_a_bound_name_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F1g_self_attribute_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F1h_keyword_argument_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F1i_closure_missed {'killed': True, 'failing_tests': ['test_any_non_read_call_on_a_client_is_a_write']}
+F2a_module_attribute_factory_missed {'killed': True, 'failing_tests': ['test_a_factory_imported_from_another_module_is_found_across_modules']}
+F2b_from_package_import_module_missed {'killed': True, 'failing_tests': ['test_a_factory_imported_from_another_module_is_found_across_modules']}
+F2c_import_module_missed {'killed': True, 'failing_tests': ['test_a_factory_imported_from_another_module_is_found_across_modules']}
+SURVIVORS: []

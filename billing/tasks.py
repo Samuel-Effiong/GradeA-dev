@@ -27,6 +27,9 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
+
 from .imports import stripe
 from .license_service import (
     LicenseSubscriptionService,
@@ -36,6 +39,7 @@ from .models import (
     BetaProfile,
     BillingInterval,
     CreditBucket,
+    CreditBucketType,
     CreditWallet,
     LicenseBillingMethod,
     LicenseSubscription,
@@ -45,6 +49,7 @@ from .models import (
     StripeSubscriptionStatus,
     UserSubscription,
 )
+from .refresh_timing import OWED_REFRESH_OVERDUE, refresh_due_by
 from .services import AnalyticsService, SubscriptionService
 from .stripe_service import (
     RENEWAL_BILLING_REASONS,
@@ -155,6 +160,7 @@ def _find_new_period_paid_invoice(
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_license_renewals(self):
     """
     Daily fallback for license renewals.
@@ -302,7 +308,52 @@ def process_license_renewals(self):
     return summary
 
 
+def _monthly_buckets_owed_a_refresh(expired_buckets):
+    """
+    Ids of the expired buckets cleanup must leave alone: each wallet's
+    NEWEST unprocessed MONTHLY bucket, while its owner is still entitled
+    (an active subscription, or an active allocation under an active
+    licence). For them an expired monthly bucket means a refresh or renewal
+    is still owed, and that refresh is what rolls the bucket over
+    (billing/refresh_timing.py, defence 3). Older unprocessed MONTHLY
+    buckets, and everyone no longer entitled, are cleaned up as before.
+    """
+    wallet_ids = {
+        b.wallet_id
+        for b in expired_buckets
+        if b.bucket_type == CreditBucketType.MONTHLY
+    }
+    if not wallet_ids:
+        return set()
+
+    entitled_users = set(
+        UserSubscription.objects.filter(
+            is_active=True, user__credit_wallet__in=wallet_ids
+        ).values_list("user_id", flat=True)
+    ) | set(
+        SchoolCreditAllocation.objects.filter(
+            is_active=True,
+            license_subscription__is_active=True,
+            user__credit_wallet__in=wallet_ids,
+        ).values_list("user_id", flat=True)
+    )
+    newest = {}
+    for bucket_id, wallet_id in (
+        CreditBucket.objects.filter(
+            wallet_id__in=wallet_ids,
+            wallet__user_id__in=entitled_users,
+            bucket_type=CreditBucketType.MONTHLY,
+            is_processed=False,
+        )
+        .order_by("wallet_id", "-created_at")
+        .values_list("id", "wallet_id")
+    ):
+        newest.setdefault(wallet_id, bucket_id)
+    return set(newest.values())
+
+
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def cleanup_expired_credit_buckets(self):
     """
     Finds all CreditBuckets that have physically expired (expires_at <= now)
@@ -326,12 +377,28 @@ def cleanup_expired_credit_buckets(self):
         expires_at__lte=now,
         is_processed=False,
     ).select_related("wallet__user")
+    owed = _monthly_buckets_owed_a_refresh(expired_buckets)
 
     total_expired_count = 0
     total_value_lost = 0
     failed_count = 0
+    kept_for_refresh_count = 0
 
     for bucket in expired_buckets:
+        if bucket.pk in owed:
+            # The refresh or renewal still owed to this customer rolls this
+            # bucket over; writing it off first loses their carry-over.
+            kept_for_refresh_count += 1
+            if bucket.expires_at <= now - OWED_REFRESH_OVERDUE:
+                logger.error(
+                    "Monthly bucket %s (wallet %s) expired at %s and is still "
+                    "waiting for its owner's refresh or renewal; the refresh "
+                    "has stopped. Kept unexpired so it can still roll over.",
+                    bucket.id,
+                    bucket.wallet_id,
+                    bucket.expires_at,
+                )
+            continue
         try:
             value_lost = SubscriptionService.expire_bucket(bucket)
             total_expired_count += 1
@@ -350,6 +417,7 @@ def cleanup_expired_credit_buckets(self):
     summary = (
         f"Credit bucket cleanup: "
         f"{total_expired_count} buckets processed, "
+        f"{kept_for_refresh_count} monthly buckets kept for an owed refresh, "
         f"{total_value_lost} raw credits expired, "
         f"{failed_count} failed."
     )
@@ -358,6 +426,7 @@ def cleanup_expired_credit_buckets(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_annual_plan_credit_grants(self):
     """
     For ANNUAL-interval individual plans only: grants the next month's
@@ -375,21 +444,31 @@ def process_annual_plan_credit_grants(self):
     """
     now = timezone.now()
 
+    # Due up to a small tolerance past this run's start, and one "now" for
+    # the whole run (billing/refresh_timing.py): otherwise each grant fell
+    # due a moment after the next month's run started, waited a day, and
+    # the 05:00 cleanup wrote off the bucket it should have rolled over.
     due_subs = UserSubscription.objects.filter(
         is_active=True,
         is_trial=False,
         plan__interval=BillingInterval.ANNUAL,
-        next_credit_grant_at__lte=now,
-        billing_cycle_end__gt=now,
+        next_credit_grant_at__lte=refresh_due_by(now),
+        next_credit_grant_at__lt=F("billing_cycle_end"),
+        # A contract ending within the tolerance counts as ended (1a's F2):
+        # a grant then would be a month's bucket for its last minutes.
+        billing_cycle_end__gt=refresh_due_by(now),
     ).select_related("user", "plan")
 
     granted_count = 0
+    already_granted_count = 0
     failed_count = 0
 
     for sub in due_subs:
         try:
-            SubscriptionService.process_mid_cycle_credit_grant(sub)
-            granted_count += 1
+            if SubscriptionService.process_mid_cycle_credit_grant(sub, now=now) is None:
+                already_granted_count += 1
+            else:
+                granted_count += 1
         except Exception as exc:
             failed_count += 1
             logger.error(
@@ -402,13 +481,16 @@ def process_annual_plan_credit_grants(self):
 
     summary = (
         f"Annual plan mid-cycle credit grants: "
-        f"{granted_count} granted, {failed_count} failed."
+        f"{granted_count} granted, "
+        f"{already_granted_count} already granted by another run, "
+        f"{failed_count} failed."
     )
     logger.info(summary)
     return summary
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def reconcile_subscription_renewals(self):
     """
     Daily safety net: ensures that all active individual subscriptions
@@ -592,6 +674,7 @@ def reconcile_subscription_renewals(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.EVERY_6_HOURS)
 def expire_active_trials(self):
     """
     Expire trials where either:
@@ -623,6 +706,7 @@ def expire_active_trials(self):
 
     expired_by_time_count = 0
     expired_by_credits_count = 0
+    already_handled_count = 0
     failed_count = 0
     skipped_still_valid = 0
 
@@ -635,7 +719,9 @@ def expire_active_trials(self):
             if trial_end and trial_end <= now:
                 # Time window expired — expire it
 
-                SubscriptionService.expire_trial(trial_sub)
+                if not SubscriptionService.expire_trial(trial_sub):
+                    already_handled_count += 1
+                    continue
                 expired_by_time_count += 1
                 logger.info(
                     "Trial expired (14-day window passed) for user %s "
@@ -668,7 +754,9 @@ def expire_active_trials(self):
                 # User has no credits left - expire the trial immediately
                 # even if the 14-day window hasn't closed yet.
 
-                SubscriptionService.expire_trial(trial_sub, force=True)
+                if not SubscriptionService.expire_trial(trial_sub, force=True):
+                    already_handled_count += 1
+                    continue
                 expired_by_credits_count += 1
 
                 logger.info(
@@ -708,6 +796,7 @@ def expire_active_trials(self):
         f"{expired_by_time_count} expired (14-day limit), "
         f"{expired_by_credits_count} expired (credits exhausted), "
         f"{skipped_still_valid} still valid, "
+        f"{already_handled_count} already expired or converted, "
         f"{failed_count} failed."
     )
     logger.info(summary)
@@ -823,6 +912,7 @@ def _redispatch_abandoned_event(event) -> RecoveryOutcome:
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def sweep_stale_stripe_events(self):
     """
     Watchdog for the Stripe webhook idempotency ledger (billing/webhooks.py).
@@ -972,6 +1062,7 @@ def sweep_stale_stripe_events(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_license_monthly_credit_refreshes(self):
     """
     Monthly credit refresh for teachers under active licenses.
@@ -981,11 +1072,14 @@ def process_license_monthly_credit_refreshes(self):
     now = timezone.now()
 
     # Get all active allocations that need a refresh, within active licenses.
+    # Due up to a small tolerance past this run's start, with one "now" for
+    # the whole run (billing/refresh_timing.py).
     due_allocations = SchoolCreditAllocation.objects.filter(
         is_active=True,
-        next_credit_grant_at__lte=now,
+        next_credit_grant_at__lte=refresh_due_by(now),
         license_subscription__is_active=True,
-        license_subscription__billing_cycle_end__gt=now,
+        # A contract ending within the tolerance counts as ended (1a's F2).
+        license_subscription__billing_cycle_end__gt=refresh_due_by(now),
     ).select_related("license_subscription", "user", "license_subscription__plan")
 
     refreshed_count = 0
@@ -1010,11 +1104,13 @@ def process_license_monthly_credit_refreshes(self):
                     continue
 
                 # Check if next_credit_grant_at is still due (avoid race)
-                if locked_allocation.next_credit_grant_at > now:
+                if locked_allocation.next_credit_grant_at > refresh_due_by(now):
                     continue
 
                 # Perform the refresh
-                LicenseSubscriptionService._refresh_teacher_credits(locked_allocation)
+                LicenseSubscriptionService._refresh_teacher_credits(
+                    locked_allocation, now=now
+                )
                 refreshed_count += 1
 
         except Exception as exc:
@@ -1036,6 +1132,7 @@ def process_license_monthly_credit_refreshes(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def nightly_stripe_live_qa(self):
     """
     Run the billing QA scenarios against REAL Stripe test mode.
@@ -1233,6 +1330,7 @@ def run_live_qa_console_job(self, run_id):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def recalculate_conversion_probabilities(self):
     """
     Nightly refresh of every BetaProfile's conversion score.
@@ -1280,19 +1378,8 @@ def recalculate_conversion_probabilities(self):
     return summary
 
 
-#: Overlap guard for the nightly price sweep. A cache TTL rather than a
-#: row lock, so a worker killed mid-run releases it automatically — a lock
-#: that survives a crash would silently disable the reconciliation until
-#: someone noticed it had stopped reporting, which is the worst possible
-#: failure for a watchdog.
-#:
-#: Comfortably longer than a run (~18 Stripe reads) and comfortably shorter
-#: than the 24h gap to the next one.
-PRICE_RECONCILIATION_LOCK_KEY = "billing:price-reconciliation:running"
-PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS = 30 * 60
-
-
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.PRICE_SWEEP)
 def reconcile_stripe_prices(self):
     """
     Nightly: does every plan still cost what this application thinks?
@@ -1307,33 +1394,15 @@ def reconcile_stripe_prices(self):
     the current plan set, so the cost of checking daily is negligible
     against the cost of a wrong price standing for a week.
     """
-    from django.core.cache import cache
-
     from .price_reconciliation import reconcile_prices
 
     # Two Beat instances, or a manual run overlapping the scheduled one,
     # would duplicate every Stripe read and write two competing result
-    # sets for the same moment. Harmless to billing — nothing here mutates
-    # — but it makes the audit trail ambiguous, which defeats the point.
-    if not cache.add(
-        PRICE_RECONCILIATION_LOCK_KEY,
-        "1",
-        timeout=PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS,
-    ):
-        summary = (
-            "Stripe price reconciliation: another run already holds the "
-            "lock; skipping this one."
-        )
-        logger.info(summary)
-        return summary
-
-    try:
-        run = reconcile_prices()
-        return run.summary
-    finally:
-        # Released on every path, including a raise. The TTL is the
-        # backstop for a hard kill that never reaches this line.
-        cache.delete(PRICE_RECONCILIATION_LOCK_KEY)
+    # sets for the same moment. Harmless to billing (nothing here mutates)
+    # but it makes the audit trail ambiguous, which defeats the point.
+    # @single_instance (H-65) skips the second run.
+    run = reconcile_prices()
+    return run.summary
 
 
 @shared_task(bind=True, max_retries=0)
@@ -1398,6 +1467,7 @@ def reconcile_overage_prices(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def reconcile_subscription_prices(self):
     """
     Daily detector for local-plan / Stripe-price divergence.
@@ -1622,6 +1692,7 @@ def fill_billing_transaction_receipt_url(self, transaction_id):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)
 def escalate_stale_licence_stripe_intents(self):
     """
     Every 5 minutes: escalate licence Stripe-change intents abandoned
@@ -1641,6 +1712,7 @@ def escalate_stale_licence_stripe_intents(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def sweep_missing_receipt_urls(self):
     """
     Hourly safety net for receipt links the on_commit task never filled
@@ -1658,6 +1730,7 @@ def sweep_missing_receipt_urls(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def replay_safe_failed_stripe_events(self):
     """
     Re-run FAILED Stripe webhook events for the one allow-listed flow, so a

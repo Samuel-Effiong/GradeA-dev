@@ -25,3 +25,22 @@ Whole-repo mypy passed first.
 | `2f77394` | 18:49:14–18:56:02 (408 s) | **Ran 5303 tests, OK (skipped=28)**, 0 blocked outbound |
 
 The first strict run on the final code tip passed, so no re-run was needed.
+
+## Strict full run after the F6 fold-in (founder decision b2)
+Four live-bug fixes (F6) were folded into bundle 4 after the first run, each merged gated on its dry run:
+- **Item 1, the add_teachers school-name leak:** `82e724a` (1a VERIFIED-WITH-NOTES); merged at `3b94aa8`.
+- **Item 2, the H-38 tasks namespace and auto-grade:** `d755926` (1a VERIFIED); merged at `7faaedf`.
+- **Item 3, the mid-cycle grant and trial-expiry re-checks:** `2bfa2e8` (1a VERIFIED-WITH-NOTES); merged at `e190f06`.
+- **Item 4, the monthly rollover lost to the 05:00 cleanup (round 2):** `4da21c3` (1a VERIFIED, after round 1 was REJECTED); merged at `9627f7d`, with the record `52dbdc8` at `4e629d4`.
+
+There are no migrations or settings changes in `2f77394..4e629d4`, and `makemigrations --check` is clean.
+
+**The command** is the same as above, with every `RACE_COST_*` variable and `AUDIT_BENCH` unset. Whole-repo mypy passed first.
+
+| Tip | Start–end (WAT) | Result |
+|---|---|---|
+| `4e629d4` | 22:40:34–23:32:10 (3096 s wall; tests measured 514 s) | **Ran 5382 tests, OK (skipped=28)**, 0 blocked outbound |
+
+**The wall clock includes a system suspend.** The machine suspended at 22:48:01 and resumed at 23:30:31 (`journalctl`: "The system will suspend now!" / "PM: suspend entry (s2idle)"). The run was frozen in the middle, not hung, and it resumed and passed. Django's time (514 s) doesn't count the suspend, because it uses a monotonic clock. No test failed or errored.
+
+The first strict run on the final code tip passed, so no re-run was needed.

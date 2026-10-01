@@ -66,6 +66,8 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
+from .refresh_timing import monthly_bucket_expiry as grace_expiry
+from .refresh_timing import refresh_due_by
 
 logger = logging.getLogger(__name__)
 
@@ -686,7 +688,7 @@ class LicenseSubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=raw_amount,
             used_credits=0,
-            expires_at=next_refresh,
+            expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end),
         )
 
         CreditLedger.record(
@@ -764,11 +766,14 @@ class LicenseSubscriptionService:
                 "error": None,
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
+            # Class and ids only, never the refusal's text (H-78): the
+            # not-business and individual-subscription refusals carry the
+            # address. Each refusal logs its own ids-only line.
             logger.warning(
-                "Skipped enrolling %s in license %s: %s",
-                email,
+                "Skipped enrolling a teacher in license %s (school %s): %s",
                 license_sub.id,
-                exc,
+                school.id,
+                type(exc).__name__,
             )
             return {
                 "email": email,
@@ -1146,11 +1151,9 @@ class LicenseSubscriptionService:
         # 1. Business email validation
         if not is_exempt_email_domain(email) and not is_business_email(email):
             error_msg = f"Email {email} is not a business email. Only business emails are allowed."
-
+            logger.warning("Not a business email: teacher not enrolled.")
             if raise_on_conflict:
                 raise ValueError(error_msg)
-            logger.warning(error_msg)
-
             return None
 
         # Check if user with this email already exists, whatever its case
@@ -1159,14 +1162,33 @@ class LicenseSubscriptionService:
         if user:
             # 2. Validate user type
             if user.user_type != UserTypes.TEACHER:
-                error_msg = f"Email {email} already belongs to a {user.user_type} account, not a teacher."
-
+                # Generic on purpose (SM ruling): naming the account's role
+                # told any school admin what kind of account an arbitrary
+                # address has on the platform. The log carries ids only.
+                error_msg = "This email can't be added as a teacher."
+                logger.warning("User %s is not a teacher: not enrolled.", user.id)
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
-            # 3. Check for active individual subscription
+            # 3. School validation. Before the subscription check (H-78): another
+            # school's teacher's billing status is not this admin's to learn.
+            if user.school and user.school != school:
+                # Generic on purpose: naming the other school told any school
+                # admin which school an arbitrary address belongs to (a
+                # cross-tenant disclosure). The log carries ids only.
+                error_msg = "This teacher already belongs to another school."
+                logger.warning(
+                    "Teacher %s belongs to school %s, not %s: not enrolled.",
+                    user.id,
+                    user.school_id,
+                    school.id,
+                )
+                if raise_on_conflict:
+                    raise ValueError(error_msg)
+                return None
+
+            # 4. Check for active individual subscription
             has_individual_sub = user.subscriptions.filter(is_active=True).exists()
 
             if has_individual_sub:
@@ -1175,22 +1197,12 @@ class LicenseSubscriptionService:
                     "Individual subscriptions cannot be converted to a license. "
                     "Please cancel the individual subscription first."
                 )
-
+                logger.warning(
+                    "Teacher %s has an individual subscription: not enrolled.",
+                    user.id,
+                )
                 if raise_on_conflict:
                     raise IndividualSubscriptionConflictError(error_msg)
-                logger.warning(error_msg)
-                return None
-
-            # 4. School validation
-            if user.school and user.school != school:
-                error_msg = (
-                    f"Teacher {email!r} already belongs to school {user.school.name!r}. "
-                    f"Cannot enroll under {school.name!r}."
-                )
-
-                if raise_on_conflict:
-                    raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # Associate the teacher with the school if they don't have one
@@ -1357,7 +1369,10 @@ class LicenseSubscriptionService:
                 "Individual subscriptions cannot be converted to a license. "
                 "Please cancel the individual subscription first."
             )
-            logger.warning(error_msg)
+            logger.warning(
+                "Teacher %s has an individual subscription: not enrolled.",
+                teacher.id,
+            )
             raise IndividualSubscriptionConflictError(error_msg)
 
         now = timezone.now()
@@ -1514,9 +1529,14 @@ class LicenseSubscriptionService:
                         cap_meta,
                     )
 
-            # Expire the old bucket
+            # Expire the old bucket, retired like the plan change's (H-76):
+            # without is_processed the 05:00 cleanup expired its unused
+            # credits again, after they had been rolled over above.
             existing_monthly.expires_at = now
-            existing_monthly.save(update_fields=["expires_at", "updated_at"])
+            existing_monthly.is_processed = True
+            existing_monthly.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
             logger.info(
                 "Expired old MONTHLY bucket for teacher %s",
                 teacher.email,
@@ -1536,7 +1556,7 @@ class LicenseSubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=grant_amount,
             used_credits=0,
-            expires_at=next_refresh,
+            expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end),
         )
 
         # 7. Create audit ledger entry with the actual grant amount
@@ -1884,7 +1904,9 @@ class LicenseSubscriptionService:
                         wallet=wallet,
                         plan=license_sub.plan,
                         grant_amount=allocation.monthly_allocation,
-                        new_expiry=now + relativedelta(months=1),
+                        new_expiry=grace_expiry(
+                            now + relativedelta(months=1), renewal_end
+                        ),
                         now=now,
                         reference=(
                             f"Renewal allocation for LICENSE subscription {license_sub.id} "
@@ -3650,17 +3672,18 @@ class LicenseSubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def _refresh_teacher_credits(allocation: SchoolCreditAllocation) -> None:
+    def _refresh_teacher_credits(allocation: SchoolCreditAllocation, now=None) -> None:
         """
         Refresh a teacher's monthly credits: expire current monthly bucket,
         apply rollover, and create a new monthly bucket.
-        Called by the monthly refresh task.
+        Called by the monthly refresh task, which passes its start time as
+        `now` (billing/refresh_timing.py).
         """
 
         teacher = allocation.user
         wallet = teacher.credit_wallet
         license_sub = allocation.license_subscription
-        now = timezone.now()
+        now = now or timezone.now()
         next_refresh = now + relativedelta(months=1)
 
         # Open a new monthly consumption window, at most once per month per
@@ -3679,7 +3702,13 @@ class LicenseSubscriptionService:
         LicenseSubscription.objects.filter(
             Q(pk=license_sub.pk),
             Q(consumption_window_start__isnull=True)
-            | Q(consumption_window_start__lte=now - relativedelta(months=1)),
+            # The same tolerance as the refresh's due check (1a's F1): a run
+            # a few seconds earlier than last month's refreshes the teacher,
+            # so it must reopen the window too.
+            | Q(
+                consumption_window_start__lte=refresh_due_by(now)
+                - relativedelta(months=1)
+            ),
         ).update(
             total_credits_consumed=0,
             consumption_window_start=now,
@@ -3691,7 +3720,7 @@ class LicenseSubscriptionService:
             wallet=wallet,
             plan=license_sub.plan,
             grant_amount=allocation.monthly_allocation,
-            new_expiry=next_refresh,
+            new_expiry=grace_expiry(next_refresh, license_sub.billing_cycle_end),
             now=now,
             reference=f"Monthly grant for license {license_sub.id}",
             metadata={
@@ -3780,7 +3809,9 @@ class LicenseSubscriptionService:
                         wallet=wallet,
                         plan=license_sub.plan,
                         grant_amount=allocation.monthly_allocation,
-                        new_expiry=now + relativedelta(months=1),
+                        new_expiry=grace_expiry(
+                            now + relativedelta(months=1), new_billing_cycle_end
+                        ),
                         now=now,
                         reference=f"Offline renewal allocation for license {license_sub.id}",
                         metadata={
