@@ -43,6 +43,7 @@ from AutoGrader.beat_locks import (
 from AutoGrader.testing.concurrency import run_concurrently
 
 MINUTES_IN_A_WEEK = 7 * 24 * 60
+EVERY_5_MIN_TASK = "billing.tasks.escalate_stale_licence_stripe_intents"
 
 
 def task_named(path):
@@ -115,6 +116,21 @@ class BeatScheduleCoverageTests(SimpleTestCase):
                 self.assertGreater(lock.ttl_seconds, 0)
                 self.assertLessEqual(lock.ttl_seconds, lock.max_hold_seconds)
                 self.assertLess(lock.max_hold_seconds, schedule_gap_seconds(schedule))
+
+    def test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run(self):
+        """N1 (1a): a run's last heartbeat can land just before max_hold and
+        keep the lock a full TTL longer, and so can a worker killed right
+        after a heartbeat. The worst-case lifetime is max_hold + ttl, and it
+        must end before the next scheduled fire."""
+        for task, (entry, schedule) in beat_entries().items():
+            lock = declared_lock(task_named(task))
+            if lock is None:
+                continue
+            with self.subTest(entry):
+                self.assertLess(
+                    lock.max_hold_seconds + lock.ttl_seconds,
+                    schedule_gap_seconds(schedule),
+                )
 
     def test_the_gap_calculation(self):
         self.assertEqual(schedule_gap_seconds(crontab(minute="*/5")), 300)
@@ -280,6 +296,20 @@ class SingleInstanceTests(LockTestCase):
         task()
         self.assertEqual(len(set(tokens)), 2, tokens)
 
+    def test_a_ttl_above_max_hold_is_capped_at_max_hold(self):
+        """No scheduled task passes ttl > max_hold since 1a's N1, so this is
+        the cap's only test (mutant L9)."""
+        seen = {}
+
+        def body():
+            seen["pttl"] = beat_locks._redis().pttl(lock_key(self.name))
+
+        task = self.locked(max_hold=2, ttl=600, body=body)
+        self.assertEqual(task.single_instance.ttl_seconds, 2)
+        task()
+        self.assertGreater(seen["pttl"], 0)
+        self.assertLessEqual(seen["pttl"], 2000)
+
 
 class HeartbeatTests(LockTestCase):
     def test_a_live_run_keeps_its_lock_past_the_ttl(self):
@@ -310,6 +340,61 @@ class HeartbeatTests(LockTestCase):
 
         self.assertTrue(seen["lapsed"])
         self.assertIn("maximum hold", logs.output[0])
+
+    def test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl(self):
+        """The worst-case lifetime the schedule guard relies on."""
+        max_hold, ttl = 2, 1
+        seen = {}
+
+        def body():
+            deadline = time.monotonic() + max_hold + ttl + 0.5
+            while self.holder() is not None and time.monotonic() < deadline:
+                time.sleep(0.05)
+            seen["lapsed"] = self.holder() is None
+
+        with self.assertLogs("AutoGrader.beat_locks", "ERROR"):
+            self.locked(max_hold=max_hold, ttl=ttl, body=body)()
+
+        self.assertTrue(seen["lapsed"])
+
+
+class EveryFiveMinuteScaledTests(LockTestCase):
+    """1a's probe L: the every-5-minute task's real lock values, scaled 1:60
+    so the ratios are exact (its 300 s interval becomes 5 s)."""
+
+    def test_a_hung_run_does_not_swallow_the_next_every_5_minute_run(self):
+        lock = declared_lock(task_named(EVERY_5_MIN_TASK))
+        assert lock is not None
+        max_hold, ttl = lock.max_hold_seconds // 60, lock.ttl_seconds // 60
+        self.assertEqual(
+            (max_hold * 60, ttl * 60), (lock.max_hold_seconds, lock.ttl_seconds)
+        )
+        interval = 5
+        release = threading.Event()
+        ran = []
+
+        @single_instance(max_hold=max_hold, ttl=ttl)
+        def h65_scaled_task():
+            ran.append(time.monotonic())
+            if len(ran) == 1:
+                release.wait(interval + 4)  # hung
+            return "ran"
+
+        started = time.monotonic()
+        hung = threading.Thread(target=h65_scaled_task)
+        with self.assertLogs("AutoGrader.beat_locks", "ERROR"):
+            hung.start()
+            time.sleep(max(0.0, started + interval + 0.1 - time.monotonic()))
+            result = h65_scaled_task()
+            release.set()
+            hung.join(timeout=15)
+
+        self.assertEqual(
+            (len(ran), result),
+            (2, "ran"),
+            "the next scheduled run was skipped: the hung run's lock outlived "
+            "the interval",
+        )
 
 
 class RealTaskSkipTests(TestCase):

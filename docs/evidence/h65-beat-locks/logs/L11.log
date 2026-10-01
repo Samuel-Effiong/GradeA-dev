@@ -1,0 +1,14 @@
+# L11: every-5-minute max_hold is below its interval
+# file: AutoGrader/beat_locks.py (occurrence 1)
+# old: 'EVERY_5_MIN = timedelta(minutes=3)\n'
+# new: 'EVERY_5_MIN = timedelta(minutes=6)\n'
+# commit: c5790bbfb740e26f57da78299b48f6ffa05cc74a
+# exit: 1
+# elapsed_s: 18.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run) [escalate-stale-licence-stripe-intents]
+FAIL: test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval) [escalate-stale-licence-stripe-intents]
+FAIL: test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run)
+
+FAILED (failures=3)

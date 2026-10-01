@@ -38,8 +38,10 @@ HOW
    Lua), and only up to `max_hold`. A hard-killed worker's lock lapses
    within one TTL. A run still going after `max_hold` is logged at ERROR
    and its lock is left to lapse, so a hung run can never block the job
-   for good; `max_hold` is below the schedule interval (a test checks
-   every entry), so the next scheduled run always gets its turn;
+   for good. The last extension can land just before `max_hold`, so a
+   lock lives at most `max_hold + ttl`; that is below the schedule
+   interval (a test checks every entry), so the next scheduled run always
+   gets its turn;
 5. releases the lock in `finally` with compare-and-delete in Lua, so a run
    whose lock lapsed can never delete a newer run's lock.
 
@@ -67,9 +69,13 @@ KEY_ROOT = "beat-lock"
 DEFAULT_TTL_SECONDS = 300
 
 #: The longest a run may hold its lock, per schedule. Each is above the
-#: task's worst realistic run and below its schedule interval, so a hung run
-#: can never swallow the next scheduled one (a test checks every entry).
-EVERY_5_MIN = timedelta(minutes=4)
+#: task's worst realistic run, and max_hold + ttl (a lock's longest life)
+#: is below its schedule interval, so a hung run can never swallow the next
+#: scheduled one (a test checks every entry).
+EVERY_5_MIN = timedelta(minutes=3)
+#: The default TTL would give 3 + 3 minutes (the TTL is capped at max_hold)
+#: against a 5-minute interval (1a's N1); 3 + 1 leaves a minute to spare.
+EVERY_5_MIN_TTL = timedelta(minutes=1)
 HOURLY = timedelta(minutes=50)
 EVERY_6_HOURS = timedelta(hours=5)
 DAILY = timedelta(hours=6)
