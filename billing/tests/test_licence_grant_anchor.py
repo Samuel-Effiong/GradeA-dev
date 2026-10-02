@@ -594,3 +594,107 @@ class MovedDueTimeTests(LicenceClockTestCase):
         allocation.refresh_from_db()
         self.assertEqual(allocation.next_credit_grant_at, target)
         self.assertIsNone(allocation.grant_anchor_at)
+
+
+class ConsumptionWindowOnLicencePointsTests(LicenceClockTestCase):
+    """H-93: the licence's consumption window reopens on the LICENCE's own
+    monthly points (its cycle start plus k months), at the first teacher
+    refresh after each one: 12 windows a year, whatever days the teachers
+    are anchored on (1a's O1: with teachers on the 1st and the 25th, a rule
+    based on the window's age reopened it about every 24 days)."""
+
+    def windows(self, licence, first, last):
+        """Run the task at 03:00 every day; the distinct window starts."""
+        seen = []
+        day = first.replace(hour=3, minute=0, second=0, microsecond=0)
+        while day < last:
+            self.clock.moment = day
+            process_license_monthly_credit_refreshes()
+            window = LicenseSubscription.objects.get(
+                pk=licence.pk
+            ).consumption_window_start
+            if not seen or window != seen[-1]:
+                seen.append(window)
+            day += timedelta(days=1)
+        return seen
+
+    def test_teachers_on_the_1st_and_the_25th_share_12_windows_a_year(self):
+        start = datetime(2026, 1, 1, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        self.enrol(licence, start)
+        self.enrol(licence, datetime(2026, 1, 25, 9, 0, tzinfo=UTC))
+
+        windows = self.windows(licence, start, licence.billing_cycle_end)
+
+        self.assertEqual(
+            [w.date() for w in windows], self.anchor_dates(start, range(0, 12))
+        )
+
+    def test_a_teacher_anchored_off_the_licences_day_still_gives_12_windows(self):
+        """Nobody is anchored on the licence's day (the 1st): the window
+        reopens at the first refresh after each licence point, the 11th."""
+        start = datetime(2026, 1, 1, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        self.enrol(licence, datetime(2026, 1, 10, 9, 0, tzinfo=UTC))
+
+        windows = self.windows(licence, start, licence.billing_cycle_end)
+
+        self.assertEqual(len(windows), 12)
+        self.assertEqual({w.day for w in windows[1:]}, {11})
+
+    def test_after_an_outage_the_next_licence_point_reopens_on_time(self):
+        """The first catch-up refresh reopens the window; so does the
+        licence's next point two weeks later (no six-week window)."""
+        start = datetime(2026, 1, 15, 1, 0, tzinfo=UTC)
+        allocation = self.enrol(self.licence(start), start)
+        outage = (
+            datetime(2026, 3, 1, tzinfo=UTC),
+            datetime(2026, 5, 31, 23, 0, tzinfo=UTC),
+        )
+
+        self.drive(allocation, outage=outage)
+
+        reopened = {run_at.date(): window.date() for run_at, _, window in self.runs}
+        june = datetime(2026, 6, 1).date()
+        self.assertEqual(reopened[june], june)
+        self.assertEqual(reopened[datetime(2026, 6, 2).date()], june)
+        self.assertEqual(reopened[datetime(2026, 6, 3).date()], june)
+        mid_june = datetime(2026, 6, 15).date()
+        self.assertEqual(reopened[mid_june], mid_june)
+
+    def test_a_renewal_mid_year_moves_the_points_to_the_new_cycle_start(self):
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        allocation = self.enrol(licence, start)
+        renewed = datetime(2026, 4, 20, 12, 0, tzinfo=UTC)
+        self.drive(allocation, until=renewed)
+        self.clock.moment = renewed
+        licence.refresh_from_db()
+        LicenseSubscriptionService.process_offline_renewal(
+            licence,
+            performed_by=self.admin,
+            new_billing_cycle_end=renewed + relativedelta(months=12),
+        )
+        licence.refresh_from_db()
+        self.assertEqual(licence.consumption_window_start.date(), renewed.date())
+        self.runs.clear()
+
+        self.drive(allocation)
+
+        # Each 12:00 point is met by the next day's 03:00 run.
+        self.assertEqual(
+            [window.date() for _, _, window in self.runs],
+            [d + timedelta(days=1) for d in self.anchor_dates(renewed, range(1, 12))],
+        )
+
+    def test_a_point_within_the_due_tolerance_of_the_run_reopens(self):
+        """A licence that began at 03:02: the 03:00 run refreshes its
+        teacher (due within the tolerance), so it reopens the window too."""
+        start = datetime(2026, 1, 31, 3, 2, tzinfo=UTC)
+        licence = self.licence(start)
+        allocation = self.enrol(licence, start)
+
+        self.run_refresh(allocation, datetime(2026, 2, 28, 3, 0, tzinfo=UTC))
+
+        self.assertEqual(len(self.refreshes(allocation)), 1)
+        self.assertEqual(self.runs[-1][2].date(), datetime(2026, 2, 28).date())
