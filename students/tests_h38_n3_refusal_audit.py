@@ -25,6 +25,8 @@ answer stays the plain "This course wasn't found.".
 """
 
 import json
+import uuid
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -58,6 +60,12 @@ from students.tests_h38_tasks_namespace import SENTINEL, TasksFixture
 from users.models import UserTypes
 
 CODE = "COURSE_NOT_REACHABLE"
+
+
+def queued(*args, **kwargs):
+    """What a patched `delay` returns: a real, fresh id each call (rule 14:
+    launch_processing_task stores it, under a unique key)."""
+    return SimpleNamespace(id=str(uuid.uuid4()))
 
 
 class RefusalAuditFixture(TasksFixture):
@@ -268,9 +276,12 @@ class AnotherFailureKeepsItsSchoolTests(RefusalAuditFixture):
 
 
 class ACourseWithNoSchoolTests(RefusalAuditFixture):
-    """A course in a teacher's own session belongs to no school: a run
-    refused there (the runner is not its teacher) has no school, so no
-    school admin sees it."""
+    """A course in a teacher's own session belongs to no school, so a
+    refusal there has no course school to be filed under. It then follows
+    the emitter's standing rule: the actor's school. With no tracked
+    requester (SYSTEM) that is none, and no school admin sees it. With a
+    tracked requester who belongs to a school, it is that school (a known
+    edge the SM accepted: their own member's action, ids only)."""
 
     def setUp(self):
         super().setUp()
@@ -323,18 +334,121 @@ class ACourseWithNoSchoolTests(RefusalAuditFixture):
         )
         self.assertNotIn(str(event.id), response.content.decode())
 
+    def test_a_tracked_run_by_a_school_member_is_filed_under_their_school(self):
+        """v2's N1, pinned: the fallback is deliberate."""
+        member = make_user("member@h38n3.test", UserTypes.TEACHER, self.school)
+        other_school = School.objects.create(name="School C H38 N3")
+        make_user("admin-c@h38n3.test", UserTypes.SCHOOL_ADMIN, other_school)
+        tracked = BackgroundProcessingTask.objects.create(
+            requested_by=member,
+            task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+            assignment=self.own_assignment,
+            submission=self.own_submission,
+            file_name="Tracked N3",
+            status=BackgroundTaskStatus.PENDING,
+        )
+        with patch("assignments.tasks.grade_engine") as grade_engine:
+            grade_engine_async.apply(
+                args=(str(member.id), str(self.own_submission.id)),
+                kwargs={"processing_task_id": str(tracked.id)},
+            )
+        grade_engine.assert_not_called()
+
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertEqual(event.actor_id, member.id)
+        self.assertEqual(event.school_id, self.school.id)
+        supplied = json.dumps([event.metadata, str(event.target_id)])
+        self.assertNotIn("@", supplied)
+
+        def seen_by(email):
+            response = jwt_client(email).get(reverse("school-admin-audit-events"))
+            self.assertEqual(response.status_code, 200)
+            return str(event.id) in response.content.decode()
+
+        self.assertTrue(seen_by(self.admin.email))
+        self.assertFalse(seen_by("admin-c@h38n3.test"))
+
+
+class TheAuditsOwnLookupsNeverBreakTheRefusalTests(RefusalAuditFixture):
+    """v2's N3: the helpers read the tracked task and the course's school
+    before emit(), outside its never-raise net. A failure there must not
+    turn a refusal into a task failure; the event is still written, as the
+    system's and with no school."""
+
+    def setUp(self):
+        super().setUp()
+        self.remove_teacher()
+
+    def test_a_refused_batch_survives_a_failed_requester_lookup(self):
+        with patch(
+            "assignments.tasks.get_processing_task_by_id",
+            side_effect=RuntimeError("the database went away"),
+        ):
+            with self.assertLogs("assignments.tasks", "ERROR") as logs:
+                result = self.refuse_the_batch()
+
+        self.assertEqual(result, COURSE_NOT_FOUND)
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+        self.assertIsNone(event.school_id)
+        self.assertEqual(event.target_id, self.teacher.id)
+        [line] = [text for text in logs.output if "could not be read" in text]
+        self.assertIn(str(self.assignment.id), line)
+        self.assertIn("RuntimeError", line)
+        self.assertNotIn("went away", line)
+        self.assertNotIn("@", line)
+
+    def test_a_refused_auto_grade_survives_a_failed_school_lookup(self):
+        with patch(
+            "assignments.tasks._course_school_id",
+            side_effect=RuntimeError("the database went away"),
+        ):
+            with self.assertLogs("assignments.tasks", "ERROR"):
+                result = self.refuse_the_auto_grade()
+
+        self.assertEqual(result, COURSE_NOT_FOUND)
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertIsNone(event.school_id)
+
+    def test_a_refused_run_survives_a_failed_school_lookup(self):
+        with patch(
+            "assignments.tasks._course_school_id",
+            side_effect=RuntimeError("the database went away"),
+        ):
+            with self.assertLogs("assignments.tasks", "ERROR") as logs:
+                result = self.refuse_the_run()
+
+        # Still the refusal, not the lookup's error; its bookkeeping ran.
+        self.assertIsInstance(result, CourseNotReachableError)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, BackgroundTaskStatus.FAILURE)
+        self.assertEqual(self.task.error, COURSE_NOT_FOUND)
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertEqual(event.target_id, self.submission.id)
+        [line] = [text for text in logs.output if "could not be read" in text]
+        self.assertIn(str(self.submission.id), line)
+        self.assertNotIn("went away", line)
+        self.assertNotIn("@", line)
+
 
 class NoEventWithoutARefusalTests(RefusalAuditFixture):
     """Control: a member's runs are not refused and record no failure."""
 
     def test_a_members_runs_record_no_failure(self):
         self.grade().assert_called_once()
-        with patch("assignments.tasks.grade_engine_async.delay"):
+        with patch(
+            "assignments.tasks.grade_engine_async.delay", side_effect=queued
+        ) as delay:
             grade_batch_async.apply(
                 args=(str(self.teacher.id), str(self.assignment.id))
             )
             auto_grade_due_assignment(str(self.assignment.id))
 
+        self.assertEqual(delay.call_count, 2, "both runs dispatched")
         self.assertEqual(self.failures(), [])
         self.assertFalse(AuditEvent.objects.filter(reason_code=CODE).exists())
 
@@ -395,7 +509,8 @@ class TheCodeNeverReachesAClientTests(RefusalAuditFixture):
         # What the task and batch routes serve.
         for task in BackgroundProcessingTask.objects.all():
             with self.subTest(task=task.task_type, status=task.status):
-                self.assertIsNone(task.reason_code)
+                # Uncoded: the column is empty ("" or NULL), never the code.
+                self.assertFalse(task.reason_code)
                 served = json.dumps([task.error, task.meta], default=str)
                 self.assertNotIn(CODE, served)
         for session in BatchUploadSession.objects.all():
