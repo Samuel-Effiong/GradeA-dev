@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 21375 lines; full log (sha256 prefix 4ce358d8a08e85c9) at ~/Documents/Projects/GAP-evidence-logs/command_actor_run1_3555050b_modules_and_guards.txt]
+12:26:33     raise serializers.ValidationError({"detail": str(exc)}) from exc
+12:26:33 rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.', code='invalid')}
+12:26:33 [2026-10-02 11:26:33,996: ERROR/MainProcess] API Exception
+12:26:33 Traceback (most recent call last):
+12:26:33   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/serializers.py", line 325, in create
+12:26:33     return SubscriptionService.activate_plan_without_payment(
+12:26:33            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:33   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+12:26:33     return func(*args, **kwds)
+12:26:33            ^^^^^^^^^^^^^^^^^^^
+12:26:33   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/services.py", line 431, in activate_plan_without_payment
+12:26:33     raise PlanAssignmentRefused(
+12:26:33 billing.plan_policy.PlanAssignmentRefused: This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.
+12:26:33
+12:26:33 The above exception was the direct cause of the following exception:
+12:26:33
+12:26:33 Traceback (most recent call last):
+12:26:33   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+12:26:33     response = handler(request, *args, **kwargs)
+12:26:33                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:33   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/views.py", line 851, in create
+12:26:33     serializer.save()
+12:26:33   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+12:26:33     self.instance = self.create(validated_data)
+12:26:33                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:33   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/serializers.py", line 329, in create
+12:26:33     raise serializers.ValidationError({"detail": str(exc)}) from exc
+12:26:33 rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.', code='invalid')}
+12:26:34 [2026-10-02 11:26:34,052: ERROR/MainProcess] API Exception
+12:26:34 Traceback (most recent call last):
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/serializers.py", line 325, in create
+12:26:34     return SubscriptionService.activate_plan_without_payment(
+12:26:34            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+12:26:34     return func(*args, **kwds)
+12:26:34            ^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/services.py", line 431, in activate_plan_without_payment
+12:26:34     raise PlanAssignmentRefused(
+12:26:34 billing.plan_policy.PlanAssignmentRefused: This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.
+12:26:34
+12:26:34 The above exception was the direct cause of the following exception:
+12:26:34
+12:26:34 Traceback (most recent call last):
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+12:26:34     response = handler(request, *args, **kwargs)
+12:26:34                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/views.py", line 851, in create
+12:26:34     serializer.save()
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+12:26:34     self.instance = self.create(validated_data)
+12:26:34                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/serializers.py", line 329, in create
+12:26:34     raise serializers.ValidationError({"detail": str(exc)}) from exc
+12:26:34 rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.', code='invalid')}
+12:26:34 [2026-10-02 11:26:34,218: ERROR/MainProcess] API Exception
+12:26:34 Traceback (most recent call last):
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/serializers.py", line 325, in create
+12:26:34     return SubscriptionService.activate_plan_without_payment(
+12:26:34            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+12:26:34     return func(*args, **kwds)
+12:26:34            ^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/services.py", line 431, in activate_plan_without_payment
+12:26:34     raise PlanAssignmentRefused(
+12:26:34 billing.plan_policy.PlanAssignmentRefused: This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.
+12:26:34
+12:26:34 The above exception was the direct cause of the following exception:
+12:26:34
+12:26:34 Traceback (most recent call last):
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+12:26:34     response = handler(request, *args, **kwargs)
+12:26:34                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+12:26:34     return method(self, request, *args, **kwargs)
+12:26:34            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 19, in create
+12:26:34     self.perform_create(serializer)
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 24, in perform_create
+12:26:34     serializer.save()
+12:26:34   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+12:26:34     self.instance = self.create(validated_data)
+12:26:34                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12:26:34   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/billing/serializers.py", line 329, in create
+12:26:34     raise serializers.ValidationError({"detail": str(exc)}) from exc
+12:26:34 rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='This account has already received the BETA plan. It can only be granted once. Use a manual credit grant for additional credits.', code='invalid')}
+12:26:34 ok
+12:26:45 test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+12:26:45 test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+12:26:53 The path exclusion above is only honest if production never ... ok
+12:40:26 test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+12:40:26 test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+12:40:26 The exception is only safe while it is one assignment's prefix: ... ok
+12:40:26 test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+12:40:26 Guard on the guard: each form is found in a synthetic module, and ... ok
+12:40:26 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+12:40:26 The over-invalidation half, stated as a property. Under the ... ok
+12:40:26 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+12:40:26 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+12:40:26 Not response caches in the generation scheme, deliberately. ... ok
+12:40:30 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+12:40:30 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+12:40:31 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+12:40:35 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+12:40:37 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+12:40:37 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+12:40:37 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+12:40:37 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+12:40:37 H-1 step 4: the one family that was still raw is on generations. ... ok
+12:40:37 test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... ok
+12:40:37 test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+12:40:38 The eight AlterFields since production that change choices, ... ok
+12:40:38 test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+12:40:38 test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+12:40:38 Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+12:40:38 test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+12:40:38 The production wiring (the Verification Engineer's H6 on ... ok
+12:40:38 test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+12:40:38 Rule (a) on the real graph with a synthetic final state: drop ... ok
+12:40:38 test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+12:40:38 Guard on the guard: the fields H-56 found are rule (a) ... ok
+12:40:38 test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+12:40:38 fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+12:40:38 test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+12:40:38 test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+12:40:38 test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+12:40:38 test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+12:40:38 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+12:40:41 THE ACCEPTANCE TEST for broker isolation. ... ok
+12:40:41 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+12:40:42 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+12:40:42 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+12:40:42 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+12:40:44 ok
+12:40:47 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+12:40:47 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+12:40:51 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+12:40:51 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+12:40:55 Same requirement, for the H-1 invariant specifically. ... ok
+12:40:55 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+12:40:55 The blast radius is wider than the Django cache. ... ok
+12:40:55 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+12:40:55 The mechanism, demonstrated deterministically in-process. ... ok
+12:40:55 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+12:41:03 THE ACCEPTANCE TEST for the regression. ... ok
+12:41:13 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+12:41:13 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+12:41:13 Server-wide Redis statistics are shared by every concurrent run. ... ok
+12:41:13 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+12:41:13 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+12:41:20 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+12:41:26 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+12:41:26 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+12:41:33 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+12:41:33 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+12:41:43 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+12:41:43 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+12:41:43 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+12:41:43 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+12:41:43 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+12:41:44 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+12:41:44 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+12:41:44 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+12:41:44 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+12:41:45 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+12:41:46 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+12:41:46 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+12:41:46 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+12:41:54 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+12:42:04 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+12:42:04 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+12:42:13 Guard on the guard, on synthetic source. ... ok
+12:42:21 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+12:42:21 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+12:42:21 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+12:42:21 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+12:42:21 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+12:42:21 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+12:42:21 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+12:42:21 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+12:42:21 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+12:42:21 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+12:42:21 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+12:42:21 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+12:42:21 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+12:42:21 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+12:42:21 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+12:42:21 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+12:42:21 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+12:42:21 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+12:42:21 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+12:42:21 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+12:42:21 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+12:42:21 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+12:42:21 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+12:42:21
+12:42:21 ----------------------------------------------------------------------
+12:42:21 Ran 445 tests in 309.435s
+12:42:21
+12:42:21 OK
+12:42:21 Destroying test database for alias 'default' ('test_epic_a_command_actor')...
