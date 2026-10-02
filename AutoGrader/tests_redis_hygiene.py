@@ -5,12 +5,19 @@ cleans up, a SIGKILL'd run leaves keys that the next run sweeps, a live
 sibling run is never touched) cannot be proved with mocks. Every key these
 tests create lives under a synthetic pid prefix or a child process's own
 prefix and is removed in `tearDown`.
+
+Other runs share this Redis, and under --parallel so do the other workers
+of this run: any of them may sweep a DEAD pid's prefix at any moment
+(H-94). So no test here asserts that a dead pid's key is still present.
+A key that must be seen before it is removed lives under a live pid (a
+sleeping sibling, or a killed child not yet reaped).
 """
 
 import os
 import signal
 import subprocess
 import sys
+from unittest.mock import patch
 
 import redis
 from django.conf import settings
@@ -38,6 +45,18 @@ with redis_test_hygiene():
     cache.set("child-key", "v", 300)
     print("ready", flush=True)
     sys.stdin.readline()   # hold the "run" open until the parent says go
+"""
+)
+
+# Another run's start-of-run sweep, from its own process: what a second
+# `manage.py test`, or another parallel worker's hygiene tests, do to the
+# shared test Redis while this module's tests are running (H-94).
+CHILD_SWEEP = (
+    CHILD_PRELUDE
+    + """
+from AutoGrader.redis_test_hygiene import sweep_dead_prefixes
+sweep_dead_prefixes()
+print("ready", flush=True)
 """
 )
 
@@ -111,6 +130,10 @@ class RedisHygieneTestCase(SimpleTestCase):
         self._children.append(child)
         return child
 
+    def another_runs_sweep(self):
+        """Run a real sweep from another process, and wait for it."""
+        self.assertEqual(self.spawn(CHILD_SWEEP).wait(timeout=60), 0)
+
 
 class TtlTests(RedisHygieneTestCase):
     def test_a_never_expires_key_gets_a_ttl(self):
@@ -159,19 +182,50 @@ class TtlTests(RedisHygieneTestCase):
 
 class SweepTests(RedisHygieneTestCase):
     def test_delete_own_keys_takes_only_that_exact_prefix(self):
-        pid = _dead_pid()
+        self.check_delete_own_keys_takes_only_that_exact_prefix()
+
+    def test_delete_own_keys_is_unmoved_by_another_runs_sweep(self):
+        """H-94: under --parallel another worker's sweep can run between
+        this test's setup and its assertions."""
+        self.check_delete_own_keys_takes_only_that_exact_prefix(
+            meanwhile=self.another_runs_sweep
+        )
+
+    def check_delete_own_keys_takes_only_that_exact_prefix(self, meanwhile=None):
+        """Race-free under --parallel (H-94):
+        * the prefix under test belongs to a LIVE process (a sibling that
+          never touches Redis), so no other run's sweep removes its keys
+          before delete_own_keys does;
+        * the lookalike's prefix is a dead pid's, which another run's
+          sweep MAY remove at any moment, so the test does not ask
+          whether it survived. It asks which keys delete_own_keys itself
+          unlinked: exactly the prefix's two, never the lookalike.
+        """
+        sibling = self.spawn("import time; print('ready', flush=True); time.sleep(120)")
+        pid = sibling.pid
+        hygiene.delete_own_keys(pid)  # a recycled pid's leftovers, if any
         mine = f"gaplus-t{pid}:1:a"
+        other_db = f"gaplus-t{pid}:1:b"
         lookalike = f"gaplus-t{pid}9:1:a"  # pid 12 must not match pid 123
         self.put(mine)
         self.put(lookalike)
-        self.put(f"gaplus-t{pid}:1:b", db=15)  # other logical databases too
+        self.put(other_db, db=15)  # other logical databases too
+        if meanwhile:
+            meanwhile()
+        # (Present in database 0 at least: where the URL names a database,
+        # `db=15` lands in that one too, as it always has for this test.)
+        self.assertIn(mine, _keys(f"gaplus-t{pid}:*"), "a live prefix was swept")
 
-        removed = hygiene.delete_own_keys(pid)
+        with patch.object(hygiene, "_unlink", wraps=hygiene._unlink) as unlink:
+            removed = hygiene.delete_own_keys(pid)
 
         self.assertEqual(removed, 2)
         self.assertEqual(_keys(f"gaplus-t{pid}:*"), [])
         self.assertEqual(_keys(f"gaplus-t{pid}:*", db=15), [])
-        self.assertEqual(_keys(lookalike), [lookalike])
+        unlinked = sorted(
+            key.decode() for call in unlink.call_args_list for key in call.args[1]
+        )
+        self.assertEqual(unlinked, [mine, other_db])
 
     def test_sweep_removes_dead_prefixes_and_nothing_else(self):
         dead = _dead_pid()
@@ -214,14 +268,31 @@ class ProcessLifecycleTests(RedisHygieneTestCase):
         )
 
     def test_sigkill_leaves_keys_and_the_next_run_sweeps_them(self):
+        self.check_sigkill_leaves_keys_and_the_next_run_sweeps_them()
+
+    def test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile(self):
+        """H-94: the same race as SweepTests', on the killed child's keys."""
+        self.check_sigkill_leaves_keys_and_the_next_run_sweeps_them(
+            meanwhile=self.another_runs_sweep
+        )
+
+    def check_sigkill_leaves_keys_and_the_next_run_sweeps_them(self, meanwhile=None):
         child = self.spawn(CHILD_KILLABLE)
         pattern = f"gaplus-t{child.pid}:*"
         self.assertNotEqual(_keys(pattern), [])
 
         child.kill()
-        child.wait(timeout=60)
+        # Race-free under --parallel (H-94): wait for the child to die
+        # WITHOUT reaping it. A zombie's pid still exists, so every run's
+        # sweep still takes it for a live run and leaves its keys alone
+        # until this test has looked at them.
+        os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT)
+        self.assertTrue(hygiene.pid_is_alive(child.pid))
+        if meanwhile:
+            meanwhile()
         self.assertNotEqual(_keys(pattern), [], "nothing in-process can run on SIGKILL")
 
+        child.wait(timeout=60)  # reaped: the pid is dead to every sweep now
         hygiene.sweep_dead_prefixes()
 
         self.assertEqual(_keys(pattern), [], "the sweep missed a dead run's keys")
