@@ -28,6 +28,8 @@ from django.db.models import F
 from django.utils import timezone
 
 from audit import metrics as audit_metrics
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
 
 from .imports import stripe
 from .license_service import (
@@ -159,6 +161,7 @@ def _find_new_period_paid_invoice(
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_license_renewals(self):
     """
     Daily fallback for license renewals.
@@ -351,6 +354,7 @@ def _monthly_buckets_owed_a_refresh(expired_buckets):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def cleanup_expired_credit_buckets(self):
     """
     Finds all CreditBuckets that have physically expired (expires_at <= now)
@@ -427,6 +431,7 @@ def cleanup_expired_credit_buckets(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_annual_plan_credit_grants(self):
     """
     For ANNUAL-interval individual plans only: grants the next month's
@@ -490,6 +495,7 @@ def process_annual_plan_credit_grants(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def reconcile_subscription_renewals(self):
     """
     Daily safety net: ensures that all active individual subscriptions
@@ -673,6 +679,7 @@ def reconcile_subscription_renewals(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.EVERY_6_HOURS)
 def expire_active_trials(self):
     """
     Expire trials where either:
@@ -910,6 +917,7 @@ def _redispatch_abandoned_event(event) -> RecoveryOutcome:
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def sweep_stale_stripe_events(self):
     """
     Watchdog for the Stripe webhook idempotency ledger (billing/webhooks.py).
@@ -1059,6 +1067,7 @@ def sweep_stale_stripe_events(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_license_monthly_credit_refreshes(self):
     """
     Monthly credit refresh for teachers under active licenses.
@@ -1128,6 +1137,7 @@ def process_license_monthly_credit_refreshes(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def nightly_stripe_live_qa(self):
     """
     Run the billing QA scenarios against REAL Stripe test mode.
@@ -1325,6 +1335,7 @@ def run_live_qa_console_job(self, run_id):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def recalculate_conversion_probabilities(self):
     """
     Nightly refresh of every BetaProfile's conversion score.
@@ -1372,19 +1383,8 @@ def recalculate_conversion_probabilities(self):
     return summary
 
 
-#: Overlap guard for the nightly price sweep. A cache TTL rather than a
-#: row lock, so a worker killed mid-run releases it automatically — a lock
-#: that survives a crash would silently disable the reconciliation until
-#: someone noticed it had stopped reporting, which is the worst possible
-#: failure for a watchdog.
-#:
-#: Comfortably longer than a run (~18 Stripe reads) and comfortably shorter
-#: than the 24h gap to the next one.
-PRICE_RECONCILIATION_LOCK_KEY = "billing:price-reconciliation:running"
-PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS = 30 * 60
-
-
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.PRICE_SWEEP)
 def reconcile_stripe_prices(self):
     """
     Nightly: does every plan still cost what this application thinks?
@@ -1399,33 +1399,15 @@ def reconcile_stripe_prices(self):
     the current plan set, so the cost of checking daily is negligible
     against the cost of a wrong price standing for a week.
     """
-    from django.core.cache import cache
-
     from .price_reconciliation import reconcile_prices
 
     # Two Beat instances, or a manual run overlapping the scheduled one,
     # would duplicate every Stripe read and write two competing result
-    # sets for the same moment. Harmless to billing — nothing here mutates
-    # — but it makes the audit trail ambiguous, which defeats the point.
-    if not cache.add(
-        PRICE_RECONCILIATION_LOCK_KEY,
-        "1",
-        timeout=PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS,
-    ):
-        summary = (
-            "Stripe price reconciliation: another run already holds the "
-            "lock; skipping this one."
-        )
-        logger.info(summary)
-        return summary
-
-    try:
-        run = reconcile_prices()
-        return run.summary
-    finally:
-        # Released on every path, including a raise. The TTL is the
-        # backstop for a hard kill that never reaches this line.
-        cache.delete(PRICE_RECONCILIATION_LOCK_KEY)
+    # sets for the same moment. Harmless to billing (nothing here mutates)
+    # but it makes the audit trail ambiguous, which defeats the point.
+    # @single_instance (H-65) skips the second run.
+    run = reconcile_prices()
+    return run.summary
 
 
 @shared_task(bind=True, max_retries=0)
@@ -1490,6 +1472,7 @@ def reconcile_overage_prices(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def reconcile_subscription_prices(self):
     """
     Daily detector for local-plan / Stripe-price divergence.
@@ -1714,6 +1697,7 @@ def fill_billing_transaction_receipt_url(self, transaction_id):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)
 def escalate_stale_licence_stripe_intents(self):
     """
     Every 5 minutes: escalate licence Stripe-change intents abandoned
@@ -1733,6 +1717,7 @@ def escalate_stale_licence_stripe_intents(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def sweep_missing_receipt_urls(self):
     """
     Hourly safety net for receipt links the on_commit task never filled
@@ -1750,6 +1735,7 @@ def sweep_missing_receipt_urls(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def replay_safe_failed_stripe_events(self):
     """
     Re-run FAILED Stripe webhook events for the one allow-listed flow, so a

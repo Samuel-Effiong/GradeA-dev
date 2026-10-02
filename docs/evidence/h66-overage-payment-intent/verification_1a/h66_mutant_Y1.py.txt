@@ -1,0 +1,24 @@
+"""1a's mutant Y1 for H-66: move the no-payment_intent refusal from before
+the cap check to after it (the stated order is "after the unpaid check and
+before the cap check"). Applied in place to billing/stripe_service.py in the
+current directory; restore with git checkout."""
+
+import re
+
+P = "billing/stripe_service.py"
+s = open(P, encoding="utf-8").read()
+
+h66_start = s.index("        # H-66: no PaymentIntent, no grant.")
+cap_start = s.index(
+    "        if (wallet.overage_blocks_used or 0) + quantity > plan.max_overage_blocks:",
+    h66_start,
+)
+h66_block = s[h66_start:cap_start]
+grant_start = s.index("        SubscriptionService.grant_overage_bucket(", cap_start)
+cap_block = s[cap_start:grant_start]
+assert h66_block.count("if not payment_intent_id:") == 1
+assert re.search(r"return\n\n$", cap_block), cap_block[-40:]
+
+s = s[:h66_start] + cap_block + h66_block + s[grant_start:]
+open(P, "w", encoding="utf-8").write(s)
+print("applied Y1")

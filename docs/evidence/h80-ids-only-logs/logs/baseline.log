@@ -1,0 +1,61 @@
+# baseline, commit af5cee0442448447293933eae2bfd9e122149b38, exit 0
+
+Found 15 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 7514c181-b2bf-4c10-9e43-63c41e80cb04.
+Cannot activate automatic trial for user 7514c181-b2bf-4c10-9e43-63c41e80cb04 (validation): ValueError
+.Free trial plan not found: no trial activated for user 78087560-907c-411f-b2a9-daecf0891f59.
+Cannot activate automatic trial for user 78087560-907c-411f-b2a9-daecf0891f59 (validation): ValueError
+..School 6c008e08-1433-4675-b9f4-e455d7ffc952 already has active license subscription c061351c-7822-4d07-9bdd-3bc4f1fd9f9c. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user 03dcd4ad-cf70-4aec-bf1f-6425c35d13cf.
+Cannot activate automatic trial for user 03dcd4ad-cf70-4aec-bf1f-6425c35d13cf (validation): ValueError
+Free trial plan not found: no trial activated for user a63fddeb-84b7-40cc-ac85-f826cc3b36e1.
+Cannot activate automatic trial for user a63fddeb-84b7-40cc-ac85-f826cc3b36e1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 97144659-461e-42fd-b08f-c7468e9cad2c.
+Cannot activate automatic trial for user 97144659-461e-42fd-b08f-c7468e9cad2c (validation): ValueError
+.Free trial plan not found: no trial activated for user 3c7e5b73-cb45-4daa-a42d-d2c167d00af2.
+Cannot activate automatic trial for user 3c7e5b73-cb45-4daa-a42d-d2c167d00af2 (validation): ValueError
+.....Free trial plan not found: no trial activated for user 0ac3508d-3759-4a08-a794-1f05f5143156.
+Cannot activate automatic trial for user 0ac3508d-3759-4a08-a794-1f05f5143156 (validation): ValueError
+Free trial plan not found: no trial activated for user d259e92c-3abe-44a0-a492-d9894c3f2f9b.
+Cannot activate automatic trial for user d259e92c-3abe-44a0-a492-d9894c3f2f9b (validation): ValueError
+Failed to renew credits for teacher d259e92c-3abe-44a0-a492-d9894c3f2f9b under license 37efe1f7-9f1d-437b-b0a6-e2fee1509d01: ValueError
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-mut/billing/license_service.py", line 1917, in process_license_renewal
+    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-mut/billing/tests/test_license_renewal_partial_failure.py", line 175, in _rollover
+    raise ValueError("simulated failure part-way through the grant")
+ValueError: simulated failure part-way through the grant
+.Free trial plan not found: no trial activated for user 57c219d1-62cb-41c0-81d6-758ea3b39e96.
+Cannot activate automatic trial for user 57c219d1-62cb-41c0-81d6-758ea3b39e96 (validation): ValueError
+Free trial plan not found: no trial activated for user 4549eee2-7067-482f-8be6-2da8e178251c.
+Cannot activate automatic trial for user 4549eee2-7067-482f-8be6-2da8e178251c (validation): ValueError
+.Free trial plan not found: no trial activated for user 291799ee-749e-486a-9831-f478d71b6ca0.
+Cannot activate automatic trial for user 291799ee-749e-486a-9831-f478d71b6ca0 (validation): ValueError
+Free trial plan not found: no trial activated for user 5b0aeaef-6b00-4516-973b-2f68b829f100.
+Cannot activate automatic trial for user 5b0aeaef-6b00-4516-973b-2f68b829f100 (validation): ValueError
+Failed to renew credits for teacher 5b0aeaef-6b00-4516-973b-2f68b829f100 under license 4cd58499-a583-4a31-9411-699063a020b1: ValueError
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-mut/billing/license_service.py", line 1917, in process_license_renewal
+    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-mut/billing/tests/test_license_renewal_partial_failure.py", line 175, in _rollover
+    raise ValueError("simulated failure part-way through the grant")
+ValueError: simulated failure part-way through the grant
+.Free trial plan not found: no trial activated for user 0dd3f98c-15d6-400a-a31d-fd96cf0953a0.
+Cannot activate automatic trial for user 0dd3f98c-15d6-400a-a31d-fd96cf0953a0 (validation): ValueError
+Free trial plan not found: no trial activated for user b4d77518-ac13-43ef-bee9-d1c0fcab8289.
+Cannot activate automatic trial for user b4d77518-ac13-43ef-bee9-d1c0fcab8289 (validation): ValueError
+.Free trial plan not found: no trial activated for user 81d53bdf-13f1-4da6-8b99-5c5755971762.
+Cannot activate automatic trial for user 81d53bdf-13f1-4da6-8b99-5c5755971762 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 15 tests in 2.368s
+
+OK
+Preserving test database for alias 'default'...

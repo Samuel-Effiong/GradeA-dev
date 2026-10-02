@@ -1,0 +1,48 @@
+{
+  "P1_beat_locks_gains_a_raw_write": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_raw_client_user_is_listed"
+    ]
+  },
+  "P2_health_probe_moves_to_the_raw_client": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_raw_client_user_is_listed",
+      "test_nothing_is_cached_under_a_raw_key"
+    ]
+  },
+  "S1_yield_factories_missed": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_raw_client_user_is_listed",
+      "test_the_scanner_finds_every_shape_it_exists_to_catch"
+    ]
+  },
+  "S2_for_targets_missed": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_raw_client_user_is_listed",
+      "test_the_scanner_finds_every_shape_it_exists_to_catch"
+    ]
+  },
+  "S3_parameters_missed": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_raw_client_user_is_listed",
+      "test_the_scanner_finds_every_shape_it_exists_to_catch"
+    ]
+  },
+  "S4_cache_client_wrapper_missed": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_scanner_finds_every_shape_it_exists_to_catch"
+    ]
+  },
+  "S5_imported_factories_missed": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_factory_imported_from_another_module_is_found_across_modules"
+    ]
+  }
+}
