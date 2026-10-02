@@ -98,9 +98,18 @@ three into the branch.
 | `15e5e62d` | **P1:** the add-teachers "Partial success" example in `billing/stripe_view_schemas.py` still showed "Individual subscription conflict or invalid email domain."; it now shows the neutral sentence. **1a's probe Z1c** adopted as `test_the_enrolment_site_logs_its_own_reason`: a teacher who subscribes between the invite check and the enrolment is refused by the enrolment's own check, with the neutral sentence and its own ids-only reason line. Mutant N8. |
 | `29bebdcb` | **P2:** `docs/backend/billing-licenses.md` and `docs/backend/BACKEND_REFERENCE.md` described the old message and recovery. Docs only. The HTML renders are left to H-92. |
 
-**Why Z1c.** My log test reached only the invite site, which refuses first.
-1a's mutant Y7 (the enrolment site's reason line dropped) survived my 8
-tests at `e3952a12`; only their probe failed. N8 is that mutant.
+**Why Z1c.** My log test in the H-85 module reached only the invite site,
+which refuses first. 1a's mutant Y7 (the enrolment site's reason line
+dropped) survived that module's 8 tests at `e3952a12`; only their probe
+failed. N8 is that mutant.
+
+To be exact about what was unguarded: the enrolment site's line was already
+covered by an H-78 test in another module,
+`test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address`
+(`test_other_school_before_subscription.py`), which the first gate's
+battery did run. The delta gate shows it: N8 is killed by two tests, that
+one and Z1c. So the gap was in the H-85 module's own tests, not in the
+suite.
 
 **The delta's scope.** The SM's ruling, passed on by 1a: "P1: FOLD. Change
 the 'Partial success' example ... After that commit only the touched
