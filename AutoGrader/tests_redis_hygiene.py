@@ -212,7 +212,9 @@ class SweepTests(RedisHygieneTestCase):
         self.put(other_db, db=15)  # other logical databases too
         if meanwhile:
             meanwhile()
-        self.assertEqual(_keys(f"gaplus-t{pid}:*"), [mine], "a live prefix was swept")
+        # (Present in database 0 at least: where the URL names a database,
+        # `db=15` lands in that one too, as it always has for this test.)
+        self.assertIn(mine, _keys(f"gaplus-t{pid}:*"), "a live prefix was swept")
 
         with patch.object(hygiene, "_unlink", wraps=hygiene._unlink) as unlink:
             removed = hygiene.delete_own_keys(pid)
