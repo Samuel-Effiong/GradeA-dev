@@ -31,10 +31,12 @@ WORKTREE = os.path.join(os.path.dirname(REPO), "Grade-Automator-Plus-h89-mut")
 TEST_DB = "test_h89_mut"
 
 LS = "AutoGrader/log_scrubbing.py"
+SY = "AutoGrader/sentry_scrubbing.py"
 ST = "AutoGrader/settings.py"
 TESTS = [
     "AutoGrader.tests_log_scrubbing",
     "billing.tests.test_log_scrubbing_end_to_end",
+    "AutoGrader.tests_sentry_scrubbing",
 ]
 
 MUTANTS = [
@@ -156,6 +158,70 @@ MUTANTS = [
         LS,
         '\\.[A-Za-z]{2,}"',
         '"',
+        1,
+    ),
+    (
+        "Y1",
+        "Sentry: the exception values are scrubbed",
+        SY,
+        '    "exception",\n',
+        "",
+        1,
+    ),
+    (
+        "Y2",
+        "Sentry: a part that cannot be scrubbed fails closed",
+        SY,
+        "            container[part] = WITHHELD\n",
+        "            pass\n",
+        1,
+    ),
+    (
+        "Y3",
+        "Sentry: the user context is left alone",
+        SY,
+        '    "extra",\n',
+        '    "extra",\n    "user",\n',
+        1,
+    ),
+    (
+        "Y4",
+        "Sentry: an argument that is not text yet is scrubbed",
+        SY,
+        "    return scrub(str(value))\n",
+        "    return value\n",
+        1,
+    ),
+    (
+        "Y5",
+        "Sentry: a breadcrumb's data is scrubbed",
+        SY,
+        '    return _scrub_parts(crumb, ("message", "data"))\n',
+        '    return _scrub_parts(crumb, ("message",))\n',
+        1,
+    ),
+    (
+        "Y6",
+        "Sentry: a log item's attributes are scrubbed",
+        SY,
+        '    return _scrub_parts(log, ("body", "attributes"))\n',
+        '    return _scrub_parts(log, ("body",))\n',
+        1,
+    ),
+    (
+        "Y7",
+        "Sentry: settings pass before_send",
+        ST,
+        "            before_send=scrub_event,\n",
+        "",
+        1,
+    ),
+    (
+        "Y8",
+        "Sentry: settings pass before_send_log",
+        ST,
+        "            before_send_log=scrub_log,\n",
+        "",
         1,
     ),
 ]

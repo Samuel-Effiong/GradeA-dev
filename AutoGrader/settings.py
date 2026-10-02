@@ -170,6 +170,8 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
 
+        from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
+
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             environment=ENVIRONMENT,
@@ -189,6 +191,13 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # These carry student work, grades, and billing identifiers.
             # Keep them out of the error reports.
             send_default_pii=False,
+            # H-89: and no address in the TEXT of what is sent either. The
+            # logging integration builds events from a record's raw parts
+            # and the exception's own text, which the log record factory
+            # above does not reach (AutoGrader/sentry_scrubbing.py).
+            before_send=scrub_event,
+            before_breadcrumb=scrub_breadcrumb,
+            before_send_log=scrub_log,
             # Set profile_session_sample_rate to 1.0 to profile 100%
             # of profile sessions.
             profile_session_sample_rate=1.0,
