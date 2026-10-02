@@ -202,6 +202,48 @@ class NeutralSubscriptionRefusalTest(APITestCase):
         self.assertIn(str(teacher.id), reasons[0])
         self.assertEqual([line for line in logs.output if "@" in line], [])
 
+    def test_the_enrolment_site_logs_its_own_reason(self):
+        """1a's Z1c: the teacher passes the invite check and subscribes
+        before the enrolment. Only the enrolment's check refuses, so the
+        reason line is its own (the invite site's is tested above)."""
+        teacher = CustomUser.objects.create_user(
+            email="race@h85school.edu",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            school=self.school,
+            is_active=True,
+        )
+        UserSubscription.objects.filter(user=teacher).update(is_active=False)
+
+        def invite_then_subscribe(*args, **kwargs):
+            UserSubscription.objects.create(
+                user=teacher,
+                plan=self.individual_plan,
+                is_active=True,
+                billing_cycle_start=timezone.now(),
+                billing_cycle_end=timezone.now() + timedelta(days=30),
+            )
+            return teacher
+
+        with patch.object(
+            LicenseSubscriptionService,
+            "_get_or_invite_teacher",
+            side_effect=invite_then_subscribe,
+        ):
+            with self.assertLogs("billing.license_service", "WARNING") as logs:
+                result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                    self.licence, self.school, self.admin, teacher.email
+                )
+
+        self.assertFalse(result["successful"])
+        self.assertNeutral(result["error"], teacher)
+        reasons = [line for line in logs.output if "individual subscription" in line]
+        self.assertEqual(len(reasons), 1, logs.output)
+        self.assertIn("WARNING", reasons[0])
+        self.assertIn(str(teacher.id), reasons[0])
+        self.assertEqual([line for line in logs.output if "@" in line], [])
+        self.assertNotEnrolled(teacher)
+
     # --- The removal log line (found in the merge-down) ------------------------
 
     def test_the_removal_line_separates_its_two_sentences(self):

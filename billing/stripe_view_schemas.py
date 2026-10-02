@@ -694,7 +694,10 @@ before the cap is hit are still enrolled successfully.
                         "errors": [
                             {
                                 "teacher_email": "teacher@gmail.com",
-                                "error": "Individual subscription conflict or invalid email domain.",
+                                "error": (
+                                    "This teacher can't be added to your school "
+                                    "yet. Please ask them to contact support."
+                                ),
                             }
                         ],
                     },

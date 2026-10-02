@@ -111,6 +111,17 @@ MUTANTS = [
         '"Removed teacher %s from license %s" "Expired %d credit buckets."',
         1,
     ),
+    (
+        "N8",
+        "the enrolment refusal still logs its own reason by id (1a's Y7)",
+        LS,
+        "            logger.warning(\n"
+        '                "Teacher %s has an individual subscription: not enrolled.",\n'
+        "                teacher.id,\n"
+        "            )\n",
+        "",
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
