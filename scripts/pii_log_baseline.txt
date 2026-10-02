@@ -26,4 +26,5 @@ billing/services.py
 billing/stripe_service.py
 billing/tasks.py
 billing/views.py
+scripts/one_off_backfill_stripe_schedules.py
 users/signals.py
