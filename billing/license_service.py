@@ -546,7 +546,7 @@ class LicenseSubscriptionService:
                     logger.info(
                         "License rollover fully suppressed by max_bank for "
                         "teacher %s: requested %d (%s).",
-                        teacher.email,
+                        teacher.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
                     )
@@ -656,7 +656,7 @@ class LicenseSubscriptionService:
                     "Admin allocation for license %s (admin %s) already "
                     "active — skipping duplicate grant.",
                     license_sub.id,
-                    admin_user.email,
+                    admin_user.id,
                 )
                 return allocation
 
@@ -679,7 +679,7 @@ class LicenseSubscriptionService:
             logger.info(
                 "Reactivated admin analytics allocation for license %s (admin %s)",
                 license_sub.id,
-                admin_user.email,
+                admin_user.id,
             )
 
         # Create the initial MONTHLY bucket for the admin's allowance
@@ -717,7 +717,7 @@ class LicenseSubscriptionService:
             "Granted admin analytics allocation (%d display credits) to %s "
             "for license %s",
             LicenseSubscriptionService.ADMIN_ANALYTICS_CREDITS_DISPLAY,
-            admin_user.email,
+            admin_user.id,
             license_sub.id,
         )
 
@@ -783,10 +783,10 @@ class LicenseSubscriptionService:
             }
         except Exception as exc:
             logger.error(
-                "Unexpected error enrolling %s in license %s: %s",
-                email,
+                "Unexpected error enrolling a teacher in license %s (school %s): %s",
                 license_sub.id,
-                exc,
+                school.id,
+                type(exc).__name__,
                 exc_info=True,
             )
             return {
@@ -856,10 +856,10 @@ class LicenseSubscriptionService:
             except (IndividualSubscriptionConflictError, ValueError) as exc:
                 logger.warning(
                     "Failed to carry forward teacher %s from license %s " "to %s: %s",
-                    teacher.email,
+                    teacher.id,
                     old_license.id,
                     new_license.id,
-                    exc,
+                    type(exc).__name__,
                 )
                 results.append(
                     {
@@ -874,10 +874,10 @@ class LicenseSubscriptionService:
                 logger.error(
                     "Unexpected error carrying forward teacher %s from "
                     "license %s to %s: %s",
-                    teacher.email,
+                    teacher.id,
                     old_license.id,
                     new_license.id,
-                    exc,
+                    type(exc).__name__,
                     exc_info=True,
                 )
                 results.append(
@@ -1029,7 +1029,7 @@ class LicenseSubscriptionService:
                         "while replacing license %s: %s",
                         pending_request.id,
                         existing_license.id,
-                        exc,
+                        type(exc).__name__,
                         exc_info=True,
                     )
 
@@ -1097,11 +1097,10 @@ class LicenseSubscriptionService:
 
         if failed_results:
             logger.error(
-                "License %s creation: %d/%d teacher invitations FAILED: %s",
+                "License %s creation: %d/%d teacher invitations FAILED.",
                 license_sub.id,
                 len(failed_results),
                 len(enrollment_results),
-                failed_results,
             )
 
         # Transient, non-persisted summary attached to this in-memory
@@ -1294,6 +1293,7 @@ class LicenseSubscriptionService:
         }
 
         teacher_email = teacher.email
+        teacher_id = teacher.id
         school_name = school.name
 
         def _dispatch():
@@ -1308,17 +1308,17 @@ class LicenseSubscriptionService:
                     merge_data=merge_data,
                 )
                 logger.info(
-                    "Queued teacher invitation email to %s for school %s.",
-                    teacher_email,
+                    "Queued teacher invitation email to teacher %s for school %s.",
+                    teacher_id,
                     school_name,
                 )
             except Exception:
                 logger.exception(
-                    "Failed to queue teacher invitation email to %s for "
+                    "Failed to queue teacher invitation email to teacher %s for "
                     "school %s. The teacher account/allocation were still "
                     "created successfully — this can be resolved by "
                     "re-inviting the same email via add-teachers.",
-                    teacher_email,
+                    teacher_id,
                     school_name,
                 )
 
@@ -1356,6 +1356,14 @@ class LicenseSubscriptionService:
         )
 
         if teacher.school != license_sub.school:
+            logger.warning(
+                "Teacher %s belongs to school %s, not licence %s's school %s: "
+                "not enrolled.",
+                teacher.id,
+                teacher.school_id,
+                license_sub.id,
+                license_sub.school_id,
+            )
             raise ValueError(
                 f"Teacher {teacher.email} does not belong to school "
                 f"{license_sub.school.name}. Cannot enroll."
@@ -1385,7 +1393,7 @@ class LicenseSubscriptionService:
         if existing and existing.is_active:
             logger.warning(
                 "Teacher %s is already actively enrolled in license %s. Skipping.",
-                teacher.email,
+                teacher.id,
                 license_sub.id,
             )
             return existing
@@ -1394,6 +1402,13 @@ class LicenseSubscriptionService:
         if not (existing and not existing.is_active):
             seats_remaining = license_sub.seats_remaining
             if seats_remaining is not None and seats_remaining <= 0:
+                logger.warning(
+                    "License %s is at its seat limit of %s: teacher %s not "
+                    "enrolled.",
+                    license_sub.id,
+                    license_sub.max_seats,
+                    teacher.id,
+                )
                 raise ValueError(
                     f"License {license_sub.id!r} for school {license_sub.school.name!r} "
                     f"has reached its seat limit of {license_sub.max_seats!r}. "
@@ -1419,13 +1434,13 @@ class LicenseSubscriptionService:
             )
             logger.info(
                 "Reactivated teacher %s in license %s",
-                teacher.email,
+                teacher.id,
                 license_sub.id,
             )
         elif created:
             logger.info(
                 "Enrolled teacher %s in license %s with allocation %d credits",
-                teacher.email,
+                teacher.id,
                 license_sub.id,
                 allocation.monthly_allocation,
             )
@@ -1435,7 +1450,7 @@ class LicenseSubscriptionService:
         # 3. Ensure teacher's CreditWallet exists
         wallet, wallet_created = CreditWallet.objects.get_or_create(user=teacher)
         if wallet_created:
-            logger.info("Created CreditWallet for teacher %s", teacher.email)
+            logger.info("Created CreditWallet for teacher %s", teacher.id)
 
         max_seats = license_sub.max_seats
 
@@ -1463,7 +1478,7 @@ class LicenseSubscriptionService:
                     license_sub.id,
                     consumed,
                     total_budget,
-                    teacher.email,
+                    teacher.id,
                 )
             else:
                 grant_amount = min(allocation.monthly_allocation, remaining_budget)
@@ -1517,13 +1532,13 @@ class LicenseSubscriptionService:
                         "Carried over %d credits for teacher %s when "
                         "transitioning to license",
                         rollover_amount,
-                        teacher.email,
+                        teacher.id,
                     )
                 elif cap_meta["requested_rollover"] > 0:
                     logger.info(
                         "Rollover fully suppressed by max_bank for teacher "
                         "%s transitioning to license %s: requested %d (%s).",
-                        teacher.email,
+                        teacher.id,
                         license_sub.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
@@ -1539,7 +1554,7 @@ class LicenseSubscriptionService:
             )
             logger.info(
                 "Expired old MONTHLY bucket for teacher %s",
-                teacher.email,
+                teacher.id,
             )
 
         now = timezone.now()
@@ -1587,7 +1602,7 @@ class LicenseSubscriptionService:
             "Created MONTHLY credit bucket with %d credits for teacher %s "
             "under license %s (capped=%s)",
             grant_amount,
-            teacher.email,
+            teacher.id,
             license_sub.id,
             is_capped,
         )
@@ -1812,7 +1827,7 @@ class LicenseSubscriptionService:
 
         logger.info(
             "Removed teacher %s from license %s" "Expired %d credit buckets.",
-            teacher.email,
+            teacher.id,
             license_sub.id,
             expired_count,
         )
@@ -1936,11 +1951,12 @@ class LicenseSubscriptionService:
             except Exception as e:
                 logger.error(
                     "Failed to renew credits for teacher %s under license %s: %s",
-                    allocation.user.email,
+                    allocation.user_id,
                     license_sub.id,
-                    str(e),
+                    type(e).__name__,
+                    exc_info=True,
                 )
-                failed_teachers.append(allocation.user.email)
+                failed_teachers.append(allocation.user_id)
 
         # 4. Update license cycle dates only if at least one teacher renewed successfully
         # (or you may choose to update even if all failed, but that would be odd)
@@ -3028,7 +3044,7 @@ class LicenseSubscriptionService:
         logger.info(
             "Superadmin %s granted %d overage block(s) across %d teacher(s) "
             "under license %s (offline, no Stripe charge).",
-            performed_by.email,
+            performed_by.id,
             total_blocks,
             len(allocations),
             license_sub.id,
@@ -3135,7 +3151,7 @@ class LicenseSubscriptionService:
             intent.id,
             total_blocks,
             amount_cents,
-            requesting_user.email,
+            requesting_user.id,
         )
 
         return {
@@ -3190,7 +3206,7 @@ class LicenseSubscriptionService:
             "License %s: %s requested %d offline overage block(s) across "
             "%d teacher(s) — request %s awaiting superadmin review.",
             license_sub.id,
-            requesting_user.email,
+            requesting_user.id,
             total_blocks,
             len(allocations),
             request_obj.id,
@@ -3404,7 +3420,7 @@ class LicenseSubscriptionService:
                 "Offline overage request %s approved by %s: %d block(s) "
                 "granted across %d/%d teacher(s) for license %s.",
                 request_obj.id,
-                performed_by.email,
+                performed_by.id,
                 request_obj.total_blocks,
                 len(fulfilled),
                 len(request_obj.allocations),
@@ -3455,7 +3471,7 @@ class LicenseSubscriptionService:
         logger.info(
             "Offline overage request %s rejected by %s: %s",
             request_obj.id,
-            performed_by.email,
+            performed_by.id,
             rejection_reason,
         )
 
@@ -3526,7 +3542,7 @@ class LicenseSubscriptionService:
                     logger.exception(
                         "Failed to queue offline-overage-pending email to "
                         "super admin %s for request %s.",
-                        admin.email,
+                        admin.id,
                         request_obj.id,
                     )
 
@@ -3575,9 +3591,8 @@ class LicenseSubscriptionService:
                 )
             except Exception:
                 logger.exception(
-                    "Failed to queue offline-overage-approved email to %s "
-                    "for request %s.",
-                    recipient_email,
+                    "Failed to queue offline-overage-approved email to the "
+                    "requester of request %s.",
                     request_obj.id,
                 )
 
@@ -3622,9 +3637,8 @@ class LicenseSubscriptionService:
                 )
             except Exception:
                 logger.exception(
-                    "Failed to queue offline-overage-rejected email to %s "
-                    "for request %s.",
-                    recipient_email,
+                    "Failed to queue offline-overage-rejected email to the "
+                    "requester of request %s.",
                     request_obj.id,
                 )
 
@@ -3736,7 +3750,7 @@ class LicenseSubscriptionService:
         logger.info(
             "Refreshed monthly credits for teacher %s under license %s. "
             "Amount: %d, next refresh: %s",
-            teacher.email,
+            teacher.id,
             license_sub.id,
             # Was missing: four placeholders, three arguments, so %d
             # received the datetime and logging swallowed the resulting
@@ -3834,11 +3848,12 @@ class LicenseSubscriptionService:
                 logger.error(
                     "Offline renewal: failed to refresh credits for teacher %s "
                     "under license %s: %s",
-                    allocation.user.email,
+                    allocation.user_id,
                     license_sub.id,
-                    str(e),
+                    type(e).__name__,
+                    exc_info=True,
                 )
-                failed_teachers.append(allocation.user.email)
+                failed_teachers.append(allocation.user_id)
 
         license_sub.billing_cycle_start = now
         license_sub.billing_cycle_end = new_billing_cycle_end
@@ -3884,7 +3899,7 @@ class LicenseSubscriptionService:
             "Offline renewal for license %s by %s: %d teacher(s) refreshed, "
             "%d failed. Cycle: %s -> %s.",
             license_sub.id,
-            performed_by.email if performed_by else "unknown",
+            performed_by.id if performed_by else "unknown",
             renewed_count,
             len(failed_teachers),
             previous_cycle_end,
@@ -3938,7 +3953,7 @@ class LicenseSubscriptionService:
             logger.info(
                 "License %s converted from STRIPE to OFFLINE billing by %s.",
                 licence.id,
-                performed_by.email if performed_by else "unknown",
+                performed_by.id if performed_by else "unknown",
             )
 
         # Phase A — or the whole operation, where Stripe is not involved.
@@ -4111,9 +4126,9 @@ class LicenseSubscriptionService:
             "license %s by %s.",
             blocks,
             raw_credits,
-            teacher.email,
+            teacher.id,
             license_sub.id,
-            performed_by.email if performed_by else "unknown",
+            performed_by.id if performed_by else "unknown",
         )
 
         return bucket

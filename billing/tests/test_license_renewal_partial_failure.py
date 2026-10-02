@@ -272,10 +272,15 @@ class LicenseRenewalTransactionBoundaryTests(TransactionTestCase):
             with self.assertLogs("billing.license_service", level="ERROR") as logs:
                 LicenseSubscriptionService.process_license_renewal(self.license)
 
+        # By id, never by address (H-80).
         self.assertTrue(
-            any(victim.email in line for line in logs.output),
+            any(str(victim.id) in line for line in logs.output),
             "the failed teacher was not named in the error log",
         )
+        self.assertEqual([line for line in logs.output if "@" in line], [])
+        # An unexpected failure: the line carries the traceback (H-80, 1a's P1).
+        [failure] = [r for r in logs.records if "Failed to renew credits" in r.msg]
+        self.assertIsNotNone(failure.exc_info)
 
 
 class OfflineRenewalTransactionBoundaryTests(TransactionTestCase):
@@ -365,11 +370,18 @@ class OfflineRenewalTransactionBoundaryTests(TransactionTestCase):
             "_rollover_and_grant_monthly_bucket",
             _rollover,
         ):
-            LicenseSubscriptionService.process_offline_renewal(
-                self.license,
-                performed_by=self.superadmin,
-                new_billing_cycle_end=timezone.now() + timedelta(days=30),
-            )
+            with self.assertLogs("billing.license_service", level="ERROR") as logs:
+                LicenseSubscriptionService.process_offline_renewal(
+                    self.license,
+                    performed_by=self.superadmin,
+                    new_billing_cycle_end=timezone.now() + timedelta(days=30),
+                )
+
+        # The failure is reported by id, with its traceback (H-80, 1a's P1).
+        [failure] = [r for r in logs.records if "Offline renewal: failed" in r.msg]
+        self.assertIn(str(victim_id), failure.getMessage())
+        self.assertNotIn("@", failure.getMessage())
+        self.assertIsNotNone(failure.exc_info)
 
         self.assertFalse(
             CreditBucket.objects.filter(
