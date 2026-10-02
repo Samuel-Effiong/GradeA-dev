@@ -156,6 +156,40 @@ production code changed in the fix.
 assertions and the helper), plus the ones recorded for b4 (`grade_engine_async`, the students
 H-38 test) and `tests_security_penetration.py`'s S7d line.
 
+## Gate round 2 (rule 15.4) at 798c06e2: green
+
+2026-10-02 14:10–14:16 WAT. The SM accepted the reduced scope: only three test files differ
+from 3cfc40f8 outside docs/, and the other 737 tests of round 1 passed on the same production
+code.
+
+| Step | Result | Log |
+|---|---|---|
+| Reproduce-first (round 1, step 0): beta's beat-lock guard and the new sweep test on the merge commit's `audit/tasks.py` | FAILED: 6 of the 7 sweep-lock tests fail, and `test_every_beat_task_is_locked_or_exempt` | `prefix_sweeps_unlocked_failing.txt` |
+| The three touched modules + `audit.tests_sweep_beat_lock` | 49 tests OK | `r2_touched_modules.txt` |
+| Resolution mutants R1–R6 | 6 of 6 killed, no survivors | `mutation_log.txt`, `mutation_results.json` |
+
+Rule 17: the mutant runs used `PYTHONDONTWRITEBYTECODE=1`, and the `__pycache__` of each
+mutated module's directory was deleted before each mutant and after each restore. Own
+database (`test_epic_a_merge_down_b5_mut`), dropped afterwards. Rules 12, 13 and 16 (the
+`idle:sleep:handle-lid-switch` prefix) on every run.
+
+| Mutant | Killed by |
+|---|---|
+| R1 settings failure logs the exception text | `test_no_logger_call_formats_an_address` |
+| R2 wallet failure logs the exception text | `test_no_logger_call_formats_an_address` |
+| R3 the retention sweep has no beat lock | `test_every_beat_task_is_locked_or_exempt`; `test_every_guarded_beat_task_skips_while_another_run_holds_it`; `test_the_next_run_does_the_skipped_runs_work`; `test_the_retention_sweep_is_skipped_and_records_nothing`; `test_the_retention_sweep_is_skipped_with_an_error`; `test_the_two_sweeps_do_not_block_each_other` |
+| R4 the pii sweep has no beat lock | `test_every_beat_task_is_locked_or_exempt`; `test_every_guarded_beat_task_skips_while_another_run_holds_it`; `test_the_next_run_does_the_skipped_runs_work`; `test_the_pii_sweep_is_skipped_and_records_nothing`; `test_the_pii_sweep_is_skipped_with_an_error` |
+| R5 billing tasks loses the audit metrics import | `test_a_clean_expiration_emits_no_anomaly`; `test_a_failed_bucket_expiration_emits_the_anomaly_exactly_once` |
+| R6 billing tasks loses the beat lock imports | the test run fails at import (`NameError` in `billing/tasks.py`), before any test |
+
+## The guarded-task pin (SM's question)
+
+`test_every_guarded_beat_task_skips_while_another_run_holds_it` now names the epic's own
+guarded tasks (`EPIC_ONLY_GUARDED_BEAT_TASKS`: the two audit sweeps) and pins **beta's own
+count, 21**, over the rest. So a guarded task added on beta fails here at the next
+merge-down until the 21 follows beta's, and an epic-only one must be named. This commit is
+test-only and came after round 2; the seven-app regression runs at the tip that has it.
+
 ## Apps whose production code the merge changes on the epic
 
 `billing`, `users`, `classrooms`, `ai_processor`, `AutoGrader`, `dashboard`
