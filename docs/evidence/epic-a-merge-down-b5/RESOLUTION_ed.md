@@ -190,6 +190,44 @@ count, 21**, over the rest. So a guarded task added on beta fails here at the ne
 merge-down until the 21 follows beta's, and an epic-only one must be named. This commit is
 test-only and came after round 2; the seven-app regression runs at the tip that has it.
 
+## The seven-app regression at c32de6aa: 5134 passed, 1 planner-dependent test (H-95)
+
+`manage.py test billing users classrooms ai_processor AutoGrader dashboard audit`, 12G, flock,
+timeout 3600, `--verbosity 2`, `RACE_COST_*` / `AUDIT_BENCH*` / `ENABLE_GRADING_BENCHMARK`
+unset. Script start 14:18:50 WAT; it waited for the machine-wide lock (a Vezi suite held it);
+the tests started 14:24:11 and ended 14:40:07.
+
+**Ran 5135 tests in 928.4s: FAILED (failures=1, skipped=14).** Per app (unique test ids in
+the log): billing 2048, ai_processor 830, users 698, AutoGrader 533, classrooms 415, audit 341,
+dashboard 270. Log: `run1_failed_c32de6aa_regression_seven_apps.txt` (last 200 lines, with
+the FAIL header and the totals; full log sha256 prefix `d06175d7f617abed`, kept in
+`~/Documents/Projects/GAP-evidence-logs/`).
+
+The one failure: `audit.tests_volume_report.MeasuredTests.test_every_windowed_count_has_an_index_path`.
+It runs EXPLAIN, with seq scans off, on each windowed count of `audit_volume_report` and
+requires the plan's `Index Cond` to pin `action` or `retention_class`. For the `AUTH_LOGIN`
+count the planner showed `audit_retention_ix` with `Index Cond` on `occurred_at` and `action`
+as a `Filter` (cost 0.25..8.28, rows=1): a full scan of another index, on a table of four
+rows, where it costs the same as the pinned scan.
+
+Why this is not the merge: under `audit/` the branch differs from cc22bc03 only in `tasks.py`
+(the two decorators) and test modules; no model, index, migration or command changed. The
+same module alone, serially, three times at c32de6aa on a fresh test database each time:
+**9 tests OK, three times** (`volume_report_alone_x3_before_fix_c32de6aa.txt`; a passing run
+prints no plan, so which index each used is not shown).
+
+SM ruling: the 12G run is not repeated; the test is made deterministic now, test-only, and
+must still fail when an index it protects is missing. That closes backlog **H-95** on Epic A
+(beta has no such test).
+
+The fix (`audit/tests_volume_report.py`):
+- `fill_and_analyse()`: before the EXPLAIN the test inserts 60 rows per action across both
+  retention classes, spread over 300 days, and runs `ANALYZE`. With real statistics the
+  pinned scan is clearly cheaper than a full scan of another index.
+- `test_the_index_check_fails_when_an_index_it_protects_is_missing`: drops
+  `audit_action_time_ix`, then `audit_retention_ix`, each inside a rolled-back savepoint, and
+  requires the same check to raise. That is the proof the SM asked for, kept in the suite.
+
 ## Apps whose production code the merge changes on the epic
 
 `billing`, `users`, `classrooms`, `ai_processor`, `AutoGrader`, `dashboard`
