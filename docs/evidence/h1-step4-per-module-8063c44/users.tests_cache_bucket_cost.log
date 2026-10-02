@@ -1,0 +1,3 @@
+users.tests_cache_bucket_cost.BucketBumpQueryCostTests.test_the_viewer_lookups_add_a_constant_number_of_queries ... ok
+Ran 1 test in 4.365s
+OK

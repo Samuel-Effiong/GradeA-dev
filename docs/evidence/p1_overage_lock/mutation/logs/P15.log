@@ -1,0 +1,49 @@
+# P15: hourly beat entry
+# file: AutoGrader/settings.py line: None
+# old: '        "task": "billing.tasks.replay_safe_failed_stripe_events",'
+# new: '        "task": "billing.tasks.sweep_stale_stripe_events",'
+# modules: billing.tests.test_event_replay.ReplayTaskWiringTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.1
+# restored_sha256_matches_commit_blob: True
+
+Found 2 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_beat_schedule_and_health_expectation (billing.tests.test_event_replay.ReplayTaskWiringTests.test_beat_schedule_and_health_expectation) ... Cannot activate automatic trial for user wiring@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_task_reports_nothing_eligible (billing.tests.test_event_replay.ReplayTaskWiringTests.test_task_reports_nothing_eligible) ... Cannot activate automatic trial for user wiring@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+======================================================================
+FAIL: test_beat_schedule_and_health_expectation (billing.tests.test_event_replay.ReplayTaskWiringTests.test_beat_schedule_and_health_expectation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-P15-dylro_44/wt/billing/tests/test_event_replay.py", line 501, in test_beat_schedule_and_health_expectation
+    self.assertEqual(
+AssertionError: 'billing.tasks.sweep_stale_stripe_events' != 'billing.tasks.replay_safe_failed_stripe_events'
+- billing.tasks.sweep_stale_stripe_events
+?               ^^^    -
++ billing.tasks.replay_safe_failed_stripe_events
+?               ^  +++   ++++++  +
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.073s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

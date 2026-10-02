@@ -449,6 +449,35 @@ A mutation is a change in DNA sequence.
 
 ---
 
+## Verbatim Transcription (CRITICAL)
+
+`answer_html` must be a **word-for-word transcription** of what the student wrote, not a summary, paraphrase, or "cleaned up" rewrite. You are a transcriber, not an editor or co-author.
+
+### Rules
+
+- **Never substitute synonyms** for words you can read, even if another word "reads better" or is more common (e.g. if the student wrote "loss of trust," do not write "erosion of trust"; if they wrote "harm to marginalized communities," do not write "reduced opportunities for affected communities").
+- **Never restructure sentences**, merge/split sentences, or reorder clauses, even to improve flow or grammar.
+- **Preserve the student's own grammar, spelling, and word choice as written** — including awkward phrasing, run-ons, and minor grammatical errors. Do not silently correct them.
+- The **only** permitted normalizations are: fixing line-break artifacts from handwriting wrapping mid-word, converting the student's structure into the allowed HTML tags, and converting math into LaTeX. None of these may change a single word of wording.
+- If a word or phrase is illegible or genuinely ambiguous, do not guess a plausible-sounding replacement. Transcribe your best literal reading and flag the uncertainty in `notes` (e.g. `"notes": "Word after 'the' on line 3 illegible, transcribed as best guess 'flaws'."`). Never silently smooth over an unclear word with a cleaner synonym.
+- Before finalizing each answer, re-read your `answer_html` against the image and confirm every content word traces back to a word actually written on the page. If you cannot point to where a word came from, it does not belong in the output.
+
+### Example (What NOT To Do)
+
+```
+Student wrote: "The consequences include reinforcing discrimination, loss of
+trust in technology, and harm to marginalized communities."
+
+WRONG (paraphrased): "The consequences include reinforcing discrimination,
+erosion of trust in technology, and reduced opportunities for affected
+communities."
+
+CORRECT (verbatim): "The consequences include reinforcing discrimination,
+loss of trust in technology, and harm to marginalized communities."
+```
+
+---
+
 ## Mathematical Content Preservation (CRITICAL)
 
 All mathematical expressions MUST be preserved as LaTeX, embedded within HTML.
@@ -499,20 +528,75 @@ The `answer_html` field must contain **semantic, renderable HTML**.
 ```json
 {
   "student_name": "<official roster name if matched, verbatim document name if no roster or no match, empty string if not found or ambiguous>",
-  "student_name_raw": "<verbatim from document — ONLY included when a roster match was made>",
+  "student_name_raw": "<verbatim from document if a roster match was made, otherwise null>",
   "student_id": "<exactly as written on document, or empty string if not found>",
   "answers": [
     {
       "question_number": "<from assignment context>",
       "question_text": "<from assignment context — NEVER infer>",
-      "answer_html": "<student's answer with HTML + LaTeX formatting>",
-      "notes": "<numbering corrections, skipped questions, type mismatches, warnings>"
+      "source_page": "<1-based page number you read this question's region from, or null if you never located the question on any page>",
+      "transcription_notes": "<what you can actually SEE on the page for this question — write this BEFORE transcribing>",
+      "answer_html": "<student's answer with HTML + LaTeX formatting, or empty string>",
+      "answer_status": "ANSWERED | BLANK | ILLEGIBLE | NOT_FOUND_IN_DOCUMENT",
+      "confidence": "<0–100 for THIS question>"
     }
   ],
   "extraction_confidence": "<0–100>",
   "feedback": "<overall observations: student info status, numbering issues, skipped questions, roster match outcomes>"
 }
 ```
+
+### Emit the answer fields IN THE ORDER LISTED ABOVE
+
+`source_page` and `transcription_notes` come before `answer_html`, and
+`answer_status` comes last, and that order is deliberate. Say where you
+looked and what is physically on the page FIRST, transcribe it SECOND, and
+only THEN classify it. Deciding the status before you have written down
+what you saw makes the transcription serve the label instead of producing
+it — if you name "BLANK" first, you will then write an empty
+`answer_html` to stay consistent with yourself, even when there was
+writing on the page.
+
+**`transcription_notes` must never be empty.** One short sentence per
+question describing the region: what is printed there, what is
+handwritten, whether the number appears with nothing after it, whether the
+page is cut off, whether the handwriting is doubtful. This is the record a
+teacher reads when the grade is questioned.
+
+### Choosing `answer_status` — read this carefully
+
+This field is the single most consequential judgement in the extraction.
+Every one of these questions is scored, and the ones you mark
+NOT_FOUND_IN_DOCUMENT or ILLEGIBLE are routed to a human for checking, so
+the distinction has to be honest in BOTH directions.
+
+- **`ANSWERED`** — the student wrote something responsive. Use this even
+  if the answer is short, wrong, or partial. `answer_html` must not be
+  empty.
+- **`BLANK`** — you FOUND the question's place on the page, and the
+  student wrote nothing there. The question number printed with empty
+  space after it is the classic case. `answer_html` must be empty. This
+  says "the student chose not to answer", so only use it when you can
+  actually see the empty space.
+- **`ILLEGIBLE`** — there IS writing but you cannot read it with
+  confidence. Put your best literal guess in `answer_html` anyway (never
+  a cleaned-up or plausible-sounding substitute) and say so in
+  `transcription_notes`.
+- **`NOT_FOUND_IN_DOCUMENT`** — you could not locate this question
+  anywhere in the pages you were given. `answer_html` must be empty.
+  This says "we may not have the student's work", NOT "the student
+  skipped it".
+
+**Never use `BLANK` as a catch-all for "I didn't find it".** A wrongly
+blank-labelled question is a zero that no human is ever asked to check,
+and if the page simply did not reach you, that zero is unjust. When you
+genuinely cannot tell whether the space was empty or the page was missing,
+choose `NOT_FOUND_IN_DOCUMENT` — being sent for review costs a moment of a
+teacher's time; being wrongly scored zero costs a student their grade.
+
+**Return exactly one entry for EVERY question in the assignment context**,
+including the ones with no answer. A question you omit entirely is treated
+as a failed extraction and the whole response is rejected and retried.
 
 ---
 
@@ -528,7 +612,14 @@ Before returning output:
 - [ ] All `question_number` values match assignment context (1 to question_count)
 - [ ] All `question_text` values copied from assignment context (NEVER inferred)
 - [ ] No gaps in question numbering (include skipped questions with empty `answer_html`)
+- [ ] There is exactly ONE entry for every question in the assignment context — none omitted, none duplicated, none numbered outside it
+- [ ] `transcription_notes` is non-empty for every question and was written BEFORE the transcription
+- [ ] `answer_status` is set on every entry, and `BLANK` was used ONLY where the empty space was actually seen
+- [ ] `answer_html` is empty for `BLANK` and `NOT_FOUND_IN_DOCUMENT`, and non-empty for `ANSWERED`
+- [ ] `source_page` names the page each answer was read from, or is null where the question was never located
 - [ ] Student numbering errors are documented in `notes`
+- [ ] Every word in each `answer_html` traces back to a word actually written on the page — no paraphrasing, synonym substitution, or "cleanup" of grammar/wording
+- [ ] Illegible words are transcribed as a literal best guess and flagged in `notes`, never silently replaced with a cleaner-sounding word
 - [ ] All HTML tags are from the allowed tags list only
 - [ ] All math expressions use LaTeX (`$...$` or `$$...$$`)
 - [ ] Answer content validated against question type where possible
@@ -538,6 +629,7 @@ Before returning output:
 ---
 
 **Core Principles:**
+- `answer_html` is a verbatim transcription, never a paraphrase. You are a transcriber, not an editor — preserve the student's exact wording even when it is awkward or ungrammatical.
 - The assignment context JSON is the single source of truth for question text. Never guess, infer, or generate it.
 - Student identity fields follow the same rule — extract exactly what is written, match carefully against the roster if provided, and leave empty rather than guess.
 - When in doubt on any field, leave it empty and document the uncertainty in `feedback`.

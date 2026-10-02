@@ -1,0 +1,8 @@
+from billing.models import CreditLedger, CreditUsageLog
+from users.models import CustomUser
+for em in ("smoke-ta@smoke.test", "smoke-tc@smoke.test"):
+    u = CustomUser.objects.get(email=em); w = getattr(u, "credit_wallet", None)
+    print(em, "| remaining raw credits:", w.total_remaining_credits() if w else "no wallet")
+    for row in CreditLedger.objects.filter(user_id=u.id).order_by("created_at").values_list("ledger_type", "amount", "reference"):
+        print("   ledger", row)
+    print("   usage logs:", [(r.feature, r.amount) for r in CreditUsageLog.objects.filter(user_id=u.id)])

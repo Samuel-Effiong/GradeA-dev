@@ -1,0 +1,64 @@
+{
+  "body": {
+    "data": {
+      "auto_renew": true,
+      "billing_cycle_end": "2026-10-28T14:01:46.274873Z",
+      "billing_cycle_start": "2026-09-28T14:01:46.274868Z",
+      "billing_method": "STRIPE",
+      "days_until_renewal": 29,
+      "has_other_managed_licenses": false,
+      "has_pending_billing_issue": false,
+      "is_active": true,
+      "license_id": "7a8c91ba-14db-49ac-aa35-f25223f58299",
+      "managed_license_count": 1,
+      "max_seats": 5,
+      "plan": {
+        "carry_over_expiry_months": 0,
+        "carry_over_percent": "0.00",
+        "category": "LICENSE",
+        "display_max_bank": null,
+        "display_monthly_credits": 40000,
+        "display_name": "LICENSE_f77b99fe",
+        "display_overage_block_size": 0,
+        "features": [],
+        "id": "ec5bc4b0-e2de-4a8b-a581-48bd744d7430",
+        "interval": "MONTHLY",
+        "is_active": true,
+        "max_overage_blocks": 0,
+        "name": "LICENSE_f77b99fe",
+        "overage_block_price": 0,
+        "price_cents": "999.00",
+        "price_id": "price_license_f77b99fe",
+        "tagline": "",
+        "tier": "CUSTOM"
+      },
+      "plan_display_name": "LICENSE_f77b99fe",
+      "school_name": "License School sample-admin-aa@example.com",
+      "seats_remaining": 5,
+      "status": "ACTIVE",
+      "stripe_status": "ACTIVE",
+      "subscription_source": "LICENSE_ADMIN",
+      "teacher_count": 0,
+      "wallet_summary": {
+        "active_buckets_count": 0,
+        "bucket_breakdown": {
+          "CARRY_OVER": 0,
+          "MONTHLY": 0,
+          "OVERAGE": 0,
+          "TRIAL": 0
+        },
+        "credit_percentage_remaining": 0.0,
+        "display_total_remaining_credits": 0,
+        "id": "0058b410-cace-4922-8666-b78441e49c29",
+        "monthly_credit_remaining": 0,
+        "monthly_credit_total": 1,
+        "overage_blocks_used": 0,
+        "total_remaining_credits": 0,
+        "user": "f77b99fe-8fc8-41f9-a801-d2a1eded11bd"
+      }
+    },
+    "message": "Request Successful",
+    "success": true
+  },
+  "http_status": 200
+}

@@ -1,0 +1,29 @@
+# r20 run of ConcurrentOverageDeliveryTests
+# start 2026-09-17T17:14:05+01:00
+HEAD bab3d090b3a48750b209592a6b72f395dc96f75f
+dirty_tracked_files 0
+index_fingerprint eb6192980744b1bbff66e2e1ba703e4c9e66c995107bdbba69f43ef7245326b4  -
+run 01 exit=0 secs=108 Ran 8 tests in 74.075s OK other_sessions=0 live_stripe=0 log_sha256=73f4d4b43aaffbc3
+run 02 exit=0 secs=92 Ran 8 tests in 56.181s OK other_sessions=0 live_stripe=0 log_sha256=e8110277fa0eff5f
+run 03 exit=0 secs=87 Ran 8 tests in 56.395s OK other_sessions=0 live_stripe=0 log_sha256=1a52a98b382ba2b5
+run 04 exit=0 secs=82 Ran 8 tests in 50.766s OK other_sessions=0 live_stripe=0 log_sha256=53b3255275c5033c
+run 05 exit=0 secs=54 Ran 8 tests in 35.400s OK other_sessions=0 live_stripe=0 log_sha256=0b0adcb854cdddc4
+run 06 exit=0 secs=56 Ran 8 tests in 37.427s OK other_sessions=0 live_stripe=0 log_sha256=eaa58bdcf88fc796
+run 07 exit=0 secs=60 Ran 8 tests in 37.792s OK other_sessions=0 live_stripe=0 log_sha256=5ad13cf9ce0aa975
+run 08 exit=0 secs=54 Ran 8 tests in 34.711s OK other_sessions=0 live_stripe=0 log_sha256=f6941f00248fc3e9
+run 09 exit=0 secs=65 Ran 8 tests in 45.089s OK other_sessions=0 live_stripe=0 log_sha256=95fc6de641d38308
+run 10 exit=0 secs=103 Ran 8 tests in 64.574s OK other_sessions=0 live_stripe=0 log_sha256=5e9324d0af1ec733
+run 11 exit=0 secs=89 Ran 8 tests in 54.928s OK other_sessions=0 live_stripe=0 log_sha256=1bd8b31a79737ab7
+run 12 exit=0 secs=74 Ran 8 tests in 43.421s OK other_sessions=0 live_stripe=0 log_sha256=4a6750b9aecc176c
+run 13 exit=0 secs=102 Ran 8 tests in 68.912s OK other_sessions=0 live_stripe=0 log_sha256=321226b78bf47a90
+run 14 exit=0 secs=94 Ran 8 tests in 57.033s OK other_sessions=0 live_stripe=0 log_sha256=6f02d6776a58bb53
+run 15 exit=0 secs=84 Ran 8 tests in 53.907s OK other_sessions=0 live_stripe=0 log_sha256=f3133cd1c0a1b6c3
+run 16 exit=0 secs=95 Ran 8 tests in 64.668s OK other_sessions=0 live_stripe=0 log_sha256=c3150388c12e8b9f
+run 17 exit=0 secs=82 Ran 8 tests in 54.416s OK other_sessions=0 live_stripe=0 log_sha256=6f1fac27d06318c4
+run 18 exit=0 secs=84 Ran 8 tests in 50.620s OK other_sessions=0 live_stripe=0 log_sha256=a866e91332282144
+run 19 exit=0 secs=73 Ran 8 tests in 42.844s OK other_sessions=0 live_stripe=0 log_sha256=47cbcb0ccc4eccb4
+run 20 exit=0 secs=68 Ran 8 tests in 46.890s OK other_sessions=0 live_stripe=0 log_sha256=18c847699c3088a9
+# end 2026-09-17T17:40:54+01:00
+HEAD bab3d090b3a48750b209592a6b72f395dc96f75f
+dirty_tracked_files 0
+index_fingerprint eb6192980744b1bbff66e2e1ba703e4c9e66c995107bdbba69f43ef7245326b4  -

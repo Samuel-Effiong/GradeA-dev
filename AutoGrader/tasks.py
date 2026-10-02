@@ -1,14 +1,14 @@
+"""Eyes to see Lord Jesus to anyone using this website"""
+
 import logging
 
 from celery import shared_task
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, send_mail
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=30)
-def send_email_task(
-    self,
+def _send_email_impl(
     subject,
     message,
     from_email,
@@ -20,15 +20,6 @@ def send_email_task(
     logger.info("Executing send_email_task")
 
     try:
-        # send_mail(
-        #     subject=subject,
-        #     message=message,
-        #     from_email=from_email,
-        #     recipient_list=recipient_list,
-        #     html_message=html_message,
-        #     fail_silently=False,
-        # )
-
         mail = EmailMultiAlternatives(
             subject=subject,
             body=message,
@@ -52,8 +43,69 @@ def send_email_task(
                 else:
                     mail.merge_data = merge_data
 
-        mail.send(fail_silently=False)
-        return f"Email sent successfully to {recipient_list}"
+        try:
+            mail.send(fail_silently=False)
+            logger.info("Email sent successfully to %s", recipient_list)
+            return f"Email sent successfully to {recipient_list}"
+        except Exception as exc:
+            if not message and not html_message:
+                # Nothing to fall back to: this send relied entirely on
+                # template_id/merge_data, so a plain send_mail() would have
+                # no body and fail with its own (confusing) error.
+                logger.error(
+                    "Templated email send failed for %s and no plain-text "
+                    "body was provided, so no fallback is possible. Error: %s",
+                    recipient_list,
+                    exc,
+                )
+                raise
+
+            logger.warning(
+                "Templated email send failed for %s, falling back to plain send_mail. Error: %s",
+                recipient_list,
+                exc,
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return f"Fallback plain email sent successfully to {recipient_list}"
     except Exception as exc:
-        logger.error(f"Error sending email: {exc}")
-        raise self.retry(exc=exc) from exc
+        logger.error("Error sending email: %s", exc)
+        raise
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def send_email_task(
+    self,
+    subject,
+    message,
+    from_email,
+    recipient_list,
+    html_message=None,
+    template_id=None,
+    merge_data=None,
+):
+    logger.warning("sending email to subjec: %s", subject)
+    try:
+        return _send_email_impl(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipient_list,
+            html_message=html_message,
+            template_id=template_id,
+            merge_data=merge_data,
+        )
+    except Exception as exc:
+        # _send_email_impl already tried the plain send_mail fallback (or
+        # explains why it couldn't). A failure here is a real send failure
+        # (rate limit, transient provider error, network blip), so retry
+        # with backoff instead of dropping the email after one attempt -
+        # max_retries/default_retry_delay above were configured but never
+        # actually wired to a retry call, so every failure was final.
+        raise self.retry(exc=exc, countdown=self.default_retry_delay) from exc

@@ -1,0 +1,15 @@
+..........................F...................
+======================================================================
+FAIL: test_suite_exit_ok_but_failed_summary_fails (__main__.EndToEnd.test_suite_exit_ok_but_failed_summary_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 441, in test_suite_exit_ok_but_failed_summary_fails
+    self.assertFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 322, in assertFailedWith
+    self.assertTrue(
+AssertionError: False is not true : ['run 1: FAIL: billing.tests.test_overage_purchase_integrity.ConcurrentOverageDeliveryTests.test_concurrent_purchases_by_different_teachers_stay_separate (known flake: counts as a failure)']
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.601s
+
+FAILED (failures=1)

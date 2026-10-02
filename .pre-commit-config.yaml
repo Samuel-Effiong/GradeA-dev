@@ -5,9 +5,20 @@ repos:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+        # The generated backend-reference HTML embeds the Mermaid renderer and
+        # the IBM Plex font payloads verbatim. Rewriting bytes inside those is
+        # not a whitespace tidy-up, it is editing a vendored binary-ish blob.
+        exclude: ^docs/backend/.*\.html$
     -   id: check-ast
     -   id: check-docstring-first
     -   id: check-added-large-files
+        # Same files: single-file documentation editions are a few MB because
+        # the renderer and fonts are inlined so they open with no network.
+        # ai_processor/tiktoken_cache/ vendors tiktoken's cl100k_base BPE
+        # file (~1.7MB, third-party binary data, sha256-verified — see its
+        # README) so token counting works with no outbound network. The
+        # 500KB guard still applies to everything else.
+        exclude: ^(docs/backend/.*\.html|ai_processor/tiktoken_cache/[0-9a-f]{40})$
     -   id: check-merge-conflict
     -   id: check-toml
     -   id: check-json
@@ -17,6 +28,10 @@ repos:
     -   id: fix-byte-order-marker
     -   id: detect-private-key
     -   id: name-tests-test
+        # This repo names tests test_*.py / tests_*.py (Django's convention,
+        # 48 files). The hook's default expects the opposite (*_test.py), so
+        # without --django it rejects every test file in the project.
+        args: [--django]
     -   id: debug-statements
     -   id: check-symlinks
     -   id: requirements-txt-fixer
@@ -33,7 +48,28 @@ repos:
     hooks:
     -   id: mypy
         args: [--ignore-missing-imports, --check-untyped-defs, --disable-error-code=var-annotated]
-        additional_dependencies: [types-requests,  types-redis, types-waitress]
+        # language: system, not the mirror's own isolated venv: the
+        # mypy_django_plugin (wired up in pyproject.toml's
+        # [tool.mypy]/[tool.django-stubs]) calls django.setup() on
+        # AutoGrader.settings to inspect real models, which imports the
+        # WHOLE app (AutoGrader/__init__.py -> celery, every installed app's
+        # third-party deps, ...). additional_dependencies only ever installs
+        # mypy + stub packages into an isolated env, so django.setup() there
+        # fails with ModuleNotFoundError before a single file is checked
+        # (confirmed: `ModuleNotFoundError: No module named 'celery'` from
+        # AutoGrader/celery.py). Listing the whole of requirements.txt as
+        # additional_dependencies is the alternative, but that duplicates
+        # the project's real dependency set in a second place that silently
+        # drifts. language: system instead runs mypy from whatever
+        # environment invokes pre-commit — this project's shared venv,
+        # which already has mypy==1.17.1 (matching `rev` above),
+        # django-stubs==5.2.8 and djangorestframework-stubs==3.16.6
+        # (matching requirements.txt) installed, so the plugin can import
+        # the app cleanly. See docs/evidence/mypy_django_stubs/EVIDENCE.md.
+        language: system
+        # Evidence harnesses reuse names (several mutate.py), which stops
+        # whole-repo mypy with "Duplicate module named"; they aren't app code.
+        exclude: ^docs/
 
 -   repo: https://github.com/pycqa/flake8 # Linting with Flake8
     rev: 7.3.0
@@ -41,6 +77,7 @@ repos:
       - id: flake8
         language_version: python3
         additional_dependencies:
+          - setuptools<81
           - flake8-bugbear==23.7.10
           - flake8-comprehensions==3.12.0
           - flake8-docstrings==1.7.0
@@ -51,8 +88,12 @@ repos:
         args:
           - --max-line-length=120                  # Matches Black's line length
           - --select=B,C,E,F,W,T4,B9                          # Enable common checks
-          - --ignore=W503,E800,E203      # Align with Black formatting
-        exclude: ^migrations/
+          - --ignore=W503,E203      # Align with Black formatting
+          # E800 (flake8-eradicate, commented-out code) is ON for the whole
+          # repository with no exceptions. Item 9's file-by-file burn-down
+          # (docs/HARDENING_BACKLOG.md H-12, now closed) removed the last
+          # per-file exemption; see docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md.
+        exclude: (^|/)migrations/
     # Sort imports automatically with isort
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
@@ -82,3 +123,16 @@ repos:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
         exclude: 'tests/|examples/|docs/'
+
+  # gunicorn's --timeout and billing/webhooks.py's
+  # WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS are the same load-bearing value in
+  # two files - see the comments at both sites. This catches one being
+  # changed without the other.
+-   repo: local
+    hooks:
+      - id: check-gunicorn-timeout-sync
+        name: Check gunicorn timeout stays in sync with Stripe webhook claim window
+        entry: python scripts/check_gunicorn_timeout_sync.py
+        language: system
+        files: ^(Dockerfile|billing/webhooks\.py)$
+        pass_filenames: false

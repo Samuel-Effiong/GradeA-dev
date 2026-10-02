@@ -9,6 +9,7 @@ from .models import (
     PasswordResetOTP,
     Waitlist,
 )
+from .signals import invalidate_user_caches
 
 
 @admin.register(CustomUser)
@@ -85,14 +86,23 @@ class CustomUserAdmin(UserAdmin):
 
     actions = ["activate_users", "deactivate_users"]
 
+    # `QuerySet.update()` fires no post_save, so neither cache mechanism ever
+    # saw these bulk changes, and `is_active` is shown on other users' views
+    # (a teacher's roster, the school summary). Capture the rows first - the
+    # admin's list filter can be `is_active` itself - then invalidate them
+    # explicitly.
     @admin.action(description="Mark selected users as active")
     def activate_users(self, request, queryset):
+        users = list(queryset.only("pk", "school_id"))
         updated = queryset.update(is_active=True)
+        invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully activated.")
 
     @admin.action(description="Mark selected users as inactive")
     def deactivate_users(self, request, queryset):
+        users = list(queryset.only("pk", "school_id"))
         updated = queryset.update(is_active=False)
+        invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully deactivated.")
 
 

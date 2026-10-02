@@ -15,7 +15,7 @@ Current trigger:
 `users/services.py`
 
 Suggested subject:
-`Activate your GradeA+ account`
+`Activate your Grade A+ account`
 
 Suggested preview text:
 `Verify your email and get started with faster, smarter grading.`
@@ -39,7 +39,7 @@ This link expires in {{ expiration_duration }} minutes.
 
 If you did not create this account, you can safely ignore this email.
 
-The GradeA+ Team
+The Grade A+ Team
 Need help? Contact us at {{ support_email }}.
 ```
 
@@ -49,7 +49,7 @@ Current trigger:
 `users/views.py` in `otp()` for `RESET_PASSWORD`
 
 Suggested subject:
-`Your GradeA+ password reset code`
+`Your Grade A+ password reset code`
 
 Suggested preview text:
 `Use this secure code to reset your password.`
@@ -59,14 +59,14 @@ Sample body:
 ```text
 Hello {{ user_name|default:"there" }},
 
-We received a request to reset your GradeA+ password.
+We received a request to reset your Grade A+ password.
 
 Your password reset code is:
 {{ otp_code }}
 
 Enter this code in the app to continue. If you did not request a password reset, you can ignore this email and your account will remain secure.
 
-The GradeA+ Team
+The Grade A+ Team
 Need help? Contact us at {{ support_email }}.
 ```
 
@@ -76,7 +76,7 @@ Current trigger:
 `users/views.py` in `request_change_password()`
 
 Suggested subject:
-`Your GradeA+ password change code`
+`Your Grade A+ password change code`
 
 Suggested preview text:
 `Confirm your password change with this one-time code.`
@@ -86,14 +86,14 @@ Sample body:
 ```text
 Hello {{ user_name|default:"there" }},
 
-You are one step away from updating your GradeA+ password.
+You are one step away from updating your Grade A+ password.
 
 Your password change code is:
 {{ otp_code }}
 
 Enter this code to complete the update. If you did not request this change, please secure your account immediately.
 
-The GradeA+ Team
+The Grade A+ Team
 Need help? Contact us at {{ support_email }}.
 ```
 
@@ -130,7 +130,7 @@ Open your dashboard here:
 
 We are glad to have you in the course.
 
-The GradeA+ Team
+The Grade A+ Team
 Questions about the course? Contact {{ teacher.email }}.
 ```
 
@@ -153,7 +153,7 @@ Sample body:
 ```text
 Hello,
 
-{{ teacher.get_full_name }} has invited you to join {{ course.name }} on GradeA+.
+{{ teacher.get_full_name }} has invited you to join {{ course.name }} on Grade A+.
 
 Your student access has been prepared. Complete your registration to create your password, set up your profile, and enter the course with confidence.
 
@@ -164,7 +164,7 @@ This invitation link expires in 7 days.
 
 If you were not expecting this invitation, you can ignore this email.
 
-The GradeA+ Team
+The Grade A+ Team
 Questions about this course? Contact {{ teacher.email }}.
 ```
 
@@ -192,7 +192,7 @@ Course details:
 
 If this update was unexpected or you need clarification, please contact your teacher directly at {{ teacher.email }}.
 
-The GradeA+ Team
+The Grade A+ Team
 ```
 
 ## 7. Student Registration Link Renewal
@@ -223,7 +223,7 @@ This link expires in 7 days.
 
 Once registration is complete, you will have access to your course and student dashboard.
 
-The GradeA+ Team
+The Grade A+ Team
 Questions about this course? Contact {{ teacher.email }}.
 ```
 
@@ -251,7 +251,7 @@ No action is needed from you right now. Once the student completes registration,
 
 Thank you for keeping your class moving forward.
 
-The GradeA+ Team
+The Grade A+ Team
 ```
 
 ## 9. Teacher Notification: Student Submission
@@ -281,9 +281,9 @@ Submission details:
 - Assignment: {{ assignment.title|default:"Untitled Assignment" }}
 - Submitted: {{ submission.submission_date|date:"F j, Y, g:i a" }}
 
-Review the submission from your GradeA+ dashboard when you are ready.
+Review the submission from your Grade A+ dashboard when you are ready.
 
-The GradeA+ Team
+The Grade A+ Team
 ```
 
 ## 10. Assignment Due Reminder for Students
@@ -314,7 +314,7 @@ Now is a good time to review your work, make any final updates, and submit befor
 
 Stay focused. You are almost there.
 
-The GradeA+ Team
+The Grade A+ Team
 ```
 
 ## 11. Assignment Due Reminder for Teachers
@@ -342,7 +342,7 @@ Your class deadline is approaching, and everything is set for a smooth submissio
 
 You can review the assignment from your dashboard if you would like to make any final checks.
 
-The GradeA+ Team
+The Grade A+ Team
 ```
 
 ## Implementation Notes

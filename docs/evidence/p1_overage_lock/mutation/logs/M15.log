@@ -1,0 +1,61 @@
+# M15: store PI: individual_subscribe
+# file: billing/stripe_service.py line: 3434
+# old: 'stripe_payment_intent_id=session.get("payment_intent"),'
+# new: ''
+# modules: billing.tests.test_receipt_lookup_outside_transaction
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 7.9
+# restored_sha256_matches_commit_blob: True
+
+Found 10 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation) ... Cannot activate automatic trial for user fresh.activation@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_individual_checkout_trial_conversion (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_trial_conversion) ... Cannot activate automatic trial for user trial.convert@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_individual_subscribe_replay (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_subscribe_replay) ... Cannot activate automatic trial for user subscribe@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_individual_upgrade_applied (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_applied) ... Cannot activate automatic trial for user upgrade@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_individual_upgrade_subscription_changed (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_subscription_changed) ... Cannot activate automatic trial for user upgrade.stale@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+Upgrade checkout session cs_pi_stale completed for user upgrade.stale@p1.test, but their active subscription has changed since this checkout was created (expected subscription b7235b85-01aa-408d-aa62-12a4f5cd98f3, currently cdea1d15-b768-4fac-a7d8-f359937ecfbe) — skipping to avoid overwriting a more recent change. The payment for this session already succeeded on Stripe and needs a manual refund if it shouldn't have gone through.
+ok
+test_overage_block_purchase (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_overage_block_purchase) ... Cannot activate automatic trial for user overage@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_trial_to_paid_replay (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_trial_to_paid_replay) ... Cannot activate automatic trial for user trial.to.paid@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_license_create (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_create) ... ok
+test_license_overage_fulfilled (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_overage_fulfilled) ... Cannot activate automatic trial for user teacher@p1school.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_license_overage_on_inactive_license (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_overage_on_inactive_license) ... Cannot activate automatic trial for user teacher2@p1school.test (validation): Free trial plan not found. Please create one in the admin panel.
+Overage purchase intent ee8f35ce-9d88-4abd-920d-bfd17199258a paid (session cs_pi_lic_inactive) but license 8371c12a-fa2b-4dc2-a417-0c446e3d30fa is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+ok
+
+======================================================================
+FAIL: test_individual_subscribe_replay (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_subscribe_replay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M15-f05j5k8l/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 361, in test_individual_subscribe_replay
+    self.assertEqual(txn.stripe_payment_intent_id, "pi_subscribe")
+AssertionError: None != 'pi_subscribe'
+
+----------------------------------------------------------------------
+Ran 10 tests in 3.963s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

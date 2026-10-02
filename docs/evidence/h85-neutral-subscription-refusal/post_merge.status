@@ -1,0 +1,4 @@
+16:21:55 repro exit=1 (red expected)
+16:23:44 (a) exit=0
+16:24:34 (b) exit=0
+16:24:34 POST-MERGE GATES END

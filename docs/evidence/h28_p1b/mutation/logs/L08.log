@@ -1,0 +1,20 @@
+# L08: finalise compensates where no money moved
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '        if compensate is not None:'
+# new: '        if False:'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 42.8
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_compensated_intent_frees_the_licence_for_a_retry (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_compensated_intent_frees_the_licence_for_a_retry)
+FAIL: test_a_failed_local_write_is_undone_at_stripe_and_compensated (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_failed_local_write_is_undone_at_stripe_and_compensated)
+FAIL: test_a_failed_undo_escalates_to_a_human (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_failed_undo_escalates_to_a_human)
+FAIL: test_a_licence_changed_meanwhile_is_not_overwritten (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_licence_changed_meanwhile_is_not_overwritten)
+FAIL: test_a_failed_local_write_after_a_decrease_is_compensated (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_failed_local_write_after_a_decrease_is_compensated)
+FAIL: test_a_licence_changed_meanwhile_is_not_overwritten (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_licence_changed_meanwhile_is_not_overwritten)
+FAIL: test_a_failed_local_write_after_a_downgrade_is_compensated (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_failed_local_write_after_a_downgrade_is_compensated)
+FAIL: test_a_logic_failure_is_not_retried (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_logic_failure_is_not_retried)
+FAIL: test_a_persistent_transient_failure_stops_after_three_attempts (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_persistent_transient_failure_stops_after_three_attempts)
+
+FAILED (failures=8, errors=1)

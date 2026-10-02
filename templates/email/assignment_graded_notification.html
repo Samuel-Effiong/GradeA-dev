@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #16a34a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .details {
+            background-color: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{% if is_update %}Grade Updated{% else %}Assignment Graded{% endif %}</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ student.get_full_name }},</p>
+
+            <p>
+                Your grade for
+                <strong>{{ assignment.title|default:"Untitled Assignment" }}</strong>
+                in <strong>{{ course.name }}</strong> is now available.
+            </p>
+
+            <div class="details">
+                <h3>Grade Details</h3>
+                <ul>
+                    <li><strong>Course:</strong> {{ course.name }}</li>
+                    <li><strong>Assignment:</strong> {{ assignment.title|default:"Untitled Assignment" }}</li>
+                    <li><strong>Score:</strong> {{ score_display }}</li>
+                    {% if grade_details %}
+                        <li><strong>Letter Grade:</strong> {{ grade_details.letter_grade }}</li>
+                        <li><strong>Remark:</strong> {{ grade_details.remark }}</li>
+                    {% endif %}
+                    {% if submission.graded_at %}
+                        <li><strong>Graded At:</strong> {{ submission.graded_at|date:"F j, Y, g:i a" }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <p>You can view your full feedback from your Grade A+ dashboard.</p>
+
+            <p>Best regards,<br>Grade A+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

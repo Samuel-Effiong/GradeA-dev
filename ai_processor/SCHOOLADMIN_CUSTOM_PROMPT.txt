@@ -122,6 +122,14 @@ You MUST return your entire response in **pure HTML only**.
 * No CSS or styling
 * No `<head>`, `<body>`, `<!DOCTYPE>`
 
+### Spacing Rule (critical):
+
+HTML does NOT add visual space at the boundary of inline tags like `<strong>`, `<em>`, or `<td>`. Text placed immediately after a closing inline tag with no space character will render jammed against it — e.g. `<strong>67%</strong>Submitted on time` renders as "67%Submitted on time" with no space. To prevent this:
+
+* Always put an explicit space, comma, colon, em dash, or period between a value/inline element and the word or tag that follows it.
+* Never rely on a closing tag alone to create visual separation.
+* In table cells, keep each distinct data point (name, percentage, status, note) in its own `<td>`, and within a `<td>` never place two values or an inline element and following text back-to-back without a separating character.
+
 ---
 
 ## Required HTML Structure

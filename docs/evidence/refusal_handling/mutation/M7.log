@@ -1,0 +1,83 @@
+# M7: UPLOAD_REFUSALS includes permanent AI refusals
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D5TaskRetryTest
+# exit 1
+
+Found 2 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d5-edit-feature-40e0fe6f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:14,278 refusals 1915249 128087039667136 [request_id=-] Background task a73eb892-88f7-495b-b414-babaaa5fff71 refused: AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+
+
+FCannot activate automatic trial for user d5-edit-credits-c482faf2@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:18,543 refusals 1915249 128087039667136 [request_id=-] Background task 10fb1fe7-5082-4491-9508-68f02830dd9c refused: InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FCannot activate automatic trial for user d5-upload-feature-ad47062e@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:22,154 refusals 1915249 128087039667136 [request_id=-] Background task 7692d951-2181-48f7-a230-a5d967b03318 refused: AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+
+
+FCannot activate automatic trial for user d5-upload-credits-426ab185@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:26,297 refusals 1915249 128087039667136 [request_id=-] Background task e29cda13-f249-4dcd-bb46-8f62cf8a56b3 refused: InsufficientCreditsError: Task requires ~27514 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+F
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 399, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 363, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 399, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 363, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_upload_answers_engine_async_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_upload_answers_engine_async_does_not_retry_a_refusal) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 419, in test_upload_answers_engine_async_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 363, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_upload_answers_engine_async_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_upload_answers_engine_async_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 419, in test_upload_answers_engine_async_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 363, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+----------------------------------------------------------------------
+Ran 2 tests in 16.571s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...

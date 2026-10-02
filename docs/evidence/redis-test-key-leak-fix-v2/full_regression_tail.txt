@@ -1,0 +1,70 @@
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-redis-cleanup/users/serializers.py", line 415, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+[2026-09-25 09:35:51,628: ERROR/ForkPoolWorker-1] API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-redis-cleanup/users/serializers.py", line 415, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+........
+[H18/H19 scale] query counts small(60 students)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 22} large(600)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 22}
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+course payload query counts: roster=2 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7} roster=6 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7}
+{'user_id': 'fc6c161c-f199-4d0f-9dfa-06255ebdee53', 'assignment_id': '6217cbcd-6cf4-416e-a1d5-990db0eadd54', 'keep_existing_title': True}
+Extracting assignment content
+{'user_id': 'fc6c161c-f199-4d0f-9dfa-06255ebdee53', 'assignment_id': '6217cbcd-6cf4-416e-a1d5-990db0eadd54', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': 'cfebdee1-cc2a-4662-9bb8-4e8833b6e16f', 'assignment_id': 'f04b027a-02e4-4e3e-8e9f-488f9807dd24', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': 'cfebdee1-cc2a-4662-9bb8-4e8833b6e16f', 'assignment_id': 'f04b027a-02e4-4e3e-8e9f-488f9807dd24', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+scanned            : 1
+repaired           : 1 assignment(s)
+questions cleaned  : 1
+done
+scanned  : 1
+repaired : 1 assignment(s)
+done
+
+[scale] 30-file batch (24 good, 6 bad) took 1.69s
+
+[scale] 6 concurrent 30-file batches took 1.58s; provider calls=24
+
+----------------------------------------------------------------------
+Ran 4597 tests in 286.809s
+
+OK (skipped=28)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...

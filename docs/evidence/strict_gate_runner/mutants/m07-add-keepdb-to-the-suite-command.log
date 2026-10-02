@@ -1,0 +1,500 @@
+FFFFFFFEFF.FE.FFFFFEEEEE.E.FEFFFFFFE..............
+======================================================================
+ERROR: test_existing_test_db_before_run_aborts (__main__.EndToEnd.test_existing_test_db_before_run_aborts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 499, in test_existing_test_db_before_run_aborts
+    "already exists", " ".join(self.repo.summary()["verdict_reasons"])
+                               ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-7mzifnet/evidence/summary.json'
+
+======================================================================
+ERROR: test_missing_sleep_inhibitor_aborts_before_any_run (__main__.EndToEnd.test_missing_sleep_inhibitor_aborts_before_any_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 543, in test_missing_sleep_inhibitor_aborts_before_any_run
+    "systemd-inhibit", " ".join(self.repo.summary()["verdict_reasons"])
+                                ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-otsckww2/evidence/summary.json'
+
+======================================================================
+ERROR: test_rechecks_targets_before_each_run (__main__.EndToEnd.test_rechecks_targets_before_each_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 641, in test_rechecks_targets_before_each_run
+    self.assertRefusesDeployed(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 556, in assertRefusesDeployed
+    s = self.repo.summary()
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-4jfcxyi6/evidence/summary.json'
+
+======================================================================
+ERROR: test_rechecks_targets_immediately_before_the_suite (__main__.EndToEnd.test_rechecks_targets_immediately_before_the_suite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 633, in test_rechecks_targets_immediately_before_the_suite
+    self.assertRefusesDeployed(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 556, in assertRefusesDeployed
+    s = self.repo.summary()
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-7rnm9njk/evidence/summary.json'
+
+======================================================================
+ERROR: test_refuses_any_non_local_target (__main__.EndToEnd.test_refuses_any_non_local_target)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 622, in test_refuses_any_non_local_target
+    self.assertRefusesDeployed(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 556, in assertRefusesDeployed
+    s = self.repo.summary()
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-iyw5q5m8/evidence/summary.json'
+
+======================================================================
+ERROR: test_refuses_deployed_database_uri (__main__.EndToEnd.test_refuses_deployed_database_uri)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 562, in test_refuses_deployed_database_uri
+    self.assertRefusesDeployed(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 556, in assertRefusesDeployed
+    s = self.repo.summary()
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-75u630ef/evidence/summary.json'
+
+======================================================================
+ERROR: test_refuses_deployed_redis_host_even_on_another_port (__main__.EndToEnd.test_refuses_deployed_redis_host_even_on_another_port)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 570, in test_refuses_deployed_redis_host_even_on_another_port
+    s = self.assertRefusesDeployed(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 556, in assertRefusesDeployed
+    s = self.repo.summary()
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-623q5uhj/evidence/summary.json'
+
+======================================================================
+ERROR: test_refuses_non_local_environment (__main__.EndToEnd.test_refuses_non_local_environment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 629, in test_refuses_non_local_environment
+    self.assertRefusesDeployed({"environment": "prod"}, fragment="ENVIRONMENT")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 556, in assertRefusesDeployed
+    s = self.repo.summary()
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-b00shkoi/evidence/summary.json'
+
+======================================================================
+ERROR: test_silent_pg_probe_aborts_not_zero (__main__.EndToEnd.test_silent_pg_probe_aborts_not_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 493, in test_silent_pg_probe_aborts_not_zero
+    self.assertEqual(self.repo.summary()["verdict"], "ABORTED")
+                     ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 276, in summary
+    return json.loads((self.evidence / "summary.json").read_text())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/strict-gate-selftest-5qpuz7wq/evidence/summary.json'
+
+======================================================================
+ERROR: test_default_suite_command_is_valid_and_complete (__main__.PureLogic.test_default_suite_command_is_valid_and_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 652, in test_default_suite_command_is_valid_and_complete
+    gate.validate_suite_command(argv)
+  File "/tmp/strict-gate-mutants-xtjkihyk/m07-add-keepdb-to-the-suite-command/strict_gate.py", line 246, in validate_suite_command
+    raise GateAbort(f"forbidden test argument {arg!r} in {argv}")
+strict_gate_under_test.GateAbort: forbidden test argument '--keepdb' in ['python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+======================================================================
+FAIL: test_connections_left_behind_fail (__main__.EndToEnd.test_connections_left_behind_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 483, in test_connections_left_behind_fail
+    self.assertFailedWith("pg_after", {"leave_connections": 2})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_db_left_behind_fails (__main__.EndToEnd.test_db_left_behind_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 480, in test_db_left_behind_fails
+    self.assertFailedWith("pg_after", {"leave_db": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_each_nonzero_exit_fails_the_gate (__main__.EndToEnd.test_each_nonzero_exit_fails_the_gate) (key='precommit_exit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 438, in test_each_nonzero_exit_fails_the_gate
+    self.assertFailedWith(name, {key: 1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_each_nonzero_exit_fails_the_gate (__main__.EndToEnd.test_each_nonzero_exit_fails_the_gate) (key='safety_exit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 438, in test_each_nonzero_exit_fails_the_gate
+    self.assertFailedWith(name, {key: 1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_each_nonzero_exit_fails_the_gate (__main__.EndToEnd.test_each_nonzero_exit_fails_the_gate) (key='check_exit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 438, in test_each_nonzero_exit_fails_the_gate
+    self.assertFailedWith(name, {key: 1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_each_nonzero_exit_fails_the_gate (__main__.EndToEnd.test_each_nonzero_exit_fails_the_gate) (key='makemigrations_exit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 438, in test_each_nonzero_exit_fails_the_gate
+    self.assertFailedWith(name, {key: 1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_each_nonzero_exit_fails_the_gate (__main__.EndToEnd.test_each_nonzero_exit_fails_the_gate) (key='suite_exit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 438, in test_each_nonzero_exit_fails_the_gate
+    self.assertFailedWith(name, {key: 1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_first_run_failure_stops_and_fails (__main__.EndToEnd.test_first_run_failure_stops_and_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 465, in test_first_run_failure_stops_and_fails
+    s = self.assertFailedWith("only 1 of 2 runs", {"check_exit": {"1": 1}}, runs=2)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_flake_failure_fails_gate_even_when_rerun_alone_passes (__main__.EndToEnd.test_flake_failure_fails_gate_even_when_rerun_alone_passes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 449, in test_flake_failure_fails_gate_even_when_rerun_alone_passes
+    s = self.assertFailedWith("known flake", {"flake_fails": True})
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_missing_destroy_line_fails (__main__.EndToEnd.test_missing_destroy_line_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 489, in test_missing_destroy_line_fails
+    self.assertFailedWith("Destroying", {"no_destroy_line": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_other_sessions_line_fails (__main__.EndToEnd.test_other_sessions_line_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 486, in test_other_sessions_line_fails
+    self.assertFailedWith("other sessions", {"other_sessions": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_parallel_pilot_is_never_a_gate_pass (__main__.EndToEnd.test_parallel_pilot_is_never_a_gate_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 417, in test_parallel_pilot_is_never_a_gate_pass
+    self.assertEqual(code, 3, self.explain())
+AssertionError: 2 != 3 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '2', '-v', '2']
+
+
+======================================================================
+FAIL: test_prelaunch_guard_refuses_low_disk (__main__.EndToEnd.test_prelaunch_guard_refuses_low_disk)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 528, in test_prelaunch_guard_refuses_low_disk
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 507, in assertRefusedCleanly
+    self.assertIn("GATE REFUSED", self.repo.result.stderr + self.repo.result.stdout)
+AssertionError: 'GATE REFUSED' not found in "GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']\n"
+
+======================================================================
+FAIL: test_prelaunch_guard_refuses_low_ram (__main__.EndToEnd.test_prelaunch_guard_refuses_low_ram)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 532, in test_prelaunch_guard_refuses_low_ram
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 507, in assertRefusedCleanly
+    self.assertIn("GATE REFUSED", self.repo.result.stderr + self.repo.result.stdout)
+AssertionError: 'GATE REFUSED' not found in "GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']\n"
+
+======================================================================
+FAIL: test_prelaunch_guard_refuses_when_slots_are_full (__main__.EndToEnd.test_prelaunch_guard_refuses_when_slots_are_full)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 536, in test_prelaunch_guard_refuses_when_slots_are_full
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 507, in assertRefusedCleanly
+    self.assertIn("GATE REFUSED", self.repo.result.stderr + self.repo.result.stdout)
+AssertionError: 'GATE REFUSED' not found in "GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']\n"
+
+======================================================================
+FAIL: test_second_run_failure_fails_gate (__main__.EndToEnd.test_second_run_failure_fails_gate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 461, in test_second_run_failure_fails_gate
+    s = self.assertFailedWith("run 2", {"flake_fails": {"2": True}}, runs=2)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_single_run_pass_is_only_partial_for_gate_10 (__main__.EndToEnd.test_single_run_pass_is_only_partial_for_gate_10)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 409, in test_single_run_pass_is_only_partial_for_gate_10
+    self.assertEqual(self.repo.gate(runs=1), 0, self.explain())
+AssertionError: 2 != 0 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_suite_exit_ok_but_failed_summary_fails (__main__.EndToEnd.test_suite_exit_ok_but_failed_summary_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 441, in test_suite_exit_ok_but_failed_summary_fails
+    self.assertFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_tracked_file_changed_during_run_fails (__main__.EndToEnd.test_tracked_file_changed_during_run_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 471, in test_tracked_file_changed_during_run_fails
+    self.assertFailedWith("fingerprint changed", {"touch_tracked": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_two_clean_runs_pass_on_fresh_unique_dbs (__main__.EndToEnd.test_two_clean_runs_pass_on_fresh_unique_dbs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 336, in test_two_clean_runs_pass_on_fresh_unique_dbs
+    self.assertEqual(code, 0, self.explain())
+AssertionError: 2 != 0 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_untracked_file_created_during_run_fails (__main__.EndToEnd.test_untracked_file_created_during_run_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 475, in test_untracked_file_created_during_run_fails
+    self.assertFailedWith("porcelain_lines", {"create_untracked": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 2 != 1 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+======================================================================
+FAIL: test_verify_landed_passes_only_when_beta_equals_gated_sha (__main__.EndToEnd.test_verify_landed_passes_only_when_beta_equals_gated_sha)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 384, in test_verify_landed_passes_only_when_beta_equals_gated_sha
+    self.assertEqual(self.repo.gate(runs=2), 0, self.explain())
+AssertionError: 2 != 0 : exit 2
+stdout:
+
+stderr:
+GATE ABORTED: forbidden test argument '--keepdb' in ['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', 'manage.py', 'test', '--settings=settings_worktree', '--noinput', '--keepdb', '--parallel', '1', '-v', '2']
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 3.792s
+
+FAILED (failures=22, errors=10)

@@ -1,0 +1,29 @@
+# W2: H-93: the window is not over within three weeks
+# file: billing/refresh_timing.py (occurrence 1)
+# old: '    return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP\n'
+# new: '    return refresh_due_by(now) - relativedelta(months=1) + 4 * ANCHOR_SNAP\n'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 18.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=3)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=4)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=5)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=6)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=7)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=8)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=9)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=10)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=11)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=12)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=13)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=14)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=15)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=16)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=17)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=18)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=19)
+FAIL: test_the_window_is_not_over_for_three_weeks (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_not_over_for_three_weeks) (days=20)
+
+FAILED (failures=18)

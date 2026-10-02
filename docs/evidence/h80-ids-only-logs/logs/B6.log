@@ -1,0 +1,13 @@
+# B6: the enrolment line names the teacher by id
+# file: billing/license_service.py (occurrence 1)
+# old: '                "Enrolled teacher %s in license %s with allocation %d credits",\n                teacher.id,\n'
+# new: '                "Enrolled teacher %s in license %s with allocation %d credits",\n                teacher.email,\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest
+# exit: 1
+# elapsed_s: 3.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_enrolling_and_inviting_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_enrolling_and_inviting_logs_no_address)
+
+FAILED (failures=1)

@@ -1,0 +1,22 @@
+M1	mid-cycle grant: the next_credit_grant_at re-check (lapsed lock)	KILLED	FAILED (failures=4)	True	33.9
+M2	expire_trial: the active-trial re-check (lapsed lock)	KILLED	FAILED (failures=7)	True	17.4
+L1	the lock is released after the run (0b)	KILLED	FAILED (failures=20, errors=1)	True	18.6
+L2	release is compare-and-delete	KILLED	FAILED (failures=1)	True	18.3
+L3	the heartbeat's extend is compare-and-extend	KILLED	FAILED (failures=1)	True	18.2
+L4	a cache error fails CLOSED	KILLED	FAILED (failures=1)	True	18.6
+L5	a held lock means skip	KILLED	FAILED (failures=34)	True	32.1
+L6	acquire is SET NX	KILLED	FAILED (failures=34)	True	32.4
+L7	the heartbeat stops at max_hold	KILLED	FAILED (failures=3)	True	22.5
+L8	the heartbeat runs	KILLED	FAILED (failures=3, errors=32)	True	15.0
+L9	the TTL never exceeds max_hold	SURVIVED	OK	True	19.0
+L10	an exemption is a scheduled, named choice	KILLED	FAILED (failures=1)	True	19.3
+L11	every-5-minute max_hold is below its interval	KILLED	FAILED (failures=3)	True	18.7
+N1a	every-5-minute max_hold + ttl is below its interval (1a's N1)	KILLED	FAILED (failures=1)	True	19.3
+N1b	the every-5-minute task uses its short TTL (1a's N1)	KILLED	FAILED (failures=1)	True	19.3
+L12	the watchdog reports the lock store	KILLED	FAILED (failures=1)	True	18.9
+L13	the runner clears locks before every test	KILLED	FAILED (failures=1)	True	21.0
+L14	a guarded task keeps its lock	KILLED	FAILED (failures=3)	True	17.1
+
+17/18 killed with verified restore
+systemd-run failed with exit status 1.
+exit=1

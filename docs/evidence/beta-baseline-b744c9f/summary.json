@@ -1,0 +1,302 @@
+{
+  "tool": "scripts/strict_gate.py",
+  "tool_sha256": "8e6b748978b1064a758530d320de37a01b3bbdd934c49cca9efccf01acc80958",
+  "run_name": "beta-baseline-b744c9f",
+  "commit": "b744c9f706840d27d5ec28b5be178c80253a5066",
+  "runs_requested": 1,
+  "parallel": 1,
+  "known_flake": "billing.tests.test_overage_purchase_integrity.ConcurrentOverageDeliveryTests.test_concurrent_purchases_by_different_teachers_stay_separate",
+  "started": "2026-09-17T19:20:10+01:00",
+  "runs": [
+    {
+      "index": 1,
+      "test_db": "test_g_beta_baseline_b744c9f_b744c9f_r1",
+      "started": "2026-09-17T19:20:14+01:00",
+      "steps": [
+        {
+          "name": "pre-commit run --all-files",
+          "argv": [
+            "pre-commit",
+            "run",
+            "--all-files"
+          ],
+          "exit": 0,
+          "started": "2026-09-17T19:20:19+01:00",
+          "finished": "2026-09-17T19:22:41+01:00",
+          "log": "r1-1-precommit.log",
+          "lines": 25,
+          "sha256": "773fe202b65d71443eb2ee3e14b6f40b9202b9a96cda215f843188447dbdaf9a"
+        },
+        {
+          "name": "check_migration_safety.py",
+          "argv": [
+            "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python",
+            "scripts/check_migration_safety.py",
+            "--base",
+            "b744c9f706840d27d5ec28b5be178c80253a5066"
+          ],
+          "exit": 0,
+          "started": "2026-09-17T19:22:41+01:00",
+          "finished": "2026-09-17T19:22:45+01:00",
+          "log": "r1-2-migration-safety.log",
+          "lines": 1,
+          "sha256": "f8ede7b702b4db98b9189851d3c964e7b2ef9742e9a6b8585e4f01e9e7964058"
+        },
+        {
+          "name": "manage.py check",
+          "argv": [
+            "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python",
+            "manage.py",
+            "check",
+            "--settings=settings_worktree"
+          ],
+          "exit": 0,
+          "started": "2026-09-17T19:22:45+01:00",
+          "finished": "2026-09-17T19:22:51+01:00",
+          "log": "r1-3-check.log",
+          "lines": 1,
+          "sha256": "1e3e63f221bde88816c4a4ef7367691607b20cc1d194028a02ec9ae0586cf9b1"
+        },
+        {
+          "name": "makemigrations --check",
+          "argv": [
+            "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python",
+            "manage.py",
+            "makemigrations",
+            "--check",
+            "--dry-run",
+            "--settings=settings_worktree"
+          ],
+          "exit": 0,
+          "started": "2026-09-17T19:22:51+01:00",
+          "finished": "2026-09-17T19:22:56+01:00",
+          "log": "r1-4-makemigrations.log",
+          "lines": 1,
+          "sha256": "a2bfa7b376c38062f77ce2b1e703876aaa04662f96355cdf5dc9d0d075302b05"
+        },
+        {
+          "name": "full suite",
+          "argv": [
+            "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python",
+            "manage.py",
+            "test",
+            "--settings=settings_worktree",
+            "--noinput",
+            "--parallel",
+            "1",
+            "-v",
+            "2"
+          ],
+          "exit": 0,
+          "started": "2026-09-17T19:22:59+01:00",
+          "finished": "2026-09-17T21:25:51+01:00",
+          "log": "r1-5-full-suite.log",
+          "lines": 64916,
+          "sha256": "cf8410b3937298564a40fd4c210656fca6efacc601799ac74c6ceba628358858"
+        }
+      ],
+      "fingerprint_before": {
+        "head": "b744c9f706840d27d5ec28b5be178c80253a5066",
+        "tree": "034dd4e2e02043eba48a355802a40cd23080508f",
+        "tracked_files": 1126,
+        "index_sha256": "93eb1070fbf0b9dccfc123bb69722018a08f876deeb764dd5797dacd6456258a",
+        "tracked_content_sha256": "955910ca068ce3289fb56199b1c92138f22731335a9ef5342b945deeb83accc4",
+        "porcelain_lines": 0
+      },
+      "pg_before": {
+        "pg_database_rows": 0,
+        "connections": 0
+      },
+      "suite": {
+        "ran": 4234,
+        "seconds": 7334.049,
+        "result": "OK",
+        "counts": {
+          "skipped": 22
+        },
+        "failures": [],
+        "other_sessions_lines": 0,
+        "destroying_lines": 1,
+        "per_test_tally": {
+          "ok": 4212,
+          "skipped": 22
+        },
+        "per_test_consistent": true
+      },
+      "pg_after": {
+        "pg_database_rows": 0,
+        "connections": 0
+      },
+      "fingerprint_after": {
+        "head": "b744c9f706840d27d5ec28b5be178c80253a5066",
+        "tree": "034dd4e2e02043eba48a355802a40cd23080508f",
+        "tracked_files": 1126,
+        "index_sha256": "93eb1070fbf0b9dccfc123bb69722018a08f876deeb764dd5797dacd6456258a",
+        "tracked_content_sha256": "955910ca068ce3289fb56199b1c92138f22731335a9ef5342b945deeb83accc4",
+        "porcelain_lines": 0
+      },
+      "reasons": [],
+      "finished": "2026-09-17T21:25:53+01:00"
+    }
+  ],
+  "logs": {
+    "targets-start.txt": {
+      "lines": 3,
+      "sha256": "d78008044ebcc905e3a3960156206c1e516415feeb0d46b0fff69830797331bb"
+    },
+    "infra.txt": {
+      "lines": 7,
+      "sha256": "af478c54c57dd4e5d5d17538afaad8d7896f7749da37709d3aff51e59ca7265f"
+    },
+    "targets-r1-before.txt": {
+      "lines": 3,
+      "sha256": "d78008044ebcc905e3a3960156206c1e516415feeb0d46b0fff69830797331bb"
+    },
+    "r1-0-pg-before.txt": {
+      "lines": 4,
+      "sha256": "59e39e81683019a95c0145e635ad55edadfa04c144a06e5484b502b19c10ef78"
+    },
+    "r1-1-precommit.log": {
+      "lines": 25,
+      "sha256": "773fe202b65d71443eb2ee3e14b6f40b9202b9a96cda215f843188447dbdaf9a"
+    },
+    "r1-2-migration-safety.log": {
+      "lines": 1,
+      "sha256": "f8ede7b702b4db98b9189851d3c964e7b2ef9742e9a6b8585e4f01e9e7964058"
+    },
+    "r1-3-check.log": {
+      "lines": 1,
+      "sha256": "1e3e63f221bde88816c4a4ef7367691607b20cc1d194028a02ec9ae0586cf9b1"
+    },
+    "r1-4-makemigrations.log": {
+      "lines": 1,
+      "sha256": "a2bfa7b376c38062f77ce2b1e703876aaa04662f96355cdf5dc9d0d075302b05"
+    },
+    "targets-r1-before-suite.txt": {
+      "lines": 3,
+      "sha256": "d78008044ebcc905e3a3960156206c1e516415feeb0d46b0fff69830797331bb"
+    },
+    "r1-5-full-suite.log": {
+      "lines": 64916,
+      "sha256": "cf8410b3937298564a40fd4c210656fca6efacc601799ac74c6ceba628358858"
+    },
+    "r1-5-full-suite.tests.tsv": {
+      "lines": 4234,
+      "sha256": "7fcdbe6949341d6bc2f1626cc0f34f1f888f2951ee34c4844c0c169ee984bb8d"
+    },
+    "r1-6-pg-after.txt": {
+      "lines": 4,
+      "sha256": "59e39e81683019a95c0145e635ad55edadfa04c144a06e5484b502b19c10ef78"
+    }
+  },
+  "prelaunch": {
+    "heavy_slots_in_use": 1,
+    "slots_requested": 1,
+    "max_heavy_slots": 6,
+    "disk_free_gb": 15.55,
+    "min_disk_gb": 3,
+    "ram_available_gb": 10.17,
+    "min_ram_gb": 2,
+    "test_processes": [
+      {
+        "pid": 1909133,
+        "ppid": 1907224,
+        "cwd": "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h18h19-gate-6811527-r1",
+        "argv": "python manage.py test --noinput --settings=settings_worktree",
+        "slots": 1,
+        "why": "full-suite run: --parallel 1 = 1 slot(s)"
+      }
+    ],
+    "refused": []
+  },
+  "sleep_inhibitor_confirmed": true,
+  "base_ref": "beta",
+  "base_sha_at_start": "b744c9f706840d27d5ec28b5be178c80253a5066",
+  "worktree": "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-gate-beta-baseline-b744c9f",
+  "log_dir": "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-gate-logs/beta-baseline-b744c9f",
+  "evidence_dir": "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/docs/evidence/beta-baseline-b744c9f",
+  "target_checks": [
+    {
+      "when": "start",
+      "targets": {
+        "cache": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "celery_broker": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "celery_result_backend": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "database": {
+          "host": "127.0.0.1",
+          "port": "5432"
+        },
+        "environment": "local"
+      },
+      "problems": []
+    },
+    {
+      "when": "r1-before",
+      "targets": {
+        "cache": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "celery_broker": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "celery_result_backend": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "database": {
+          "host": "127.0.0.1",
+          "port": "5432"
+        },
+        "environment": "local"
+      },
+      "problems": []
+    },
+    {
+      "when": "r1-before-suite",
+      "targets": {
+        "cache": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "celery_broker": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "celery_result_backend": {
+          "host": "127.0.0.1",
+          "port": "6379"
+        },
+        "database": {
+          "host": "127.0.0.1",
+          "port": "5432"
+        },
+        "environment": "local"
+      },
+      "problems": []
+    }
+  ],
+  "infrastructure": {
+    "postgres": "PostgreSQL 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1) on x86_64-pc-linux-gnu",
+    "python": "3.12.10",
+    "django": "5.2.6",
+    "cache_backend": "django_redis.cache.RedisCache",
+    "redis_round_trip": "ok"
+  },
+  "verdict": "PASS",
+  "verdict_reasons": [],
+  "finished": "2026-09-17T21:25:53+01:00",
+  "base_sha_at_end": "b744c9f706840d27d5ec28b5be178c80253a5066",
+  "suspend_events": 0,
+  "worktree_removed": true
+}

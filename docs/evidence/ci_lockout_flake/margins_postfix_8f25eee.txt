@@ -1,0 +1,11 @@
+## postfix2  worktree=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-fix-overage-concurrency-flake head=54b79a2 pool_before_batch=58/100 2026-09-18T10:52:35+01:00
+postfix2 run 1 exit=0 Ran 1 test in 8.754s OK too_many_clients=0
+postfix2 run 2 exit=0 Ran 1 test in 9.776s OK too_many_clients=0
+postfix2 run 3 exit=0 Ran 1 test in 10.614s OK too_many_clients=0
+postfix2 run 4 exit=0 Ran 1 test in 8.705s OK too_many_clients=0
+postfix2 run 5 exit=0 Ran 1 test in 8.290s OK too_many_clients=0
+postfix2 run 6 exit=0 Ran 1 test in 9.217s OK too_many_clients=0
+postfix2 run 7 exit=0 Ran 1 test in 7.972s OK too_many_clients=0
+postfix2 run 8 exit=0 Ran 1 test in 8.382s OK too_many_clients=0
+postfix2 run 9 exit=0 Ran 1 test in 9.035s OK too_many_clients=0
+postfix2 run 10 exit=0 Ran 1 test in 11.447s OK too_many_clients=0

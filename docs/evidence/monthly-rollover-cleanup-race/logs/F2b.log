@@ -1,0 +1,12 @@
+# F2b: licence task: a contract ending within the tolerance is ended
+# file: billing/tasks.py (occurrence 1)
+# old: '        license_subscription__billing_cycle_end__gt=refresh_due_by(now),\n'
+# new: '        license_subscription__billing_cycle_end__gt=now,\n'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 5.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_refresh_for_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_no_refresh_for_the_last_minutes_of_the_contract)
+
+FAILED (failures=1)

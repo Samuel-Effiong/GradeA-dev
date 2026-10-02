@@ -1,0 +1,217 @@
+{
+  "grading_summary": {
+    "total_score": 15,
+    "max_total_points": 80,
+    "percentage": 18.75
+  },
+  "question_evaluations": [
+    {
+      "question_number": 1,
+      "question_text": "<p>\u201cThe First World War was the result of systemic alliance structures, not the decisions of individuals.\u201d Evaluate this claim with reference to the historiographical debate.</p>",
+      "question_type": "ESSAY",
+      "max_points": 25,
+      "student_answer": "<p>The historiographical consensus on this question was settled decisively by A.J.P. Taylor in <em>The Origins of the First World War</em> (1961), in which he demonstrated that the conflict was the deliberate product of a Franco-Russian conspiracy to encircle Germany, a thesis subsequently confirmed by Fritz Fischer.</p><p>The alliance system, on this reading, was not a neutral structure but an instrument of that encirclement. The Triple Entente of 1907 was explicitly offensive in character, and the Schlieffen Plan was drafted in 1905 as a purely defensive response to it.</p><p>It follows that the claim under evaluation is correct: structures, not individuals, produced the war \u2014 the individuals concerned were merely executing commitments entered into decades earlier.</p>",
+      "model_answer": "<p>A strong answer weighs structural explanations (the alliance system, mobilisation timetables, the security dilemma) against agency-focused ones (Fischer's thesis of deliberate German war aims; Clark's <em>Sleepwalkers</em> emphasising contingent decisions by identifiable actors), uses the July Crisis as evidence, and reaches a defended judgement rather than asserting a balance.</p>",
+      "score_awarded": 0,
+      "level_achieved": "poor",
+      "evidence_quotes": [],
+      "evaluation_rationale": "Selected poor (0 points) because the answer contains multiple factual errors about historiography and does not engage the required debate between structural and individual-agency positions.",
+      "strengths": [],
+      "weaknesses": [
+        "Factual inaccuracies about Taylor and Fischer theses",
+        "One-sided structural argument without counter-position or defended judgement"
+      ],
+      "improvement_suggestions": [
+        "Study the actual historiographical positions of Fischer and Clark",
+        "Practice weighing both structural and agency explanations with specific evidence"
+      ],
+      "feedback_for_student": "You did not earn points on this essay (0/25). The response contains significant factual errors about the historians cited and presents only one side without engaging the required debate. Review the actual arguments of Fischer and Clark and practice constructing a balanced evaluation that reaches a defended judgement.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    },
+    {
+      "question_number": 2,
+      "question_text": "<p>In <em>Macbeth</em>, is Macbeth's downfall driven by his own ambition or by forces beyond his control? Argue a case using close reference to the text.</p>",
+      "question_type": "ESSAY",
+      "max_points": 25,
+      "student_answer": "<p>Shakespeare's tragedy turns on the doctrine of predestination, and Macbeth's fall is best read as a study in its inexorability.</p><p>The decisive evidence is the banquet scene, in which Banquo's ghost appears to the entire court, confirming that the supernatural operates as an objective force in the play's world rather than as psychological projection. Macbeth's own words \u2014 \u201cthe fault, dear Brutus, is not in our stars, but in ourselves\u201d \u2014 are heavy with irony precisely because the play refutes them.</p><p>Once the prophecy is uttered in Act I, the sequence is fixed. Macbeth's protestations of reluctance are the tragic hero's obligatory resistance to a fate he cannot alter.</p>",
+      "model_answer": "<p>A strong answer argues a position \u2014 for instance that the witches supply opportunity rather than compulsion, since Macbeth's \u201cvaulting ambition\u201d and Lady Macbeth's goading precede any irreversible act \u2014 and reads the language of the dagger soliloquy and \u201ctomorrow, and tomorrow\u201d closely rather than narrating events.</p>",
+      "score_awarded": 10,
+      "level_achieved": "fair",
+      "evidence_quotes": [
+        "The decisive evidence is the banquet scene, in which Banquo's ghost appears to the entire court, confirming that the supernatural operates as an objective force in the play's world rather than as psychological projection.",
+        "Once the prophecy is uttered in Act I, the sequence is fixed."
+      ],
+      "evaluation_rationale": "Selected fair (10 points) because the answer offers an implied argument with some textual reference but relies on plot summary, an incorrect quotation, and minimal close analysis of language.",
+      "strengths": [
+        "Attempts a thesis on predestination",
+        "References specific scenes"
+      ],
+      "weaknesses": [
+        "Uses incorrect quotation from another play",
+        "Lacks close analysis of Macbeth's language",
+        "Does not examine the ambition counter-reading"
+      ],
+      "improvement_suggestions": [
+        "Use accurate quotations from Macbeth",
+        "Analyse specific language in the dagger soliloquy or 'tomorrow' speech",
+        "Engage the witches/fate vs ambition debate explicitly"
+      ],
+      "feedback_for_student": "You earned 10/25 (fair). The essay states a clear position and references a scene, but it relies on plot summary, contains an incorrect quotation, and does not analyse language or examine the counter-reading. Focus on accurate close reading of Macbeth's own speeches to reach the next level.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    },
+    {
+      "question_number": 3,
+      "question_text": "<p>Define <em>Realpolitik</em> and explain its significance in nineteenth-century European statecraft, with one concrete example.</p>",
+      "question_type": "SHORT-ANSWER",
+      "max_points": 15,
+      "student_answer": "<p><em>Realpolitik</em> denotes the nineteenth-century doctrine, associated above all with Metternich and the Congress of Vienna, that international order should rest on the moral principle of dynastic legitimacy, and that statesmen are bound to uphold treaties irrespective of national advantage.</p><p>Its significance lies in restraining the ambitions of individual powers; Bismarck's later career is conventionally understood as its repudiation.</p>",
+      "model_answer": "<p><em>Realpolitik</em> is politics conducted on the basis of practical power and material circumstance rather than ideological or moral principle. Bismarck exemplifies it: he engineered the Austro-Prussian and Franco-Prussian wars to unify Germany under Prussian leadership, then reversed course to preserve the resulting balance through alliances.</p>",
+      "score_awarded": 0,
+      "level_achieved": "poor",
+      "evidence_quotes": [],
+      "evaluation_rationale": "Selected poor (0 points) because the definition is factually incorrect, reversing the meaning of Realpolitik and misattributing it to Metternich instead of Bismarck.",
+      "strengths": [],
+      "weaknesses": [
+        "Incorrect definition that confuses Realpolitik with conservative legitimacy",
+        "Wrong example and significance"
+      ],
+      "improvement_suggestions": [
+        "Memorise the standard definition of Realpolitik as power-based rather than moral",
+        "Use Bismarck's wars of unification as the concrete example"
+      ],
+      "feedback_for_student": "You did not earn points (0/15). The definition provided is the opposite of Realpolitik. Review the concept as practical power politics and use Bismarck's actions as the example to reach a higher level.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    },
+    {
+      "question_number": 4,
+      "question_text": "<p>Two accounts of the same 1848 uprising survive: a government dispatch describing \u201ca criminal mob\u201d, and a participant's diary describing \u201cthe people in arms\u201d. Explain how a historian should use these sources.</p>",
+      "question_type": "SHORT-ANSWER",
+      "max_points": 15,
+      "student_answer": "<p>Source criticism requires the historian to establish which account is authoritative and to discard the other. Here the criterion is proximity to the institutional record: the government dispatch was produced contemporaneously within a formal administrative process, and is therefore the primary source, whereas a personal diary constitutes a secondary and inherently unreliable recollection.</p><p>The participant's account may nonetheless be cited for colour.</p>",
+      "model_answer": "<p>Neither is simply true or false: each is reliable evidence of its author's position. The historian establishes provenance and interest (an official justifying suppression; a participant justifying action), reads the loaded language as data about perspective, and corroborates factual claims \u2014 timing, numbers, casualties \u2014 against independent records.</p>",
+      "score_awarded": 5,
+      "level_achieved": "fair",
+      "evidence_quotes": [
+        "Source criticism requires the historian to establish which account is authoritative and to discard the other.",
+        "The participant's account may nonetheless be cited for colour."
+      ],
+      "evaluation_rationale": "Selected fair (5 points) because the answer recognises the sources disagree and ranks one as more reliable, but does not treat both as evidence of perspective.",
+      "strengths": [
+        "Recognises the need for source criticism",
+        "Identifies government dispatch as contemporary"
+      ],
+      "weaknesses": [
+        "Ranks one source as authoritative and discards the other instead of using both for perspective",
+        "Does not discuss corroboration against independent evidence"
+      ],
+      "improvement_suggestions": [
+        "Practice treating both sources as evidence of their authors' positions and interests",
+        "Explain how to corroborate facts against other records"
+      ],
+      "feedback_for_student": "You earned 5/15 (fair). The answer notes the disagreement and attempts to rank reliability, but does not demonstrate proper source-critical reasoning by treating both accounts as evidence of perspective. Focus on provenance, interest, and corroboration to improve.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    }
+  ],
+  "score_calculation_verification": {
+    "individual_scores": [
+      0,
+      10,
+      0,
+      5
+    ],
+    "manual_sum": 15,
+    "verification_status": "PASS",
+    "calculation_notes": "Score arithmetic calculated by the system from the clamped per-question scores: 0 + 10 + 0 + 5 = 15. Model-reported totals are not used."
+  },
+  "overall_performance_analysis": {
+    "score_breakdown": "Student scored 15 out of 80 points (18.75%)",
+    "strengths_summary": {
+      "overall_strengths": [
+        "Attempted to construct arguments on each question"
+      ]
+    },
+    "areas_for_improvement": {
+      "overall_weaknesses": [
+        "Multiple factual inaccuracies in historical content",
+        "Limited engagement with required historiographical or textual debate",
+        "Tendency to assert rather than analyse sources or evidence"
+      ]
+    }
+  },
+  "grading_confidence": 75,
+  "recommendations": {
+    "for_student": [
+      "Review core historical concepts and historiography for each topic",
+      "Practice close textual analysis and accurate quotation",
+      "Develop source criticism skills by treating conflicting accounts as evidence of perspective"
+    ],
+    "for_teacher": [
+      "Consider reteaching Realpolitik and source criticism fundamentals",
+      "Provide model answers that demonstrate balanced debate"
+    ],
+    "follow_up_actions": [
+      "Student should revise WWI and Macbeth essays with corrected historiography and textual evidence"
+    ]
+  },
+  "grading_model": "x-ai/grok-4.3",
+  "second_opinion": {
+    "model": "deepseek/deepseek-v4-pro",
+    "selected": {
+      "1": [
+        "low_confidence",
+        "high_stakes"
+      ],
+      "2": [
+        "low_confidence",
+        "high_stakes"
+      ],
+      "3": [
+        "low_confidence",
+        "high_stakes"
+      ],
+      "4": [
+        "low_confidence",
+        "high_stakes"
+      ]
+    },
+    "agreements": [
+      2,
+      3,
+      4
+    ],
+    "disagreements": [
+      {
+        "question_number": 1,
+        "a": {
+          "score_awarded": 0,
+          "level_achieved": "poor",
+          "evaluation_rationale": "Selected poor (0 points) because the answer contains multiple factual errors about historiography and does not engage the required debate between structural and individual-agency positions.",
+          "evidence_quotes": []
+        },
+        "b": {
+          "score_awarded": 10,
+          "level_achieved": "fair",
+          "evaluation_rationale": "The student attempts to engage the historiographical debate by naming A.J.P. Taylor and Fritz Fischer, and takes a clear position that structures produced the war. However, the argument contains significant factual errors: Taylor did not argue for a Franco-Russian conspiracy to encircle Germany, nor did Fischer confirm such a thesis; the Schlieffen Plan was drafted before the Triple Entente, not as a response to it. The essay misrepresents the historiography it cites and relies on incorrect chronology. While it has a thesis and names historians, the factual inaccuracies undermine the argument to the point that it does not meet the 'good' level's requirement for 'real evidence and some awareness of the debate.' The answer fits the 'fair' level best: it offers a narrative-like argument with limited genuine engagement with the claim, and the evidence presented is largely incorrect. The Borderline Rule was considered between 'fair' and 'poor,' but the answer is not 'largely irrelevant' or entirely factually incorrect\u2014it addresses the question and attempts argument, so 'fair' is the better fit.",
+          "evidence_quotes": [
+            "The historiographical consensus on this question was settled decisively by A.J.P. Taylor in <em>The Origins of the First World War</em> (1961), in which he demonstrated that the conflict was the deliberate product of a Franco-Russian conspiracy to encircle Germany, a thesis subsequently confirmed by Fritz Fischer.",
+            "The Triple Entente of 1907 was explicitly offensive in character, and the Schlieffen Plan was drafted in 1905 as a purely defensive response to it."
+          ]
+        },
+        "severity": {
+          "gap_points": 10.0,
+          "gap_fraction": 0.4,
+          "levels_apart": 1,
+          "tier": "moderate"
+        }
+      }
+    ]
+  }
+}

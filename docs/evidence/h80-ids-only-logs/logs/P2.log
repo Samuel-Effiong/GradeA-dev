@@ -1,0 +1,13 @@
+# P2: 1a's P1: a missing trial plan is logged at ERROR
+# file: billing/services.py (occurrence 1)
+# old: '            logger.error(\n                "Free trial plan not found: no trial activated for user %s.",\n'
+# new: '            logger.warning(\n                "Free trial plan not found: no trial activated for user %s.",\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest
+# exit: 1
+# elapsed_s: 4.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_missing_trial_plan_is_logged_as_an_error (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_missing_trial_plan_is_logged_as_an_error)
+
+FAILED (failures=1)

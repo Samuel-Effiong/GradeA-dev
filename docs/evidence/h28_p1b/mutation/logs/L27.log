@@ -1,0 +1,13 @@
+# L27: each call is bounded at the socket by the time left
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '        "http_client": stripe.RequestsClient(timeout=timeout),'
+# new: '        "http_client": stripe.RequestsClient(timeout=MAX_CALL_TIMEOUT_SECONDS),'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 37.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_hung_stripe_fails_at_the_socket_inside_the_budget (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_a_hung_stripe_fails_at_the_socket_inside_the_budget)
+FAIL: test_every_call_uses_the_apps_key_and_api_version_and_a_sized_timeout (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_every_call_uses_the_apps_key_and_api_version_and_a_sized_timeout)
+
+FAILED (failures=2)

@@ -1,0 +1,16 @@
+# L17: resolve --apply needs a note
+# file: billing/management/commands/resolve_licence_stripe_intent.py (occurrence 1)
+# old: '        if not note:\n'
+# new: '        if False:\n'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 45.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_apply_needs_an_outcome_a_note_and_a_super_admin (billing.tests.test_h28_alerting.ResolveCommandTests.test_apply_needs_an_outcome_a_note_and_a_super_admin) (args=('--apply', '--outcome', 'applied', '--by', 'root@h28-cancel.gradea.com'))
+FAIL: test_apply_needs_an_outcome_a_note_and_a_super_admin (billing.tests.test_h28_alerting.ResolveCommandTests.test_apply_needs_an_outcome_a_note_and_a_super_admin) (args=('--apply', '--outcome', 'applied', '--note', '   ', '--by', 'root@h28-cancel.gradea.com'))
+FAIL: test_apply_needs_an_outcome_a_note_and_a_super_admin (billing.tests.test_h28_alerting.ResolveCommandTests.test_apply_needs_an_outcome_a_note_and_a_super_admin) (args=('--apply', '--outcome', 'applied', '--note', 'x'))
+FAIL: test_apply_needs_an_outcome_a_note_and_a_super_admin (billing.tests.test_h28_alerting.ResolveCommandTests.test_apply_needs_an_outcome_a_note_and_a_super_admin) (args=('--apply', '--outcome', 'applied', '--note', 'x', '--by', 'nobody@x.test'))
+FAIL: test_apply_needs_an_outcome_a_note_and_a_super_admin (billing.tests.test_h28_alerting.ResolveCommandTests.test_apply_needs_an_outcome_a_note_and_a_super_admin)
+
+FAILED (failures=5)

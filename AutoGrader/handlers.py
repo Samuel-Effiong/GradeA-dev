@@ -4,7 +4,7 @@ from rest_framework import status
 
 def _json_error(message, error_detail=None, http_status=None):
     return JsonResponse(
-        {"success": False, "message": "Not Found", "error": error_detail or {}},
+        {"success": False, "message": message, "error": error_detail or {}},
         status=http_status,
     )
 

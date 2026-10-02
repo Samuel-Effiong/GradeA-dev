@@ -1,0 +1,742 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.School 478c10cc-f214-4c2a-99a4-02333d84cf3b already has active license subscription 1d187839-7f26-437c-9053-df49caf9cc3b. Deactivating old license before creating new one.
+Cannot activate automatic trial for user b9278d65-b401-441d-a102-7f46d796e5ef (validation): ValueError
+Cannot activate automatic trial for user 287144b7-5e4d-47b6-9ab8-febd0464cffe (validation): ValueError
+.Cannot activate automatic trial for user f0cece0f-5e8a-4bf0-9349-ef8841c5836e (validation): ValueError
+.Cannot activate automatic trial for user 26f2499d-da68-4cb8-a08a-f31ddc772310 (validation): ValueError
+...Cannot activate automatic trial for user 1988ce4e-3707-4d65-afb7-f58050eefe5b (validation): ValueError
+.Cannot activate automatic trial for user 2c0651b3-0882-4f40-b7cd-5ce4994a1108 (validation): ValueError
+.Cannot activate automatic trial for user 653eefe6-ee13-4325-9707-ce3a2b0a16f1 (validation): ValueError
+Teacher 653eefe6-ee13-4325-9707-ce3a2b0a16f1 belongs to school ba546f51-cc08-4eae-9e86-ff953c6a1faa, not 8e730487-a4f9-4a23-9073-63e8ae244865: not enrolled.
+Skipped enrolling a teacher in license 8f4452c0-1ab8-4d5b-a129-c969d3ce4f5c (school 8e730487-a4f9-4a23-9073-63e8ae244865): ValueError
+.Cannot activate automatic trial for user 901224bb-ad07-4140-9f0f-7a9de185d4a6 (validation): ValueError
+Teacher 901224bb-ad07-4140-9f0f-7a9de185d4a6 belongs to school 62896e36-6b9b-42bf-b331-982c5acbee91, not e5119660-aa7c-41ff-a08e-5406305c84d5: not enrolled.
+Skipped enrolling a teacher in license ce9eb9d6-d1b2-4a6e-a9e5-06ef13380d8c (school e5119660-aa7c-41ff-a08e-5406305c84d5): ValueError
+.Cannot activate automatic trial for user 57fa1faa-7d4b-4172-b296-5d8cdaf60f28 (validation): ValueError
+Teacher 57fa1faa-7d4b-4172-b296-5d8cdaf60f28 has an individual subscription: not enrolled.
+.Cannot activate automatic trial for user 4aa8a077-4962-49b2-a274-4a95db381ed0 (validation): ValueError
+Teacher 4aa8a077-4962-49b2-a274-4a95db381ed0 has an individual subscription: not enrolled.
+.Cannot activate automatic trial for user 48b10208-ddd8-4def-b73f-cd141b0219f1 (validation): ValueError
+.Cannot activate automatic trial for user f5837f6c-059d-4609-a17d-3e06444f0512 (validation): ValueError
+Teacher f5837f6c-059d-4609-a17d-3e06444f0512 belongs to school 73471e7c-fe07-42eb-932b-72f82681040e, not 865102f7-4c1f-4ed7-b62f-17278c360333: not enrolled.
+.Cannot activate automatic trial for user 27d72017-7b93-4700-aa91-90d24db90e90 (validation): ValueError
+.Cannot activate automatic trial for user db13d281-8838-43c0-a926-0192f360ef34 (validation): ValueError
+.Cannot activate automatic trial for user 99f4ba36-4bfd-4000-8621-911d42ffbdcc (validation): ValueError
+.Cannot activate automatic trial for user 89c0e510-92ba-4fbb-8985-a62e5389ff37 (validation): ValueError
+Teacher 89c0e510-92ba-4fbb-8985-a62e5389ff37 belongs to school b7cc2a9e-86a8-4d01-b514-2f396b94fb84, not 08a18da2-fd55-4fd5-a76d-08cf2ebf9a53: not enrolled.
+Skipped enrolling a teacher in license 794f1931-398c-4d9f-bbd4-845d1edcdb16 (school 08a18da2-fd55-4fd5-a76d-08cf2ebf9a53): ValueError
+.Cannot activate automatic trial for user 09253e48-72ce-40e2-9dbb-31fe01f78dc4 (validation): ValueError
+.Cannot activate automatic trial for user 15ca50d8-a7a7-4197-9b4a-f1f1fe59796b (validation): ValueError
+Cannot activate automatic trial for user 35716449-3ac4-4c4d-b4ae-3adf9af7be32 (validation): ValueError
+.Cannot activate automatic trial for user 2e96953f-0965-4f59-9deb-67434ff851de (validation): ValueError
+.....Cannot activate automatic trial for user 357960d4-6fec-4cc2-962b-a62c3eed4b66 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ValueError: a real bug
+
+
+django.request ERROR 2026-10-02 10:08:29,344 log 134583 137298490371008 [request_id=-] Internal Server Error: /api/v1/license-subscriptions
+
+
+.Cannot activate automatic trial for user cda6274a-7f8b-434e-a4c9-b86c6f4a85e0 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 958, in create_license_subscription
+    LicenseSubscriptionService.validate_license_plan(plan)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 289, in validate_license_plan
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: License plan PRO must define monthly_credits. Custom/contact-sales plans cannot be activated directly.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='License plan PRO must define monthly_credits. Custom/contact-sales plans cannot be activated directly.', code='invalid')]}
+.Cannot activate automatic trial for user fec5e51e-b6b5-4b75-8b72-da3926d34c33 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 958, in create_license_subscription
+    LicenseSubscriptionService.validate_license_plan(plan)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 295, in validate_license_plan
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: Standard Grader tier is not available under License subscription
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='Standard Grader tier is not available under License subscription', code='invalid')]}
+.Cannot activate automatic trial for user ed9672fa-9cb0-419a-b943-29b0f13ddec2 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 977, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 358, in check_seat_capacity
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.', code='invalid')]}
+.Cannot activate automatic trial for user eaf39bd4-cdef-42b4-bb4d-529cef55122e (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 977, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 358, in check_seat_capacity
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence has 2 seats, but 3 teachers were added. Remove a teacher or increase Max seats.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='This licence has 2 seats, but 3 teachers were added. Remove a teacher or increase Max seats.', code='invalid')]}
+.Cannot activate automatic trial for user 5fd54e40-c067-4880-91b7-8d576ace4b81 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 977, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 326, in check_seat_capacity
+    raise LicenseRequestError("max_seats must be a positive integer")
+billing.license_service.LicenseRequestError: max_seats must be a positive integer
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='max_seats must be a positive integer', code='invalid')]}
+.Cannot activate automatic trial for user 4017734a-4272-4630-a0c6-7e33580990c4 (validation): ValueError
+.Cannot activate automatic trial for user 784751d7-ed11-493d-ad43-a05cb94dba17 (validation): ValueError
+.Cannot activate automatic trial for user a03aa39a-465c-4cc5-9437-907f602ed33a (validation): ValueError
+.Cannot activate automatic trial for user cbfaf052-add7-4137-84ee-15d3631808c0 (validation): ValueError
+...Cannot activate automatic trial for user f4c1c380-59f5-475e-b8c7-0c0665aa48f8 (validation): ValueError
+..Cannot activate automatic trial for user 1bb9ffb6-4535-4f02-b9b5-342a7ce6a6af (validation): ValueError
+..Cannot activate automatic trial for user 110d028c-7729-4c22-b162-439746b9768f (validation): ValueError
+Cannot activate automatic trial for user a8ad43b1-30a8-441a-a77b-73645b61b66a (validation): ValueError
+.Cannot activate automatic trial for user 625d098a-8536-49ed-ae16-a7968ae132bf (validation): ValueError
+School 8791802a-c485-44e5-855b-bf7b8d67f928 already has active license subscription 2c0b99e5-ff66-44ff-a82a-b3b09afef721. Deactivating old license before creating new one.
+.Cannot activate automatic trial for user b7faa4bd-fa07-403c-a449-3edf33fa9db0 (validation): ValueError
+.Cannot activate automatic trial for user 06c3578d-d998-4ab7-86cd-b8280331a59c (validation): ValueError
+.Cannot activate automatic trial for user 9db254fd-7703-4602-9d3d-359510e97653 (validation): ValueError
+.Cannot activate automatic trial for user d30b534e-f3d2-4e3e-9a4c-c0e951574168 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 977, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 358, in check_seat_capacity
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence has 2 seats, but 3 teachers were added. Remove a teacher or increase Max seats.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='This licence has 2 seats, but 3 teachers were added. Remove a teacher or increase Max seats.', code='invalid')]}
+.Cannot activate automatic trial for user ae824134-9963-43c2-a13f-6063070a51b4 (validation): ValueError
+.Cannot activate automatic trial for user 274dafe7-e814-4d37-bfcb-fbbc7c7f165a (validation): ValueError
+..Failed to add teachers to license 9096b74c-837f-4518-9dee-08f3cb503152
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 325, in add_teachers
+    results = LicenseSubscriptionService.add_teachers_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 1735, in add_teachers_batch
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: Your licence has no seats left (2 of 2 in use). Remove a teacher or ask us to add seats.
+.Failed to add teachers to license 48b9528e-220a-4d2a-9993-6d620acae913
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 325, in add_teachers
+    results = LicenseSubscriptionService.add_teachers_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 1703, in add_teachers_batch
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence isn't active, so teachers can't be added to it.
+.Failed to add teachers to license 0a4c9bac-e2bb-4579-9584-175c45ef8ff3
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 325, in add_teachers
+    results = LicenseSubscriptionService.add_teachers_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ValueError: internal detail
+.Failed to add teachers to license 61d3ac3c-02a0-400f-b310-59652fd4ca25
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 325, in add_teachers
+    results = LicenseSubscriptionService.add_teachers_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 1735, in add_teachers_batch
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use). Add fewer teachers, remove a teacher, or ask us to add seats.
+.Cannot activate automatic trial for user 9fc77fa6-4e28-4e2f-9987-fc1b6655fb57 (validation): ValueError
+Failed to remove teacher 9fc77fa6-4e28-4e2f-9987-fc1b6655fb57 from license
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_views.py", line 382, in remove_teachers
+    LicenseSubscriptionService.remove_teacher_from_license(
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/license_service.py", line 1796, in remove_teacher_from_license
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This teacher isn't an active teacher on this licence.
+.Cannot activate automatic trial for user b89eff0e-1c61-4636-81ee-acf142536810 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user 30804a83-e31f-4cce-a8d0-665afd16d3c3 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user c9038784-5fac-41bd-9ace-e3b48649500c (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user 7a0cd087-a6f9-488e-8f80-b2e8cad63378 (validation): ValueError
+.Cannot activate automatic trial for user f5b4deb6-1ad3-40e6-9c6d-e6b1526c085c (validation): ValueError
+.Cannot activate automatic trial for user ed8e52a7-a98c-4602-a0ec-2e9f446d4a95 (validation): ValueError
+.Cannot activate automatic trial for user d7ee1b95-0580-46e0-a173-b7eb2b1ee3a4 (validation): ValueError
+Cannot activate automatic trial for user a23da40e-6bcc-4165-a125-79d744b417c6 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user 0d07c0a7-5848-44e3-b5de-344f667779a7 (validation): ValueError
+.Cannot activate automatic trial for user 1d4c0459-efa9-4913-b665-35295561f5f9 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+.Cannot activate automatic trial for user 0e586943-3c6c-453c-b210-fc2bcc04fcc8 (validation): ValueError
+.Cannot activate automatic trial for user 8367b2b6-fa9b-4625-8ea7-29d97883cb80 (validation): ValueError
+.Cannot activate automatic trial for user 6f61a80a-8a33-448e-a76a-c5a8dfa01101 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 65, in update
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user 886b9ca7-40a6-4386-9c0b-9755e8ff5e32 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/classrooms/views.py", line 1340, in students
+    course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user dd81d319-baa9-4c51-8c6d-525cbc8504a6 (validation): ValueError
+.Cannot activate automatic trial for user ada03933-b5b9-44e7-a175-d8b8973cf26a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user 7d7f89af-f701-4d74-9959-06910676c8f8 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+.Cannot activate automatic trial for user 5fbe0e1b-678a-4db5-8615-1250619daadc (validation): ValueError
+.Cannot activate automatic trial for user 30b436e0-843a-4c74-95be-8793e92d9201 (validation): ValueError
+.Cannot activate automatic trial for user 7cca6dbb-b2c2-461a-ac17-2721e2dc1456 (validation): ValueError
+.Cannot activate automatic trial for user 6b1ef4be-cfc8-4b78-9810-c83c054adb46 (validation): ValueError
+.Cannot activate automatic trial for user 325e866e-2908-4506-97bf-1081eba09dbc (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+.Cannot activate automatic trial for user 73c985a3-b51a-4548-a7f9-f589e0cacd28 (validation): ValueError
+.User creation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/serializers.py", line 382, in create
+    user = CustomUser.objects.create_user(**validated_data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: db exploded
+.Cannot activate automatic trial for user e03d744a-f8e7-48ff-bf75-01f6ef8379f0 (validation): ValueError
+.Cannot activate automatic trial for user fba4f393-7317-4e97-b987-5723e7b27ca0 (validation): ValueError
+.Cannot activate automatic trial for user 7d3a69fa-567e-40e1-92ac-8556c2f34db9 (validation): ValueError
+User update failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/users/serializers.py", line 418, in update
+    instance.save()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: db exploded
+.Cannot activate automatic trial for user 7b6c49f0-a635-4175-89d2-fdb3b198d4f3 (validation): ValueError
+...............Cannot activate automatic trial for user 259a3b46-a4f3-4559-a4bb-45157448e83c (validation): ValueError
+.Cannot activate automatic trial for user 54457fc2-287c-4a36-85d5-a5f04a183e0d (validation): ValueError
+..........Cannot activate automatic trial for user 665ec842-e478-42e4-b15f-12783fee28a2 (validation): ValueError
+Cannot activate automatic trial for user 44e035dd-631f-4f42-87d0-292c35b5bc7d (validation): ValueError
+School 019065d7-0c01-4b9d-9c47-51e11c12cb70 already has active license subscription c71a3640-8f35-4443-9c37-777fe80d8274. Deactivating old license before creating new one.
+.School 68a46125-079b-4c79-b5f1-60b3ea9d41e2 already has active license subscription aca44ecb-426e-4807-9c1a-146ec0b1170d. Deactivating old license before creating new one.
+.Cannot activate automatic trial for user 6cc637d4-c0cb-4fbf-97ce-fc92fb4f5493 (validation): ValueError
+School d7d0c381-0b4b-477a-909f-afbed1df1022 already has active license subscription 71b8ac94-a4ad-46a5-b8e2-35a82534b0c4. Deactivating old license before creating new one.
+.School 03cbeef7-9489-4013-9fbe-7d30e87088e5 already has active license subscription 2a309c0f-f035-41a3-a049-4159b3588d1c. Deactivating old license before creating new one.
+.Cannot activate automatic trial for user 4be63be8-280e-4d1e-bb4b-4a4038094063 (validation): ValueError
+Cannot activate automatic trial for user 40ec27d3-194b-4a11-bdfd-b3597cb2c2d6 (validation): ValueError
+School 8b78b9df-effe-471d-ae93-be9ca73a312f already has active license subscription 035bec38-89f0-42fa-9413-18b58ea031ec. Deactivating old license before creating new one.
+.Cannot activate automatic trial for user b3c9b84b-7f26-4698-bb1a-06212f1a1460 (validation): ValueError
+School beb04684-9e1f-4ead-9774-ce75bcfdc289 already has active license subscription 656aeda0-ab1d-45aa-aaaa-119f3c9b46e2. Deactivating old license before creating new one.
+.Cannot activate automatic trial for user f1748caa-f104-43f6-bfe2-45363c84fa43 (validation): ValueError
+Cannot activate automatic trial for user 2b707239-9cb0-415c-81ae-9210ead6591d (validation): ValueError
+.School 53795397-1f40-42d3-94a7-4a101a43719a already has active license subscription 54781898-8abe-43f7-89a6-c882437db9ff. Deactivating old license before creating new one.
+.Cannot activate automatic trial for user 229a0d4c-4df1-419d-babd-561797024234 (validation): ValueError
+Teacher 229a0d4c-4df1-419d-babd-561797024234 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 67a8edf0-4934-429d-b0b3-4026f959f6b6 (school 3d58fa09-2cfa-4740-a0db-5be780856b95): IndividualSubscriptionConflictError
+License 67a8edf0-4934-429d-b0b3-4026f959f6b6 creation: 1/1 teacher invitations FAILED.
+..Cannot activate automatic trial for user 341d7569-3af9-4708-b38a-3b5f805a634e (validation): ValueError
+Cannot activate automatic trial for user 274445ab-80ec-4069-8b4e-16d19a2e4eb6 (validation): ValueError
+.Cannot activate automatic trial for user 8fb410b7-0407-4faa-959b-deb17d79cfb6 (validation): ValueError
+.Cannot activate automatic trial for user 0bed3d5a-4a61-4965-a441-189d9d2dc084 (validation): ValueError
+.Cannot activate automatic trial for user 30bb7f79-39f1-4454-b0b2-fa9f3cef6357 (validation): ValueError
+Renewal requested for inactive license c35f0ae8-538a-4845-9ca6-950787b3bf9e. Skipping.
+.Cannot activate automatic trial for user 498264f5-45f7-4ba6-8ecd-0eb3dfe147ef (validation): ValueError
+.Cannot activate automatic trial for user 0a6d7f48-6b16-4c26-8a76-f823038564c2 (validation): ValueError
+.Cannot activate automatic trial for user 4768c99b-740a-4559-8dc8-b598a46e4422 (validation): ValueError
+Not a business email: teacher not enrolled.
+Skipped enrolling a teacher in license a2ae31d5-5c7e-45db-b7d3-b3cf2710f8af (school d04c9f76-7779-4663-ac40-7b2c58701c55): ValueError
+.Cannot activate automatic trial for user 2fefca1d-a42d-449e-a612-c78f96095f77 (validation): ValueError
+Cannot activate automatic trial for user efdb27aa-60f2-48f3-b109-3e4880f24d8a (validation): ValueError
+.Cannot activate automatic trial for user a8abec6d-2199-4251-9a3a-5853d1225c36 (validation): ValueError
+.Cannot activate automatic trial for user 1a3bfbd9-44a9-40e3-b287-2740e303b4e8 (validation): ValueError
+........Cannot activate automatic trial for user 6380de57-d700-4058-8ea2-fb65e0bb9df3 (validation): ValueError
+Cannot activate automatic trial for user 8ddd696b-ea7c-42b7-8238-7c8823de8450 (validation): ValueError
+Failed to renew credits for teacher 8ddd696b-ea7c-42b7-8238-7c8823de8450 under license 1fcd6be3-a5b7-42ce-9db1-eba339195cd5: ValueError
+.Cannot activate automatic trial for user 90630e9f-0528-40cc-989e-d874ce7fbec5 (validation): ValueError
+Cannot activate automatic trial for user d8c893f0-1517-4cef-b657-42e6ad8d2f8f (validation): ValueError
+FCannot activate automatic trial for user 95f4edfc-7e90-46a9-9afe-00bba815ee74 (validation): ValueError
+Cannot activate automatic trial for user cd7ff633-8b93-4211-8e6f-1b3e15fd0043 (validation): ValueError
+Failed to renew credits for teacher cd7ff633-8b93-4211-8e6f-1b3e15fd0043 under license 173e5fb7-0606-47f9-93fa-318a35881500: ValueError
+.Cannot activate automatic trial for user 89bca866-118d-44ff-81e2-0e3e6476e541 (validation): ValueError
+Cannot activate automatic trial for user 5e0ebde9-0401-47f8-be55-05a30868e6cd (validation): ValueError
+.Cannot activate automatic trial for user c0100028-c7b6-4005-b5e5-778dacc4d2ca (validation): ValueError
+Offline renewal: failed to refresh credits for teacher c0100028-c7b6-4005-b5e5-778dacc4d2ca under license ca3bb746-cfa9-414b-9da1-c29cb77c074b: ValueError
+.Cannot activate automatic trial for user 284d7141-b282-4827-b6e7-b029f4f03c6e (validation): ValueError
+Offline overage request 2c822b2d-904a-4294-bf02-23b5804829e6 auto-rejected on approval attempt: license a2b4d765-8040-4c0f-a086-104e2ad1bcdd is no longer active.
+.Cannot activate automatic trial for user 9c40ce46-699f-4fb9-82cc-2502b789bc7f (validation): ValueError
+.Cannot activate automatic trial for user 0fb409d5-c601-4cfd-b697-baa96377fb13 (validation): ValueError
+Offline overage request c711b634-e386-440b-b698-1daa22dd52cd approved but EVERY allocated teacher was no longer active — 0/1 granted. Needs manual follow-up. License 21b31a34-d783-49c1-bcc5-352a6f535f51.
+.Cannot activate automatic trial for user 0c290831-f063-4bd3-8103-4e49a613b79e (validation): ValueError
+.Cannot activate automatic trial for user 2119c5da-f61e-49c5-ac58-f3d1993eb94a (validation): ValueError
+.Cannot activate automatic trial for user f0dfc53d-d7b5-442b-9eec-fd0f059be407 (validation): ValueError
+.Cannot activate automatic trial for user eba28548-8964-4ae4-a2fb-88a3500cda64 (validation): ValueError
+.Cannot activate automatic trial for user 0c1da5a0-c9ff-403e-abb1-fc63902c6523 (validation): ValueError
+.Cannot activate automatic trial for user acdf0ece-f96e-4b62-9e62-eac377b8b022 (validation): ValueError
+.Cannot activate automatic trial for user 98f6620c-c875-4583-a398-b18868cc3b7e (validation): ValueError
+.Cannot activate automatic trial for user 3a4a23ea-ce62-49a8-8ade-16d6a59cf872 (validation): ValueError
+.Cannot activate automatic trial for user ae147092-688c-4811-b0a8-2e40f16b7d31 (validation): ValueError
+.Cannot activate automatic trial for user d14577a2-a866-47be-a116-e28fa6450777 (validation): ValueError
+.
+======================================================================
+FAIL: test_a_failed_teacher_is_reported_and_not_counted_as_renewed (billing.tests.test_license_renewal_partial_failure.LicenseRenewalTransactionBoundaryTests.test_a_failed_teacher_is_reported_and_not_counted_as_renewed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h80-ids-only-logs/billing/tests/test_license_renewal_partial_failure.py", line 275, in test_a_failed_teacher_is_reported_and_not_counted_as_renewed
+    self.assertTrue(
+AssertionError: False is not true : the failed teacher was not named in the error log
+
+----------------------------------------------------------------------
+Ran 152 tests in 28.060s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 152 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+systemd-run failed with exit status 1.
+exit=1 wall_s=51
