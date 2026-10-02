@@ -8,15 +8,16 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import call_command
-from django.db import DatabaseError, connection
+from django.db import DatabaseError, connection, transaction
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from audit.emitter import emit
-from audit.enums import AuditAction
+from audit.enums import AuditAction, RetentionClass
 from audit.management.commands import audit_volume_report
 from audit.models import AuditEvent
+from audit.tests_schema import event_fields
 from billing.immutable import allow_unsafe_mutation
 from users.models import CustomUser, UserTypes
 
@@ -97,12 +98,34 @@ class MeasuredTests(TestCase):
             if "occurred_at" not in sql and "pg_column_size" not in sql:
                 self.assertRegex(sql, r"reltuples|pg_relation_size")
 
-    def test_every_windowed_count_has_an_index_path(self):
-        """v2's N1: each count the report runs can be served by an index
-        range scan. With seq scans disabled, EXPLAIN shows which statements
-        have NO index path at all - those would scan the whole table. (This
-        proves a usable index exists; what the planner picks at production
-        size is for the founder's read-only EXPLAIN in EVIDENCE.)"""
+    def fill_and_analyse(self):
+        """Give the planner a table it can cost. On a handful of rows a scan
+        that pins the leading column and a full scan of another index cost
+        the same, and which one EXPLAIN shows is a coin toss (it failed once
+        under a parallel run, H-95). A couple of thousand rows across every
+        action and both classes, with fresh statistics, make the pinned scan
+        the clear winner whenever its index exists."""
+        now = timezone.now()
+        rows = [
+            AuditEvent(
+                **event_fields(
+                    action=action.value,
+                    retention_class=(
+                        RetentionClass.STUDENT_RECORD
+                        if n % 2
+                        else RetentionClass.GENERAL
+                    ),
+                    occurred_at=now - timedelta(days=n * 5),
+                )
+            )
+            for action in AuditAction
+            for n in range(60)
+        ]
+        AuditEvent.objects.bulk_create(rows)
+        with connection.cursor() as cursor:
+            cursor.execute(f"ANALYZE {AuditEvent._meta.db_table}")
+
+    def assertEveryWindowedCountPinsItsLeadingColumn(self):
         with CaptureQueriesContext(connection) as queries:
             run("--days", "30")
         table = AuditEvent._meta.db_table
@@ -129,6 +152,29 @@ class MeasuredTests(TestCase):
                     r"Index Cond: .*\b(action|retention_class)\)?(::text)? = '",
                     sql,
                 )
+
+    def test_every_windowed_count_has_an_index_path(self):
+        """v2's N1: each count the report runs can be served by an index
+        range scan. With seq scans disabled, EXPLAIN shows which statements
+        have NO index path at all - those would scan the whole table. (This
+        proves a usable index exists; what the planner picks at production
+        size is for the founder's read-only EXPLAIN in EVIDENCE.)"""
+        self.fill_and_analyse()
+        self.assertEveryWindowedCountPinsItsLeadingColumn()
+
+    def test_the_index_check_fails_when_an_index_it_protects_is_missing(self):
+        """The check above is only worth having if it goes red without the
+        index. Drop each one inside this test's transaction (rolled back at
+        the end) and the same check must fail."""
+        for index in ("audit_action_time_ix", "audit_retention_ix"):
+            with self.subTest(index=index):
+                with transaction.atomic():
+                    self.fill_and_analyse()
+                    with connection.cursor() as cursor:
+                        cursor.execute(f"DROP INDEX {index}")
+                    with self.assertRaises(AssertionError):
+                        self.assertEveryWindowedCountPinsItsLeadingColumn()
+                    transaction.set_rollback(True)
 
     def test_exact_all_time_is_opt_in_and_counts_everything(self):
         with allow_unsafe_mutation():
