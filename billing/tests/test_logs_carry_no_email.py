@@ -63,8 +63,11 @@ LOG_METHODS = {
     "critical",
     "log",
 }
-#: The apps H-91 has cleaned so far; every production file under them.
-PII_GUARDED_DIRS = ("billing",)
+#: H-91 has cleaned the whole repository, so the rule covers every
+#: production file in it, as the hook does.
+PII_GUARDED_DIRS = (".",)
+#: Directories never scanned (the hook's list, plus hidden directories).
+PII_SKIPPED_DIRS = {"migrations", "node_modules", "venv"}
 EXCEPTION_NAMES = {"e", "exc"}
 
 
@@ -142,20 +145,25 @@ def pii_arguments(call):
 
 
 def is_production_file(path):
-    """Not a test and not a migration: what the hook scans."""
+    """Not a test module and not a migration: what the hook scans (a helper
+    module inside a tests/ package is scanned, as the hook scans it)."""
     parts = path.split(os.sep)
     name = parts[-1]
     return (
         name.endswith(".py")
         and "migrations" not in parts
-        and "tests" not in parts
         and not name.startswith(("test_", "tests_"))
         and name != "tests.py"
     )
 
 
 def production_files(top):
-    for folder, _, names in os.walk(os.path.join(settings.BASE_DIR, top)):
+    for folder, subfolders, names in os.walk(os.path.join(settings.BASE_DIR, top)):
+        subfolders[:] = sorted(
+            name
+            for name in subfolders
+            if name not in PII_SKIPPED_DIRS and not name.startswith(".")
+        )
         for name in sorted(names):
             path = os.path.relpath(os.path.join(folder, name), settings.BASE_DIR)
             if is_production_file(path):
@@ -227,8 +235,8 @@ class NoEmailInLogCallsTest(SimpleTestCase):
 
 
 class NoPiiInAnyLogCallTest(SimpleTestCase):
-    """H-91: the hook's rule, over every production file of the cleaned
-    apps."""
+    """H-91: the hook's rule, over every production file in the
+    repository."""
 
     def test_no_log_or_print_call_passes_an_address_or_a_name(self):
         problems = []
@@ -290,10 +298,13 @@ class NoPiiInAnyLogCallTest(SimpleTestCase):
             "billing/services.py": True,
             "billing/management/commands/x.py": True,
             "billing/tests/test_x.py": False,
+            "billing/tests/helpers.py": True,
             "billing/migrations/0001_initial.py": False,
             "users/tests_signals.py": False,
             "users/tests.py": False,
             "users/test_views.py": False,
+            "scripts/one_off_backfill_stripe_schedules.py": True,
+            "assignments/tasks.py": True,
         }.items():
             with self.subTest(path=path):
                 self.assertEqual(is_production_file(path), expected)
