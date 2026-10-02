@@ -27,7 +27,10 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from billing.license_service import LicenseSubscriptionService
+from billing.license_service import (
+    IndividualSubscriptionConflictError,
+    LicenseSubscriptionService,
+)
 from billing.models import (
     LicenseSubscription,
     PlanCategory,
@@ -261,7 +264,9 @@ class IndividualToLicenseTests(TrackSeparationTestCase):
                 self.license, self.teacher
             )
 
-        self.assertIn("individual subscription", str(ctx.exception))
+        # The class says why; the text shown to the admin is neutral (H-85).
+        self.assertIsInstance(ctx.exception, IndividualSubscriptionConflictError)
+        self.assertNotIn("subscription", str(ctx.exception))
 
 
 class HalfCrossingTests(TrackSeparationTestCase):

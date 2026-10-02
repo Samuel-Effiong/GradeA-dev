@@ -106,6 +106,17 @@ class IndividualSubscriptionConflictError(Exception):
     pass
 
 
+#: What a school admin is told when the teacher they add has an active
+#: individual subscription (H-85). One fixed sentence: no address, and no
+#: mention of a subscription, which would tell any admin who types an
+#: address that its owner pays for a plan. The log line beside each raise
+#: gives support the reason, by id.
+TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION = (
+    "This teacher can't be added to your school yet. "
+    "Please ask them to contact support."
+)
+
+
 class LicenseRequestError(ValueError):
     """A license request the caller can fix (seat count, plan choice, admin).
 
@@ -1191,17 +1202,14 @@ class LicenseSubscriptionService:
             has_individual_sub = user.subscriptions.filter(is_active=True).exists()
 
             if has_individual_sub:
-                error_msg = (
-                    f"Teacher {email} has an active individual subscription. "
-                    "Individual subscriptions cannot be converted to a license. "
-                    "Please cancel the individual subscription first."
-                )
                 logger.warning(
                     "Teacher %s has an individual subscription: not enrolled.",
                     user.id,
                 )
                 if raise_on_conflict:
-                    raise IndividualSubscriptionConflictError(error_msg)
+                    raise IndividualSubscriptionConflictError(
+                        TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+                    )
                 return None
 
             # Associate the teacher with the school if they don't have one
@@ -1372,16 +1380,13 @@ class LicenseSubscriptionService:
         # 4. Check for and handle existing INDIVIDUAL subscriptions
         active_individual_sub = teacher.subscriptions.filter(is_active=True).exists()
         if active_individual_sub:
-            error_msg = (
-                f"Teacher {teacher.email} has an active individual subscription. "
-                "Individual subscriptions cannot be converted to a license. "
-                "Please cancel the individual subscription first."
-            )
             logger.warning(
                 "Teacher %s has an individual subscription: not enrolled.",
                 teacher.id,
             )
-            raise IndividualSubscriptionConflictError(error_msg)
+            raise IndividualSubscriptionConflictError(
+                TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+            )
 
         now = timezone.now()
 
@@ -1826,7 +1831,7 @@ class LicenseSubscriptionService:
         ).update(expires_at=now)
 
         logger.info(
-            "Removed teacher %s from license %s" "Expired %d credit buckets.",
+            "Removed teacher %s from license %s. Expired %d credit buckets.",
             teacher.id,
             license_sub.id,
             expired_count,

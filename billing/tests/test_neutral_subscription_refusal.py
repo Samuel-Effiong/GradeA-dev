@@ -26,6 +26,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from billing.license_service import (
+    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
     IndividualSubscriptionConflictError,
     LicenseSubscriptionService,
 )
@@ -119,6 +120,11 @@ class NeutralSubscriptionRefusalTest(APITestCase):
                 license_subscription=self.licence, user=teacher
             ).exists()
         )
+
+    def test_the_sentence_is_one_constant(self):
+        """Epic A's TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION catalogue entry takes
+        the same text at the merge-down."""
+        self.assertEqual(TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION, NEUTRAL)
 
     # --- Both refusals carry the neutral sentence ---------------------------
 
