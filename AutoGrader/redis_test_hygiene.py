@@ -49,8 +49,8 @@ import threading
 logger = logging.getLogger(__name__)
 
 #: Redis ships with 16 logical databases. Tests use the default one plus the
-#: fixed numbers in `real_redis_caches(...)` (7, 8, 11, 12, 15), so all 16 are
-#: visited.
+#: fixed numbers in `real_redis_caches(...)` (11, 12, 14, 15 today), so all 16
+#: are visited.
 DATABASES = range(16)
 
 #: The colon is part of the match on purpose: `gaplus-t12:` must not match
@@ -63,14 +63,29 @@ _UNLINK_BATCH = 1000
 
 def _clients():
     """Yield (db, client) for every logical database of the test Redis."""
-    import redis
     from django.conf import settings
 
     location = settings.CACHES["default"]["LOCATION"]
     if isinstance(location, (list, tuple)):
         location = location[0]
     for db in DATABASES:
-        yield db, redis.Redis.from_url(location, db=db)
+        yield db, client_for(location, db)
+
+
+def client_for(location, db):
+    """A client on database `db` of the Redis at `location`.
+
+    Not `redis.Redis.from_url(location, db=db)`: when the URL names a
+    database (`redis://host:6379/0`, the local and the CI layout) redis-py
+    takes the database from the URL and ignores the argument, so every
+    "per database" client was on the URL's own database and the other 15
+    were never visited (H-97). The database is set after the URL is parsed.
+    """
+    import redis
+
+    kwargs = redis.connection.parse_url(location)
+    kwargs["db"] = db
+    return redis.Redis(connection_pool=redis.ConnectionPool(**kwargs))
 
 
 def pid_is_alive(pid):

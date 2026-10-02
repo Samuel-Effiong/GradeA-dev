@@ -167,3 +167,21 @@ class EveryDatabaseIsVisitedTests(SimpleTestCase):
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertFalse(self.exists(counter, OTHER_DB))
         self.assertFalse(self.exists(entry, 14))
+
+    # --- Other URL shapes ------------------------------------------------------
+
+    def test_the_database_is_set_whatever_the_url_says(self):
+        for location in (
+            "redis://127.0.0.1:6379/0",
+            "redis://127.0.0.1:6379/7",
+            "redis://127.0.0.1:6379",
+            "redis://127.0.0.1:6379/",
+            "redis://127.0.0.1:6379/0?socket_timeout=5",
+            "redis://127.0.0.1:6379?db=3",
+            "rediss://cache.example.com:6380/2",
+            "unix:///tmp/redis.sock?db=4",
+        ):
+            with self.subTest(location=location):
+                for db in (0, 5, 15):
+                    client = hygiene.client_for(location, db)
+                    self.assertEqual(database_of(client), db)
