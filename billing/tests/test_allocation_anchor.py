@@ -1,6 +1,7 @@
 """
 H-88: refresh_timing.allocation_anchor, the piece the licence refresh adds
-to H-82's next_monthly_grant.
+to H-82's next_monthly_grant; and consumption_window_is_over, the licence
+consumption window's reopening rule.
 
 Property-style, as test_next_monthly_grant is. The chain is simulated the
 way _refresh_teacher_credits drives it: a run at time t refreshes when the
@@ -15,7 +16,12 @@ from datetime import timezone as dt_timezone
 from dateutil.relativedelta import relativedelta
 from django.test import SimpleTestCase
 
-from billing.refresh_timing import ANCHOR_SNAP, allocation_anchor, next_monthly_grant
+from billing.refresh_timing import (
+    ANCHOR_SNAP,
+    allocation_anchor,
+    consumption_window_is_over,
+    next_monthly_grant,
+)
 from billing.tests.test_next_monthly_grant import anchor_points
 
 UTC = dt_timezone.utc
@@ -151,3 +157,34 @@ class OldRowChainTests(SimpleTestCase):
 
         self.assertEqual(served, anchor_points(fallback, end)[: len(served)])
         self.assertGreaterEqual(len(served), 10)
+
+
+class ConsumptionWindowTests(SimpleTestCase):
+    def test_the_window_is_over_at_every_refresh_of_any_anchored_chain(self):
+        """The window opened by one month's 03:00 run is over at the next
+        month's, for every start day (28 to 31 days apart)."""
+        for day in range(1, 32):
+            anchor = datetime(2026, 1, day, 1, 0, tzinfo=UTC)
+            runs = [
+                p.replace(hour=3)
+                for p in anchor_points(anchor, anchor + relativedelta(years=1))
+            ]
+            for opened, now in zip(runs, runs[1:], strict=False):
+                with self.subTest(opened=opened, now=now):
+                    self.assertLessEqual(opened, consumption_window_is_over(now))
+
+    def test_a_full_calendar_month_rule_would_leave_it_shut(self):
+        """Why the rule has the snap: 31 Jan to 28 Feb is under a month."""
+        opened = datetime(2026, 1, 31, 3, 0, tzinfo=UTC)
+        now = datetime(2026, 2, 28, 3, 0, tzinfo=UTC)
+        self.assertGreater(opened, now - relativedelta(months=1))
+        self.assertLessEqual(opened, consumption_window_is_over(now))
+
+    def test_the_window_is_not_over_for_three_weeks(self):
+        """Refreshes on consecutive days (a catch-up), or teachers whose
+        anchors are days apart, do not reopen it again."""
+        opened = datetime(2026, 6, 1, 3, 0, tzinfo=UTC)
+        for days in range(1, 21):
+            now = opened + timedelta(days=days)
+            with self.subTest(days=days):
+                self.assertGreater(opened, consumption_window_is_over(now))

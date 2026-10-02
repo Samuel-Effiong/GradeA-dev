@@ -67,9 +67,9 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
-from .refresh_timing import allocation_anchor
+from .refresh_timing import allocation_anchor, consumption_window_is_over
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
-from .refresh_timing import next_monthly_grant, refresh_due_by
+from .refresh_timing import next_monthly_grant
 
 logger = logging.getLogger(__name__)
 
@@ -3753,10 +3753,10 @@ class LicenseSubscriptionService:
             # The same tolerance as the refresh's due check (1a's F1): a run
             # a few seconds earlier than last month's refreshes the teacher,
             # so it must reopen the window too.
-            | Q(
-                consumption_window_start__lte=refresh_due_by(now)
-                - relativedelta(months=1)
-            ),
+            # A month less the anchor snap, not a full calendar month: an
+            # anchored chain's months are 28 to 31 days, so a refresh on a
+            # clamped date (28 Feb, 30 Apr) would leave the window shut.
+            | Q(consumption_window_start__lte=consumption_window_is_over(now)),
         ).update(
             total_credits_consumed=0,
             consumption_window_start=now,
