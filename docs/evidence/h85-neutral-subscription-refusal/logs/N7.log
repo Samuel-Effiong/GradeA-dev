@@ -1,0 +1,12 @@
+# N7: the removal line separates its two sentences
+# file: billing/license_service.py (occurrence 1)
+# old: '"Removed teacher %s from license %s. Expired %d credit buckets."'
+# new: '"Removed teacher %s from license %s" "Expired %d credit buckets."'
+# commit: 273c2b308186417cb6e5a3427de92b8b49da8ca9
+# exit: 1
+# elapsed_s: 24.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_removal_line_separates_its_two_sentences (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_removal_line_separates_its_two_sentences)
+
+FAILED (failures=1)

@@ -1,0 +1,12 @@
+# N2: the enrolment refusal names no address and no subscription
+# file: billing/license_service.py (occurrence 1)
+# old: '            raise IndividualSubscriptionConflictError(\n                TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION\n            )\n'
+# new: '            raise IndividualSubscriptionConflictError(\n                f"Teacher {teacher.email} has an active individual subscription."\n            )\n'
+# commit: 273c2b308186417cb6e5a3427de92b8b49da8ca9
+# exit: 1
+# elapsed_s: 13.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_enrolling_a_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_enrolling_a_paying_teacher_is_refused_neutrally)
+
+FAILED (failures=1)

@@ -1,0 +1,66 @@
+# baseline, commit 273c2b308186417cb6e5a3427de92b8b49da8ca9, exit 0
+
+Found 17 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 8c655f15-3f31-4818-96d0-9355a456b883.
+Cannot activate automatic trial for user 8c655f15-3f31-4818-96d0-9355a456b883 (validation): ValueError
+Teacher 8c655f15-3f31-4818-96d0-9355a456b883 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user df1c897c-e98a-4bb6-a967-1c8a878b0525.
+Cannot activate automatic trial for user df1c897c-e98a-4bb6-a967-1c8a878b0525 (validation): ValueError
+Teacher df1c897c-e98a-4bb6-a967-1c8a878b0525 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user badbcd61-2d40-4b74-a8d1-fe0bb9c1ec73.
+Cannot activate automatic trial for user badbcd61-2d40-4b74-a8d1-fe0bb9c1ec73 (validation): ValueError
+Teacher badbcd61-2d40-4b74-a8d1-fe0bb9c1ec73 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user c28ae1f8-f617-4ca3-a3fb-71004b786298.
+Cannot activate automatic trial for user c28ae1f8-f617-4ca3-a3fb-71004b786298 (validation): ValueError
+Teacher c28ae1f8-f617-4ca3-a3fb-71004b786298 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 1c1e3cbf-6bad-4686-9b9e-d76811db14b2 (school f998d565-2d05-44a9-8558-517833101896): IndividualSubscriptionConflictError
+.Free trial plan not found: no trial activated for user fd1b321f-a95c-46f2-a504-df7a83dbc551.
+Cannot activate automatic trial for user fd1b321f-a95c-46f2-a504-df7a83dbc551 (validation): ValueError
+Teacher fd1b321f-a95c-46f2-a504-df7a83dbc551 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 42112525-3560-4e51-9a97-70e5f4afc9fd (school 43984697-3438-43cf-8eea-3f2537f1145b): IndividualSubscriptionConflictError
+.Free trial plan not found: no trial activated for user 429a1c4f-ce2d-4d3c-a882-31e2ca705026.
+Cannot activate automatic trial for user 429a1c4f-ce2d-4d3c-a882-31e2ca705026 (validation): ValueError
+.Free trial plan not found: no trial activated for user b35b90d9-6ec1-4ebd-8cb8-46d59bd17999.
+Cannot activate automatic trial for user b35b90d9-6ec1-4ebd-8cb8-46d59bd17999 (validation): ValueError
+..Free trial plan not found: no trial activated for user aecc1d60-ad3b-44c5-b770-3cda1eafe057.
+Cannot activate automatic trial for user aecc1d60-ad3b-44c5-b770-3cda1eafe057 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8adbbecc-6ea5-4e1e-803d-0f690548ee67.
+Cannot activate automatic trial for user 8adbbecc-6ea5-4e1e-803d-0f690548ee67 (validation): ValueError
+.Free trial plan not found: no trial activated for user 25e0a535-3236-4e65-8c5a-8a0f0612d91a.
+Cannot activate automatic trial for user 25e0a535-3236-4e65-8c5a-8a0f0612d91a (validation): ValueError
+Teacher 25e0a535-3236-4e65-8c5a-8a0f0612d91a belongs to school 4b3431f0-1dda-45fd-ac48-0b9bd49b6b05, not 00ab3c4b-0ec9-4116-9ab9-dfeac1e1123e: not enrolled.
+Skipped enrolling a teacher in license 49e8a268-a7a9-4d17-907f-810e0937129c (school 00ab3c4b-0ec9-4116-9ab9-dfeac1e1123e): ValueError
+.Free trial plan not found: no trial activated for user c7e2e923-e6fd-4fe1-9c02-a4e60d6764a2.
+Cannot activate automatic trial for user c7e2e923-e6fd-4fe1-9c02-a4e60d6764a2 (validation): ValueError
+Teacher c7e2e923-e6fd-4fe1-9c02-a4e60d6764a2 belongs to school 4c8a13b9-33ea-46ec-8a93-5648dce6f9e6, not 023a9984-73fb-4939-ac64-b0dc07936880: not enrolled.
+Skipped enrolling a teacher in license bb15d228-6c08-463f-b383-62c8dbb7beac (school 023a9984-73fb-4939-ac64-b0dc07936880): ValueError
+.Free trial plan not found: no trial activated for user 46d63369-5f6b-41cf-bcb5-ca9d44789ce3.
+Cannot activate automatic trial for user 46d63369-5f6b-41cf-bcb5-ca9d44789ce3 (validation): ValueError
+Teacher 46d63369-5f6b-41cf-bcb5-ca9d44789ce3 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user 2c6f86ec-34cc-4704-9806-cc4496dccd2d.
+Cannot activate automatic trial for user 2c6f86ec-34cc-4704-9806-cc4496dccd2d (validation): ValueError
+Teacher 2c6f86ec-34cc-4704-9806-cc4496dccd2d has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user 4534068c-0e9a-43a2-804f-ba58f79070c6.
+Cannot activate automatic trial for user 4534068c-0e9a-43a2-804f-ba58f79070c6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 338ad5c5-b377-405b-ab54-2a31c117a70a.
+Cannot activate automatic trial for user 338ad5c5-b377-405b-ab54-2a31c117a70a (validation): ValueError
+Teacher 338ad5c5-b377-405b-ab54-2a31c117a70a belongs to school fdfdab4e-6be4-4b62-b92e-9ea605a02ab6, not 7bafb822-f75f-4a40-b8be-82fcfe5eee82: not enrolled.
+.Free trial plan not found: no trial activated for user 0e590e9c-6d40-40db-89de-1b2505e5042e.
+Cannot activate automatic trial for user 0e590e9c-6d40-40db-89de-1b2505e5042e (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 17 tests in 7.794s
+
+OK
+Preserving test database for alias 'default'...

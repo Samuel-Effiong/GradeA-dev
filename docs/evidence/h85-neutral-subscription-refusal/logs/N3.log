@@ -1,0 +1,17 @@
+# N3: the sentence does not mention a subscription
+# file: billing/license_service.py (occurrence 1)
+# old: '    "Please ask them to contact support."\n'
+# new: '    "Please ask them to cancel their subscription first."\n'
+# commit: 273c2b308186417cb6e5a3427de92b8b49da8ca9
+# exit: 1
+# elapsed_s: 12.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_enrolling_a_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_enrolling_a_paying_teacher_is_refused_neutrally)
+FAIL: test_inviting_an_unattached_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_inviting_an_unattached_paying_teacher_is_refused_neutrally)
+FAIL: test_inviting_the_schools_own_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_inviting_the_schools_own_paying_teacher_is_refused_neutrally)
+FAIL: test_the_add_teachers_response_says_nothing_about_a_subscription (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_add_teachers_response_says_nothing_about_a_subscription)
+FAIL: test_the_enrolment_result_carries_the_neutral_sentence (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_enrolment_result_carries_the_neutral_sentence)
+FAIL: test_the_sentence_is_one_constant (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_sentence_is_one_constant)
+
+FAILED (failures=6)

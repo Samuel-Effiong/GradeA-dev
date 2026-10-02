@@ -1,0 +1,7 @@
+273c2b308186	N1	the invite refusal names no address and no subscription	KILLED	FAILED (failures=5)	True	19.1
+273c2b308186	N2	the enrolment refusal names no address and no subscription	KILLED	FAILED (failures=1)	True	13.2
+273c2b308186	N3	the sentence does not mention a subscription	KILLED	FAILED (failures=6)	True	12.5
+273c2b308186	N4	the invite refusal keeps its exception class	KILLED	FAILED (errors=5)	True	19.4
+273c2b308186	N5	the enrolment refusal keeps its exception class	KILLED	FAILED (errors=1)	True	30.3
+273c2b308186	N6	the invite refusal still logs its reason by id	KILLED	FAILED (failures=3)	True	25.3
+273c2b308186	N7	the removal line separates its two sentences	KILLED	FAILED (failures=1)	True	24.4
