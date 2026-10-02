@@ -1,6 +1,6 @@
 # H2: the grading benchmark's production guard — evidence
 
-Author: ed (Security). Branch `task/h2-grading-benchmark-guard`, on `task/beta-batch-5` 83fe58ca.
+Author: ed (Security). Branch `task/h2-grading-benchmark-guard`. The gates ran on `task/beta-batch-5` 83fe58ca; the branch was then base-updated onto f4e6e5d3 (adds H1), a clean merge with no file overlap outside docs/.
 Source finding: `docs/evidence/h69-command-audit-survey/SURVEY.md`, H2.
 
 ## The problem
@@ -66,6 +66,7 @@ asserted unique and every mutant passes `ast.parse`.
 | The four caller modules + all beta-line guards | 268201a3 | 191 tests OK | `modules_and_guards.txt` |
 | The touched module after the round 3 test fix (rule 15.4) | 92bfaa18 | 11 tests OK | `r3_module.txt` |
 | Mutants G1–G12 | 92bfaa18 | 12 of 12 killed, no survivors | `mutation_log.txt`, `mutation_results.json` |
+| H1's guard `AutoGrader.tests_management_commands_are_commands` alone, after the base update onto f4e6e5d3 (cross-side guard rule: H2 edits a command module, and the guard was not in H2's base for the runs above) | 2fbfdb6f | 4 tests OK | `bu_2fbfdb6f_h1_guard.txt` |
 
 The prefix is the weak form: the pre-fix code has no `BenchmarkRefused`, so the module fails at
 import rather than test by test. Mutant G1 (the guard call removed, everything else in place) is
