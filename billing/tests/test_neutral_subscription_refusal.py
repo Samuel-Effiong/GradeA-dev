@@ -201,3 +201,28 @@ class NeutralSubscriptionRefusalTest(APITestCase):
         self.assertEqual(len(reasons), 1, logs.output)
         self.assertIn(str(teacher.id), reasons[0])
         self.assertEqual([line for line in logs.output if "@" in line], [])
+
+    # --- The removal log line (found in the merge-down) ------------------------
+
+    def test_the_removal_line_separates_its_two_sentences(self):
+        """It was two adjacent literals with no separator: "...license
+        <id>Expired 3 credit buckets."."""
+        teacher = CustomUser.objects.create_user(
+            email="leaving@h85school.edu",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            school=self.school,
+            is_active=True,
+        )
+        UserSubscription.objects.filter(user=teacher).update(is_active=False)
+        LicenseSubscriptionService._enroll_teacher_internal(self.licence, teacher)
+
+        with self.assertLogs("billing.license_service", "INFO") as logs:
+            LicenseSubscriptionService.remove_teacher_from_license(
+                self.licence, teacher
+            )
+
+        [line] = [entry for entry in logs.output if "Removed teacher" in entry]
+        self.assertIn(f"from license {self.licence.id}. Expired ", line)
+        self.assertIn(str(teacher.id), line)
+        self.assertNotIn("@", line)
