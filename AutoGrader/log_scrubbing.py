@@ -35,6 +35,15 @@ If scrubbing (or the record's own formatting) fails, the record's message
 is its unformatted template plus a fixed marker, never its arguments, and
 its exception text is the exception's class plus a marker.
 
+WHERE IT IS INSTALLED, AND ITS SWITCH
+-------------------------------------
+The AutoGrader package installs the factory when it is imported
+(AutoGrader/__init__.py), which every process does before it loads
+AutoGrader.settings. settings.py itself imports nothing from the project
+(it must still load on its own, by path). The switch is
+settings.LOG_SCRUB_ADDRESSES, read once Django's settings are configured;
+a record made before that is scrubbed.
+
 OFF UNDER THE TEST RUNNER
 -------------------------
 settings.LOG_SCRUB_ADDRESSES is False when tests run: the tests that prove
@@ -62,7 +71,8 @@ _ADDRESS = re.compile(
 _USERINFO = re.compile(r"(?<=://)[^\s/@]+(?=@)")
 
 _MARKER = "_scrubs_addresses"
-_enabled = False
+#: True or False once known; None until Django's settings are configured.
+_enabled = None
 
 
 def scrub(text):
@@ -73,19 +83,34 @@ def scrub(text):
 
 
 def is_enabled():
-    return _enabled
+    """The switch: settings.LOG_SCRUB_ADDRESSES, read once Django's settings
+    are configured. Until then (a record made while settings are still
+    loading) the answer is yes: scrubbing a line too many costs nothing,
+    and missing one is the failure this module exists to prevent."""
+    global _enabled
+    if _enabled is None:
+        try:
+            from django.conf import settings
+
+            if settings.configured:
+                _enabled = bool(getattr(settings, "LOG_SCRUB_ADDRESSES", True))
+        except Exception:  # noqa: BLE001 - never into the caller
+            pass
+    return True if _enabled is None else _enabled
 
 
 def set_enabled(value):
+    """Set the switch (True or False), or forget it (None) so that it is
+    read from settings again."""
     global _enabled
-    _enabled = bool(value)
+    _enabled = None if value is None else bool(value)
 
 
 class _ScrubbedMessage:
     """getMessage(), scrubbed. Mixed in ahead of the record's own class."""
 
     def getMessage(self):
-        if not _enabled:
+        if not is_enabled():
             return super().getMessage()  # type: ignore[misc]
         try:
             return scrub(super().getMessage())  # type: ignore[misc]
@@ -134,10 +159,13 @@ def _scrubbed_exception_text(exc_info):
         return f"{name}: {EXCEPTION_WITHHELD}"
 
 
-def install(enabled):
-    """Wrap the current log record factory. Idempotent: a second call (a
-    re-import of settings) only updates the switch."""
-    set_enabled(enabled)
+def install(enabled=None):
+    """Wrap the current log record factory. Idempotent: a second call wraps
+    nothing again. Called with no argument by the AutoGrader package; the
+    switch then comes from settings (see is_enabled). A test may pass True
+    or False to set it."""
+    if enabled is not None:
+        set_enabled(enabled)
     previous = logging.getLogRecordFactory()
     if getattr(previous, _MARKER, False):
         return
@@ -146,11 +174,15 @@ def install(enabled):
         record = previous(*args, **kwargs)
         try:
             record.__class__ = _scrubbed_class(type(record))
-            if _enabled and isinstance(record.exc_info, tuple) and record.exc_info[0]:
+            if (
+                is_enabled()
+                and isinstance(record.exc_info, tuple)
+                and record.exc_info[0]
+            ):
                 record.exc_text = _scrubbed_exception_text(record.exc_info)
         except Exception:  # noqa: BLE001 - a record must always be made
             # A record whose class cannot be replaced: closed, not open.
-            if _enabled:
+            if is_enabled():
                 record.msg, record.args = _withheld_message(record), None
         return record
 
@@ -166,10 +198,8 @@ def is_installed():
 def _follow_the_setting(*, setting, value, **kwargs):
     """override_settings(LOG_SCRUB_ADDRESSES=...) switches the scrubber."""
     if setting == "LOG_SCRUB_ADDRESSES":
-        if value is None:
-            from django.conf import settings
-
-            value = getattr(settings, "LOG_SCRUB_ADDRESSES", False)
+        # None: the override ended and the setting did not exist before;
+        # forget the switch so that it is read from settings again.
         set_enabled(value)
 
 

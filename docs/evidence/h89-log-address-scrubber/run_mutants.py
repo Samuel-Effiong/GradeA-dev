@@ -37,6 +37,7 @@ TESTS = [
     "AutoGrader.tests_log_scrubbing",
     "billing.tests.test_log_scrubbing_end_to_end",
     "AutoGrader.tests_sentry_scrubbing",
+    "AutoGrader.tests_student_frontend_domain",
 ]
 
 MUTANTS = [
@@ -130,26 +131,43 @@ MUTANTS = [
     ),
     (
         "S12",
-        "settings install the factory",
-        ST,
-        "_install_log_scrubbing(LOG_SCRUB_ADDRESSES)\n",
+        "the AutoGrader package installs the factory",
+        "AutoGrader/__init__.py",
+        "_install_log_scrubbing()\n",
         "",
         1,
     ),
     (
         "S13",
-        "settings pass the switch to the factory",
-        ST,
-        "_install_log_scrubbing(LOG_SCRUB_ADDRESSES)\n",
-        "_install_log_scrubbing(False)\n",
+        "a record made before settings are configured is scrubbed",
+        LS,
+        "    return True if _enabled is None else _enabled\n",
+        "    return False if _enabled is None else _enabled\n",
         1,
     ),
     (
         "S14",
         "a switched-off scrubber leaves the text alone",
         LS,
-        "        if not _enabled:\n            return super().getMessage()  # type: ignore[misc]\n",
+        "        if not is_enabled():\n            return super().getMessage()  # type: ignore[misc]\n",
         "",
+        1,
+    ),
+    (
+        "S16",
+        "settings.py imports nothing from the project",
+        ST,
+        "LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING\n",
+        "LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING\n"
+        "from AutoGrader.log_scrubbing import install  # noqa: E402,F401\n",
+        1,
+    ),
+    (
+        "S17",
+        "the switch is read from settings once they are configured",
+        LS,
+        '                _enabled = bool(getattr(settings, "LOG_SCRUB_ADDRESSES", True))\n',
+        "                _enabled = True\n",
         1,
     ),
     (
@@ -222,6 +240,15 @@ MUTANTS = [
         ST,
         "            before_send_log=scrub_log,\n",
         "",
+        1,
+    ),
+    (
+        "Y9",
+        "Sentry: a failure to import the hooks is not swallowed",
+        ST,
+        "        _SENTRY_SDK_INSTALLED = True\n    except ImportError:",
+        "        from AutoGrader.sentry_scrubbing import scrub_event  # noqa: F401\n\n"
+        "        _SENTRY_SDK_INSTALLED = True\n    except ImportError:",
         1,
     ),
 ]
