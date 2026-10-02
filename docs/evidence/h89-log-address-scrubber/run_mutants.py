@@ -93,8 +93,8 @@ MUTANTS = [
         "S7",
         "a second install still sets the switch",
         LS,
-        "    set_enabled(enabled)\n    previous = logging.getLogRecordFactory()\n",
-        "    previous = logging.getLogRecordFactory()\n",
+        "        set_enabled(enabled)\n    previous = logging.getLogRecordFactory()\n",
+        "        pass\n    previous = logging.getLogRecordFactory()\n",
         1,
     ),
     (
@@ -253,7 +253,18 @@ MUTANTS = [
     ),
 ]
 
-LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
+#: A test module that could not be loaded, or a traceback that ends in one
+#: of these. Matched on whole lines of the run's output: a failure message
+#: that only mentions ImportError (Y9's test is about an `except
+#: ImportError`) is a kill, not a load failure.
+LOAD_FAILURE = "unittest.loader._FailedTest"
+LOAD_ERRORS = ("ImportError", "ModuleNotFoundError", "SyntaxError")
+
+
+def load_failed(output):
+    return LOAD_FAILURE in output or any(
+        line.startswith(LOAD_ERRORS) for line in output.splitlines()
+    )
 
 
 def sh(*args, **kwargs):
@@ -357,7 +368,7 @@ def main():
                 ),
                 "NO SUMMARY",
             )
-            loaded = not any(marker in output for marker in LOAD_FAILURE)
+            loaded = not load_failed(output)
             if proc.returncode == 0:
                 status = "SURVIVED"
             elif "Ran " in output and loaded:
