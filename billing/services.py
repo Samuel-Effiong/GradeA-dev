@@ -33,6 +33,7 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     SubscriptionPlan,
     UserSubscription,
 )
+from .refresh_timing import grants_owed
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
 from .refresh_timing import next_monthly_grant, refresh_due_by
 from .subscription_resolver import (
@@ -879,6 +880,27 @@ class SubscriptionService:
         )
 
         user = user_subscription.user
+
+        # H-81: a monthly grant that came due in the ending cycle and was
+        # never made (Beat was down from its due time to the cycle's end,
+        # where the grant task stops serving it). Detection only.
+        if user_subscription.next_credit_grant_at is not None:
+            owed = grants_owed(
+                user_subscription.billing_cycle_start,
+                user_subscription.next_credit_grant_at,
+                min(user_subscription.billing_cycle_end, timezone.now()),
+            )
+            if owed:
+                logger.error(
+                    "Renewal of subscription %s (user %s): %d monthly "
+                    "grant(s) owed: due from %s, never made before the cycle "
+                    "ended at %s.",
+                    user_subscription.id,
+                    user.id,
+                    owed,
+                    user_subscription.next_credit_grant_at,
+                    user_subscription.billing_cycle_end,
+                )
 
         # If there's a pending plan, use it; otherwise, renew the current one
         target_plan = user_subscription.pending_plan or user_subscription.plan

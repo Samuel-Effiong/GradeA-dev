@@ -67,7 +67,7 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
-from .refresh_timing import allocation_anchor, consumption_window_is_over
+from .refresh_timing import allocation_anchor, consumption_window_is_over, grants_owed
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
 from .refresh_timing import next_monthly_grant
 
@@ -1883,6 +1883,10 @@ class LicenseSubscriptionService:
             )
         )
 
+        LicenseSubscriptionService._report_owed_refreshes(
+            license_sub, active_allocations, now
+        )
+
         renewal_start = now
         renewal_end = now + relativedelta(months=license_sub.contract_months)
 
@@ -3687,6 +3691,37 @@ class LicenseSubscriptionService:
         return breakdown
 
     @staticmethod
+    def _report_owed_refreshes(license_sub, allocations, now) -> None:
+        """H-81: before a renewal overwrites the allocations' due times, log
+        (ERROR, ids only) each monthly refresh that came due in the ending
+        cycle and was never made. Beat was down from the due time to the
+        cycle's end, where the refresh task stops serving it. Detection
+        only: nothing is granted here."""
+        until = min(license_sub.billing_cycle_end, now)
+        for allocation in allocations:
+            due = allocation.next_credit_grant_at
+            if due is None:
+                continue
+            anchor = allocation_anchor(
+                allocation.grant_anchor_at,
+                max(allocation.created_at, license_sub.billing_cycle_start),
+                due,
+            )
+            owed = grants_owed(anchor, due, until)
+            if owed:
+                logger.error(
+                    "License %s renewal: allocation %s (user %s) is owed %d "
+                    "monthly refresh(es): due from %s, never made before the "
+                    "cycle ended at %s.",
+                    license_sub.id,
+                    allocation.id,
+                    allocation.user_id,
+                    owed,
+                    due,
+                    license_sub.billing_cycle_end,
+                )
+
+    @staticmethod
     @transaction.atomic
     def _refresh_teacher_credits(allocation: SchoolCreditAllocation, now=None) -> None:
         """
@@ -3843,6 +3878,9 @@ class LicenseSubscriptionService:
             license_sub.allocations.filter(is_active=True).select_related(
                 "user__credit_wallet"
             )
+        )
+        LicenseSubscriptionService._report_owed_refreshes(
+            license_sub, active_allocations, now
         )
 
         renewed_count = 0

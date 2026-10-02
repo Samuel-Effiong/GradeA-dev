@@ -20,6 +20,7 @@ from billing.refresh_timing import (
     ANCHOR_SNAP,
     allocation_anchor,
     consumption_window_is_over,
+    grants_owed,
     next_monthly_grant,
 )
 from billing.tests.test_next_monthly_grant import anchor_points
@@ -188,3 +189,39 @@ class ConsumptionWindowTests(SimpleTestCase):
             now = opened + timedelta(days=days)
             with self.subTest(days=days):
                 self.assertGreater(opened, consumption_window_is_over(now))
+
+
+class GrantsOwedTests(SimpleTestCase):
+    """H-81: the count a renewal reports."""
+
+    def test_the_count_is_the_anchor_points_never_served(self):
+        for day in range(1, 32):
+            anchor = datetime(2026, 1, day, 1, 0, tzinfo=UTC)
+            end = anchor + relativedelta(years=1)
+            points = anchor_points(anchor, end)
+            for served in range(len(points) + 1):
+                next_due = points[served] if served < len(points) else end
+                with self.subTest(anchor=anchor, served=served):
+                    self.assertEqual(
+                        grants_owed(anchor, next_due, end), len(points) - served
+                    )
+
+    def test_a_drifted_last_due_time_is_the_renewals_own_period(self):
+        anchor = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        end = anchor + relativedelta(years=1)
+        for days in range(0, 8):
+            with self.subTest(days=days):
+                self.assertEqual(
+                    grants_owed(anchor, end - timedelta(days=days), end), 0
+                )
+        self.assertEqual(
+            grants_owed(anchor, end - timedelta(days=7, seconds=1), end), 1
+        )
+
+    def test_a_due_time_after_until_owes_nothing(self):
+        """An early renewal: `until` is the renewal's moment."""
+        anchor = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        until = datetime(2026, 5, 10, 1, 0, tzinfo=UTC)
+        self.assertEqual(
+            grants_owed(anchor, anchor + relativedelta(months=4), until), 0
+        )

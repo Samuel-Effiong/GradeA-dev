@@ -129,3 +129,20 @@ def consumption_window_is_over(now):
     consecutive days (a catch-up) still reopen it once.
     """
     return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP
+
+
+def grants_owed(anchor, next_due, until):
+    """How many monthly grants came due before `until` and were never made
+    (H-81), for a chain anchored at `anchor` whose next due time is
+    `next_due`.
+
+    A chain that was served to the end has its due time capped at the
+    cycle's end, so nothing is owed. A due time within ANCHOR_SNAP of
+    `until` is the same period as `until` itself (the renewal's): a row
+    drifted to the 28th against a cycle ending on the 31st owes nothing.
+    """
+    owed = 0
+    while next_due + ANCHOR_SNAP < until:
+        owed += 1
+        _, next_due = next_monthly_grant(anchor, next_due, until)
+    return owed
