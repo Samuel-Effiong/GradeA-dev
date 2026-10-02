@@ -16,7 +16,7 @@
 | Production diff | AutoGrader/redis_test_hygiene.py only: `location_for` and one changed line in `_clients` |
 | The pattern cannot match other families | v2 checked the compiled pattern on seven shapes: only `gaplus-t<digits>:` matches. The dev server's `gaplus:` prefix, `gaplus-t123abc:`, `gaplus-tnotapid77:`, a prefix not at the start: none match |
 | URL shapes | v2 ran `location_for` on ten shapes through redis-py's own parser (a pure function call, no Redis). At bd8b7fa6 nine kept everything but the database and one lost its password (below). At 1e407f75 all ten keep everything but the database |
-| v2's finding at the static read | A unix:// URL with credentials in the network location (`unix://:pw@/path`) lost its password. Not the local or CI layout. SM ruling: fixed in this slice (f1e0e9d7, one line), with the shapes in the test and mutant D5 |
+| v2's finding at the static read | A unix:// URL with credentials in the network location (a password placed before the socket path) lost its password. Not the local or CI layout. SM ruling: fixed in this slice (f1e0e9d7, one line), with the shapes in the test and mutant D5 |
 | No password printed (SM condition) | The URL-shape test keys its subtests by a label and uses fixed failure messages. None of the password strings appears in any committed evidence file (v2's grep) |
 | v2's H-94 note | The sweep test's two bystander keys carry the process id and keep their shapes; the test asserts the second does not parse as a pid prefix (60415c99) |
 | Rule 14 | No mock returns a value that reaches a response; the tests talk to the real test Redis |
