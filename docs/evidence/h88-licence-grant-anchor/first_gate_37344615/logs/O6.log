@@ -1,0 +1,13 @@
+# O6: H-81: the offline renewal reports
+# file: billing/license_service.py (occurrence 2)
+# old: '        LicenseSubscriptionService._report_owed_refreshes(\n            license_sub, active_allocations, now\n        )\n'
+# new: ''
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 20.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal)
+FAIL: test_the_renewal_still_renews (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_renewal_still_renews)
+
+FAILED (failures=2)

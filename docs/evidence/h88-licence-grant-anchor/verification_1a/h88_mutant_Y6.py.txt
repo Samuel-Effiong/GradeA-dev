@@ -1,0 +1,14 @@
+"""1a's mutant Y6 for H-93: the window's monthly points are counted from
+the TEACHER's anchor instead of the licence's cycle start. With teachers on
+different days, each teacher's own point would then reopen the licence's
+window: more than one reopening per licence month. Applied in place to
+billing/license_service.py in the current directory; restore with git
+checkout. Run with python -B (rule 17)."""
+
+P = "billing/license_service.py"
+s = open(P, encoding="utf-8").read()
+old = "                    license_sub.billing_cycle_start, refresh_due_by(now)\n"
+new = "                    anchor, refresh_due_by(now)\n"
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y6")

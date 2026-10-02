@@ -1,0 +1,14 @@
+# N6: the invite refusal still logs its reason by id
+# file: billing/license_service.py (occurrence 1)
+# old: '                logger.warning(\n                    "Teacher %s has an individual subscription: not enrolled.",\n'
+# new: '                logger.debug(\n                    "Teacher %s has an individual subscription: not enrolled.",\n'
+# commit: b5911242393122af780f10ef77cf43d1d69961ff
+# exit: 1
+# elapsed_s: 5.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_log_still_gives_the_reason_by_id (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_log_still_gives_the_reason_by_id)
+FAIL: test_the_subscription_refusal_logs_the_teacher_id_not_the_address (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_subscription_refusal_logs_the_teacher_id_not_the_address) (raise_on_conflict=False)
+FAIL: test_the_subscription_refusal_logs_the_teacher_id_not_the_address (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_subscription_refusal_logs_the_teacher_id_not_the_address) (raise_on_conflict=True)
+
+FAILED (failures=3)

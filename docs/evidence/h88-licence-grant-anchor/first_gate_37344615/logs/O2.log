@@ -1,0 +1,12 @@
+# O2: H-81: an early renewal's future refreshes are not owed
+# file: billing/license_service.py (occurrence 1)
+# old: '        until = min(license_sub.billing_cycle_end, now)\n'
+# new: '        until = license_sub.billing_cycle_end\n'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 17.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_early_offline_renewal_reports_nothing (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_early_offline_renewal_reports_nothing)
+
+FAILED (failures=1)

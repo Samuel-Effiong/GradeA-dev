@@ -1,0 +1,16 @@
+# M9: the refresh stores the anchor it resolved
+# file: billing/license_service.py (occurrence 1)
+# old: '        allocation.next_credit_grant_at = next_refresh\n        allocation.grant_anchor_at = anchor\n'
+# new: '        allocation.next_credit_grant_at = next_refresh\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 12.4
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one)
+FAIL: test_a_due_time_moved_off_its_stored_anchor_becomes_the_anchor (billing.tests.test_licence_grant_anchor.MovedDueTimeTests.test_a_due_time_moved_off_its_stored_anchor_becomes_the_anchor)
+FAIL: test_a_stale_anchor_heals_at_the_next_refresh_and_then_holds (billing.tests.test_licence_grant_anchor.MovedDueTimeTests.test_a_stale_anchor_heals_at_the_next_refresh_and_then_holds)
+FAIL: test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm)
+FAIL: test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal)
+
+FAILED (failures=4, errors=1)

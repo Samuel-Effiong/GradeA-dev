@@ -1,0 +1,14 @@
+# O1: H-81: the licence renewals log the owed refreshes
+# file: billing/license_service.py (occurrence 1)
+# old: '            owed = grants_owed(anchor, due, until)\n            if owed:\n'
+# new: '            owed = grants_owed(anchor, due, until)\n            if False:\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 12.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal)
+FAIL: test_the_last_refresh_never_made_is_reported_by_the_renewal_task (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_last_refresh_never_made_is_reported_by_the_renewal_task)
+FAIL: test_the_renewal_still_renews (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_renewal_still_renews)
+
+FAILED (failures=3)
