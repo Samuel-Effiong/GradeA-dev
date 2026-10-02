@@ -229,6 +229,11 @@ class ReasonCode(models.TextChoices):
     SERVER_ERROR = "SERVER_ERROR", "Server error"
     # The summary written in place of capped failed sign-ins (Epic A S1b).
     FAILED_AUTH_CAPPED = "FAILED_AUTH_CAPPED", "Failed sign-ins capped"
+    # A grading run refused because its course is no longer reachable by the
+    # teacher it would run as (H-38 tasks N3; SM ruling, 2026-10-02).
+    # Audit-only: the refusal itself stays uncoded, and a client is told only
+    # "This course wasn't found."
+    COURSE_NOT_REACHABLE = "COURSE_NOT_REACHABLE", "Course not reachable"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.
