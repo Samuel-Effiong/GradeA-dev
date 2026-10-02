@@ -1,0 +1,13 @@
+11:55:42 test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command) ... ok
+11:55:42 test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class) ... ok
+11:55:42 test_the_moved_script_cannot_be_imported_as_a_module (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_moved_script_cannot_be_imported_as_a_module) ... ok
+11:55:42 test_the_sweep_sees_the_projects_commands (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_sweep_sees_the_projects_commands)
+11:55:42 Guards the guard: an empty sweep would pass everything. ... ok
+11:55:42
+11:55:42 ----------------------------------------------------------------------
+11:55:42 Ran 4 tests in 0.035s
+11:55:42
+11:55:42 OK
+11:55:42 Found 4 test(s).
+11:55:42 Skipping setup of unused database(s): default.
+11:55:42 System check identified no issues (0 silenced).

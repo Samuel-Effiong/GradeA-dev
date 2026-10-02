@@ -1,0 +1,23 @@
+02:00:49 tests_h2_grading_benchmark_guard (unittest.loader._FailedTest.tests_h2_grading_benchmark_guard) ... ERROR
+02:00:49
+02:00:49 ======================================================================
+02:00:49 ERROR: tests_h2_grading_benchmark_guard (unittest.loader._FailedTest.tests_h2_grading_benchmark_guard)
+02:00:49 ----------------------------------------------------------------------
+02:00:49 ImportError: Failed to import test module: tests_h2_grading_benchmark_guard
+02:00:49 Traceback (most recent call last):
+02:00:49   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+02:00:49     module = __import__(module_name)
+02:00:49              ^^^^^^^^^^^^^^^^^^^^^^^
+02:00:49   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_h2_grading_benchmark_guard.py", line 20, in <module>
+02:00:49     from ai_processor.management.commands.grading_benchmark import BenchmarkRefused
+02:00:49 ImportError: cannot import name 'BenchmarkRefused' from 'ai_processor.management.commands.grading_benchmark' (/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py)
+02:00:49
+02:00:49
+02:00:49 ----------------------------------------------------------------------
+02:00:49 Ran 1 test in 0.002s
+02:00:49
+02:00:49 FAILED (errors=1)
+02:00:50 Found 1 test(s).
+02:00:50 Skipping setup of unused database(s): default.
+02:00:50 System check identified no issues (0 silenced).
+02:00:51 systemd-run failed with exit status 1.
