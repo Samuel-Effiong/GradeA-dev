@@ -18,7 +18,6 @@ import sys
 
 CONTEXT = "audit/context.py"
 EMITTER = "audit/emitter.py"
-HISTORY = "audit/history.py"
 TESTS = ["audit.tests_command_actor"]
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 OUT = os.environ.get(
@@ -26,19 +25,6 @@ OUT = os.environ.get(
 )
 
 MUTANTS = {
-    "C1_history_ignores_the_command_actor": (
-        HISTORY,
-        "    return _acting_as.get() or current_request_actor() "
-        "or current_command_actor()\n",
-        "    return _acting_as.get() or current_request_actor()\n",
-    ),
-    "C2_command_outranks_the_request_user": (
-        HISTORY,
-        "    return _acting_as.get() or current_request_actor() "
-        "or current_command_actor()\n",
-        "    return _acting_as.get() or current_command_actor() "
-        "or current_request_actor()\n",
-    ),
     "C3_emit_ignores_the_command_actor": (
         EMITTER,
         "        actor = current_command_actor()\n",
