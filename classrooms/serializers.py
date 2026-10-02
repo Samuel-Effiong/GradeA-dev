@@ -484,21 +484,19 @@ class AddStudentToCourseSerializer(serializers.Serializer):
         1. Is not associated with a teacher account
         2. Is a valid email format (handled by EmailField)
         """
-        from .services import find_account_by_email, normalize_email
+        from .services import (
+            NOT_A_STUDENT_MESSAGE,
+            find_account_by_email,
+            normalize_email,
+        )
 
         value = normalize_email(value)
         existing_user = find_account_by_email(value)
 
-        if existing_user and existing_user.user_type == UserTypes.TEACHER:
-            raise serializers.ValidationError(
-                "This email belongs to a teacher account and cannot be added as a student."
-            )
-
+        # H-71: one neutral answer for every non-student role, so the form
+        # doesn't tell a teacher which addresses belong to staff.
         if existing_user and existing_user.user_type != UserTypes.STUDENT:
-            raise serializers.ValidationError(
-                "This email already exists in the system and cannot be added as a "
-                f"{existing_user.get_user_type_display().lower()}."
-            )
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
 
         return value
 
@@ -524,17 +522,20 @@ class DirectAddStudentSerializer(serializers.Serializer):
         if not value:
             return value
 
-        from .services import normalize_email
+        from .services import (
+            NOT_A_STUDENT_MESSAGE,
+            find_account_by_email,
+            normalize_email,
+        )
 
         value = normalize_email(value)
+        existing_user = find_account_by_email(value)
 
-        if CustomUser.objects.filter(
-            email__iexact=value,
-            user_type=UserTypes.TEACHER,
-        ).exists():
-            raise serializers.ValidationError(
-                "This email belongs to a teacher account and cannot be added as a student."
-            )
+        # H-71: every non-student role, not just teachers, and the same
+        # neutral answer as single add. An admin address used to pass here
+        # and fail later as a 500, so the status code told the roles apart.
+        if existing_user and existing_user.user_type != UserTypes.STUDENT:
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
 
         return value
 

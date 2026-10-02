@@ -1480,6 +1480,13 @@ ENABLE_STRIPE_LIVE_QA = env.bool("ENABLE_STRIPE_LIVE_QA", default=False)
 # the nightly replay serves recorded responses by design.
 ENABLE_AI_LIVE_QA = env.bool("ENABLE_AI_LIVE_QA", default=False)
 
+# The grading benchmark creates its own teacher, plan, subscription and a
+# 5,000,000-credit bucket in whatever database it runs against (H2). Outside
+# DEBUG it refuses unless this is set (the scheduled jobs) or the command is
+# given --allow-non-debug. Separate from ENABLE_AI_LIVE_QA, which gates real
+# spend: the weekly live job needs both.
+ENABLE_GRADING_BENCHMARK = env.bool("ENABLE_GRADING_BENCHMARK", default=False)
+
 # ── Benchmark run archive (Tier 3 of the run history) ────────────────────
 #
 # A full paid benchmark run costs real money and about an hour, and its raw

@@ -255,12 +255,24 @@ it's environmental.
 
 ## 10. Smoke-test the grading benchmark manually
 
+The benchmark creates its own teacher (`grading-benchmark@benchmark.local`), an internal plan, a
+subscription and a 5,000,000-credit bucket in whatever database it runs against. So outside
+`DEBUG` it **refuses to run** unless it is told to (H2):
+
+- by hand: pass `--allow-non-debug` to the command;
+- for the scheduled jobs: set `ENABLE_GRADING_BENCHMARK=True` in `QA.env`. Without it the nightly
+  replay and the weekly live run are both skipped, with one `INFO` line
+  ("Grading benchmark ... skipped: not enabled in this environment"). The weekly live run needs
+  `ENABLE_AI_LIVE_QA=True` as well.
+
+Never set `ENABLE_GRADING_BENCHMARK` on production.
+
 ```bash
 # Free — no model calls, replays recorded responses:
-python manage.py grading_benchmark --mode replay --json
+python manage.py grading_benchmark --mode replay --json --allow-non-debug
 
 # Billed — makes real model calls against OPENROUTER_API_KEY:
-python manage.py grading_benchmark --mode live --json
+python manage.py grading_benchmark --mode live --json --allow-non-debug
 ```
 
 `--mode live` bills real credits on the throwaway `grading-benchmark@benchmark.local` teacher it

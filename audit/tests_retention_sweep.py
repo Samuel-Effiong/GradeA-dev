@@ -17,6 +17,8 @@ from django.db import connection
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader.beat_locks import SKIPPED_HELD
+
 from .enums import RetentionClass
 from .models import AuditEvent
 from .tasks import (
@@ -200,6 +202,16 @@ class ConcurrentSweepTests(TransactionTestCase):
         self.assertFalse(any(thread.is_alive() for thread in threads))
         return results
 
+    def runs_that_worked(self, results):
+        """The runs that were not skipped by the Beat lock: at least one, and
+        every other result is the lock's skip summary, nothing else."""
+        ran = [summary for summary in results if SKIPPED_HELD not in summary]
+        self.assertGreaterEqual(len(ran), 1, results)
+        for summary in results:
+            if summary not in ran:
+                self.assertTrue(summary.endswith(f"{SKIPPED_HELD}."), summary)
+        return ran
+
     def test_two_concurrent_delete_sweeps_never_double_process_or_raise(self):
         now = timezone.now()
         expired_general_ids = {
@@ -228,9 +240,13 @@ class ConcurrentSweepTests(TransactionTestCase):
             ).exists()
         )
 
-        general_deleted = sum(int(s.split("general=")[1].split()[0]) for s in results)
+        # H-65 on Epic A: the sweep takes the Beat lock, so an overlapping
+        # run is skipped rather than racing. Either way the rows are deleted
+        # once, by the run(s) that did the work.
+        ran = self.runs_that_worked(results)
+        general_deleted = sum(int(s.split("general=")[1].split()[0]) for s in ran)
         student_deleted = sum(
-            int(s.split("student_record=")[1].split()[0]) for s in results
+            int(s.split("student_record=")[1].split()[0]) for s in ran
         )
         self.assertEqual(general_deleted, len(expired_general_ids))
         self.assertEqual(student_deleted, len(expired_student_ids))
@@ -255,5 +271,6 @@ class ConcurrentSweepTests(TransactionTestCase):
             self.assertIsNone(row.source_ip)
             self.assertIsNone(row.user_agent)
 
-        nulled_total = sum(int(s.split("nulled ")[1].split()[0]) for s in results)
+        ran = self.runs_that_worked(results)
+        nulled_total = sum(int(s.split("nulled ")[1].split()[0]) for s in ran)
         self.assertEqual(nulled_total, len(stale_ids))
