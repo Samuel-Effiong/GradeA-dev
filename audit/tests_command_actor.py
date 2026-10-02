@@ -10,6 +10,7 @@ super admin, and a management command that exists.
 """
 
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -232,6 +233,19 @@ class WhoAndWhatMayBeNamedTests(CommandActorTestCase):
         ):
             with self.subTest(command=text):
                 self.assertRefused(self.operator, text)
+
+    def test_a_listed_command_with_a_free_text_name_is_refused(self):
+        """Isolates the shape check: even a name Django lists as a command
+        is refused unless it is a plain module name."""
+        for listed in ("Resolve Licence", "someone@example.com", "a" * 65):
+            with self.subTest(command=listed):
+                with patch(
+                    "django.core.management.get_commands",
+                    return_value={listed: "billing", COMMAND: "billing"},
+                ):
+                    self.assertRefused(self.operator, listed)
+                    with command_actor(self.operator, command=COMMAND):
+                        self.assertEqual(current_command(), COMMAND)
 
     def test_a_real_command_is_accepted(self):
         with command_actor(self.operator, command="migrate"):

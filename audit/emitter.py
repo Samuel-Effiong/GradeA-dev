@@ -362,7 +362,8 @@ def _build(
     if actor is None:
         # H-69: inside `command_actor`, an event that would be SYSTEM belongs
         # to the super admin running the command. An actor the call site
-        # passed is kept.
+        # passed is kept. This is the one place the rule lives: the history
+        # signals and `record_bulk` pass None here when nobody is signed in.
         actor = current_command_actor()
     role, actor_id, actor_email, actor_school = _actor_fields(actor)
     is_student = role == ActorRole.STUDENT

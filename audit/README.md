@@ -56,7 +56,8 @@ with command_actor(operator, command=Path(__file__).stem):
 ```
 
 Inside the block the history signals, `record_bulk` and `emit` record
-`operator` as the actor (an actor a call site passes to `emit` is kept), and
+`operator` as the actor wherever it would have been SYSTEM (an actor a call
+site passes to `emit`, or a request's signed-in user, is kept), and
 every event carries `metadata["command"]`. `source` keeps its meaning (how the
 row was written: `create`, `save`, `bulk`, `delete`). `command_actor` raises
 `ValueError` unless the user is an active super admin and the name is a

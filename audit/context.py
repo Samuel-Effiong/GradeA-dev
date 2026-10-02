@@ -192,9 +192,11 @@ def a_surviving_event_names(state, user) -> bool:
 #
 # A command has no request, so S3's rule records everything it writes as
 # SYSTEM: the trail says a row changed, not which super admin ran the command.
-# `command_actor` names that operator for the block. The history signals,
-# `record_bulk` and `emit` pick it up, and every event stored inside the block
-# also carries `metadata["command"]`, the command's name.
+# `command_actor` names that operator for the block. The emitter applies it to
+# any event that would otherwise be SYSTEM - which covers the history signals
+# and `record_bulk`, since they pass their actor to `emit` - and every event
+# stored inside the block also carries `metadata["command"]`, the command's
+# name.
 #
 # Both values are established by the server, never taken as free text: the
 # user must be an active super admin, and the name must be a management
@@ -248,7 +250,16 @@ def command_actor(user, *, command):
     `resolve_licence_stripe_intent`: an active SUPER_ADMIN). `command` is the
     command's own module name, e.g. `Path(__file__).stem`. Anything else
     raises ValueError before the block runs, so a command cannot write under
-    a name nobody checked."""
+    a name nobody checked.
+
+    Two cases that may surprise (SM ruling, each has a test):
+
+    - `user` replaces only an actor that would have been SYSTEM. An actor
+      the code already has is kept: one a call site passes to `emit()`, and
+      the signed-in user of a request, if the block somehow runs inside one.
+      `metadata["command"]` is added in both cases.
+    - `source` is not touched. It still says how the row was written
+      (create / save / bulk / delete), never "command"."""
     if not _is_active_super_admin(user):
         raise ValueError("command_actor: user must be an active super admin")
     if not _is_known_command(command):
