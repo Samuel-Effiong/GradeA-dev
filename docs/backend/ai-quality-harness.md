@@ -53,7 +53,7 @@ The split is the whole design ([ai_processor/tasks.py:1-26](../../ai_processor/t
 | Determinism | fully deterministic | varies run to run |
 | Detects | **regressions in our code** — snapping, evidence enforcement, batching, arithmetic | **the provider silently changing behaviour** |
 | Cannot detect | the model changing, *by construction* | nothing extra |
-| Gate | none — safe anywhere | `ENABLE_AI_LIVE_QA`, else no-op at DEBUG |
+| Gate | outside `DEBUG`: `ENABLE_GRADING_BENCHMARK`, else skipped with an INFO line (it creates the benchmark teacher, plan and credits) | `ENABLE_AI_LIVE_QA` **and**, outside `DEBUG`, `ENABLE_GRADING_BENCHMARK`; else skipped with an INFO line |
 | Schedule | 01:30 daily | 03:00 weekly |
 
 ```mermaid
@@ -333,7 +333,9 @@ It is read-only and makes no model calls. Default window: 90 days.
 | Dataset internally inconsistent | `RuntimeError` **before any spend**, listing every problem | fix `dataset.py`; `iter_expectation_errors` names the unreachable expectations |
 | Expected score is not a rubric level | caught by `iter_expectation_errors`; the test suite also fails | make the expectation a reachable level |
 | Recordings stale/missing (replay) | **WARNING**, task returns "skipped" — *not* a regression | `grading_benchmark --mode record` (**billed**) |
-| Live run with `ENABLE_AI_LIVE_QA` unset | DEBUG log, no-op | set it on a QA/staging worker |
+| Live run with `ENABLE_AI_LIVE_QA` unset | INFO log, no-op | set it on a QA/staging worker |
+| Nightly or weekly run outside `DEBUG` with `ENABLE_GRADING_BENCHMARK` unset | INFO log ("skipped: not enabled in this environment"), nothing created, task returns normally | set it on a QA/staging worker; never on production |
+| `grading_benchmark` command outside `DEBUG` without `--allow-non-debug` | `CommandError` (`BenchmarkRefused`) before any row is created | pass `--allow-non-debug`, or set `ENABLE_GRADING_BENCHMARK` |
 | Live run, no billable user resolvable | `_resolve_user` raises | ensure a suitable user exists |
 | Benchmark regressed vs baseline | **ERROR** naming which metrics and the reproduction command | investigate; re-baseline only after understanding why |
 | Submissions failed outright | ERROR listing them | usually a provider outage |
@@ -354,6 +356,7 @@ It is read-only and makes no model calls. Default window: 90 days.
 | Var | Default | Effect |
 |---|---|---|
 | `ENABLE_AI_LIVE_QA` | `False` | gates `weekly_grading_benchmark_live`. *"Default False so a normal production worker never spends credits on QA"* ([settings.py:1261-1266](../../AutoGrader/settings.py#L1261-L1266)) |
+| `ENABLE_GRADING_BENCHMARK` | `False` | outside `DEBUG`, lets the benchmark create its teacher, plan, subscription and credits. Unset: the nightly replay and the weekly live run are skipped, and the command refuses without `--allow-non-debug` (H2) |
 | `GRADING_BENCHMARK_DAY_OF_WEEK` | `"0"` | which day the weekly live run fires ([settings.py:857](../../AutoGrader/settings.py#L857)) |
 | `BENCHMARK_ARCHIVE_ENABLED` | `not running tests` | Tier 3 uploads |
 | `BENCHMARK_ARCHIVE_STORAGE` | `cloudinary_storage.storage.RawMediaCloudinaryStorage` | **must be Raw** — the default is image-typed and mishandles `.json.gz` |
