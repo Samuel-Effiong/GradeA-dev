@@ -272,10 +272,12 @@ class LicenseRenewalTransactionBoundaryTests(TransactionTestCase):
             with self.assertLogs("billing.license_service", level="ERROR") as logs:
                 LicenseSubscriptionService.process_license_renewal(self.license)
 
+        # By id, never by address (H-80).
         self.assertTrue(
-            any(victim.email in line for line in logs.output),
+            any(str(victim.id) in line for line in logs.output),
             "the failed teacher was not named in the error log",
         )
+        self.assertEqual([line for line in logs.output if "@" in line], [])
 
 
 class OfflineRenewalTransactionBoundaryTests(TransactionTestCase):
