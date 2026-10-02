@@ -1,0 +1,12 @@
+# H4: the last due is capped at the contract end
+# file: billing/refresh_timing.py (occurrence 1)
+# old: '    return k, min(anchor + relativedelta(months=k), contract_end)\n'
+# new: '    return k, anchor + relativedelta(months=k)\n'
+# commit: 892aa913b55434cff5a92aded83cd56827b1b8e6
+# exit: 1
+# elapsed_s: 15.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_last_due_is_capped_at_the_contract_end (billing.tests.test_next_monthly_grant.NextMonthlyGrantTests.test_the_last_due_is_capped_at_the_contract_end)
+
+FAILED (failures=1)
