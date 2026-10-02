@@ -1,7 +1,7 @@
 """
 H-88: refresh_timing.allocation_anchor, the piece the licence refresh adds
-to H-82's next_monthly_grant; and consumption_window_is_over, the licence
-consumption window's reopening rule.
+to H-82's next_monthly_grant; and latest_monthly_point, which the licence
+consumption window reopens on.
 
 Property-style, as test_next_monthly_grant is. The chain is simulated the
 way _refresh_teacher_credits drives it: a run at time t refreshes when the
@@ -19,8 +19,8 @@ from django.test import SimpleTestCase
 from billing.refresh_timing import (
     ANCHOR_SNAP,
     allocation_anchor,
-    consumption_window_is_over,
     grants_owed,
+    latest_monthly_point,
     next_monthly_grant,
 )
 from billing.tests.test_next_monthly_grant import anchor_points
@@ -179,35 +179,42 @@ class OldRowChainTests(SimpleTestCase):
         self.assertGreaterEqual(len(served), 10)
 
 
-class ConsumptionWindowTests(SimpleTestCase):
-    def test_the_window_is_over_at_every_refresh_of_any_anchored_chain(self):
-        """The window opened by one month's 03:00 run is over at the next
-        month's, for every start day (28 to 31 days apart)."""
+class LatestMonthlyPointTests(SimpleTestCase):
+    """H-93: the licence's monthly points, which reopen its window."""
+
+    def test_at_a_point_it_is_that_point_and_just_before_it_the_one_before(self):
+        second = timedelta(seconds=1)
         for day in range(1, 32):
             anchor = datetime(2026, 1, day, 1, 0, tzinfo=UTC)
-            runs = [
-                p.replace(hour=3)
-                for p in anchor_points(anchor, anchor + relativedelta(years=1))
-            ]
-            for opened, now in zip(runs, runs[1:], strict=False):
-                with self.subTest(opened=opened, now=now):
-                    self.assertLessEqual(opened, consumption_window_is_over(now))
+            points = [anchor] + anchor_points(anchor, anchor + relativedelta(years=1))
+            for before, point in zip(points, points[1:], strict=False):
+                with self.subTest(point=point):
+                    self.assertEqual(latest_monthly_point(anchor, point), point)
+                    self.assertEqual(
+                        latest_monthly_point(anchor, point - second), before
+                    )
+                    self.assertEqual(
+                        latest_monthly_point(anchor, point + timedelta(days=20)),
+                        point,
+                    )
 
-    def test_a_full_calendar_month_rule_would_leave_it_shut(self):
-        """Why the rule has the snap: 31 Jan to 28 Feb is under a month."""
-        opened = datetime(2026, 1, 31, 3, 0, tzinfo=UTC)
-        now = datetime(2026, 2, 28, 3, 0, tzinfo=UTC)
-        self.assertGreater(opened, now - relativedelta(months=1))
-        self.assertLessEqual(opened, consumption_window_is_over(now))
+    def test_a_clamped_date_is_a_point(self):
+        """31 January, then 28 February: under a calendar month apart."""
+        anchor = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        self.assertEqual(
+            latest_monthly_point(anchor, datetime(2026, 2, 28, 3, 0, tzinfo=UTC)),
+            datetime(2026, 2, 28, 1, 0, tzinfo=UTC),
+        )
+        self.assertEqual(
+            latest_monthly_point(anchor, datetime(2026, 3, 31, 3, 0, tzinfo=UTC)),
+            datetime(2026, 3, 31, 1, 0, tzinfo=UTC),
+        )
 
-    def test_the_window_is_not_over_for_three_weeks(self):
-        """Refreshes on consecutive days (a catch-up), or teachers whose
-        anchors are days apart, do not reopen it again."""
-        opened = datetime(2026, 6, 1, 3, 0, tzinfo=UTC)
-        for days in range(1, 21):
-            now = opened + timedelta(days=days)
-            with self.subTest(days=days):
-                self.assertGreater(opened, consumption_window_is_over(now))
+    def test_before_the_first_month_ends_it_is_the_anchor(self):
+        anchor = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        for at in (anchor, anchor + timedelta(days=27), anchor - timedelta(days=3)):
+            with self.subTest(at=at):
+                self.assertEqual(latest_monthly_point(anchor, at), anchor)
 
 
 class GrantsOwedTests(SimpleTestCase):

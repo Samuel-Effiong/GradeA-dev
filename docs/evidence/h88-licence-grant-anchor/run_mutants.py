@@ -1,8 +1,8 @@
 """
 Mutation battery for H-88, H-93 and H-81 (rule 15), one branch:
   M: licence refreshes are anchored to the allocation's own month (H-88);
-  W: the licence consumption window reopens after a month less the anchor
-     snap (H-93);
+  W: the licence consumption window reopens on the licence's monthly
+     points (H-93);
   O: a renewal reports the monthly grants never made (H-81).
 
 One disposable detached worktree at the commit under test. A baseline run
@@ -186,26 +186,47 @@ MUTANTS = [
     ),
     (
         "W1",
-        "H-93: the window is over after a month less the snap, not a full month",
+        "H-93: a run at a licence point counts that point",
         RT,
-        "    return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP\n",
-        "    return refresh_due_by(now) - relativedelta(months=1)\n",
+        "    while anchor + relativedelta(months=k + 1) <= at:\n",
+        "    while anchor + relativedelta(months=k + 1) < at - relativedelta(days=1):\n",
         1,
     ),
     (
         "W2",
-        "H-93: the window is not over within three weeks",
-        RT,
-        "    return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP\n",
-        "    return refresh_due_by(now) - relativedelta(months=1) + 4 * ANCHOR_SNAP\n",
+        "H-93: a point within the due tolerance of the run reopens",
+        LS,
+        "                    license_sub.billing_cycle_start, refresh_due_by(now)\n",
+        "                    license_sub.billing_cycle_start, now\n",
         1,
     ),
     (
         "W3",
-        "H-93: the refresh uses the rule",
+        "H-93: the points are the licence's, not the teacher's",
         LS,
-        "Q(consumption_window_start__lte=consumption_window_is_over(now))",
-        "Q(consumption_window_start__lte=now - relativedelta(months=1))",
+        "                    license_sub.billing_cycle_start, refresh_due_by(now)\n",
+        "                    anchor, refresh_due_by(now)\n",
+        1,
+    ),
+    (
+        "W4",
+        "H-93: the window reopens on the points, not after a calendar month",
+        LS,
+        "                consumption_window_start__lt=latest_monthly_point(\n"
+        "                    license_sub.billing_cycle_start, refresh_due_by(now)\n"
+        "                )\n",
+        "                consumption_window_start__lte=refresh_due_by(now)\n"
+        "                - relativedelta(months=1)\n",
+        1,
+    ),
+    (
+        "W5",
+        "H-93: a refresh inside a licence month leaves the window alone",
+        LS,
+        "                consumption_window_start__lt=latest_monthly_point(\n"
+        "                    license_sub.billing_cycle_start, refresh_due_by(now)\n"
+        "                )\n",
+        "                consumption_window_start__lt=now\n",
         1,
     ),
     (

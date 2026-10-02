@@ -67,9 +67,9 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
-from .refresh_timing import allocation_anchor, consumption_window_is_over, grants_owed
+from .refresh_timing import allocation_anchor, grants_owed, latest_monthly_point
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
-from .refresh_timing import next_monthly_grant
+from .refresh_timing import next_monthly_grant, refresh_due_by
 
 logger = logging.getLogger(__name__)
 
@@ -3799,13 +3799,18 @@ class LicenseSubscriptionService:
         LicenseSubscription.objects.filter(
             Q(pk=license_sub.pk),
             Q(consumption_window_start__isnull=True)
-            # The same tolerance as the refresh's due check (1a's F1): a run
-            # a few seconds earlier than last month's refreshes the teacher,
-            # so it must reopen the window too.
-            # A month less the anchor snap, not a full calendar month: an
-            # anchored chain's months are 28 to 31 days, so a refresh on a
-            # clamped date (28 Feb, 30 Apr) would leave the window shut.
-            | Q(consumption_window_start__lte=consumption_window_is_over(now)),
+            # H-93: the window is the licence's, so it reopens on the
+            # licence's own monthly points (its cycle start plus k months),
+            # not on the window's age: teachers anchored on different days
+            # then share 12 windows a year, and a clamped date (28 Feb,
+            # 30 Apr) is a point like any other. The same tolerance as the
+            # refresh's due check (1a's F1): a run a few seconds before a
+            # point refreshes the teacher, so it must reopen the window too.
+            | Q(
+                consumption_window_start__lt=latest_monthly_point(
+                    license_sub.billing_cycle_start, refresh_due_by(now)
+                )
+            ),
         ).update(
             total_credits_consumed=0,
             consumption_window_start=now,

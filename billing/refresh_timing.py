@@ -126,16 +126,20 @@ def allocation_anchor(stored_anchor, fallback_anchor, served_due):
     return served_due
 
 
-def consumption_window_is_over(now):
-    """A licence's monthly consumption window opened at or before this
-    moment is over on a refresh run started at `now`.
+def latest_monthly_point(anchor, at):
+    """The latest of `anchor` + k months (k >= 0) at or before `at`.
 
-    A month, less ANCHOR_SNAP: an anchored chain's months are 28 to 31 days
-    (31 Jan, 28 Feb, 31 Mar), so "a full calendar month ago" would leave the
-    window shut on every refresh that follows a longer month. Refreshes on
-    consecutive days (a catch-up) still reopen it once.
+    The licence's consumption window (H-93) reopens on the licence's own
+    monthly points, counted from its cycle start: the first teacher refresh
+    after a point reopens it, and every other refresh in that licence month
+    leaves it alone. That is 12 windows a year whatever days the teachers
+    are anchored on, on clamped dates too (31 Jan, 28 Feb, 31 Mar), and
+    once however many refreshes a catch-up makes on consecutive days.
     """
-    return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP
+    k = 0
+    while anchor + relativedelta(months=k + 1) <= at:
+        k += 1
+    return anchor + relativedelta(months=k)
 
 
 def grants_owed(anchor, next_due, until):
