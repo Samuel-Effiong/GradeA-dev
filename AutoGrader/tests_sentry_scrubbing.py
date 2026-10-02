@@ -306,3 +306,33 @@ class WiringTests(SimpleTestCase):
         self.assertEqual(keywords.get("before_breadcrumb"), "scrub_breadcrumb")
         self.assertEqual(keywords.get("before_send_log"), "scrub_log")
         self.assertEqual(keywords.get("send_default_pii"), "False")
+
+    def test_a_failure_to_import_the_hooks_is_not_swallowed(self):
+        """settings.py has a try/except ImportError for a missing sentry-sdk
+        package. Our own hooks module is imported outside it, and so is the
+        init call: a deploy where the hooks cannot be imported must fail at
+        start, not run with Sentry silently off."""
+        with open(os.path.join(settings.BASE_DIR, "AutoGrader", "settings.py")) as fh:
+            tree = ast.parse(fh.read())
+        under_a_try = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Try):
+                for child in node.body:
+                    under_a_try.update(id(inner) for inner in ast.walk(child))
+        hooks_imports = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "AutoGrader.sentry_scrubbing"
+        ]
+        init_calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and ast.unparse(node.func) == "sentry_sdk.init"
+        ]
+
+        self.assertEqual(len(hooks_imports), 1)
+        self.assertEqual(len(init_calls), 1)
+        self.assertNotIn(id(hooks_imports[0]), under_a_try)
+        self.assertNotIn(id(init_calls[0]), under_a_try)

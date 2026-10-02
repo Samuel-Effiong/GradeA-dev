@@ -19,7 +19,7 @@ import logging
 import os
 import subprocess
 import sys
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 from celery.app.log import TaskFormatter
 from celery.utils.log import get_task_logger
@@ -331,9 +331,70 @@ class TheSwitchTests(SimpleTestCase):
         self.assertEqual(ast.unparse(assignment.value), "not _TESTS_ARE_RUNNING")
 
 
+class SettingsStandAloneTests(SimpleTestCase):
+    """settings.py must still load on its own, by path, with the project
+    not importable (the frontend-domain setting tests load it that way).
+    The first version of H-89 imported log_scrubbing from settings.py and
+    broke exactly that."""
+
+    def test_settings_import_nothing_from_the_project_at_the_top_level(self):
+        with open(os.path.join(settings.BASE_DIR, "AutoGrader", "settings.py")) as fh:
+            tree = ast.parse(fh.read())
+        project = ("AutoGrader", "billing", "users", "classrooms", "assignments")
+        imported = []
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module:
+                imported.append(node.module)
+            elif isinstance(node, ast.Import):
+                imported.extend(alias.name for alias in node.names)
+        self.assertEqual(
+            [name for name in imported if name.split(".")[0] in project], []
+        )
+
+    def test_the_package_installs_the_factory(self):
+        with open(os.path.join(settings.BASE_DIR, "AutoGrader", "__init__.py")) as fh:
+            tree = ast.parse(fh.read())
+        calls = [
+            ast.unparse(node.value)
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(calls, ["_install_log_scrubbing()"])
+        # ... before the Celery app, the first thing in the package that
+        # can log.
+        first_two = [type(node).__name__ for node in tree.body[:2]]
+        self.assertEqual(first_two, ["ImportFrom", "Expr"])
+
+
+class BeforeSettingsAreConfiguredTests(SimpleTestCase):
+    def setUp(self):
+        self.addCleanup(log_scrubbing.set_enabled, log_scrubbing.is_enabled())
+
+    def test_a_record_made_while_settings_are_loading_is_scrubbed(self):
+        log_scrubbing.set_enabled(None)
+        handler, stream = stream_handler()
+        with patch.object(
+            type(settings), "configured", new_callable=PropertyMock, return_value=False
+        ):
+            self.assertTrue(log_scrubbing.is_enabled())
+            standalone_logger("h89", handler).info("Refused %s", ADDRESS)
+
+        self.assertNotIn(ADDRESS, stream.getvalue())
+
+    def test_once_settings_are_configured_the_switch_is_theirs(self):
+        log_scrubbing.set_enabled(None)
+
+        self.assertIs(log_scrubbing.is_enabled(), settings.LOG_SCRUB_ADDRESSES)
+        with override_settings(LOG_SCRUB_ADDRESSES=True):
+            self.assertTrue(log_scrubbing.is_enabled())
+        self.assertFalse(log_scrubbing.is_enabled())
+
+
 class OutsideTheTestRunnerTests(SimpleTestCase):
     """A real process that is not running tests: a management command's
-    start, before Django's own logging configuration is applied."""
+    start, before Django's own logging configuration is applied. Importing
+    the AutoGrader package is what installs the factory, as it is for a
+    web process (AutoGrader.wsgi) and a Celery worker (-A AutoGrader)."""
 
     SCRIPT = """
 import logging, os, sys
@@ -345,6 +406,8 @@ print(settings.LOG_SCRUB_ADDRESSES, getattr(logging.getLogRecordFactory(), "_scr
 import django
 django.setup()
 print(django.conf.settings.LOG_SCRUB_ADDRESSES, getattr(logging.getLogRecordFactory(), "_scrubs_addresses", False))
+from AutoGrader import log_scrubbing
+print(log_scrubbing.is_enabled())
 """
 
     def test_it_is_on_and_scrubs_from_the_first_record(self):
@@ -358,7 +421,7 @@ print(django.conf.settings.LOG_SCRUB_ADDRESSES, getattr(logging.getLogRecordFact
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.split(), ["True", "True", "True", "True"])
+        self.assertEqual(result.stdout.split(), ["True"] * 5)
         self.assertIn("Refused [email] (user 4821)", result.stderr)
         self.assertNotIn(ADDRESS, result.stderr)
 
