@@ -12,6 +12,7 @@ nothing here should be called with a course the caller hasn't scoped.
 """
 
 import logging
+import secrets
 
 from django.db import transaction
 from django.utils import timezone
@@ -72,6 +73,37 @@ def normalize_email(value):
     case-duplicate accounts, so this is not hypothetical.
     """
     return (value or "").strip().lower()
+
+
+#: The domain of the address the roster gives a student who has none
+#: (H-99). Such an account is a teacher-managed roster entry: it is never
+#: signed into, and its address is a server-made key, never a mailbox.
+PLACEHOLDER_EMAIL_DOMAIN = "@student.local"
+
+#: How many fresh addresses to try before giving up. With a 64-bit token a
+#: single retry is already vanishingly unlikely; the loop is for the
+#: principle (never attach, never fail on a coincidence), not the odds.
+PLACEHOLDER_EMAIL_ATTEMPTS = 5
+
+
+def is_placeholder_email(email):
+    """True for an address in the placeholder domain, in any letter case
+    and with surrounding spaces."""
+    return normalize_email(email).endswith(PLACEHOLDER_EMAIL_DOMAIN)
+
+
+def new_placeholder_email(first_name, last_name):
+    """A fresh placeholder address for a student added with no email.
+
+    The name parts are only for a human reading the table; the token is
+    what makes it unique. It used to be `first.last<0-9999>`, and a new
+    student who drew a suffix already in use was given the EXISTING
+    account instead of a new one (H-99). 64 random bits now, and the
+    caller still checks the address is free and never attaches on a match.
+    """
+    safe_first = "".join(c for c in first_name.lower() if c.isalnum())[:20]
+    safe_last = "".join(c for c in last_name.lower() if c.isalnum())[:20]
+    return f"{safe_first}.{safe_last}.{secrets.token_hex(8)}{PLACEHOLDER_EMAIL_DOMAIN}"
 
 
 def find_account_by_email(email):
@@ -260,6 +292,16 @@ def enroll_student_by_email(
         # ownership check's 404 distinguishable from a failure in here.
         course = Course.objects.select_for_update().get(pk=course.pk)
         email = normalize_email(email)
+        if is_placeholder_email(email):
+            # H-99: a placeholder address is a server-made key to a
+            # roster-only student, not a mailbox. Supplied by a caller it
+            # would attach that student to this course, so it is refused
+            # with the same neutral answer as a staff address.
+            logger.info(
+                "Refused a caller-supplied placeholder address for course %s",
+                course.pk,
+            )
+            raise EnrollmentError(NOT_A_STUDENT_MESSAGE)
         student = find_account_by_email(email)
 
         if student is None:

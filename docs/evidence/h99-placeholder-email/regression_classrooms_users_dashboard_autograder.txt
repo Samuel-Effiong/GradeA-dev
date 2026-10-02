@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 26909 lines; full log (sha256 prefix d1c5711ade21d3ec) at ~/Documents/Projects/GAP-evidence-logs/h99_4ed59060_regression_classrooms_users_dashboard_autograder.txt]
+16:58:03     admin A: dash teachers (sch)     FRESH      status 200 -> cached 200 / truth 200
+16:58:03     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:03 [2026-10-02 15:58:03,726: ERROR/MainProcess] Free trial plan not found: no trial activated for user 1991177d-4c47-4091-aed8-742c3e3180cb.
+16:58:03 [2026-10-02 15:58:03,787: ERROR/MainProcess] Free trial plan not found: no trial activated for user b7414346-9d72-407b-b825-9b9b8e23270a.
+16:58:05 --- M1 teacher A renames self [school-admin fan-out removed]
+16:58:05     admin A: users/<teacher A>       STALE      status 200 -> cached 200 / truth 200
+16:58:05     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+16:58:05     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+16:58:05     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05     admin A: dash teachers (sch)     FRESH      status 200 -> cached 200 / truth 200
+16:58:05     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:05 [2026-10-02 15:58:05,990: ERROR/MainProcess] Free trial plan not found: no trial activated for user a573ad37-961a-412d-a1be-811a4a0ad7c1.
+16:58:06 [2026-10-02 15:58:06,035: ERROR/MainProcess] Free trial plan not found: no trial activated for user fee5a50c-e540-447a-96d9-3ee6b5f67ede.
+16:58:08 --- M2 student renamed via model save [as gated]
+16:58:08     admin A: users/<teacher A>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08     admin A: users/<student>         FRESH      status 200 -> cached 200 / truth 200
+16:58:08     teacher A: users/<student>       FRESH      status 200 -> cached 200 / truth 200
+16:58:08     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08     student: me                      FRESH      status 200 -> cached 200 / truth 200
+16:58:08     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+16:58:08     superadmin: users/<teacher A>    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:08 [2026-10-02 15:58:08,446: ERROR/MainProcess] Free trial plan not found: no trial activated for user 6263ed1f-e758-4987-afcd-31143289bbfa.
+16:58:08 [2026-10-02 15:58:08,502: ERROR/MainProcess] Free trial plan not found: no trial activated for user 9662b5ea-fa7d-4fc4-960b-cb5f820deb81.
+16:58:10 --- M3 student saves Settings [as gated]
+16:58:10     admin A: users/<teacher A>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     admin A: users/<student>         FRESH      status 200 -> cached 200 / truth 200
+16:58:10     teacher A: users/<student>       FRESH      status 200 -> cached 200 / truth 200
+16:58:10     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+16:58:10     superadmin: users/<teacher A>    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:10 [2026-10-02 15:58:10,913: ERROR/MainProcess] Free trial plan not found: no trial activated for user e75253a7-5c4f-4ea1-9dd6-d62d1d761baf.
+16:58:10 [2026-10-02 15:58:10,948: ERROR/MainProcess] Free trial plan not found: no trial activated for user 835ce83f-10ba-47e2-ba05-12e737731bb2.
+16:58:13 --- M3 student saves Settings [Settings viewer fan-out removed]
+16:58:13     admin A: users/<teacher A>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     admin A: users/<student>         FRESH      status 200 -> cached 200 / truth 200
+16:58:13     teacher A: users/<student>       FRESH      status 200 -> cached 200 / truth 200
+16:58:13     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+16:58:13     superadmin: users/<teacher A>    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:13 [2026-10-02 15:58:13,229: ERROR/MainProcess] Free trial plan not found: no trial activated for user abee8e6b-5dfe-4cc7-9b2e-d523191f5975.
+16:58:13 [2026-10-02 15:58:13,272: ERROR/MainProcess] Free trial plan not found: no trial activated for user 12b21198-70dc-4d76-88b9-82f1bb27ac78.
+16:58:15 --- M5 teacher A edits own bio [as gated]
+16:58:15     admin A: users/<teacher A>       FRESH      status 200 -> cached 200 / truth 200
+16:58:15     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     superadmin: users list           UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+16:58:15     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:15 [2026-10-02 15:58:15,768: ERROR/MainProcess] Free trial plan not found: no trial activated for user ef9ffa46-705d-483f-b206-e6a673e9c756.
+16:58:15 [2026-10-02 15:58:15,840: ERROR/MainProcess] Free trial plan not found: no trial activated for user 580e9623-38bf-43af-b890-87eebd8aae7b.
+16:58:18 --- M4 credit grant to teacher A [as gated]
+16:58:18     admin A: users/<teacher A>       FRESH      status 200 -> cached 200 / truth 200
+16:58:18     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     teacher A: me                    FRESH      status 200 -> cached 200 / truth 200
+16:58:18     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     superadmin: users list           UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+16:58:18     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+16:58:18 ok
+16:58:18 test_probe (AutoGrader.tests_probe_wallet_invalidation.WalletInvalidationProbe.test_probe) ... [2026-10-02 15:58:18,916: ERROR/MainProcess] Free trial plan not found: no trial activated for user 8c6dea3f-8779-412a-8b41-dcebf9c3ada9.
+16:58:19 [2026-10-02 15:58:19,256: ERROR/MainProcess] Free trial plan not found: no trial activated for user 7033b7f4-9f9f-44ff-a7e3-c52c06ed317e.
+16:58:19
+16:58:19 [wallet invalidation probe]
+16:58:19 --- licence plan change [wildcards removed (H-1 step 4)]
+16:58:19     teacher: users/me              STALE
+16:58:19         differs: ['credit_wallet'] credit_wallet: ['monthly_credit_total']
+16:58:19     admin: users/<teacher>         STALE
+16:58:19         differs: ['credit_wallet'] credit_wallet: ['monthly_credit_total']
+16:58:19     superadmin: users/<teacher>    STALE
+16:58:19         differs: ['credit_wallet'] credit_wallet: ['monthly_credit_total']
+16:58:19 --- overage purchase [wildcards removed (H-1 step 4)]
+16:58:19     teacher: users/me              FRESH
+16:58:19     admin: users/<teacher>         FRESH
+16:58:19     superadmin: users/<teacher>    FRESH
+16:58:19 ok
+16:58:19 test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+16:58:23 Two concurrent runs: the second one's start-of-run sweep and its ... ok
+16:58:25 test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+16:58:25 test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile)
+16:58:28 H-94: the same race as SweepTests', on the killed child's keys. ... ok
+16:58:30 test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+16:58:30 test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+16:58:30 test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+16:58:30 test_delete_own_keys_is_unmoved_by_another_runs_sweep (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_is_unmoved_by_another_runs_sweep)
+16:58:32 H-94: under --parallel another worker's sweep can run between ... ok
+16:58:32 test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+16:58:32 test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+16:58:32 test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+16:58:32 An expired counter reads as generation 1 and revives every stale ... ok
+16:58:32 test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+16:58:32 test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+16:58:32 test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+16:58:32 test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+16:58:32 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+16:58:34 THE ACCEPTANCE TEST for broker isolation. ... ok
+16:58:34 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+16:58:34 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+16:58:34 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+16:58:37 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ... ok
+16:58:39 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+16:58:39 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+16:58:41 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+16:58:41 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+16:58:43 Same requirement, for the H-1 invariant specifically. ... ok
+16:58:43 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+16:58:43 The blast radius is wider than the Django cache. ... ok
+16:58:43 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+16:58:43 The mechanism, demonstrated deterministically in-process. ... ok
+16:58:43 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+16:58:44 THE ACCEPTANCE TEST for the regression. ... ok
+16:58:47 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+16:58:47 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+16:58:47 Server-wide Redis statistics are shared by every concurrent run. ... ok
+16:58:47 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+16:58:47 test_generated_ids_are_always_valid (AutoGrader.tests_request_context.GenerateRequestIdTests.test_generated_ids_are_always_valid) ... ok
+16:58:47 test_generates_32_char_lowercase_hex (AutoGrader.tests_request_context.GenerateRequestIdTests.test_generates_32_char_lowercase_hex) ... ok
+16:58:47 test_generates_unique_values (AutoGrader.tests_request_context.GenerateRequestIdTests.test_generates_unique_values) ... ok
+16:58:47 test_defaults_to_none (AutoGrader.tests_request_context.GetSetResetRequestIdTests.test_defaults_to_none) ... ok
+16:58:47 test_reset_restores_prior_value (AutoGrader.tests_request_context.GetSetResetRequestIdTests.test_reset_restores_prior_value) ... ok
+16:58:47 test_set_then_get_roundtrips (AutoGrader.tests_request_context.GetSetResetRequestIdTests.test_set_then_get_roundtrips) ... ok
+16:58:47 test_128_chars_is_valid_boundary (AutoGrader.tests_request_context.IsValidRequestIdTests.test_128_chars_is_valid_boundary) ... ok
+16:58:47 test_129_chars_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_129_chars_is_invalid) ... ok
+16:58:47 test_comma_and_pipe_are_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_comma_and_pipe_are_invalid) ... ok
+16:58:47 test_dashed_uuid_is_valid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_dashed_uuid_is_valid) ... ok
+16:58:47 test_dotted_and_underscored_tokens_are_valid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_dotted_and_underscored_tokens_are_valid) ... ok
+16:58:47 test_empty_string_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_empty_string_is_invalid) ... ok
+16:58:47 test_html_special_chars_are_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_html_special_chars_are_invalid) ... ok
+16:58:47 test_newline_injection_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_newline_injection_is_invalid) ... ok
+16:58:47 test_none_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_none_is_invalid) ... ok
+16:58:47 test_plain_uuid4_hex_is_valid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_plain_uuid4_hex_is_valid) ... ok
+16:58:47 test_unicode_lookalikes_are_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_unicode_lookalikes_are_invalid) ... ok
+16:58:47 test_whitespace_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_whitespace_is_invalid) ... ok
+16:58:47 test_always_returns_true_never_filters_out_a_record (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_always_returns_true_never_filters_out_a_record) ... ok
+16:58:47 test_injects_current_request_id (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_injects_current_request_id) ... ok
+16:58:47 test_injects_dash_when_no_request_id_set (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_injects_dash_when_no_request_id_set) ... ok
+16:58:47 test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_school_admin_frontend_domain.SchoolAdminFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back) ... ok
+16:58:48 test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_school_admin_frontend_domain.SchoolAdminFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset) ... ok
+16:58:48 test_failure_building_the_message_itself_propagates (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_failure_building_the_message_itself_propagates)
+16:58:48 A failure before the message is even sent (e.g. EmailMultiAlternatives ... [2026-10-02 15:58:48,155: ERROR/MainProcess] Error sending email: unexpected keyword argument
+16:58:48 ok
+16:58:48 test_falls_back_when_html_message_present_even_without_plain_message (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_falls_back_when_html_message_present_even_without_plain_message) ... ok
+16:58:48 test_flat_merge_data_is_wrapped_identically_for_every_recipient (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_flat_merge_data_is_wrapped_identically_for_every_recipient) ... ok
+16:58:48 test_html_message_is_attached_as_alternative_when_provided (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_html_message_is_attached_as_alternative_when_provided) ... ok
+16:58:48 test_no_html_message_means_no_alternative_attached (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_no_html_message_means_no_alternative_attached) ... ok
+16:58:48 test_no_template_id_means_merge_data_is_never_set (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_no_template_id_means_merge_data_is_never_set) ... ok
+16:58:48 test_per_recipient_merge_data_is_used_as_is_not_rewrapped (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_per_recipient_merge_data_is_used_as_is_not_rewrapped) ... ok
+16:58:48 test_raises_without_fallback_when_no_body_available (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_raises_without_fallback_when_no_body_available)
+16:58:48 A templated-only send (no plain `message`, no `html_message`) that ... [2026-10-02 15:58:48,164: ERROR/MainProcess] Templated email send failed for ['teacher@example.com'] and no plain-text body was provided, so no fallback is possible. Error: Template rejected by provider
+16:58:48 [2026-10-02 15:58:48,164: ERROR/MainProcess] Error sending email: Template rejected by provider
+16:58:48 ok
+16:58:48 test_successful_send_returns_success_message_without_fallback (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_successful_send_returns_success_message_without_fallback) ... ok
+16:58:48 test_template_id_without_merge_data_sets_template_id_only (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_template_id_without_merge_data_sets_template_id_only) ... ok
+16:58:48 test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back) ... ok
+16:58:48 test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset) ... ok
+16:58:48 test_accepts_file_exactly_at_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_accepts_file_exactly_at_the_limit) ... ok
+16:58:48 test_accepts_file_under_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_accepts_file_under_the_limit) ... ok
+16:58:48 test_rejects_file_over_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_rejects_file_over_the_limit) ... ok
+16:58:48 test_respects_a_custom_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_respects_a_custom_limit) ... ok
+16:58:48 test_a_validation_error_on_a_field_named_code_still_renders_as_before (users.tests_renderers.APIJSONRendererTests.test_a_validation_error_on_a_field_named_code_still_renders_as_before) ... ok
+16:58:48 test_manual_error_key_becomes_plain_error_message (users.tests_renderers.APIJSONRendererTests.test_manual_error_key_becomes_plain_error_message) ... ok
+16:58:48 test_manual_error_status_is_rendered_as_error (users.tests_renderers.APIJSONRendererTests.test_manual_error_status_is_rendered_as_error) ... ok
+16:58:48 test_refusal_code_beside_the_message_is_not_shown_as_text (users.tests_renderers.APIJSONRendererTests.test_refusal_code_beside_the_message_is_not_shown_as_text) ... ok
+16:58:48 test_success_response_promotes_detail_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_detail_to_message) ... ok
+16:58:48 test_success_response_promotes_message_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_message_to_message) ... ok
+16:58:48 test_unhandled_exception_never_leaks_raw_technical_detail (users.tests_renderers.APIJSONRendererTests.test_unhandled_exception_never_leaks_raw_technical_detail) ... ok
+16:58:48 test_validation_errors_keep_numbered_message_and_field_errors (users.tests_renderers.APIJSONRendererTests.test_validation_errors_keep_numbered_message_and_field_errors) ... ok
+16:58:48
+16:58:48 ----------------------------------------------------------------------
+16:58:48 Ran 1794 tests in 499.281s
+16:58:48
+16:58:48 OK (skipped=6)
+16:58:48 Destroying test database for alias 'default' ('test_h99_placeholder_email')...
