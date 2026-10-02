@@ -103,18 +103,18 @@ MUTANTS = [
     ),
     (
         "M7",
-        "a due time off the fallback's chain is its own anchor",
+        "a due time off the anchor's chain is its own anchor",
         RT,
-        "        return fallback_anchor\n    return served_due\n",
-        "        return fallback_anchor\n    return fallback_anchor\n",
+        "        return candidate\n    return served_due\n",
+        "        return candidate\n    return candidate\n",
         1,
     ),
     (
         "M8",
-        "the fallback's snap window covers a due time before its point",
+        "the snap window covers a due time before its point",
         RT,
-        "    if fallback_anchor + relativedelta(months=k) <= served_due + ANCHOR_SNAP:\n",
-        "    if fallback_anchor + relativedelta(months=k) <= served_due:\n",
+        "    if candidate + relativedelta(months=k) <= served_due + ANCHOR_SNAP:\n",
+        "    if candidate + relativedelta(months=k) <= served_due:\n",
         1,
     ),
     (
@@ -165,6 +165,23 @@ MUTANTS = [
         "            allocation.next_credit_grant_at = next_refresh\n"
         "            allocation.grant_anchor_at = now\n",
         "            allocation.next_credit_grant_at = next_refresh\n",
+        1,
+    ),
+    (
+        "M15",
+        "1a's F1: a stored anchor is used only while the due time is on its chain",
+        RT,
+        "    candidate = stored_anchor if stored_anchor is not None else fallback_anchor\n",
+        "    if stored_anchor is not None:\n        return stored_anchor\n"
+        "    candidate = fallback_anchor\n",
+        1,
+    ),
+    (
+        "M16",
+        "1a's F1: the QA time-travel tool clears the anchor with the due time",
+        "billing/qa_time_travel.py",
+        "                allocation.grant_anchor_at = None\n",
+        "",
         1,
     ),
     (

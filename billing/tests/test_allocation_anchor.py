@@ -44,11 +44,30 @@ def simulate(fallback, first_due, end, stored=None, runs=None):
 
 
 class AllocationAnchorTests(SimpleTestCase):
-    def test_a_stored_anchor_always_wins(self):
+    def test_a_stored_anchor_wins_while_the_due_time_is_on_its_chain(self):
         stored = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
         fallback = datetime(2026, 1, 10, 1, 0, tzinfo=UTC)
-        for due in (stored + relativedelta(months=2), fallback, stored):
-            self.assertEqual(allocation_anchor(stored, fallback, due), stored)
+        end = stored + relativedelta(years=1)
+        for point in [stored] + anchor_points(stored, end):
+            for drift_hours in (-72, 0, 26):
+                due = point + timedelta(hours=drift_hours)
+                with self.subTest(due=due):
+                    self.assertEqual(allocation_anchor(stored, fallback, due), stored)
+
+    def test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor(self):
+        """1a's F1: anchor 5 January, due time moved to 28 March. Not the
+        stored anchor (5 April next), and not the fallback either."""
+        stored = datetime(2026, 1, 5, 1, 0, tzinfo=UTC)
+        moved = datetime(2026, 3, 28, 3, 0, tzinfo=UTC)
+        for fallback in (stored, datetime(2026, 2, 28, 1, 0, tzinfo=UTC)):
+            with self.subTest(fallback=fallback):
+                self.assertEqual(allocation_anchor(stored, fallback, moved), moved)
+        _, next_due = next_monthly_grant(
+            allocation_anchor(stored, stored, moved),
+            moved,
+            stored + relativedelta(years=1),
+        )
+        self.assertEqual(next_due, datetime(2026, 4, 28, 3, 0, tzinfo=UTC))
 
     def test_a_due_time_on_the_fallbacks_chain_uses_the_fallback(self):
         """Every start day, every month, drifted by the old chain: up to 3

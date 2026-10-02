@@ -100,22 +100,29 @@ def allocation_anchor(stored_anchor, fallback_anchor, served_due):
     """The anchor of a licence allocation's monthly refreshes (H-88).
 
     `stored_anchor` is SchoolCreditAllocation.grant_anchor_at, written at
-    every enrolment, re-enrolment, reactivation and renewal. A row older
-    than the field has none, so:
+    every enrolment, re-enrolment, reactivation and renewal, and by the
+    refresh itself. It is used only while `served_due` still lies within
+    ANCHOR_SNAP of one of its points. If something moved the due time and
+    not the anchor (the QA time-travel tool; old code after a rollback,
+    which renews and re-enrols without knowing the column), the due time is
+    the anchor: following the stale one would bring the next refresh back
+    to the old chain within days (1a's F1).
+
+    A row older than the field has no stored anchor, so:
       * `fallback_anchor` (the later of the row's creation and the licence's
         cycle start: a renewal restarts every teacher's month) is used when
         `served_due` lies within ANCHOR_SNAP of one of its points;
       * otherwise the row was re-enrolled since the last renewal, at a time
         nobody stored. Its due time is the best record of its rhythm, so
-        the due time itself is the anchor, and the caller stores it.
+        the due time itself is the anchor.
+    The caller stores whichever anchor is returned.
     """
-    if stored_anchor is not None:
-        return stored_anchor
+    candidate = stored_anchor if stored_anchor is not None else fallback_anchor
     k = 0
-    while fallback_anchor + relativedelta(months=k) < served_due - ANCHOR_SNAP:
+    while candidate + relativedelta(months=k) < served_due - ANCHOR_SNAP:
         k += 1
-    if fallback_anchor + relativedelta(months=k) <= served_due + ANCHOR_SNAP:
-        return fallback_anchor
+    if candidate + relativedelta(months=k) <= served_due + ANCHOR_SNAP:
+        return candidate
     return served_due
 
 
