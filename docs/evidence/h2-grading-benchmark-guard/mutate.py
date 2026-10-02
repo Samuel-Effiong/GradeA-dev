@@ -1,4 +1,4 @@
-"""H2: apply each mutant, run the guard's test module, record the killers,
+"""H2: apply each mutant, run the guard's test modules, record the killers,
 restore. Every anchor must occur exactly once and every mutant must parse.
 
 Rule 17: the test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
@@ -18,7 +18,10 @@ import sys
 CMD = "ai_processor/management/commands/grading_benchmark.py"
 TASKS = "ai_processor/tasks.py"
 SETTINGS_PY = "AutoGrader/settings.py"
-TESTS = ["ai_processor.tests_h2_grading_benchmark_guard"]
+TESTS = [
+    "ai_processor.tests_h2_grading_benchmark_guard",
+    "ai_processor.tests_benchmark_history",
+]
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 OUT = os.environ.get(
     "MUT_RESULTS", "docs/evidence/h2-grading-benchmark-guard/mutation_results.json"
@@ -62,6 +65,34 @@ MUTANTS = {
         "    except BenchmarkRefused as exc:\n"
         "        return _refused(MODE_LIVE, exc)\n",
         "    report, diff = _run(MODE_LIVE)\n",
+    ),
+    "G9_the_live_qa_skip_logs_at_debug": (
+        TASKS,
+        "        logger.info(\n"
+        '            "AI live QA is not enabled in this environment; skipping the "\n',
+        "        logger.debug(\n"
+        '            "AI live QA is not enabled in this environment; skipping the "\n',
+    ),
+    "G10_the_refusal_skip_logs_at_debug": (
+        TASKS,
+        "    logger.info(\n"
+        '        "Grading benchmark %s skipped: not enabled in this environment "\n',
+        "    logger.debug(\n"
+        '        "Grading benchmark %s skipped: not enabled in this environment "\n',
+    ),
+    "G11_the_live_qa_skip_logs_nothing": (
+        TASKS,
+        "        logger.info(\n"
+        '            "AI live QA is not enabled in this environment; skipping the "\n'
+        '            "weekly grading benchmark. (Set ENABLE_AI_LIVE_QA=True on a "\n'
+        '            "QA/staging worker.)"\n'
+        "        )\n",
+        "",
+    ),
+    "G12_the_refusal_skip_names_no_switch": (
+        TASKS,
+        '        "(set ENABLE_GRADING_BENCHMARK=True to run it here). %s",\n',
+        '        "(see the settings to run it here). %s",\n',
     ),
     "G8_the_switch_defaults_on": (
         SETTINGS_PY,
