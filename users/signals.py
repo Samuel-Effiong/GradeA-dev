@@ -301,8 +301,7 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
     user = instance
 
     logger.info(
-        "Post-save signal fired for new user %s (ID: %s, type: %s).",
-        user.email,
+        "Post-save signal fired for new user %s (type: %s).",
         user.id,
         user.user_type,
     )
@@ -311,12 +310,12 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
 
     try:
         Settings.objects.get_or_create(user=user)
-        logger.debug("Created Settings for user %s", user.email)
+        logger.debug("Created Settings for user %s", user.id)
     except Exception as exc:
         logger.error(
             "Failed to create Settings for user %s: %s",
-            user.email,
-            str(exc),
+            user.id,
+            type(exc).__name__,
             exc_info=True,
         )
 
@@ -324,26 +323,26 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
 
     try:
         CreditWallet.objects.get_or_create(user=user)
-        logger.debug("Created CreditWallet for user %s", user.email)
+        logger.debug("Created CreditWallet for user %s", user.id)
     except Exception as exc:
         logger.error(
             "Failed to create CreditWallet for user %s: %s",
-            user.email,
-            str(exc),
+            user.id,
+            type(exc).__name__,
             exc_info=True,
         )
         # Continue even if wallet creation fails
 
     # AUTO-ACTIVATE FREE TRIAL (teacher-only, non-license users)
 
-    logger.debug("Checking if user %s needs trial activation", user.email)
+    logger.debug("Checking if user %s needs trial activation", user.id)
 
     # Check if user is a teacher (beta-eligible)
     if not user.is_beta_eligible():
         logger.info(
             "Skipping automatic trial for user %s "
             "(user type '%s' is not eligible for individual trials).",
-            user.email,
+            user.id,
             user.user_type,
         )
         return
@@ -351,7 +350,7 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
     if get_license_invitation_context():
         logger.info(
             "Skipping automatic trial for user %s (created during license invitation).",
-            user.email,
+            user.id,
         )
         return
 
@@ -359,9 +358,7 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
     use_beta_plan = settings.USE_BETA_PLAN_ON_SIGNUP
 
     if use_beta_plan:
-        logger.debug(
-            "Activating Beta plan for user %s based on env variable", user.email
-        )
+        logger.debug("Activating Beta plan for user %s based on env variable", user.id)
         beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
 
         if beta_plan:
@@ -371,20 +368,18 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
             )
             try:
                 SubscriptionService.activate_plan_without_payment(user, beta_plan)
-                logger.info(
-                    "✓ Beta plan successfully activated for user %s.", user.email
-                )
+                logger.info("✓ Beta plan successfully activated for user %s.", user.id)
             except Exception as exc:
                 logger.error(
                     "Failed to activate beta plan for user %s: %s",
-                    user.email,
-                    str(exc),
+                    user.id,
+                    type(exc).__name__,
                     exc_info=True,
                 )
         else:
             logger.warning(
                 "BETA plan not found in database for user %s. Skipping activation.",
-                user.email,
+                user.id,
             )
 
     else:
@@ -393,22 +388,22 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
             SubscriptionService.activate_automatic_free_trial(user)
             logger.info(
                 "✓ Automatic free trial successfully activated for user %s.",
-                user.email,
+                user.id,
             )
         except ValueError as exc:
             # Validation error — log but don't fail registration
             # This could happen if STANDARD plan doesn't exist
             logger.warning(
                 "Cannot activate automatic trial for user %s (validation): %s",
-                user.email,
-                str(exc),
+                user.id,
+                type(exc).__name__,
             )
         except Exception as exc:
             # Unexpected error — log but don't fail registration
             # Registration should succeed even if trial activation fails
             logger.error(
                 "Failed to activate automatic trial for user %s: %s",
-                user.email,
-                str(exc),
+                user.id,
+                type(exc).__name__,
                 exc_info=True,
             )

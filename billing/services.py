@@ -1961,6 +1961,9 @@ class SubscriptionService:
         ).exists()
 
         if existing_trial:
+            logger.warning(
+                "User %s has already used the free trial: not activated.", user.id
+            )
             raise ValueError(
                 f"User {user.email} has already used the free trial. "
                 "Free trial can only be activated once per account."
@@ -1975,6 +1978,12 @@ class SubscriptionService:
                 tier=PlanTier.TRIAL, category=PlanCategory.INDIVIDUAL
             )
         except SubscriptionPlan.DoesNotExist as exc:
+            # A configuration fault that denies every new teacher a trial;
+            # the caller (users.signals) logs only the refusal's class.
+            logger.error(
+                "Free trial plan not found: no trial activated for user %s.",
+                user.id,
+            )
             raise ValueError(
                 "Free trial plan not found. Please create one in the admin panel."
             ) from exc
