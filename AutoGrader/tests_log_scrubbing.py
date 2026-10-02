@@ -27,6 +27,8 @@ from django.conf import settings
 from django.db import IntegrityError
 from django.test import SimpleTestCase, override_settings
 
+from AutoGrader import log_scrubbing
+
 ADDRESS = "someone.private@school-example.edu"
 CONSTRAINT = (
     'duplicate key value violates unique constraint "users_customuser_email_key"\n'
@@ -359,3 +361,109 @@ print(django.conf.settings.LOG_SCRUB_ADDRESSES, getattr(logging.getLogRecordFact
         self.assertEqual(result.stdout.split(), ["True", "True", "True", "True"])
         self.assertIn("Refused [email] (user 4821)", result.stderr)
         self.assertNotIn(ADDRESS, result.stderr)
+
+
+class InstallTests(SimpleTestCase):
+    """install() wraps whatever factory is in place, once."""
+
+    def setUp(self):
+        self.addCleanup(logging.setLogRecordFactory, logging.getLogRecordFactory())
+        self.addCleanup(log_scrubbing.set_enabled, log_scrubbing.is_enabled())
+
+    def test_a_second_install_does_not_wrap_again(self):
+        before = logging.getLogRecordFactory()
+
+        log_scrubbing.install(False)
+        log_scrubbing.install(False)
+
+        self.assertIs(logging.getLogRecordFactory(), before)
+        wrapped = getattr(before, "wrapped", None)
+        self.assertFalse(getattr(wrapped, "_scrubs_addresses", False))
+
+    def test_a_second_install_still_sets_the_switch(self):
+        log_scrubbing.install(True)
+        self.assertTrue(log_scrubbing.is_enabled())
+        log_scrubbing.install(False)
+        self.assertFalse(log_scrubbing.is_enabled())
+
+    def test_another_factorys_records_keep_their_class_and_are_scrubbed(self):
+        """Celery or Sentry may have set their own factory first."""
+
+        class TheirRecord(logging.LogRecord):
+            theirs = True
+
+        def their_factory(*args, **kwargs):
+            record = TheirRecord(*args, **kwargs)
+            record.stamped = "by their factory"
+            return record
+
+        logging.setLogRecordFactory(their_factory)
+        log_scrubbing.install(True)
+        keep = Keep()
+
+        standalone_logger("h89", keep).info("Refused %s", ADDRESS)
+
+        [record] = keep.records
+        self.assertIsInstance(record, TheirRecord)
+        self.assertEqual(record.stamped, "by their factory")
+        self.assertTrue(record.theirs)
+        self.assertEqual(record.getMessage(), "Refused [email]")
+        self.assertIs(
+            getattr(logging.getLogRecordFactory(), "wrapped", None), their_factory
+        )
+
+    def test_a_record_whose_class_cannot_be_replaced_fails_closed(self):
+        class Fixed(logging.LogRecord):
+            def __setattr__(self, name, value):
+                if name == "__class__":
+                    raise TypeError("this record's class is fixed")
+                super().__setattr__(name, value)
+
+        logging.setLogRecordFactory(Fixed)
+        log_scrubbing.install(True)
+        keep = Keep()
+
+        standalone_logger("h89", keep).info("Refused %s", ADDRESS)
+
+        [record] = keep.records
+        self.assertNotIn(ADDRESS, record.getMessage())
+        self.assertIn("Refused %s", record.getMessage())
+        self.assertIn(log_scrubbing.MESSAGE_WITHHELD, record.getMessage())
+
+    def test_exception_text_that_cannot_be_rendered_fails_closed(self):
+        log_scrubbing.install(True)
+        keep = Keep()
+        with patch.object(
+            log_scrubbing.traceback, "format_exception", side_effect=RuntimeError
+        ):
+            raise_and_log(
+                standalone_logger("h89", keep),
+                ValueError(f"Teacher {ADDRESS} has a plan"),
+                exc_info=True,
+            )
+
+        [record] = keep.records
+        self.assertEqual(
+            record.exc_text, f"ValueError: {log_scrubbing.EXCEPTION_WITHHELD}"
+        )
+        handler, stream = stream_handler()
+        handler.handle(record)
+        self.assertNotIn(ADDRESS, stream.getvalue())
+
+
+class ScrubTests(SimpleTestCase):
+    def test_text_without_an_at_sign_is_returned_as_it_is(self):
+        text = "Refreshed monthly credits for teacher 4821 under license 77."
+        self.assertIs(log_scrubbing.scrub(text), text)
+
+    def test_addresses_of_many_shapes(self):
+        for address in (
+            "a@b.co",
+            "first.last+tag@sub.school.edu",
+            "UPPER_case-99%x@Example-School.ORG",
+        ):
+            with self.subTest(address=address):
+                self.assertEqual(
+                    log_scrubbing.scrub(f"<{address}>, ({address})"),
+                    "<[email]>, ([email])",
+                )

@@ -92,6 +92,19 @@ LOGGING = {
     },
 }
 
+# H-89: no email address and no URL password in anything this process logs.
+# A log record factory rather than a filter on the handler above, because
+# most loggers never reach that handler (see AutoGrader/log_scrubbing.py).
+# On in every environment; off only while tests run, so that the tests which
+# prove log lines carry ids and not addresses read what the code really
+# logged. No environment variable switches it off.
+_TESTS_ARE_RUNNING = "test" in sys.argv or "pytest" in sys.modules
+LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING
+
+from AutoGrader.log_scrubbing import install as _install_log_scrubbing  # noqa: E402
+
+_install_log_scrubbing(LOG_SCRUB_ADDRESSES)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
