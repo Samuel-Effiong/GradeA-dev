@@ -117,3 +117,15 @@ def allocation_anchor(stored_anchor, fallback_anchor, served_due):
     if fallback_anchor + relativedelta(months=k) <= served_due + ANCHOR_SNAP:
         return fallback_anchor
     return served_due
+
+
+def consumption_window_is_over(now):
+    """A licence's monthly consumption window opened at or before this
+    moment is over on a refresh run started at `now`.
+
+    A month, less ANCHOR_SNAP: an anchored chain's months are 28 to 31 days
+    (31 Jan, 28 Feb, 31 Mar), so "a full calendar month ago" would leave the
+    window shut on every refresh that follows a longer month. Refreshes on
+    consecutive days (a catch-up) still reopen it once.
+    """
+    return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP
