@@ -245,6 +245,48 @@ class TheCoursesSchoolFindsTheRefusalTests(RefusalAuditFixture):
         self.assertOnlyTheCoursesSchoolSeesIt()
 
 
+class TheTeacherNowBelongsToAnotherSchoolTests(RefusalAuditFixture):
+    """v2's probe P1, kept in the suite by SM ruling: the case a later
+    change to how the school is resolved would most likely break. A teacher
+    removed from school A who has since joined school B is still refused on
+    A's course, and the refusal is A's: filed under the course's school, not
+    the teacher's new one, so B's admin reads nothing."""
+
+    def test_the_refusals_stay_with_the_courses_school(self):
+        self.remove_teacher()
+        school_b = School.objects.create(name="School B (joined later) H38 N3")
+        make_user("admin-joined@h38n3.test", UserTypes.SCHOOL_ADMIN, school_b)
+        type(self.teacher).objects.filter(pk=self.teacher.pk).update(school=school_b)
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.school_id, school_b.id)
+
+        self.refuse_the_run()
+        self.refuse_the_batch()
+
+        run_event, batch_event = self.failures()
+        for event in (run_event, batch_event):
+            with self.subTest(target=event.target_type):
+                self.assertRefusal(event)
+                self.assertEqual(event.school_id, self.school.id)
+                self.assertNotEqual(event.school_id, school_b.id)
+        # The run's actor is the requester, whose own school is now B: the
+        # event still goes to the course's school.
+        self.assertEqual(run_event.actor_id, self.teacher.id)
+        self.assertEqual(batch_event.target_id, self.teacher.id)
+
+        def seen_by(email):
+            response = jwt_client(email).get(reverse("school-admin-audit-events"))
+            self.assertEqual(response.status_code, 200, response.content[:200])
+            payload = response.json()["data"]
+            rows = payload["results"] if isinstance(payload, dict) else payload
+            return {row["id"] for row in rows if row["reason_code"] == CODE}
+
+        self.assertEqual(
+            seen_by(self.admin.email), {str(run_event.id), str(batch_event.id)}
+        )
+        self.assertEqual(seen_by("admin-joined@h38n3.test"), set())
+
+
 class AnotherFailureKeepsItsSchoolTests(RefusalAuditFixture):
     """Refusal 1's school changes for the reachability refusal only."""
 
