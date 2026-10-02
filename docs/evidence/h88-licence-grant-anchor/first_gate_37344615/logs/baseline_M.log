@@ -1,0 +1,82 @@
+# baseline, commit 3734461531ad8e353fb262381022b1842e1f6c55, exit 0
+
+Found 42 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d9ac408e-6dc6-47d4-a141-f6b45b78b8cc.
+Cannot activate automatic trial for user d9ac408e-6dc6-47d4-a141-f6b45b78b8cc (validation): ValueError
+.Free trial plan not found: no trial activated for user f322bc2d-da0d-4f86-b2f8-76cbc4a9b60f.
+Cannot activate automatic trial for user f322bc2d-da0d-4f86-b2f8-76cbc4a9b60f (validation): ValueError
+.Free trial plan not found: no trial activated for user 96f97dce-4b68-4d8e-bad3-4f9372875fec.
+Cannot activate automatic trial for user 96f97dce-4b68-4d8e-bad3-4f9372875fec (validation): ValueError
+.Free trial plan not found: no trial activated for user 821e254a-6631-4407-bdbf-1bc8b6360115.
+Cannot activate automatic trial for user 821e254a-6631-4407-bdbf-1bc8b6360115 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8f5e8193-b011-4782-94da-428949f1aa8b.
+Cannot activate automatic trial for user 8f5e8193-b011-4782-94da-428949f1aa8b (validation): ValueError
+.Free trial plan not found: no trial activated for user 826b78cd-c9a1-4806-81ea-7bf27e8d4c7b.
+Cannot activate automatic trial for user 826b78cd-c9a1-4806-81ea-7bf27e8d4c7b (validation): ValueError
+.Free trial plan not found: no trial activated for user 46308e62-efac-45b5-af50-28d8ffae46de.
+Cannot activate automatic trial for user 46308e62-efac-45b5-af50-28d8ffae46de (validation): ValueError
+Monthly refresh for allocation c6cdcfb9-8b23-4a3e-9ea0-abb820d24ad1 (license fea3abf0-8946-4e1f-aa0f-da079063b266) caught up: the refresh due at 2026-11-30 01:00:00.021000+00:00 (period 10) is made late.
+Monthly refresh for allocation c6cdcfb9-8b23-4a3e-9ea0-abb820d24ad1 (license fea3abf0-8946-4e1f-aa0f-da079063b266) caught up: the refresh due at 2026-12-31 01:00:00.021000+00:00 (period 11) is made late.
+.Free trial plan not found: no trial activated for user 50780449-0f5f-40fb-8806-c10fba505f64.
+Cannot activate automatic trial for user 50780449-0f5f-40fb-8806-c10fba505f64 (validation): ValueError
+Monthly refresh for allocation a3940ae5-b16f-437d-8d86-df775c9835ea (license 10c9a462-4aa5-45f0-aeb6-e12389233519) caught up: the refresh due at 2026-03-15 01:00:00.021000+00:00 (period 2) is made late.
+Monthly refresh for allocation a3940ae5-b16f-437d-8d86-df775c9835ea (license 10c9a462-4aa5-45f0-aeb6-e12389233519) caught up: the refresh due at 2026-04-15 01:00:00.021000+00:00 (period 3) is made late.
+Monthly refresh for allocation a3940ae5-b16f-437d-8d86-df775c9835ea (license 10c9a462-4aa5-45f0-aeb6-e12389233519) caught up: the refresh due at 2026-05-15 01:00:00.021000+00:00 (period 4) is made late.
+.Free trial plan not found: no trial activated for user f93845aa-0111-4fa6-b7f5-d106d702f91f.
+Cannot activate automatic trial for user f93845aa-0111-4fa6-b7f5-d106d702f91f (validation): ValueError
+.Free trial plan not found: no trial activated for user 8fe87bf7-6301-4ad4-aa0f-5f18af1b5ab8.
+Cannot activate automatic trial for user 8fe87bf7-6301-4ad4-aa0f-5f18af1b5ab8 (validation): ValueError
+Monthly refresh for allocation 6986dfaf-1ffd-46f2-9554-b5f70b0fc070 (license 8d28d57d-048e-4409-ba9b-a75cb8d2ac85) caught up: the refresh due at 2026-03-31 01:00:00.021000+00:00 (period 2) is made late.
+Monthly refresh for allocation 6986dfaf-1ffd-46f2-9554-b5f70b0fc070 (license 8d28d57d-048e-4409-ba9b-a75cb8d2ac85) caught up: the refresh due at 2026-04-30 01:00:00.021000+00:00 (period 3) is made late.
+Monthly refresh for allocation 6986dfaf-1ffd-46f2-9554-b5f70b0fc070 (license 8d28d57d-048e-4409-ba9b-a75cb8d2ac85) caught up: the refresh due at 2026-05-31 01:00:00.021000+00:00 (period 4) is made late.
+.Free trial plan not found: no trial activated for user c51dedaf-54e5-4822-8934-3a3d8762f715.
+Cannot activate automatic trial for user c51dedaf-54e5-4822-8934-3a3d8762f715 (validation): ValueError
+.Free trial plan not found: no trial activated for user 05377584-de35-4386-baf9-a4ad78968db2.
+Cannot activate automatic trial for user 05377584-de35-4386-baf9-a4ad78968db2 (validation): ValueError
+License 5dd1357e-4e8c-44b7-9f97-ac85c2eddbc7 renewal: allocation 53653790-c01a-402d-9f1a-02faf3486f20 (user 05377584-de35-4386-baf9-a4ad78968db2) is owed 2 monthly refresh(es): due from 2026-02-28 01:00:00.021000+00:00, never made before the cycle ended at 2027-01-31 01:00:00+00:00.
+.Free trial plan not found: no trial activated for user 6c10cf71-b28e-44ce-97b1-3efed72c392e.
+Cannot activate automatic trial for user 6c10cf71-b28e-44ce-97b1-3efed72c392e (validation): ValueError
+.Free trial plan not found: no trial activated for user 02b4541b-ea60-4018-9c79-70e8ac4e4920.
+Cannot activate automatic trial for user 02b4541b-ea60-4018-9c79-70e8ac4e4920 (validation): ValueError
+.Free trial plan not found: no trial activated for user 98930486-2e5f-459d-ac7c-158b1a2838be.
+Cannot activate automatic trial for user 98930486-2e5f-459d-ac7c-158b1a2838be (validation): ValueError
+..Free trial plan not found: no trial activated for user d3d0d566-1649-443f-b052-5f13b4e9d5ce.
+Cannot activate automatic trial for user d3d0d566-1649-443f-b052-5f13b4e9d5ce (validation): ValueError
+License e32d647b-b393-489f-856f-18329ba88ce0 renewal: allocation bb855d20-6d03-446a-9b42-805d9542c2fe (user d3d0d566-1649-443f-b052-5f13b4e9d5ce) is owed 11 monthly refresh(es): due from 2026-02-28 01:00:00.021000+00:00, never made before the cycle ended at 2027-01-31 01:00:00+00:00.
+.Free trial plan not found: no trial activated for user 5d4ce9dd-977a-4def-910e-7ae9c3da667d.
+Cannot activate automatic trial for user 5d4ce9dd-977a-4def-910e-7ae9c3da667d (validation): ValueError
+.Free trial plan not found: no trial activated for user 0ddd7a1b-ae49-4cff-bed0-5cf5f8352548.
+Cannot activate automatic trial for user 0ddd7a1b-ae49-4cff-bed0-5cf5f8352548 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2c4fc201-7835-4c49-8940-bbe53a04f1e4.
+Cannot activate automatic trial for user 2c4fc201-7835-4c49-8940-bbe53a04f1e4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 688be56d-ff67-4475-9d4e-62c40213aa2c.
+Cannot activate automatic trial for user 688be56d-ff67-4475-9d4e-62c40213aa2c (validation): ValueError
+.Free trial plan not found: no trial activated for user eec93b6b-3e89-4e0a-a335-bba5944ac26b.
+Cannot activate automatic trial for user eec93b6b-3e89-4e0a-a335-bba5944ac26b (validation): ValueError
+.Free trial plan not found: no trial activated for user 00b3046c-afe7-4009-9dbb-22b94b0f179f.
+Cannot activate automatic trial for user 00b3046c-afe7-4009-9dbb-22b94b0f179f (validation): ValueError
+.Free trial plan not found: no trial activated for user ba0511bf-e82b-45ff-b7ea-b5e5454491c9.
+Cannot activate automatic trial for user ba0511bf-e82b-45ff-b7ea-b5e5454491c9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3dd5ebc7-4a28-49fd-838f-fde8e5492c8c.
+Cannot activate automatic trial for user 3dd5ebc7-4a28-49fd-838f-fde8e5492c8c (validation): ValueError
+.Free trial plan not found: no trial activated for user 07db0163-38ec-4958-b1fd-a4740891ade3.
+Cannot activate automatic trial for user 07db0163-38ec-4958-b1fd-a4740891ade3 (validation): ValueError
+.Free trial plan not found: no trial activated for user a2e76df1-9e69-434b-9481-322183b3c476.
+Cannot activate automatic trial for user a2e76df1-9e69-434b-9481-322183b3c476 (validation): ValueError
+................
+----------------------------------------------------------------------
+Ran 42 tests in 8.872s
+
+OK
+Preserving test database for alias 'default'...

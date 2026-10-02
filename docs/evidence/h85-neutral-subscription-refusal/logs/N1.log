@@ -1,0 +1,16 @@
+# N1: the invite refusal names no address and no subscription
+# file: billing/license_service.py (occurrence 1)
+# old: '                    raise IndividualSubscriptionConflictError(\n                        TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION\n                    )\n'
+# new: '                    raise IndividualSubscriptionConflictError(\n                        f"Teacher {email} has an active individual subscription."\n                    )\n'
+# commit: b5911242393122af780f10ef77cf43d1d69961ff
+# exit: 1
+# elapsed_s: 6.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_inviting_an_unattached_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_inviting_an_unattached_paying_teacher_is_refused_neutrally)
+FAIL: test_inviting_the_schools_own_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_inviting_the_schools_own_paying_teacher_is_refused_neutrally)
+FAIL: test_the_add_teachers_response_says_nothing_about_a_subscription (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_add_teachers_response_says_nothing_about_a_subscription)
+FAIL: test_the_enrolment_result_carries_the_neutral_sentence (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_enrolment_result_carries_the_neutral_sentence)
+FAIL: test_control_own_schools_paying_teacher_still_gets_the_subscription_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_control_own_schools_paying_teacher_still_gets_the_subscription_refusal)
+
+FAILED (failures=5)

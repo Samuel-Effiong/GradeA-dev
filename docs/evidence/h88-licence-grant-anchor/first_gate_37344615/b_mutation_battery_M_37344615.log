@@ -1,0 +1,18 @@
+baseline exit=0
+M1	an enrolment stores its anchor	KILLED	FAILED (failures=1)	True	14.6
+M2	the renewal task restarts the teacher's month	KILLED	FAILED (failures=1)	True	14.5
+M3	the offline renewal restarts the teacher's month	KILLED	FAILED (failures=2)	True	8.9
+M4	the chain is computed from the anchor, not the served due	KILLED	FAILED (failures=9)	True	13.2
+M5	the helper is fed the served due, not now	KILLED	FAILED (failures=4)	True	11.8
+M6	the fallback is the later of creation and the cycle start	KILLED	FAILED (failures=1)	True	14.8
+M7	a due time off the fallback's chain is its own anchor	KILLED	FAILED (failures=33)	True	17.7
+M8	the fallback's snap window covers a due time before its point	KILLED	FAILED (failures=1956)	True	18.4
+M9	the refresh stores the anchor it resolved	KILLED	FAILED (failures=2, errors=1)	True	8.4
+M10	a caught-up refresh logs a WARNING	KILLED	FAILED (failures=1)	True	8.8
+M11	a caught-up bucket lives from its grant time	KILLED	FAILED (failures=2)	True	14.8
+M12	a caught-up bucket ends by the contract end	KILLED	FAILED (failures=1)	True	10.9
+M13	a new admin allocation stores its anchor	KILLED	FAILED (failures=1)	True	26.4
+M14	a reactivated admin allocation restarts its month	KILLED	FAILED (failures=1)	True	24.1
+
+14/14 killed with verified restore
+exit=0 wall_s=236

@@ -484,8 +484,9 @@ superadmin panel.
 **Teacher enrollment at creation**
 Pass `teacher_emails` to enroll teachers immediately. Teachers not yet on
 the platform receive an invitation email with an activation link.
-Teachers with an existing active individual subscription cannot be enrolled
-until that subscription is cancelled.
+A teacher who cannot be enrolled is listed in the result's errors with a
+short message for the admin. It never says why in terms of the teacher's
+own account (for example a plan they pay for themselves).
 """,
     request=inline_serializer(
         name="LicenseCreateRequest",
@@ -519,8 +520,8 @@ until that subscription is cancelled.
                 required=False,
                 help_text=(
                     "Optional list of teacher emails to enroll on creation. "
-                    "New accounts receive an activation email. Teachers with "
-                    "active individual subscriptions must cancel first."
+                    "New accounts receive an activation email. A teacher who "
+                    "cannot be enrolled is reported in the result's errors."
                 ),
             ),
             "custom_price_cents": serializers.IntegerField(
@@ -693,7 +694,10 @@ before the cap is hit are still enrolled successfully.
                         "errors": [
                             {
                                 "teacher_email": "teacher@gmail.com",
-                                "error": "Individual subscription conflict or invalid email domain.",
+                                "error": (
+                                    "This teacher can't be added to your school "
+                                    "yet. Please ask them to contact support."
+                                ),
                             }
                         ],
                     },
