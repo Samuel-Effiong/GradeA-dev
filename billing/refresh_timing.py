@@ -34,6 +34,8 @@ THREE DEFENCES
 
 from datetime import timedelta
 
+from dateutil.relativedelta import relativedelta  # type: ignore
+
 #: A refresh due within this long after a run starts is due on that run.
 REFRESH_DUE_TOLERANCE = timedelta(minutes=5)
 
@@ -56,3 +58,39 @@ def monthly_bucket_expiry(next_due, contract_end):
     expire: MONTHLY_BUCKET_GRACE after it, but not past `contract_end`
     (and never before `next_due` itself)."""
     return max(next_due, min(next_due + MONTHLY_BUCKET_GRACE, contract_end))
+
+
+#: The next monthly grant is the first anchor point more than this far past
+#: the due time just served (H-82). See next_monthly_grant.
+ANCHOR_SNAP = timedelta(days=7)
+
+
+def next_monthly_grant(anchor, served_due, contract_end):
+    """The monthly grant after the one due at `served_due`, on a contract
+    anchored at `anchor`: (k, due), where due is `anchor + k months`, capped
+    at `contract_end`.
+
+    Each point is computed from the anchor, never from the previous due
+    time, so a 31st anchor gives 28 Feb, 31 Mar, 30 Apr... (chaining
+    `+ 1 month` clamps to the 28th once and stays there: 13 grants a year).
+
+    k is the first whose point lies more than ANCHOR_SNAP past
+    `served_due`, NOT past "now":
+      * A row already drifted by the old chain (31 Jan anchor, due 28 Mar)
+        is serving March's grant, so its next is 30 April; "the first point
+        after now" would be 31 March, a second grant three days later.
+      * A late run (an outage) leaves `served_due` where it was, so the
+        chain catches up one grant per run instead of skipping months.
+    This assumes `served_due` is within ANCHOR_SNAP before its own anchor
+    point: the old chain's drift is at most 3 days (the 31st clamped to the
+    28th), and a month is at least 28 days, so the point after the current
+    one is always more than ANCHOR_SNAP away. A due time further off its
+    anchor (none is written today) still yields one grant per period: the
+    next due is always more than ANCHOR_SNAP, and at most a month plus
+    ANCHOR_SNAP, after it (tested).
+    """
+    floor = served_due + ANCHOR_SNAP
+    k = 1
+    while anchor + relativedelta(months=k) <= floor:
+        k += 1
+    return k, min(anchor + relativedelta(months=k), contract_end)
