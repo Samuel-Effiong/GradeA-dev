@@ -1,0 +1,171 @@
+{
+  "I1_an_in_flow_escalation_writes_no_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_helper_that_raises_does_not_stop_the_escalation",
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_before_is_the_stored_status_not_the_copys",
+      "test_in_a_request_the_event_is_the_signed_in_users",
+      "test_with_no_request_the_event_is_system"
+    ]
+  },
+  "I2_every_status_change_writes_an_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_other_status_changes_write_no_event"
+    ]
+  },
+  "I17_a_stale_copy_records_the_escalation_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_stale_copy_does_not_record_the_escalation_twice"
+    ]
+  },
+  "I18_before_is_not_the_stored_status": {
+    "killed": true,
+    "failing_tests": [
+      "test_before_is_the_stored_status_not_the_copys"
+    ]
+  },
+  "I3_the_beat_escalation_writes_no_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_stale_copy_does_not_record_the_escalation_twice",
+      "test_a_stale_stripe_applied_intent_records_what_it_was",
+      "test_each_escalated_intent_gets_one_system_event",
+      "test_the_beat_task_writes_the_event_as_system"
+    ]
+  },
+  "I4_the_beat_check_records_an_intent_it_did_not_claim": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_intent_the_check_does_not_claim_gets_no_event"
+    ]
+  },
+  "I5_a_manual_close_writes_no_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver",
+      "test_closing_a_pending_intent_records_what_it_was",
+      "test_the_event_is_written_with_the_close_or_not_at_all"
+    ]
+  },
+  "I6_a_lost_race_still_writes_an_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_lost_race_writes_no_event"
+    ]
+  },
+  "I7_the_close_is_not_under_command_actor": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver"
+    ]
+  },
+  "I8_the_close_and_its_event_are_not_one_transaction": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_event_is_written_with_the_close_or_not_at_all"
+    ]
+  },
+  "I9_the_request_user_is_not_the_actor": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_in_a_request_the_event_is_the_signed_in_users"
+    ]
+  },
+  "I10_the_request_is_not_passed": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request"
+    ]
+  },
+  "I11_a_raising_emitter_stops_the_escalation": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_helper_that_raises_does_not_stop_the_escalation"
+    ]
+  },
+  "I12_before_and_after_are_swapped": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver",
+      "test_a_stale_copy_does_not_record_the_escalation_twice",
+      "test_a_stale_stripe_applied_intent_records_what_it_was",
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_before_is_the_stored_status_not_the_copys",
+      "test_closing_a_pending_intent_records_what_it_was",
+      "test_each_escalated_intent_gets_one_system_event",
+      "test_in_a_request_the_event_is_the_signed_in_users",
+      "test_the_beat_task_writes_the_event_as_system",
+      "test_with_no_request_the_event_is_system"
+    ]
+  },
+  "I13_the_licence_id_is_left_out": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver",
+      "test_a_stale_copy_does_not_record_the_escalation_twice",
+      "test_a_stale_stripe_applied_intent_records_what_it_was",
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_before_is_the_stored_status_not_the_copys",
+      "test_each_escalated_intent_gets_one_system_event",
+      "test_in_a_request_the_event_is_the_signed_in_users",
+      "test_the_beat_task_writes_the_event_as_system",
+      "test_with_no_request_the_event_is_system"
+    ]
+  },
+  "I14_the_reason_goes_into_the_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver",
+      "test_a_stale_copy_does_not_record_the_escalation_twice",
+      "test_a_stale_stripe_applied_intent_records_what_it_was",
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_before_is_the_stored_status_not_the_copys",
+      "test_each_escalated_intent_gets_one_system_event",
+      "test_in_a_request_the_event_is_the_signed_in_users",
+      "test_the_beat_task_writes_the_event_as_system",
+      "test_with_no_request_the_event_is_system"
+    ]
+  },
+  "I15_intent_status_is_not_allowed_in_before_after": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver",
+      "test_a_stale_copy_does_not_record_the_escalation_twice",
+      "test_a_stale_stripe_applied_intent_records_what_it_was",
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_before_is_the_stored_status_not_the_copys",
+      "test_closing_a_pending_intent_records_what_it_was",
+      "test_each_escalated_intent_gets_one_system_event",
+      "test_in_a_request_the_event_is_the_signed_in_users",
+      "test_the_beat_task_writes_the_event_as_system",
+      "test_with_no_request_the_event_is_system"
+    ]
+  },
+  "I16_license_id_is_not_allowed_in_the_metadata": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_manual_close_writes_one_event_by_the_resolver",
+      "test_a_stale_copy_does_not_record_the_escalation_twice",
+      "test_a_stale_stripe_applied_intent_records_what_it_was",
+      "test_an_escalated_seat_change_is_audited_as_the_signed_in_user",
+      "test_an_escalation_over_the_real_route_is_audited_with_the_request",
+      "test_before_is_the_stored_status_not_the_copys",
+      "test_each_escalated_intent_gets_one_system_event",
+      "test_in_a_request_the_event_is_the_signed_in_users",
+      "test_the_beat_task_writes_the_event_as_system",
+      "test_with_no_request_the_event_is_system"
+    ]
+  }
+}
