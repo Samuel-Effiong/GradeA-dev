@@ -34,7 +34,7 @@ WORKTREE = os.path.join(os.path.dirname(REPO), "Grade-Automator-Plus-h91-mut")
 TEST_DB = "test_h91_mut"
 
 TESTS = [
-    "billing.tests.test_logs_carry_no_email",
+    "AutoGrader.tests_no_pii_in_logs",
     "billing.tests.test_price_drift_reconciliation",
 ]
 

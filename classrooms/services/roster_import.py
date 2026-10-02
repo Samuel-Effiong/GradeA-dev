@@ -379,9 +379,11 @@ def import_roster(*, course, rows, total_processed):
                     )
         except Exception as exc:
             # By position and course, never by the student's name (H-91).
+            # The position counts the parsed rows from 1; it is not the
+            # spreadsheet's line number (a header or blank lines shift it).
             logger.error(
-                "Failed to bulk-add the student in row %d of the import for "
-                "course %s",
+                "Failed to bulk-add the student in parsed row %d of the import "
+                "for course %s",
                 position,
                 course.id,
                 exc_info=exc,
