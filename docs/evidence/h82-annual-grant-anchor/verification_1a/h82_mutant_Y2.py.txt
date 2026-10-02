@@ -1,0 +1,14 @@
+"""1a's mutant Y2 for H-82: a caught-up bucket's expiry loses its cap at the
+contract end (`min(now + 1 month, billing_cycle_end)` -> `now + 1 month`).
+grace_expiry is max(next_due, ...), so it would not cap it either: a catch-up
+near the cycle end gets a MONTHLY bucket outliving the contract. Applied in
+place to billing/services.py in the current directory; restore with git
+checkout. Run with python -B (rule 17)."""
+
+P = "billing/services.py"
+s = open(P, encoding="utf-8").read()
+old = "else min(now + relativedelta(months=1), user_subscription.billing_cycle_end)"
+new = "else now + relativedelta(months=1)"
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y2")

@@ -40,6 +40,8 @@ from django.db import connection, transaction
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import declared_lock, lock_key
 from AutoGrader.testing.concurrency import run_concurrently
 from billing.immutable import allow_unsafe_mutation
 from billing.models import (
@@ -153,19 +155,35 @@ def run_b_after_run_a(task, service_path):
     Run `task` as run B, with run A (the same task, start to finish)
     happening after run B has read its rows and before its first row is
     acted on. Returns (summary_a, summary_b).
+
+    H-65 locks each Beat task to one run at a time, so an overlap now needs
+    run B's lock to have LAPSED (a Redis blip, or a run past its max_hold):
+    the key is deleted before run A, which then takes the lock itself. The
+    per-row re-checks under test are the defence for exactly that case. Run
+    B must notice at its end that it ran without its lock.
     """
     real = _unwrapped(service_path)
+    lock = declared_lock(task)
+    assert lock is not None, f"{task} holds no Beat lock"
     summaries = {}
 
     def run_b_acts_on_its_stale_row(row, *args, **kwargs):
         if "a" not in summaries:
+            beat_locks._redis().delete(lock_key(lock.name))  # B's lock lapses
             with patch(service_path, side_effect=real):
                 summaries["a"] = task()
         return real(row, *args, **kwargs)
 
     with patch(service_path, side_effect=run_b_acts_on_its_stale_row):
-        summaries["b"] = task()
+        with assert_logs("AutoGrader.beat_locks", "ERROR") as logs:
+            summaries["b"] = task()
+    assert any("finished without its lock" in line for line in logs.output), logs.output
     return summaries["a"], summaries["b"]
+
+
+def assert_logs(logger, level):
+    """TestCase.assertLogs outside a TestCase method."""
+    return TestCase().assertLogs(logger, level)
 
 
 def _unwrapped(service_path):

@@ -20,10 +20,20 @@ go through `schedule_plan_change_on_stripe` and get a real Stripe schedule
 from the start. This backfill only matters for whatever was already
 in-flight at deploy time.
 
-Run this via `python manage.py shell < this_file.py`, or paste it into a
-Django shell session, or wrap it in a proper management command if you'd
-rather — it's written as a plain script since it's a one-time operation,
-not a piece of the app.
+Run this via
+`python manage.py shell < scripts/one_off_backfill_stripe_schedules.py`,
+or paste it into a Django shell session — it's written as a plain script
+since it's a one-time operation, not a piece of the app.
+
+NEVER IMPORTED, AND NOT A MANAGEMENT COMMAND (H1)
+--------------------------------------------------
+This file has no `Command` class and no functions: importing it RUNS it,
+and it writes live Stripe subscription schedules with no dry run and no
+confirmation. It used to live at `billing/management/commands/backfill.py`,
+where `python manage.py backfill` imported it and so ran the whole loop.
+It lives in `scripts/` (not a package) so that nothing can import it and
+Django cannot list it as a command. Do not move it back, and do not import
+it. `AutoGrader/tests_management_commands_are_commands.py` holds the line.
 
 SAFETY
 -------

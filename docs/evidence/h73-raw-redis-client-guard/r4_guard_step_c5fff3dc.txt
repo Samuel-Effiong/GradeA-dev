@@ -1,0 +1,518 @@
+01:31:52 Creating test database for alias 'default' ('test_h73_raw_redis_client_guard')...
+01:31:52 Found 115 test(s).
+01:31:52 Operations to perform:
+01:31:52   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+01:31:52   Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+01:31:52 Synchronizing apps without migrations:
+01:31:52   Creating tables...
+01:31:52     Running deferred SQL...
+01:31:52 Running migrations:
+01:31:52   Applying contenttypes.0001_initial... OK
+01:31:52   Applying contenttypes.0002_remove_content_type_name... OK
+01:31:52   Applying auth.0001_initial... OK
+01:31:52   Applying auth.0002_alter_permission_name_max_length... OK
+01:31:52   Applying auth.0003_alter_user_email_max_length... OK
+01:31:52   Applying auth.0004_alter_user_username_opts... OK
+01:31:52   Applying auth.0005_alter_user_last_login_null... OK
+01:31:52   Applying auth.0006_require_contenttypes_0002... OK
+01:31:52   Applying auth.0007_alter_validators_add_error_messages... OK
+01:31:52   Applying auth.0008_alter_user_username_max_length... OK
+01:31:52   Applying auth.0009_alter_user_last_name_max_length... OK
+01:31:52   Applying auth.0010_alter_group_name_max_length... OK
+01:31:52   Applying auth.0011_update_proxy_permissions... OK
+01:31:52   Applying auth.0012_alter_user_first_name_max_length... OK
+01:31:52   Applying users.0001_initial... OK
+01:31:52   Applying admin.0001_initial... OK
+01:31:52   Applying admin.0002_logentry_remove_auto_add... OK
+01:31:52   Applying admin.0003_logentry_add_action_flag_choices... OK
+01:31:52   Applying classrooms.0001_initial... OK
+01:31:52   Applying ai_processor.0001_initial... OK
+01:31:52   Applying ai_processor.0002_initial... OK
+01:31:52   Applying ai_processor.0003_chatsession_user... OK
+01:31:52   Applying ai_processor.0004_chatsession_assistant_type... OK
+01:31:52   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+01:31:52   Applying classrooms.0002_initial... OK
+01:31:52   Applying classrooms.0003_coursecategory_course_categories... OK
+01:31:52   Applying classrooms.0004_course_teacher... OK
+01:31:52   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+01:31:53   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+01:31:53   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+01:31:53   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+01:31:53   Applying classrooms.0009_school... OK
+01:31:53   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+01:31:53   Applying classrooms.0011_remove_course_categories_topic... OK
+01:31:53   Applying classrooms.0012_studentcourse_auto_added... OK
+01:31:53   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+01:31:53   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+01:31:53   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+01:31:53   Applying classrooms.0016_school_is_active... OK
+01:31:53   Applying assignments.0001_initial... OK
+01:31:53   Applying assignments.0002_initial... OK
+01:31:53   Applying assignments.0003_initial... OK
+01:31:53   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+01:31:53   Applying assignments.0005_alter_assignment_options... OK
+01:31:53   Applying assignments.0006_assignment_estimated_time... OK
+01:31:53   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+01:31:53   Applying assignments.0008_alter_assignment_due_date... OK
+01:31:53   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+01:31:53   Applying assignments.0010_assignment_custom_ai_prompt... OK
+01:31:53   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+01:31:53   Applying assignments.0012_assignment_was_overridden... OK
+01:31:53   Applying assignments.0013_alter_assignment_ai_generated... OK
+01:31:53   Applying assignments.0014_assignment_self_assessment_and_more... OK
+01:31:53   Applying assignments.0015_alter_assignment_potential_issues... OK
+01:31:53   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+01:31:53   Applying assignments.0017_assignment_grading_status... OK
+01:31:53   Applying assignments.0018_assignment_topic... OK
+01:31:53   Applying assignments.0019_alter_assignment_title_and_more... OK
+01:31:53   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+01:31:54   Applying assignments.0021_assignment_overridden_at... OK
+01:31:54   Applying assignments.0022_assignment_raw_input... OK
+01:31:54   Applying assignments.0023_delete_rubric... OK
+01:31:54   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+01:31:54   Applying assignments.0025_alter_assignment_instructions... OK
+01:31:54   Applying assignments.0026_assignment_status... OK
+01:31:54   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+01:31:54   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+01:31:54   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+01:31:54   Applying assignments.0030_alter_assignment_status... OK
+01:31:54   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+01:31:54   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+01:31:54   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+01:31:54   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+01:31:54   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+01:31:54   Applying assignments.0036_backfill_assignment_rigor... OK
+01:31:54   Applying assignments.0037_assignment_course_title_index... OK
+01:31:54   Applying assignments.0038_assignment_updated_at... OK
+01:31:54   Applying assignments.0039_assignment_upload_fingerprint... OK
+01:31:54   Applying assignments.0040_db_defaults_for_rollback... OK
+01:31:54   Applying authtoken.0001_initial... OK
+01:31:54   Applying authtoken.0002_auto_20160226_1747... OK
+01:31:54   Applying authtoken.0003_tokenproxy... OK
+01:31:54   Applying authtoken.0004_alter_tokenproxy_options... OK
+01:31:54   Applying users.0002_customuser_activation_expires_and_more... OK
+01:31:54   Applying users.0003_passwordresetotp... OK
+01:31:54   Applying users.0004_customuser_email_verified_at... OK
+01:31:55   Applying users.0005_alter_passwordresetotp_code... OK
+01:31:55   Applying users.0006_alter_passwordresetotp_code... OK
+01:31:55   Applying users.0007_passwordchangeotp... OK
+01:31:55   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+01:31:55   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+01:31:55   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+01:31:55   Applying billing.0001_initial... OK
+01:31:55   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+01:31:56   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+01:31:56   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+01:31:56   Applying billing.0005_usersubscription_pending_plan... OK
+01:31:56   Applying billing.0006_alter_subscriptionplan_name... OK
+01:31:56   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+01:31:56   Applying billing.0008_betaprofile... OK
+01:31:56   Applying billing.0009_betaprofile_uuid_and_more... OK
+01:31:56   Applying billing.0010_alter_betaprofile_id... OK
+01:31:56   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+01:31:56   Applying billing.0012_populate_beta_profile_uuids... OK
+01:31:56   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+01:31:56   Applying billing.0014_rename_uid_betaprofile_id... OK
+01:31:56   Applying billing.0015_betaprofile_credits_used_feedback... OK
+01:31:56   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+01:31:56   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+01:31:56   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+01:31:57   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+01:31:57   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+01:31:57   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+01:31:57   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+01:31:57   Applying billing.0023_alter_subscriptionplan_name... OK
+01:31:57   Applying billing.0024_licensesubscription_custom_price_cents... OK
+01:31:57   Applying billing.0025_alter_subscriptionplan_name... OK
+01:31:57   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+01:31:57   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+01:31:57   Applying billing.0028_alter_usersubscription_is_trial... OK
+01:31:57   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+01:31:57   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+01:31:57   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+01:31:57   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+01:31:57   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+01:31:57   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+01:31:57   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+01:31:58   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+01:31:58   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+01:31:58   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+01:31:58   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+01:31:58   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+01:31:58   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+01:31:58   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+01:31:58   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+01:31:58   Applying billing.0044_alter_creditusagelog_feature... OK
+01:31:58   Applying billing.0045_billingtransaction... OK
+01:31:58   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+01:31:58   Applying billing.0047_subscriptionplan_carry_over_max... OK
+01:31:58   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+01:31:58   Applying billing.0049_billingtransaction_receipt_url... OK
+01:31:58   Applying billing.0050_creditusagelog_course... OK
+01:31:58   Applying billing.0051_creditusagelog_task_id_index... OK
+01:31:58   Applying billing.0052_creditusagelog_school... OK
+01:31:58   Applying billing.0053_backfill_creditusagelog_school... OK
+01:31:58   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+01:31:59   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+01:31:59   Applying billing.0056_liveqarun... OK
+01:31:59   Applying billing.0057_usersubscription_cancelled_at... OK
+01:31:59   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+01:31:59   Applying billing.0059_append_only_audit_tables... OK
+01:31:59   Applying billing.0060_backfill_audit_identity...
+01:31:59   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+01:31:59  OK
+01:31:59   Applying billing.0061_add_audit_table_time_indexes... OK
+01:31:59   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+01:32:00   Applying billing.0063_payment_disputes... OK
+01:32:00   Applying billing.0064_refund_credit_reversal... OK
+01:32:00   Applying billing.0065_backfill_ledger_payment_intent...
+01:32:00   attributed 0 ledger row(s) to their Stripe payment
+01:32:00  OK
+01:32:00   Applying billing.0066_dispute_deficit_by_wallet... OK
+01:32:00   Applying billing.0067_stripe_event_recovery... OK
+01:32:00   Applying billing.0068_price_reconciliation... OK
+01:32:00   Applying billing.0069_price_sync_audit... OK
+01:32:00   Applying billing.0070_db_defaults_for_rollback... OK
+01:32:00   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+01:32:00   Applying billing.0072_license_stripe_mutation_intent... OK
+01:32:00   Applying dashboard.0001_initial... OK
+01:32:00   Applying dashboard.0002_schoolatrisksnapshot... OK
+01:32:00   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+01:32:00   Applying dashboard.0004_db_defaults_for_rollback... OK
+01:32:00   Applying django_celery_beat.0001_initial... OK
+01:32:00   Applying django_celery_beat.0002_auto_20161118_0346... OK
+01:32:00   Applying django_celery_beat.0003_auto_20161209_0049... OK
+01:32:00   Applying django_celery_beat.0004_auto_20170221_0000... OK
+01:32:00   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+01:32:01   Applying django_celery_beat.0006_auto_20180322_0932... OK
+01:32:01   Applying django_celery_beat.0007_auto_20180521_0826... OK
+01:32:01   Applying django_celery_beat.0008_auto_20180914_1922... OK
+01:32:01   Applying django_celery_beat.0006_auto_20180210_1226... OK
+01:32:01   Applying django_celery_beat.0006_periodictask_priority... OK
+01:32:01   Applying django_celery_beat.0009_periodictask_headers... OK
+01:32:01   Applying django_celery_beat.0010_auto_20190429_0326... OK
+01:32:01   Applying django_celery_beat.0011_auto_20190508_0153... OK
+01:32:01   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+01:32:01   Applying django_celery_beat.0013_auto_20200609_0727... OK
+01:32:01   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+01:32:01   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+01:32:01   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+01:32:01   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+01:32:01   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+01:32:01   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+01:32:01   Applying django_celery_results.0001_initial... OK
+01:32:01   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+01:32:01   Applying django_celery_results.0003_auto_20181106_1101... OK
+01:32:01   Applying django_celery_results.0004_auto_20190516_0412... OK
+01:32:01   Applying django_celery_results.0005_taskresult_worker... OK
+01:32:01   Applying django_celery_results.0006_taskresult_date_created... OK
+01:32:01   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+01:32:01   Applying django_celery_results.0008_chordcounter... OK
+01:32:01   Applying django_celery_results.0009_groupresult... OK
+01:32:01   Applying django_celery_results.0010_remove_duplicate_indices... OK
+01:32:01   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+01:32:01   Applying django_celery_results.0012_taskresult_date_started... OK
+01:32:01   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+01:32:01   Applying django_celery_results.0014_alter_taskresult_status... OK
+01:32:01   Applying sessions.0001_initial... OK
+01:32:01   Applying users.0011_concurrentusersnapshot_useractivity... OK
+01:32:01   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+01:32:02   Applying users.0013_customuser_middle_name... OK
+01:32:02   Applying users.0014_alter_customuser_middle_name... OK
+01:32:02   Applying users.0015_customuser_bio_settings... OK
+01:32:02   Applying users.0016_remove_customuser_bio_delete_settings... OK
+01:32:02   Applying users.0017_settings... OK
+01:32:02   Applying users.0018_customuser_bio... OK
+01:32:02   Applying users.0019_betawhitelist... OK
+01:32:02   Applying users.0020_waitlist_betawhitelist_mode... OK
+01:32:02   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+01:32:02   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+01:32:02   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+01:32:02   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+01:32:02   Applying users.0025_customuser_profile_image... OK
+01:32:02   Applying students.0001_initial... OK
+01:32:02   Applying students.0002_initial... OK
+01:32:02   Applying students.0003_studentsubmission_graded_at_and_more... OK
+01:32:02   Applying students.0004_alter_studentsubmission_graded_at... OK
+01:32:03   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+01:32:03   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+01:32:03   Applying students.0007_studentsubmission_extraction_confidence... OK
+01:32:03   Applying students.0008_studentsubmission_formatted_grade... OK
+01:32:03   Applying students.0009_studentsubmission_raw_input... OK
+01:32:03   Applying students.0010_batchuploadsession... OK
+01:32:03   Applying students.0011_batchuploadsession_course_and_more... OK
+01:32:03   Applying students.0012_alter_batchuploadsession_task_type... OK
+01:32:04   Applying students.0013_studentsubmission_max_points_and_more... OK
+01:32:04   Applying students.0014_alter_studentsubmission_score_percentage... OK
+01:32:04   Applying students.0015_studentsubmission_is_published... OK
+01:32:04   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+01:32:04   Applying students.0017_backgroundprocessingtask... OK
+01:32:04   Applying students.0018_studentsubmission_attempt_count... OK
+01:32:04   Applying students.0019_alter_studentsubmission_attempt_count... OK
+01:32:04   Applying students.0020_studentsubmission_grading_state... OK
+01:32:04   Applying students.0021_studentsubmission_needs_review... OK
+01:32:04   Applying students.0022_studentsubmission_review_severity... OK
+01:32:04   Applying students.0023_studentsubmission_review_tier_and_more... OK
+01:32:05   Applying students.0024_repair_raw_input_json... OK
+01:32:05   Applying students.0025_student_submission_hot_path_indexes... OK
+01:32:05   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+01:32:05   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+01:32:05   Applying students.0028_backfill_ai_grading_completed_at... OK
+01:32:05   Applying token_blacklist.0001_initial... OK
+01:32:05   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+01:32:05   Applying token_blacklist.0003_auto_20171017_2007... OK
+01:32:06   Applying token_blacklist.0004_auto_20171017_2013... OK
+01:32:06   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+01:32:06   Applying token_blacklist.0006_auto_20171017_2113... OK
+01:32:06   Applying token_blacklist.0007_auto_20171017_2214... OK
+01:32:06   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+01:32:06   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+01:32:06   Applying token_blacklist.0011_linearizes_history... OK
+01:32:06   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+01:32:06   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+01:32:06   Applying users.0026_customuser_registration_method... OK
+01:32:06   Applying users.0027_customuser_profile_image_url... OK
+01:32:06   Applying users.0028_alter_customuser_middle_name... OK
+01:32:06   Applying users.0029_usergooglecredentials... OK
+01:32:07   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+01:32:07   Applying users.0031_settings_notify_new_assignment_posted... OK
+01:32:07   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+01:32:07   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+01:32:07   Applying users.0034_passwordresetotp_attempts_and_more... OK
+01:32:07   Applying users.0035_settings_notify_assignment_edited... OK
+01:32:07   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+01:32:07   Applying users.0037_customuser_must_change_password... OK
+01:32:07   Applying users.0038_alter_customuser_must_change_password... OK
+01:32:07   Applying users.0039_customuser_token_epoch... OK
+01:32:09   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+01:32:09
+01:32:09 WARNINGS:
+01:32:09 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+01:32:09
+01:32:09 System check identified 1 issue (0 silenced).
+01:32:09 test_logs_error_and_names_the_overdue_task (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_logs_error_and_names_the_overdue_task) ... ok
+01:32:09 test_returns_all_clear_message_when_nothing_overdue (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_returns_all_clear_message_when_nothing_overdue) ... ok
+01:32:09 test_disabled_task_is_never_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_disabled_task_is_never_reported) ... ok
+01:32:09 test_missing_periodic_task_row_is_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_missing_periodic_task_row_is_reported) ... ok
+01:32:09 test_multiple_overdue_tasks_are_all_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_multiple_overdue_tasks_are_all_reported) ... ok
+01:32:09 test_never_run_task_uses_date_changed_as_reference (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_never_run_task_uses_date_changed_as_reference) ... ok
+01:32:09 test_no_expectations_configured_returns_empty (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_no_expectations_configured_returns_empty) ... ok
+01:32:09 test_on_schedule_task_is_not_overdue (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_on_schedule_task_is_not_overdue) ... ok
+01:32:09 test_overdue_task_is_reported_with_actionable_message (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_overdue_task_is_reported_with_actionable_message) ... ok
+01:32:09 test_days_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_days_hours_and_minutes) ... ok
+01:32:09 test_exact_hour_omits_zero_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_exact_hour_omits_zero_minutes) ... ok
+01:32:09 test_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_hours_and_minutes) ... ok
+01:32:09 test_minutes_only (AutoGrader.tests_beat_health.HumanizeTests.test_minutes_only) ... ok
+01:32:09 test_negative_delta_clamped_to_zero (AutoGrader.tests_beat_health.HumanizeTests.test_negative_delta_clamped_to_zero) ... ok
+01:32:09 test_singular_minute (AutoGrader.tests_beat_health.HumanizeTests.test_singular_minute) ... ok
+01:32:09 test_zero_renders_as_zero_minutes_not_empty (AutoGrader.tests_beat_health.HumanizeTests.test_zero_renders_as_zero_minutes_not_empty) ... ok
+01:32:09 test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:32:09 Cannot activate automatic trial for user stranger@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:32:09 ok
+01:32:09 test_both_mapped_serializers_still_exist (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_both_mapped_serializers_still_exist) ... ok
+01:32:09 test_it_targets_the_assignment_list_serializer (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_it_targets_the_assignment_list_serializer) ... ok
+01:32:09 test_the_discriminator_property_is_declared_and_required (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_discriminator_property_is_declared_and_required)
+01:32:09 A discriminator absent from `properties`/`required` is invalid ... ok
+01:32:09 test_the_mapping_declares_both_teacher_and_student_shapes (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_mapping_declares_both_teacher_and_student_shapes)
+01:32:09 The whole point: one endpoint returns two shapes depending on who ... ok
+01:32:09 test_the_target_serializer_still_exists (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_target_serializer_still_exists)
+01:32:09 target_class is a hand-written import path. A renamed serializer ... ok
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+01:32:09 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_course_description". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h73-raw-redis-client-guard/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+01:32:10 Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+01:32:10 Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+01:32:10 test_extensions_is_not_a_real_drf_spectacular_setting (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_extensions_is_not_a_real_drf_spectacular_setting)
+01:32:10 The root cause, asserted directly so an upgrade that ADDS an ... ok
+01:32:10 test_no_production_module_imports_the_extension (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_no_production_module_imports_the_extension)
+01:32:10 The root cause, checked statically. ... ok
+01:32:10 test_the_components_the_mapping_points_at_do_not_exist (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_components_the_mapping_points_at_do_not_exist)
+01:32:10 Even if the extension were registered as-is, its refs would dangle: ... ok
+01:32:10 test_the_settings_entry_that_was_meant_to_register_it_is_inert (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_settings_entry_that_was_meant_to_register_it_is_inert) ... ok
+01:32:10 test_extension_is_registered_for_the_wrapper_authenticator (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_is_registered_for_the_wrapper_authenticator) ... ok
+01:32:10 test_extension_targets_the_wrapper_class_exactly (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_targets_the_wrapper_class_exactly) ... ok
+01:32:10 test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+01:32:10 test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+01:32:10 test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+01:32:10 test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+01:32:10 test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+01:32:12 test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+01:32:12 test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+01:32:14 The path exclusion above is only honest if production never ... ok
+01:32:15 test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+01:32:15 test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+01:32:15 The exception is only safe while it is one assignment's prefix: ... ok
+01:32:15 test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+01:32:15 Guard on the guard: each form is found in a synthetic module, and ... ok
+01:32:15 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+01:32:15 The over-invalidation half, stated as a property. Under the ... ok
+01:32:15 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+01:32:15 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+01:32:15 Not response caches in the generation scheme, deliberately. ... ok
+01:32:16 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+01:32:16 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+01:32:16 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+01:32:18 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+01:32:19 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+01:32:19 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+01:32:19 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+01:32:19 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+01:32:19 H-1 step 4: the one family that was still raw is on generations. ... ok
+01:32:19 test_a_factory_imported_from_another_module_is_found_across_modules (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_factory_imported_from_another_module_is_found_across_modules)
+01:32:19 raw_client_uses resolves a factory imported from another module: ... ok
+01:32:19 test_a_listed_module_gaining_raw_writes_changes_its_count (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_listed_module_gaining_raw_writes_changes_its_count)
+01:32:19 v2's F1 on the real beat_locks: two new writes, two more. ... ok
+01:32:19 test_a_write_name_counts_whatever_it_is_called_on (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_write_name_counts_whatever_it_is_called_on)
+01:32:19 Rule 1 (v2 F1): in a module that obtains a raw client, a write ... ok
+01:32:19 test_an_imported_factory_counts_in_the_importing_module (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_an_imported_factory_counts_in_the_importing_module) ... ok
+01:32:19 test_any_non_read_call_on_a_client_is_a_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_any_non_read_call_on_a_client_is_a_write)
+01:32:19 Rule 2 (v2 F1): the read allow-list. `vf_cmd` is in no list, so ... ok
+01:32:19 test_every_entry_gives_a_reason (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_entry_gives_a_reason) ... ok
+01:32:29 test_every_raw_client_user_is_listed (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_raw_client_user_is_listed) ... ok
+01:32:29 test_the_live_modules_are_found_by_the_scan (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_live_modules_are_found_by_the_scan)
+01:32:38 The table is not vacuous: each listed module really is found. ... ok
+01:32:38 test_the_scanner_finds_every_shape_it_exists_to_catch (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_finds_every_shape_it_exists_to_catch) ... ok
+01:32:38 test_the_scanner_ignores_what_is_not_a_raw_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_ignores_what_is_not_a_raw_write) ... ok
+01:32:38 test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:32:38 Cannot activate automatic trial for user h56-wallet-8637060f@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:32:38 Cannot activate automatic trial for user h56-wallet-694fe04f@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:32:38 Cannot activate automatic trial for user h56-wallet-94a320dc@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:32:38 ok
+01:32:38 test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+01:32:38 The eight AlterFields since production that change choices, ... ok
+01:32:38 test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+01:32:38 test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+01:32:38 Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+01:32:38 test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+01:32:38 The production wiring (the Verification Engineer's H6 on ... ok
+01:32:38 test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+01:32:39 Rule (a) on the real graph with a synthetic final state: drop ... ok
+01:32:39 test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+01:32:39 Guard on the guard: the fields H-56 found are rule (a) ... ok
+01:32:39 test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+01:32:39 fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+01:32:39 test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+01:32:39 test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+01:32:39 test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+01:32:39 test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+01:32:39 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+01:32:41 THE ACCEPTANCE TEST for broker isolation. ... ok
+01:32:41 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+01:32:41 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+01:32:41 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+01:32:41 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+01:32:44 ok
+01:32:46 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+01:32:46 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+01:32:48 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+01:32:48 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+01:32:51 Same requirement, for the H-1 invariant specifically. ... ok
+01:32:51 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+01:32:51 The blast radius is wider than the Django cache. ... ok
+01:32:51 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+01:32:51 The mechanism, demonstrated deterministically in-process. ... ok
+01:32:51 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+01:32:52 THE ACCEPTANCE TEST for the regression. ... ok
+01:32:54 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+01:32:54 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+01:32:54 Server-wide Redis statistics are shared by every concurrent run. ... ok
+01:32:54 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+01:32:54 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+01:32:54 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+01:32:55 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+01:32:55 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+01:32:55 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+01:32:55 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+01:32:58 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+01:32:59 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+01:32:59 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+01:33:01 Guard on the guard, on synthetic source. ... ok
+01:33:03 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+01:33:03 test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+01:33:03 N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+01:33:03 test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+01:33:03 test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+01:33:03 test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+01:33:03 test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+01:33:03 So a hung run can never swallow the next scheduled one. ... ok
+01:33:03 test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+01:33:03 test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+01:33:03 test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+01:33:09 test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+01:33:09 test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+01:33:11 The worst-case lifetime the schedule guard relies on. ... ok
+01:33:14 test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+01:33:15 test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+01:33:15 test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t301382:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:2215f3833f81).
+01:33:16 ok
+01:33:16 test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+01:33:16 Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+01:33:16 test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+01:33:16 Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+01:33:16 test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+01:33:16 test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+01:33:16 test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+01:33:16 test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+01:33:16 No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+01:33:16 test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+01:33:16 test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+01:33:17 test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+01:33:17 Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t301382:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:61e817f928d8; this run direct:720f7eee6c9b).
+01:33:17 ok
+01:33:17
+01:33:17 ----------------------------------------------------------------------
+01:33:17 Ran 115 tests in 67.980s
+01:33:17
+01:33:17 OK
+01:33:17 Destroying test database for alias 'default' ('test_h73_raw_redis_client_guard')...

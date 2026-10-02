@@ -328,6 +328,33 @@ class TokenRevocationTests(RemediationBase):
             with self.subTest(pk=pk):
                 self.assertEqual(after[pk], epoch + (1 if pk in reset else 0))
 
+    def test_the_epoch_is_incremented_not_set(self):
+        """H-55: from epoch 0, "+1" and "set to 1" agree, so the tests above
+        can't tell them apart. Here the account is at epoch 3, with a token
+        still held from epoch 1 (revoked twice since). An increment makes it
+        4, and the old token stays dead. Setting it to 1 would bring that
+        token back to life."""
+        CustomUser.objects.filter(pk=self.bad1.pk).update(token_epoch=1)
+        stale_access, stale_refresh = self.open_session("one@student.local", LITERAL)
+        CustomUser.objects.filter(pk=self.bad1.pk).update(token_epoch=3)
+        self.assertEqual(
+            self.use_access(stale_access, self.bad1).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+            "precondition: an epoch-1 token is revoked at epoch 3",
+        )
+
+        run("--execute", "--report", self.report)
+
+        self.bad1.refresh_from_db()
+        self.assertEqual(self.bad1.token_epoch, 4)
+        self.assertEqual(
+            self.use_access(stale_access, self.bad1).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+        self.assertEqual(
+            self.use_refresh(stale_refresh).status_code, status.HTTP_401_UNAUTHORIZED
+        )
+
     def test_rerun_does_not_bump_again(self):
         run("--execute", "--report", self.report)
         after_first = dict(CustomUser.objects.values_list("pk", "token_epoch"))

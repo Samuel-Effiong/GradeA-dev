@@ -1619,7 +1619,11 @@ class StripeSubscriptionMutationService:
             license_stripe_mutation.abandon(
                 intent, f"could not read the subscription: {exc}"
             )
-            raise ValueError(f"Could not retrieve Stripe subscription: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Could not retrieve Stripe subscription."
+                + license_stripe_mutation.TRY_AGAIN
+            ) from exc
         items = before.get("items", {}).get("data", [])
         if not items:
             license_stripe_mutation.abandon(intent, "the subscription has no items")
@@ -1657,8 +1661,9 @@ class StripeSubscriptionMutationService:
                 license_stripe_mutation.abandon(
                     intent, f"could not create the new Price: {exc}"
                 )
+                license_stripe_mutation.log_provider_error(intent, exc)
                 raise ValueError(
-                    f"Custom price creation failed: Failed to create custom price: {exc}"
+                    "Custom price creation failed." + license_stripe_mutation.TRY_AGAIN
                 ) from exc
             new_price_id = price.id
             license_stripe_mutation.record_stripe_result(
@@ -1701,7 +1706,8 @@ class StripeSubscriptionMutationService:
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "
-                "reconciliation."
+                "reconciliation.",
+                intent=intent,
             )
 
         try:
@@ -1712,9 +1718,18 @@ class StripeSubscriptionMutationService:
                 payment_errors=(stripe.error.CardError,),
             )
         except stripe.error.CardError as exc:
-            raise payment_failed(f"card error: {exc}", f"Card declined: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise payment_failed(
+                f"card error: {exc}",
+                "Card declined. The plan has not been changed; update the "
+                "payment method and try again.",
+            ) from exc
         except stripe.error.StripeError as exc:
-            raise ValueError(f"Stripe error: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Stripe error while changing the plan."
+                + license_stripe_mutation.TRY_AGAIN
+            ) from exc
 
         if proration_behavior != "always_invoice":
             return None, old_price_id, item_id
@@ -1742,7 +1757,8 @@ class StripeSubscriptionMutationService:
             raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change was applied at our payment provider but its "
                 "payment could not be confirmed. It has been flagged for "
-                "manual reconciliation."
+                "manual reconciliation.",
+                intent=intent,
             ) from exc
 
         if invoice is None:
@@ -3012,6 +3028,26 @@ class StripeWebhookHandler:
                 "payment_status=%r (not 'paid') — credits NOT granted. "
                 "Asynchronous payment methods are not supported on this "
                 "flow. Needs manual reconciliation.",
+                session.get("id"),
+                wallet.id,
+                payment_status,
+            )
+            return
+
+        # H-66: no PaymentIntent, no grant. It is this flow's idempotency
+        # key (the duplicate check above runs only when there is one) and
+        # what refunds and disputes are matched on. A paid, payment-mode
+        # session with a positive amount always carries one today, so only
+        # a forged payload or a future flow change (coupons, a $0 session,
+        # a wider AUTO_REPLAYABLE) can reach this; refuse it as an unpaid
+        # session is refused, loudly, rather than grant without a key.
+        if not payment_intent_id:
+            logger.error(
+                "Overage checkout session %s completed for wallet %s with "
+                "payment_status=%r but no payment_intent — credits NOT "
+                "granted: without it the grant has no idempotency key and "
+                "can't be matched to a refund or dispute. Needs manual "
+                "reconciliation.",
                 session.get("id"),
                 wallet.id,
                 payment_status,
