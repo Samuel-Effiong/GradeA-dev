@@ -37,6 +37,7 @@ from classrooms.services import (
     is_placeholder_email,
     new_placeholder_email,
 )
+from classrooms.tests_h71_student_add_role import without_reference
 from users.models import UserTypes
 
 User = get_user_model()
@@ -280,10 +281,57 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
                 )
                 self.assertEqual(response.status_code, status.HTTP_200_OK)
                 self.assertEqual(response.data["failure_count"], 1, response.content)
-                self.assertEqual(
-                    response.data["results"][0]["error"], NOT_A_STUDENT_MESSAGE
-                )
+                # Epic A S7d: a bulk row carries the neutral message in its
+                # row form, with the row code H-71's refusal already has
+                # (beta pins the rowless text). No code of its own: a
+                # refused placeholder address must look like a refused
+                # staff address.
+                row = response.data["results"][0]
+                self.assertEqual(row["reason_code"], "ROW_STAFF_EMAIL")
+                self.assertEqual(row["error"], "Row 1: t" + NOT_A_STUDENT_MESSAGE[1:])
                 self.assertNothingWasAdded()
+
+    def assertSameAnswerAsAStaffAddress(self, url_name, payload):
+        """On every route the refusal is H-71's, byte for byte: the same
+        status, text, code and envelope as for a staff address. Only the
+        per-response support reference and the address the caller sent
+        (where a route echoes it) may differ."""
+
+        def answer(address):
+            response = self.post(
+                self.other, url_name, self.other_course, payload(address)
+            )
+            body = without_reference(response.content)
+            return response.status_code, body.replace(address.encode(), b"<address>")
+
+        staff = answer(self.owner.email)
+        self.assertGreaterEqual(staff[0], 200)
+        self.assertIn(b"can't be added as a student", staff[1])
+        for address in (self.taken, "nobody.atall.ffffffffffffffff@student.local"):
+            with self.subTest(address=address):
+                self.assertEqual(answer(address), staff)
+        self.assertNothingWasAdded()
+
+    def test_single_add_answers_as_for_a_staff_address(self):
+        self.assertSameAnswerAsAStaffAddress(
+            "course-students", lambda address: {"email": address}
+        )
+
+    def test_direct_add_answers_as_for_a_staff_address(self):
+        self.assertSameAnswerAsAStaffAddress(
+            "course-direct-add-student",
+            lambda address: {
+                "first_name": "Probe",
+                "last_name": "Row",
+                "email": address,
+            },
+        )
+
+    def test_a_bulk_row_answers_as_for_a_staff_address(self):
+        self.assertSameAnswerAsAStaffAddress(
+            "course-bulk-add-students",
+            lambda address: {"raw_data": f"Probe,Row,{address}"},
+        )
 
     def test_each_form_refuses_it_before_any_lookup_or_save(self):
         """Isolates the two serializers' own check from the shared service's
