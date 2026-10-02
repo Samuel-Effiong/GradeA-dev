@@ -87,6 +87,19 @@ MUTANTS = {
         "        and _COMMAND_NAME.fullmatch(command) is not None\n",
         "",
     ),
+    "C16_a_call_sites_command_value_wins_inside_a_block": (
+        EMITTER,
+        '        clean_metadata = {**clean_metadata, "command": command}\n',
+        "        clean_metadata = {\n"
+        "            **clean_metadata,\n"
+        '            "command": (metadata or {}).get("command", command),\n'
+        "        }\n",
+    ),
+    "C17_a_nested_blocks_exit_clears_the_outer_block": (
+        CONTEXT,
+        "    finally:\n        _command_var.reset(token)\n",
+        "    finally:\n        _command_var.set(None)\n",
+    ),
     "C15_the_context_is_not_reset": (
         CONTEXT,
         "    finally:\n        _command_var.reset(token)\n",
