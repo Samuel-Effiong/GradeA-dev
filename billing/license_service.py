@@ -16,6 +16,7 @@ Key principles:
 """
 
 import logging
+from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from dateutil.relativedelta import relativedelta  # type: ignore
@@ -66,8 +67,9 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
+from .refresh_timing import allocation_anchor
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
-from .refresh_timing import refresh_due_by
+from .refresh_timing import next_monthly_grant, refresh_due_by
 
 logger = logging.getLogger(__name__)
 
@@ -644,6 +646,7 @@ class LicenseSubscriptionService:
                 "is_active": True,
                 "is_admin_allocation": True,
                 "next_credit_grant_at": next_refresh,
+                "grant_anchor_at": now,
             },
         )
 
@@ -666,12 +669,14 @@ class LicenseSubscriptionService:
             allocation.is_admin_allocation = True
             allocation.monthly_allocation = raw_amount
             allocation.next_credit_grant_at = next_refresh
+            allocation.grant_anchor_at = now
             allocation.save(
                 update_fields=[
                     "is_active",
                     "is_admin_allocation",
                     "monthly_allocation",
                     "next_credit_grant_at",
+                    "grant_anchor_at",
                     "updated_at",
                 ]
             )
@@ -1544,11 +1549,16 @@ class LicenseSubscriptionService:
 
         now = timezone.now()
 
-        # Set the first refresh date to exactly one month from now
+        # The first refresh is due a month from now, and every later one is
+        # counted from this moment (H-88): enrolment, re-enrolment and
+        # reactivation each restart the teacher's month here.
         next_refresh = now + relativedelta(months=1)
 
         allocation.next_credit_grant_at = next_refresh
-        allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+        allocation.grant_anchor_at = now
+        allocation.save(
+            update_fields=["next_credit_grant_at", "grant_anchor_at", "updated_at"]
+        )
 
         # 6. Create new MONTHLY bucket for the license allocation
         monthly_bucket = CreditBucket.objects.create(
@@ -1920,9 +1930,15 @@ class LicenseSubscriptionService:
                         },
                     )
 
+                    # The renewal restarts the teacher's month (H-88).
                     allocation.next_credit_grant_at = now + relativedelta(months=1)
+                    allocation.grant_anchor_at = now
                     allocation.save(
-                        update_fields=["next_credit_grant_at", "updated_at"]
+                        update_fields=[
+                            "next_credit_grant_at",
+                            "grant_anchor_at",
+                            "updated_at",
+                        ]
                     )
 
                     wallet.overage_blocks_used = 0
@@ -3684,7 +3700,39 @@ class LicenseSubscriptionService:
         wallet = teacher.credit_wallet
         license_sub = allocation.license_subscription
         now = now or timezone.now()
-        next_refresh = now + relativedelta(months=1)
+
+        # H-88: the next due time comes from the allocation's anchor and the
+        # due time being served, not from `now`. `now + 1 month` clamped a
+        # 31st to the 28th for good (13 refreshes in a 12-month contract)
+        # and drifted by every late run. Capped at the contract's end: the
+        # renewal owns that boundary.
+        served_due = allocation.next_credit_grant_at or now
+        anchor = allocation_anchor(
+            allocation.grant_anchor_at,
+            max(allocation.created_at, license_sub.billing_cycle_start),
+            served_due,
+        )
+        period, next_refresh = next_monthly_grant(
+            anchor, served_due, license_sub.billing_cycle_end
+        )
+        if served_due + timedelta(days=1) < now:
+            # A missed run (an outage): the refresh is still owed and is
+            # made now, one per run, until the chain is current again.
+            logger.warning(
+                "Monthly refresh for allocation %s (license %s) caught up: "
+                "the refresh due at %s (period %d) is made late.",
+                allocation.id,
+                license_sub.id,
+                served_due,
+                period - 1,
+            )
+        # A caught-up bucket lives a month from now, not to a due time that
+        # has already passed (it would be born expired).
+        bucket_due = (
+            next_refresh
+            if next_refresh > now
+            else min(now + relativedelta(months=1), license_sub.billing_cycle_end)
+        )
 
         # Open a new monthly consumption window, at most once per month per
         # LICENSE. total_credits_consumed is measured against
@@ -3720,7 +3768,7 @@ class LicenseSubscriptionService:
             wallet=wallet,
             plan=license_sub.plan,
             grant_amount=allocation.monthly_allocation,
-            new_expiry=grace_expiry(next_refresh, license_sub.billing_cycle_end),
+            new_expiry=grace_expiry(bucket_due, license_sub.billing_cycle_end),
             now=now,
             reference=f"Monthly grant for license {license_sub.id}",
             metadata={
@@ -3729,9 +3777,14 @@ class LicenseSubscriptionService:
                 "refresh_month": now.strftime("%Y-%m"),
             },
         )
-        # 3. Update allocation's next_credit_grant_at
+        # 3. Update allocation's next_credit_grant_at. A row older than the
+        # anchor field keeps the anchor just resolved for it, so its chain
+        # is counted from one fixed moment from here on.
         allocation.next_credit_grant_at = next_refresh
-        allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+        allocation.grant_anchor_at = anchor
+        allocation.save(
+            update_fields=["next_credit_grant_at", "grant_anchor_at", "updated_at"]
+        )
 
         logger.info(
             "Refreshed monthly credits for teacher %s under license %s. "
@@ -3821,9 +3874,15 @@ class LicenseSubscriptionService:
                         },
                     )
 
+                    # The renewal restarts the teacher's month (H-88).
                     allocation.next_credit_grant_at = now + relativedelta(months=1)
+                    allocation.grant_anchor_at = now
                     allocation.save(
-                        update_fields=["next_credit_grant_at", "updated_at"]
+                        update_fields=[
+                            "next_credit_grant_at",
+                            "grant_anchor_at",
+                            "updated_at",
+                        ]
                     )
 
                     wallet.overage_blocks_used = 0

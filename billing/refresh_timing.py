@@ -94,3 +94,26 @@ def next_monthly_grant(anchor, served_due, contract_end):
     while anchor + relativedelta(months=k) <= floor:
         k += 1
     return k, min(anchor + relativedelta(months=k), contract_end)
+
+
+def allocation_anchor(stored_anchor, fallback_anchor, served_due):
+    """The anchor of a licence allocation's monthly refreshes (H-88).
+
+    `stored_anchor` is SchoolCreditAllocation.grant_anchor_at, written at
+    every enrolment, re-enrolment, reactivation and renewal. A row older
+    than the field has none, so:
+      * `fallback_anchor` (the later of the row's creation and the licence's
+        cycle start: a renewal restarts every teacher's month) is used when
+        `served_due` lies within ANCHOR_SNAP of one of its points;
+      * otherwise the row was re-enrolled since the last renewal, at a time
+        nobody stored. Its due time is the best record of its rhythm, so
+        the due time itself is the anchor, and the caller stores it.
+    """
+    if stored_anchor is not None:
+        return stored_anchor
+    k = 0
+    while fallback_anchor + relativedelta(months=k) < served_due - ANCHOR_SNAP:
+        k += 1
+    if fallback_anchor + relativedelta(months=k) <= served_due + ANCHOR_SNAP:
+        return fallback_anchor
+    return served_due

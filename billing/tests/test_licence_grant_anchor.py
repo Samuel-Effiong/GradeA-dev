@@ -48,6 +48,7 @@ from billing.models import (
     PlanCategory,
     PlanTier,
     PlanType,
+    SchoolCreditAllocation,
     SubscriptionPlan,
 )
 from billing.tasks import process_license_monthly_credit_refreshes
@@ -391,3 +392,87 @@ class LicenceOutageTests(LicenceClockTestCase):
             self.assertLessEqual(
                 expires_at, end, f"the bucket granted at {run_at} outlives {end}"
             )
+
+
+class RowsOlderThanTheAnchorTests(LicenceClockTestCase):
+    """Allocations written before grant_anchor_at existed: no stored anchor,
+    and a due time from the old `now + 1 month` chain."""
+
+    def old_row(self, allocation, due):
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            grant_anchor_at=None, next_credit_grant_at=due
+        )
+
+    def test_an_enrolment_stores_its_anchor(self):
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        allocation = self.enrol(self.licence(start), start)
+
+        self.assertIsNotNone(allocation.grant_anchor_at)
+        self.assertLess(allocation.grant_anchor_at - start, timedelta(seconds=1))
+
+    def test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one(self):
+        """The transition hazard: a 31 January licence whose old chain is on
+        28 March. That refresh is March's; the next is 30 April, not 31
+        March (a second refresh three days later)."""
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        allocation = self.enrol(self.licence(start), start)
+        self.run_refresh(allocation, datetime(2026, 2, 28, 3, 0, tzinfo=UTC))
+        drifted = datetime(2026, 3, 28, 3, 0, tzinfo=UTC)
+        self.old_row(allocation, drifted)
+
+        self.run_refresh(allocation, drifted)
+        allocation.refresh_from_db()
+        self.assertEqual(
+            allocation.next_credit_grant_at.replace(microsecond=0),
+            datetime(2026, 4, 30, 1, 0, tzinfo=UTC),
+        )
+        # The fallback (the licence's start) is now the row's stored anchor.
+        self.assertLess(allocation.grant_anchor_at - start, timedelta(seconds=1))
+
+        self.drive(allocation)
+        dates = [r.date() for r in self.refreshes(allocation)]
+        self.assertEqual(
+            dates,
+            [datetime(2026, 2, 28).date(), drifted.date()]
+            + self.anchor_dates(start, range(3, 12)),
+        )
+        self.assertEqual(len(dates) + 1, 12)
+
+    def test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm(self):
+        """Re-enrolled on the 23rd under a licence that began on the 10th,
+        before anyone stored the moment. Its due time is its anchor: the
+        23rd of each month, with no irregular interval."""
+        start = datetime(2026, 1, 10, 1, 0, tzinfo=UTC)
+        allocation = self.enrol(self.licence(start), start)
+        due = datetime(2026, 3, 23, 3, 0, tzinfo=UTC)
+        self.old_row(allocation, due)
+
+        self.run_refresh(allocation, due)
+        allocation.refresh_from_db()
+        self.assertEqual(allocation.grant_anchor_at, due)
+        self.assertEqual(
+            allocation.next_credit_grant_at, datetime(2026, 4, 23, 3, 0, tzinfo=UTC)
+        )
+
+        self.drive(allocation)
+        self.assertEqual(
+            [r.date() for r in self.refreshes(allocation)],
+            self.anchor_dates(due, range(0, 10)),
+        )
+
+    def test_a_renewal_overwrites_the_stored_anchor(self):
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        allocation = self.enrol(licence, start)
+        renewed = datetime(2026, 4, 20, 12, 0, tzinfo=UTC)
+
+        self.clock.moment = renewed
+        LicenseSubscriptionService.process_offline_renewal(
+            licence,
+            performed_by=self.admin,
+            new_billing_cycle_end=renewed + relativedelta(months=12),
+        )
+
+        allocation.refresh_from_db()
+        self.assertLess(allocation.grant_anchor_at - renewed, timedelta(seconds=1))
+        self.assertGreaterEqual(allocation.grant_anchor_at, renewed)

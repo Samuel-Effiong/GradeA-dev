@@ -2267,6 +2267,18 @@ class SchoolCreditAllocation(models.Model):
         help_text="When the next monthly credit refresh is due for this teacher under the license",
     )
 
+    grant_anchor_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "The moment this teacher's monthly refreshes are counted from "
+            "(H-88): set at enrolment, re-enrolment, reactivation and each "
+            "license renewal. Each refresh is due at this plus k months, so a "
+            "31st gives 28 Feb, 31 Mar, 30 Apr. NULL on rows older than the "
+            "field: see refresh_timing.allocation_anchor."
+        ),
+    )
+
     class Meta:
         unique_together = [("license_subscription", "user")]
         ordering = ["created_at"]
