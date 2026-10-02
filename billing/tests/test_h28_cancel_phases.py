@@ -27,12 +27,16 @@ a mock (rule 14).
 """
 
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import OperationalError, transaction
 from django.test import TransactionTestCase
 from django.utils import timezone
 
+from audit.context import request_audit_state
+from audit.enums import ActorRole, AuditAction
+from audit.models import AuditEvent
 from billing import license_stripe_mutation
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
@@ -57,6 +61,61 @@ from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
 MUTATION_LOGGER = "billing.license_stripe_mutation"
+
+# -- Epic A: the audit events of intent status changes -----------------------
+# Shared with the other phase modules and test_h28_intent_audit, which import
+# them from here as they do LicencePhaseTestCase.
+IN_FLIGHT_BEFORE_ESCALATION = (
+    str(LicenseStripeMutationStatus.PENDING),
+    str(LicenseStripeMutationStatus.STRIPE_APPLIED),
+)
+
+
+def intent_events(intent=None):
+    events = AuditEvent.objects.filter(
+        action=AuditAction.SUBSCRIPTION_CHANGE,
+        target_type="LicenseStripeMutationIntent",
+    )
+    return events if intent is None else events.filter(target_id=intent.id)
+
+
+def as_a_request_by(user):
+    """What AuditMiddleware gives the code under a request by `user`: the
+    licence views call the service methods inside exactly this state."""
+    return request_audit_state(SimpleNamespace(user=user))
+
+
+def assert_ids_only(test, intent, event):
+    """The event carries ids and statuses, never the intent's free text."""
+    test.assertEqual(event.target_id, intent.id)
+    test.assertEqual(event.school_id, intent.license_subscription.school_id)
+    test.assertEqual(set(event.before), {"intent_status"})
+    test.assertEqual(set(event.after), {"intent_status"})
+    test.assertLessEqual(set(event.metadata), {"license_id", "command"})
+    test.assertEqual(event.metadata["license_id"], str(intent.license_subscription_id))
+    recorded = f"{event.before} {event.after} {event.metadata}"
+    for text in (intent.failure_reason, intent.resolution_note):
+        if text:
+            test.assertNotIn(text, recorded)
+
+
+def assert_one_escalation_event(test, intent, actor):
+    """Exactly one event for this intent's move to ESCALATED, by `actor`
+    (None means SYSTEM)."""
+    [event] = list(intent_events(intent))
+    if actor is None:
+        test.assertIsNone(event.actor_id)
+        test.assertEqual(event.actor_role, ActorRole.SYSTEM)
+    else:
+        test.assertEqual(event.actor_id, actor.id)
+        test.assertEqual(event.actor_role, actor.user_type)
+    test.assertIn(event.before["intent_status"], IN_FLIGHT_BEFORE_ESCALATION)
+    test.assertEqual(
+        event.after, {"intent_status": str(LicenseStripeMutationStatus.ESCALATED)}
+    )
+    test.assertNotIn("command", event.metadata)
+    assert_ids_only(test, intent, event)
+    return event
 
 
 class LicencePhaseTestCase(TransactionTestCase):
@@ -354,6 +413,41 @@ class CancelPhaseTests(LicencePhaseTestCase):
                 ]
             ),
         )
+
+    def test_an_escalated_cancel_is_audited_as_the_signed_in_user(self):
+        """Epic A: the move to ESCALATED writes one audit event, by the user
+        whose request it was, and a COMPENSATED cancel writes none."""
+
+        def apply_but_refuse_the_undo(*args, **kwargs):
+            if kwargs.get("cancel_at_period_end") is False:
+                raise stripe.error.APIConnectionError("Request timed out")
+            return self.stripe.subscription_modify(*args, **kwargs)
+
+        with as_a_request_by(self.superadmin), self._fail_the_local_write():
+            with patch.object(
+                LicenceStripe,
+                "modify_subscription",
+                side_effect=apply_but_refuse_the_undo,
+            ), self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+                with self.assertRaises(
+                    license_stripe_mutation.LicenceStripeChangeNotRecorded
+                ):
+                    self.cancel()
+
+        assert_one_escalation_event(self, self.only_intent(), self.superadmin)
+
+    def test_a_compensated_cancel_writes_no_intent_event(self):
+        with as_a_request_by(self.superadmin), self._fail_the_local_write():
+            with self.assertLogs(MUTATION_LOGGER, level="WARNING"):
+                with self.assertRaises(
+                    license_stripe_mutation.LicenceStripeChangeNotRecorded
+                ):
+                    self.cancel()
+
+        self.assertEqual(
+            self.only_intent().status, LicenseStripeMutationStatus.COMPENSATED
+        )
+        self.assertEqual(intent_events().count(), 0)
 
     def test_a_failed_undo_escalates_to_a_human(self):
         def apply_but_refuse_the_undo(*args, **kwargs):
