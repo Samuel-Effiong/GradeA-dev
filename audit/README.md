@@ -41,6 +41,29 @@ A failure is `outcome=AuditOutcome.FAILURE` (or `DENIED`) **plus** an
 | The retention class is derived from the action and cannot be lowered by a caller | `enums.py`, `emitter.py` |
 | The source address is the one the edge proxy saw (`NUM_PROXIES`), not one the client claims | `emitter.py` |
 
+## Management commands (H-69)
+
+Outside a request an event's actor is SYSTEM, so a command's writes do not say
+who ran it. A command that writes takes `--by <super admin email>`, resolves it
+to an active super admin, and wraps its writes:
+
+```python
+from pathlib import Path
+from audit.context import command_actor
+
+with command_actor(operator, command=Path(__file__).stem):
+    ...  # .save(), record_bulk(...), emit(...)
+```
+
+Inside the block the history signals, `record_bulk` and `emit` record
+`operator` as the actor wherever it would have been SYSTEM (an actor a call
+site passes to `emit`, or a request's signed-in user, is kept), and
+every event carries `metadata["command"]`. `source` keeps its meaning (how the
+row was written: `create`, `save`, `bulk`, `delete`). `command_actor` raises
+`ValueError` unless the user is an active super admin and the name is a
+management command that exists. A call site cannot set `command` itself: the
+key is in no action's allow-list, and the emitter adds it after the allow-list.
+
 ## Changing the vocabulary
 
 * **A new action:** add a member to `AuditAction` (`enums.py`). It is code, not a

@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 22816 lines; full log (sha256 prefix 2140b9cbbd9b8508) at ~/Documents/Projects/GAP-evidence-logs/command_actor_r2_5e4e1c5d_modules_and_guards.txt]
+15:11:03 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+15:11:08 THE ACCEPTANCE TEST for broker isolation. ... ok
+15:11:08 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+15:11:08 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+15:11:08 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+15:11:08 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+15:11:11 ok
+15:11:13 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+15:11:13 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+15:11:16 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+15:11:16 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+15:11:19 Same requirement, for the H-1 invariant specifically. ... ok
+15:11:19 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+15:11:19 The blast radius is wider than the Django cache. ... ok
+15:11:19 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+15:11:19 The mechanism, demonstrated deterministically in-process. ... ok
+15:11:19 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+15:11:22 THE ACCEPTANCE TEST for the regression. ... ok
+15:11:24 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+15:11:24 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+15:11:24 Server-wide Redis statistics are shared by every concurrent run. ... ok
+15:11:24 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+15:11:24 test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+15:11:25 N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+15:11:25 test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+15:11:25 test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+15:11:25 test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+15:11:25 test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+15:11:25 So a hung run can never swallow the next scheduled one. ... ok
+15:11:25 test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+15:11:25 test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+15:11:25 test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+15:11:30 test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+15:11:30 test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+15:11:32 The worst-case lifetime the schedule guard relies on. ... ok
+15:11:35 test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+15:11:37 test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+15:11:38 test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... ok
+15:11:38 test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+15:11:38 Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+15:11:38 test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+15:11:38 Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+15:11:38 test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+15:11:38 test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+15:11:38 test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+15:11:38 test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+15:11:38 No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+15:11:38 test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+15:11:38 test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+15:11:38 test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+15:11:38 Real threads, released together; the one that gets the lock waits ... ok
+15:11:38 test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command) ... ok
+15:11:38 test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class) ... ok
+15:11:38 test_the_moved_script_cannot_be_imported_as_a_module (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_moved_script_cannot_be_imported_as_a_module) ... ok
+15:11:38 test_the_sweep_sees_the_projects_commands (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_sweep_sees_the_projects_commands)
+15:11:38 Guards the guard: an empty sweep would pass everything. ... ok
+15:11:38 test_the_emailed_row_clash_remediation (AutoGrader.tests_reason_codes.ApprovedAlternativesTests.test_the_emailed_row_clash_remediation) ... ok
+15:11:38 test_the_nothing_finished_mid_batch_message (AutoGrader.tests_reason_codes.ApprovedAlternativesTests.test_the_nothing_finished_mid_batch_message) ... ok
+15:11:38 test_every_code_is_user_facing_or_audit_only_and_not_both (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_code_is_user_facing_or_audit_only_and_not_both) ... ok
+15:11:39 test_every_reason_code_the_code_emits_is_in_the_catalogue (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_reason_code_the_code_emits_is_in_the_catalogue) ... ok
+15:11:39 test_every_spec_is_consistent (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_spec_is_consistent) ... ok
+15:11:39 test_every_value_is_upper_snake_and_stable (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_value_is_upper_snake_and_stable) ... ok
+15:11:39 test_only_the_two_old_refusals_keep_a_lowercase_code (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_only_the_two_old_refusals_keep_a_lowercase_code)
+15:11:39 F8: kept for one release beside reason_code. ... ok
+15:11:39 test_the_scan_finds_the_codes_it_is_meant_to (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_the_scan_finds_the_codes_it_is_meant_to)
+15:11:40 Guard on the guard: one example per pattern the scan covers. ... ok
+15:11:40 test_the_ten_fr_a_06_codes_are_present_and_user_facing (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_the_ten_fr_a_06_codes_are_present_and_user_facing) ... ok
+15:11:40 test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones (AutoGrader.tests_reason_codes.CodedEntryTests.test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones) ... ok
+15:11:40 test_a_plain_serializer_error_is_not_mistaken_for_an_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_a_plain_serializer_error_is_not_mistaken_for_an_envelope)
+15:11:40 A field named like an envelope key (`params`) still shows its ... ok
+15:11:40 test_a_view_that_catches_and_answers_itself_gets_the_same_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_a_view_that_catches_and_answers_itself_gets_the_same_envelope) ... ok
+15:11:40 test_every_user_facing_code_answers_its_own_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_every_user_facing_code_answers_its_own_envelope) ...
+15:11:40
+15:11:40 django.request ERROR 2026-10-02 14:11:40,871 log 941184 130774745181120 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+15:11:40
+15:11:40
+15:11:40 [2026-10-02 14:11:40,871: ERROR/MainProcess] Service Unavailable: /coded/PROVIDER_FAILURE
+15:11:40 ok
+15:11:40 test_qa_err_03_no_exception_text_reaches_any_body (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_03_no_exception_text_reaches_any_body) ...
+15:11:40
+15:11:40 django.request ERROR 2026-10-02 14:11:40,903 log 941184 130774745181120 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+15:11:40
+15:11:40
+15:11:40 [2026-10-02 14:11:40,903: ERROR/MainProcess] Service Unavailable: /coded/PROVIDER_FAILURE
+15:11:40 ok
+15:11:40 test_qa_err_04_an_inbound_request_id_is_never_the_reference (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_an_inbound_request_id_is_never_the_reference)
+15:11:40 X-5 wins over the first QA-ERR-04 reading (SM ruling): echoing a ...
+15:11:40
+15:11:40 django.request ERROR 2026-10-02 14:11:40,930 log 941184 130774745181120 [request_id=- client_request_id=-] Service Unavailable: /coded-client-id
+15:11:40
+15:11:40
+15:11:40 [2026-10-02 14:11:40,930: ERROR/MainProcess] Service Unavailable: /coded-client-id
+15:11:40 ok
+15:11:40 test_qa_err_04_reference_is_the_request_id (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_reference_is_the_request_id) ... ok
+15:11:40 test_the_old_refusals_keep_their_message_and_legacy_code (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_the_old_refusals_keep_their_message_and_legacy_code) ... ok
+15:11:40 test_a_missing_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_missing_param_is_refused) ... ok
+15:11:40 test_a_non_scalar_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_non_scalar_param_is_refused) ... ok
+15:11:40 test_a_param_outside_the_spec_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_param_outside_the_spec_is_refused) ... ok
+15:11:40 test_a_subclass_fixes_its_code (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_subclass_fixes_its_code) ... ok
+15:11:40 test_an_audit_only_code_has_no_error_body (AutoGrader.tests_reason_codes.CodedErrorTests.test_an_audit_only_code_has_no_error_body) ... ok
+15:11:40 test_defaults_fill_a_param_the_raiser_left_out (AutoGrader.tests_reason_codes.CodedErrorTests.test_defaults_fill_a_param_the_raiser_left_out) ... ok
+15:11:40 test_detail_stays_out_of_the_message (AutoGrader.tests_reason_codes.CodedErrorTests.test_detail_stays_out_of_the_message) ... ok
+15:11:40 test_display_for_no_placeholder_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_for_no_placeholder_is_refused) ... ok
+15:11:40 test_display_may_stand_in_for_an_unknown_param (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_may_stand_in_for_an_unknown_param) ... ok
+15:11:40 test_display_shapes_the_message_but_never_the_params (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_shapes_the_message_but_never_the_params) ... ok
+15:11:40 test_display_values_must_be_text (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_values_must_be_text) ... ok
+15:11:40 test_only_user_and_validation_classes_are_user_facing (AutoGrader.tests_reason_codes.CodedErrorTests.test_only_user_and_validation_classes_are_user_facing) ... ok
+15:11:40 test_refusal_response_still_answers_refusals_only (AutoGrader.tests_reason_codes.CodedErrorTests.test_refusal_response_still_answers_refusals_only) ... ok
+15:11:40 test_the_message_is_rendered_from_the_spec (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_is_rendered_from_the_spec) ... ok
+15:11:40 test_the_message_layer_shows_the_message_and_never_the_detail (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_layer_shows_the_message_and_never_the_detail)
+15:11:40 The path background-task item text and _failure_response's ... ok
+15:11:40 test_a_variant_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.MessageVariantTests.test_a_variant_survives_being_rebuilt_from_its_args) ... ok
+15:11:40 test_an_unapproved_variant_is_refused (AutoGrader.tests_reason_codes.MessageVariantTests.test_an_unapproved_variant_is_refused) ... ok
+15:11:40 test_the_variant_renders_its_own_template (AutoGrader.tests_reason_codes.MessageVariantTests.test_the_variant_renders_its_own_template) ... ok
+15:11:40 test_a_row_code_always_carries_its_row (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_a_row_code_always_carries_its_row) ... ok
+15:11:40 test_every_approved_code_is_user_facing_with_its_approved_text (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_every_approved_code_is_user_facing_with_its_approved_text) ... ok
+15:11:40 test_no_neutral_code_names_a_role_or_a_school (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_no_neutral_code_names_a_role_or_a_school) ... ok
+15:11:40 test_the_individual_subscription_text_lives_in_one_constant (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_individual_subscription_text_lives_in_one_constant) ... ok
+15:11:40 test_the_seat_message_reads_as_both_approved_forms (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_seat_message_reads_as_both_approved_forms) ... ok
+15:11:40 test_a_chosen_remediation_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_a_chosen_remediation_survives_being_rebuilt_from_its_args)
+15:11:40 Celery's json backend rebuilds an error as cls(*args). ... ok
+15:11:40 test_an_approved_alternative_is_carried_to_the_body (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_approved_alternative_is_carried_to_the_body) ... ok
+15:11:40 test_an_unapproved_remediation_is_refused (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_unapproved_remediation_is_refused) ... ok
+15:11:40 test_nothing_to_do_is_null (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_nothing_to_do_is_null) ... ok
+15:11:40 test_the_default_is_the_specs (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_the_default_is_the_specs) ... ok
+15:11:40 test_a_coded_body_flattens_to_its_display_sentence_alone (AutoGrader.tests_reason_codes.RendererMessageTests.test_a_coded_body_flattens_to_its_display_sentence_alone) ... ok
+15:11:40 test_a_balance_reason_gets_the_credits_refusal (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal) ... ok
+15:11:40 test_a_refused_request_gets_the_plan_refusal_without_the_reason (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_refused_request_gets_the_plan_refusal_without_the_reason) ... ok
+15:11:40 test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+15:11:44 Two concurrent runs: the second one's start-of-run sweep and its ... ok
+15:11:46 test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+15:11:49 test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+15:11:49 test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+15:11:49 test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+15:11:49 test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+15:11:49 test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+15:11:49 test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+15:11:49 An expired counter reads as generation 1 and revives every stale ... ok
+15:11:49 test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+15:11:49 test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+15:11:49 test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+15:11:49 test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+15:11:49 test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address) ... ok
+15:11:49 test_the_guard_sees_each_kind_of_leak (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_the_guard_sees_each_kind_of_leak)
+15:11:49 Not vacuous: each shape the guard rejects, in a sample call. ... ok
+15:11:49 test_two_concurrent_delete_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_delete_sweeps_never_double_process_or_raise) ... ok
+15:11:50 test_two_concurrent_pii_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_pii_sweeps_never_double_process_or_raise) ... ok
+15:11:50 test_a_write_inside_the_report_is_refused (audit.tests_volume_report.ReadOnlyTests.test_a_write_inside_the_report_is_refused) ... ok
+15:11:50 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+15:11:53 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+15:11:55 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+15:11:55 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+15:11:57 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+15:11:57 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+15:11:59 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+15:11:59 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+15:11:59 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+15:11:59 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+15:11:59 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+15:11:59 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+15:11:59 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+15:11:59 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+15:11:59 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+15:12:00 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+15:12:00 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+15:12:00 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+15:12:00 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+15:12:02 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+15:12:05 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+15:12:05 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+15:12:07 Guard on the guard, on synthetic source. ... ok
+15:12:09 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+15:12:09 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+15:12:09 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+15:12:09 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+15:12:09 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+15:12:09 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+15:12:09 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+15:12:09 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+15:12:09 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+15:12:09 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+15:12:09 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+15:12:09 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+15:12:09 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+15:12:09 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+15:12:09 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+15:12:09 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+15:12:09 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+15:12:09 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+15:12:09 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+15:12:09 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+15:12:09 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+15:12:09 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+15:12:09 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+15:12:09
+15:12:09 ----------------------------------------------------------------------
+15:12:09 Ran 584 tests in 247.719s
+15:12:09
+15:12:09 OK
+15:12:09 Destroying test database for alias 'default' ('test_epic_a_command_actor')...
