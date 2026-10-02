@@ -1,0 +1,13 @@
+# G1: guard: an `.email` in a logger call on an undriven path
+# file: billing/license_service.py (occurrence 1)
+# old: '            performed_by.id if performed_by else "unknown",\n'
+# new: '            performed_by.email if performed_by else "unknown",\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest
+# exit: 1
+# elapsed_s: 3.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address)
+
+FAILED (failures=1)
