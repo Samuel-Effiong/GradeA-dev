@@ -1954,6 +1954,7 @@ class LicenseSubscriptionService:
                     allocation.user_id,
                     license_sub.id,
                     type(e).__name__,
+                    exc_info=True,
                 )
                 failed_teachers.append(allocation.user_id)
 
@@ -3850,6 +3851,7 @@ class LicenseSubscriptionService:
                     allocation.user_id,
                     license_sub.id,
                     type(e).__name__,
+                    exc_info=True,
                 )
                 failed_teachers.append(allocation.user_id)
 

@@ -7,9 +7,11 @@ Two defences, each isolated. The B mutants run against the behaviour tests
 only (the source guard is not loaded), so a kill is a log line caught at
 run time. The G mutants put a leak on a path no behaviour test drives and
 run against the source guard only.
+The P mutants (1a's pre-review P1) run against the tests of the lines they
+break: the free-trial reason lines and the renewal-failure tracebacks.
 
 One disposable detached worktree at the commit under test. A baseline run
-of the whole module on the unmutated tree must pass first; then each
+of both test modules on the unmutated tree must pass first; then each
 mutant, with the file restored from the commit's blob and sha256-checked
 after it. BROKEN (a load failure) is never counted as a kill.
 
@@ -43,6 +45,15 @@ BEHAVIOUR = [
     f"{MODULE}.SignalsLogNoAddressTest",
 ]
 GUARD = [f"{MODULE}.NoEmailInLogCallsTest"]
+TRIAL = [f"{MODULE}.FreeTrialRefusalsLogAReasonTest"]
+RENEWAL = "billing.tests.test_license_renewal_partial_failure"
+SV = "billing/services.py"
+RENEWAL_FAILURE = (
+    "                    allocation.user_id,\n"
+    "                    license_sub.id,\n"
+    "                    type(e).__name__,\n"
+    "                    exc_info=True,\n"
+)
 
 CARRY = (
     "                    teacher.id,\n"
@@ -172,6 +183,75 @@ MUTANTS = [
         BEHAVIOUR,
     ),
     (
+        "P1",
+        "1a's P1: a used trial's refusal logs a WARNING reason line",
+        SV,
+        "            logger.warning(\n"
+        '                "User %s has already used the free trial: not activated.", user.id\n',
+        "            logger.debug(\n"
+        '                "User %s has already used the free trial: not activated.", user.id\n',
+        1,
+        TRIAL,
+    ),
+    (
+        "P2",
+        "1a's P1: a missing trial plan is logged at ERROR",
+        SV,
+        "            logger.error(\n"
+        '                "Free trial plan not found: no trial activated for user %s.",\n',
+        "            logger.warning(\n"
+        '                "Free trial plan not found: no trial activated for user %s.",\n',
+        1,
+        TRIAL,
+    ),
+    (
+        "P3",
+        "1a's P1: the missing-plan reason line names the user by id",
+        SV,
+        '                "Free trial plan not found: no trial activated for user %s.",\n'
+        "                user.id,\n",
+        '                "Free trial plan not found: no trial activated for user %s.",\n'
+        "                user.email,\n",
+        1,
+        TRIAL,
+    ),
+    (
+        "P4",
+        "1a's P1: the Stripe renewal-failure line carries a traceback",
+        LS,
+        RENEWAL_FAILURE,
+        RENEWAL_FAILURE.replace("                    exc_info=True,\n", ""),
+        1,
+        [RENEWAL],
+    ),
+    (
+        "P5",
+        "1a's P1: the offline renewal-failure line carries a traceback",
+        LS,
+        RENEWAL_FAILURE,
+        RENEWAL_FAILURE.replace("                    exc_info=True,\n", ""),
+        2,
+        [RENEWAL],
+    ),
+    (
+        "G6",
+        "guard (1a's P2): an address formatted into the message with %",
+        LS,
+        'logger.info("Created CreditWallet for teacher %s", teacher.id)',
+        'logger.info("Created CreditWallet for teacher %s" % teacher.email)',
+        1,
+        GUARD,
+    ),
+    (
+        "G7",
+        "guard (1a's P2): a message built by an f-string, even from an id",
+        LS,
+        'logger.info("Created CreditWallet for teacher %s", teacher.id)',
+        'logger.info(f"Created CreditWallet for teacher {teacher.id}")',
+        1,
+        GUARD,
+    ),
+    (
         "G1",
         "guard: an `.email` in a logger call on an undriven path",
         LS,
@@ -290,7 +370,7 @@ def main():
         logs = os.path.join(HERE, "logs")
         os.makedirs(logs, exist_ok=True)
         clear_pycache(WORKTREE)
-        baseline = run_tests([MODULE])
+        baseline = run_tests([MODULE, RENEWAL])
         with open(os.path.join(logs, "baseline.log"), "w") as fh:
             fh.write(f"# baseline, commit {commit}, exit {baseline.returncode}\n\n")
             fh.write(baseline.stdout + baseline.stderr)
