@@ -1,0 +1,273 @@
+"""
+H-89: an error report sent to Sentry carries no email address in its text.
+
+Sentry's logging integration is not a handler. For every ERROR record it
+builds an event from the record's parts: the message template, the raw
+arguments, and the exception object's own text. So the log record factory
+(AutoGrader/log_scrubbing.py), which scrubs what handlers print, does not
+change what Sentry receives. AutoGrader/sentry_scrubbing.py does, through
+three hooks passed to sentry_sdk.init: before_send (events),
+before_breadcrumb (the log lines that led up to an event) and
+before_send_log (the log stream).
+
+The hooks touch text only: the log entry, the exception values, frame
+variables, breadcrumbs and extras. The event's user context and tags are
+left alone (send_default_pii=False already keeps Sentry from adding them).
+"""
+
+import ast
+import importlib
+import os
+
+from django.conf import settings
+from django.test import SimpleTestCase
+
+ADDRESS = "someone.private@school-example.edu"
+OTHER = "second.person@example.org"
+
+
+def event_for_a_logged_error():
+    """The shape sentry_sdk's EventHandler builds for
+    logger.error("...", exc_info=True)."""
+    return {
+        "level": "error",
+        "logger": "billing.license_service",
+        "logentry": {
+            "message": "Failed to renew credits for teacher %s (%s)",
+            "formatted": f"Failed to renew credits for teacher 4821 ({ADDRESS})",
+            "params": [4821, ADDRESS],
+        },
+        "exception": {
+            "values": [
+                {
+                    "type": "IntegrityError",
+                    "value": f"DETAIL:  Key (email)=({ADDRESS}) already exists.",
+                    "mechanism": {"type": "logging", "handled": True},
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "process_license_renewal",
+                                "filename": "billing/license_service.py",
+                                "vars": {
+                                    "teacher": f"<CustomUser: {OTHER}>",
+                                    "renewal_count": "3",
+                                    "emails": [ADDRESS, OTHER],
+                                },
+                            }
+                        ]
+                    },
+                },
+                {"type": "ValueError", "value": f"Could not invite {OTHER}"},
+            ]
+        },
+        "breadcrumbs": {
+            "values": [
+                {"category": "billing.tasks", "message": f"Renewing for {ADDRESS}"},
+                {"category": "query", "message": "SELECT 1"},
+            ]
+        },
+        "extra": {"note": f"contact {OTHER}", "attempt": 2},
+        "user": {"id": "4821", "email": ADDRESS},
+        "tags": {"school": "77", "owner": ADDRESS},
+        "request": {"url": "https://api.example.com/licenses/77/"},
+    }
+
+
+class SentryScrubbingTestCase(SimpleTestCase):
+    def setUp(self):
+        self.hooks = importlib.import_module("AutoGrader.sentry_scrubbing")
+
+
+class BeforeSendTests(SentryScrubbingTestCase):
+    def test_no_address_is_left_in_the_events_text(self):
+        event = self.hooks.scrub_event(event_for_a_logged_error(), {})
+
+        text_parts = {
+            key: event[key] for key in ("logentry", "exception", "breadcrumbs", "extra")
+        }
+        self.assertNotIn("@", repr(text_parts))
+        self.assertEqual(
+            event["logentry"],
+            {
+                "message": "Failed to renew credits for teacher %s (%s)",
+                "formatted": "Failed to renew credits for teacher 4821 ([email])",
+                "params": [4821, "[email]"],
+            },
+        )
+        first, second = event["exception"]["values"]
+        self.assertEqual(
+            first["value"], "DETAIL:  Key (email)=([email]) already exists."
+        )
+        self.assertEqual(second["value"], "Could not invite [email]")
+
+    def test_what_makes_the_report_useful_is_kept(self):
+        event = self.hooks.scrub_event(event_for_a_logged_error(), {})
+
+        first = event["exception"]["values"][0]
+        self.assertEqual(first["type"], "IntegrityError")
+        frame = first["stacktrace"]["frames"][0]
+        self.assertEqual(frame["function"], "process_license_renewal")
+        self.assertEqual(frame["filename"], "billing/license_service.py")
+        self.assertEqual(
+            frame["vars"],
+            {
+                "teacher": "<CustomUser: [email]>",
+                "renewal_count": "3",
+                "emails": ["[email]", "[email]"],
+            },
+        )
+        self.assertEqual(event["level"], "error")
+        self.assertEqual(event["logger"], "billing.license_service")
+        self.assertEqual(event["extra"], {"note": "contact [email]", "attempt": 2})
+        self.assertEqual(
+            event["breadcrumbs"]["values"][1],
+            {"category": "query", "message": "SELECT 1"},
+        )
+
+    def test_user_context_tags_and_request_are_left_alone(self):
+        """The SM's ruling: this is about addresses inside text."""
+        before = event_for_a_logged_error()
+
+        event = self.hooks.scrub_event(event_for_a_logged_error(), {})
+
+        for key in ("user", "tags", "request"):
+            self.assertEqual(event[key], before[key])
+
+    def test_an_event_with_none_of_these_parts_passes_through(self):
+        for event in ({}, {"message": "plain"}, {"exception": None, "logentry": None}):
+            with self.subTest(event=event):
+                self.assertEqual(self.hooks.scrub_event(dict(event), {}), event)
+
+    def test_a_plain_message_event(self):
+        event = self.hooks.scrub_event(
+            {"message": f"capture_message for {ADDRESS}"}, {}
+        )
+
+        self.assertEqual(event["message"], "capture_message for [email]")
+
+    def test_a_dsn_in_an_exception_never_shows_its_password(self):
+        password = "s3cret-pass"  # pragma: allowlist secret
+        event = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "ConnectionError",
+                        "value": f"Error connecting to redis://:{password}@redis:6379/0",
+                    }
+                ]
+            }
+        }
+
+        value = self.hooks.scrub_event(event, {})["exception"]["values"][0]["value"]
+
+        self.assertEqual(
+            value, "Error connecting to redis://[credentials]@redis:6379/0"
+        )
+
+    def test_an_argument_that_is_not_text_yet(self):
+        """An object among the params whose text is an address."""
+
+        class Person:
+            def __str__(self):
+                return ADDRESS
+
+        event = {"logentry": {"message": "Enrolled %s", "params": (Person(), 3, None)}}
+
+        params = self.hooks.scrub_event(event, {})["logentry"]["params"]
+
+        self.assertEqual(list(params), ["[email]", 3, None])
+
+    def test_it_fails_closed_and_never_raises(self):
+        """A part that cannot be scrubbed is replaced by a marker; the event
+        is still sent, without that part's text."""
+
+        class Explodes:
+            def __str__(self):
+                raise RuntimeError("no text for you")
+
+        event = event_for_a_logged_error()
+        event["logentry"]["params"] = [Explodes(), ADDRESS]
+
+        scrubbed = self.hooks.scrub_event(event, {})
+
+        self.assertIsNotNone(scrubbed)
+        self.assertEqual(scrubbed["logentry"], self.hooks.WITHHELD)
+        self.assertNotIn("@", repr(scrubbed["exception"]))
+        self.assertEqual(scrubbed["exception"]["values"][0]["type"], "IntegrityError")
+
+
+class BreadcrumbAndLogTests(SentryScrubbingTestCase):
+    def test_a_breadcrumbs_message_and_data(self):
+        crumb = {
+            "category": "billing.tasks",
+            "message": f"Renewing for {ADDRESS}",
+            "data": {"detail": f"owner {OTHER}", "count": 2},
+        }
+
+        self.assertEqual(
+            self.hooks.scrub_breadcrumb(crumb, {}),
+            {
+                "category": "billing.tasks",
+                "message": "Renewing for [email]",
+                "data": {"detail": "owner [email]", "count": 2},
+            },
+        )
+
+    def test_a_log_items_body_and_attributes(self):
+        log = {
+            "severity_text": "error",
+            "body": f"Failed for {ADDRESS}",
+            "attributes": {
+                "sentry.message.template": "Failed for %s",
+                "sentry.message.parameter.0": ADDRESS,
+                "logger.name": "billing.tasks",
+                "code.line.number": 12,
+            },
+        }
+
+        self.assertEqual(
+            self.hooks.scrub_log(log, {}),
+            {
+                "severity_text": "error",
+                "body": "Failed for [email]",
+                "attributes": {
+                    "sentry.message.template": "Failed for %s",
+                    "sentry.message.parameter.0": "[email]",
+                    "logger.name": "billing.tasks",
+                    "code.line.number": 12,
+                },
+            },
+        )
+
+    def test_the_small_hooks_never_raise_either(self):
+        class Explodes:
+            def __str__(self):
+                raise RuntimeError("no text for you")
+
+        crumb = self.hooks.scrub_breadcrumb(
+            {"message": Explodes(), "level": "info"}, {}
+        )
+        log = self.hooks.scrub_log({"body": Explodes(), "severity_text": "info"}, {})
+
+        self.assertEqual(crumb, {"message": self.hooks.WITHHELD, "level": "info"})
+        self.assertEqual(log, {"body": self.hooks.WITHHELD, "severity_text": "info"})
+
+
+class WiringTests(SimpleTestCase):
+    def test_settings_pass_the_three_hooks_to_sentry(self):
+        with open(os.path.join(settings.BASE_DIR, "AutoGrader", "settings.py")) as fh:
+            tree = ast.parse(fh.read())
+        [init] = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and ast.unparse(node.func) == "sentry_sdk.init"
+        ]
+        keywords = {
+            keyword.arg: ast.unparse(keyword.value) for keyword in init.keywords
+        }
+
+        self.assertEqual(keywords.get("before_send"), "scrub_event")
+        self.assertEqual(keywords.get("before_breadcrumb"), "scrub_breadcrumb")
+        self.assertEqual(keywords.get("before_send_log"), "scrub_log")
+        self.assertEqual(keywords.get("send_default_pii"), "False")
