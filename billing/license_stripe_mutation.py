@@ -408,16 +408,66 @@ def record_intent(
     )
 
 
+def audit_intent_status(intent, before, after) -> None:
+    """One SUBSCRIPTION_CHANGE audit event for an intent's status change:
+    ids and the two statuses only, never the free-text reason or note.
+
+    Recorded for every transition to ESCALATED (here, and by the stale-intent
+    check) and for every manual close (resolve_licence_stripe_intent). The
+    ordinary PENDING -> COMPLETE path is not: the licence's own history
+    records what changed.
+
+    Call it inside the transaction that changes the status, so a change
+    that rolls back leaves no event. The actor is the request's signed-in
+    user, else SYSTEM, else the operator of a `command_actor` block.
+
+    It never raises, and it cannot spoil the caller's transaction: it works
+    in a savepoint of its own, so if the event cannot be written the status
+    change still commits. A failed event must not stop the escalation, which
+    is the thing a human has to hear about. The emitter logs its own
+    failures; anything else is logged here.
+    """
+    from audit.context import current_request, current_request_actor
+    from audit.emitter import emit
+    from audit.enums import AuditAction
+
+    try:
+        with transaction.atomic():
+            emit(
+                AuditAction.SUBSCRIPTION_CHANGE,
+                actor=current_request_actor(),
+                request=current_request(),
+                target_type="LicenseStripeMutationIntent",
+                target_id=intent.id,
+                school_id=intent.license_subscription.school_id,
+                before={"intent_status": str(before)},
+                after={"intent_status": str(after)},
+                metadata={"license_id": str(intent.license_subscription_id)},
+            )
+    except Exception:  # noqa: BLE001 - the audit event must not block the change
+        logger.exception(
+            "Could not write the audit event for H-28 intent %s (%s -> %s).",
+            intent.id,
+            before,
+            after,
+        )
+
+
 def _set_status(intent, status, **fields) -> bool:
     """Advance an intent in its own short transaction. Best effort: if the
     database itself is what failed, the intent keeps its last committed
-    state, which the stale-intent check reports. Returns whether it saved."""
+    state, which the stale-intent check reports. Returns whether it saved.
+
+    A move to ESCALATED is audited in the same transaction."""
+    was = intent.status
     intent.status = status
     for name, value in fields.items():
         setattr(intent, name, value)
     try:
         with transaction.atomic(durable=True):
             intent.save(update_fields=["status", "updated_at", *fields])
+            if status == LicenseStripeMutationStatus.ESCALATED:
+                audit_intent_status(intent, was, status)
         return True
     except Exception:  # noqa: BLE001 - a failed record must not mask the cause
         logger.exception(
@@ -563,14 +613,18 @@ def escalate_stale_intents(now=None) -> int:
             "application never recorded it"
         )
         # Conditional, so a flow that finishes meanwhile is never overwritten.
-        claimed = LicenseStripeMutationIntent.objects.filter(
-            pk=intent.pk, status=was, updated_at=intent.updated_at
-        ).update(
-            status=LicenseStripeMutationStatus.ESCALATED,
-            escalated_at=now,
-            failure_reason=f"Stale for over {STALE_AFTER}: {why}",
-            updated_at=now,
-        )
+        # The audit event is written with the claim: both commit, or neither.
+        with transaction.atomic():
+            claimed = LicenseStripeMutationIntent.objects.filter(
+                pk=intent.pk, status=was, updated_at=intent.updated_at
+            ).update(
+                status=LicenseStripeMutationStatus.ESCALATED,
+                escalated_at=now,
+                failure_reason=f"Stale for over {STALE_AFTER}: {why}",
+                updated_at=now,
+            )
+            if claimed:
+                audit_intent_status(intent, was, LicenseStripeMutationStatus.ESCALATED)
         if claimed:
             intent.status = LicenseStripeMutationStatus.ESCALATED
             escalated += 1
