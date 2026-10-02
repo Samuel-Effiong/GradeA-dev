@@ -94,3 +94,66 @@ def next_monthly_grant(anchor, served_due, contract_end):
     while anchor + relativedelta(months=k) <= floor:
         k += 1
     return k, min(anchor + relativedelta(months=k), contract_end)
+
+
+def allocation_anchor(stored_anchor, fallback_anchor, served_due):
+    """The anchor of a licence allocation's monthly refreshes (H-88).
+
+    `stored_anchor` is SchoolCreditAllocation.grant_anchor_at, written at
+    every enrolment, re-enrolment, reactivation and renewal, and by the
+    refresh itself. It is used only while `served_due` still lies within
+    ANCHOR_SNAP of one of its points. If something moved the due time and
+    not the anchor (the QA time-travel tool; old code after a rollback,
+    which renews and re-enrols without knowing the column), the due time is
+    the anchor: following the stale one would bring the next refresh back
+    to the old chain within days (1a's F1).
+
+    A row older than the field has no stored anchor, so:
+      * `fallback_anchor` (the later of the row's creation and the licence's
+        cycle start: a renewal restarts every teacher's month) is used when
+        `served_due` lies within ANCHOR_SNAP of one of its points;
+      * otherwise the row was re-enrolled since the last renewal, at a time
+        nobody stored. Its due time is the best record of its rhythm, so
+        the due time itself is the anchor.
+    The caller stores whichever anchor is returned.
+    """
+    candidate = stored_anchor if stored_anchor is not None else fallback_anchor
+    k = 0
+    while candidate + relativedelta(months=k) < served_due - ANCHOR_SNAP:
+        k += 1
+    if candidate + relativedelta(months=k) <= served_due + ANCHOR_SNAP:
+        return candidate
+    return served_due
+
+
+def latest_monthly_point(anchor, at):
+    """The latest of `anchor` + k months (k >= 0) at or before `at`.
+
+    The licence's consumption window (H-93) reopens on the licence's own
+    monthly points, counted from its cycle start: the first teacher refresh
+    after a point reopens it, and every other refresh in that licence month
+    leaves it alone. That is 12 windows a year whatever days the teachers
+    are anchored on, on clamped dates too (31 Jan, 28 Feb, 31 Mar), and
+    once however many refreshes a catch-up makes on consecutive days.
+    """
+    k = 0
+    while anchor + relativedelta(months=k + 1) <= at:
+        k += 1
+    return anchor + relativedelta(months=k)
+
+
+def grants_owed(anchor, next_due, until):
+    """How many monthly grants came due before `until` and were never made
+    (H-81), for a chain anchored at `anchor` whose next due time is
+    `next_due`.
+
+    A chain that was served to the end has its due time capped at the
+    cycle's end, so nothing is owed. A due time within ANCHOR_SNAP of
+    `until` is the same period as `until` itself (the renewal's): a row
+    drifted to the 28th against a cycle ending on the 31st owes nothing.
+    """
+    owed = 0
+    while next_due + ANCHOR_SNAP < until:
+        owed += 1
+        _, next_due = next_monthly_grant(anchor, next_due, until)
+    return owed

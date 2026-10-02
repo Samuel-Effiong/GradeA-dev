@@ -1,0 +1,44 @@
+# M7: a due time off the fallback's chain is its own anchor
+# file: billing/refresh_timing.py (occurrence 1)
+# old: '        return fallback_anchor\n    return served_due\n'
+# new: '        return fallback_anchor\n    return fallback_anchor\n'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 17.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=8)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=9)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=10)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=11)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=12)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=13)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=14)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=15)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=16)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=17)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=18)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=19)
+FAIL: test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor) (offset_days=20)
+FAIL: test_a_fallback_later_than_the_due_time_does_not_loop (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_fallback_later_than_the_due_time_does_not_loop)
+FAIL: test_the_snap_window_is_ANCHOR_SNAP_on_both_sides (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_the_snap_window_is_ANCHOR_SNAP_on_both_sides) (due=datetime.datetime(2026, 4, 3, 0, 59, 59, tzinfo=datetime.timezone.utc))
+FAIL: test_the_snap_window_is_ANCHOR_SNAP_on_both_sides (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_the_snap_window_is_ANCHOR_SNAP_on_both_sides) (due=datetime.datetime(2026, 4, 17, 1, 0, 1, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 18, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 19, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 20, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 21, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 22, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 23, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 24, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 25, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 26, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 27, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 28, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 29, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 30, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 3, 31, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 4, 1, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval) (first_due=datetime.datetime(2026, 4, 2, 3, 0, tzinfo=datetime.timezone.utc))
+
+FAILED (failures=33)
