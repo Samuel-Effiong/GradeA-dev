@@ -1,0 +1,5 @@
+baseline exit=0
+D5	a socket URL keeps its credentials (v2's finding)	KILLED	FAILED (failures=12)	True	7.1
+
+1/1 killed with verified restore
+exit=0 wall_s=15
