@@ -140,6 +140,91 @@ class WritesInsideACommandTests(CommandActorTestCase):
         self.assertEqual(event.metadata["command"], COMMAND)
 
 
+class TheBlocksNameCannotBeReplacedTests(CommandActorTestCase):
+    """v2's Y2. Inside a block the emitter sets `command` itself. A value a
+    call site passes under that key is dropped like any other key the action
+    does not allow, and must never replace the block's checked name."""
+
+    def test_a_call_sites_command_value_never_reaches_the_event(self):
+        for supplied in ("someone@example.com", "migrate", "free text; note", ""):
+            with self.subTest(supplied=supplied):
+                before = set(self.new_events().values_list("id", flat=True))
+                with command_actor(self.operator, command=COMMAND):
+                    emit(
+                        AuditAction.ADMIN_ACTION,
+                        target_type="CustomUser",
+                        target_id=self.teacher.id,
+                        metadata={"source": "TestCommand", "command": supplied},
+                    )
+                [event] = self.new_events().exclude(id__in=before)
+                self.assertEqual(
+                    event.metadata, {"source": "TestCommand", "command": COMMAND}
+                )
+                self.assertEqual(event.actor_id, self.operator.id)
+
+
+class NestedBlocksTests(CommandActorTestCase):
+    """v2's Y1. A block that ends restores the block around it, not "no
+    command": one command calling another must not turn the rest of the
+    outer command's writes into SYSTEM."""
+
+    INNER = "migrate"
+
+    def setUp(self):
+        super().setUp()
+        self.second = make_super_admin("second.operator@command.test")
+        self.before_ids = set(AuditEvent.objects.values_list("id", flat=True))
+
+    def mark(self):
+        """One explicit event; returns it."""
+        before = set(self.new_events().values_list("id", flat=True))
+        emit(
+            AuditAction.ADMIN_ACTION,
+            target_type="CustomUser",
+            target_id=self.teacher.id,
+            strict=True,
+        )
+        [event] = self.new_events().exclude(id__in=before)
+        return event
+
+    def test_the_outer_block_is_restored_after_the_inner_one(self):
+        with command_actor(self.operator, command=COMMAND):
+            with command_actor(self.second, command=self.INNER):
+                inner = self.mark()
+            outer = self.mark()
+            self.assertEqual(current_command_actor(), self.operator)
+            self.assertEqual(current_command(), COMMAND)
+        after = self.mark()
+
+        self.assertEqual(
+            (inner.actor_id, inner.metadata["command"]), (self.second.id, self.INNER)
+        )
+        self.assertEqual(
+            (outer.actor_id, outer.metadata["command"]), (self.operator.id, COMMAND)
+        )
+        self.assertBySystem(after)
+
+    def test_the_outer_block_is_restored_when_the_inner_one_raises(self):
+        with command_actor(self.operator, command=COMMAND):
+            with self.assertRaises(RuntimeError):
+                with command_actor(self.second, command=self.INNER):
+                    raise RuntimeError("the inner command failed")
+            outer = self.mark()
+        self.assertEqual(
+            (outer.actor_id, outer.metadata["command"]), (self.operator.id, COMMAND)
+        )
+        self.assertIsNone(current_command_actor())
+        self.assertIsNone(current_command())
+
+    def test_a_refused_inner_block_leaves_the_outer_one_in_place(self):
+        with command_actor(self.operator, command=COMMAND):
+            with self.assertRaises(ValueError):
+                with command_actor(self.teacher, command=self.INNER):
+                    pass
+            self.assertEqual(current_command_actor(), self.operator)
+            self.assertEqual(current_command(), COMMAND)
+
+
 class OutsideACommandTests(CommandActorTestCase):
     def test_a_save_outside_is_still_system_with_no_command(self):
         self.deactivate_by_save()
