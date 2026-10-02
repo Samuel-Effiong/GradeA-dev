@@ -45,6 +45,7 @@ No command uses it yet. The first user is the resolve-intent audit emit (next sl
 | 0124cc68 | Round 1's fix: `audit/history.py` back to its base byte for byte (the edit was redundant); the docstring's two cases; one isolating test for the name-shape check. |
 | 3555050b, 8c7f1ed6 | `mutate.py` (15 mutants, then 13). |
 | 5e4e1c5d | 0b's base update onto 3fff1382 (clean; no shared file). |
+| 94064627, ada31929 | Round 3, test-only: the two tests v2's mutants needed; C16 and C17 in the harness. |
 
 ## Runs
 
@@ -79,6 +80,31 @@ mutant parsed.
 | C13 a command need not exist | `test_a_command_that_does_not_exist_is_refused` |
 | C14 the name shape is not checked | `test_a_listed_command_with_a_free_text_name_is_refused` |
 | C15 the context is not reset | `test_a_command_that_does_not_exist_is_refused`; `test_a_listed_command_with_a_free_text_name_is_refused`; `test_a_school_admin_is_refused` (+9 more) |
+
+### Round 3 (rule 15.4), at ada31929: v2's two test gaps closed
+
+v2's verdict at 9a71836e (VERIFIED-WITH-NOTES, `VERIFICATION_epic_a_command_actor_9a71836e.md`)
+found the production code right and two of v2's own mutants surviving my 21 tests:
+
+- **Y2**: inside a block, a call site's own `metadata["command"]` value replaces the block's
+  checked name. My test for a supplied `command` ran outside a block, where that branch is not
+  taken. This is the one that matters: free text, even an address, into the trail past the
+  allow-list.
+- **Y1**: a nested block's exit clears the outer block's context. No test nested two blocks.
+
+SM ruling: both tests go in before the merge, test-only. 94064627 adds
+`TheBlocksNameCannotBeReplacedTests` (four supplied values, an address among them) and
+`NestedBlocksTests` (the inner block ends, raises, or is refused). The two mutants joined my
+harness as **C16** (Y2) and **C17** (Y1).
+
+2026-10-02 15:50–15:52 WAT, 6G:
+
+| Step | Result | Log |
+|---|---|---|
+| The touched module `audit.tests_command_actor` | 25 tests OK | `r3_module.txt` |
+| Mutants C3–C17 (15) | 15 of 15 killed. C16 by `test_a_call_sites_command_value_never_reaches_the_event`; C17 by the two nested-block tests | `mutation_log.txt`, `mutation_results.json` (these now hold round 3; round 2's 13-mutant results are in history at a75c4cf7) |
+
+The regression below was not repeated: only the test module changed after it.
 
 ### Regression (b)
 
@@ -121,4 +147,7 @@ Files: `run1_3555050b_prefix_cc22bc03_failing.txt`, `run1_3555050b_modules_and_g
 - No management command uses `command_actor` yet, so no end-to-end command run is tested.
 - Events written by code that passes an explicit actor (for example one that passes a request
   user) keep that actor inside a command block; that is the ruled behaviour, not an oversight.
+- A task or thread started inside a block stays SYSTEM: the context does not cross into a
+  Celery task or a new thread (v2's note 3). A command that wants the operator recorded must
+  do its writes in-process.
 - The author does not verify their own work: a verifier checks this.
