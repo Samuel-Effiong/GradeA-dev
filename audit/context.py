@@ -17,6 +17,7 @@ value passed to `trace_context()` must always come from the server, never from
 a request header.
 """
 
+import re
 import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -184,3 +185,88 @@ def a_surviving_event_names(state, user) -> bool:
         ).exists()
     except Exception:  # noqa: BLE001 - never fail the response
         return False
+
+
+# ---------------------------------------------------------------------------
+# The operator of a management command (H-69).
+#
+# A command has no request, so S3's rule records everything it writes as
+# SYSTEM: the trail says a row changed, not which super admin ran the command.
+# `command_actor` names that operator for the block. The history signals,
+# `record_bulk` and `emit` pick it up, and every event stored inside the block
+# also carries `metadata["command"]`, the command's name.
+#
+# Both values are established by the server, never taken as free text: the
+# user must be an active super admin, and the name must be a management
+# command that exists.
+
+_COMMAND_NAME = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+class _CommandContext:
+    __slots__ = ("user", "command")
+
+    def __init__(self, user, command):
+        self.user = user
+        self.command = command
+
+
+_command_var: ContextVar[Optional[_CommandContext]] = ContextVar(
+    "audit_command_actor", default=None
+)
+
+
+def _is_active_super_admin(user) -> bool:
+    from users.models import UserTypes
+
+    return bool(
+        user is not None
+        # A row loaded from (or saved to) the database, not one built in code.
+        and not getattr(getattr(user, "_state", None), "adding", True)
+        and getattr(user, "is_active", False)
+        and getattr(user, "is_superuser", False)
+        and getattr(user, "user_type", None) == UserTypes.SUPER_ADMIN
+    )
+
+
+def _is_known_command(command) -> bool:
+    from django.core.management import get_commands
+
+    return (
+        isinstance(command, str)
+        and _COMMAND_NAME.fullmatch(command) is not None
+        and command in get_commands()
+    )
+
+
+@contextmanager
+def command_actor(user, *, command):
+    """Name `user` as the actor of every audit event written inside the block,
+    and `command` as the management command that wrote it.
+
+    `user` is the super admin a command's `--by` resolved (the same rule as
+    `resolve_licence_stripe_intent`: an active SUPER_ADMIN). `command` is the
+    command's own module name, e.g. `Path(__file__).stem`. Anything else
+    raises ValueError before the block runs, so a command cannot write under
+    a name nobody checked."""
+    if not _is_active_super_admin(user):
+        raise ValueError("command_actor: user must be an active super admin")
+    if not _is_known_command(command):
+        raise ValueError("command_actor: command must be a management command")
+    token = _command_var.set(_CommandContext(user, command))
+    try:
+        yield
+    finally:
+        _command_var.reset(token)
+
+
+def current_command_actor():
+    """The super admin named by the enclosing `command_actor()`, or None."""
+    context = _command_var.get()
+    return context.user if context is not None else None
+
+
+def current_command():
+    """The command named by the enclosing `command_actor()`, or None."""
+    context = _command_var.get()
+    return context.command if context is not None else None

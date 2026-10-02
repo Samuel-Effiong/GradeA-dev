@@ -82,6 +82,10 @@ ALLOWED_KEYS = frozenset(
         "file_type",
         "source",
         "changed_fields",
+        # H-69: the management command that wrote the event. Set by the
+        # emitter from `audit.context.command_actor`, never by a call site:
+        # it is in no action's METADATA_ALLOWLIST entry.
+        "command",
         # S1 generic event: the URL name and HTTP method, never the path or body
         "route",
         "method",

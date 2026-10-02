@@ -45,7 +45,7 @@ from django.apps import apps
 from django.db import transaction
 from django.db.models.signals import post_save, pre_delete, pre_save
 
-from .context import current_request, current_request_actor
+from .context import current_command_actor, current_request, current_request_actor
 from .emitter import emit
 from .enums import AuditAction
 from .metadata import BEFORE_AFTER_ALLOWLIST
@@ -229,8 +229,9 @@ def acting_as(user):
 
 def _actor():
     """The actor for a signal-written event: `acting_as`'s user if set, else
-    S3's rule - the request's signed-in user, or None (SYSTEM)."""
-    return _acting_as.get() or current_request_actor()
+    S3's rule - the request's signed-in user - else the operator of the
+    management command being run (H-69), or None (SYSTEM)."""
+    return _acting_as.get() or current_request_actor() or current_command_actor()
 
 
 # ---------------------------------------------------------------------------

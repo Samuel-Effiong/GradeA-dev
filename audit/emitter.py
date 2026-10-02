@@ -46,7 +46,13 @@ from AutoGrader.request_context import client_request_id_from_header, get_reques
 
 from . import failed_auth_cap
 from . import metrics as audit_metrics
-from .context import current_trace_id, record_stored_event, record_suppressed_event
+from .context import (
+    current_command,
+    current_command_actor,
+    current_trace_id,
+    record_stored_event,
+    record_suppressed_event,
+)
 from .enums import (
     STUDENT_RECORD_ACTIONS,
     ActorRole,
@@ -353,6 +359,11 @@ def _build(
         if not isinstance(reason_code, str) or reason_code not in ReasonCode.values:
             raise AuditValidationError("reason_code: not a known code")
 
+    if actor is None:
+        # H-69: inside `command_actor`, an event that would be SYSTEM belongs
+        # to the super admin running the command. An actor the call site
+        # passed is kept.
+        actor = current_command_actor()
     role, actor_id, actor_email, actor_school = _actor_fields(actor)
     is_student = role == ActorRole.STUDENT
     request_fields = _request_fields(request, is_student)
@@ -362,6 +373,12 @@ def _build(
     clean_before, dropped_before = sanitise_before_after_for_action(action, before)
     clean_after, dropped_after = sanitise_before_after_for_action(action, after)
     dropped = dropped + dropped_before + dropped_after
+    command = current_command()
+    if command is not None:
+        # H-69: set here, after the allow-list, from the name `command_actor`
+        # checked against the commands that exist. No per-action list carries
+        # "command", so a call site cannot supply it.
+        clean_metadata = {**clean_metadata, "command": command}
 
     student_record = touches_student_record or action in STUDENT_RECORD_ACTIONS
     fields = dict(
