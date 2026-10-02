@@ -1,0 +1,32 @@
+# baseline, commit 892aa913b55434cff5a92aded83cd56827b1b8e6, exit 0
+
+Found 13 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription a597ad60-748f-4a14-8931-c64afd48efb9 caught up: the grant due at 2026-11-30 01:00:00+00:00 (period 10) is made late.
+Mid-cycle grant for subscription a597ad60-748f-4a14-8931-c64afd48efb9 caught up: the grant due at 2026-12-31 01:00:00+00:00 (period 11) is made late.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription 308765dc-ce4d-42ab-9857-ff562ad137a1 caught up: the grant due at 2026-03-31 01:00:00+00:00 (period 2) is made late.
+Mid-cycle grant for subscription 308765dc-ce4d-42ab-9857-ff562ad137a1 caught up: the grant due at 2026-04-30 01:00:00+00:00 (period 3) is made late.
+Mid-cycle grant for subscription 308765dc-ce4d-42ab-9857-ff562ad137a1 caught up: the grant due at 2026-05-31 01:00:00+00:00 (period 4) is made late.
+.......
+----------------------------------------------------------------------
+Ran 13 tests in 7.764s
+
+OK
+Preserving test database for alias 'default'...

@@ -1,0 +1,13 @@
+# H5: a caught-up bucket lives from its grant time
+# file: billing/services.py (occurrence 1)
+# old: '            if next_due > now\n'
+# new: '            if True\n'
+# commit: 892aa913b55434cff5a92aded83cd56827b1b8e6
+# exit: 1
+# elapsed_s: 15.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_catch_up_at_the_cycle_end_never_outlives_the_contract (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_a_catch_up_at_the_cycle_end_never_outlives_the_contract)
+FAIL: test_no_granted_bucket_is_born_expired (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_no_granted_bucket_is_born_expired)
+
+FAILED (failures=2)
