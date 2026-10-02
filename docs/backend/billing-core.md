@@ -52,13 +52,14 @@ All paths relative to `/api/v1/`. `DefaultRouter(trailing_slash=False)` ([billin
 | Command | Purpose |
 |---|---|
 | `seed_plan_features` | populate `PlanFeature` / `PlanFeatureInclusion` |
-| `backfill` | general backfill |
 | `backfill_billing_transactions` | see [billing-stripe.md](billing-stripe.md) |
 | `backfill_receipt_urls` | see [billing-stripe.md](billing-stripe.md) |
 | `replay_stripe_events` | see [billing-stripe.md](billing-stripe.md) |
 | `audit_email_track_separation` | see [users-and-auth.md](users-and-auth.md) |
 | `audit_school_admins` | see [billing-licenses.md](billing-licenses.md) |
 | `run_stripe_live_qa` | see [billing-qa-harness.md](billing-qa-harness.md) |
+
+`backfill` is no longer a command (H1). It was a module-level script with no `Command` class, so `manage.py backfill` ran live Stripe schedule writes on import. It now lives at `scripts/one_off_backfill_stripe_schedules.py`, which is never imported; run it only deliberately, via `manage.py shell < scripts/one_off_backfill_stripe_schedules.py`.
 
 ---
 
