@@ -1,0 +1,531 @@
+22:20:04 Creating test database for alias 'default' ('test_h60_h57_licence_seats_mut')...
+22:20:04 Found 10 test(s).
+22:20:04 Operations to perform:
+22:20:04   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+22:20:04   Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+22:20:04 Synchronizing apps without migrations:
+22:20:04   Creating tables...
+22:20:04     Running deferred SQL...
+22:20:04 Running migrations:
+22:20:04   Applying contenttypes.0001_initial... OK
+22:20:04   Applying contenttypes.0002_remove_content_type_name... OK
+22:20:04   Applying auth.0001_initial... OK
+22:20:04   Applying auth.0002_alter_permission_name_max_length... OK
+22:20:04   Applying auth.0003_alter_user_email_max_length... OK
+22:20:04   Applying auth.0004_alter_user_username_opts... OK
+22:20:04   Applying auth.0005_alter_user_last_login_null... OK
+22:20:04   Applying auth.0006_require_contenttypes_0002... OK
+22:20:04   Applying auth.0007_alter_validators_add_error_messages... OK
+22:20:04   Applying auth.0008_alter_user_username_max_length... OK
+22:20:04   Applying auth.0009_alter_user_last_name_max_length... OK
+22:20:04   Applying auth.0010_alter_group_name_max_length... OK
+22:20:04   Applying auth.0011_update_proxy_permissions... OK
+22:20:04   Applying auth.0012_alter_user_first_name_max_length... OK
+22:20:04   Applying users.0001_initial... OK
+22:20:04   Applying admin.0001_initial... OK
+22:20:04   Applying admin.0002_logentry_remove_auto_add... OK
+22:20:04   Applying admin.0003_logentry_add_action_flag_choices... OK
+22:20:04   Applying classrooms.0001_initial... OK
+22:20:04   Applying ai_processor.0001_initial... OK
+22:20:04   Applying ai_processor.0002_initial... OK
+22:20:04   Applying ai_processor.0003_chatsession_user... OK
+22:20:04   Applying ai_processor.0004_chatsession_assistant_type... OK
+22:20:04   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+22:20:05   Applying classrooms.0002_initial... OK
+22:20:05   Applying classrooms.0003_coursecategory_course_categories... OK
+22:20:05   Applying classrooms.0004_course_teacher... OK
+22:20:05   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+22:20:05   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+22:20:05   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+22:20:05   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+22:20:05   Applying classrooms.0009_school... OK
+22:20:05   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+22:20:05   Applying classrooms.0011_remove_course_categories_topic... OK
+22:20:05   Applying classrooms.0012_studentcourse_auto_added... OK
+22:20:05   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+22:20:05   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+22:20:05   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+22:20:05   Applying classrooms.0016_school_is_active... OK
+22:20:05   Applying assignments.0001_initial... OK
+22:20:05   Applying assignments.0002_initial... OK
+22:20:05   Applying assignments.0003_initial... OK
+22:20:05   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+22:20:05   Applying assignments.0005_alter_assignment_options... OK
+22:20:05   Applying assignments.0006_assignment_estimated_time... OK
+22:20:05   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+22:20:05   Applying assignments.0008_alter_assignment_due_date... OK
+22:20:05   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+22:20:05   Applying assignments.0010_assignment_custom_ai_prompt... OK
+22:20:05   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+22:20:05   Applying assignments.0012_assignment_was_overridden... OK
+22:20:05   Applying assignments.0013_alter_assignment_ai_generated... OK
+22:20:05   Applying assignments.0014_assignment_self_assessment_and_more... OK
+22:20:06   Applying assignments.0015_alter_assignment_potential_issues... OK
+22:20:06   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+22:20:06   Applying assignments.0017_assignment_grading_status... OK
+22:20:06   Applying assignments.0018_assignment_topic... OK
+22:20:06   Applying assignments.0019_alter_assignment_title_and_more... OK
+22:20:06   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+22:20:06   Applying assignments.0021_assignment_overridden_at... OK
+22:20:06   Applying assignments.0022_assignment_raw_input... OK
+22:20:06   Applying assignments.0023_delete_rubric... OK
+22:20:06   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+22:20:06   Applying assignments.0025_alter_assignment_instructions... OK
+22:20:06   Applying assignments.0026_assignment_status... OK
+22:20:06   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+22:20:06   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+22:20:06   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+22:20:06   Applying assignments.0030_alter_assignment_status... OK
+22:20:06   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+22:20:06   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+22:20:06   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+22:20:06   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+22:20:06   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+22:20:06   Applying assignments.0036_backfill_assignment_rigor... OK
+22:20:06   Applying assignments.0037_assignment_course_title_index... OK
+22:20:06   Applying assignments.0038_assignment_updated_at... OK
+22:20:06   Applying assignments.0039_assignment_upload_fingerprint... OK
+22:20:06   Applying assignments.0040_db_defaults_for_rollback... OK
+22:20:06   Applying authtoken.0001_initial... OK
+22:20:06   Applying authtoken.0002_auto_20160226_1747... OK
+22:20:06   Applying authtoken.0003_tokenproxy... OK
+22:20:06   Applying authtoken.0004_alter_tokenproxy_options... OK
+22:20:06   Applying users.0002_customuser_activation_expires_and_more... OK
+22:20:06   Applying users.0003_passwordresetotp... OK
+22:20:06   Applying users.0004_customuser_email_verified_at... OK
+22:20:06   Applying users.0005_alter_passwordresetotp_code... OK
+22:20:07   Applying users.0006_alter_passwordresetotp_code... OK
+22:20:07   Applying users.0007_passwordchangeotp... OK
+22:20:07   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+22:20:07   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+22:20:07   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+22:20:07   Applying billing.0001_initial... OK
+22:20:07   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+22:20:07   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+22:20:07   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+22:20:07   Applying billing.0005_usersubscription_pending_plan... OK
+22:20:07   Applying billing.0006_alter_subscriptionplan_name... OK
+22:20:07   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+22:20:07   Applying billing.0008_betaprofile... OK
+22:20:07   Applying billing.0009_betaprofile_uuid_and_more... OK
+22:20:07   Applying billing.0010_alter_betaprofile_id... OK
+22:20:07   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+22:20:07   Applying billing.0012_populate_beta_profile_uuids... OK
+22:20:08   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+22:20:08   Applying billing.0014_rename_uid_betaprofile_id... OK
+22:20:08   Applying billing.0015_betaprofile_credits_used_feedback... OK
+22:20:08   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+22:20:08   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+22:20:08   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+22:20:08   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+22:20:08   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+22:20:08   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+22:20:08   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+22:20:08   Applying billing.0023_alter_subscriptionplan_name... OK
+22:20:08   Applying billing.0024_licensesubscription_custom_price_cents... OK
+22:20:08   Applying billing.0025_alter_subscriptionplan_name... OK
+22:20:08   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+22:20:08   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+22:20:08   Applying billing.0028_alter_usersubscription_is_trial... OK
+22:20:08   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+22:20:08   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+22:20:08   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+22:20:09   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+22:20:09   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+22:20:09   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+22:20:09   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+22:20:09   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+22:20:09   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+22:20:09   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+22:20:09   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+22:20:09   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+22:20:09   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+22:20:09   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+22:20:09   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+22:20:09   Applying billing.0044_alter_creditusagelog_feature... OK
+22:20:09   Applying billing.0045_billingtransaction... OK
+22:20:09   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+22:20:09   Applying billing.0047_subscriptionplan_carry_over_max... OK
+22:20:09   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+22:20:09   Applying billing.0049_billingtransaction_receipt_url... OK
+22:20:09   Applying billing.0050_creditusagelog_course... OK
+22:20:09   Applying billing.0051_creditusagelog_task_id_index... OK
+22:20:09   Applying billing.0052_creditusagelog_school... OK
+22:20:09   Applying billing.0053_backfill_creditusagelog_school... OK
+22:20:10   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+22:20:10   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+22:20:10   Applying billing.0056_liveqarun... OK
+22:20:10   Applying billing.0057_usersubscription_cancelled_at... OK
+22:20:10   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+22:20:10   Applying billing.0059_append_only_audit_tables... OK
+22:20:11   Applying billing.0060_backfill_audit_identity...
+22:20:11   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+22:20:11  OK
+22:20:11   Applying billing.0061_add_audit_table_time_indexes... OK
+22:20:11   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+22:20:11   Applying billing.0063_payment_disputes... OK
+22:20:11   Applying billing.0064_refund_credit_reversal... OK
+22:20:11   Applying billing.0065_backfill_ledger_payment_intent...
+22:20:11   attributed 0 ledger row(s) to their Stripe payment
+22:20:11  OK
+22:20:11   Applying billing.0066_dispute_deficit_by_wallet... OK
+22:20:11   Applying billing.0067_stripe_event_recovery... OK
+22:20:11   Applying billing.0068_price_reconciliation... OK
+22:20:11   Applying billing.0069_price_sync_audit... OK
+22:20:12   Applying billing.0070_db_defaults_for_rollback... OK
+22:20:12   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+22:20:12   Applying billing.0072_license_stripe_mutation_intent... OK
+22:20:12   Applying dashboard.0001_initial... OK
+22:20:12   Applying dashboard.0002_schoolatrisksnapshot... OK
+22:20:12   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+22:20:12   Applying dashboard.0004_db_defaults_for_rollback... OK
+22:20:12   Applying django_celery_beat.0001_initial... OK
+22:20:12   Applying django_celery_beat.0002_auto_20161118_0346... OK
+22:20:12   Applying django_celery_beat.0003_auto_20161209_0049... OK
+22:20:12   Applying django_celery_beat.0004_auto_20170221_0000... OK
+22:20:12   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+22:20:12   Applying django_celery_beat.0006_auto_20180322_0932... OK
+22:20:12   Applying django_celery_beat.0007_auto_20180521_0826... OK
+22:20:12   Applying django_celery_beat.0008_auto_20180914_1922... OK
+22:20:12   Applying django_celery_beat.0006_auto_20180210_1226... OK
+22:20:12   Applying django_celery_beat.0006_periodictask_priority... OK
+22:20:12   Applying django_celery_beat.0009_periodictask_headers... OK
+22:20:13   Applying django_celery_beat.0010_auto_20190429_0326... OK
+22:20:13   Applying django_celery_beat.0011_auto_20190508_0153... OK
+22:20:13   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+22:20:13   Applying django_celery_beat.0013_auto_20200609_0727... OK
+22:20:13   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+22:20:13   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+22:20:13   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+22:20:13   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+22:20:13   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+22:20:13   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+22:20:13   Applying django_celery_results.0001_initial... OK
+22:20:13   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+22:20:13   Applying django_celery_results.0003_auto_20181106_1101... OK
+22:20:13   Applying django_celery_results.0004_auto_20190516_0412... OK
+22:20:13   Applying django_celery_results.0005_taskresult_worker... OK
+22:20:13   Applying django_celery_results.0006_taskresult_date_created... OK
+22:20:13   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+22:20:13   Applying django_celery_results.0008_chordcounter... OK
+22:20:13   Applying django_celery_results.0009_groupresult... OK
+22:20:13   Applying django_celery_results.0010_remove_duplicate_indices... OK
+22:20:13   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+22:20:13   Applying django_celery_results.0012_taskresult_date_started... OK
+22:20:13   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+22:20:13   Applying django_celery_results.0014_alter_taskresult_status... OK
+22:20:13   Applying sessions.0001_initial... OK
+22:20:13   Applying users.0011_concurrentusersnapshot_useractivity... OK
+22:20:13   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+22:20:13   Applying users.0013_customuser_middle_name... OK
+22:20:13   Applying users.0014_alter_customuser_middle_name... OK
+22:20:14   Applying users.0015_customuser_bio_settings... OK
+22:20:14   Applying users.0016_remove_customuser_bio_delete_settings... OK
+22:20:14   Applying users.0017_settings... OK
+22:20:14   Applying users.0018_customuser_bio... OK
+22:20:14   Applying users.0019_betawhitelist... OK
+22:20:14   Applying users.0020_waitlist_betawhitelist_mode... OK
+22:20:14   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+22:20:14   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+22:20:14   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+22:20:14   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+22:20:14   Applying users.0025_customuser_profile_image... OK
+22:20:14   Applying students.0001_initial... OK
+22:20:14   Applying students.0002_initial... OK
+22:20:14   Applying students.0003_studentsubmission_graded_at_and_more... OK
+22:20:14   Applying students.0004_alter_studentsubmission_graded_at... OK
+22:20:14   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+22:20:14   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+22:20:15   Applying students.0007_studentsubmission_extraction_confidence... OK
+22:20:15   Applying students.0008_studentsubmission_formatted_grade... OK
+22:20:15   Applying students.0009_studentsubmission_raw_input... OK
+22:20:15   Applying students.0010_batchuploadsession... OK
+22:20:15   Applying students.0011_batchuploadsession_course_and_more... OK
+22:20:15   Applying students.0012_alter_batchuploadsession_task_type... OK
+22:20:15   Applying students.0013_studentsubmission_max_points_and_more... OK
+22:20:15   Applying students.0014_alter_studentsubmission_score_percentage... OK
+22:20:15   Applying students.0015_studentsubmission_is_published... OK
+22:20:15   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+22:20:15   Applying students.0017_backgroundprocessingtask... OK
+22:20:15   Applying students.0018_studentsubmission_attempt_count... OK
+22:20:15   Applying students.0019_alter_studentsubmission_attempt_count... OK
+22:20:16   Applying students.0020_studentsubmission_grading_state... OK
+22:20:16   Applying students.0021_studentsubmission_needs_review... OK
+22:20:16   Applying students.0022_studentsubmission_review_severity... OK
+22:20:16   Applying students.0023_studentsubmission_review_tier_and_more... OK
+22:20:16   Applying students.0024_repair_raw_input_json... OK
+22:20:16   Applying students.0025_student_submission_hot_path_indexes... OK
+22:20:16   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+22:20:16   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+22:20:16   Applying students.0028_backfill_ai_grading_completed_at... OK
+22:20:17   Applying token_blacklist.0001_initial... OK
+22:20:17   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+22:20:17   Applying token_blacklist.0003_auto_20171017_2007... OK
+22:20:17   Applying token_blacklist.0004_auto_20171017_2013... OK
+22:20:17   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+22:20:17   Applying token_blacklist.0006_auto_20171017_2113... OK
+22:20:17   Applying token_blacklist.0007_auto_20171017_2214... OK
+22:20:17   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+22:20:17   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+22:20:17   Applying token_blacklist.0011_linearizes_history... OK
+22:20:17   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+22:20:17   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+22:20:17   Applying users.0026_customuser_registration_method... OK
+22:20:17   Applying users.0027_customuser_profile_image_url... OK
+22:20:17   Applying users.0028_alter_customuser_middle_name... OK
+22:20:18   Applying users.0029_usergooglecredentials... OK
+22:20:18   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+22:20:18   Applying users.0031_settings_notify_new_assignment_posted... OK
+22:20:18   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+22:20:18   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+22:20:19   Applying users.0034_passwordresetotp_attempts_and_more... OK
+22:20:19   Applying users.0035_settings_notify_assignment_edited... OK
+22:20:19   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+22:20:19   Applying users.0037_customuser_must_change_password... OK
+22:20:19   Applying users.0038_alter_customuser_must_change_password... OK
+22:20:19   Applying users.0039_customuser_token_epoch... OK
+22:20:20   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+22:20:20
+22:20:20 WARNINGS:
+22:20:20 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+22:20:20
+22:20:20 System check identified 1 issue (0 silenced).
+22:20:20 test_a_blank_stripe_id_echo_matches_a_null_stored_one (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_blank_stripe_id_echo_matches_a_null_stored_one) ... ok
+22:20:21 test_a_changed_max_seats_is_refused_and_changes_nothing (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_changed_max_seats_is_refused_and_changes_nothing) ... API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'max_seats': [ErrorDetail(string="Seats can't be changed here. Use the update_seats action.", code='invalid')]}
+22:20:21 ok
+22:20:21 test_a_stripe_licences_price_changes_only_through_change_plan (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_stripe_licences_price_changes_only_through_change_plan)
+22:20:21 v2's note 3: a PATCHed price moved only the local row, so the ... API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'custom_price_cents': [ErrorDetail(string="The price of a Stripe-billed licence can't be changed here. Use the change_plan action with custom_price_cents.", code='invalid')]}
+22:20:21 ok
+22:20:21 test_a_stripe_licences_unchanged_price_echo_is_accepted (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_stripe_licences_unchanged_price_echo_is_accepted)
+22:20:21 v2's E1: the echo test above holds a null price, so a refusal of ... API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'custom_price_cents': [ErrorDetail(string="The price of a Stripe-billed licence can't be changed here. Use the change_plan action with custom_price_cents.", code='invalid')]}
+22:20:21 FAIL
+22:20:21 test_an_offline_licences_price_is_still_patchable (billing.tests.test_h57_licence_patch.LicencePatchTests.test_an_offline_licences_price_is_still_patchable) ... ok
+22:20:21 test_an_unchanged_max_seats_is_accepted_with_auto_renew_applied (billing.tests.test_h57_licence_patch.LicencePatchTests.test_an_unchanged_max_seats_is_accepted_with_auto_renew_applied) ... ok
+22:20:21 test_carry_forward_teachers_alone_is_ignored (billing.tests.test_h57_licence_patch.LicencePatchTests.test_carry_forward_teachers_alone_is_ignored)
+22:20:21 It defaults to True and only governs creating a replacement ... ok
+22:20:21 test_every_changed_non_patchable_field_is_refused (billing.tests.test_h57_licence_patch.LicencePatchTests.test_every_changed_non_patchable_field_is_refused) ... API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'max_seats': [ErrorDetail(string="Seats can't be changed here. Use the update_seats action.", code='invalid')]}
+22:20:21 API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'plan': [ErrorDetail(string="The plan can't be changed here. Use the change_plan action.", code='invalid')]}
+22:20:21 API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'billing_method': [ErrorDetail(string="The billing method can't be changed here. Use the convert-to-offline or convert-to-stripe action.", code='invalid')]}
+22:20:21 API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'contract_months': [ErrorDetail(string="The contract length can't be changed after creation.", code='invalid')]}
+22:20:21 API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'school': [ErrorDetail(string="A licence's school can't be changed after creation.", code='invalid')]}
+22:20:21 API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string="The licence admin can't be changed here.", code='invalid')]}
+22:20:21 API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'stripe_subscription_id': [ErrorDetail(string="The Stripe subscription can't be changed here.", code='invalid')]}
+22:20:21 ok
+22:20:21 test_teacher_emails_are_refused_when_given (billing.tests.test_h57_licence_patch.LicencePatchTests.test_teacher_emails_are_refused_when_given) ... API Exception
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+22:20:21     response = handler(request, *args, **kwargs)
+22:20:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+22:20:21     return self.update(request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+22:20:21     return method(self, request, *args, **kwargs)
+22:20:21            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+22:20:21     serializer.is_valid(raise_exception=True)
+22:20:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+22:20:21     raise ValidationError(self.errors)
+22:20:21 rest_framework.exceptions.ValidationError: {'teacher_emails': [ErrorDetail(string="Teachers can't be added here. Use the add_teachers action.", code='invalid')]}
+22:20:21 ok
+22:20:21 test_the_whole_object_echoed_back_unchanged_is_accepted (billing.tests.test_h57_licence_patch.LicencePatchTests.test_the_whole_object_echoed_back_unchanged_is_accepted)
+22:20:21 What a frontend that PATCHes back what it holds sends. ... ok
+22:20:21
+22:20:21 ======================================================================
+22:20:21 FAIL: test_a_stripe_licences_unchanged_price_echo_is_accepted (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_stripe_licences_unchanged_price_echo_is_accepted)
+22:20:21 v2's E1: the echo test above holds a null price, so a refusal of
+22:20:21 ----------------------------------------------------------------------
+22:20:21 Traceback (most recent call last):
+22:20:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h57_licence_patch.py", line 177, in test_a_stripe_licences_unchanged_price_echo_is_accepted
+22:20:21     self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+22:20:21 AssertionError: 400 != 200 : {'custom_price_cents': [ErrorDetail(string="The price of a Stripe-billed licence can't be changed here. Use the change_plan action with custom_price_cents.", code='invalid')]}
+22:20:21
+22:20:21 ----------------------------------------------------------------------
+22:20:21 Ran 10 tests in 0.919s
+22:20:21
+22:20:21 FAILED (failures=1)
+22:20:21 Destroying test database for alias 'default' ('test_h60_h57_licence_seats_mut')...
+22:20:21  OK

@@ -1,0 +1,157 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+EFFFFFFFFFF
+======================================================================
+ERROR: test_h57_licence_patch (unittest.loader._FailedTest.test_h57_licence_patch)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_h57_licence_patch
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h57_licence_patch.py", line 20, in <module>
+    from billing.serializers import LICENCE_NOT_PATCHABLE
+ImportError: cannot import name 'LICENCE_NOT_PATCHABLE' from 'billing.serializers' (/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py)
+
+
+======================================================================
+FAIL: test_cancel_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_cancel_refused_by_stripe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 158, in test_cancel_refused_by_stripe
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_convert_to_offline_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_convert_to_offline_refused_by_stripe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 173, in test_convert_to_offline_refused_by_stripe
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_plan_card_declined (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_card_declined)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 146, in test_plan_card_declined
+    self.assert_no_stripe_text(self.change_plan, fixed="Card declined.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_plan_price_creation_refused (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_price_creation_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 140, in test_plan_price_creation_refused
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_plan_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_refused_by_stripe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 150, in test_plan_refused_by_stripe
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_plan_unreadable_subscription (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_unreadable_subscription)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 134, in test_plan_unreadable_subscription
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_seats_card_declined (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_seats_card_declined)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 98, in test_seats_card_declined
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_seats_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_seats_refused_by_stripe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 104, in test_seats_refused_by_stripe
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_seats_unreadable_subscription (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_seats_unreadable_subscription)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 90, in test_seats_unreadable_subscription
+    self.assert_no_stripe_text(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 53, in assert_no_stripe_text
+    with self.assertLogs(MUTATION_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_stripe_mutation
+
+======================================================================
+FAIL: test_the_seats_route_answers_with_the_fixed_text (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_the_seats_route_answers_with_the_fixed_text)
+The view returns the ValueError's text as its 400, so this is
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 120, in test_the_seats_route_answers_with_the_fixed_text
+    self.assertNotIn(SENTINEL, response.content.decode())
+AssertionError: 'SENTINEL_req_h60_sk_live_param_items[0]' unexpectedly found in '{"success":false,"message":"Seat increase payment failed (card error: SENTINEL_req_h60_sk_live_param_items[0]). Seats have not been increased.","error":{"field_errors":{"detail":"Seat increase payment failed (card error: SENTINEL_req_h60_sk_live_param_items[0]). Seats have not been increased."}}}'
+
+----------------------------------------------------------------------
+Ran 11 tests in 2.659s
+
+FAILED (failures=10, errors=1)
+Destroying test database for alias 'default'...
+Found 11 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
