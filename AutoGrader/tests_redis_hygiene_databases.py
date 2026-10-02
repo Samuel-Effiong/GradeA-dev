@@ -142,6 +142,56 @@ class EveryDatabaseIsVisitedTests(SimpleTestCase):
         self.assertFalse(self.exists(in_default, 0))
         self.assertFalse(self.exists(in_other, OTHER_DB))
 
+    # --- Only our prefix, only dead pids, in every database -------------------
+
+    def test_other_key_families_in_another_database_survive(self):
+        """The sweep and delete_own_keys match `gaplus-t<digits>:` and
+        nothing else, in the databases they now reach as in database 0."""
+        dead = self.dead_pid()
+        unique = f"{os.getpid()}-{id(self)}"
+        others = [
+            f"h97-other-family-{unique}:1:x",  # another tool's namespace
+            f"gaplus-tnotapid-{unique}:1:x",  # our letters, not a pid
+            f"gaplus:{unique}:1:x",  # the production prefix
+            f"xgaplus-t{dead}:1:{unique}",  # the prefix, but not at the start
+        ]
+        for key in others:
+            self.put(key, OTHER_DB)
+        self.put(f"gaplus-t{dead}:1:h97-{unique}", OTHER_DB)
+
+        hygiene.sweep_dead_prefixes()
+        hygiene.delete_own_keys(dead)
+
+        for key in others:
+            with self.subTest(key=key):
+                self.assertTrue(self.exists(key, OTHER_DB))
+
+    def test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases(self):
+        """A whole other run (its start-of-run sweep, its teardown and its
+        end-of-run sweep) while this process and a sibling hold keys in the
+        databases real_redis_caches suites use: every key survives."""
+        sibling = self.sibling()
+        keys = []
+        for db in (11, 12, 14, 15):
+            for pid in (os.getpid(), sibling.pid):
+                key = f"gaplus-t{pid}:1:h97-live-in-{db}"
+                self.put(key, db)
+                keys.append((db, key))
+
+        run = subprocess.run(
+            [sys.executable, "-c", CHILD_RUN],
+            cwd=str(settings.BASE_DIR),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env={**os.environ},
+        )
+
+        self.assertEqual(run.returncode, 0, run.stderr)
+        for db, key in keys:
+            with self.subTest(db=db, key=key):
+                self.assertTrue(self.exists(key, db))
+
     # --- A reused pid ----------------------------------------------------------
 
     def test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused(self):
