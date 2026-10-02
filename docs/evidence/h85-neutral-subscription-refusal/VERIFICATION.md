@@ -66,3 +66,24 @@ My probe Z2 asks for six kinds of address and prints what the admin is told:
 Four distinct answers. The neutral sentence is used for this one refusal only, so a person who knows the product can still read it as "a teacher who pays for their own plan". The wording itself no longer says so. The SM showed the founder this table; the founder decided to keep H-85 as built.
 
 Logs: `runs/h85_e3952a12.log`, `runs/h85_mutant_Y7_e3952a12.log`, `runs/h85_ef67cee3.log`, `runs/h85_mutant_Y7_ef67cee3.log`. Probe: `h85_probe_test_vf1a_h85_probe.py`. Mutant: `h85_mutant_Y7.py`.
+
+---
+
+## Delta check after the base update onto bundle 6 @ eabc8cab. 1a, 2026-10-02
+**Verdict for the tip eabc8cab: VERIFIED.** The verified branch (`e8642276`) plus 0b's base update onto `task/beta-batch-6` `ac2ec323` (which has H-94, H-88, H-93 and H-81) is `b5911242`; `eabc8cab` adds d5's short-gate evidence (docs only).
+
+| Check | Result |
+|---|---|
+| The base update `b5911242` | A clean merge: `git merge-tree --write-tree <p1> <p2>` equals its tree. |
+| H-85's own change, before and after | Identical in all six files it touches (the same diff against the base on each side), including `billing/license_service.py`, the one file both H-85 and H-88 change. |
+| The batch's side | Against the batch `ac2ec323`, the tip differs outside docs only in H-85's six files. H-88's anchor code is present in `billing/license_service.py` beside H-85's constant. |
+| After `b5911242` | Docs only. |
+| **Run** @ eabc8cab: my probes Z1a–Z1c, Z2 + `test_neutral_subscription_refusal` + `test_other_school_before_subscription` + H-88's `test_licence_grant_anchor` | **47 tests OK.** The six-address table is unchanged (four distinct answers). |
+| **My mutant Y7** (on `test_vf_h85_mut`) | **KILLED by three tests:** d5's adopted `test_the_enrolment_site_logs_its_own_reason`, my probe Z1c, and H-78's `test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address`. This run includes the H-78 module, so it shows all three guards of that line. |
+| d5's short gates (cited) | at b5911242: repro 6 tests / 5 failures; (a) 23 modules 297 OK; (b) N1–N8 8/8 killed. No regression, by the SM's ruling, which the evidence quotes with the grep that chose the 23 modules. |
+| Hooks | `pre-commit run --from-ref ac2ec323 --to-ref eabc8cab` passes, and `eabc8cab` alone passes. |
+| Merges | `git merge-tree --write-tree` against `task/beta-batch-6` `ac2ec323` is clean. |
+
+**Rule 17.** Both runs had `PYTHONDONTWRITEBYTECODE=1`, and the mutant was applied with `python -B`. `billing/**/__pycache__` was deleted before the baseline, before the mutant and after the restore. The restored `billing/license_service.py` matched the commit blob's sha256, and no tracked file was changed afterwards.
+
+Logs: `runs/h85_eabc8cab.log`, `runs/h85_mutant_Y7_eabc8cab.log`.
