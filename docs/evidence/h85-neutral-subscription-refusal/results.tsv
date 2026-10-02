@@ -5,3 +5,5 @@
 273c2b308186	N5	the enrolment refusal keeps its exception class	KILLED	FAILED (errors=1)	True	30.3
 273c2b308186	N6	the invite refusal still logs its reason by id	KILLED	FAILED (failures=3)	True	25.3
 273c2b308186	N7	the removal line separates its two sentences	KILLED	FAILED (failures=1)	True	24.4
+29bebdcb1bc0	N6	the invite refusal still logs its reason by id	KILLED	FAILED (failures=3)	True	4.3
+29bebdcb1bc0	N8	the enrolment refusal still logs its own reason by id (1a's Y7)	KILLED	FAILED (failures=2)	True	3.6

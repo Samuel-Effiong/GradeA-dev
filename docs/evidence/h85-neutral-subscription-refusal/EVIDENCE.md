@@ -89,6 +89,32 @@ timestamper, under `flock ~/.machine-fullsuite.lock`.
 subprocess), and the runner deleted `billing/__pycache__` in its worktree
 before the baseline, before each mutant and after each restore.
 
+## After 1a's pre-review (delta at `29bebdcb`)
+1a's static pre-review at `e3952a12` found three things; the SM ruled all
+three into the branch.
+
+| Commit | What |
+|---|---|
+| `15e5e62d` | **P1:** the add-teachers "Partial success" example in `billing/stripe_view_schemas.py` still showed "Individual subscription conflict or invalid email domain."; it now shows the neutral sentence. **1a's probe Z1c** adopted as `test_the_enrolment_site_logs_its_own_reason`: a teacher who subscribes between the invite check and the enrolment is refused by the enrolment's own check, with the neutral sentence and its own ids-only reason line. Mutant N8. |
+| `29bebdcb` | **P2:** `docs/backend/billing-licenses.md` and `docs/backend/BACKEND_REFERENCE.md` described the old message and recovery. Docs only. The HTML renders are left to H-92. |
+
+**Why Z1c.** My log test reached only the invite site, which refuses first.
+1a's mutant Y7 (the enrolment site's reason line dropped) survived my 8
+tests at `e3952a12`; only their probe failed. N8 is that mutant.
+
+**The delta's scope.** The SM's ruling, passed on by 1a: "P1: FOLD. Change
+the 'Partial success' example ... After that commit only the touched
+modules re-run (it is a schema example string)." So no regression re-run:
+the production change is one example string in a schema file.
+
+| Delta gate (at `29bebdcb`, under 0b's grant) | Result | Log |
+|---|---|---|
+| The touched modules and the two schema-extension guards | 29 OK | `delta_modules_29bebdcb.log` |
+| Mutants N6 and N8 (`test_h85_mut`, rule 17) | baseline green, 2/2 killed, restores sha-verified | `delta_mutants_29bebdcb.log`, `logs/N6.log`, `logs/N8.log` |
+
+The founder saw 1a's table of what an admin can tell apart and decided to
+keep H-85 as built (SM, 2026-10-02).
+
 ## Mutants
 | Id | Guards | Result |
 |---|---|---|
@@ -99,6 +125,7 @@ before the baseline, before each mutant and after each restore.
 | N5 | the enrolment refusal keeps its exception class | killed |
 | N6 | the invite refusal still logs its reason by id | killed |
 | N7 | the removal line separates its two sentences | killed |
+| N8 | the enrolment refusal still logs its own reason by id (1a's Y7; added at `15e5e62d`) | killed |
 
 ## For the verifier
 - The sentence is the founder's, word for word; the test pins it and the
