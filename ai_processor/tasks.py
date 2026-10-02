@@ -14,7 +14,7 @@ weekly_grading_benchmark_live
     Costs real credits. Grades the same fixed dataset against the live
     model, so it is the only thing that can detect the provider silently
     changing behaviour underneath us. Off unless ENABLE_AI_LIVE_QA is
-    set, so a normal production worker no-ops at DEBUG.
+    set, so a normal production worker logs the skip at INFO and no-ops.
 
 Both create the benchmark's own teacher, plan, subscription and credits
 in this database, so outside DEBUG both skip unless ENABLE_GRADING_BENCHMARK
@@ -225,7 +225,7 @@ def weekly_grading_benchmark_live(self):
     from ai_processor.benchmark.runner import MODE_LIVE
 
     if not live_qa_enabled():
-        logger.debug(
+        logger.info(
             "AI live QA is not enabled in this environment; skipping the "
             "weekly grading benchmark. (Set ENABLE_AI_LIVE_QA=True on a "
             "QA/staging worker.)"

@@ -24,6 +24,7 @@ from users.models import CustomUser, UserTypes
 BENCHMARK_EMAIL = "grading-benchmark@benchmark.local"
 PLAN_NAME = "Grading Benchmark Plan"
 EXECUTE = "ai_processor.benchmark.runner.execute_benchmark"
+TASKS_LOGGER = "ai_processor.tasks"
 
 
 class Reached(Exception):
@@ -50,6 +51,14 @@ class BenchmarkRowsTestCase(TestCase):
         self.assertTrue(
             CreditBucket.objects.filter(wallet__user__email=BENCHMARK_EMAIL).exists()
         )
+
+    def assertOneInfoSkipLine(self, logs, switch):
+        """A skip is one INFO line (visible at the default level) that
+        names the switch an operator would set."""
+        self.assertEqual([record.levelname for record in logs.records], ["INFO"])
+        message = logs.records[0].getMessage()
+        self.assertIn("skip", message)
+        self.assertIn(switch, message)
 
 
 class TheSwitchIsOffByDefaultTests(TestCase):
@@ -108,12 +117,15 @@ class BeatGuardTests(BenchmarkRowsTestCase):
     def test_the_nightly_replay_is_skipped_and_creates_nothing(self):
         from ai_processor.tasks import nightly_grading_benchmark_replay
 
-        with patch(EXECUTE, new=reached):
+        with patch(EXECUTE, new=reached), self.assertLogs(
+            TASKS_LOGGER, "DEBUG"
+        ) as logs:
             outcome = nightly_grading_benchmark_replay.apply()
         self.assertEqual(
             outcome.result,
             "Grading benchmark replay skipped: not enabled in this environment.",
         )
+        self.assertOneInfoSkipLine(logs, "ENABLE_GRADING_BENCHMARK")
         self.assertNothingCreated()
 
     @override_settings(ENABLE_GRADING_BENCHMARK=True)
@@ -129,24 +141,30 @@ class BeatGuardTests(BenchmarkRowsTestCase):
     def test_the_weekly_live_job_is_skipped_without_the_benchmark_switch(self):
         from ai_processor.tasks import weekly_grading_benchmark_live
 
-        with patch(EXECUTE, new=reached):
+        with patch(EXECUTE, new=reached), self.assertLogs(
+            TASKS_LOGGER, "DEBUG"
+        ) as logs:
             outcome = weekly_grading_benchmark_live.apply()
         self.assertEqual(
             outcome.result,
             "Grading benchmark live skipped: not enabled in this environment.",
         )
+        self.assertOneInfoSkipLine(logs, "ENABLE_GRADING_BENCHMARK")
         self.assertNothingCreated()
 
     @override_settings(ENABLE_AI_LIVE_QA=False, ENABLE_GRADING_BENCHMARK=True)
     def test_the_weekly_live_job_is_skipped_without_live_qa(self):
         from ai_processor.tasks import weekly_grading_benchmark_live
 
-        with patch(EXECUTE, new=reached):
+        with patch(EXECUTE, new=reached), self.assertLogs(
+            TASKS_LOGGER, "DEBUG"
+        ) as logs:
             outcome = weekly_grading_benchmark_live.apply()
         self.assertEqual(
             outcome.result,
             "Grading benchmark live skipped: not enabled in this environment.",
         )
+        self.assertOneInfoSkipLine(logs, "ENABLE_AI_LIVE_QA")
         self.assertNothingCreated()
 
     @override_settings(ENABLE_AI_LIVE_QA=True, ENABLE_GRADING_BENCHMARK=True)
