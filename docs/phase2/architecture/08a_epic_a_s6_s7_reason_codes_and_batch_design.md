@@ -67,6 +67,12 @@ Each value is UPPER_SNAKE, which the `AuditEvent.reason_code` validator already 
   - `retryable`
   - `params`
   - `reference`
+- **Audit-only codes added after this design** (members of `AutoGrader.reason_codes.AUDIT_ONLY_CODES`: no response spec, never sent to a client):
+  - `COURSE_NOT_REACHABLE` ("Course not reachable"), added by H-38 tasks N3 (merged at `857d6a78`, 2026-10-02).
+    - **Meaning:** the teacher a grading run would act for can no longer reach the course (removed from its school, or no longer the course's teacher). Nothing is graded or charged.
+    - **Recorded on:** `GRADING_FAILED`, outcome FAILURE, error class USER, filed under the course's school.
+    - **Emitted by:** `assignments/tasks.py`, the three H-38 run-time refusals: `grade_engine_async` (target: the submission), `grade_batch_async` and `auto_grade_due_assignment` (target: the teacher, with the assignment's id in the metadata).
+    - **What the client sees instead:** the uncoded "This course wasn't found." `CourseNotReachableError` stays uncoded (SM ruling, 2026-10-02).
 
 ---
 
