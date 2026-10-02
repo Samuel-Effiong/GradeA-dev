@@ -86,11 +86,17 @@ def location_for(location, db):
     unix:// one.
     """
     parts = urlsplit(location)
-    query = [(key, value) for key, value in parse_qsl(parts.query) if key != "db"]
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        if key != "db"
+    ]
     if parts.scheme == "unix":
-        # No network location: urlunsplit would drop the "//" redis-py needs.
+        # Built by hand: with an empty network location urlunsplit drops
+        # the "//" redis-py needs. The network location is kept, since a
+        # password-protected socket carries its credentials there.
         query.append(("db", str(db)))
-        return f"unix://{parts.path}?{urlencode(query)}"
+        return f"unix://{parts.netloc}{parts.path}?{urlencode(query)}"
     return urlunsplit(
         (parts.scheme, parts.netloc, f"/{db}", urlencode(query), parts.fragment)
     )

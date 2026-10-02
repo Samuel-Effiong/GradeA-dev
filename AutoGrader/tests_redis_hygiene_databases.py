@@ -222,22 +222,58 @@ class EveryDatabaseIsVisitedTests(SimpleTestCase):
     # --- Other URL shapes ------------------------------------------------------
 
     def test_the_database_is_set_whatever_the_url_says(self):
-        for location in (
-            "redis://127.0.0.1:6379/0",
-            "redis://127.0.0.1:6379/7",
-            "redis://127.0.0.1:6379",
-            "redis://127.0.0.1:6379/",
-            "redis://127.0.0.1:6379/0?socket_timeout=5",
-            "redis://127.0.0.1:6379?db=3",
-            "rediss://cache.example.com:6380/2",
-            "unix:///tmp/redis.sock?db=4",
-        ):
-            with self.subTest(location=location):
-                before = redis.connection.parse_url(location)
-                for db in (0, 5, 15):
+        """Only the database changes: the host, port, TLS, socket path,
+        other parameters and the credentials are the URL's own. (A failure
+        names the shape, never the URL: some carry a password.)"""
+        password = "h97-not-a-real-password"  # pragma: allowlist secret
+        shapes = {
+            "names database 0": "redis://127.0.0.1:6379/0",
+            "names database 7": "redis://127.0.0.1:6379/7",
+            "names no database": "redis://127.0.0.1:6379",
+            "a bare slash": "redis://127.0.0.1:6379/",
+            "another parameter": "redis://127.0.0.1:6379/0?socket_timeout=5",
+            "a db parameter": "redis://127.0.0.1:6379?db=3",
+            "an empty-valued parameter": "redis://127.0.0.1:6379/0?client_name=",
+            "an IPv6 host": "redis://[::1]:6379/0",
+            "a password": f"redis://:{password}@127.0.0.1:6379/0",
+            "a user and a password": f"redis://grader:{password}@127.0.0.1:6379/2",
+            "a password and two parameters": (
+                f"redis://:{password}@cache.example.com:6380/2"
+                "?ssl_cert_reqs=none&socket_timeout=5"
+            ),
+            "a percent-encoded password": (
+                f"rediss://grader:{password}%40x@cache.example.com:6379/0"  # pragma: allowlist secret
+            ),
+            "TLS": "rediss://cache.example.com:6380/2",
+            "TLS with a user and a password": (
+                f"rediss://grader:{password}@cache.example.com:6380/2"
+            ),
+            "a socket": "unix:///tmp/redis.sock?db=4",
+            "a socket with a password": f"unix://:{password}@/tmp/redis.sock?db=4",
+            "a socket with a user and a password": (
+                f"unix://grader:{password}@/tmp/redis.sock?db=4"
+            ),
+            "a socket with a password and another parameter": (
+                f"unix://:{password}@/tmp/redis.sock?db=4&socket_timeout=2"
+            ),
+            "a socket that names no database": "unix:///tmp/redis.sock",
+        }
+        for shape, location in shapes.items():
+            before = redis.connection.parse_url(location)
+            for db in (0, 5, 15):
+                with self.subTest(shape=shape, db=db):
                     after = redis.connection.parse_url(
                         hygiene.location_for(location, db)
                     )
-                    self.assertEqual(after["db"], db)
-                    # Everything else is the URL's own: host, port, TLS, ...
-                    self.assertEqual({**after, "db": None}, {**before, "db": None})
+                    self.assertTrue(after["db"] == db, "the database was not set")
+                    self.assertTrue(
+                        {**after, "db": None} == {**before, "db": None},
+                        "something other than the database changed",
+                    )
+            if before.get("password"):
+                with self.subTest(shape=shape, check="the credentials are kept"):
+                    after = redis.connection.parse_url(
+                        hygiene.location_for(location, 5)
+                    )
+                    self.assertTrue(after.get("password") == before["password"])
+                    self.assertTrue(after.get("username") == before.get("username"))

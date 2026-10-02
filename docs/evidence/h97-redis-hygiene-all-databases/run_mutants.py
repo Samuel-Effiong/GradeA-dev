@@ -64,6 +64,14 @@ MUTANTS = [
         "DATABASES = range(1)\n",
         1,
     ),
+    (
+        "D5",
+        "a socket URL keeps its credentials (v2's finding)",
+        HY,
+        '        return f"unix://{parts.netloc}{parts.path}?{urlencode(query)}"\n',
+        '        return f"unix://{parts.path}?{urlencode(query)}"\n',
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
