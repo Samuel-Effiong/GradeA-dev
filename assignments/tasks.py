@@ -500,6 +500,44 @@ def _grading_failure_error_class(exc):
     return ErrorClass.SYSTEM
 
 
+def _grading_failure_reason_code(exc):
+    """The reason recorded on GRADING_FAILED: a coded failure's own code
+    (FR-A-06), or the audit-only COURSE_NOT_REACHABLE for H-38's uncoded
+    refusal (N3). That one is for the trail only; the client is still told
+    the plain "not found"."""
+    if isinstance(exc, CodedError):
+        return exc.reason_code
+    if isinstance(exc, CourseNotReachableError):
+        return ReasonCode.COURSE_NOT_REACHABLE
+    return None
+
+
+def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id=None):
+    """H-38 N3: one GRADING_FAILED for a batch or an auto-grade refused as a
+    whole because the teacher it would run as can no longer reach the
+    course. No submission was reached, so the event is about the teacher.
+    The actor is the tracked task's requester when the run has one, else
+    SYSTEM (as grade_engine_async's own event). It is filed under the
+    course's school: the removed teacher no longer has one. Ids only."""
+    task = get_processing_task_by_id(processing_task_id)
+    session = assignment.course.session
+    emit(
+        AuditAction.GRADING_FAILED,
+        actor=task.requested_by if task else None,
+        request=None,
+        target_type="CustomUser",
+        target_id=teacher_id,
+        outcome=AuditOutcome.FAILURE,
+        error_class=ErrorClass.USER,
+        reason_code=ReasonCode.COURSE_NOT_REACHABLE,
+        school_id=session.school_id if session is not None else None,
+        metadata={
+            "assignment_id": str(assignment.id),
+            "task_id": str(processing_task_id) if processing_task_id else None,
+        },
+    )
+
+
 @shared_task(
     bind=True,
     # Hard kill point for a hung grading run. The grading claim's staleness
@@ -677,7 +715,7 @@ def grade_engine_async(
             target_id=submission_id,
             outcome=AuditOutcome.FAILURE,
             error_class=_grading_failure_error_class(exc),
-            reason_code=exc.reason_code if isinstance(exc, CodedError) else None,
+            reason_code=_grading_failure_reason_code(exc),
             metadata={
                 "assignment_id": (
                     str(task.assignment_id) if task and task.assignment_id else None
@@ -1225,6 +1263,9 @@ def grade_batch_async(
             assignment_id,
             user_id,
         )
+        _audit_unreachable_course_refusal(
+            batch_user.id, batch_assignment, processing_task_id
+        )
         return COURSE_NOT_FOUND
 
     try:
@@ -1344,6 +1385,7 @@ def auto_grade_due_assignment(assignment_id):
                 assignment.course_id,
                 assignment.course.teacher_id,
             )
+            _audit_unreachable_course_refusal(assignment.course.teacher_id, assignment)
             return COURSE_NOT_FOUND
 
         session = BatchUploadSession.objects.create(
