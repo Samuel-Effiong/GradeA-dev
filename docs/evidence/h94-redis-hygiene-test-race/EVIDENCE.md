@@ -91,13 +91,21 @@ nothing is left under the prefix in database 0 or 15; and the keys it
 unlinked are exactly the two. Only the first layout was run; the second is
 by reading.
 
-**Found on the way (not changed here; a row is proposed to the SM).** In
-the first layout, `redis_test_hygiene._clients()` builds its 16 "per
-database" clients from that URL with `db=`, so all 16 are on the URL's
-database. The sweep and `delete_own_keys` therefore cover only that one
-database. Today the cache, the Celery broker and the result backend all use
-the same URL, so nothing is missed; the code and its comments claim more
-than it does.
+**Found on the way (row H-97; not changed here).** In the first layout,
+`redis_test_hygiene._clients()` builds its 16 "per database" clients from
+that URL with `db=`, so all 16 are on the URL's database. The sweep and
+`delete_own_keys` therefore cover only that one database.
+- The cache, the Celery broker and the result backend all use that URL, so
+  the keys of an ordinary test are covered.
+- But several test modules put a real-Redis cache on another database with
+  `real_redis_caches("redis://127.0.0.1:6379/<n>")` (11, 12, 14 and 15 in
+  the code today). Their keys carry the same per-process prefix and are
+  never reached by the teardown or the sweep.
+- Seen on this machine's test Redis on 2026-10-02 (read only): leftover
+  `gaplus-t<pid>:` keys of dead pids, with no TTL, in databases 3, 6, 14
+  (115 prefixes) and 15. Database 0 had only a running test's keys.
+An earlier draft of this note said nothing was missed; that was wrong, and
+the SM and 0b have the correction.
 
 **How the runs were made.** Every run used `--settings=settings_worktree`
 and an empty `EXEMPT_EMAIL_DOMAINS`, wrapped as `systemd-inhibit
