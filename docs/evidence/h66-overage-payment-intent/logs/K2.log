@@ -1,0 +1,12 @@
+# K2: an EMPTY payment_intent is refused too
+# file: billing/stripe_service.py (occurrence 1)
+# old: '        if not payment_intent_id:\n'
+# new: '        if payment_intent_id is None:\n'
+# commit: 58d5efb31c2e0affe0c5f851c195e01ea905a59d
+# exit: 1
+# elapsed_s: 2.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_empty_payment_intent_is_refused_too (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_an_empty_payment_intent_is_refused_too)
+
+FAILED (failures=1)

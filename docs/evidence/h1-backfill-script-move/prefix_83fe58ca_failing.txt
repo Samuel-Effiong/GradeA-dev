@@ -1,0 +1,37 @@
+11:31:25 test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command) ... FAIL
+11:31:26 test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class) ... FAIL
+11:31:26 test_the_moved_script_cannot_be_imported_as_a_module (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_moved_script_cannot_be_imported_as_a_module) ... ok
+11:31:26 test_the_sweep_sees_the_projects_commands (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_sweep_sees_the_projects_commands)
+11:31:26 Guards the guard: an empty sweep would pass everything. ... ok
+11:31:26
+11:31:26 ======================================================================
+11:31:26 FAIL: test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command)
+11:31:26 ----------------------------------------------------------------------
+11:31:26 Traceback (most recent call last):
+11:31:26   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-backfill-script-move/AutoGrader/tests_management_commands_are_commands.py", line 71, in test_backfill_is_not_a_management_command
+11:31:26     self.assertNotIn("backfill", get_commands())
+11:31:26 AssertionError: 'backfill' unexpectedly found in {'check': 'django.core', 'compilemessages': 'django.core', 'createcachetable': 'django.core', 'dbshell': 'django.core', 'diffsettings': 'django.core', 'dumpdata': 'django.core', 'flush': 'django.core', 'inspectdb': 'django.core', 'loaddata': 'django.core', 'makemessages': 'django.core', 'makemigrations': 'django.core', 'migrate': 'django.core', 'optimizemigration': 'django.core', 'runserver': 'django.contrib.staticfiles', 'sendtestemail': 'django.core', 'shell': 'django.core', 'showmigrations': 'django.core', 'sqlflush': 'django.core', 'sqlmigrate': 'django.core', 'sqlsequencereset': 'django.core', 'squashmigrations': 'django.core', 'startapp': 'django.core', 'startproject': 'django.core', 'test': 'django.core', 'testserver': 'django.core', 'generate_encryption_key': 'encrypted_model_fields', 'audit_email_track_separation': 'billing', 'audit_school_admins': 'billing', 'backfill': 'billing', 'backfill_billing_transactions': 'billing', 'backfill_receipt_urls': 'billing', 'reconcile_overage_prices': 'billing', 'reconcile_stripe_prices': 'billing', 'replay_stripe_events': 'billing', 'resolve_licence_stripe_intent': 'billing', 'run_stripe_live_qa': 'billing', 'seed_plan_features': 'billing', 'answer_extraction_benchmark': 'ai_processor', 'extraction_benchmark': 'ai_processor', 'grading_benchmark': 'ai_processor', 'grading_benchmark_history': 'ai_processor', 'grading_eval': 'ai_processor', 'backfill_assignment_rigor': 'assignments', 'repair_question_blooms_levels': 'assignments', 'strip_duplicate_option_letters': 'assignments', 'strip_html_from_assignment_titles': 'assignments', 'backfill_pending_student_invites': 'classrooms', 'recalculate_final_grades': 'classrooms', 'add_whitelist': 'users', 'remediate_student123_passwords': 'users', 'admin_generator': 'django_extensions', 'clean_pyc': 'django_extensions', 'clear_cache': 'django_extensions', 'compile_pyc': 'django_extensions', 'create_command': 'django_extensions', 'create_jobs': 'django_extensions', 'create_template_tags': 'django_extensions', 'delete_squashed_migrations': 'django_extensions', 'describe_form': 'django_extensions', 'drop_test_database': 'django_extensions', 'dumpscript': 'django_extensions', 'export_emails': 'django_extensions', 'find_template': 'django_extensions', 'generate_password': 'django_extensions', 'generate_secret_key': 'django_extensions', 'graph_models': 'django_extensions', 'list_model_info': 'django_extensions', 'list_signals': 'django_extensions', 'mail_debug': 'django_extensions', 'managestate': 'django_extensions', 'merge_model_instances': 'django_extensions', 'notes': 'django_extensions', 'print_settings': 'django_extensions', 'print_user_for_session': 'django_extensions', 'raise_test_exception': 'django_extensions', 'reset_db': 'django_extensions', 'reset_schema': 'django_extensions', 'runjob': 'django_extensions', 'runjobs': 'django_extensions', 'runprofileserver': 'django_extensions', 'runscript': 'django_extensions', 'runserver_plus': 'django_extensions', 'set_default_site': 'django_extensions', 'set_fake_emails': 'django_extensions', 'set_fake_passwords': 'django_extensions', 'shell_plus': 'django_extensions', 'show_permissions': 'django_extensions', 'show_template_tags': 'django_extensions', 'show_urls': 'django_extensions', 'sqlcreate': 'django_extensions', 'sqldiff': 'django_extensions', 'sqldsn': 'django_extensions', 'sync_s3': 'django_extensions', 'syncdata': 'django_extensions', 'unreferenced_files': 'django_extensions', 'update_permissions': 'django_extensions', 'validate_templates': 'django_extensions', 'flushexpiredtokens': 'rest_framework_simplejwt.token_blacklist', 'drf_create_token': 'rest_framework.authtoken', 'spectacular': 'drf_spectacular', 'generateschema': 'rest_framework', 'collectstatic': 'cloudinary_storage', 'findstatic': 'django.contrib.staticfiles', 'clearsessions': 'django.contrib.sessions', 'remove_stale_contenttypes': 'django.contrib.contenttypes', 'changepassword': 'django.contrib.auth', 'createsuperuser': 'django.contrib.auth', 'deleteorphanedmedia': 'cloudinary_storage', 'deleteredundantstatic': 'cloudinary_storage'}
+11:31:26
+11:31:26 ======================================================================
+11:31:26 FAIL: test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class)
+11:31:26 ----------------------------------------------------------------------
+11:31:26 Traceback (most recent call last):
+11:31:26   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-backfill-script-move/AutoGrader/tests_management_commands_are_commands.py", line 63, in test_every_command_module_defines_a_command_class
+11:31:26     self.assertEqual(
+11:31:26 AssertionError: Lists differ: ['billing/management/commands/backfill.py'] != []
+11:31:26
+11:31:26 First list contains 1 additional elements.
+11:31:26 First extra element 0:
+11:31:26 'billing/management/commands/backfill.py'
+11:31:26
+11:31:26 - ['billing/management/commands/backfill.py']
+11:31:26 + [] : These run on import, so `manage.py <name>` executes them: move them to scripts/ or wrap them in a Command.
+11:31:26
+11:31:26 ----------------------------------------------------------------------
+11:31:26 Ran 4 tests in 0.051s
+11:31:26
+11:31:26 FAILED (failures=2)
+11:31:26 Found 4 test(s).
+11:31:26 Skipping setup of unused database(s): default.
+11:31:26 System check identified no issues (0 silenced).
+11:31:26 systemd-run failed with exit status 1.

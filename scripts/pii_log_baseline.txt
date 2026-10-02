@@ -19,11 +19,9 @@
 #
 # Remove a file from this list once every violation inside it is fixed.
 billing/access_control.py
-billing/license_service.py
-billing/management/commands/backfill.py
 billing/qa_time_travel.py
 billing/services.py
 billing/stripe_service.py
 billing/tasks.py
 billing/views.py
-users/signals.py
+scripts/one_off_backfill_stripe_schedules.py

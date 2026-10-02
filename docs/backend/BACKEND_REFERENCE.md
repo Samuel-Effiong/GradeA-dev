@@ -2795,7 +2795,6 @@ Ordered roughly by severity. Each is an observation about the current code, not 
 | `billing` | `seed_plan_features` | Seed the `PlanFeature` / `PlanFeatureInclusion` catalogue |
 | | `backfill_billing_transactions` | Backfill `BillingTransaction` rows from `StripeEvent` history |
 | | `backfill_receipt_urls` | Populate `receipt_url` on existing transactions |
-| | `backfill` | General billing backfill |
 | | `replay_stripe_events` | Manually re-run `FAILED` webhook events past Stripe's retry window |
 | | `run_stripe_live_qa` | Real-Stripe QA suite (test keys only) |
 | | `audit_email_track_separation` | Report accounts violating the personal/business email track rules |

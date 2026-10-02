@@ -1,0 +1,13 @@
+# G5: guard: a name holding an address in a logger call
+# file: billing/license_service.py (occurrence 2)
+# old: '                    teacher_id,\n                    school_name,\n'
+# new: '                    teacher_email,\n                    school_name,\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest
+# exit: 1
+# elapsed_s: 3.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address)
+
+FAILED (failures=1)

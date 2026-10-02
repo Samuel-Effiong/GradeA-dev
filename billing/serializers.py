@@ -1920,6 +1920,39 @@ class SchoolCreditAllocationSerializer(serializers.ModelSerializer):
         return ret
 
 
+#: Fields a PATCH to a licence would otherwise accept and silently drop:
+#: update() applies only auto_renew and custom_price_cents. A CHANGED value is
+#: refused, naming the route that does make the change (H-57). An unchanged
+#: value, as a client echoing the whole object back sends, is accepted.
+LICENCE_NOT_PATCHABLE = {
+    "max_seats": "Seats can't be changed here. Use the update_seats action.",
+    "plan": "The plan can't be changed here. Use the change_plan action.",
+    "billing_method": (
+        "The billing method can't be changed here. Use the convert-to-offline "
+        "or convert-to-stripe action."
+    ),
+    "contract_months": "The contract length can't be changed after creation.",
+    "school": "A licence's school can't be changed after creation.",
+    "admin_user": "The licence admin can't be changed here.",
+    "stripe_subscription_id": "The Stripe subscription can't be changed here.",
+}
+
+
+STRIPE_PRICE_NOT_PATCHABLE = (
+    "The price of a Stripe-billed licence can't be changed here. Use the "
+    "change_plan action with custom_price_cents."
+)
+
+
+def _stored_differs(instance, field, value) -> bool:
+    """True when a PATCH `value` for `field` is not what `instance` holds."""
+    stored = getattr(instance, field)
+    if hasattr(value, "pk") or hasattr(stored, "pk"):
+        return getattr(value, "pk", value) != getattr(stored, "pk", stored)
+    # A blank and a null Stripe id are the same "none".
+    return (value or None) != (stored or None)
+
+
 class LicenseSubscriptionSerializer(serializers.ModelSerializer):
     """
     Serializer for the LicenseSubscription model.
@@ -2086,6 +2119,37 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         ValueError would produce.
         """
         attrs = super().validate(attrs)
+
+        if self.instance is not None:
+            refused = {
+                field: message
+                for field, message in LICENCE_NOT_PATCHABLE.items()
+                if field in attrs
+                and _stored_differs(self.instance, field, attrs[field])
+            }
+            # The price of a Stripe-billed licence is Stripe's too: a local-only
+            # change would diverge from what Stripe charges (v2's note 3, the
+            # divergence H-28 removed from change_plan). Offline licences
+            # keep a PATCHable price.
+            if (
+                "custom_price_cents" in attrs
+                and self.instance.billing_method == LicenseBillingMethod.STRIPE
+                and _stored_differs(
+                    self.instance, "custom_price_cents", attrs["custom_price_cents"]
+                )
+            ):
+                refused["custom_price_cents"] = STRIPE_PRICE_NOT_PATCHABLE
+            # A non-empty list is a caller who believes teachers were added.
+            # Empty or absent is ignored, as an echoed create form sends it.
+            # carry_forward_teachers is ignored: it defaults to True and only
+            # governs a replacement licence's creation.
+            if attrs.get("teacher_emails"):
+                refused["teacher_emails"] = (
+                    "Teachers can't be added here. Use the add_teachers action."
+                )
+            if refused:
+                # Nothing in the request is applied: the whole PATCH fails.
+                raise serializers.ValidationError(refused)
 
         explicit_admin = attrs.get("admin_user")
         school = attrs.get("school") or getattr(self.instance, "school", None)

@@ -11,6 +11,8 @@ from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
 
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
 from billing.immutable import allow_unsafe_mutation
 
 from .emitter import emit
@@ -24,6 +26,7 @@ PII_SHORT_RETENTION_DAYS = 90
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def sweep_audit_retention(self):
     """
     Deletes AuditEvent rows past their retention_class's cutoff (A6: 12
@@ -68,6 +71,7 @@ def sweep_audit_retention(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def sweep_audit_pii_short_retention(self):
     """
     X-4: nulls source_ip/user_agent after PII_SHORT_RETENTION_DAYS,

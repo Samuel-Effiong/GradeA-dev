@@ -257,7 +257,8 @@ class PlanPhaseTests(LicencePhaseTestCase):
             raise stripe.error.InvalidRequestError("No such product", "product")
 
         with patch.object(LicenceStripe, "create_price", side_effect=refuse):
-            with self.assertRaisesRegex(ValueError, "Stripe price change failed"):
+            # H-60: the inner fixed message, no longer framed twice (v2 note 2).
+            with self.assertRaisesRegex(ValueError, "^Custom price creation failed"):
                 self.change_plan(self.cheaper_plan)
 
         intent = self.only_intent()
