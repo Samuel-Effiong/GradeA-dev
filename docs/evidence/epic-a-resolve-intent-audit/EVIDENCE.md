@@ -91,8 +91,9 @@ of the flow are the four views and the live-QA scenarios; `grep_callers.txt` has
   ids; `assert_ids_only` checks that neither the note nor the failure reason appears, and
   mutant I14 (the reason put into the metadata) is killed.
 
-- **A second event is possible in one case (backlog H-101, LOW; found by v2's probe R3; SM
-  ruling: a documented limit, not fixed in this slice).** `_set_status` takes the `before`
+- **A second event is possible in one case (backlog H-101, MEDIUM; found by v2's probe R3).
+  SM ruling: documented here, and FIXED in the next Epic A slice
+  (`task/epic-a-escalation-event-once`, refresh 9); the fix is required, not optional.** `_set_status` takes the `before`
   status from the intent object in memory and saves unconditionally. If the Beat check has
   already escalated an intent (one event), and a flow still holding the old in-memory copy
   then calls `escalate()`, the row is saved as ESCALATED again and a second
@@ -100,8 +101,9 @@ of the flow are the four views and the live-QA scenarios; `grep_callers.txt` has
   transition to ESCALATED" holds for every caller that exists today except that one. It needs
   a caller that holds an intent for more than the 10-minute stale window. No request can (a
   75 s Stripe budget, gunicorn's 100 s timeout); live QA or a later caller with no request
-  could. The trail then errs to one event too many, never one too few. The fix designed for
-  H-101: read the stored status under a row lock in the same transaction and write the event
+  could. The trail then errs to one event too many, never one too few. The alert (the ERROR
+  log and the email to super admins) is also sent again in that case; that was so before this
+  slice and is not changed by it. The fix for H-101: read the stored status under a row lock in the same transaction and write the event
   only if the row was not already ESCALATED, with `before` taken from the stored row.
 
 On the real route (v2's probe R1, not asserted by my test): the 409 also leaves the super
