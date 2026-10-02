@@ -1,0 +1,372 @@
+Creating test database for alias 'default' ('test_vf_h78')...
+Found 16 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_r1_the_race_path_logs_no_address (billing.tests.test_vf1a_h78_probe.H78Probes.test_r1_the_race_path_logs_no_address) ... Cannot activate automatic trial for user race@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_r2_the_carry_forward_path_logs_no_address (billing.tests.test_vf1a_h78_probe.H78Probes.test_r2_the_carry_forward_path_logs_no_address) ... Cannot activate automatic trial for user carried@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_r3_what_the_operator_sees_for_a_seat_limit_refusal (billing.tests.test_vf1a_h78_probe.H78Probes.test_r3_what_the_operator_sees_for_a_seat_limit_refusal) ... Cannot activate automatic trial for user first@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user second@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_r4_an_unattached_paying_teacher (billing.tests.test_vf1a_h78_probe.H78Probes.test_r4_an_unattached_paying_teacher) ... Cannot activate automatic trial for user solo@h78any.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher 57a36c47-42f6-40fb-9730-26da4968a323 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 617a0128-ae27-46f5-9ef6-90f9b86852ff (school 5a49c82d-3237-4cdf-a13a-9df31e5d1220): IndividualSubscriptionConflictError
+ok
+test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address)
+1a's R1: the invite check passes, then the teacher subscribes ... Cannot activate automatic trial for user race@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_adding_teachers_logs_no_address_for_either_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_adding_teachers_logs_no_address_for_either_refusal)
+Through the endpoint, every logger: the refusal's own line and ... Cannot activate automatic trial for user paying5@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_schools_paying_teacher_gets_only_the_other_school_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_another_schools_paying_teacher_gets_only_the_other_school_refusal) ... Cannot activate automatic trial for user paying@h78other.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher 22db5f52-ce22-4e2a-9ddb-8b3f049946f2 belongs to school cac393fa-438c-4a28-ba04-1ed93067fdcb, not 1138c4e8-5891-403b-8ed9-033cb8d4cd06: not enrolled.
+Skipped enrolling a teacher in license 9da473fe-478b-4804-a26d-bd102df96570 (school 1138c4e8-5891-403b-8ed9-033cb8d4cd06): ValueError
+ok
+test_control_another_schools_teacher_without_a_plan_gets_the_school_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_control_another_schools_teacher_without_a_plan_gets_the_school_refusal) ... Cannot activate automatic trial for user free@h78other.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher bcb91df5-586c-43b2-8477-3ef84e8d0b88 belongs to school 0bf4b784-8fda-4a99-91d5-7d084ad04ba0, not 244dcce4-31ec-44bd-81f6-757bb87e231d: not enrolled.
+Skipped enrolling a teacher in license f555a4bd-29b0-4c66-a2e5-7535f51ab82d (school 244dcce4-31ec-44bd-81f6-757bb87e231d): ValueError
+ok
+test_control_own_schools_paying_teacher_still_gets_the_subscription_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_control_own_schools_paying_teacher_still_gets_the_subscription_refusal)
+Unchanged: the admin's own teacher's subscription is theirs to see. ... Cannot activate automatic trial for user paying@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher 40a17db1-1444-46f8-8811-217822f6946a has an individual subscription: not enrolled.
+ok
+test_control_unattached_paying_teacher_still_gets_the_subscription_refusal (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_control_unattached_paying_teacher_still_gets_the_subscription_refusal)
+Unchanged: a teacher with no school isn't another tenant's. ... Cannot activate automatic trial for user paying@h78none.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher d52078c5-e39a-4031-b310-9e9a52ea9add has an individual subscription: not enrolled.
+ok
+test_the_non_raising_path_logs_the_school_refusal_first (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_non_raising_path_logs_the_school_refusal_first) ... Cannot activate automatic trial for user paying3@h78other.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_raises_the_school_refusal_first (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_service_raises_the_school_refusal_first) ... Cannot activate automatic trial for user paying2@h78other.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher 8ae0d99b-ec35-4456-ba1b-2a26c79aa3d8 belongs to school e1a303bd-8ce3-459d-bc48-5e6843c5b7d2, not 500e9c26-2677-4c6f-a603-e707b973a25d: not enrolled.
+ok
+test_the_subscription_refusal_logs_the_teacher_id_not_the_address (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_the_subscription_refusal_logs_the_teacher_id_not_the_address) ... Cannot activate automatic trial for user paying4@h78own.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_non_teacher_account_is_refused_without_naming_its_role (billing.tests.test_add_teachers_other_school_not_disclosed.AddTeachersOtherSchoolTest.test_a_non_teacher_account_is_refused_without_naming_its_role)
+SM ruling: the role of an arbitrary address is not disclosed ... Cannot activate automatic trial for user taken.teacher@rival-academy.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_refusal_does_not_name_the_other_school (billing.tests.test_add_teachers_other_school_not_disclosed.AddTeachersOtherSchoolTest.test_the_refusal_does_not_name_the_other_school) ... Cannot activate automatic trial for user taken.teacher@rival-academy.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_teacher_is_still_refused (billing.tests.test_add_teachers_other_school_not_disclosed.AddTeachersOtherSchoolTest.test_the_teacher_is_still_refused) ... Cannot activate automatic trial for user taken.teacher@rival-academy.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Teacher 2dabbdae-b0c7-4cee-81e8-d52f9b7b4c6c belongs to school f382a11f-a35d-489e-b8ab-1e718eace48c, not d318be35-b774-442f-8fc8-bb193fa4c800: not enrolled.
+Skipped enrolling a teacher in license 2d5f53b5-e54e-4048-a63c-fb7cca8ac7b6 (school d318be35-b774-442f-8fc8-bb193fa4c800): ValueError
+ok
+
+======================================================================
+FAIL: test_r2_the_carry_forward_path_logs_no_address (billing.tests.test_vf1a_h78_probe.H78Probes.test_r2_the_carry_forward_path_logs_no_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/vf_h78/billing/tests/test_vf1a_h78_probe.py", line 88, in test_r2_the_carry_forward_path_logs_no_address
+    self.assertEqual(leaking, [], "a refusal path still logs the address")
+AssertionError: Lists differ: ['WARNING:billing.license_service:Failed t[710 chars]e}]"] != []
+
+First list contains 2 additional elements.
+First extra element 0:
+'WARNING:billing.license_service:Failed to carry forward teacher carried@h78own.edu from license 1c4d965c-ee04-44a2-9de4-8dbc2d1a0949 to e1f05789-9a05-4671-8217-64f38cb58f33: Teacher carried@h78own.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.'
+
+Diff is 822 characters long. Set self.maxDiff to None to see it. : a refusal path still logs the address
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.642s
+
+FAILED (failures=1)
+Destroying test database for alias 'default' ('test_vf_h78')...
+ OK
+
+VF1A_H78_R1 successful=False lines_with_address=[]
+
+VF1A_H78_R2 lines_with_address=['WARNING:billing.license_service:Failed to carry forward teacher carried@h78own.edu from license 1c4d965c-ee04-44a2-9de4-8dbc2d1a0949 to e1f05789-9a05-4671-8217-64f38cb58f33: Teacher carried@h78own.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.', "ERROR:billing.license_service:License e1f05789-9a05-4671-8217-64f38cb58f33 creation: 1/1 teacher invitations FAILED: [{'email': 'carried@h78own.edu', 'successful': False, 'teacher_id': None, 'error': 'Teacher carried@h78own.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.', 'carried_forward': True}]"]
+
+VF1A_H78_R3 admin_error="License UUID('b46da053-49c9-4a5c-ab4f-32925daf5de7') for school 'H78 Own School' has reached its seat limit of 1. Upgrade the license or remove an existing teacher to enroll a new one."
+  operator_lines=Skipped enrolling a teacher in license b46da053-49c9-4a5c-ab4f-32925daf5de7 (school f8dddfd4-a2b6-4ef0-be1a-91ef8bba4c21): ValueError
+
+VF1A_H78_R4 status=200 body={"success":true,"message":"Request Successful","data":{"successful":0,"failed":1,"errors":[{"teacher_email":"solo@h78any.edu","error":"Teacher solo@h78any.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first."}]}}
+systemd-run failed with exit status 1.

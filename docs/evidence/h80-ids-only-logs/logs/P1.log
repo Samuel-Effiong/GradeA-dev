@@ -1,0 +1,13 @@
+# P1: 1a's P1: a used trial's refusal logs a WARNING reason line
+# file: billing/services.py (occurrence 1)
+# old: '            logger.warning(\n                "User %s has already used the free trial: not activated.", user.id\n'
+# new: '            logger.debug(\n                "User %s has already used the free trial: not activated.", user.id\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest
+# exit: 1
+# elapsed_s: 4.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_used_trial_is_logged_as_a_warning (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_used_trial_is_logged_as_a_warning)
+
+FAILED (failures=1)

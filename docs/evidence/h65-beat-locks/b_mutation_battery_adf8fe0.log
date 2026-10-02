@@ -1,0 +1,19 @@
+M1	mid-cycle grant: the next_credit_grant_at re-check (lapsed lock)	KILLED	FAILED (failures=4)	True	63.8
+M2	expire_trial: the active-trial re-check (lapsed lock)	KILLED	FAILED (failures=7)	True	16.6
+L1	the lock is released after the run (0b)	KILLED	FAILED (failures=20, errors=1)	True	15.5
+L2	release is compare-and-delete	KILLED	FAILED (failures=1)	True	16.4
+L3	the heartbeat's extend is compare-and-extend	KILLED	FAILED (failures=1)	True	13.0
+L4	a cache error fails CLOSED	KILLED	FAILED (failures=1)	True	10.7
+L5	a held lock means skip	KILLED	FAILED (failures=34)	True	23.0
+L6	acquire is SET NX	KILLED	FAILED (failures=34)	True	26.1
+L7	the heartbeat stops at max_hold	KILLED	FAILED (failures=1)	True	13.2
+L8	the heartbeat runs	KILLED	FAILED (failures=3, errors=30)	True	9.4
+L9	the TTL never exceeds max_hold	KILLED	FAILED (failures=1)	True	10.1
+L10	an exemption is a scheduled, named choice	KILLED	FAILED (failures=1)	True	9.6
+L11	every-5-minute max_hold is below its interval	KILLED	FAILED (failures=1)	True	10.9
+L12	the watchdog reports the lock store	KILLED	FAILED (failures=1)	True	11.0
+L13	the runner clears locks before every test	KILLED	FAILED (failures=1)	True	11.3
+L14	a guarded task keeps its lock	KILLED	FAILED (failures=3)	True	10.0
+
+16/16 killed with verified restore
+exit=0

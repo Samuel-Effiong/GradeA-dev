@@ -1,0 +1,72 @@
+"""1a's verification probes for H-66. Not committed.
+
+Reuses d5's fixture; the inherited d5 tests are switched off.
+
+Q1: the stated order ("after the unpaid check and before the cap check").
+    A keyless paid session for a wallet already AT its block cap: is it
+    refused by H-66 (no BillingTransaction), or does it reach the cap path,
+    which records a PAID transaction with no payment_intent?
+Q2: what a refused replay leaves behind: the event row's status and
+    attempts after one sweep and after a second sweep (bounded retry, or
+    one ERROR per sweep until the cap?).
+"""
+
+from billing.event_replay import replay_safe_failed_events
+from billing.models import BillingTransaction
+from billing.tests.test_overage_requires_payment_intent import (
+    HANDLER_LOGGER,
+    OverageRequiresPaymentIntentTests,
+)
+
+
+def only_own_tests(cls, parent):
+    for name in dir(parent):
+        if name.startswith("test_") and name not in cls.__dict__:
+            setattr(cls, name, None)
+    return cls
+
+
+class H66Probes(OverageRequiresPaymentIntentTests):
+    def test_q1_a_keyless_session_at_the_cap_is_refused_by_h66_not_the_cap(self):
+        self.wallet.overage_blocks_used = self.plan.max_overage_blocks
+        self.wallet.save(update_fields=["overage_blocks_used"])
+        session = self.checkout_session(self.wallet, self.plan, payment_intent=None)
+        with self.assertLogs(HANDLER_LOGGER, "ERROR") as logs:
+            self.deliver(session)
+        txns = list(
+            BillingTransaction.objects.filter(user=self.user).values_list(
+                "status", "stripe_payment_intent_id"
+            )
+        )
+        cap_lines = [line for line in logs.output if "exceed the cap" in line]
+        print(
+            f"\nVF1A_H66_Q1 h66_lines={sum('no payment_intent' in line for line in logs.output)} "
+            f"cap_lines={len(cap_lines)} transactions={txns}"
+        )
+        self.assert_refused(logs)
+        self.assertEqual(cap_lines, [])
+
+    def test_q2_what_a_refused_replay_leaves_behind(self):
+        row = self.failed_event("evt_h66_q2", payment_intent=None)
+        with self.assertLogs(HANDLER_LOGGER, "ERROR") as first:
+            replay_safe_failed_events()
+        row.refresh_from_db()
+        after_one = (row.status, row.auto_replay_attempts)
+        second_lines = 0
+        try:
+            # A second sweep may not touch the row at all (no log is fine).
+            with self.assertLogs(HANDLER_LOGGER, "ERROR") as second:
+                replay_safe_failed_events()
+            second_lines = len(second.output)
+        except AssertionError:
+            pass
+        row.refresh_from_db()
+        after_two = (row.status, row.auto_replay_attempts)
+        print(
+            f"\nVF1A_H66_Q2 after_one_sweep={after_one} after_two_sweeps={after_two} "
+            f"error_lines={len(first.output)}+{second_lines}"
+        )
+        self.assertEqual(self.granted_credits(self.wallet), 0)
+
+
+only_own_tests(H66Probes, OverageRequiresPaymentIntentTests)
