@@ -51,6 +51,7 @@ from billing.models import (
     SchoolCreditAllocation,
     SubscriptionPlan,
 )
+from billing.qa_time_travel import QATimeTravelService
 from billing.tasks import process_license_monthly_credit_refreshes
 from billing.tests.test_annual_grant_anchor import Clock
 from classrooms.models import School
@@ -535,3 +536,61 @@ class RowsOlderThanTheAnchorTests(LicenceClockTestCase):
         assert anchor is not None
         self.assertGreaterEqual(anchor, later)
         self.assertLess(anchor - later, timedelta(seconds=1))
+
+
+class MovedDueTimeTests(LicenceClockTestCase):
+    """1a's F1: a stored anchor is only as good as the due time that sits on
+    its chain. If something moves the due time and not the anchor (the QA
+    time-travel tool; old code after a rollback, which renews and re-enrols
+    without knowing the column), trusting the anchor would bring the next
+    refresh back to the old chain within days."""
+
+    def test_a_due_time_moved_off_its_stored_anchor_becomes_the_anchor(self):
+        """1a's example: anchor 5 January, due time moved to 28 March. The
+        next refresh is 28 April, not 5 April (8 days later)."""
+        start = datetime(2026, 1, 5, 1, 0, tzinfo=UTC)
+        allocation = self.enrol(self.licence(start), start)
+        moved = datetime(2026, 3, 28, 3, 0, tzinfo=UTC)
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            next_credit_grant_at=moved
+        )
+
+        self.run_refresh(allocation, moved)
+
+        allocation.refresh_from_db()
+        self.assertEqual(
+            allocation.next_credit_grant_at, datetime(2026, 4, 28, 3, 0, tzinfo=UTC)
+        )
+        self.assertEqual(allocation.grant_anchor_at, moved)
+
+    def test_a_stale_anchor_heals_at_the_next_refresh_and_then_holds(self):
+        """After a rollback and roll-forward: one refresh re-anchors the row
+        to its due time, and the chain is monthly from there."""
+        start = datetime(2026, 1, 5, 1, 0, tzinfo=UTC)
+        allocation = self.enrol(self.licence(start), start)
+        moved = datetime(2026, 3, 28, 3, 0, tzinfo=UTC)
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            next_credit_grant_at=moved
+        )
+
+        self.drive(allocation)
+
+        self.assertEqual(
+            [r.date() for r in self.refreshes(allocation)],
+            self.anchor_dates(moved, range(0, 10)),
+        )
+
+    def test_the_qa_time_travel_tool_clears_the_anchor_with_the_due_time(self):
+        start = datetime(2026, 1, 5, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        allocation = self.enrol(licence, start)
+        self.clock.moment = datetime(2026, 3, 28, 4, 0, tzinfo=UTC)
+        target = datetime(2026, 3, 28, 3, 0, tzinfo=UTC)
+
+        QATimeTravelService.rewind_license_subscription(
+            licence.id, "mid_cycle_grant", target
+        )
+
+        allocation.refresh_from_db()
+        self.assertEqual(allocation.next_credit_grant_at, target)
+        self.assertIsNone(allocation.grant_anchor_at)
