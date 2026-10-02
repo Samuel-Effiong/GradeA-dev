@@ -124,6 +124,41 @@ class BeforeSendTests(SentryScrubbingTestCase):
             {"category": "query", "message": "SELECT 1"},
         )
 
+    def test_frame_variables_that_hold_no_address_are_unchanged(self):
+        """The debugging value of locals is kept: ids, UUIDs, numbers,
+        reprs and nested structures come through exactly as they were."""
+        local_variables = {
+            "user_id": "4821",
+            "license_id": "'3f2b8c1e-9d4a-4c7b-8e21-5a6f0d9b7c13'",
+            "allocation": "<SchoolCreditAllocation: SchoolCreditAllocation object (77)>",
+            "amount": 20000,
+            "ratio": 0.5,
+            "active": True,
+            "missing": None,
+            "ids": ["4821", "4822"],
+            "meta": {"allocation_id": "77", "refresh_month": "2026-10"},
+            "decorator": "@transaction.atomic",
+            "handle": "@grader_bot",
+        }
+        event = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "ValueError",
+                        "value": "bad amount",
+                        "stacktrace": {
+                            "frames": [{"function": "f", "vars": dict(local_variables)}]
+                        },
+                    }
+                ]
+            }
+        }
+
+        scrubbed = self.hooks.scrub_event(event, {})
+
+        frame = scrubbed["exception"]["values"][0]["stacktrace"]["frames"][0]
+        self.assertEqual(frame["vars"], local_variables)
+
     def test_user_context_tags_and_request_are_left_alone(self):
         """The SM's ruling: this is about addresses inside text."""
         before = event_for_a_logged_error()
