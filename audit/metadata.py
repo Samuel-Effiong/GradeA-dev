@@ -82,6 +82,10 @@ ALLOWED_KEYS = frozenset(
         "file_type",
         "source",
         "changed_fields",
+        # H-69: the management command that wrote the event. Set by the
+        # emitter from `audit.context.command_actor`, never by a call site:
+        # it is in no action's METADATA_ALLOWLIST entry.
+        "command",
         # S1 generic event: the URL name and HTTP method, never the path or body
         "route",
         "method",
@@ -108,6 +112,10 @@ ALLOWED_KEYS = frozenset(
         "auto_renew",
         "max_seats",
         "license_id",
+        # The status of a licence's Stripe-change intent (H-28), on the
+        # events for an escalation and for a manual close. A status, never
+        # the free-text reason or note.
+        "intent_status",
     }
 )
 
@@ -296,7 +304,11 @@ METADATA_ALLOWLIST = {
     AuditAction.GRADE_CHANGE: frozenset(
         {"assignment_id", "student_id", "changed_fields", "source"}
     ),
-    AuditAction.SUBSCRIPTION_CHANGE: frozenset({"changed_fields", "source"}),
+    # license_id: the licence an escalated or manually closed Stripe-change
+    # intent belongs to (the event's target is the intent).
+    AuditAction.SUBSCRIPTION_CHANGE: frozenset(
+        {"changed_fields", "source", "license_id"}
+    ),
 }
 
 
@@ -340,6 +352,7 @@ BEFORE_AFTER_ALLOWLIST = {
             "auto_renew",
             "max_seats",
             "license_id",
+            "intent_status",
         }
     ),
 }

@@ -34,12 +34,18 @@ USAGE
 """
 
 import json
+from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 
+from audit.context import command_actor
+from billing.license_stripe_mutation import audit_intent_status
 from billing.models import LicenseStripeMutationIntent, LicenseStripeMutationStatus
 from users.models import CustomUser, UserTypes
+
+COMMAND = Path(__file__).stem
 
 IN_FLIGHT = (
     LicenseStripeMutationStatus.PENDING,
@@ -112,15 +118,21 @@ class Command(BaseCommand):
         resolver = self._super_admin(options["by"])
 
         now = timezone.now()
-        closed = LicenseStripeMutationIntent.objects.filter(
-            pk=intent.pk, status=intent.status
-        ).update(
-            status=OUTCOMES[outcome],
-            resolved_at=now,
-            resolved_by=resolver,
-            resolution_note=note,
-            updated_at=now,
-        )
+        # The close and its audit event commit together. The event names the
+        # resolver and this command (command_actor); the note stays on the
+        # intent and never goes into the audit trail.
+        with transaction.atomic(), command_actor(resolver, command=COMMAND):
+            closed = LicenseStripeMutationIntent.objects.filter(
+                pk=intent.pk, status=intent.status
+            ).update(
+                status=OUTCOMES[outcome],
+                resolved_at=now,
+                resolved_by=resolver,
+                resolution_note=note,
+                updated_at=now,
+            )
+            if closed:
+                audit_intent_status(intent, intent.status, OUTCOMES[outcome])
         if not closed:
             raise CommandError(
                 "The intent changed while this ran; run it again to see it now."

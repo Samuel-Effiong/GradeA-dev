@@ -35,7 +35,12 @@ from billing.models import (
     LicenseStripeMutationStatus,
     LicenseSubscription,
 )
-from billing.tests.test_h28_cancel_phases import MUTATION_LOGGER, LicencePhaseTestCase
+from billing.tests.test_h28_cancel_phases import (
+    MUTATION_LOGGER,
+    LicencePhaseTestCase,
+    as_a_request_by,
+    assert_one_escalation_event,
+)
 
 
 class ConvertToOfflinePhaseTests(LicencePhaseTestCase):
@@ -168,6 +173,19 @@ class ConvertToOfflinePhaseTests(LicencePhaseTestCase):
         )
 
     # -- after the delete, before the local commit ---------------------------
+
+    def test_an_escalated_convert_is_audited_as_the_signed_in_user(self):
+        with as_a_request_by(self.superadmin), patch.object(
+            LicenseSubscription,
+            "save",
+            side_effect=OperationalError("server closed the connection"),
+        ), self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+            with self.assertRaises(
+                license_stripe_mutation.LicenceStripeChangeNotRecorded
+            ):
+                self.convert()
+
+        assert_one_escalation_event(self, self.only_intent(), self.superadmin)
 
     def test_a_failed_local_write_escalates_and_never_recreates(self):
         with patch.object(
