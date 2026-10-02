@@ -1,0 +1,12 @@
+# M14: a reactivated admin allocation restarts its month
+# file: billing/license_service.py (occurrence 1)
+# old: '            allocation.next_credit_grant_at = next_refresh\n            allocation.grant_anchor_at = now\n'
+# new: '            allocation.next_credit_grant_at = next_refresh\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 15.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_admin_allocation_stores_its_anchor_and_restarts_on_reactivation (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_the_admin_allocation_stores_its_anchor_and_restarts_on_reactivation)
+
+FAILED (failures=1)

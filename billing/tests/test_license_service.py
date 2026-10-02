@@ -12,7 +12,11 @@ from django.db import transaction
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from billing.license_service import LicenseRequestError, LicenseSubscriptionService
+from billing.license_service import (
+    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
+    LicenseRequestError,
+    LicenseSubscriptionService,
+)
 from billing.models import (
     CreditBucket,
     CreditBucketType,
@@ -251,7 +255,8 @@ class TestLicenseCreation(TransactionTestCase):
         results = license_sub._teacher_enrollment_results
         assert results["successful"] == 0
         assert results["failed"] == 1
-        assert "active individual subscription" in results["errors"][0]["error"]
+        # Neutral since H-85: no address, no mention of a subscription.
+        assert results["errors"][0]["error"] == TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
 
     def test_create_license_deactivates_previous_license(self):
         """Previous active license for school should be deactivated"""

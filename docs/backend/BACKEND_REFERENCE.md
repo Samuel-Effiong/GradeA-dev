@@ -1439,7 +1439,7 @@ super admins). History is stored in `ChatSession`/`ChatMessage` with one thread 
 | B6 | Two students with the identical full name cannot be enrolled in one course | `StudentCourse.clean()` |
 | B7 | A `Session` is owned by exactly one of a teacher (INDIVIDUAL) or a school (SCHOOL), never both | `Session.clean()` + two partial unique constraints |
 | B8 | A teacher under an active license cannot create or edit sessions | `CanManageSession` |
-| B9 | A teacher with an active individual subscription cannot be enrolled under a license | `IndividualSubscriptionConflictError` |
+| B9 | A teacher with an active individual subscription cannot be enrolled under a license; the admin is told only that the teacher can't be added yet (H-85) | `IndividualSubscriptionConflictError` |
 
 ### 9.2 Assignments & submissions
 

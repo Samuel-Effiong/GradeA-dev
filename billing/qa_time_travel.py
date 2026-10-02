@@ -645,7 +645,16 @@ class QATimeTravelService:
             for allocation in allocations:
                 before_val = allocation.next_credit_grant_at
                 allocation.next_credit_grant_at = target
-                allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+                # The anchor goes with the due time (H-88): the refresh
+                # resolves a new one from wherever the due time now sits.
+                allocation.grant_anchor_at = None
+                allocation.save(
+                    update_fields=[
+                        "next_credit_grant_at",
+                        "grant_anchor_at",
+                        "updated_at",
+                    ]
+                )
                 affected.append(
                     {
                         "teacher_id": str(allocation.user_id),

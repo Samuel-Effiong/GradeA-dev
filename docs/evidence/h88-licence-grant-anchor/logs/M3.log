@@ -1,0 +1,12 @@
+# M3: the offline renewal restarts the teacher's month
+# file: billing/license_service.py (occurrence 2)
+# old: '                    allocation.grant_anchor_at = now\n                    allocation.save(\n'
+# new: '                    allocation.save(\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 18.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_renewal_overwrites_the_stored_anchor (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_renewal_overwrites_the_stored_anchor)
+
+FAILED (failures=1)
