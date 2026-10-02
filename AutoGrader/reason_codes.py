@@ -534,6 +534,7 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.INVALID_REQUEST,
         ReasonCode.SERVER_ERROR,
         ReasonCode.FAILED_AUTH_CAPPED,
+        ReasonCode.COURSE_NOT_REACHABLE,
     }
 )
 
