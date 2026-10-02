@@ -357,7 +357,7 @@ def import_roster(*, course, rows, total_processed):
     success_count = 0
     failure_count = 0
 
-    for row in rows:
+    for position, row in enumerate(rows, start=1):
         if not row.is_named:
             results.append(
                 {
@@ -378,10 +378,12 @@ def import_roster(*, course, rows, total_processed):
                         course=course, row=row
                     )
         except Exception as exc:
+            # By position and course, never by the student's name (H-91).
             logger.error(
-                "Failed to bulk-add student %s %s",
-                row.first_name,
-                row.last_name,
+                "Failed to bulk-add the student in row %d of the import for "
+                "course %s",
+                position,
+                course.id,
                 exc_info=exc,
             )
             results.append(

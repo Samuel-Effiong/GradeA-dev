@@ -1,6 +1,6 @@
 """
 Mutation battery for H-91 (rule 15): no log or print call in the cleaned
-apps passes an address or a name (the Epic A hook's rule, as a beta test).
+repository passes an address or a name (the Epic A hook's rule, as a beta test).
 
 Each mutant puts one leak back, one per file and per shape, and must be
 killed by the source guard (NoPiiInAnyLogCallTest). P5 also breaks a line
@@ -110,6 +110,46 @@ MUTANTS = [
         "billing/tasks.py",
         "            sub.id,\n            sub.user_id,\n",
         "            sub.id,\n            sub.user.email,\n",
+        1,
+    ),
+    (
+        "Q1",
+        "users/mailerlite_service.py: the user by id",
+        "users/mailerlite_service.py",
+        "                user.id,\n",
+        "                user.email,\n",
+        1,
+    ),
+    (
+        "Q2",
+        "classrooms/services/roster_import.py: a failed row by position, not by name",
+        "classrooms/services/roster_import.py",
+        "                position,\n                course.id,\n",
+        "                row.first_name,\n                row.last_name,\n",
+        1,
+    ),
+    (
+        "Q3",
+        "assignments/tasks.py: the print names the submission, not the student",
+        "assignments/tasks.py",
+        'print(f"Starting grading of Submission {submission.id}")',
+        'print(f"Starting grading of Submission {submission.student.get_full_name}")',
+        1,
+    ),
+    (
+        "Q4",
+        "scripts/: a one-off script's print names the user by id",
+        "scripts/one_off_backfill_stripe_schedules.py",
+        'print(f"FAILED: {user_sub.id} (user {user_sub.user_id}): {exc}")',
+        'print(f"FAILED: {user_sub.id} (user {user_sub.user.email}): {exc}")',
+        1,
+    ),
+    (
+        "Q5",
+        "classrooms/serializers.py: the admin by id",
+        "classrooms/serializers.py",
+        "            user.id,\n        )\n        return\n",
+        "            user.email,\n        )\n        return\n",
         1,
     ),
 ]
