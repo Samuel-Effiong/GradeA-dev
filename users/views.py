@@ -21,6 +21,7 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import F, Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -44,7 +45,6 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
-    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -63,12 +63,12 @@ from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshV
 
 from audit import history
 from audit.emitter import emit
-from audit.enums import AuditAction, AuditOutcome, ErrorClass
+from audit.enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.reason_codes import add_coded_envelope
+from AutoGrader.reason_codes import REASON_CODES, add_coded_envelope
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -88,6 +88,7 @@ from students.models import (
     BackgroundTaskStatus,
     BatchUploadSession,
 )
+from students.task_access import teacher_may_reach
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
     TERMINAL_TASK_STATUSES,
@@ -1709,14 +1710,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         if register_student_failure_budget_spent():
             log_register_student_refused_by_budget()
             # `wait` sets Retry-After and appends "Expected available in N
-            # seconds." to the message.
-            raise Throttled(
+            # seconds." to the message. S7d (catalogue B, H-68): the same 429,
+            # text and Retry-After, plus `code` and the coded envelope
+            # REGISTRATION_PAUSED, so a client can tell this pause from the
+            # per-network RegisterThrottle (whose 429 carries neither). The
+            # text is the approved one, from the catalogue.
+            raise EnvelopedThrottled(
                 wait=register_student_budget_retry_after(),
-                detail=(
-                    "Student registration is paused for a short while because "
-                    "of too many invalid activation codes. Please try again "
-                    "later; if your code has expired by then, ask for a new one."
-                ),
+                detail=REASON_CODES[ReasonCode.REGISTRATION_PAUSED].message,
+                reason_code="REGISTRATION_PAUSED",
+                code_value="REGISTRATION_PAUSED",
             )
         # A refused code is recorded after the atomic block has rolled back,
         # never inside it (the event would roll back too).
@@ -2442,7 +2445,9 @@ class TaskViewSet(viewsets.ViewSet):
         legitimate needs it.
         """
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if not processing_task:
+        # H-38: a task whose course its owner can no longer reach answers
+        # exactly like a missing one.
+        if not processing_task or not teacher_may_reach(request.user, processing_task):
             raise NotFound("Tracked task not found for this user.")
 
         normalize_processing_task_status(processing_task)
@@ -2511,7 +2516,9 @@ class TaskViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="cancel/(?P<task_id>[^/.]+)")
     def cancel(self, request, task_id=None):
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if not processing_task:
+        # H-38: a task whose course its owner can no longer reach answers
+        # exactly like a missing one.
+        if not processing_task or not teacher_may_reach(request.user, processing_task):
             raise NotFound("Tracked task not found for this user.")
 
         already_terminal = processing_task.status in TERMINAL_TASK_STATUSES
@@ -2568,6 +2575,10 @@ class TaskViewSet(viewsets.ViewSet):
         session = get_object_or_404(
             BatchUploadSession, id=session_id, teacher=request.user
         )
+        # H-38: a session whose course its teacher can no longer reach
+        # answers exactly like a missing one.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
 
         cancellable_tasks = list(
             session.processing_tasks.exclude(
@@ -2612,6 +2623,12 @@ class TaskViewSet(viewsets.ViewSet):
     )
     def retry_item(self, request, session_id=None, item_id=None):
         session = self._own_session(request, session_id)
+        # H-38 (F6.2's rule for every tasks/ route; SM ruling at the bundle 4
+        # merge-down): a session whose course its teacher can no longer reach
+        # answers exactly like a missing one, as status and session-results
+        # do. item_retry's own per-item and in-claim checks stay behind it.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
         item = get_object_or_404(
             BackgroundProcessingTask, id=_uuid_or_404(item_id), batch_session=session
         )
@@ -2637,6 +2654,9 @@ class TaskViewSet(viewsets.ViewSet):
     )
     def retry_failed(self, request, session_id=None):
         session = self._own_session(request, session_id)
+        # H-38: the same session-level rule as the other tasks/ routes.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
         reason_codes = request.data.get("reason_codes")
         if reason_codes is not None and (
             not isinstance(reason_codes, list)
@@ -2777,6 +2797,10 @@ class TaskViewSet(viewsets.ViewSet):
         session = get_object_or_404(
             BatchUploadSession, id=session_id, teacher=request.user
         )
+        # H-38: a session whose course its teacher can no longer reach
+        # answers exactly like a missing one.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
 
         tracked_tasks = list(
             session.processing_tasks.select_related(

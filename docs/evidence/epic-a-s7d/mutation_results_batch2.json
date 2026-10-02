@@ -1,0 +1,110 @@
+{
+  "D1_no_input_not_coded": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_input"
+    ]
+  },
+  "D2_header_only_is_not_empty": {
+    "killed": true,
+    "failing_tests": [
+      "test_nothing_but_a_header_or_blank_rows_is_empty"
+    ]
+  },
+  "D3_row_numbers_off_by_one": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_blank_row_still_counts_so_numbers_match_the_sheet",
+      "test_a_database_error_in_one_row_fails_only_that_row_generically",
+      "test_a_middle_initial_is_still_a_valid_name",
+      "test_a_name_outside_2_to_150_characters_is_refused_on_both_paths",
+      "test_a_name_repeat_without_an_email",
+      "test_a_new_accounts_clash_is_refused_before_anything_is_created",
+      "test_a_new_student_with_an_enrolled_students_name_is_a_clash",
+      "test_a_repeat_of_a_failed_row_points_at_it",
+      "test_an_email_repeat_in_another_case_and_spacing",
+      "test_an_enrolled_student_is_skipped_on_both_paths",
+      "test_an_existing_account_with_a_clashing_name_is_refused_and_untouched",
+      "test_an_invalid_email_creates_and_sends_nothing",
+      "test_another_schools_student_names_no_school",
+      "test_every_added_row_carries_its_number_and_no_code",
+      "test_every_staff_role_answers_identically",
+      "test_the_invalid_address_reaches_no_log_line",
+      "test_the_same_name_with_different_emails_is_not_a_repeat_but_a_clash",
+      "test_without_a_header_row_1_is_the_first_line"
+    ]
+  },
+  "D4_names_not_checked_before_import": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_name_outside_2_to_150_characters_is_refused_on_both_paths"
+    ]
+  },
+  "D5_invalid_email_imported": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_repeat_of_a_failed_row_points_at_it",
+      "test_an_invalid_email_creates_and_sends_nothing",
+      "test_the_invalid_address_reaches_no_log_line"
+    ]
+  },
+  "D6_duplicate_email_not_normalised": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_email_repeat_in_another_case_and_spacing"
+    ]
+  },
+  "D7_duplicates_not_detected": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_name_repeat_without_an_email",
+      "test_a_repeat_of_a_failed_row_points_at_it",
+      "test_an_email_repeat_in_another_case_and_spacing"
+    ]
+  },
+  "D8_staff_email_not_mapped": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_staff_role_answers_identically"
+    ]
+  },
+  "D9_other_school_not_mapped": {
+    "killed": true,
+    "failing_tests": [
+      "test_another_schools_student_names_no_school"
+    ]
+  },
+  "D10_no_savepoint_per_row": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_database_error_in_one_row_fails_only_that_row_generically",
+      "test_an_existing_account_with_a_clashing_name_is_refused_and_untouched"
+    ]
+  },
+  "D11_size_not_checked_before_read": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_oversized_file_is_rejected_without_being_read",
+      "test_the_size_is_checked_before_the_file_is_read",
+      "test_too_large_is_a_413_with_int_sizes"
+    ]
+  },
+  "D12_a_skip_counted_as_a_failure": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_counts_add_up_to_the_non_blank_rows"
+    ]
+  },
+  "D13_new_account_clash_not_prechecked": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_new_accounts_clash_is_refused_before_anything_is_created"
+    ]
+  },
+  "D14_existing_account_clash_not_mapped": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_existing_account_with_a_clashing_name_is_refused_and_untouched"
+    ]
+  }
+}

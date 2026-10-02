@@ -24,9 +24,10 @@ same way now.
 
 Stripe API calls are avoided entirely in the webhook-level tests by
 constructing session/payment_intent payloads with no invoice/charge/
-payment_intent id set — resolve_stripe_receipt_url only calls out to
-Stripe when one of those is present, so leaving them None keeps these
-tests network-call-free without needing to mock `stripe.*`.
+payment_intent id set. The receipt link is only looked up (after commit,
+see billing/receipts.py) when one of those is present, so leaving them
+None keeps these tests network-call-free without needing to mock
+`stripe.*`.
 """
 
 from datetime import timedelta

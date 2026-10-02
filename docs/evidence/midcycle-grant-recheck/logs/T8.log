@@ -1,0 +1,13 @@
+# T8: task counts an expiry skip as a skip
+# file: billing/tasks.py (occurrence 1)
+# old: '                if not SubscriptionService.expire_trial(trial_sub):\n'
+# new: '                if SubscriptionService.expire_trial(trial_sub) is None:\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 5.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_conversion_in_between_is_not_undone)
+FAIL: test_an_overlapping_run_does_not_expire_the_trial_again (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_an_overlapping_run_does_not_expire_the_trial_again)
+
+FAILED (failures=2)

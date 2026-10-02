@@ -5074,6 +5074,12 @@ class PDFUnreadableError(ValueError):
     the caller names the file (assignments.services.prepare_ai_content)."""
 
 
+class PDFNotAPdfError(PDFUnreadableError):
+    """The bytes are not a PDF at all (a photo labelled application/pdf).
+    A PDFUnreadableError, so every existing handler still matches; the
+    caller turns it into FILE_NOT_A_PDF (Epic A S7d, catalogue C)."""
+
+
 class PDFEmptyError(ValueError):
     """A readable PDF with no pages."""
 
@@ -5172,7 +5178,7 @@ class PDFService:
         # application/pdf passed every check here and then crashed pdftoppm -
         # a 500 for what is an ordinary bad upload.
         if not is_pdf:
-            raise PDFUnreadableError(
+            raise PDFNotAPdfError(
                 "This file is not a PDF. If it is a photo or scan, upload it "
                 "as an image instead."
             )

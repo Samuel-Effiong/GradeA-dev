@@ -1108,9 +1108,5 @@ class BulkAddStudentSerializer(serializers.Serializer):
     file = serializers.FileField(required=False)
     raw_data = serializers.CharField(required=False, allow_blank=True)
 
-    def validate(self, attrs):
-        if not attrs.get("file") and not attrs.get("raw_data"):
-            raise serializers.ValidationError(
-                "Either a CSV file or raw text data must be provided."
-            )
-        return attrs
+    # "Neither a file nor text" is ROSTER_NO_INPUT, coded by the view (Epic A
+    # S7d, catalogue D1), no longer a field error here.

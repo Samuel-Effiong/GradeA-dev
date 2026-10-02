@@ -1,0 +1,8 @@
+{
+  "M8 retry_item's session gate removed": {
+    "killed": true,
+    "failing_tests": [
+      "test_retry_item_is_not_found_for_a_removed_teacher"
+    ]
+  }
+}

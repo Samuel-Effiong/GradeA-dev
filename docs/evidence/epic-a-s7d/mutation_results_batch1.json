@@ -1,0 +1,80 @@
+{
+  "R1_body_ignores_a_chosen_remediation": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_approved_alternative_is_carried_to_the_body"
+    ]
+  },
+  "R2_any_remediation_accepted": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_unapproved_remediation_is_refused"
+    ]
+  },
+  "R3_nothing_to_do_is_an_empty_string": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones",
+      "test_nothing_to_do_is_null"
+    ]
+  },
+  "R4_entry_error_carries_the_detail": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones"
+    ]
+  },
+  "R5_an_approved_text_drifts": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones",
+      "test_every_approved_code_is_user_facing_with_its_approved_text"
+    ]
+  },
+  "B1_pause_coded_as_another_lock": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_pause_is_coded_and_keeps_its_text_and_retry_after"
+    ]
+  },
+  "C1_photo_mapped_to_unreadable": {
+    "killed": true,
+    "failing_tests": [
+      "test_student_answer_upload_is_a_422_not_a_500",
+      "test_teacher_assignment_upload_is_a_refusal_not_a_500",
+      "test_the_refusal_reaches_the_caller_as_a_parse_error"
+    ]
+  },
+  "C2_extract_raises_the_generic_error": {
+    "killed": true,
+    "failing_tests": [
+      "test_student_answer_upload_is_a_422_not_a_500",
+      "test_teacher_assignment_upload_is_a_refusal_not_a_500",
+      "test_the_refusal_reaches_the_caller_as_a_parse_error"
+    ]
+  },
+  "C3_damaged_pdf_called_not_a_pdf": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_damaged_real_pdf_is_still_file_unreadable"
+    ]
+  },
+  "F1_single_publish_uncoded": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_not_fully_graded_state_is_refused_with_the_code"
+    ]
+  },
+  "F2_half_graded_not_listed": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_submission_not_published_is_listed_with_its_code"
+    ]
+  },
+  "F3_nothing_graded_lists_nothing": {
+    "killed": true,
+    "failing_tests": [
+      "test_nothing_graded_is_still_a_normal_answer_listing_the_skipped"
+    ]
+  }
+}

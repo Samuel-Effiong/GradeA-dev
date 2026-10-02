@@ -9,6 +9,7 @@ and subscription lifecycle operations.
 import logging
 
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -26,13 +27,15 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from audit.enums import ReasonCode
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.reason_codes import CodedError, coded_entry, coded_response
 from classrooms.models import School
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from users.models import CustomUser, UserTypes
 
 from .imports import stripe
-from .license_service import LicenseSubscriptionService
+from .license_service import LicenseRequestError, LicenseSubscriptionService
 from .models import (  # SubscriptionPlan,
     LicenseBillingMethod,
     LicenseBillingRecord,
@@ -304,21 +307,24 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "teacher_ids": [<user_id>, ...]
         }
 
-        Response:
+        Response (QA catalogue E, Epic A S7d):
         {
             "successful": <count>,
             "failed": <count>,
-            "errors": [{"teacher_id": <id>, "error": <message>}]
+            "errors": [coded entry per teacher not added],
+            "added": [{"teacher_email", "teacher_id", "status": "added"}],
+            "skipped": [coded entry per teacher already on the licence]
         }
+        A request refused as a whole answers its code: TEACHER_LIST_EMPTY,
+        LICENCE_INACTIVE or LICENCE_SEATS_EXCEEDED (400).
         """
         license_sub = self.get_object()
         teacher_emails = request.data.get("teacher_emails", [])
 
-        if not teacher_emails:
-            return Response(
-                {"error": "teacher_emails is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # A list, and not empty. A string is refused too, rather than being
+        # read one character at a time.
+        if not teacher_emails or not isinstance(teacher_emails, list):
+            return coded_response(CodedError(ReasonCode.TEACHER_LIST_EMPTY))
 
         try:
             with transaction.atomic():
@@ -328,6 +334,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
             return Response(results, status=status.HTTP_200_OK)
 
+        except CodedError as e:
+            return coded_response(e)
         except Exception as e:
             logger.error("Failed to add teachers to license %s", pk, exc_info=e)
             return Response(
@@ -355,55 +363,82 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "teacher_ids": [<user_id>, ...]
         }
 
-        Response:
+        Response (QA catalogue E, Epic A S7d):
         {
             "successful": <count>,
             "failed": <count>,
-            "errors": [{"teacher_id": <id>, "error": <message>}]
+            "errors": [coded entry per teacher not removed, with teacher_id],
+            "removed": [{"teacher_id", "status": "removed"}]
         }
+        An empty or non-list teacher_ids answers TEACHER_LIST_EMPTY (400).
         """
         license_sub = self.get_object()
         teacher_ids = request.data.get("teacher_ids", [])
 
-        if not teacher_ids:
-            return Response(
-                {"error": "teacher_ids is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+        if not teacher_ids or not isinstance(teacher_ids, list):
+            return coded_response(
+                CodedError(
+                    ReasonCode.TEACHER_LIST_EMPTY,
+                    remediation="Choose the teachers to remove.",
+                )
             )
 
         successful = 0
         failed = 0
         errors = []
+        removed = []
 
         for teacher_id in teacher_ids:
-            try:
-                teacher = get_object_or_404(CustomUser, id=teacher_id)
-                with transaction.atomic():
-                    LicenseSubscriptionService.remove_teacher_from_license(
-                        license_sub, teacher
-                    )
+            code = self._remove_one_teacher(license_sub, teacher_id)
+            if code is None:
                 successful += 1
-            except Exception as e:
-                logger.error(
-                    "Failed to remove teacher %s from license", teacher_id, exc_info=e
-                )
+                removed.append({"teacher_id": str(teacher_id), "status": "removed"})
+            else:
                 failed += 1
                 errors.append(
-                    {
-                        "teacher_id": teacher_id,
-                        "error": describe_user_error(
-                            e,
-                            fallback_message=(
-                                "We couldn't remove this teacher from the " "license."
-                            ),
-                        ),
-                    }
+                    coded_entry(
+                        CodedError(code), teacher_id=str(teacher_id), status="failed"
+                    )
                 )
 
         return Response(
-            {"successful": successful, "failed": failed, "errors": errors},
+            {
+                "successful": successful,
+                "failed": failed,
+                "errors": errors,
+                "removed": removed,
+            },
             status=status.HTTP_200_OK,
         )
+
+    @staticmethod
+    def _remove_one_teacher(license_sub, teacher_id):
+        """None when removed, else the item's code. An unknown id, a
+        malformed one, a student's, another school's teacher and a teacher
+        not on this licence all answer TEACHER_NOT_ON_LICENCE alike, so the
+        route is no oracle for who exists (QA catalogue E2)."""
+        try:
+            teacher = CustomUser.objects.filter(pk=teacher_id).first()
+        except (DjangoValidationError, ValueError, TypeError):
+            teacher = None
+        if teacher is None:
+            return ReasonCode.TEACHER_NOT_ON_LICENCE
+        try:
+            with transaction.atomic():
+                LicenseSubscriptionService.remove_teacher_from_license(
+                    license_sub, teacher
+                )
+        except LicenseRequestError:
+            return ReasonCode.TEACHER_NOT_ON_LICENCE
+        except Exception as e:
+            logger.error(
+                "Failed to remove teacher %s from license %s: %s",
+                teacher.pk,
+                license_sub.pk,
+                type(e).__name__,
+            )
+            return ReasonCode.TEACHER_REMOVE_FAILED
+        return None
 
     # @PROCESS_RENEWAL_SCHEMA
     # @action(detail=True, methods=["post"])

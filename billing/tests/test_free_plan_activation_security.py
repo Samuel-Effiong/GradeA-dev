@@ -1367,7 +1367,7 @@ class ActivationFailureRecoveryTests(PlanCatalogMixin, APITestCase):
         }
         metadata = {"user_id": str(self.teacher.id), "plan_id": str(self.standard.pk)}
         with mock.patch(
-            "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+            "billing.stripe_service.schedule_receipt_url_fill", return_value=None
         ):
             for _ in range(3):
                 with transaction.atomic():

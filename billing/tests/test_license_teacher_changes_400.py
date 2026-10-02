@@ -29,14 +29,13 @@ from billing.models import (
 from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
-FULL = (
-    "Your licence has no seats left (2 of 2 in use). "
-    "Remove a teacher or ask us to add seats."
-)
+# Epic A S7d (QA catalogue E1): LICENCE_SEATS_EXCEEDED. The approved message
+# ends at the counts; what to do next is the envelope's remediation.
+FULL = "Your licence has no seats left (2 of 2 in use)."
 ONE_LEFT_ADDING_TWO = (
-    "Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use). "
-    "Add fewer teachers, remove a teacher, or ask us to add seats."
+    "Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use)."
 )
+SEATS_REMEDIATION = "Add fewer teachers, remove a teacher, or ask us to add seats."
 GENERIC_ADD = (
     "We couldn't add these teachers to the license. Please try again, or "
     "contact support if this continues."
@@ -98,6 +97,13 @@ class LicenseTeacherChangesTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()["message"], FULL)
+        envelope = response.json()["error"]["field_errors"]
+        self.assertEqual(envelope["reason_code"], "LICENCE_SEATS_EXCEEDED")
+        self.assertEqual(envelope["remediation"], SEATS_REMEDIATION)
+        self.assertEqual(
+            envelope["params"],
+            {"remaining": 0, "adding": 1, "in_use": 2, "max_seats": 2},
+        )
         # Nothing written, nobody invited.
         self.assertEqual(
             list(self.teacher_allocations(licence).values_list("pk", "is_active")),
@@ -117,6 +123,10 @@ class LicenseTeacherChangesTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()["message"], ONE_LEFT_ADDING_TWO)
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["params"],
+            {"remaining": 1, "adding": 2, "in_use": 1, "max_seats": 2},
+        )
         self.assertEqual(self.teacher_allocations(licence).count(), 1)
         self.mail.assert_not_called()
 
@@ -143,6 +153,9 @@ class LicenseTeacherChangesTest(APITestCase):
         self.assertEqual(
             response.json()["message"],
             "This licence isn't active, so teachers can't be added to it.",
+        )
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["reason_code"], "LICENCE_INACTIVE"
         )
 
     def test_any_other_error_keeps_the_generic_message(self):
@@ -183,3 +196,4 @@ class LicenseTeacherChangesTest(APITestCase):
             data["errors"][0]["error"],
             "This teacher isn't an active teacher on this licence.",
         )
+        self.assertEqual(data["errors"][0]["reason_code"], "TEACHER_NOT_ON_LICENCE")
