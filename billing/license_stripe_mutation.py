@@ -114,9 +114,18 @@ class LicenceStripeChangeNotRecorded(Exception):
     """Stripe applied the change but the application could not record it.
 
     Deliberately NOT a ValueError: this is the server's failure, not a bad
-    request, so the views report it as a 500 — as they did before, when the
-    same failure surfaced as a database error. Whether Stripe was put back
-    (COMPENSATED) or a human is needed (ESCALATED) is on the intent."""
+    request. Whether Stripe was put back (COMPENSATED) or a human is needed
+    (ESCALATED) is on the intent, and on `escalated` here, because the
+    licence routes answer the two differently (SM ruling, v2's finding):
+    escalated is a 409 that must not be retried (the licence stays guarded
+    until a human reconciles it); compensated is a 503 with Retry-After,
+    since nothing changed. The message is always our own fixed text.
+    """
+
+    def __init__(self, message, *, intent=None, escalated=True):
+        super().__init__(message)
+        self.intent = intent
+        self.escalated = escalated
 
 
 class StripeBudgetExhausted(stripe.error.APIConnectionError):
@@ -346,6 +355,28 @@ def outcome_unknown(exc: Exception) -> bool:
 
 def is_guard_violation(exc: IntegrityError) -> bool:
     return GUARD_CONSTRAINT in str(exc)
+
+
+#: Appended to every fixed message a licence route shows when Stripe fails.
+TRY_AGAIN = " Please try again; if it keeps failing, contact support."
+
+
+def log_provider_error(intent, exc: Exception) -> None:
+    """H-60: a Stripe failure behind a licence change, for the server log.
+
+    The client is shown fixed text instead of Stripe's message: that text
+    names provider internals (request and object ids, parameter names) and
+    is QA-ERR-03's "raw library text". Stripe's full message is already on
+    the intent's failure_reason, for the reconciliation screens. This line
+    carries ids only."""
+    logger.warning(
+        "Licence %s, intent %s: Stripe failed (%s, code=%s, request=%s)",
+        intent.license_subscription_id,
+        intent.id,
+        type(exc).__name__,
+        getattr(exc, "code", None),
+        getattr(exc, "request_id", None),
+    )
 
 
 def busy_error() -> LicenceBillingChangeInProgress:
@@ -746,13 +777,16 @@ def finalise(intent, revalidate, write, compensate=None):
                 )
                 raise LicenceStripeChangeNotRecorded(
                     "The change could not be recorded, so it was undone. "
-                    "Nothing was changed; please try again."
+                    "Nothing was changed; please try again.",
+                    intent=intent,
+                    escalated=False,
                 ) from exc
 
         escalate(intent, cause)
         raise LicenceStripeChangeNotRecorded(
             "The change was applied at our payment provider but could not be "
-            "recorded. It has been flagged for manual reconciliation."
+            "recorded. It has been flagged for manual reconciliation.",
+            intent=intent,
         ) from exc
 
 

@@ -2182,7 +2182,11 @@ class LicenseSubscriptionService:
                 ),
             )
         except stripe.error.StripeError as exc:
-            raise ValueError(f"Failed to schedule Stripe cancellation: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Failed to schedule Stripe cancellation."
+                + license_stripe_mutation.TRY_AGAIN
+            ) from exc
 
         # Phase D.
         def revalidate(licence):
@@ -2441,8 +2445,10 @@ class LicenseSubscriptionService:
                     new_effective_price,
                 )
             )
-        except ValueError as exc:
-            raise ValueError(f"Stripe price change failed: {exc}") from exc
+        except ValueError:
+            # The inner messages are already the client's fixed text (H-60);
+            # a "Stripe price change failed: " frame only doubled them (v2).
+            raise
 
         # Phase D.
         def revalidate(current):
@@ -2591,7 +2597,10 @@ class LicenseSubscriptionService:
             license_stripe_mutation.abandon(
                 intent, f"could not read the subscription: {exc}"
             )
-            raise ValueError(f"Stripe error while updating seats: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Stripe error while updating seats." + license_stripe_mutation.TRY_AGAIN
+            ) from exc
         items = before.get("items", {}).get("data", [])
         if not items:
             license_stripe_mutation.abandon(intent, "the subscription has no items")
@@ -2625,14 +2634,16 @@ class LicenseSubscriptionService:
             if license_stripe_mutation.undo_unpaid_change(
                 intent, revert, invoice_of_this_change, why
             ):
+                # `why` (Stripe's text included) is on the intent; the
+                # client gets fixed text (H-60).
                 return ValueError(
-                    f"Seat increase payment failed ({why}). "
-                    "Seats have not been increased."
+                    "Seat increase payment failed. Seats have not been increased."
                 )
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The seat increase could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "
-                "reconciliation."
+                "reconciliation.",
+                intent=intent,
             )
 
         # Phases B and C.
@@ -2646,9 +2657,13 @@ class LicenseSubscriptionService:
                 payment_errors=(stripe.error.CardError,),
             )
         except stripe.error.CardError as exc:
+            license_stripe_mutation.log_provider_error(intent, exc)
             raise payment_failed(f"card error: {exc}") from exc
         except stripe.error.StripeError as exc:
-            raise ValueError(f"Stripe error while updating seats: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Stripe error while updating seats." + license_stripe_mutation.TRY_AGAIN
+            ) from exc
 
         # An increase is invoiced at once: it stands only if that invoice
         # was paid.
@@ -2674,7 +2689,8 @@ class LicenseSubscriptionService:
                 raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                     "The seat change was applied at our payment provider but "
                     "its payment could not be confirmed. It has been flagged "
-                    "for manual reconciliation."
+                    "for manual reconciliation.",
+                    intent=intent,
                 ) from exc
             if invoice is not None and invoice.get("status") != "paid":
                 raise payment_failed(f"invoice status: {invoice.get('status')}")
@@ -3976,7 +3992,11 @@ class LicenseSubscriptionService:
                 read_back_on=(stripe.error.InvalidRequestError,),
             )
         except stripe.error.StripeError as exc:
-            raise ValueError(f"Failed to cancel Stripe subscription: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Failed to cancel Stripe subscription."
+                + license_stripe_mutation.TRY_AGAIN
+            ) from exc
 
         # Phase D. There is no compensation: a deleted subscription cannot be
         # restored, only re-created, which would move money.

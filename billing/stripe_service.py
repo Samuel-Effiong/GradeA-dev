@@ -1619,7 +1619,11 @@ class StripeSubscriptionMutationService:
             license_stripe_mutation.abandon(
                 intent, f"could not read the subscription: {exc}"
             )
-            raise ValueError(f"Could not retrieve Stripe subscription: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Could not retrieve Stripe subscription."
+                + license_stripe_mutation.TRY_AGAIN
+            ) from exc
         items = before.get("items", {}).get("data", [])
         if not items:
             license_stripe_mutation.abandon(intent, "the subscription has no items")
@@ -1657,8 +1661,9 @@ class StripeSubscriptionMutationService:
                 license_stripe_mutation.abandon(
                     intent, f"could not create the new Price: {exc}"
                 )
+                license_stripe_mutation.log_provider_error(intent, exc)
                 raise ValueError(
-                    f"Custom price creation failed: Failed to create custom price: {exc}"
+                    "Custom price creation failed." + license_stripe_mutation.TRY_AGAIN
                 ) from exc
             new_price_id = price.id
             license_stripe_mutation.record_stripe_result(
@@ -1701,7 +1706,8 @@ class StripeSubscriptionMutationService:
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "
-                "reconciliation."
+                "reconciliation.",
+                intent=intent,
             )
 
         try:
@@ -1712,9 +1718,18 @@ class StripeSubscriptionMutationService:
                 payment_errors=(stripe.error.CardError,),
             )
         except stripe.error.CardError as exc:
-            raise payment_failed(f"card error: {exc}", f"Card declined: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise payment_failed(
+                f"card error: {exc}",
+                "Card declined. The plan has not been changed; update the "
+                "payment method and try again.",
+            ) from exc
         except stripe.error.StripeError as exc:
-            raise ValueError(f"Stripe error: {exc}") from exc
+            license_stripe_mutation.log_provider_error(intent, exc)
+            raise ValueError(
+                "Stripe error while changing the plan."
+                + license_stripe_mutation.TRY_AGAIN
+            ) from exc
 
         if proration_behavior != "always_invoice":
             return None, old_price_id, item_id
@@ -1742,7 +1757,8 @@ class StripeSubscriptionMutationService:
             raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change was applied at our payment provider but its "
                 "payment could not be confirmed. It has been flagged for "
-                "manual reconciliation."
+                "manual reconciliation.",
+                intent=intent,
             ) from exc
 
         if invoice is None:
