@@ -400,6 +400,24 @@ class TheAuditsOwnLookupsNeverBreakTheRefusalTests(RefusalAuditFixture):
         self.assertNotIn("went away", line)
         self.assertNotIn("@", line)
 
+    def test_a_tracked_batch_keeps_its_requester_when_only_the_school_fails(self):
+        """v2's wording point: the requester was read before the school
+        lookup failed, so the event still names them, and the emitter files
+        it under their own school (none: they were removed)."""
+        with patch(
+            "assignments.tasks._course_school_id",
+            side_effect=RuntimeError("the database went away"),
+        ):
+            with self.assertLogs("assignments.tasks", "ERROR"):
+                result = self.refuse_the_batch(tracked=True)
+
+        self.assertEqual(result, COURSE_NOT_FOUND)
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertEqual(event.actor_id, self.teacher.id)
+        self.assertEqual(event.target_id, self.teacher.id)
+        self.assertIsNone(event.school_id)
+
     def test_a_refused_auto_grade_survives_a_failed_school_lookup(self):
         with patch(
             "assignments.tasks._course_school_id",
