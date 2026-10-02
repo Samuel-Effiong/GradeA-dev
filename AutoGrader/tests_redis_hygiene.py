@@ -41,6 +41,18 @@ with redis_test_hygiene():
 """
 )
 
+# Another run's start-of-run sweep, from its own process: what a second
+# `manage.py test`, or another parallel worker's hygiene tests, do to the
+# shared test Redis while this module's tests are running (H-94).
+CHILD_SWEEP = (
+    CHILD_PRELUDE
+    + """
+from AutoGrader.redis_test_hygiene import sweep_dead_prefixes
+sweep_dead_prefixes()
+print("ready", flush=True)
+"""
+)
+
 CHILD_KILLABLE = (
     CHILD_PRELUDE
     + """
@@ -111,6 +123,10 @@ class RedisHygieneTestCase(SimpleTestCase):
         self._children.append(child)
         return child
 
+    def another_runs_sweep(self):
+        """Run a real sweep from another process, and wait for it."""
+        self.assertEqual(self.spawn(CHILD_SWEEP).wait(timeout=60), 0)
+
 
 class TtlTests(RedisHygieneTestCase):
     def test_a_never_expires_key_gets_a_ttl(self):
@@ -159,12 +175,24 @@ class TtlTests(RedisHygieneTestCase):
 
 class SweepTests(RedisHygieneTestCase):
     def test_delete_own_keys_takes_only_that_exact_prefix(self):
+        self.check_delete_own_keys_takes_only_that_exact_prefix()
+
+    def test_delete_own_keys_is_unmoved_by_another_runs_sweep(self):
+        """H-94: under --parallel another worker's sweep can run between
+        this test's setup and its assertions."""
+        self.check_delete_own_keys_takes_only_that_exact_prefix(
+            meanwhile=self.another_runs_sweep
+        )
+
+    def check_delete_own_keys_takes_only_that_exact_prefix(self, meanwhile=None):
         pid = _dead_pid()
         mine = f"gaplus-t{pid}:1:a"
         lookalike = f"gaplus-t{pid}9:1:a"  # pid 12 must not match pid 123
         self.put(mine)
         self.put(lookalike)
         self.put(f"gaplus-t{pid}:1:b", db=15)  # other logical databases too
+        if meanwhile:
+            meanwhile()
 
         removed = hygiene.delete_own_keys(pid)
 
@@ -209,12 +237,23 @@ class ProcessLifecycleTests(RedisHygieneTestCase):
         )
 
     def test_sigkill_leaves_keys_and_the_next_run_sweeps_them(self):
+        self.check_sigkill_leaves_keys_and_the_next_run_sweeps_them()
+
+    def test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile(self):
+        """H-94: the same race as SweepTests', on the killed child's keys."""
+        self.check_sigkill_leaves_keys_and_the_next_run_sweeps_them(
+            meanwhile=self.another_runs_sweep
+        )
+
+    def check_sigkill_leaves_keys_and_the_next_run_sweeps_them(self, meanwhile=None):
         child = self.spawn(CHILD_KILLABLE)
         pattern = f"gaplus-t{child.pid}:*"
         self.assertNotEqual(_keys(pattern), [])
 
         child.kill()
         child.wait(timeout=60)
+        if meanwhile:
+            meanwhile()
         self.assertNotEqual(_keys(pattern), [], "nothing in-process can run on SIGKILL")
 
         hygiene.sweep_dead_prefixes()
