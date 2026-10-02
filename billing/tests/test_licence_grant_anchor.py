@@ -476,3 +476,62 @@ class RowsOlderThanTheAnchorTests(LicenceClockTestCase):
         allocation.refresh_from_db()
         self.assertLess(allocation.grant_anchor_at - renewed, timedelta(seconds=1))
         self.assertGreaterEqual(allocation.grant_anchor_at, renewed)
+
+    def test_the_renewal_task_overwrites_the_stored_anchor(self):
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        allocation = self.enrol(licence, start)
+        renewed = licence.billing_cycle_end + timedelta(hours=1)
+
+        self.clock.moment = renewed
+        LicenseSubscriptionService.process_license_renewal(licence)
+
+        allocation.refresh_from_db()
+        self.assertGreaterEqual(allocation.grant_anchor_at, renewed)
+        self.assertLess(allocation.grant_anchor_at - renewed, timedelta(seconds=1))
+
+    def test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal(self):
+        """The fallback is the LATER of the row's creation and the licence's
+        cycle start: a renewal on 20 April restarted this teacher's month,
+        whatever day they first enrolled."""
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        allocation = self.enrol(licence, start)
+        renewed = datetime(2026, 4, 20, 12, 0, tzinfo=UTC)
+        LicenseSubscription.objects.filter(pk=licence.pk).update(
+            billing_cycle_start=renewed,
+            billing_cycle_end=renewed + relativedelta(months=12),
+        )
+        due = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
+        self.old_row(allocation, due)
+
+        self.run_refresh(allocation, datetime(2026, 5, 21, 3, 0, tzinfo=UTC))
+
+        allocation.refresh_from_db()
+        self.assertEqual(allocation.grant_anchor_at, renewed)
+        self.assertEqual(
+            allocation.next_credit_grant_at, datetime(2026, 6, 20, 12, 0, tzinfo=UTC)
+        )
+
+    def test_the_admin_allocation_stores_its_anchor_and_restarts_on_reactivation(self):
+        start = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
+        licence = self.licence(start)
+        self.clock.moment = start
+        admin_allocation = LicenseSubscriptionService._grant_admin_allocation(licence)
+        anchor = admin_allocation.grant_anchor_at
+        assert anchor is not None
+        self.assertGreaterEqual(anchor, start)
+        self.assertLess(anchor - start, timedelta(seconds=1))
+
+        SchoolCreditAllocation.objects.filter(pk=admin_allocation.pk).update(
+            is_active=False
+        )
+        later = datetime(2026, 3, 12, 9, 0, tzinfo=UTC)
+        self.clock.moment = later
+        reactivated = LicenseSubscriptionService._grant_admin_allocation(licence)
+
+        self.assertEqual(reactivated.pk, admin_allocation.pk)
+        anchor = reactivated.grant_anchor_at
+        assert anchor is not None
+        self.assertGreaterEqual(anchor, later)
+        self.assertLess(anchor - later, timedelta(seconds=1))
