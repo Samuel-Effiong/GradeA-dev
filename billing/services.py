@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
@@ -33,7 +34,7 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     UserSubscription,
 )
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
-from .refresh_timing import refresh_due_by
+from .refresh_timing import next_monthly_grant, refresh_due_by
 from .subscription_resolver import (
     SOURCE_INDIVIDUAL,
     SOURCE_LICENSE_ADMIN,
@@ -789,12 +790,34 @@ class SubscriptionService:
             old_monthly.is_processed = True
             old_monthly.save(update_fields=["expires_at", "is_processed", "updated_at"])
 
-        next_grant_at = now + relativedelta(months=1)
-        # Never let the bucket outlive the actual annual contract — in the
-        # final partial month, cap it at billing_cycle_end so the real
-        # annual renewal (rollover + possible plan change + Stripe price
+        # H-82: the next due time comes from the anchor and the due time
+        # being served, not from `now` (refresh_timing.next_monthly_grant).
+        # It is capped at billing_cycle_end: in the final partial month the
+        # real annual renewal (rollover + possible plan change + Stripe price
         # sync) takes over cleanly instead of overlapping with this grant.
-        bucket_expiry = min(next_grant_at, user_subscription.billing_cycle_end)
+        served_due = user_subscription.next_credit_grant_at
+        period, next_due = next_monthly_grant(
+            user_subscription.billing_cycle_start,
+            served_due,
+            user_subscription.billing_cycle_end,
+        )
+        if served_due + timedelta(days=1) < now:
+            # A missed run (an outage): the grant is still owed and is made
+            # now, one per run, until the chain is current again.
+            logger.warning(
+                "Mid-cycle grant for subscription %s caught up: the grant "
+                "due at %s (period %d) is made late.",
+                user_subscription.id,
+                served_due,
+                period - 1,
+            )
+        # A caught-up bucket lives a month from now, not to a due time that
+        # has already passed (it would be born expired).
+        bucket_expiry = (
+            next_due
+            if next_due > now
+            else min(now + relativedelta(months=1), user_subscription.billing_cycle_end)
+        )
 
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
@@ -820,7 +843,7 @@ class SubscriptionService:
         wallet.overage_blocks_used = 0
         wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
-        user_subscription.next_credit_grant_at = bucket_expiry
+        user_subscription.next_credit_grant_at = next_due
         user_subscription.save(update_fields=["next_credit_grant_at", "updated_at"])
 
         logger.info(
@@ -829,7 +852,7 @@ class SubscriptionService:
             user_subscription.id,
             user.email,
             plan.monthly_credits,
-            bucket_expiry,
+            next_due,
         )
         return user_subscription
 
