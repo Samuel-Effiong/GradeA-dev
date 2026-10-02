@@ -39,6 +39,7 @@ from billing.tests.test_licence_grant_anchor import LicenceClockTestCase
 UTC = dt_timezone.utc
 START = datetime(2026, 1, 31, 1, 0, tzinfo=UTC)
 END = START + relativedelta(years=1)
+AN_HOUR = timedelta(hours=1)
 
 
 def owed_lines(logs):
@@ -106,6 +107,15 @@ class LicenceRenewalReportsOwedRefreshesTests(LicenceClockTestCase):
         with self.assertNoLogs("billing.license_service", "ERROR"):
             self.renew_by_task(END + timedelta(hours=1))
 
+    def test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing(self):
+        """1a's mutant: the count runs to the cycle's end, not to the
+        renewal's moment. A superadmin renewing 20 days late owes nothing
+        for the days after the contract ended."""
+        self.drive(self.allocation)
+
+        with self.assertNoLogs("billing.license_service", "ERROR"):
+            self.renew_offline(END + timedelta(days=20))
+
     def test_a_row_drifted_to_the_28th_is_not_reported_as_owed(self):
         """An old chain's last due time, three days before a cycle ending
         on the 31st, is the renewal's own period."""
@@ -151,11 +161,11 @@ class IndividualRenewalReportsOwedGrantsTests(TestCase):
             self.user, make_annual_plan(), period_start=START, period_end=END
         )
 
-    def renew(self, next_due):
+    def renew(self, next_due, late_by=AN_HOUR):
         UserSubscription.objects.filter(pk=self.sub.pk).update(
             next_credit_grant_at=next_due
         )
-        self.clock.moment = END + timedelta(hours=1)
+        self.clock.moment = END + late_by
         return SubscriptionService.process_rollover_and_renewal(
             self.sub, period_start=END, period_end=END + relativedelta(years=1)
         )
@@ -189,3 +199,9 @@ class IndividualRenewalReportsOwedGrantsTests(TestCase):
     def test_a_row_drifted_to_the_28th_is_not_reported_as_owed(self):
         with self.assertNoLogs("billing.services", "ERROR"):
             self.renew(END - timedelta(days=3))
+
+    def test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing(self):
+        """The count runs to the cycle's end, not to the renewal's moment
+        (a webhook retried for days, or the nightly sweep after an outage)."""
+        with self.assertNoLogs("billing.services", "ERROR"):
+            self.renew(END, late_by=timedelta(days=20))

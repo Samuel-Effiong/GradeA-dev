@@ -297,6 +297,22 @@ MUTANTS = [
         "                    owed,\n",
         1,
     ),
+    (
+        "O9",
+        "H-81 (1a's mutant): a late licence renewal counts to the cycle end",
+        LS,
+        "        until = min(license_sub.billing_cycle_end, now)\n",
+        "        until = now\n",
+        1,
+    ),
+    (
+        "O10",
+        "H-81: a late individual renewal counts to the cycle end",
+        SV,
+        "                min(user_subscription.billing_cycle_end, timezone.now()),\n",
+        "                timezone.now(),\n",
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")
