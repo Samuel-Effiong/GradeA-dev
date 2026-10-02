@@ -529,7 +529,18 @@ def _unreachable_course_school_id(exc, submission):
         return None
     if not isinstance(submission, StudentSubmission):
         return None
-    return _course_school_id(submission.assignment.course)
+    try:
+        return _course_school_id(submission.assignment.course)
+    except Exception as error:
+        # Never let the audit's own lookup break the failure handling it
+        # sits in: the event is then filed by the emitter's rule.
+        logger.error(
+            "The course's school could not be read for the refused grading "
+            "of submission %s: %s",
+            submission.id,
+            type(error).__name__,
+        )
+        return None
 
 
 def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id=None):
@@ -539,17 +550,31 @@ def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id
     The actor is the tracked task's requester when the run has one, else
     SYSTEM (as grade_engine_async's own event). It is filed under the
     course's school: the removed teacher no longer has one. Ids only."""
-    task = get_processing_task_by_id(processing_task_id)
+    # The lookups are guarded: emit() never raises, and nothing here may
+    # turn the refusal into a task failure. On an error the event is still
+    # written, as the system's and with no school.
+    actor = school_id = None
+    try:
+        task = get_processing_task_by_id(processing_task_id)
+        actor = task.requested_by if task else None
+        school_id = _course_school_id(assignment.course)
+    except Exception as error:
+        logger.error(
+            "The requester or school could not be read for the refused "
+            "grading of assignment %s: %s",
+            assignment.id,
+            type(error).__name__,
+        )
     emit(
         AuditAction.GRADING_FAILED,
-        actor=task.requested_by if task else None,
+        actor=actor,
         request=None,
         target_type="CustomUser",
         target_id=teacher_id,
         outcome=AuditOutcome.FAILURE,
         error_class=ErrorClass.USER,
         reason_code=ReasonCode.COURSE_NOT_REACHABLE,
-        school_id=_course_school_id(assignment.course),
+        school_id=school_id,
         metadata={
             "assignment_id": str(assignment.id),
             "task_id": str(processing_task_id) if processing_task_id else None,
