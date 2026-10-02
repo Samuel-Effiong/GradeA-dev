@@ -552,7 +552,10 @@ def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id
     course's school: the removed teacher no longer has one. Ids only."""
     # The lookups are guarded: emit() never raises, and nothing here may
     # turn the refusal into a task failure. On an error the event is still
-    # written, as the system's and with no school.
+    # written with whatever was read before it: nothing if the requester
+    # lookup failed (the system's, no school), or the requester alone if
+    # only the school lookup failed (the emitter then files it under the
+    # requester's own school, which is none for a removed teacher).
     actor = school_id = None
     try:
         task = get_processing_task_by_id(processing_task_id)
