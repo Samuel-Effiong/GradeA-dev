@@ -1,0 +1,12 @@
+# W3: H-93: the refresh uses the rule
+# file: billing/license_service.py (occurrence 1)
+# old: 'Q(consumption_window_start__lte=consumption_window_is_over(now))'
+# new: 'Q(consumption_window_start__lte=now - relativedelta(months=1))'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 18.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_consumption_window_reopens_at_every_months_refresh (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_the_consumption_window_reopens_at_every_months_refresh)
+
+FAILED (failures=1)

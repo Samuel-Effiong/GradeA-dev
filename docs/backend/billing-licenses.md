@@ -194,7 +194,7 @@ flowchart TD
 
 The business-email requirement is enforcement point #5 of the email-track fork ([users-and-auth.md](users-and-auth.md#where-the-fork-is-enforced)).
 
-The `IndividualSubscriptionConflictError` ([license_service.py:99](../../billing/license_service.py#L99)) is in the user-facing passthrough list ([AutoGrader/error_messages.py:29](../../AutoGrader/error_messages.py#L29)), so its message reaches the admin verbatim.
+The `IndividualSubscriptionConflictError` ([license_service.py:99](../../billing/license_service.py#L99)) is in the user-facing passthrough list ([AutoGrader/error_messages.py:29](../../AutoGrader/error_messages.py#L29)), so its message reaches the admin verbatim. Since H-85 that message is one neutral sentence (`TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`: "This teacher can't be added to your school yet. Please ask them to contact support."), with no address and no mention of a subscription; the reason is in the log, by user id.
 
 ### The invitation context
 
@@ -386,7 +386,7 @@ For a Stripe-billed licence, `StripeSubscriptionMutationService.change_license_p
 | Failure | Behaviour | Recovery |
 |---|---|---|
 | Non-business email offered a seat | refused (raise or warn, per `raise_on_conflict`) | use a school address |
-| Teacher already has an active individual plan | `IndividualSubscriptionConflictError`, message reaches the admin | cancel the individual plan first |
+| Teacher already has an active individual plan | `IndividualSubscriptionConflictError`; the admin sees only a neutral sentence ("This teacher can't be added to your school yet. Please ask them to contact support."), and the log gives the reason by user id (H-85) | the teacher contacts support |
 | Teacher belongs to a different school | refused naming both schools | — |
 | Email already belongs to a non-teacher | refused naming the actual type | — |
 | Superadmin named as licence admin | refused naming the fix | pre-existing rows: `audit_school_admins` |

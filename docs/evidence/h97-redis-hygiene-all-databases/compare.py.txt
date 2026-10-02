@@ -1,0 +1,39 @@
+"""Compare the before/after listings. Exit 0 only if every other key family
+has the same count in databases 1-15 (database 0 is live), and no dead-pid gaplus-t key is left
+in databases 1-15."""
+
+import re
+import sys
+
+
+def parse(path):
+    out = {}
+    for line in open(path):
+        m = re.match(
+            r"db(\d+): dead-pid gaplus-t keys=(\d+) .*?other families: (.*)$",
+            line.strip(),
+        )
+        if m:
+            out[int(m.group(1))] = (int(m.group(2)), m.group(3))
+    return out
+
+
+before, after = parse(sys.argv[1]), parse(sys.argv[2])
+bad = []
+for db in sorted(set(before) | set(after)):
+    b = before.get(db, (0, "none"))
+    a = after.get(db, (0, "none"))
+    if b[1] != a[1]:
+        if db == 0:
+            # Database 0 is the live one (a dev server, other runs' brokers).
+            print(f"note: db0 other families differ: {b[1]!r} -> {a[1]!r}")
+        else:
+            bad.append(f"db{db}: other families changed: {b[1]!r} -> {a[1]!r}")
+    if db != 0 and a[0] != 0:
+        bad.append(f"db{db}: {a[0]} dead-pid gaplus-t keys left")
+print(
+    "\n".join(bad)
+    if bad
+    else "OK: other families unchanged in databases 1-15; no dead-pid gaplus-t key left in databases 1-15"
+)
+sys.exit(1 if bad else 0)

@@ -1,0 +1,8 @@
+16:17:30 repro exit=1 (red expected)
+16:21:36 module --parallel 4 run 1 exit=0
+16:21:36 listings: OK: other families unchanged in databases 1-15; no dead-pid gaplus-t key left in databases 1-15
+16:21:55 module --parallel 4 run 2 exit=0
+16:22:17 module --parallel 4 run 3 exit=0
+16:22:54 mutants exit=0
+16:24:37 9 guards exit=1
+16:24:37 CHAIN END

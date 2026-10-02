@@ -1,0 +1,12 @@
+baseline exit=0
+N1	the invite refusal names no address and no subscription	KILLED	FAILED (failures=5)	True	6.1
+N2	the enrolment refusal names no address and no subscription	KILLED	FAILED (failures=2)	True	4.7
+N3	the sentence does not mention a subscription	KILLED	FAILED (failures=7)	True	5.2
+N4	the invite refusal keeps its exception class	KILLED	FAILED (errors=5)	True	5.9
+N5	the enrolment refusal keeps its exception class	KILLED	FAILED (errors=1)	True	4.4
+N6	the invite refusal still logs its reason by id	KILLED	FAILED (failures=3)	True	5.2
+N7	the removal line separates its two sentences	KILLED	FAILED (failures=1)	True	4.9
+N8	the enrolment refusal still logs its own reason by id (1a's Y7)	KILLED	FAILED (failures=2)	True	4.3
+
+8/8 killed with verified restore
+exit=0 wall_s=50
