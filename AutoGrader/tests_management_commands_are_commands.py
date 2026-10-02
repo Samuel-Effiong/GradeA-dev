@@ -7,6 +7,9 @@ live Stripe subscription schedules. It now lives in `scripts/`, which is
 not a package.
 
 The modules are parsed, never imported: importing one is the hazard.
+
+Limit: a module that has a `Command` class AND module-level side effects
+still passes; this only catches a script with no `Command` at all.
 """
 
 import ast
