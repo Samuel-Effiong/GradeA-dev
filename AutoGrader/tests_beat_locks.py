@@ -44,6 +44,11 @@ from AutoGrader.testing.concurrency import run_concurrently
 
 MINUTES_IN_A_WEEK = 7 * 24 * 60
 EVERY_5_MIN_TASK = "billing.tasks.escalate_stale_licence_stripe_intents"
+# Beat entries that exist only on Epic A and take the lock (merge-down b5).
+EPIC_ONLY_GUARDED_BEAT_TASKS = {
+    "audit.tasks.sweep_audit_retention",
+    "audit.tasks.sweep_audit_pii_short_retention",
+}
 
 
 def task_named(path):
@@ -413,8 +418,13 @@ class RealTaskSkipTests(TestCase):
             for task in beat_entries()
             if declared_lock(task_named(task)) is not None
         ]
-        # 21 on beta, plus Epic A's two audit retention sweeps (merge-down b5).
-        self.assertEqual(len(guarded), 23)
+        # Beta's own count, kept as beta pins it: a guarded task added on
+        # beta fails here at the next merge-down until this 21 follows
+        # beta's. Epic A's own guarded tasks are named, not counted in.
+        names = [task for task, _ in guarded]
+        self.assertLessEqual(EPIC_ONLY_GUARDED_BEAT_TASKS, set(names))
+        beta_guarded = [n for n in names if n not in EPIC_ONLY_GUARDED_BEAT_TASKS]
+        self.assertEqual(len(beta_guarded), 21)
         for task, lock in guarded:
             with self.subTest(task):
                 assert lock is not None
