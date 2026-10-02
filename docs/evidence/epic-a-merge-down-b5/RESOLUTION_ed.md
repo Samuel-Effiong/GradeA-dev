@@ -112,8 +112,15 @@ log lines or on the license log string; `NOT_A_STUDENT_MESSAGE` is still asserte
 ## Auto-merged files changed on both sides (for the remerge-diff review)
 
 For each, every line added by either side since the merge base is present in the result
-(checked by script; the only two absent lines are beta's in `tests_security_penetration.py`,
-above).
+(checked by script over these twelve files; the only two absent lines are beta's in
+`tests_security_penetration.py`, above).
+
+v2's pre-review found a third beta-added line absent from the result, in a file my script did
+not cover: beta's `print(f"FAILED: {user_sub.id} (user {user_sub.user.email}): {exc}")` in
+`scripts/one_off_backfill_stripe_schedules.py`. The merged script has the epic's
+`user_sub.user_id` form, because git carried the epic's ids-only edit of `backfill.py` through
+H1's rename. That is the right result; it also means the script's flagged-line count on the
+merged tree (3) can differ from beta's.
 
 | File | Beta since base | Epic since base | Note |
 |---|---|---|---|
@@ -128,6 +135,26 @@ above).
 | `billing/license_service.py` | +133/-88 | +224/-63 | H-80's ids-only calls and H-86's reason lines arrive; the epic's lines kept |
 | `billing/tasks.py` | +22/-35 | +6/-0 | both kept |
 | `users/signals.py` | +20/-25 | +5/-5 | the result equals beta's file: the epic's five email→id changes are the same lines in H-80 |
+
+## Gate round 1 (RED) and the test-only fixes
+
+Step 1 at 3cfc40f8 (2026-10-02 13:33–13:53 WAT; the machine was shared, load about 27):
+**Ran 745 tests, FAILED (failures=6, errors=2, skipped=1)**. Log:
+`run1_failed_3cfc40f8_modules_and_guards.txt` (last 200 lines, all 8 headers and the totals;
+full log sha256 prefix `4ef376a310656971`, kept in `~/Documents/Projects/GAP-evidence-logs/`).
+The mutants did not run. All eight are tests that collide with intended behaviour; no
+production code changed in the fix.
+
+| Tests | Why red | Fix (test-only) |
+|---|---|---|
+| `audit.tests_retention_sweep.ConcurrentSweepTests`, 2 errors | They run two sweeps at once and parse both summaries. With the Beat lock one run is skipped, and its summary has no counts. I had the module in the gate but had not read it against the lock. | `runs_that_worked()`: the totals are summed over the runs that did the work; every other result must be the lock's skip summary. The assertion that each row is processed exactly once is unchanged. |
+| `AutoGrader.tests_beat_locks` `test_every_guarded_beat_task_skips_while_another_run_holds_it`, 1 failure | Beta pins `len(guarded) == 21`; the epic has 23 with the two audit sweeps. | The pin is 23 on the epic, with a comment. |
+| `classrooms.tests_h71_student_add_role`, 5 failures (3 + 2 subtests) | Beta's H-71 module is new to the epic. It pins the rowless message for a bulk row, and compares whole response bodies across roles. On the epic a bulk row has S7d's row form (`ROW_STAFF_EMAIL`, "Row 1: …"), and a coded error carries a support reference that is new for every response. | The bulk assertion takes S7d's form (as `tests_security_penetration.py` does). The role comparison masks the `reference` value and still compares everything else byte for byte. |
+
+**Divergences from beta these create** (future merge-downs keep the epic side of each):
+`AutoGrader/tests_beat_locks.py` (the 23), `classrooms/tests_h71_student_add_role.py` (two
+assertions and the helper), plus the ones recorded for b4 (`grade_engine_async`, the students
+H-38 test) and `tests_security_penetration.py`'s S7d line.
 
 ## Apps whose production code the merge changes on the epic
 
