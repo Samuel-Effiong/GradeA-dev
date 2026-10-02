@@ -17,6 +17,13 @@
   "G3_the_flag_does_not_allow": {
     "killed": true,
     "failing_tests": [
+      "test_archive_preparation_failure_does_not_break_the_run",
+      "test_database_mirror_failure_does_not_break_the_run",
+      "test_history_is_written_and_report_is_unaffected",
+      "test_history_write_failure_does_not_break_the_run",
+      "test_no_history_flag_writes_nothing",
+      "test_replay_run_is_recorded_but_not_archived",
+      "test_report_is_identical_with_and_without_history",
       "test_the_flag_lets_it_run"
     ]
   },
@@ -31,6 +38,13 @@
   "G5_handle_drops_the_flag": {
     "killed": true,
     "failing_tests": [
+      "test_archive_preparation_failure_does_not_break_the_run",
+      "test_database_mirror_failure_does_not_break_the_run",
+      "test_history_is_written_and_report_is_unaffected",
+      "test_history_write_failure_does_not_break_the_run",
+      "test_no_history_flag_writes_nothing",
+      "test_replay_run_is_recorded_but_not_archived",
+      "test_report_is_identical_with_and_without_history",
       "test_the_flag_lets_it_run"
     ]
   },
@@ -43,6 +57,32 @@
   "G7_weekly_does_not_skip_on_refusal": {
     "killed": true,
     "failing_tests": [
+      "test_the_weekly_live_job_is_skipped_without_the_benchmark_switch"
+    ]
+  },
+  "G9_the_live_qa_skip_logs_at_debug": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_weekly_live_job_is_skipped_without_live_qa"
+    ]
+  },
+  "G10_the_refusal_skip_logs_at_debug": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_nightly_replay_is_skipped_and_creates_nothing",
+      "test_the_weekly_live_job_is_skipped_without_the_benchmark_switch"
+    ]
+  },
+  "G11_the_live_qa_skip_logs_nothing": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_weekly_live_job_is_skipped_without_live_qa"
+    ]
+  },
+  "G12_the_refusal_skip_names_no_switch": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_nightly_replay_is_skipped_and_creates_nothing",
       "test_the_weekly_live_job_is_skipped_without_the_benchmark_switch"
     ]
   },
