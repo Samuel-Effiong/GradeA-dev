@@ -1,9 +1,9 @@
-# baseline, commit a4f379be5511d6ea893ae1eb7f9f66a4422944f8, exit 0
+# baseline, commit f1e0e9d7cfd4133c6f045f22e210d03f5531f757, exit 0
 
 Found 9 test(s).
 System check identified no issues (0 silenced).
 .........
 ----------------------------------------------------------------------
-Ran 9 tests in 6.428s
+Ran 9 tests in 3.249s
 
 OK

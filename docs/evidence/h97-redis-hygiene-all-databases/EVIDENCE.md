@@ -60,6 +60,7 @@ pid prefix (`60415c99`).
 | `60415c99` | v2's note: per-process names for the sweep test's two bystander keys |
 | `2d64b9fd` | base update onto `93cb8648` (0b), which has H-94 |
 | `a4f379be` | the fix reworked to keep one raw-client site (`location_for`); mutants D1–D4 |
+| `f1e0e9d7` | v2's finding: a socket URL keeps its credentials; 19 URL shapes; mutant D5 |
 
 ## The one-off sweep of the leftovers
 Once the clients are on their own databases, the first test run with the
@@ -129,6 +130,28 @@ and an empty `EXEMPT_EMAIL_DOMAINS`, wrapped as `systemd-inhibit
 in its worktree before the baseline, before each mutant and after each
 restore.
 
+## After v2's static read (delta at `f1e0e9d7`)
+v2's finding, ruled in by the SM: `location_for` rebuilt a `unix://` URL
+from its path alone, so the credentials of a password-protected socket were
+dropped and the hygiene clients would have failed to authenticate there
+(the cleanup would have stopped silently, since hygiene is best effort).
+
+`f1e0e9d7`: the unix branch keeps the network location, and blank-valued
+parameters are kept as written. `test_the_database_is_set_whatever_the_url_says`
+now has 19 shapes: v2's nine, a socket with a user and a password, and
+more; eight carry credentials. Per the SM, a failure names the shape and
+the database and never prints a URL or a parsed value, and no log or
+evidence file here holds a URL with a password (the test's made-up password
+does not appear in any committed log; checked with grep).
+
+| Delta gate (rule 15.4, SM ruling; under 0b's grant) | Result | Log |
+|---|---|---|
+| `AutoGrader.tests_redis_hygiene_databases` and `AutoGrader.tests_cache_invalidation_coverage` (H-73's raw-client guard) | 29 OK | `delta_modules_f1e0e9d7.log` |
+| Mutant D5: the network location dropped again in the unix branch | killed, by the three socket shapes that carry credentials; restore sha-verified, rule 17 | `delta_mutant_D5_f1e0e9d7.log`, `logs/D5.log` |
+
+The three parallel runs, the other mutants and the guards were not re-run:
+they stand from the re-gate at `a4f379be`.
+
 ## Mutants
 | Id | Guards | Result |
 |---|---|---|
@@ -136,6 +159,7 @@ restore.
 | D2 | the clients are not built with `from_url(location, db=db)` | killed |
 | D3 | all 16 databases are visited | killed |
 | D4 | a `unix://` URL's database is its `db` parameter | killed |
+| D5 | a socket URL keeps its credentials (v2's finding; added at `f1e0e9d7`) | killed |
 
 ## For the verifier (v2's three points)
 1. **Only our dead prefixes, in every database:**
@@ -146,7 +170,9 @@ restore.
 2. **The one-off sweep:** the listings above; the after listing differs
    from the before listing only by `gaplus-t<dead pid>:` keys.
 3. **Both URL layouts:** `test_the_database_is_set_whatever_the_url_says`
-   covers a URL that names a database, one that names none, one with other
-   parameters, a `?db=` parameter, `rediss://` and `unix://`. Only the
+   covers 19 shapes: a URL that names a database, one that names none,
+   other parameters, a `?db=` parameter, an IPv6 host, credentials (plain
+   and percent-encoded), `rediss://`, and `unix://` with and without
+   credentials. Only the
    first layout exists on this machine, so the tests that talk to Redis ran
    in that one.
