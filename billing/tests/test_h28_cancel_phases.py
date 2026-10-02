@@ -249,13 +249,17 @@ class CancelPhaseTests(LicencePhaseTestCase):
         with patch.object(
             LicenceStripe, "modify_subscription", side_effect=time_out_without_applying
         ):
-            with self.assertRaisesRegex(ValueError, "Request timed out"):
+            # H-60: the client sees fixed text; Stripe's is on the intent.
+            with self.assertRaisesRegex(
+                ValueError, "Failed to schedule Stripe cancellation"
+            ):
                 self.cancel()
 
         self.assert_unchanged_everywhere()
         intent = self.only_intent()
         self.assertEqual(intent.status, LicenseStripeMutationStatus.FAILED)
         self.assertIn("read-back shows not applied", intent.failure_reason)
+        self.assertIn("Request timed out", intent.failure_reason)
 
     def test_a_server_error_is_treated_as_an_unknown_outcome(self):
         def fail_after_applying(*args, **kwargs):

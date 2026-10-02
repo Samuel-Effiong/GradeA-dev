@@ -1,0 +1,18 @@
+A1_seats_read_shows_stripe_text {'killed': True, 'failing_tests': []}
+A2_seats_payment_failed_shows_why {'killed': True, 'failing_tests': ['test_seats_card_declined', 'test_the_seats_route_answers_with_the_fixed_text']}
+A3_seats_modify_shows_stripe_text {'killed': True, 'failing_tests': []}
+A4_plan_read_shows_stripe_text {'killed': True, 'failing_tests': ['test_plan_unreadable_subscription']}
+A5_plan_price_shows_stripe_text {'killed': True, 'failing_tests': ['test_plan_price_creation_refused']}
+A6_plan_card_shows_stripe_text {'killed': True, 'failing_tests': ['test_plan_card_declined']}
+A7_plan_modify_shows_stripe_text {'killed': True, 'failing_tests': ['test_plan_refused_by_stripe']}
+A8_cancel_shows_stripe_text {'killed': True, 'failing_tests': ['test_cancel_refused_by_stripe']}
+A9_convert_shows_stripe_text {'killed': True, 'failing_tests': ['test_convert_to_offline_refused_by_stripe']}
+A10_log_carries_stripe_text {'killed': True, 'failing_tests': ['test_cancel_refused_by_stripe', 'test_convert_to_offline_refused_by_stripe', 'test_plan_card_declined', 'test_plan_price_creation_refused', 'test_plan_refused_by_stripe', 'test_plan_unreadable_subscription', 'test_seats_card_declined', 'test_seats_refused_by_stripe', 'test_seats_unreadable_subscription']}
+A11_log_drops_the_intent_id {'killed': True, 'failing_tests': ['test_cancel_refused_by_stripe', 'test_convert_to_offline_refused_by_stripe', 'test_plan_card_declined', 'test_plan_price_creation_refused', 'test_plan_refused_by_stripe', 'test_plan_unreadable_subscription', 'test_seats_card_declined', 'test_seats_refused_by_stripe', 'test_seats_unreadable_subscription']}
+B1_max_seats_patchable_again {'killed': True, 'failing_tests': ['test_a_changed_max_seats_is_refused_and_changes_nothing', 'test_every_changed_non_patchable_field_is_refused']}
+B2_unchanged_echo_refused {'killed': True, 'failing_tests': ['test_a_blank_stripe_id_echo_matches_a_null_stored_one', 'test_an_unchanged_max_seats_is_accepted_with_auto_renew_applied', 'test_the_whole_object_echoed_back_unchanged_is_accepted']}
+B3_blank_and_null_differ {'killed': True, 'failing_tests': ['test_a_blank_stripe_id_echo_matches_a_null_stored_one']}
+B4_fk_compared_by_identity {'killed': True, 'failing_tests': ['test_the_whole_object_echoed_back_unchanged_is_accepted']}
+B5_teacher_emails_ignored {'killed': True, 'failing_tests': ['test_teacher_emails_are_refused_when_given']}
+B6_refusal_applies_the_rest {'killed': True, 'failing_tests': ['test_a_changed_max_seats_is_refused_and_changes_nothing', 'test_every_changed_non_patchable_field_is_refused', 'test_teacher_emails_are_refused_when_given']}
+SURVIVORS: []
