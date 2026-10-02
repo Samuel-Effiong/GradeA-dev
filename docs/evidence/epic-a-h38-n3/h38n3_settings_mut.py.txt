@@ -1,0 +1,7 @@
+"""H-38 N3 mutants' own test DB (mutation runs on a _mut DB, dropped after)."""
+
+from AutoGrader.settings import *  # noqa: F401,F403
+from AutoGrader.settings import DATABASES
+
+DATABASES["default"].setdefault("TEST", {})
+DATABASES["default"]["TEST"]["NAME"] = "test_epic_a_h38_n3_mut"
