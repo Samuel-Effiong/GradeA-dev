@@ -124,6 +124,36 @@ class InFlowEscalationAuditTests(AlertingTestCase):
         self.assertEqual(event.before, {"intent_status": "PENDING"})
         self.assertNotIn("9c1d", f"{event.before}{event.after}{event.metadata}")
 
+    def test_a_stale_copy_does_not_record_the_escalation_twice(self):
+        """v2's R3. The stale-intent check escalates the row; a flow still
+        holding its old copy then escalates it too. One move, one event (the
+        check's). The alert IS sent again, as before this change: the
+        flow's own reason is news to the human."""
+        copy = self.make_intent(S.PENDING, STALE)
+        with self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+            self.assertEqual(license_stripe_mutation.escalate_stale_intents(), 1)
+        self.assertEqual(copy.status, S.PENDING, "the flow's copy is stale")
+
+        with as_a_request_by(self.superadmin):
+            with self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+                license_stripe_mutation.escalate(copy, "the revert failed: timeout")
+
+        self.assertEqual(self.status_of(copy), S.ESCALATED)
+        event = assert_one_escalation_event(self, copy, None)
+        self.assertEqual(event.before, {"intent_status": "PENDING"})
+        self.assertEqual(len(self.emails), 2)
+
+    def test_before_is_the_stored_status_not_the_copys(self):
+        copy = self.make_intent(S.PENDING)
+        LicenseStripeMutationIntent.objects.filter(pk=copy.pk).update(
+            status=S.STRIPE_APPLIED
+        )
+        with self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+            license_stripe_mutation.escalate(copy, "why")
+
+        event = assert_one_escalation_event(self, copy, None)
+        self.assertEqual(event.before, {"intent_status": "STRIPE_APPLIED"})
+
     def test_other_status_changes_write_no_event(self):
         """Only ESCALATED and a manual close are audited here; the licence's
         own history covers a change that completes."""
