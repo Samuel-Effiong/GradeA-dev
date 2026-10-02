@@ -1,0 +1,12 @@
+# D4: a unix:// URL's database is its db parameter
+# file: AutoGrader/redis_test_hygiene.py (occurrence 1)
+# old: '        query.append(("db", str(db)))\n'
+# new: ''
+# commit: a4f379be5511d6ea893ae1eb7f9f66a4422944f8
+# exit: 1
+# elapsed_s: 8.8
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (location='unix:///tmp/redis.sock?db=4')
+
+FAILED (errors=1)
