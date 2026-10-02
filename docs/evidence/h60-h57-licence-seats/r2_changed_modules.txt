@@ -1,0 +1,357 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'max_seats': [ErrorDetail(string="Seats can't be changed here. Use the update_seats action.", code='invalid')]}
+...API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'max_seats': [ErrorDetail(string="Seats can't be changed here. Use the update_seats action.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'plan': [ErrorDetail(string="The plan can't be changed here. Use the change_plan action.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'billing_method': [ErrorDetail(string="The billing method can't be changed here. Use the convert-to-offline or convert-to-stripe action.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'contract_months': [ErrorDetail(string="The contract length can't be changed after creation.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'school': [ErrorDetail(string="A licence's school can't be changed after creation.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string="The licence admin can't be changed here.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'stripe_subscription_id': [ErrorDetail(string="The Stripe subscription can't be changed here.", code='invalid')]}
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'teacher_emails': [ErrorDetail(string="Teachers can't be added here. Use the add_teachers action.", code='invalid')]}
+.......API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 173, in http_method_not_allowed
+    raise exceptions.MethodNotAllowed(request.method)
+rest_framework.exceptions.MethodNotAllowed: Method "DELETE" not allowed.
+...API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+...Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 269, in create
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string='User admin@somewhere-else.edu is not authorized to manage licenses for school API Guard School.', code='invalid')]}
+.Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 269, in create
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string="School Adminless School has no school admin, so there is nobody to manage its license. Create the school's admin first (POST /schools/create_with_admin/), then create the license.", code='invalid')]}
+.Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 269, in create
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string='User superadmin@example.com is a super admin and cannot be set as the license admin for school API Guard School. Name a school admin belonging to that school instead.', code='invalid')]}
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+billing.models.LicenseSubscription.DoesNotExist: LicenseSubscription matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No LicenseSubscription matches the given query.
+...Cannot activate automatic trial for user teacher@two-admin.edu (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action.
+..Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.....Cannot activate automatic trial for user teacher@resolve.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.....Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+...Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+...Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user stranger@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+..........Licence f4548ec4-2eef-4eba-be4a-46e8ea2a38f0, intent 8c62a929-4348-44c6-9b19-321b1e8ee93c: Stripe failed (CardError, code=card_declined, request=None)
+..
+
+django.request ERROR 2026-09-30 19:52:36,237 log 4084217 128031245900736 [request_id=-] Service Unavailable: /api/v1/license-subscriptions/336bbace-b679-419f-9548-6211ab265a81/cancel
+
+
+..
+
+django.request ERROR 2026-09-30 19:52:36,752 log 4084217 128031245900736 [request_id=-] Service Unavailable: /api/v1/license-subscriptions/be8320d0-9977-4738-b824-a8749c72f960/change_plan
+
+
+..
+
+django.request ERROR 2026-09-30 19:52:37,254 log 4084217 128031245900736 [request_id=-] Service Unavailable: /api/v1/license-subscriptions/d945f331-f0cd-4dc4-883b-647eabecf8f2/update_seats
+
+
+....Licence 631f9751-4267-4599-b480-394fba0c276c, intent 46903187-6add-4a60-8999-864920bd4f41: Stripe failed (CardError, code=card_declined, request=None)
+..H-28 intent 7be1addd-28b3-483f-8866-439ede655d04: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent 7be1addd-28b3-483f-8866-439ede655d04: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent 7be1addd-28b3-483f-8866-439ede655d04: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+...H-28 intent 3c818763-fe85-4fd6-88ac-5be9387772de: the local write failed (LicenceMovedOn: licence af58c2d5-3f94-4a34-a2b9-237fbc50e2b9 changed while Stripe was being updated), so the Stripe change was reverted. Nothing was changed.
+..H-28 intent ea2465da-b1b5-4550-8903-95355dfc2d15: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+.....Licence a77c99fc-82fb-44ae-881d-8d5bfc679cc3, intent 82543d56-699d-469f-9cd0-d213471e1c96: Stripe failed (APIConnectionError, code=None, request=None)
+..Licence 4d751687-db82-4ac7-8aaa-36382f186604, intent 7968b1fb-3f7b-4ab0-83b6-27d2069fc547: Stripe failed (CardError, code=card_declined, request=None)
+.Licence d4c8db1b-4650-4456-b78f-0f481ee8051d, intent 678c689d-416c-40a7-9876-7d05c2572102: Stripe failed (CardError, code=card_declined, request=None)
+...Licence 47ee6b71-d49f-489a-a190-390ba0766dd3, intent 9c7a8213-d13c-495f-a752-16e266e3e0a3: Stripe failed (CardError, code=card_declined, request=None)
+....H-28 intent 2aac9ca5-e20c-4407-a1bc-bd948ffa667b: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent 2aac9ca5-e20c-4407-a1bc-bd948ffa667b: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent 2aac9ca5-e20c-4407-a1bc-bd948ffa667b: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+..Licence 1079c872-328b-4dec-8d2c-3dc7c801ab0c, intent 9cc89670-9258-41d8-8810-e891f79a963c: Stripe failed (InvalidRequestError, code=None, request=None)
+.........H-28 intent 7d2d47a2-77f8-42c9-8c7a-4dbb0135286a: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent 7d2d47a2-77f8-42c9-8c7a-4dbb0135286a: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent 7d2d47a2-77f8-42c9-8c7a-4dbb0135286a: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+.H-28 intent aabb45b7-46b3-4fb7-8312-7981378c6791: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent aabb45b7-46b3-4fb7-8312-7981378c6791: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+H-28 intent aabb45b7-46b3-4fb7-8312-7981378c6791: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+..H-28 intent 638f5bd2-8110-49fb-88ad-e25aa90d0b3f: the local write failed (LicenceMovedOn: licence ae17daca-d5c9-4cc5-80bf-d15cf708d4cb changed while Stripe was being updated), so the Stripe change was reverted. Nothing was changed.
+.Licence 1302ad44-0e18-4806-b222-e0a97baa0bd4, intent 4219134c-c557-4651-9f09-d56216c6b664: Stripe failed (APIConnectionError, code=None, request=None)
+.H-28 intent a0c1a92d-27d8-4371-99d7-bd3bd028c8e3: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+.Licence bc7ab910-60fd-4442-afc8-40a9e22d009b, intent 64711ba6-d457-472b-9412-e7e93fcbc740: Stripe failed (InvalidRequestError, code=None, request=None)
+...H-28 intent 804858bb-cf9a-4afe-bd31-8d67a84164ea: Stripe response lost (Internal error) but the read-back shows the change applied; continuing.
+.License 341e1934-74dd-447c-9ed2-b95f8db5bbcd is STRIPE-billed but has no stripe_subscription_id; cancelling locally only.
+........H-28 intent 9e45675a-ec9d-4832-a909-1871e68e6c2d: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+.Licence 7066a465-b669-4100-961d-bfc9d70f1c8f, intent c7e1567d-b980-4354-9c68-29e090d96cc2: Stripe failed (InvalidRequestError, code=None, request=None)
+.H-28 intent 05b1b896-64a2-4e55-a44a-b7cfa1234766: Stripe response lost (No such subscription) but the read-back shows the change applied; continuing.
+......H-28 intent 2100cb53-1aa8-4335-89eb-974704181769: the local write failed (IntegrityError: duplicate key value violates unique constraint), so the Stripe change was reverted. Nothing was changed.
+.H-28 intent 5333fc32-fa35-41c1-b900-c1bfb9c1eb2a: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection unexpectedly); retrying on a fresh connection.
+H-28 intent 5333fc32-fa35-41c1-b900-c1bfb9c1eb2a: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection unexpectedly); retrying on a fresh connection.
+H-28 intent 5333fc32-fa35-41c1-b900-c1bfb9c1eb2a: the local write failed (OperationalError: server closed the connection unexpectedly), so the Stripe change was reverted. Nothing was changed.
+.H-28 intent 89274993-9ca4-4d09-963c-730602a76d16: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection unexpectedly); retrying on a fresh connection.
+.H-28 intent 6abcd84f-617d-466a-bfb6-9fefcafab67c: the local write failed on attempt 1 of 3 (InterfaceError: cursor already closed); retrying on a fresh connection.
+..............Licence 9181a398-730e-4c3d-98fa-37c892b0bd20, intent fba4732c-ad51-43b5-8acc-b85c8080ae49: Stripe failed (CardError, code=card_declined, request=None)
+....Licence 1fc8fd84-810a-485c-9086-ea546c6e608b, intent b29fd8cc-7d09-46d1-b79c-6e65bc1daa6b: Stripe failed (CardError, code=card_declined, request=None)
+.H-28 intent 0c9afc2d-1cfc-43af-a057-c319a488ba99: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+..H-28 intent 364e8e5f-7946-4e71-92e4-c71f0110562d: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+...Licence c9ddf509-dba1-4156-8ad9-585032949261, intent b183dc9a-5a27-4a0e-94b7-5b471a93e9ff: Stripe failed (CardError, code=card_declined, request=None)
+..H-28 intent b39dfb7e-fdbb-4616-a741-caeaf568dd64: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+..H-28 intent 6ef54769-1b09-4d34-af9f-dfff0e3cb45e: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+......Licence 0f7c644f-c5c3-4cd6-9c6d-ece838c2e5f7, intent 1f8af500-e506-46e5-86c1-6f63f8f612db: Stripe failed (StripeError, code=None, request=None)
+...License 2ca64be2-f936-4692-b3af-9d8b0e369f22 is STRIPE-billed but has no stripe_subscription_id; cancelling locally only.
+................Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user h56-wallet-de73c1ca@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user h56-wallet-d4cde172@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user h56-wallet-9418135b@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+...............Found 214 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+..................
+----------------------------------------------------------------------
+Ran 214 tests in 73.125s
+
+OK
+Destroying test database for alias 'default'...

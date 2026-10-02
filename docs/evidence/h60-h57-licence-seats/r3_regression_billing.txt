@@ -1,0 +1,202 @@
+# TRIMMED: last 200 of 32429 lines (3256893 bytes). Full log: /home/bond-servant-in-training/Documents/Projects/GAP-evidence-logs/h60-h57_r3_regression_billing_66f92cd_full.txt (chmod 600, outside the repo).
+# Head: 22:03:55 Creating test database for alias 'default' ('test_h60_h57_licence_seats')... 22:03:56 Found 1912 test(s).
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+22:08:30 ok
+22:08:30 test_in_flight_duplicate_is_not_reported_as_delivered (billing.tests.test_webhook_idempotency.WebhookRaceRegressionTests.test_in_flight_duplicate_is_not_reported_as_delivered)
+22:08:30 THE MONEY TEST — the whole reason this change exists. ... A: error processing event evt_idempotency_test (checkout.session.completed).
+22:08:30 Traceback (most recent call last):
+22:08:30   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/webhooks.py", line 399, in _run_handler_inline
+22:08:30     handler(event["data"]["object"])
+22:08:30   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_webhook_idempotency.py", line 387, in slow_failing_handler
+22:08:30     raise RuntimeError("handler failed after Stripe gave up waiting")
+22:08:30 RuntimeError: handler failed after Stripe gave up waiting
+22:08:30 ok
+22:08:30 test_only_one_of_two_concurrent_claims_succeeds (billing.tests.test_webhook_idempotency.WebhookRaceRegressionTests.test_only_one_of_two_concurrent_claims_succeeds) ... ok
+22:08:31 test_concurrent_registration (billing.tests.tests.ConcurrentRegistrationTest.test_concurrent_registration) ... ok
+22:08:31 test_deleted_user_has_no_trial_access (billing.tests.tests.ConcurrentRegistrationTest.test_deleted_user_has_no_trial_access) ... ok
+22:08:31 test_expired_trial_task_handles_missing_wallet (billing.tests.tests.ConcurrentRegistrationTest.test_expired_trial_task_handles_missing_wallet) ... Trial user nowallet@test.com (subscription b6ed8b18-f3fc-47c1-8ce8-f28ce668f71a) has no CreditWallet! This should never happen. Skipping.
+22:08:31 ok
+22:08:31 test_license_invited_user_does_not_get_trial (billing.tests.tests.ConcurrentRegistrationTest.test_license_invited_user_does_not_get_trial) ... ok
+22:08:32 test_settings_creation_failure_doesnt_block_trial (billing.tests.tests.ConcurrentRegistrationTest.test_settings_creation_failure_doesnt_block_trial) ... Failed to create Settings for user nosettings@test.com: DB error
+22:08:32 Traceback (most recent call last):
+22:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/users/signals.py", line 313, in create_default_settings_and_wallet
+22:08:32     Settings.objects.get_or_create(user=user)
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+22:08:32     return self._mock_call(*args, **kwargs)
+22:08:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+22:08:32     return self._execute_mock_call(*args, **kwargs)
+22:08:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+22:08:32     raise effect
+22:08:32 Exception: DB error
+22:08:32 ok
+22:08:32 test_student_does_not_get_trial (billing.tests.tests.ConcurrentRegistrationTest.test_student_does_not_get_trial) ... ok
+22:08:32 test_teacher_gets_trial (billing.tests.tests.ConcurrentRegistrationTest.test_teacher_gets_trial) ... ok
+22:08:32 test_trial_activation_with_existing_wallet (billing.tests.tests.ConcurrentRegistrationTest.test_trial_activation_with_existing_wallet) ... Cannot activate automatic trial for user wallet@test.com (validation): User wallet@test.com has already used the free trial. Free trial can only be activated once per account.
+22:08:32 ok
+22:08:32 test_trial_bucket_creation_failure_rolls_back (billing.tests.tests.ConcurrentRegistrationTest.test_trial_bucket_creation_failure_rolls_back) ... Failed to activate automatic trial for user fail@test.com: DB error
+22:08:32 Traceback (most recent call last):
+22:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/users/signals.py", line 393, in create_default_settings_and_wallet
+22:08:32     SubscriptionService.activate_automatic_free_trial(user)
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+22:08:32     return func(*args, **kwds)
+22:08:32            ^^^^^^^^^^^^^^^^^^^
+22:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/services.py", line 1904, in activate_automatic_free_trial
+22:08:32     trial_bucket = CreditBucket.objects.create(
+22:08:32                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+22:08:32     return self._mock_call(*args, **kwargs)
+22:08:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+22:08:32     return self._execute_mock_call(*args, **kwargs)
+22:08:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22:08:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+22:08:32     raise effect
+22:08:32 Exception: DB error
+22:08:32 ok
+22:08:33 test_trial_cannot_be_activated_twice (billing.tests.tests.ConcurrentRegistrationTest.test_trial_cannot_be_activated_twice) ... ok
+22:08:33 test_trial_expires_after_14_days (billing.tests.tests.ConcurrentRegistrationTest.test_trial_expires_after_14_days) ... ok
+22:08:33 test_trial_expires_when_credits_exhausted (billing.tests.tests.ConcurrentRegistrationTest.test_trial_expires_when_credits_exhausted) ... ok
+22:08:33
+22:08:33 ----------------------------------------------------------------------
+22:08:33 Ran 1912 tests in 259.231s
+22:08:33
+22:08:33 OK
+22:08:33 Destroying test database for alias 'default' ('test_h60_h57_licence_seats')...
+22:08:35  OK
+22:08:35 H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+22:08:35 H38P2 assignments/views.py:1238 generate (positive control - active teacher) WRITE(paid AI) status=201 changed=True
+22:08:35 H38P2 assignments/views.py:782 upload (positive control - active teacher) WRITE status=201 changed=True
+22:08:35 H38P2 dashboard/views.py custom-ai-prompt (positive control - active teacher) READ(paid AI) status=200 changed=False
+22:08:35 H38P2 assignments/views.py:1461 generated-drafts save (positive control - active teacher) WRITE status=201 changed=True
+22:08:35 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name (positive control - active teacher) WRITE status=200 changed=True
+22:08:35 H38P2 assignments/views.py associate-topic WRITE status=404 changed=False
+22:08:35 H38P2 assignments/views.py:310 delete DELETE status=404 changed=False
+22:08:35 H38P2 assignments/views.py:1238 generate WRITE(paid AI) status=404 changed=False
+22:08:35 H38P2 assignments/views.py grade-all WRITE(paid AI) status=404 changed=False
+22:08:35 H38P2 assignments/views.py:310 list READ status=200 changed=False
+22:08:35 H38P2 assignments/views.py:310 patch WRITE status=404 changed=False
+22:08:35 H38P2 assignments/views.py publish-all-grades WRITE status=404 changed=False
+22:08:35 H38P2 assignments/views.py:310 retrieve READ status=404 changed=False
+22:08:35 H38P2 assignments/views.py:782 upload WRITE status=404 changed=False
+22:08:35 H38P2 assignments/views.py:966 upload-async WRITE status=404 changed=False
+22:08:35 H38P2 classrooms/views.py topics create WRITE status=400 changed=False
+22:08:35 H38P2 classrooms/views.py:1723 course topics WRITE status=404 changed=False
+22:08:35 H38P2 classrooms/views.py:2392 topic delete DELETE status=404 changed=False
+22:08:35 H38P2 classrooms/views.py:2392 topics list READ status=200 changed=False
+22:08:35 H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=False
+22:08:35 H38P2 classrooms/views.py:2392 topic patch WRITE status=404 changed=False
+22:08:35 H38P2 classrooms/views.py:2099 student-course delete DELETE status=404 changed=False
+22:08:35 H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=False
+22:08:35 H38P2 classrooms/views.py:2099 student-course patch WRITE status=404 changed=False
+22:08:35 H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+22:08:35 H38P2 dashboard/views.py teacher assignments/{id} READ status=404 changed=False
+22:08:35 H38P2 dashboard/views.py teacher courses/{id} READ status=404 changed=False
+22:08:35 H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+22:08:35 H38P2 dashboard/views.py teacher students/{course} READ status=404 changed=False
+22:08:35 H38P2 assignments/views.py:1461 generated-drafts save WRITE status=404 changed=False
+22:08:35 H38P2 assignments/views.py:1788 download-pdf teacher view READ status=404 changed=False
+22:08:35 H38P2 assignments/views.py:1788 download-pdf teacher view (object-level guard in isolation) READ status=403 changed=False
+22:08:35 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+22:08:35 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+22:08:35 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+22:08:35 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+22:08:35 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+22:08:35 H38P2 assignments/serializers.py validate_course create WRITE status=400 changed=False
+22:08:35 H38P2 assignments/serializers.py validate_course create-async WRITE status=400 changed=False
+22:08:35 H38P2 classrooms/filters.py my-students ?enrollments__course READ status=200 changed=False
+22:08:35 H38P2 classrooms/views.py my-students enrollments prefetch READ status=200 changed=False
+22:08:35 H38P2 classrooms/filters.py my-students ?enrollments__course__session READ status=200 changed=False
+22:08:35 H38P2 assignments/serializers.py validate_course patch WRITE status=400 changed=False
+22:08:35 H38P2 users/filters.py /users/<id>?enrollments__course READ status=404 changed=False
+22:08:35 H38P2 users/filters.py /users/<id>?enrollments__course__session READ status=404 changed=False
+22:08:35 H38P2 students/views.py:158 batch-upload WRITE status=404 changed=False
+22:08:35 H38P2 students/views.py:358 delete DELETE status=404 changed=False
+22:08:35 H38P2 students/views.py grade WRITE(paid AI) status=404 changed=False
+22:08:35 H38P2 students/views.py:358 list READ status=200 changed=False
+22:08:35 H38P2 students/views.py publish WRITE status=404 changed=False
+22:08:35 H38P2 students/views.py:358 retrieve READ status=404 changed=False
+22:08:35 H38P2 students/views.py teacher_feedback READ status=402 changed=False
+22:08:35 H38P2 students/views.py update-grade WRITE status=402 changed=False
+22:08:35
+22:08:35 [G6 replay] background=2000 queries=1 p50_ms=0.76 p95_ms=0.91
+22:08:35 [G6 replay plan background=2000]
+22:08:35 Limit  (cost=8.92..8.93 rows=5 width=24)
+22:08:35   ->  Sort  (cost=8.92..8.93 rows=5 width=24)
+22:08:35         Sort Key: processed_at
+22:08:35         ->  Index Scan using billing_stripeevent_status_f161152f on billing_stripeevent  (cost=0.28..8.86 rows=5 width=24)
+22:08:35               Index Cond: ((status)::text = 'FAILED'::text)
+22:08:35               Filter: ((auto_replay_attempts < 3) AND ((event_type)::text = 'checkout.session.completed'::text))
+22:08:35
+22:08:35 [G6 replay] background=20000 queries=1 p50_ms=0.73 p95_ms=0.84
+22:08:35 [G6 replay plan background=20000]
+22:08:35 Limit  (cost=8.51..8.52 rows=5 width=24)
+22:08:35   ->  Sort  (cost=8.51..8.52 rows=5 width=24)
+22:08:35         Sort Key: processed_at
+22:08:35         ->  Index Scan using billing_stripeevent_status_f161152f on billing_stripeevent  (cost=0.29..8.45 rows=5 width=24)
+22:08:35               Index Cond: ((status)::text = 'FAILED'::text)
+22:08:35               Filter: ((auto_replay_attempts < 3) AND ((event_type)::text = 'checkout.session.completed'::text))
+22:08:35
+22:08:35 [G6 sweep] background=2000 actionable=25 filled=25 queries=51 peak_mem_kb=175 idle_p50_ms=1.28 idle_p95_ms=1.66
+22:08:35 [G6 sweep plan background=2000]
+22:08:35 Limit  (cost=57.88..57.89 rows=1 width=24)
+22:08:35   ->  Sort  (cost=57.88..57.89 rows=1 width=24)
+22:08:35         Sort Key: occurred_at DESC
+22:08:35         ->  Bitmap Heap Scan on billing_billingtransaction  (cost=4.64..57.87 rows=1 width=24)
+22:08:35               Recheck Cond: ((occurred_at >= '2026-09-27 21:05:39.744703+00'::timestamp with time zone) AND (occurred_at <= '2026-09-30 21:00:39.744703+00'::timestamp with time zone))
+22:08:35               Filter: (((stripe_invoice_id IS NOT NULL) OR (stripe_charge_id IS NOT NULL) OR (stripe_payment_intent_id IS NOT NULL)) AND ((receipt_url IS NULL) OR ((receipt_url)::text = ''::text)))
+22:08:35               ->  Bitmap Index Scan on billing_billingtransaction_occurred_at_f0011b46  (cost=0.00..4.64 rows=36 width=0)
+22:08:35                     Index Cond: ((occurred_at >= '2026-09-27 21:05:39.744703+00'::timestamp with time zone) AND (occurred_at <= '2026-09-30 21:00:39.744703+00'::timestamp with time zone))
+22:08:35
+22:08:35 [G6 sweep] background=20000 actionable=25 filled=25 queries=51 peak_mem_kb=100 idle_p50_ms=1.52 idle_p95_ms=2.33
+22:08:35 [G6 sweep plan background=20000]
+22:08:35 Limit  (cost=322.49..322.50 rows=1 width=24)
+22:08:35   ->  Sort  (cost=322.49..322.50 rows=1 width=24)
+22:08:35         Sort Key: occurred_at DESC
+22:08:35         ->  Bitmap Heap Scan on billing_billingtransaction  (cost=5.59..322.48 rows=1 width=24)
+22:08:35               Recheck Cond: ((occurred_at >= '2026-09-27 21:05:40.463039+00'::timestamp with time zone) AND (occurred_at <= '2026-09-30 21:00:40.463039+00'::timestamp with time zone))
+22:08:35               Filter: (((stripe_invoice_id IS NOT NULL) OR (stripe_charge_id IS NOT NULL) OR (stripe_payment_intent_id IS NOT NULL)) AND ((receipt_url IS NULL) OR ((receipt_url)::text = ''::text)))
+22:08:35               ->  Bitmap Index Scan on billing_billingtransaction_occurred_at_f0011b46  (cost=0.00..5.59 rows=130 width=0)
+22:08:35                     Index Cond: ((occurred_at >= '2026-09-27 21:05:40.463039+00'::timestamp with time zone) AND (occurred_at <= '2026-09-30 21:00:40.463039+00'::timestamp with time zone))
+22:08:35
+22:08:35   backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+22:08:35
+22:08:35   backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+22:08:35
+22:08:35   attributed 0 ledger row(s) to their Stripe payment
+22:08:35
+22:08:35   backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+22:08:35
+22:08:35   attributed 0 ledger row(s) to their Stripe payment

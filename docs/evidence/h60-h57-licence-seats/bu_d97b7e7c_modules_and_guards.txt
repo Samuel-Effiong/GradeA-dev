@@ -1,0 +1,1128 @@
+11:10:08 Creating test database for alias 'default' ('test_h60_h57_licence_seats')...
+11:10:08 Found 299 test(s).
+11:10:08 Operations to perform:
+11:10:08   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+11:10:08   Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+11:10:08 Synchronizing apps without migrations:
+11:10:08   Creating tables...
+11:10:08     Running deferred SQL...
+11:10:08 Running migrations:
+11:10:08   Applying contenttypes.0001_initial... OK
+11:10:08   Applying contenttypes.0002_remove_content_type_name... OK
+11:10:08   Applying auth.0001_initial... OK
+11:10:08   Applying auth.0002_alter_permission_name_max_length... OK
+11:10:08   Applying auth.0003_alter_user_email_max_length... OK
+11:10:08   Applying auth.0004_alter_user_username_opts... OK
+11:10:08   Applying auth.0005_alter_user_last_login_null... OK
+11:10:08   Applying auth.0006_require_contenttypes_0002... OK
+11:10:08   Applying auth.0007_alter_validators_add_error_messages... OK
+11:10:08   Applying auth.0008_alter_user_username_max_length... OK
+11:10:08   Applying auth.0009_alter_user_last_name_max_length... OK
+11:10:08   Applying auth.0010_alter_group_name_max_length... OK
+11:10:08   Applying auth.0011_update_proxy_permissions... OK
+11:10:08   Applying auth.0012_alter_user_first_name_max_length... OK
+11:10:08   Applying users.0001_initial... OK
+11:10:08   Applying admin.0001_initial... OK
+11:10:08   Applying admin.0002_logentry_remove_auto_add... OK
+11:10:08   Applying admin.0003_logentry_add_action_flag_choices... OK
+11:10:08   Applying classrooms.0001_initial... OK
+11:10:08   Applying ai_processor.0001_initial... OK
+11:10:08   Applying ai_processor.0002_initial... OK
+11:10:08   Applying ai_processor.0003_chatsession_user... OK
+11:10:08   Applying ai_processor.0004_chatsession_assistant_type... OK
+11:10:08   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+11:10:08   Applying classrooms.0002_initial... OK
+11:10:08   Applying classrooms.0003_coursecategory_course_categories... OK
+11:10:08   Applying classrooms.0004_course_teacher... OK
+11:10:08   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+11:10:09   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+11:10:09   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+11:10:09   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+11:10:09   Applying classrooms.0009_school... OK
+11:10:09   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+11:10:09   Applying classrooms.0011_remove_course_categories_topic... OK
+11:10:09   Applying classrooms.0012_studentcourse_auto_added... OK
+11:10:09   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+11:10:09   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+11:10:09   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+11:10:09   Applying classrooms.0016_school_is_active... OK
+11:10:09   Applying assignments.0001_initial... OK
+11:10:09   Applying assignments.0002_initial... OK
+11:10:09   Applying assignments.0003_initial... OK
+11:10:09   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+11:10:09   Applying assignments.0005_alter_assignment_options... OK
+11:10:09   Applying assignments.0006_assignment_estimated_time... OK
+11:10:09   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+11:10:10   Applying assignments.0008_alter_assignment_due_date... OK
+11:10:10   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+11:10:10   Applying assignments.0010_assignment_custom_ai_prompt... OK
+11:10:10   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+11:10:10   Applying assignments.0012_assignment_was_overridden... OK
+11:10:10   Applying assignments.0013_alter_assignment_ai_generated... OK
+11:10:10   Applying assignments.0014_assignment_self_assessment_and_more... OK
+11:10:10   Applying assignments.0015_alter_assignment_potential_issues... OK
+11:10:10   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+11:10:10   Applying assignments.0017_assignment_grading_status... OK
+11:10:10   Applying assignments.0018_assignment_topic... OK
+11:10:10   Applying assignments.0019_alter_assignment_title_and_more... OK
+11:10:10   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+11:10:10   Applying assignments.0021_assignment_overridden_at... OK
+11:10:10   Applying assignments.0022_assignment_raw_input... OK
+11:10:10   Applying assignments.0023_delete_rubric... OK
+11:10:10   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+11:10:10   Applying assignments.0025_alter_assignment_instructions... OK
+11:10:10   Applying assignments.0026_assignment_status... OK
+11:10:10   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+11:10:10   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+11:10:10   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+11:10:10   Applying assignments.0030_alter_assignment_status... OK
+11:10:11   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+11:10:11   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+11:10:11   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+11:10:11   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+11:10:11   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+11:10:11   Applying assignments.0036_backfill_assignment_rigor... OK
+11:10:11   Applying assignments.0037_assignment_course_title_index... OK
+11:10:11   Applying assignments.0038_assignment_updated_at... OK
+11:10:11   Applying assignments.0039_assignment_upload_fingerprint... OK
+11:10:11   Applying assignments.0040_db_defaults_for_rollback... OK
+11:10:11   Applying authtoken.0001_initial... OK
+11:10:11   Applying authtoken.0002_auto_20160226_1747... OK
+11:10:11   Applying authtoken.0003_tokenproxy... OK
+11:10:11   Applying authtoken.0004_alter_tokenproxy_options... OK
+11:10:12   Applying users.0002_customuser_activation_expires_and_more... OK
+11:10:12   Applying users.0003_passwordresetotp... OK
+11:10:12   Applying users.0004_customuser_email_verified_at... OK
+11:10:12   Applying users.0005_alter_passwordresetotp_code... OK
+11:10:12   Applying users.0006_alter_passwordresetotp_code... OK
+11:10:12   Applying users.0007_passwordchangeotp... OK
+11:10:12   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+11:10:12   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+11:10:12   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+11:10:12   Applying billing.0001_initial... OK
+11:10:12   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+11:10:13   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+11:10:13   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+11:10:13   Applying billing.0005_usersubscription_pending_plan... OK
+11:10:13   Applying billing.0006_alter_subscriptionplan_name... OK
+11:10:13   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+11:10:13   Applying billing.0008_betaprofile... OK
+11:10:13   Applying billing.0009_betaprofile_uuid_and_more... OK
+11:10:13   Applying billing.0010_alter_betaprofile_id... OK
+11:10:13   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+11:10:13   Applying billing.0012_populate_beta_profile_uuids... OK
+11:10:13   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+11:10:13   Applying billing.0014_rename_uid_betaprofile_id... OK
+11:10:13   Applying billing.0015_betaprofile_credits_used_feedback... OK
+11:10:13   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+11:10:14   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+11:10:14   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+11:10:14   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+11:10:14   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+11:10:14   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+11:10:14   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+11:10:14   Applying billing.0023_alter_subscriptionplan_name... OK
+11:10:14   Applying billing.0024_licensesubscription_custom_price_cents... OK
+11:10:14   Applying billing.0025_alter_subscriptionplan_name... OK
+11:10:14   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+11:10:14   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+11:10:14   Applying billing.0028_alter_usersubscription_is_trial... OK
+11:10:14   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+11:10:14   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+11:10:14   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+11:10:14   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+11:10:14   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+11:10:15   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+11:10:15   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+11:10:15   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+11:10:15   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+11:10:15   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+11:10:15   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+11:10:15   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+11:10:15   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+11:10:15   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+11:10:15   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+11:10:15   Applying billing.0044_alter_creditusagelog_feature... OK
+11:10:15   Applying billing.0045_billingtransaction... OK
+11:10:15   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+11:10:15   Applying billing.0047_subscriptionplan_carry_over_max... OK
+11:10:16   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+11:10:16   Applying billing.0049_billingtransaction_receipt_url... OK
+11:10:16   Applying billing.0050_creditusagelog_course... OK
+11:10:16   Applying billing.0051_creditusagelog_task_id_index... OK
+11:10:16   Applying billing.0052_creditusagelog_school... OK
+11:10:16   Applying billing.0053_backfill_creditusagelog_school... OK
+11:10:17   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+11:10:17   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+11:10:17   Applying billing.0056_liveqarun... OK
+11:10:17   Applying billing.0057_usersubscription_cancelled_at... OK
+11:10:17   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+11:10:18   Applying billing.0059_append_only_audit_tables... OK
+11:10:18   Applying billing.0060_backfill_audit_identity...
+11:10:18   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+11:10:18  OK
+11:10:18   Applying billing.0061_add_audit_table_time_indexes... OK
+11:10:18   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+11:10:19   Applying billing.0063_payment_disputes... OK
+11:10:19   Applying billing.0064_refund_credit_reversal... OK
+11:10:19   Applying billing.0065_backfill_ledger_payment_intent...
+11:10:19   attributed 0 ledger row(s) to their Stripe payment
+11:10:19  OK
+11:10:19   Applying billing.0066_dispute_deficit_by_wallet... OK
+11:10:19   Applying billing.0067_stripe_event_recovery... OK
+11:10:19   Applying billing.0068_price_reconciliation... OK
+11:10:19   Applying billing.0069_price_sync_audit... OK
+11:10:20   Applying billing.0070_db_defaults_for_rollback... OK
+11:10:20   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+11:10:20   Applying billing.0072_license_stripe_mutation_intent... OK
+11:10:20   Applying dashboard.0001_initial... OK
+11:10:20   Applying dashboard.0002_schoolatrisksnapshot... OK
+11:10:20   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+11:10:20   Applying dashboard.0004_db_defaults_for_rollback... OK
+11:10:20   Applying django_celery_beat.0001_initial... OK
+11:10:20   Applying django_celery_beat.0002_auto_20161118_0346... OK
+11:10:20   Applying django_celery_beat.0003_auto_20161209_0049... OK
+11:10:20   Applying django_celery_beat.0004_auto_20170221_0000... OK
+11:10:20   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+11:10:20   Applying django_celery_beat.0006_auto_20180322_0932... OK
+11:10:20   Applying django_celery_beat.0007_auto_20180521_0826... OK
+11:10:20   Applying django_celery_beat.0008_auto_20180914_1922... OK
+11:10:20   Applying django_celery_beat.0006_auto_20180210_1226... OK
+11:10:20   Applying django_celery_beat.0006_periodictask_priority... OK
+11:10:21   Applying django_celery_beat.0009_periodictask_headers... OK
+11:10:21   Applying django_celery_beat.0010_auto_20190429_0326... OK
+11:10:21   Applying django_celery_beat.0011_auto_20190508_0153... OK
+11:10:21   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+11:10:21   Applying django_celery_beat.0013_auto_20200609_0727... OK
+11:10:21   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+11:10:21   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+11:10:21   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+11:10:21   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+11:10:21   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+11:10:21   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+11:10:21   Applying django_celery_results.0001_initial... OK
+11:10:21   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+11:10:21   Applying django_celery_results.0003_auto_20181106_1101... OK
+11:10:21   Applying django_celery_results.0004_auto_20190516_0412... OK
+11:10:21   Applying django_celery_results.0005_taskresult_worker... OK
+11:10:22   Applying django_celery_results.0006_taskresult_date_created... OK
+11:10:22   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+11:10:22   Applying django_celery_results.0008_chordcounter... OK
+11:10:22   Applying django_celery_results.0009_groupresult... OK
+11:10:22   Applying django_celery_results.0010_remove_duplicate_indices... OK
+11:10:22   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+11:10:22   Applying django_celery_results.0012_taskresult_date_started... OK
+11:10:22   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+11:10:22   Applying django_celery_results.0014_alter_taskresult_status... OK
+11:10:22   Applying sessions.0001_initial... OK
+11:10:22   Applying users.0011_concurrentusersnapshot_useractivity... OK
+11:10:22   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+11:10:22   Applying users.0013_customuser_middle_name... OK
+11:10:22   Applying users.0014_alter_customuser_middle_name... OK
+11:10:22   Applying users.0015_customuser_bio_settings... OK
+11:10:22   Applying users.0016_remove_customuser_bio_delete_settings... OK
+11:10:22   Applying users.0017_settings... OK
+11:10:22   Applying users.0018_customuser_bio... OK
+11:10:22   Applying users.0019_betawhitelist... OK
+11:10:22   Applying users.0020_waitlist_betawhitelist_mode... OK
+11:10:22   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+11:10:22   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+11:10:22   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+11:10:22   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+11:10:22   Applying users.0025_customuser_profile_image... OK
+11:10:23   Applying students.0001_initial... OK
+11:10:23   Applying students.0002_initial... OK
+11:10:23   Applying students.0003_studentsubmission_graded_at_and_more... OK
+11:10:23   Applying students.0004_alter_studentsubmission_graded_at... OK
+11:10:23   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+11:10:23   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+11:10:23   Applying students.0007_studentsubmission_extraction_confidence... OK
+11:10:23   Applying students.0008_studentsubmission_formatted_grade... OK
+11:10:24   Applying students.0009_studentsubmission_raw_input... OK
+11:10:24   Applying students.0010_batchuploadsession... OK
+11:10:24   Applying students.0011_batchuploadsession_course_and_more... OK
+11:10:24   Applying students.0012_alter_batchuploadsession_task_type... OK
+11:10:24   Applying students.0013_studentsubmission_max_points_and_more... OK
+11:10:24   Applying students.0014_alter_studentsubmission_score_percentage... OK
+11:10:24   Applying students.0015_studentsubmission_is_published... OK
+11:10:25   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+11:10:25   Applying students.0017_backgroundprocessingtask... OK
+11:10:25   Applying students.0018_studentsubmission_attempt_count... OK
+11:10:25   Applying students.0019_alter_studentsubmission_attempt_count... OK
+11:10:25   Applying students.0020_studentsubmission_grading_state... OK
+11:10:26   Applying students.0021_studentsubmission_needs_review... OK
+11:10:26   Applying students.0022_studentsubmission_review_severity... OK
+11:10:26   Applying students.0023_studentsubmission_review_tier_and_more... OK
+11:10:26   Applying students.0024_repair_raw_input_json... OK
+11:10:26   Applying students.0025_student_submission_hot_path_indexes... OK
+11:10:26   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+11:10:26   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+11:10:27   Applying students.0028_backfill_ai_grading_completed_at... OK
+11:10:27   Applying token_blacklist.0001_initial... OK
+11:10:27   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+11:10:27   Applying token_blacklist.0003_auto_20171017_2007... OK
+11:10:27   Applying token_blacklist.0004_auto_20171017_2013... OK
+11:10:27   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+11:10:27   Applying token_blacklist.0006_auto_20171017_2113... OK
+11:10:28   Applying token_blacklist.0007_auto_20171017_2214... OK
+11:10:28   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+11:10:28   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+11:10:28   Applying token_blacklist.0011_linearizes_history... OK
+11:10:28   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+11:10:28   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+11:10:28   Applying users.0026_customuser_registration_method... OK
+11:10:28   Applying users.0027_customuser_profile_image_url... OK
+11:10:28   Applying users.0028_alter_customuser_middle_name... OK
+11:10:29   Applying users.0029_usergooglecredentials... OK
+11:10:29   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+11:10:29   Applying users.0031_settings_notify_new_assignment_posted... OK
+11:10:29   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+11:10:29   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+11:10:29   Applying users.0034_passwordresetotp_attempts_and_more... OK
+11:10:30   Applying users.0035_settings_notify_assignment_edited... OK
+11:10:30   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+11:10:30   Applying users.0037_customuser_must_change_password... OK
+11:10:30   Applying users.0038_alter_customuser_must_change_password... OK
+11:10:30   Applying users.0039_customuser_token_epoch... OK
+11:10:31   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+11:10:31
+11:10:31 WARNINGS:
+11:10:31 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+11:10:31
+11:10:31 System check identified 1 issue (0 silenced).
+11:10:31 test_a_blank_stripe_id_echo_matches_a_null_stored_one (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_blank_stripe_id_echo_matches_a_null_stored_one) ... ok
+11:10:31 test_a_changed_max_seats_is_refused_and_changes_nothing (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_changed_max_seats_is_refused_and_changes_nothing) ... API Exception
+11:10:31 Traceback (most recent call last):
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:31     response = handler(request, *args, **kwargs)
+11:10:31                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:31     return method(self, request, *args, **kwargs)
+11:10:31            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:31     return self.update(request, *args, **kwargs)
+11:10:31            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:31     return method(self, request, *args, **kwargs)
+11:10:31            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:31     serializer.is_valid(raise_exception=True)
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:31     raise ValidationError(self.errors)
+11:10:31 rest_framework.exceptions.ValidationError: {'max_seats': [ErrorDetail(string="Seats can't be changed here. Use the update_seats action.", code='invalid')]}
+11:10:31 ok
+11:10:31 test_a_stripe_licences_price_changes_only_through_change_plan (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_stripe_licences_price_changes_only_through_change_plan)
+11:10:31 v2's note 3: a PATCHed price moved only the local row, so the ... API Exception
+11:10:31 Traceback (most recent call last):
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:31     response = handler(request, *args, **kwargs)
+11:10:31                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:31     return method(self, request, *args, **kwargs)
+11:10:31            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:31     return self.update(request, *args, **kwargs)
+11:10:31            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:31     return method(self, request, *args, **kwargs)
+11:10:31            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:31     serializer.is_valid(raise_exception=True)
+11:10:31   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:31     raise ValidationError(self.errors)
+11:10:31 rest_framework.exceptions.ValidationError: {'custom_price_cents': [ErrorDetail(string="The price of a Stripe-billed licence can't be changed here. Use the change_plan action with custom_price_cents.", code='invalid')]}
+11:10:31 ok
+11:10:31 test_a_stripe_licences_unchanged_price_echo_is_accepted (billing.tests.test_h57_licence_patch.LicencePatchTests.test_a_stripe_licences_unchanged_price_echo_is_accepted)
+11:10:32 v2's E1: the echo test above holds a null price, so a refusal of ... ok
+11:10:32 test_an_offline_licences_price_is_still_patchable (billing.tests.test_h57_licence_patch.LicencePatchTests.test_an_offline_licences_price_is_still_patchable) ... ok
+11:10:32 test_an_unchanged_max_seats_is_accepted_with_auto_renew_applied (billing.tests.test_h57_licence_patch.LicencePatchTests.test_an_unchanged_max_seats_is_accepted_with_auto_renew_applied) ... ok
+11:10:32 test_carry_forward_teachers_alone_is_ignored (billing.tests.test_h57_licence_patch.LicencePatchTests.test_carry_forward_teachers_alone_is_ignored)
+11:10:32 It defaults to True and only governs creating a replacement ... ok
+11:10:32 test_every_changed_non_patchable_field_is_refused (billing.tests.test_h57_licence_patch.LicencePatchTests.test_every_changed_non_patchable_field_is_refused) ... API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'max_seats': [ErrorDetail(string="Seats can't be changed here. Use the update_seats action.", code='invalid')]}
+11:10:32 API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'plan': [ErrorDetail(string="The plan can't be changed here. Use the change_plan action.", code='invalid')]}
+11:10:32 API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'billing_method': [ErrorDetail(string="The billing method can't be changed here. Use the convert-to-offline or convert-to-stripe action.", code='invalid')]}
+11:10:32 API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'contract_months': [ErrorDetail(string="The contract length can't be changed after creation.", code='invalid')]}
+11:10:32 API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'school': [ErrorDetail(string="A licence's school can't be changed after creation.", code='invalid')]}
+11:10:32 API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string="The licence admin can't be changed here.", code='invalid')]}
+11:10:32 API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'stripe_subscription_id': [ErrorDetail(string="The Stripe subscription can't be changed here.", code='invalid')]}
+11:10:32 ok
+11:10:32 test_teacher_emails_are_refused_when_given (billing.tests.test_h57_licence_patch.LicencePatchTests.test_teacher_emails_are_refused_when_given) ... API Exception
+11:10:32 Traceback (most recent call last):
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:32     response = handler(request, *args, **kwargs)
+11:10:32                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+11:10:32     return self.update(request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:32     return method(self, request, *args, **kwargs)
+11:10:32            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 67, in update
+11:10:32     serializer.is_valid(raise_exception=True)
+11:10:32   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:32     raise ValidationError(self.errors)
+11:10:32 rest_framework.exceptions.ValidationError: {'teacher_emails': [ErrorDetail(string="Teachers can't be added here. Use the add_teachers action.", code='invalid')]}
+11:10:32 ok
+11:10:32 test_the_whole_object_echoed_back_unchanged_is_accepted (billing.tests.test_h57_licence_patch.LicencePatchTests.test_the_whole_object_echoed_back_unchanged_is_accepted)
+11:10:32 What a frontend that PATCHes back what it holds sends. ... ok
+11:10:32 test_a_hung_stripe_fails_at_the_socket_inside_the_budget (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_a_hung_stripe_fails_at_the_socket_inside_the_budget)
+11:10:35 A real socket against a local server that never answers: the ... ok
+11:10:35 test_each_legacy_call_maps_to_its_client_method (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_each_legacy_call_maps_to_its_client_method) ... ok
+11:10:35 test_every_call_uses_the_apps_key_and_api_version_and_a_sized_timeout (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_every_call_uses_the_apps_key_and_api_version_and_a_sized_timeout) ... ok
+11:10:35 test_the_timeout_shares_the_time_left_between_the_attempts (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_the_timeout_shares_the_time_left_between_the_attempts) ... ok
+11:10:35 test_cancelling_twice_is_rejected_with_a_400 (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_cancelling_twice_is_rejected_with_a_400) ... ok
+11:10:35 test_delete_is_no_longer_a_valid_method (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_delete_is_no_longer_a_valid_method)
+11:10:35 The whole point of this change: DELETE must not silently ... API Exception
+11:10:35 Traceback (most recent call last):
+11:10:35   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:35     response = handler(request, *args, **kwargs)
+11:10:35                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:35   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 173, in http_method_not_allowed
+11:10:35     raise exceptions.MethodNotAllowed(request.method)
+11:10:35 rest_framework.exceptions.MethodNotAllowed: Method "DELETE" not allowed.
+11:10:35 ok
+11:10:35 test_patching_auto_renew_directly_still_works (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_patching_auto_renew_directly_still_works)
+11:10:35 auto_renew stays PATCHable -- unlike is_active it has no ... ok
+11:10:35 test_patching_is_active_directly_is_a_silent_no_op (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_patching_is_active_directly_is_a_silent_no_op)
+11:10:35 The second door into the same bug: before this fix a plain ... ok
+11:10:35 test_school_admin_cannot_cancel (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_school_admin_cannot_cancel) ... API Exception
+11:10:35 Traceback (most recent call last):
+11:10:35   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+11:10:35     self.initial(request, *args, **kwargs)
+11:10:35   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+11:10:35     self.check_permissions(request)
+11:10:35   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+11:10:35     self.permission_denied(
+11:10:35   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+11:10:35     raise exceptions.PermissionDenied(detail=message, code=code)
+11:10:35 rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+11:10:35 ok
+11:10:35 test_super_admin_can_cancel_a_stripe_license (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_super_admin_can_cancel_a_stripe_license) ... ok
+11:10:36 test_super_admin_can_cancel_an_offline_license (billing.tests.test_license_cancellation.LicenseCancellationApiTests.test_super_admin_can_cancel_an_offline_license) ... ok
+11:10:36 test_admin_from_another_school_is_rejected (billing.tests.test_license_admin_user_guard.LicenseCreationAPIGuardTest.test_admin_from_another_school_is_rejected) ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 API Exception
+11:10:36 Traceback (most recent call last):
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:36     response = handler(request, *args, **kwargs)
+11:10:36                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 269, in create
+11:10:36     serializer.is_valid(raise_exception=True)
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:36     raise ValidationError(self.errors)
+11:10:36 rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string='User admin@somewhere-else.edu is not authorized to manage licenses for school API Guard School.', code='invalid')]}
+11:10:36 ok
+11:10:36 test_admin_user_may_be_omitted_and_is_taken_from_the_school (billing.tests.test_license_admin_user_guard.LicenseCreationAPIGuardTest.test_admin_user_may_be_omitted_and_is_taken_from_the_school)
+11:10:36 The normal path: the caller never names an admin at all, so it ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 ok
+11:10:36 test_omitted_admin_user_on_a_school_with_none_is_a_400 (billing.tests.test_license_admin_user_guard.LicenseCreationAPIGuardTest.test_omitted_admin_user_on_a_school_with_none_is_a_400) ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 API Exception
+11:10:36 Traceback (most recent call last):
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:36     response = handler(request, *args, **kwargs)
+11:10:36                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 269, in create
+11:10:36     serializer.is_valid(raise_exception=True)
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:36     raise ValidationError(self.errors)
+11:10:36 rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string="School Adminless School has no school admin, so there is nobody to manage its license. Create the school's admin first (POST /schools/create_with_admin/), then create the license.", code='invalid')]}
+11:10:36 ok
+11:10:36 test_superadmin_can_still_create_a_license_for_the_real_admin (billing.tests.test_license_admin_user_guard.LicenseCreationAPIGuardTest.test_superadmin_can_still_create_a_license_for_the_real_admin)
+11:10:36 The guard must not break the legitimate flow it protects. ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 ok
+11:10:36 test_superadmin_cannot_name_themselves_as_the_schools_admin (billing.tests.test_license_admin_user_guard.LicenseCreationAPIGuardTest.test_superadmin_cannot_name_themselves_as_the_schools_admin) ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 API Exception
+11:10:36 Traceback (most recent call last):
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:36     response = handler(request, *args, **kwargs)
+11:10:36                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 269, in create
+11:10:36     serializer.is_valid(raise_exception=True)
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+11:10:36     raise ValidationError(self.errors)
+11:10:36 rest_framework.exceptions.ValidationError: {'admin_user': [ErrorDetail(string='User superadmin@example.com is a super admin and cannot be set as the license admin for school API Guard School. Name a school admin belonging to that school instead.', code='invalid')]}
+11:10:36 ok
+11:10:36 test_admin_of_another_school_still_cannot_reach_it (billing.tests.test_license_admin_user_guard.LicenseObjectPermissionScopeTest.test_admin_of_another_school_still_cannot_reach_it) ... API Exception
+11:10:36 Traceback (most recent call last):
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+11:10:36     return queryset.get(*args, **kwargs)
+11:10:36            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+11:10:36     raise self.model.DoesNotExist(
+11:10:36 billing.models.LicenseSubscription.DoesNotExist: LicenseSubscription matching query does not exist.
+11:10:36
+11:10:36 During handling of the above exception, another exception occurred:
+11:10:36
+11:10:36 Traceback (most recent call last):
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+11:10:36     response = handler(request, *args, **kwargs)
+11:10:36                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+11:10:36     return method(self, request, *args, **kwargs)
+11:10:36            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+11:10:36     instance = self.get_object()
+11:10:36                ^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+11:10:36     obj = get_object_or_404(queryset, **filter_kwargs)
+11:10:36           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+11:10:36     return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+11:10:36            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+11:10:36     raise Http404(
+11:10:36 django.http.response.Http404: No LicenseSubscription matches the given query.
+11:10:36 ok
+11:10:36 test_named_admin_can_retrieve (billing.tests.test_license_admin_user_guard.LicenseObjectPermissionScopeTest.test_named_admin_can_retrieve) ... ok
+11:10:36 test_second_admin_of_the_same_school_is_not_locked_out (billing.tests.test_license_admin_user_guard.LicenseObjectPermissionScopeTest.test_second_admin_of_the_same_school_is_not_locked_out)
+11:10:36 Used to 403: the license listed for them but detail refused, ... ok
+11:10:36 test_teacher_cannot_reach_it (billing.tests.test_license_admin_user_guard.LicenseObjectPermissionScopeTest.test_teacher_cannot_reach_it) ... Cannot activate automatic trial for user teacher@two-admin.edu (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 API Exception
+11:10:36 Traceback (most recent call last):
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+11:10:36     self.initial(request, *args, **kwargs)
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+11:10:36     self.check_permissions(request)
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+11:10:36     self.permission_denied(
+11:10:36   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+11:10:36     raise exceptions.PermissionDenied(detail=message, code=code)
+11:10:36 rest_framework.exceptions.PermissionDenied: You do not have permission to perform this action.
+11:10:36 ok
+11:10:36 test_an_explicitly_passed_admin_is_honoured (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_an_explicitly_passed_admin_is_honoured) ... ok
+11:10:36 test_an_explicitly_passed_admin_is_still_validated (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_an_explicitly_passed_admin_is_still_validated)
+11:10:36 Supplying a value must not be a way around the guard. ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 ok
+11:10:36 test_create_license_subscription_refuses_when_school_has_no_admin (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_create_license_subscription_refuses_when_school_has_no_admin) ... ok
+11:10:36 test_create_license_subscription_without_an_admin_user (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_create_license_subscription_without_an_admin_user) ... ok
+11:10:36 test_derives_an_invited_admin_who_has_not_activated_yet (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_derives_an_invited_admin_who_has_not_activated_yet)
+11:10:36 resolve_admin_user must still find an inactive admin - e.g. one ... ok
+11:10:36 test_derives_the_schools_only_admin (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_derives_the_schools_only_admin) ... ok
+11:10:36 test_ignores_admins_of_other_schools_and_non_admins (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_ignores_admins_of_other_schools_and_non_admins) ... Cannot activate automatic trial for user teacher@resolve.edu (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:36 ok
+11:10:37 test_picks_the_earliest_when_several_are_active (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_picks_the_earliest_when_several_are_active) ... ok
+11:10:37 test_prefers_an_active_admin_over_an_inactive_one (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_prefers_an_active_admin_over_an_inactive_one) ... ok
+11:10:37 test_school_with_no_admin_is_a_clear_error_not_a_crash (billing.tests.test_license_admin_user_guard.ResolveAdminUserTest.test_school_with_no_admin_is_a_clear_error_not_a_crash) ... ok
+11:10:37 test_accepts_the_schools_own_admin (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_accepts_the_schools_own_admin) ... ok
+11:10:37 test_create_license_subscription_refuses_superadmin_admin_user (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_create_license_subscription_refuses_superadmin_admin_user)
+11:10:37 The guard has to hold at the service entry point, not just in ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_rejects_admin_of_a_different_school (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_rejects_admin_of_a_different_school) ... ok
+11:10:37 test_rejects_is_superuser_flag_without_super_admin_user_type (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_rejects_is_superuser_flag_without_super_admin_user_type)
+11:10:37 Either marker alone is enough to disqualify -- they can drift apart. ... ok
+11:10:37 test_rejects_superadmin_even_when_attached_to_the_school (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_rejects_superadmin_even_when_attached_to_the_school)
+11:10:37 Attaching the superadmin to the school must not buy them the role. ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_rejects_superadmin_with_no_school (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_rejects_superadmin_with_no_school)
+11:10:37 The reported bug: school=None used to mean 'no contradiction'. ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_rejects_user_with_no_school (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_rejects_user_with_no_school) ... ok
+11:10:37 test_still_rejects_students (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_still_rejects_students) ... ok
+11:10:37 test_stripe_checkout_refuses_superadmin_before_calling_stripe (billing.tests.test_license_admin_user_guard.ValidateAdminUserTest.test_stripe_checkout_refuses_superadmin_before_calling_stripe)
+11:10:37 Reject at checkout creation, not after the school has paid. ... Cannot activate automatic trial for user superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_keyless_session_at_the_cap_is_refused_as_keyless_not_capped)
+11:10:37 1a's Q1: the refusal comes before the cap check. Behind it, a ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_a_paid_session_with_a_payment_intent_still_grants (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_paid_session_with_a_payment_intent_still_grants)
+11:10:37 The control. ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_a_paid_session_without_a_payment_intent_is_refused (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_paid_session_without_a_payment_intent_is_refused) ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_a_replayed_session_with_a_payment_intent_still_grants (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_replayed_session_with_a_payment_intent_still_grants) ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 Auto-replayed FAILED Stripe event evt_h66_keyed (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+11:10:37 ok
+11:10:37 test_a_session_without_payment_status_or_payment_intent_is_refused (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_a_session_without_payment_status_or_payment_intent_is_refused)
+11:10:37 No payment_status skips the unpaid refusal; the missing key still ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_an_empty_payment_intent_is_refused_too (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_an_empty_payment_intent_is_refused_too) ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_the_replay_path_refuses_it_too (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_the_replay_path_refuses_it_too) ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 Auto-replayed FAILED Stripe event evt_h66_keyless (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+11:10:37 ok
+11:10:37 test_two_deliveries_of_a_keyless_session_grant_nothing (billing.tests.test_overage_requires_payment_intent.OverageRequiresPaymentIntentTests.test_two_deliveries_of_a_keyless_session_grant_nothing)
+11:10:37 What the key protects: two event ids, one session. ... Cannot activate automatic trial for user h66-overage@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_grant_overage_bucket_no_longer_accepts_expires_at_kwarg (billing.tests.test_overage_never_expires.GrantOverageBucketNeverExpiresTestCase.test_grant_overage_bucket_no_longer_accepts_expires_at_kwarg) ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_grant_overage_bucket_sets_no_expiry (billing.tests.test_overage_never_expires.GrantOverageBucketNeverExpiresTestCase.test_grant_overage_bucket_sets_no_expiry) ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_license_overage_checkout_completed_grants_non_expiring_bucket (billing.tests.test_overage_never_expires.LicenseOverageCheckoutWebhookNeverExpiresTestCase.test_license_overage_checkout_completed_grants_non_expiring_bucket) ... Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=LICENSE_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+11:10:37 ok
+11:10:37 test_overage_consumed_only_after_monthly_exhausted (billing.tests.test_overage_never_expires.OverageConsumptionOrderTestCase.test_overage_consumed_only_after_monthly_exhausted) ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_overage_with_no_expiry_still_counted_as_available (billing.tests.test_overage_never_expires.OverageConsumptionOrderTestCase.test_overage_with_no_expiry_still_counted_as_available) ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_checkout_completed_webhook_grants_non_expiring_bucket (billing.tests.test_overage_never_expires.OverageWebhookNeverExpiresTestCase.test_checkout_completed_webhook_grants_non_expiring_bucket) ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:37 ok
+11:10:37 test_payment_intent_succeeded_preferred_path_does_not_double_grant (billing.tests.test_overage_never_expires.OverageWebhookNeverExpiresTestCase.test_payment_intent_succeeded_preferred_path_does_not_double_grant)
+11:10:38 Regression lock for a pre-existing bug this work surfaced: the ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:38 ok
+11:10:38 test_payment_intent_succeeded_preferred_path_grants_non_expiring_bucket (billing.tests.test_overage_never_expires.OverageWebhookNeverExpiresTestCase.test_payment_intent_succeeded_preferred_path_grants_non_expiring_bucket)
+11:10:38 The "preferred path" branch (wallet_id + plan_id snapshotted in ... Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:38 ok
+11:10:38 test_logs_error_and_names_the_overdue_task (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_logs_error_and_names_the_overdue_task) ... ok
+11:10:38 test_returns_all_clear_message_when_nothing_overdue (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_returns_all_clear_message_when_nothing_overdue) ... ok
+11:10:38 test_disabled_task_is_never_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_disabled_task_is_never_reported) ... ok
+11:10:38 test_missing_periodic_task_row_is_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_missing_periodic_task_row_is_reported) ... ok
+11:10:38 test_multiple_overdue_tasks_are_all_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_multiple_overdue_tasks_are_all_reported) ... ok
+11:10:38 test_never_run_task_uses_date_changed_as_reference (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_never_run_task_uses_date_changed_as_reference) ... ok
+11:10:38 test_no_expectations_configured_returns_empty (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_no_expectations_configured_returns_empty) ... ok
+11:10:38 test_on_schedule_task_is_not_overdue (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_on_schedule_task_is_not_overdue) ... ok
+11:10:38 test_overdue_task_is_reported_with_actionable_message (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_overdue_task_is_reported_with_actionable_message) ... ok
+11:10:38 test_days_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_days_hours_and_minutes) ... ok
+11:10:38 test_exact_hour_omits_zero_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_exact_hour_omits_zero_minutes) ... ok
+11:10:38 test_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_hours_and_minutes) ... ok
+11:10:38 test_minutes_only (AutoGrader.tests_beat_health.HumanizeTests.test_minutes_only) ... ok
+11:10:38 test_negative_delta_clamped_to_zero (AutoGrader.tests_beat_health.HumanizeTests.test_negative_delta_clamped_to_zero) ... ok
+11:10:38 test_singular_minute (AutoGrader.tests_beat_health.HumanizeTests.test_singular_minute) ... ok
+11:10:38 test_zero_renders_as_zero_minutes_not_empty (AutoGrader.tests_beat_health.HumanizeTests.test_zero_renders_as_zero_minutes_not_empty) ... ok
+11:10:38 test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+11:10:38 test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+11:10:38 test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+11:10:38 test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+11:10:38 test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+11:10:38 test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:38 Cannot activate automatic trial for user stranger@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+11:10:38 ok
+11:10:38 test_both_mapped_serializers_still_exist (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_both_mapped_serializers_still_exist) ... ok
+11:10:38 test_it_targets_the_assignment_list_serializer (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_it_targets_the_assignment_list_serializer) ... ok
+11:10:38 test_the_discriminator_property_is_declared_and_required (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_discriminator_property_is_declared_and_required)
+11:10:38 A discriminator absent from `properties`/`required` is invalid ... ok
+11:10:38 test_the_mapping_declares_both_teacher_and_student_shapes (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_mapping_declares_both_teacher_and_student_shapes)
+11:10:38 The whole point: one endpoint returns two shapes depending on who ... ok
+11:10:38 test_the_target_serializer_still_exists (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_target_serializer_still_exists)
+11:10:38 target_class is a hand-written import path. A renamed serializer ... ok
+11:10:38 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:38 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:38 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:38 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:38 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_course_description". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+11:10:39 Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+11:10:39 Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+11:10:40 test_extensions_is_not_a_real_drf_spectacular_setting (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_extensions_is_not_a_real_drf_spectacular_setting)
+11:10:40 The root cause, asserted directly so an upgrade that ADDS an ... ok
+11:10:40 test_no_production_module_imports_the_extension (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_no_production_module_imports_the_extension)
+11:10:40 The root cause, checked statically. ... ok
+11:10:40 test_the_components_the_mapping_points_at_do_not_exist (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_components_the_mapping_points_at_do_not_exist)
+11:10:40 Even if the extension were registered as-is, its refs would dangle: ... ok
+11:10:40 test_the_settings_entry_that_was_meant_to_register_it_is_inert (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_settings_entry_that_was_meant_to_register_it_is_inert) ... ok
+11:10:40 test_extension_is_registered_for_the_wrapper_authenticator (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_is_registered_for_the_wrapper_authenticator) ... ok
+11:10:40 test_extension_targets_the_wrapper_class_exactly (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_targets_the_wrapper_class_exactly) ... ok
+11:10:40 test_cancel_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_cancel_refused_by_stripe) ... ok
+11:10:40 test_convert_to_offline_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_convert_to_offline_refused_by_stripe) ... ok
+11:10:41 test_plan_card_declined (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_card_declined) ... ok
+11:10:41 test_plan_price_creation_refused (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_price_creation_refused) ... ok
+11:10:41 test_plan_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_refused_by_stripe) ... ok
+11:10:42 test_plan_unreadable_subscription (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_plan_unreadable_subscription) ... ok
+11:10:42 test_seats_card_declined (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_seats_card_declined) ... ok
+11:10:43 test_seats_refused_by_stripe (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_seats_refused_by_stripe) ... ok
+11:10:43 test_seats_unreadable_subscription (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_seats_unreadable_subscription) ... ok
+11:10:43 test_the_seats_route_answers_with_the_fixed_text (billing.tests.test_h60_licence_stripe_text.LicenceStripeTextTests.test_the_seats_route_answers_with_the_fixed_text)
+11:10:44 The view returns the ValueError's text as its 400, so this is ... Licence 79d9ce90-10ed-4da0-954e-f587483fd0da, intent 3719d409-b429-416c-a84c-a1a4b37f41b7: Stripe failed (CardError, code=card_declined, request=None)
+11:10:44 ok
+11:10:44 test_cancel_not_recorded_and_not_undone_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_cancel_not_recorded_and_not_undone_is_409) ... ok
+11:10:44 test_cancel_not_recorded_is_undone_and_503 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_cancel_not_recorded_is_undone_and_503) ...
+11:10:44
+11:10:44 django.request ERROR 2026-10-02 10:10:44,982 log 137647 138300327201728 [request_id=-] Service Unavailable: /api/v1/license-subscriptions/f640888a-8e78-49f3-95f3-9aee5bfeef16/cancel
+11:10:44
+11:10:44
+11:10:44 ok
+11:10:45 test_convert_to_offline_not_recorded_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_convert_to_offline_not_recorded_is_409)
+11:10:45 A deleted subscription can't be restored, so convert never ... ok
+11:10:45 test_plan_a_downgrade_not_recorded_is_undone_and_503 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_plan_a_downgrade_not_recorded_is_undone_and_503) ...
+11:10:45
+11:10:45 django.request ERROR 2026-10-02 10:10:45,833 log 137647 138300327201728 [request_id=-] Service Unavailable: /api/v1/license-subscriptions/d5798800-a7cf-4562-a687-80c4df1df8a9/change_plan
+11:10:45
+11:10:45
+11:10:45 ok
+11:10:46 test_plan_a_paid_upgrade_not_recorded_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_plan_a_paid_upgrade_not_recorded_is_409) ... ok
+11:10:46 test_seats_a_decrease_not_recorded_is_undone_and_503 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_seats_a_decrease_not_recorded_is_undone_and_503) ...
+11:10:46
+11:10:46 django.request ERROR 2026-10-02 10:10:46,631 log 137647 138300327201728 [request_id=-] Service Unavailable: /api/v1/license-subscriptions/d4ed0384-bef9-40e4-ba85-170425a99f4b/update_seats
+11:10:46
+11:10:46
+11:10:46 ok
+11:10:47 test_seats_a_paid_increase_not_recorded_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_seats_a_paid_increase_not_recorded_is_409) ... ok
+11:10:47 test_F4_a_declined_increase_is_reverted_and_its_invoice_voided (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_F4_a_declined_increase_is_reverted_and_its_invoice_voided) ... ok
+11:10:47 test_F4_an_increase_needing_3d_secure_is_reverted_and_its_invoice_voided (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_F4_an_increase_needing_3d_secure_is_reverted_and_its_invoice_voided) ... ok
+11:10:48 test_F5_a_card_error_is_not_taken_as_a_refusal (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_F5_a_card_error_is_not_taken_as_a_refusal)
+11:10:48 Stripe applies the quantity in the same call that tries the card, ... Licence 7ddf2532-2607-48f9-9d3c-17bd717444f5, intent c2fa8b37-05c0-4019-b789-7a967c837875: Stripe failed (CardError, code=card_declined, request=None)
+11:10:48 ok
+11:10:48 test_a_decrease_completes_outside_any_transaction (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_decrease_completes_outside_any_transaction) ... ok
+11:10:49 test_a_failed_local_write_after_a_decrease_is_compensated (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_failed_local_write_after_a_decrease_is_compensated) ... H-28 intent 77a6abe6-0da0-4a91-81c7-bd8c499a7e7b: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:10:49 H-28 intent 77a6abe6-0da0-4a91-81c7-bd8c499a7e7b: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:10:50 H-28 intent 77a6abe6-0da0-4a91-81c7-bd8c499a7e7b: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+11:10:50 ok
+11:10:52 test_a_failed_local_write_after_a_paid_increase_escalates (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_failed_local_write_after_a_paid_increase_escalates) ... ok
+11:10:52 test_a_failed_undo_escalates_to_a_human (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_failed_undo_escalates_to_a_human) ... ok
+11:10:53 test_a_licence_changed_meanwhile_is_not_overwritten (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_licence_changed_meanwhile_is_not_overwritten) ... H-28 intent 42a3d932-ba41-4d73-9ea1-c6578335920f: the local write failed (LicenceMovedOn: licence d8bc5a06-e79c-47e5-a7b3-76ba69e05225 changed while Stripe was being updated), so the Stripe change was reverted. Nothing was changed.
+11:10:53 ok
+11:10:53 test_a_licence_without_a_subscription_changes_locally (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_licence_without_a_subscription_changes_locally) ... ok
+11:10:54 test_a_lost_response_on_a_decrease_is_read_back (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_lost_response_on_a_decrease_is_read_back) ... H-28 intent 06e59ace-2021-4037-bb14-80c4415782c3: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:10:54 ok
+11:10:54 test_a_paid_increase_completes_and_records_the_charge (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_paid_increase_completes_and_records_the_charge) ... ok
+11:10:55 test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_request_while_another_change_is_in_flight_is_refused) ... ok
+11:10:55 test_an_older_open_invoice_is_never_voided (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_an_older_open_invoice_is_never_voided)
+11:10:55 Only the change's own invoice may be voided. An unpaid renewal ... ok
+11:10:55 test_an_unreadable_invoice_after_an_increase_escalates_without_undoing (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_an_unreadable_invoice_after_an_increase_escalates_without_undoing)
+11:10:56 Applied at Stripe, and whether it was paid is unknown: money may ... ok
+11:10:56 test_an_unreadable_subscription_frees_the_licence (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_an_unreadable_subscription_frees_the_licence) ... Licence c5777c12-7ee3-4fe1-af19-dcc0418f3326, intent 61e3c861-06a4-4b12-8547-fa6393776949: Stripe failed (APIConnectionError, code=None, request=None)
+11:10:56 ok
+11:10:56 test_refuses_to_run_inside_a_callers_transaction (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_refuses_to_run_inside_a_callers_transaction) ... ok
+11:10:57 test_the_licence_stays_guarded_while_a_card_error_is_undone (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_the_licence_stays_guarded_while_a_card_error_is_undone)
+11:10:57 A CardError is not a refusal: the intent stays in flight (so the ... Licence fab8ddf8-cdcb-4163-9867-ca5011c99519, intent 00353a2b-57cc-4614-93f9-785bb9599474: Stripe failed (CardError, code=card_declined, request=None)
+11:10:57 ok
+11:10:57 test_with_no_new_invoice_an_older_open_one_is_left_alone (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_with_no_new_invoice_an_older_open_one_is_left_alone)
+11:10:57 A declined change that raised no invoice of its own: the older ... Licence e281ed33-fe53-4c31-83a4-351a9da2962b, intent 29612663-2daf-4103-9b54-519eeea6527d: Stripe failed (CardError, code=card_declined, request=None)
+11:10:57 ok
+11:10:58 test_F0_a_downgrade_reaches_stripe (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_F0_a_downgrade_reaches_stripe) ... ok
+11:10:58 test_F1_an_upgrade_needing_3d_secure_is_reverted_and_voided (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_F1_an_upgrade_needing_3d_secure_is_reverted_and_voided) ... ok
+11:10:59 test_F2_a_card_error_is_reverted_and_voided (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_F2_a_card_error_is_reverted_and_voided) ... Licence 92769c9d-d897-4187-a958-317bf1cc34a8, intent 0bbb9dae-898b-4d5b-a142-d0b9f8232b00: Stripe failed (CardError, code=card_declined, request=None)
+11:10:59 ok
+11:10:59 test_F3_a_declined_upgrade_is_reverted_and_voided (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_F3_a_declined_upgrade_is_reverted_and_voided) ... ok
+11:11:00 test_a_contract_price_is_created_once_keyed_and_recorded (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_contract_price_is_created_once_keyed_and_recorded) ... ok
+11:11:00 test_a_custom_price_is_billed_at_stripe (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_custom_price_is_billed_at_stripe) ... ok
+11:11:01 test_a_failed_local_write_after_a_downgrade_is_compensated (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_failed_local_write_after_a_downgrade_is_compensated) ... H-28 intent 79a58fa5-c1d1-4ce0-9791-8b4c2ad15360: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:11:01 H-28 intent 79a58fa5-c1d1-4ce0-9791-8b4c2ad15360: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:11:02 H-28 intent 79a58fa5-c1d1-4ce0-9791-8b4c2ad15360: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+11:11:02 ok
+11:11:04 test_a_failed_local_write_after_a_paid_upgrade_escalates (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_failed_local_write_after_a_paid_upgrade_escalates) ... ok
+11:11:04 test_a_failed_price_creation_changes_nothing_and_frees_the_licence (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_failed_price_creation_changes_nothing_and_frees_the_licence) ... Licence 1bd9698f-b7d9-413e-ad8f-e0ab94f1e744, intent 5336016f-7d69-41cf-9c37-e87a526c67df: Stripe failed (InvalidRequestError, code=None, request=None)
+11:11:04 ok
+11:11:05 test_a_paid_upgrade_completes_and_records_the_charge (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_paid_upgrade_completes_and_records_the_charge) ... ok
+11:11:05 test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_request_while_another_change_is_in_flight_is_refused) ... ok
+11:11:06 test_a_stripe_licence_without_a_subscription_is_refused (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_stripe_licence_without_a_subscription_is_refused) ... ok
+11:11:06 test_an_offline_licence_changes_locally_without_an_intent (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_an_offline_licence_changes_locally_without_an_intent) ... ok
+11:11:07 test_an_unreadable_upgrade_invoice_escalates_without_undoing (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_an_unreadable_upgrade_invoice_escalates_without_undoing) ... ok
+11:11:08 test_change_license_price_now_records_the_change_too (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_change_license_price_now_records_the_change_too)
+11:11:08 It used to change Stripe only, leaving the local plan to a caller ... ok
+11:11:09 test_refuses_to_run_inside_a_callers_transaction (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_refuses_to_run_inside_a_callers_transaction) ... ok
+11:11:09 test_the_same_price_on_another_plan_needs_no_stripe_change (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_the_same_price_on_another_plan_needs_no_stripe_change) ... ok
+11:11:10 test_a_compensated_intent_frees_the_licence_for_a_retry (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_compensated_intent_frees_the_licence_for_a_retry) ... H-28 intent 03f14089-cabe-472e-bd62-4d951b2d2004: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:11:10 H-28 intent 03f14089-cabe-472e-bd62-4d951b2d2004: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:11:11 H-28 intent 03f14089-cabe-472e-bd62-4d951b2d2004: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+11:11:11 ok
+11:11:12 test_a_failed_local_write_is_undone_at_stripe_and_compensated (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_failed_local_write_is_undone_at_stripe_and_compensated) ... H-28 intent 93867291-7200-4082-8b32-f5cc55630bb9: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:11:12 H-28 intent 93867291-7200-4082-8b32-f5cc55630bb9: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection); retrying on a fresh connection.
+11:11:13 H-28 intent 93867291-7200-4082-8b32-f5cc55630bb9: the local write failed (OperationalError: server closed the connection), so the Stripe change was reverted. Nothing was changed.
+11:11:13 ok
+11:11:15 test_a_failed_undo_escalates_to_a_human (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_failed_undo_escalates_to_a_human) ... ok
+11:11:16 test_a_licence_changed_meanwhile_is_not_overwritten (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_licence_changed_meanwhile_is_not_overwritten) ... H-28 intent a6b3c41c-aa63-4241-9c91-5d78a0ce1bc9: the local write failed (LicenceMovedOn: licence ed2632d7-61b4-41b6-9a2e-5cb7336de252 changed while Stripe was being updated), so the Stripe change was reverted. Nothing was changed.
+11:11:16 ok
+11:11:16 test_a_lost_response_that_did_not_land_is_read_back_and_failed (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_lost_response_that_did_not_land_is_read_back_and_failed) ... Licence 586b0cd1-43e9-423e-a1c1-3065a3410c97, intent 96669f2e-3c65-46fa-8718-e717e8073e87: Stripe failed (APIConnectionError, code=None, request=None)
+11:11:16 ok
+11:11:17 test_a_lost_response_that_landed_is_read_back_and_completed (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_lost_response_that_landed_is_read_back_and_completed) ... H-28 intent ade043c5-01b0-448f-b001-e27100838d6c: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:11:17 ok
+11:11:18 test_a_refusal_changes_nothing_and_marks_the_intent_failed (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_refusal_changes_nothing_and_marks_the_intent_failed) ... Licence bdc36840-415a-434d-b301-bce26a2dfee3, intent ac65245c-6913-471b-a177-83ebf77c0dce: Stripe failed (InvalidRequestError, code=None, request=None)
+11:11:18 ok
+11:11:19 test_a_repeat_request_makes_no_second_stripe_call (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_repeat_request_makes_no_second_stripe_call) ... ok
+11:11:19 test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_request_while_another_change_is_in_flight_is_refused) ... ok
+11:11:20 test_a_server_error_is_treated_as_an_unknown_outcome (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_server_error_is_treated_as_an_unknown_outcome) ... H-28 intent e9e8fcf6-4222-4376-8977-1e1595329233: Stripe response lost (Internal error) but the read-back shows the change applied; continuing.
+11:11:20 ok
+11:11:21 test_a_stripe_licence_without_a_subscription_cancels_locally (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_stripe_licence_without_a_subscription_cancels_locally) ... License b7637245-1dbc-4309-8ec1-ef6a3601dd89 is STRIPE-billed but has no stripe_subscription_id; cancelling locally only.
+11:11:21 ok
+11:11:21 test_an_offline_licence_is_deactivated_at_once_without_an_intent (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_an_offline_licence_is_deactivated_at_once_without_an_intent) ... ok
+11:11:22 test_an_unreadable_outcome_leaves_the_intent_pending_and_says_so (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_an_unreadable_outcome_leaves_the_intent_pending_and_says_so) ... ok
+11:11:23 test_refuses_to_run_inside_a_callers_transaction (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_refuses_to_run_inside_a_callers_transaction)
+11:11:23 Wrapping the operation in a transaction would put the Stripe call ... ok
+11:11:23 test_success_completes_the_intent_outside_any_transaction (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_success_completes_the_intent_outside_any_transaction) ... ok
+11:11:24 test_the_stripe_call_carries_the_intents_apply_key (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_the_stripe_call_carries_the_intents_apply_key) ... ok
+11:11:26 test_a_failed_local_write_escalates_and_never_recreates (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_failed_local_write_escalates_and_never_recreates) ... ok
+11:11:27 test_a_licence_without_a_subscription_converts_locally (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_licence_without_a_subscription_converts_locally) ... ok
+11:11:28 test_a_lost_response_to_a_delete_that_landed_completes (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_lost_response_to_a_delete_that_landed_completes) ... H-28 intent 73e0bb3d-bd53-4d6d-8a40-e7bea0dc1893: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:11:28 ok
+11:11:29 test_a_real_refusal_changes_nothing_and_fails_the_intent (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_real_refusal_changes_nothing_and_fails_the_intent) ... Licence 3e7c8c88-287e-418e-ad3b-6beae687b27f, intent f5ffdef1-3897-4405-bac9-67ec04d09e7c: Stripe failed (InvalidRequestError, code=None, request=None)
+11:11:29 ok
+11:11:29 test_a_refused_delete_of_a_subscription_already_gone_completes (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_refused_delete_of_a_subscription_already_gone_completes)
+11:11:29 A retried delete whose first attempt landed is refused; the ... H-28 intent c2ddddcd-180c-4ecc-a2ef-fe51ea7b1330: Stripe response lost (No such subscription) but the read-back shows the change applied; continuing.
+11:11:29 ok
+11:11:30 test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_request_while_another_change_is_in_flight_is_refused) ... ok
+11:11:30 test_an_offline_licence_is_refused (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_an_offline_licence_is_refused) ... ok
+11:11:31 test_an_unreadable_outcome_stays_pending_and_says_so (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_an_unreadable_outcome_stays_pending_and_says_so) ... ok
+11:11:31 test_refuses_to_run_inside_a_callers_transaction (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_refuses_to_run_inside_a_callers_transaction) ... ok
+11:11:32 test_success_deletes_then_records_offline (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_success_deletes_then_records_offline) ... ok
+11:11:32 test_a_logic_failure_is_not_retried (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_logic_failure_is_not_retried) ... H-28 intent a2b0ff7f-2b05-41da-a45d-0320a3ef4b15: the local write failed (IntegrityError: duplicate key value violates unique constraint), so the Stripe change was reverted. Nothing was changed.
+11:11:32 ok
+11:11:33 test_a_persistent_transient_failure_stops_after_three_attempts (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_persistent_transient_failure_stops_after_three_attempts) ... H-28 intent 66a5c05b-1276-49fb-84c3-7f6467a37754: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection unexpectedly); retrying on a fresh connection.
+11:11:33 H-28 intent 66a5c05b-1276-49fb-84c3-7f6467a37754: the local write failed on attempt 2 of 3 (OperationalError: server closed the connection unexpectedly); retrying on a fresh connection.
+11:11:33 H-28 intent 66a5c05b-1276-49fb-84c3-7f6467a37754: the local write failed (OperationalError: server closed the connection unexpectedly), so the Stripe change was reverted. Nothing was changed.
+11:11:33 ok
+11:11:33 test_a_retry_after_a_commit_whose_reply_was_lost_writes_nothing_twice (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_retry_after_a_commit_whose_reply_was_lost_writes_nothing_twice)
+11:11:33 The first attempt's commit landed but the connection died before ... H-28 intent ae54949e-2ec1-42d2-876d-2bd9bc43ddaf: the local write failed on attempt 1 of 3 (OperationalError: server closed the connection unexpectedly); retrying on a fresh connection.
+11:11:33 ok
+11:11:34 test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one) ... H-28 intent cf12cf9f-691c-4051-9530-b3b43912bcb3: the local write failed on attempt 1 of 3 (InterfaceError: cursor already closed); retrying on a fresh connection.
+11:11:34 ok
+11:11:35 test_no_licence_flow_calls_the_legacy_api (billing.tests.test_h28_stripe_budget.NoLegacyStripeCallTests.test_no_licence_flow_calls_the_legacy_api) ... ok
+11:11:35 test_the_scan_allows_stripes_exceptions (billing.tests.test_h28_stripe_budget.NoLegacyStripeCallTests.test_the_scan_allows_stripes_exceptions) ... ok
+11:11:35 test_the_scan_sees_a_legacy_call (billing.tests.test_h28_stripe_budget.NoLegacyStripeCallTests.test_the_scan_sees_a_legacy_call)
+11:11:35 Guard on the guard, including 1a's V3 (an aliased module). ... ok
+11:11:35 test_a_call_the_budget_never_started_is_failed_not_pending (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_a_call_the_budget_never_started_is_failed_not_pending) ... ok
+11:11:35 test_an_error_from_stripe_reaches_the_caller_unchanged (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_an_error_from_stripe_reaches_the_caller_unchanged) ... ok
+11:11:36 test_nested_budgets_keep_the_earlier_deadline (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_nested_budgets_keep_the_earlier_deadline) ... ok
+11:11:38 test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time) ... ok
+11:11:38 test_the_production_budget_ends_well_inside_the_request_timeout (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_the_production_budget_ends_well_inside_the_request_timeout)
+11:11:38 Scaled down above; these are the real numbers. The Stripe work ... ok
+11:11:39 test_the_worker_thread_leaves_no_database_connection_open (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_the_worker_thread_leaves_no_database_connection_open)
+11:11:39 The worker only calls Stripe; even if something on it touched the ... ok
+11:11:39 test_under_a_budget_the_call_reports_its_callers_transaction (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_under_a_budget_the_call_reports_its_callers_transaction)
+11:11:40 The runtime proof that no Stripe call runs inside a transaction ... ok
+11:11:40 test_without_a_budget_the_call_runs_inline (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_without_a_budget_the_call_runs_inline) ... ok
+11:11:41 test_F0_plan_change_with_no_failure_updates_the_stripe_price (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F0_plan_change_with_no_failure_updates_the_stripe_price)
+11:11:41 F0 (license_service.py:2086 then stripe_service.py:1609/1623). ... ok
+11:11:41 test_F1_plan_upgrade_needing_3d_secure_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F1_plan_upgrade_needing_3d_secure_leaves_both_sides_agreeing)
+11:11:41 F1 (stripe_service.py:1707-1711): requires_action raised with no ... ok
+11:11:42 test_F2_plan_upgrade_card_error_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F2_plan_upgrade_card_error_leaves_both_sides_agreeing)
+11:11:42 F2 (stripe_service.py:1685-1686): CardError raised with no revert. ... Licence 6a3b9c94-1f39-4ef7-97ba-9e6b8ddbe6c2, intent 92de8fdc-aff4-4fe1-81f9-81a3bf75cf2c: Stripe failed (CardError, code=card_declined, request=None)
+11:11:42 ok
+11:11:42 test_F3_plan_upgrade_declined_leaves_no_open_invoice (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F3_plan_upgrade_declined_leaves_no_open_invoice)
+11:11:43 F3 (stripe_service.py:1713-1717): the price is reverted but the ... ok
+11:11:43 test_F4_seat_increase_declined_leaves_no_open_invoice (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F4_seat_increase_declined_leaves_no_open_invoice)
+11:11:43 F4 (license_service.py:2246-2257): quantity reverted, invoice ... ok
+11:11:44 test_F4_seat_increase_needing_3d_secure_leaves_no_open_invoice (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F4_seat_increase_needing_3d_secure_leaves_no_open_invoice)
+11:11:44 F4, the licence-path requires_action case d4 required: no ... ok
+11:11:45 test_F5_seat_increase_card_error_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_F5_seat_increase_card_error_leaves_both_sides_agreeing)
+11:11:45 F5 (license_service.py:2273): CardError caught as StripeError, ... Licence e9a153c6-1f7e-4f09-993c-32f7b161e41a, intent 9ab367a5-8d2e-41c9-8a92-fade5318ede8: Stripe failed (CardError, code=card_declined, request=None)
+11:11:45 ok
+11:11:45 test_cancel_applied_but_response_lost_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_cancel_applied_but_response_lost_leaves_both_sides_agreeing)
+11:11:45 Today every StripeError becomes ValueError with local state left ... H-28 intent 5188101c-ba20-4852-b13d-430a6247172f: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:11:45 ok
+11:11:46 test_cancel_killed_mid_stripe_call_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_cancel_killed_mid_stripe_call_leaves_both_sides_agreeing)
+11:11:46 P1 cancel_license_subscription (license_service.py:1969). ... ok
+11:11:46 test_convert_to_offline_delete_applied_but_response_lost (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_convert_to_offline_delete_applied_but_response_lost)
+11:11:46 P0's most dangerous misreport: the delete happened, the response ... H-28 intent c301332c-d70b-4d02-a1ad-186c2ee70d83: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:11:46 ok
+11:11:47 test_convert_to_offline_killed_mid_delete_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_convert_to_offline_killed_mid_delete_leaves_both_sides_agreeing)
+11:11:47 P0 convert_license_to_offline (license_service.py:3465): the ... ok
+11:11:47 test_latent_F1_price_change_needing_3d_secure_is_reverted_and_voided (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_latent_F1_price_change_needing_3d_secure_is_reverted_and_voided) ... ok
+11:11:48 test_latent_F2_price_change_card_error_is_reverted (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_latent_F2_price_change_card_error_is_reverted) ... Licence 0b93e829-3583-4521-9139-19a07780f58c, intent e86c5443-e0cd-433d-b625-e7c4097afdfd: Stripe failed (CardError, code=card_declined, request=None)
+11:11:48 ok
+11:11:49 test_latent_F3_price_change_declined_leaves_no_open_invoice (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_latent_F3_price_change_declined_leaves_no_open_invoice) ... ok
+11:11:49 test_plan_downgrade_applied_but_response_lost_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_plan_downgrade_applied_but_response_lost_leaves_both_sides_agreeing) ... H-28 intent bf5edbf7-dda8-475b-84e9-e3f5d992a6ee: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:11:49 ok
+11:11:50 test_plan_downgrade_killed_mid_stripe_call_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_plan_downgrade_killed_mid_stripe_call_leaves_both_sides_agreeing)
+11:11:50 P1 change_license_plan -> change_license_price ... ok
+11:11:50 test_seat_decrease_applied_but_response_lost_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_seat_decrease_applied_but_response_lost_leaves_both_sides_agreeing) ... H-28 intent 58cb92c8-4bb7-4f97-ab91-6b79b420c6d0: Stripe response lost (Request timed out) but the read-back shows the change applied; continuing.
+11:11:50 ok
+11:11:51 test_seat_decrease_killed_mid_stripe_call_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_seat_decrease_killed_mid_stripe_call_leaves_both_sides_agreeing)
+11:11:51 P1 update_seats (license_service.py:2224). ... ok
+11:11:52 test_already_inactive_license_is_rejected (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_already_inactive_license_is_rejected) ... ok
+11:11:53 test_already_scheduled_to_cancel_is_rejected (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_already_scheduled_to_cancel_is_rejected)
+11:11:53 Idempotency guard -- calling cancel twice must not re-fire the ... ok
+11:11:53 test_cancellation_is_recorded_on_the_billing_ledger (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_cancellation_is_recorded_on_the_billing_ledger) ... ok
+11:11:54 test_offline_license_deactivates_immediately (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_offline_license_deactivates_immediately)
+11:11:54 No Stripe billing cycle to defer to, and no automated sweep ... ok
+11:11:55 test_stripe_failure_is_surfaced_and_leaves_local_state_untouched (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_stripe_failure_is_surfaced_and_leaves_local_state_untouched) ... Licence adb6cfc1-80a8-45f1-8e5b-1f3ed6fab7f3, intent 81fb5d4d-2e9d-4eab-a1ea-b9364e284611: Stripe failed (StripeError, code=None, request=None)
+11:11:55 ok
+11:11:55 test_stripe_license_defers_deactivation_to_period_end (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_stripe_license_defers_deactivation_to_period_end) ... ok
+11:11:56 test_stripe_license_tells_stripe_to_stop_renewing (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_stripe_license_tells_stripe_to_stop_renewing) ... ok
+11:11:57 test_stripe_license_with_no_subscription_id_cancels_locally_only (billing.tests.test_license_cancellation.LicenseCancellationServiceTests.test_stripe_license_with_no_subscription_id_cancels_locally_only)
+11:11:57 Defensive path -- shouldn't happen for a real STRIPE license, ... License aa8e08ce-bea8-4b89-b395-8d5f51cfb028 is STRIPE-billed but has no stripe_subscription_id; cancelling locally only.
+11:11:57 ok
+11:11:59 test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+11:11:59 test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+11:12:02 The path exclusion above is only honest if production never ... ok
+11:12:04 test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+11:12:04 test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+11:12:04 The exception is only safe while it is one assignment's prefix: ... ok
+11:12:04 test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+11:12:04 Guard on the guard: each form is found in a synthetic module, and ... ok
+11:12:04 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+11:12:04 The over-invalidation half, stated as a property. Under the ... ok
+11:12:04 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+11:12:04 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+11:12:04 Not response caches in the generation scheme, deliberately. ... ok
+11:12:06 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+11:12:06 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+11:12:06 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+11:12:09 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+11:12:11 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+11:12:11 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+11:12:11 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+11:12:11 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+11:12:11 H-1 step 4: the one family that was still raw is on generations. ... ok
+11:12:11 test_a_factory_imported_from_another_module_is_found_across_modules (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_factory_imported_from_another_module_is_found_across_modules)
+11:12:11 raw_client_uses resolves a factory imported from another module: ... ok
+11:12:11 test_a_listed_module_gaining_raw_writes_changes_its_count (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_listed_module_gaining_raw_writes_changes_its_count)
+11:12:11 v2's F1 on the real beat_locks: two new writes, two more. ... ok
+11:12:11 test_a_write_name_counts_whatever_it_is_called_on (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_write_name_counts_whatever_it_is_called_on)
+11:12:11 Rule 1 (v2 F1): in a module that obtains a raw client, a write ... ok
+11:12:11 test_an_imported_factory_counts_in_the_importing_module (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_an_imported_factory_counts_in_the_importing_module) ... ok
+11:12:11 test_any_non_read_call_on_a_client_is_a_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_any_non_read_call_on_a_client_is_a_write)
+11:12:11 Rule 2 (v2 F1): the read allow-list. `vf_cmd` is in no list, so ... ok
+11:12:11 test_every_entry_gives_a_reason (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_entry_gives_a_reason) ... ok
+11:12:26 test_every_raw_client_user_is_listed (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_raw_client_user_is_listed) ... ok
+11:12:26 test_the_live_modules_are_found_by_the_scan (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_live_modules_are_found_by_the_scan)
+11:12:39 The table is not vacuous: each listed module really is found. ... ok
+11:12:39 test_the_scanner_finds_every_shape_it_exists_to_catch (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_finds_every_shape_it_exists_to_catch) ... ok
+11:12:39 test_the_scanner_ignores_what_is_not_a_raw_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_ignores_what_is_not_a_raw_write) ... ok
+11:12:39 test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+11:12:39 Cannot activate automatic trial for user h56-wallet-d0999a86@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+11:12:39 Cannot activate automatic trial for user h56-wallet-8e68f247@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+11:12:39 Cannot activate automatic trial for user h56-wallet-f3b90c37@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+11:12:39 ok
+11:12:39 test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+11:12:39 The eight AlterFields since production that change choices, ... ok
+11:12:40 test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+11:12:40 test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+11:12:40 Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+11:12:40 test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+11:12:40 The production wiring (the Verification Engineer's H6 on ... ok
+11:12:40 test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+11:12:40 Rule (a) on the real graph with a synthetic final state: drop ... ok
+11:12:40 test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+11:12:40 Guard on the guard: the fields H-56 found are rule (a) ... ok
+11:12:40 test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+11:12:40 fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+11:12:40 test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+11:12:40 test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+11:12:40 test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+11:12:40 test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+11:12:40 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+11:12:44 THE ACCEPTANCE TEST for broker isolation. ... ok
+11:12:44 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+11:12:44 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+11:12:44 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+11:12:44 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+11:12:46 ok
+11:12:49 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+11:12:49 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+11:12:52 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+11:12:52 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+11:12:55 Same requirement, for the H-1 invariant specifically. ... ok
+11:12:55 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+11:12:55 The blast radius is wider than the Django cache. ... ok
+11:12:55 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+11:12:55 The mechanism, demonstrated deterministically in-process. ... ok
+11:12:55 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+11:12:59 THE ACCEPTANCE TEST for the regression. ... ok
+11:13:02 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+11:13:02 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+11:13:03 Server-wide Redis statistics are shared by every concurrent run. ... ok
+11:13:03 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+11:13:03 test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+11:13:03 N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+11:13:03 test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+11:13:03 test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+11:13:03 test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+11:13:03 test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+11:13:03 So a hung run can never swallow the next scheduled one. ... ok
+11:13:03 test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+11:13:03 test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+11:13:03 test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+11:13:08 test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+11:13:08 test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+11:13:11 The worst-case lifetime the schedule guard relies on. ... ok
+11:13:13 test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+11:13:15 test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+11:13:15 test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t137647:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:9813020e2351).
+11:13:16 ok
+11:13:16 test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+11:13:16 Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+11:13:16 test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+11:13:16 Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+11:13:16 test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+11:13:16 test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+11:13:16 test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+11:13:16 test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+11:13:16 No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+11:13:16 test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+11:13:16 test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+11:13:16 test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+11:13:16 Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t137647:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:45b2c56f5605; this run direct:188b2c7b5218).
+11:13:16 ok
+11:13:16 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+11:13:16 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+11:13:17 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+11:13:18 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+11:13:18 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+11:13:18 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+11:13:20 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+11:13:24 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+11:13:24 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+11:13:27 Guard on the guard, on synthetic source. ... ok
+11:13:31 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+11:13:31
+11:13:31 ----------------------------------------------------------------------
+11:13:31 Ran 299 tests in 180.183s
+11:13:31
+11:13:31 OK
+11:13:31 Destroying test database for alias 'default' ('test_h60_h57_licence_seats')...
