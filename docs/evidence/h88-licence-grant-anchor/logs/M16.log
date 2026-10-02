@@ -1,0 +1,12 @@
+# M16: 1a's F1: the QA time-travel tool clears the anchor with the due time
+# file: billing/qa_time_travel.py (occurrence 1)
+# old: '                allocation.grant_anchor_at = None\n'
+# new: ''
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 18.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_qa_time_travel_tool_clears_the_anchor_with_the_due_time (billing.tests.test_licence_grant_anchor.MovedDueTimeTests.test_the_qa_time_travel_tool_clears_the_anchor_with_the_due_time)
+
+FAILED (failures=1)

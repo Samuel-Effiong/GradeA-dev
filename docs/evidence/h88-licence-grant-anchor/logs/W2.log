@@ -1,0 +1,12 @@
+# W2: H-93: a point within the due tolerance of the run reopens
+# file: billing/license_service.py (occurrence 1)
+# old: '                    license_sub.billing_cycle_start, refresh_due_by(now)\n'
+# new: '                    license_sub.billing_cycle_start, now\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 13.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_point_within_the_due_tolerance_of_the_run_reopens (billing.tests.test_licence_grant_anchor.ConsumptionWindowOnLicencePointsTests.test_a_point_within_the_due_tolerance_of_the_run_reopens)
+
+FAILED (failures=1)

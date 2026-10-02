@@ -1,0 +1,31 @@
+..F...F.......
+======================================================================
+FAIL: test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile)
+H-94: the same race as SweepTests', on the killed child's keys.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_redis_hygiene.py", line 244, in test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile
+    self.check_sigkill_leaves_keys_and_the_next_run_sweeps_them(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_redis_hygiene.py", line 257, in check_sigkill_leaves_keys_and_the_next_run_sweeps_them
+    self.assertNotEqual(_keys(pattern), [], "nothing in-process can run on SIGKILL")
+AssertionError: [] == [] : nothing in-process can run on SIGKILL
+
+======================================================================
+FAIL: test_delete_own_keys_is_unmoved_by_another_runs_sweep (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_is_unmoved_by_another_runs_sweep)
+H-94: under --parallel another worker's sweep can run between
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_redis_hygiene.py", line 183, in test_delete_own_keys_is_unmoved_by_another_runs_sweep
+    self.check_delete_own_keys_takes_only_that_exact_prefix(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_redis_hygiene.py", line 199, in check_delete_own_keys_takes_only_that_exact_prefix
+    self.assertEqual(removed, 2)
+AssertionError: 0 != 2
+
+----------------------------------------------------------------------
+Ran 14 tests in 12.945s
+
+FAILED (failures=2)
+Found 14 test(s).
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=15
