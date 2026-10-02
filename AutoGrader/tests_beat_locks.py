@@ -413,7 +413,8 @@ class RealTaskSkipTests(TestCase):
             for task in beat_entries()
             if declared_lock(task_named(task)) is not None
         ]
-        self.assertEqual(len(guarded), 21)
+        # 21 on beta, plus Epic A's two audit retention sweeps (merge-down b5).
+        self.assertEqual(len(guarded), 23)
         for task, lock in guarded:
             with self.subTest(task):
                 assert lock is not None

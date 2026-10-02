@@ -37,6 +37,15 @@ ROLE_WORDS = re.compile(
 PROBE_PASSWORD = "Str0ng-h71-pass!"  # pragma: allowlist secret
 
 
+# Epic A: a coded error carries a support reference that is new for every
+# response, so two identical refusals differ only there.
+REFERENCE = re.compile(rb'"reference":"[0-9a-f]{32}"')
+
+
+def without_reference(content):
+    return REFERENCE.sub(b'"reference":"<reference>"', content)
+
+
 def make_user(email, user_type):
     user = User.objects.create_user(email=email, password=PROBE_PASSWORD)
     user.user_type = user_type
@@ -101,15 +110,17 @@ class StudentAddNamesNoRoleTests(APITestCase):
                 self.assertEqual(single[1].status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertIn(NOT_A_STUDENT_MESSAGE, single[1].content.decode())
                 self.assertEqual(bulk[1].data["failure_count"], 1)
-                self.assertEqual(
-                    bulk[1].data["results"][0]["error"], NOT_A_STUDENT_MESSAGE
-                )
+                # Epic A S7d: a bulk row carries the neutral message in its
+                # row form, with the row code (beta pins the rowless text).
+                row = bulk[1].data["results"][0]
+                self.assertEqual(row["reason_code"], "ROW_STAFF_EMAIL")
+                self.assertEqual(row["error"], "Row 1: t" + NOT_A_STUDENT_MESSAGE[1:])
 
     def test_every_role_gets_the_same_answer(self):
         """The answer must not tell one staff role from another."""
         answers = {
             role: [
-                (label, response.status_code, response.content)
+                (label, response.status_code, without_reference(response.content))
                 for label, response in self.routes(account.email)
             ]
             for role, account in self.staff.items()
