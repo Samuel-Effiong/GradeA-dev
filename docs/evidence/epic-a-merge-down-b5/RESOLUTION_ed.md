@@ -1,0 +1,136 @@
+# Bundle 5 merge-down (beta 74bfc8d3 → phase2/epic-a cc22bc03): resolution record
+
+Author of the resolution: ed (Security), 2026-10-02. 0b created the branch
+`task/epic-a-merge-down-b5` and the in-progress merge, checks the result and commits it.
+ed gates it; v2 verifies. Merge base: 67a06817.
+
+## The five conflict hunks (SM rulings, 2026-10-02)
+
+| File | Hunk | Resolution | Why |
+|---|---|---|---|
+| `billing/license_service.py` | the "Removed teacher … Expired %d credit buckets." log string | **epic** | Both sides are ids-only. Beta's is two adjacent literals that join with no separator ("…license %sExpired %d…"); d5 fixes that on beta to match. No test pins the line. |
+| `billing/tasks.py` | imports | **both** | The epic's `audit_metrics` and beta's `beat_locks` / `single_instance` are each used. |
+| `classrooms/tests_security_penetration.py` | one assertion | **epic** (S7d's form: `ROW_STAFF_EMAIL`, "Row 1: …") | The epic's own comment at that line says S7d's form wins over H-71's rowless message. Beta's two lines are the only beta-added lines absent from the result. |
+| `users/signals.py` | `str(exc)` vs `type(exc).__name__`, twice | **beta** (H-80) | `str(exc)` can carry an address. These were the two epic-only lines H-80's guard would have flagged. |
+
+`assignments/tasks.py` and `students/tests_h38_tasks_namespace.py` did not conflict and are
+byte-identical to cc22bc03 (the epic side: S7b's coded H-38 refusal), as recorded for b4.
+
+## The branch, commit by commit
+
+| Commit | By | What |
+|---|---|---|
+| 05808f8a | 0b | **Rename follow-through for H1**, before the merge (SM ruling). The epic's `check-no-pii-in-logs` hook rejected the first merge attempt: H1 moved `billing/management/commands/backfill.py` to `scripts/one_off_backfill_stripe_schedules.py`, and the epic's `scripts/pii_log_baseline.txt` listed only the old path. This commit lists the new path beside the old one. |
+| 5554811a | 0b | The merge of beta 74bfc8d3, with the five hunks above as ed left them (0b compared sha256 of the four files across an abort and redo). `git show --remerge-diff` lists exactly those four files. |
+| 518771e2 | ed | **Epic-only follow-up required by beta's H-65 guard**, part 1: `audit/tests_sweep_beat_lock.py`. |
+| 804258f0 | ed | Part 2: `@single_instance(max_hold=beat_locks.DAILY)` on both audit sweeps, plus the imports. |
+| 88d3f29d | ed | The stale baseline line for the old backfill path removed. |
+| (next) | ed | `billing/license_service.py` and `users/signals.py` leave the PII-log baseline. |
+
+**5554811a alone fails one guard**: `AutoGrader.tests_beat_locks`
+`test_every_beat_task_is_locked_or_exempt`, on the two epic-only beat entries below. That is
+accepted (SM): only the branch tip is merged into `phase2/epic-a`, with `--no-ff`, so the
+epic's first-parent history never has a red state. The gate's step 0 shows the failure.
+
+## Epic-only follow-up required by beta's H-65 guard: the audit sweeps take the Beat lock
+
+Cross-side guard rule. Beta's H-65 guard requires every `CELERY_BEAT_SCHEDULE` entry to use
+`@single_instance` or be in `EXEMPT_BEAT_TASKS`. The epic's two audit sweeps
+(`audit.tasks.sweep_audit_retention`, `sweep_audit_pii_short_retention`) are epic-only beat
+entries and were neither. Both now carry `@single_instance(max_hold=beat_locks.DAILY)`, like
+every other daily task (`audit/tasks.py`, +4 lines). The SM chose the lock over an exemption:
+an overlapping second sweep would delete nothing new but would write a second
+`AUDIT_RETENTION_SWEEP` event. After the change the only unlocked beat tasks are the two
+exempt ones.
+
+`audit/tests_sweep_beat_lock.py` (7 tests) pins what the lock means for a sweep; mutants R3
+and R4 remove each decorator.
+
+### What happens to a sweep when Redis is unavailable (SM's question)
+
+Under H-65 a locked task that cannot reach the lock store **fails closed**: it is skipped,
+with an ERROR log naming the task and the lock key, and returns the "skipped" summary. For
+the sweeps that means nothing is deleted or scrubbed and no `AUDIT_RETENTION_SWEEP` event is
+written for that run (tests `TheLockStoreIsUnavailableTests`).
+
+- **Daily retention sweep (06:00).** A skipped run delays deletion by one day. Nothing is
+  lost: the sweep selects by cutoff (`occurred_at < now - 365 d` / `3 y`), so the next run
+  that gets the lock deletes everything the skipped run would have. The missing self-record
+  for the skipped day is the visible gap S3's G6 rule intends ("a stopped sweep is a gap").
+- **PII short-retention sweep (06:30).** The promise is that `source_ip` / `user_agent` are
+  blanked after `PII_SHORT_RETENTION_DAYS` (90). The sweep is daily, so a row is blanked
+  between 90 d and 91 d after it was written even with no failure. One skipped run moves the
+  upper bound to 92 d: **one extra day per skipped run, never more**, because the sweep also
+  selects by cutoff and the next run catches up
+  (`test_the_next_run_does_the_skipped_runs_work`). It can fall further behind only if the
+  lock store is down at 06:30 on consecutive days.
+- **Does the lock add a new way to miss a run?** Only narrowly. The lock store is the
+  `default` cache's Redis. If the Celery broker is the same Redis, a run cannot be delivered
+  while it is down, lock or no lock. The new case is a Redis that answers the broker but not
+  the cache connection at that minute; then the sweep is skipped where before it would have
+  run. The Beat watchdog reports a lock store that is not answering
+  (`test_the_watchdog_reports_a_lock_store_that_is_not_answering`).
+
+## The PII-log baseline (`scripts/pii_log_baseline.txt`)
+
+- The stale line `billing/management/commands/backfill.py` is removed (88d3f29d): the file
+  does not exist after the merge. The new path stays listed (05808f8a); the script has 3
+  flagged lines (92, 113, 120), unchanged by the move.
+- `billing/license_service.py` and `users/signals.py` are **removed from the baseline** (SM
+  ruling, from d5's read of the hook). `scripts/check_no_pii_in_logs.py`'s scanner finds
+  **0 flagged calls** in each on the merged tree (it also flags `first_name`, `last_name`
+  and `get_full_name`), and the whole hook passes with the two entries gone
+  ("OK: no new PII-in-logs violations", exit 0). The hook now guards both files.
+- Still listed, with flagged calls on the merged tree: `billing/access_control.py` 7,
+  `billing/qa_time_travel.py` 2, `billing/services.py` 17, `billing/stripe_service.py` 16,
+  `billing/tasks.py` 11, `billing/views.py` 2 (H-23 / H-91).
+
+## Cross-side checks done before the gate (static, nothing run)
+
+Beta's guards against epic-only code:
+- **H-80 log guard** (`billing/tests/test_logs_carry_no_email.py`): its `leaks()` helper run
+  over the merged `billing/license_service.py` and `users/signals.py`: **0 flagged calls**.
+  (Before the merge the epic had 32 and 12; pre-check output in
+  `~/Documents/Projects/GAP-ed-scripts/merge-down-b5/`.) `billing/services.py` is not guarded;
+  it has 18 flagged calls on the merged tree (H-91, d5).
+- **H1 commands guard**: 24 command modules on the merged tree, all with a `Command` class,
+  the epic-only `audit_volume_report` included. `billing/management/commands/backfill.py` is
+  gone and `scripts/` is not a package.
+- **H-73 raw-Redis guard** (`RAW_CLIENT_USERS` in `tests_cache_invalidation_coverage.py`): a
+  grep of production modules finds raw-client use only in the four listed modules; no
+  epic-only module (the audit failed-auth cap uses the cache API).
+- **H-65 beat-lock guard**: fails on the merge commit for the two audit sweeps; fixed by the follow-up above.
+
+Epic's guards against beta's new code (`tests_reason_codes`, `tests_error_messages`, the
+sync-only email-code guard, `audit.tests_route_coverage`, `audit.tests_history_guard`): not
+checkable by reading alone; they are in the gate's first step.
+
+Tests grepped for text a resolution removes: nothing asserts on the two `users/signals.py`
+log lines or on the license log string; `NOT_A_STUDENT_MESSAGE` is still asserted by
+`classrooms/tests_h71_student_add_role.py` and by the S7d-form line.
+
+## Auto-merged files changed on both sides (for the remerge-diff review)
+
+For each, every line added by either side since the merge base is present in the result
+(checked by script; the only two absent lines are beta's in `tests_security_penetration.py`,
+above).
+
+| File | Beta since base | Epic since base | Note |
+|---|---|---|---|
+| `AutoGrader/settings.py` | +7/-0 | +47/-2 | additive both ways (H2's switch; the epic's audit settings and beat entries) |
+| `AutoGrader/tests_cache_invalidation_coverage.py` | +732/-1 | +4/-0 | H-73's guard arrives; the epic's four lines kept |
+| `billing/license_views.py` | +35/-0 | +69/-34 | additive |
+| `billing/services.py` | +47/-9 | +33/-9 | both kept |
+| `billing/tests/test_other_school_before_subscription.py` | +267/-0 | +267/-0 | identical on both sides (H-78 fold) |
+| `classrooms/serializers.py` | +19/-18 | +10/-13 | both kept |
+| `classrooms/services/__init__.py` | +2/-0 | +2/-0 | identical on both sides |
+| `classrooms/services/enrollment.py` | +15/-3 | +28/-6 | the result equals the epic's file: beta's change was already there (H-71 copy in S7d) |
+| `billing/license_service.py` | +133/-88 | +224/-63 | H-80's ids-only calls and H-86's reason lines arrive; the epic's lines kept |
+| `billing/tasks.py` | +22/-35 | +6/-0 | both kept |
+| `users/signals.py` | +20/-25 | +5/-5 | the result equals beta's file: the epic's five email→id changes are the same lines in H-80 |
+
+## Apps whose production code the merge changes on the epic
+
+`billing`, `users`, `classrooms`, `ai_processor`, `AutoGrader`, `dashboard`
+(`dashboard/tasks.py`), and `audit` (the sweep locks). The combined regression covers
+those seven.
