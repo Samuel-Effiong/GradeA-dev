@@ -34,18 +34,26 @@ TESTS = ["AutoGrader.tests_redis_hygiene_databases"]
 MUTANTS = [
     (
         "D1",
-        "the database is set after the URL is parsed",
+        "the database goes into the URL's path",
         HY,
-        '    kwargs["db"] = db\n',
-        "",
+        '        (parts.scheme, parts.netloc, f"/{db}", urlencode(query), parts.fragment)\n',
+        "        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)\n",
         1,
     ),
     (
         "D2",
         "the clients are not built with from_url(location, db=db)",
         HY,
-        "        yield db, client_for(location, db)\n",
-        "        import redis\n\n        yield db, redis.Redis.from_url(location, db=db)\n",
+        "        yield db, redis.Redis.from_url(location_for(location, db))\n",
+        "        yield db, redis.Redis.from_url(location, db=db)\n",
+        1,
+    ),
+    (
+        "D4",
+        "a unix:// URL's database is its db parameter",
+        HY,
+        '        query.append(("db", str(db)))\n',
+        "",
         1,
     ),
     (

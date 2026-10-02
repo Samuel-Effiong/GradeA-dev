@@ -20,6 +20,7 @@ import os
 import subprocess
 import sys
 
+import redis
 from django.conf import settings
 from django.test import SimpleTestCase
 
@@ -232,6 +233,11 @@ class EveryDatabaseIsVisitedTests(SimpleTestCase):
             "unix:///tmp/redis.sock?db=4",
         ):
             with self.subTest(location=location):
+                before = redis.connection.parse_url(location)
                 for db in (0, 5, 15):
-                    client = hygiene.client_for(location, db)
-                    self.assertEqual(database_of(client), db)
+                    after = redis.connection.parse_url(
+                        hygiene.location_for(location, db)
+                    )
+                    self.assertEqual(after["db"], db)
+                    # Everything else is the URL's own: host, port, TLS, ...
+                    self.assertEqual({**after, "db": None}, {**before, "db": None})

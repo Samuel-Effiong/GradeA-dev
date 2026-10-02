@@ -45,6 +45,7 @@ import os
 import re
 import signal
 import threading
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
 
@@ -63,29 +64,36 @@ _UNLINK_BATCH = 1000
 
 def _clients():
     """Yield (db, client) for every logical database of the test Redis."""
+    import redis
     from django.conf import settings
 
     location = settings.CACHES["default"]["LOCATION"]
     if isinstance(location, (list, tuple)):
         location = location[0]
     for db in DATABASES:
-        yield db, client_for(location, db)
+        yield db, redis.Redis.from_url(location_for(location, db))
 
 
-def client_for(location, db):
-    """A client on database `db` of the Redis at `location`.
+def location_for(location, db):
+    """`location` (a Redis URL) pointed at database `db`.
 
     Not `redis.Redis.from_url(location, db=db)`: when the URL names a
     database (`redis://host:6379/0`, the local and the CI layout) redis-py
     takes the database from the URL and ignores the argument, so every
     "per database" client was on the URL's own database and the other 15
-    were never visited (H-97). The database is set after the URL is parsed.
+    were never visited (H-97). So the database goes into the URL itself:
+    the path of a redis:// or rediss:// URL, the `db` parameter of a
+    unix:// one.
     """
-    import redis
-
-    kwargs = redis.connection.parse_url(location)
-    kwargs["db"] = db
-    return redis.Redis(connection_pool=redis.ConnectionPool(**kwargs))
+    parts = urlsplit(location)
+    query = [(key, value) for key, value in parse_qsl(parts.query) if key != "db"]
+    if parts.scheme == "unix":
+        # No network location: urlunsplit would drop the "//" redis-py needs.
+        query.append(("db", str(db)))
+        return f"unix://{parts.path}?{urlencode(query)}"
+    return urlunsplit(
+        (parts.scheme, parts.netloc, f"/{db}", urlencode(query), parts.fragment)
+    )
 
 
 def pid_is_alive(pid):
