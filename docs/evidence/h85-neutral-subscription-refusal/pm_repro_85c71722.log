@@ -1,0 +1,100 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 4141ef37-7957-4923-bf46-b7b0e6361771.
+Cannot activate automatic trial for user 4141ef37-7957-4923-bf46-b7b0e6361771 (validation): ValueError
+Teacher 4141ef37-7957-4923-bf46-b7b0e6361771 has an individual subscription: not enrolled.
+FFree trial plan not found: no trial activated for user 46e09f4f-0d77-468f-9e07-e59189d3ce11.
+Cannot activate automatic trial for user 46e09f4f-0d77-468f-9e07-e59189d3ce11 (validation): ValueError
+Teacher 46e09f4f-0d77-468f-9e07-e59189d3ce11 has an individual subscription: not enrolled.
+FFree trial plan not found: no trial activated for user 0d35ebef-0399-4a6b-9415-799d1fda69ae.
+Cannot activate automatic trial for user 0d35ebef-0399-4a6b-9415-799d1fda69ae (validation): ValueError
+Teacher 0d35ebef-0399-4a6b-9415-799d1fda69ae has an individual subscription: not enrolled.
+FFree trial plan not found: no trial activated for user 61d4da33-83ce-416a-a79e-d551db49c30f.
+Cannot activate automatic trial for user 61d4da33-83ce-416a-a79e-d551db49c30f (validation): ValueError
+Teacher 61d4da33-83ce-416a-a79e-d551db49c30f has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 1c5470c8-281a-4536-9339-e897796dbf13 (school 35b4d55a-cef5-4751-82a4-5addfb474f2e): IndividualSubscriptionConflictError
+FFree trial plan not found: no trial activated for user f4ed99e8-089d-4dbf-81be-5d6e682d0d7a.
+Cannot activate automatic trial for user f4ed99e8-089d-4dbf-81be-5d6e682d0d7a (validation): ValueError
+Teacher f4ed99e8-089d-4dbf-81be-5d6e682d0d7a has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 6938588e-1b3b-4ffb-ad8d-dca21c92d942 (school 742d6c55-b84a-4faf-87c5-c7f40f8b90b9): IndividualSubscriptionConflictError
+FFree trial plan not found: no trial activated for user 81a82f6b-a295-46f6-968c-3e8d43cef30c.
+Cannot activate automatic trial for user 81a82f6b-a295-46f6-968c-3e8d43cef30c (validation): ValueError
+.
+======================================================================
+FAIL: test_enrolling_a_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_enrolling_a_paying_teacher_is_refused_neutrally)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 152, in test_enrolling_a_paying_teacher_is_refused_neutrally
+    self.assertNeutral(str(caught.exception), teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 110, in assertNeutral
+    self.assertEqual(text, NEUTRAL)
+AssertionError: 'Teacher paying@h85school.edu has an acti[131 chars]rst.' != "This teacher can't be added to your scho[39 chars]ort."
+- Teacher paying@h85school.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.
++ This teacher can't be added to your school yet. Please ask them to contact support.
+
+
+======================================================================
+FAIL: test_inviting_an_unattached_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_inviting_an_unattached_paying_teacher_is_refused_neutrally)
+The H-85 case: no school, so any admin can try the address.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 134, in test_inviting_an_unattached_paying_teacher_is_refused_neutrally
+    self.assertNeutral(str(caught.exception), teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 110, in assertNeutral
+    self.assertEqual(text, NEUTRAL)
+AssertionError: 'Teacher paying@h85none.edu has an active[129 chars]rst.' != "This teacher can't be added to your scho[39 chars]ort."
+- Teacher paying@h85none.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.
++ This teacher can't be added to your school yet. Please ask them to contact support.
+
+
+======================================================================
+FAIL: test_inviting_the_schools_own_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_inviting_the_schools_own_paying_teacher_is_refused_neutrally)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 144, in test_inviting_the_schools_own_paying_teacher_is_refused_neutrally
+    self.assertNeutral(str(caught.exception), teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 110, in assertNeutral
+    self.assertEqual(text, NEUTRAL)
+AssertionError: 'Teacher paying@h85school.edu has an acti[131 chars]rst.' != "This teacher can't be added to your scho[39 chars]ort."
+- Teacher paying@h85school.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.
++ This teacher can't be added to your school yet. Please ask them to contact support.
+
+
+======================================================================
+FAIL: test_the_add_teachers_response_says_nothing_about_a_subscription (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_add_teachers_response_says_nothing_about_a_subscription)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 168, in test_the_add_teachers_response_says_nothing_about_a_subscription
+    self.assertIn("This teacher can't be added to your school yet.", body)
+AssertionError: "This teacher can't be added to your school yet." not found in '{"success":true,"message":"Request Successful","data":{"successful":0,"failed":1,"errors":[{"teacher_email":"paying@h85none.edu","error":"Teacher paying@h85none.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first."}]}}'
+
+======================================================================
+FAIL: test_the_enrolment_result_carries_the_neutral_sentence (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_enrolment_result_carries_the_neutral_sentence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 181, in test_the_enrolment_result_carries_the_neutral_sentence
+    self.assertNeutral(result["error"], teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_neutral_subscription_refusal.py", line 110, in assertNeutral
+    self.assertEqual(text, NEUTRAL)
+AssertionError: 'Teacher paying@h85none.edu has an active[129 chars]rst.' != "This teacher can't be added to your scho[39 chars]ort."
+- Teacher paying@h85none.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.
++ This teacher can't be added to your school yet. Please ask them to contact support.
+
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.474s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 6 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+systemd-run failed with exit status 1.
+exit=1 wall_s=24

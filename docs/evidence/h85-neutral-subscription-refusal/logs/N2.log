@@ -2,11 +2,12 @@
 # file: billing/license_service.py (occurrence 1)
 # old: '            raise IndividualSubscriptionConflictError(\n                TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION\n            )\n'
 # new: '            raise IndividualSubscriptionConflictError(\n                f"Teacher {teacher.email} has an active individual subscription."\n            )\n'
-# commit: 273c2b308186417cb6e5a3427de92b8b49da8ca9
+# commit: b5911242393122af780f10ef77cf43d1d69961ff
 # exit: 1
-# elapsed_s: 13.2
+# elapsed_s: 4.7
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_enrolling_a_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_enrolling_a_paying_teacher_is_refused_neutrally)
+FAIL: test_the_enrolment_site_logs_its_own_reason (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_enrolment_site_logs_its_own_reason)
 
-FAILED (failures=1)
+FAILED (failures=2)

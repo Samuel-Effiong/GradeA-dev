@@ -2,9 +2,9 @@
 # file: billing/license_service.py (occurrence 1)
 # old: '            logger.warning(\n                "Teacher %s has an individual subscription: not enrolled.",\n                teacher.id,\n            )\n'
 # new: ''
-# commit: 29bebdcb1bc0ae84d15690acef18da2789ec79f8
+# commit: b5911242393122af780f10ef77cf43d1d69961ff
 # exit: 1
-# elapsed_s: 3.6
+# elapsed_s: 4.3
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_the_enrolment_site_logs_its_own_reason (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_the_enrolment_site_logs_its_own_reason)

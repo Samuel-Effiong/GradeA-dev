@@ -124,6 +124,47 @@ the production change is one example string in a schema file.
 The founder saw 1a's table of what an admin can tell apart and decided to
 keep H-85 as built (SM, 2026-10-02).
 
+## After the base update onto bundle 6 (short gates at `b5911242`)
+0b base-updated the verified branch (`e8642276`) onto `task/beta-batch-6`
+`ac2ec323`, which has H-88, H-93 and H-81. Git merged
+`billing/license_service.py` from both sides without conflict: this
+branch's neutral-refusal hunks and H-88's anchor hunks.
+
+| Short gate (at `b5911242`, under 0b's grant) | Result | Log |
+|---|---|---|
+| Repro: the test commit `85c71722` (h78-repro worktree) | 6 tests, 5 failures | `pm_repro_85c71722.log` |
+| (a) 23 modules | 297 OK | `pm_a_modules_b5911242.log.gz` |
+| (b) N1–N8 (`test_h85_mut`, rule 17) | baseline green, 8/8 killed, restores sha-verified | `pm_b_mutation_battery_b5911242.log`, `logs/`, `results.tsv` |
+
+**No (c), by the SM's ruling.** The reasons given: (a) holds every module
+that exercises `license_service.py`, H-88's three included; both sides'
+code is unchanged since their own regressions (this branch: billing + the
+9 guards, 2128 OK; H-88: four apps + guards, 3469 OK); and the whole billing
+app runs on the combined file twice more, in H-91's chain after its base
+update and in the bundle's strict full run. The condition: if any module in
+(a) had been red, the whole billing app would run before anything merged.
+None was.
+
+**How the 23 modules were chosen** (recorded as the SM required):
+- this branch's own: `test_neutral_subscription_refusal`,
+  `test_other_school_before_subscription`, `test_track_separation`;
+- H-80's guard `test_logs_carry_no_email` and the two schema-extension
+  guards (`assignments.tests_schema_extension`,
+  `users.tests_schema_extension`);
+- every billing test module that exercises the licence service, listed in
+  `licence_modules.txt` (17 modules), which is the output of:
+
+      ls billing/tests | grep -E "^test_(licen|license)[a-z_0-9]*\.py|test_owed|test_allocation_anchor|test_h38_teacher_removal|test_add_teachers|test_h28_licence"
+
+  It includes H-88's `test_licence_grant_anchor`, `test_allocation_anchor`
+  and `test_owed_grant_detection`.
+
+Before the gates, on the merged tree: all 8 mutant anchors matched, and
+H-80's source guard, applied statically, found no problem. The runs were
+serial, with the rule 16 prefix `idle:sleep:handle-lid-switch`, rules 12
+and 13 at 6G, and rule 17 on the battery. H-97's gate and ed's regression
+ran at the same time, each in its own worktree and test database.
+
 ## Mutants
 | Id | Guards | Result |
 |---|---|---|
