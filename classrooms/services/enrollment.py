@@ -48,6 +48,15 @@ CROSS_SCHOOL_REJECTION_MESSAGE = (
     "mistake, contact your school administrator."
 )
 
+#: What a teacher is told when the address belongs to an account that is not
+#: a student (a teacher, a school admin, a super admin) - H-71.
+#:
+#: Deliberately neutral, for the same reason as the message above: naming
+#: the role ("belongs to a teacher account") let a teacher probe any address
+#: and learn who on the platform is staff. The server log carries the
+#: account id and its type for an admin.
+NOT_A_STUDENT_MESSAGE = "This email can't be added as a student."
+
 
 def normalize_email(value):
     """Fold an address to the form the rest of the project stores.
@@ -130,10 +139,13 @@ def check_existing_account_may_join(student, course):
     were, so the caller raises instead of "fixing up" ownership.
     """
     if student.user_type != UserTypes.STUDENT:
-        raise EnrollmentError(
-            f"This email belongs to a {student.get_user_type_display().lower()} "
-            "account and cannot be added as a student."
+        logger.info(
+            "Refused to enrol non-student account %s (%s) in course %s",
+            student.pk,
+            student.user_type,
+            course.pk,
         )
+        raise EnrollmentError(NOT_A_STUDENT_MESSAGE)
 
     target_school_id = course.teacher.school_id if course.teacher else None
     student_school_ids = schools_associated_with(student)
