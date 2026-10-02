@@ -228,6 +228,30 @@ The fix (`audit/tests_volume_report.py`):
   `audit_action_time_ix`, then `audit_retention_ix`, each inside a rolled-back savepoint, and
   requires the same check to raise. That is the proof the SM asked for, kept in the suite.
 
+### After the fix, at 878ddf58 (rule 15.4; 2026-10-02 14:46–14:49 WAT)
+
+| Run | Result | Log |
+|---|---|---|
+| The module alone, serially, fresh test database, three times | 10 tests OK, three times | `volume_report_after_fix.txt` |
+| The module once with `--parallel 2`, under the machine-wide flock | 10 tests OK | same file |
+| **Deliberate red**: the new test with `assertRaises` taken out, so the check's own failure is shown (own database, source restored afterwards) | FAILED (failures=2): one per dropped index. Without `audit_action_time_ix` the action count has no plan that pins `action`; without `audit_retention_ix` the class count falls to a bitmap scan with no pinned `retention_class`. | `volume_report_red_without_each_index.txt` |
+
+So the regression's result stands as **5134 passed, 1 planner-dependent test, fixed test-only
+at 21645f8c**. There is no single green run of the seven apps on the final tip; the tip
+differs from c32de6aa only in `audit/tests_volume_report.py` and docs.
+
+## The gate in one table
+
+| What | Tip | Result |
+|---|---|---|
+| Reproduce-first: beta's beat guard + the sweep test on the merge commit's `audit/tasks.py` | 3cfc40f8 | red, as expected |
+| Changed modules + both sides' guards (745 tests) | 3cfc40f8 | **RED**: 6 failures + 2 errors, all test-side; fixed test-only at 9f87eedf |
+| The three touched modules + the sweep test | 798c06e2 | 49 OK |
+| Resolution mutants R1–R6 | 798c06e2 | 6 of 6 killed |
+| Seven-app regression (5135 tests) | c32de6aa | **1 failure** (H-95, planner-dependent); 5134 passed |
+| `audit.tests_volume_report` alone ×3 before the fix | c32de6aa | 9 OK ×3 |
+| The same after the fix, ×3 serial and ×1 parallel; deliberate red | 878ddf58 | 10 OK ×4; red for each dropped index |
+
 ## Apps whose production code the merge changes on the epic
 
 `billing`, `users`, `classrooms`, `ai_processor`, `AutoGrader`, `dashboard`
