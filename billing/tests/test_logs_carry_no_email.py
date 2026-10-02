@@ -36,6 +36,7 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
+from billing.services import SubscriptionService
 from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
@@ -58,9 +59,13 @@ def logger_calls(path):
 
 
 def leaks(call):
-    """What in this logger call's arguments may carry an address."""
+    """What in this logger call may carry an address: the message must be a
+    plain literal (no %, +, .format or f-string building it), and no
+    argument, the message included, may hold an address."""
     found = []
-    for arg in call.args[1:]:
+    if call.args and not _is_plain_literal(call.args[0]):
+        found.append("a message that is not a literal")
+    for arg in call.args:
         if isinstance(arg, ast.Name) and arg.id in EXCEPTION_NAMES:
             found.append(f"the exception's text ({arg.id})")
         for node in ast.walk(arg):
@@ -80,9 +85,16 @@ def leaks(call):
                 and node.args[0].id in EXCEPTION_NAMES
             ):
                 found.append(f"str({node.args[0].id})")
-    if call.args and not isinstance(call.args[0], (ast.Constant, ast.BinOp)):
-        found.append("a message that is not a literal")
     return found
+
+
+def _is_plain_literal(message):
+    """A string constant, or string constants joined by `+`."""
+    if isinstance(message, ast.Constant):
+        return isinstance(message.value, str)
+    if isinstance(message, ast.BinOp) and isinstance(message.op, ast.Add):
+        return _is_plain_literal(message.left) and _is_plain_literal(message.right)
+    return False
 
 
 def _is_len_call(arg, name):
@@ -123,6 +135,16 @@ class NoEmailInLogCallsTest(SimpleTestCase):
             'logger.error("x %s", exc)': "the exception's text (exc)",
             'logger.error("x %s", str(e))': "str(e)",
             "logger.warning(error_msg)": "a message that is not a literal",
+            # 1a's P2: an address formatted into the message itself.
+            'logger.info("x %s" % teacher.email)': "teacher.email",
+            'logger.info("x " + teacher.email)': "teacher.email",
+            'logger.info("x {}".format(teacher.email))': "teacher.email",
+            'logger.info(f"x {teacher.email}")': "teacher.email",
+            'logger.info("x %s" % teacher.id)': "a message that is not a literal",
+            'logger.info("x " + name)': "a message that is not a literal",
+            'logger.info("x {}".format(teacher.id))': "a message that is not a literal",
+            'logger.info(f"x {teacher.id}")': "a message that is not a literal",
+            'logger.error("x %s" % exc)': "a message that is not a literal",
         }
         for code, expected in samples.items():
             with self.subTest(code=code):
@@ -132,6 +154,8 @@ class NoEmailInLogCallsTest(SimpleTestCase):
             'logger.info("x %s", teacher.id)',
             'logger.error("x %d", len(failed_results))',
             'logger.error("x %s", type(exc).__name__)',
+            'logger.info("x " + "y %s", teacher.id)',
+            'logger.info("x " "y %s", teacher.id)',
         ):
             with self.subTest(clean=clean):
                 self.assertEqual(leaks(ast.parse(clean, mode="eval").body), [])
@@ -284,3 +308,63 @@ class SignalsLogNoAddressTest(TestCase):
             )
 
         assertGuardedLinesHaveNoAddress(self, logs)
+
+
+class FreeTrialRefusalsLogAReasonTest(TestCase):
+    """1a's P1: users.signals logs only the refusal's class, so each refusal
+    in activate_automatic_free_trial logs its own reason, by id."""
+
+    def new_teacher(self):
+        return CustomUser.objects.create_user(
+            email="trial@h80school.edu",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+
+    def test_a_missing_trial_plan_is_logged_as_an_error(self):
+        """A configuration fault: without it every new teacher is silently
+        denied a trial."""
+        SubscriptionPlan.objects.filter(
+            tier=PlanTier.TRIAL, category=PlanCategory.INDIVIDUAL
+        ).delete()
+        user = self.new_teacher()
+        UserSubscription.objects.filter(user=user).delete()
+
+        with self.assertLogs("billing.services", "ERROR") as logs:
+            with self.assertRaises(ValueError):
+                SubscriptionService.activate_automatic_free_trial(user)
+
+        [reason] = [line for line in logs.output if "Free trial plan not found" in line]
+        self.assertIn("ERROR", reason)
+        self.assertIn(str(user.id), reason)
+        self.assertEqual([line for line in logs.output if "@" in line], [])
+
+    def test_a_used_trial_is_logged_as_a_warning(self):
+        plan = SubscriptionPlan.objects.create(
+            name=PlanType.STANDARD,
+            display_name="H80 Trial Stand-in",
+            category=PlanCategory.INDIVIDUAL,
+            tier=PlanTier.STANDARD,
+            monthly_credits=5000,
+        )
+        user = self.new_teacher()
+        UserSubscription.objects.filter(user=user).delete()
+        UserSubscription.objects.create(
+            user=user,
+            plan=plan,
+            is_active=False,
+            is_trial=True,
+            billing_cycle_start=timezone.now() - timedelta(days=30),
+            billing_cycle_end=timezone.now() - timedelta(days=16),
+        )
+
+        with self.assertLogs("billing.services", "WARNING") as logs:
+            with self.assertRaises(ValueError):
+                SubscriptionService.activate_automatic_free_trial(user)
+
+        [reason] = [
+            line for line in logs.output if "already used the free trial" in line
+        ]
+        self.assertIn("WARNING", reason)
+        self.assertIn(str(user.id), reason)
+        self.assertEqual([line for line in logs.output if "@" in line], [])
