@@ -1,0 +1,6 @@
+13:00:10 repro exit=1 (red expected)
+13:02:22 (a) exit=0
+13:06:18 (b) part M exit=0
+13:10:15 (b) part WO exit=0
+13:18:13 (c) exit=0
+13:18:13 CHAIN END
