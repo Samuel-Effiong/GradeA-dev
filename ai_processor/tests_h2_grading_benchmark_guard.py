@@ -54,11 +54,16 @@ class BenchmarkRowsTestCase(TestCase):
 
     def assertOneInfoSkipLine(self, logs, switch):
         """A skip is one INFO line (visible at the default level) that
-        names the switch an operator would set."""
+        names the switch an operator would set.
+
+        The switch is looked for in the line's own text (`record.msg`), not
+        in the formatted message: the refusal line appends the exception,
+        whose text names the switch too and would mask a line that doesn't.
+        """
         self.assertEqual([record.levelname for record in logs.records], ["INFO"])
-        message = logs.records[0].getMessage()
-        self.assertIn("skip", message)
-        self.assertIn(switch, message)
+        template = logs.records[0].msg
+        self.assertIn("skip", template)
+        self.assertIn(switch, template)
 
 
 class TheSwitchIsOffByDefaultTests(TestCase):
