@@ -27,6 +27,9 @@ answer stays the plain "This course wasn't found.".
 import json
 from unittest.mock import patch
 
+from django.urls import reverse
+
+from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import (
     COURSE_NOT_FOUND,
     auto_grade_due_assignment,
@@ -41,14 +44,18 @@ from AutoGrader.reason_codes import (
     CodedError,
     reason_of,
 )
+from billing.tests.test_h38_part2_removed_teacher_routes import jwt_client, make_user
+from classrooms.models import Course, School, Session, SessionOwnerType
 from students.exceptions import CourseNotReachableError
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
     BackgroundTaskType,
     BatchUploadSession,
+    StudentSubmission,
 )
 from students.tests_h38_tasks_namespace import SENTINEL, TasksFixture
+from users.models import UserTypes
 
 CODE = "COURSE_NOT_REACHABLE"
 
@@ -149,6 +156,7 @@ class RefusedBatchTests(RefusalAuditFixture):
         # Scheduled with no tracked task: nobody asked for this run now.
         self.assertEqual(event.actor_role, ActorRole.SYSTEM)
         self.assertIsNone(event.actor_id)
+        self.assertEqual(event.school_id, self.school.id)
 
     def test_a_refused_tracked_batch_names_its_requester(self):
         self.refuse_the_batch(tracked=True)
@@ -159,14 +167,6 @@ class RefusedBatchTests(RefusalAuditFixture):
         self.assertEqual(event.target_type, "CustomUser")
         self.assertEqual(event.target_id, self.teacher.id)
         self.assertEqual(event.metadata["task_id"], str(self.batch_task.id))
-
-    def test_the_event_belongs_to_the_courses_school(self):
-        """The removed teacher has no school any more; the school whose
-        course it is must still find the refusal in its own trail."""
-        self.refuse_the_batch()
-
-        [event] = self.failures()
-        self.assertEqual(event.school_id, self.school.id)
 
 
 class RefusedAutoGradeTests(RefusalAuditFixture):
@@ -195,6 +195,133 @@ class RefusedAutoGradeTests(RefusalAuditFixture):
         self.assertEqual(len(self.failures()), 2)
         self.refuse_the_run()
         self.assertEqual(len(self.failures()), 3)
+
+
+class TheCoursesSchoolFindsTheRefusalTests(RefusalAuditFixture):
+    """SM ruling: all three refusals are filed under the course's school,
+    so that school's admin finds them and no other school's does. For
+    refusal 1 this changes the school of its existing event, for this one
+    cause only."""
+
+    def setUp(self):
+        super().setUp()
+        self.remove_teacher()
+        other_school = School.objects.create(name="School B H38 N3")
+        make_user("admin-b@h38n3.test", UserTypes.SCHOOL_ADMIN, other_school)
+
+    def seen_by(self, email):
+        response = jwt_client(email).get(reverse("school-admin-audit-events"))
+        self.assertEqual(response.status_code, 200, response.content[:200])
+        payload = response.json()["data"]
+        rows = payload["results"] if isinstance(payload, dict) else payload
+        return {row["id"] for row in rows if row["reason_code"] == CODE}
+
+    def assertOnlyTheCoursesSchoolSeesIt(self):
+        [event] = self.failures()
+        self.assertEqual(event.school_id, self.school.id)
+        self.assertEqual(self.seen_by(self.admin.email), {str(event.id)})
+        self.assertEqual(self.seen_by("admin-b@h38n3.test"), set())
+
+    def test_the_refused_run_is_filed_under_the_courses_school(self):
+        self.teacher.refresh_from_db()
+        self.assertIsNone(self.teacher.school_id, "the removed teacher has no school")
+        self.refuse_the_run()
+        self.assertOnlyTheCoursesSchoolSeesIt()
+
+    def test_the_refused_batch_is_filed_under_the_courses_school(self):
+        self.refuse_the_batch(tracked=True)
+        self.assertOnlyTheCoursesSchoolSeesIt()
+
+    def test_the_refused_auto_grade_is_filed_under_the_courses_school(self):
+        self.refuse_the_auto_grade()
+        self.assertOnlyTheCoursesSchoolSeesIt()
+
+
+class AnotherFailureKeepsItsSchoolTests(RefusalAuditFixture):
+    """Refusal 1's school changes for the reachability refusal only."""
+
+    def test_a_members_failed_run_is_still_filed_under_the_actors_school(self):
+        with patch("assignments.tasks.grade_engine", side_effect=RuntimeError("x")):
+            grade_engine_async.apply(
+                args=(str(self.teacher.id), str(self.submission.id)),
+                kwargs={"processing_task_id": str(self.task.id)},
+            )
+
+        [event] = self.failures()
+        self.assertIsNone(event.reason_code)
+        self.assertIsNotNone(self.teacher.school_id)
+        self.assertEqual(event.school_id, self.teacher.school_id)
+        self.assertEqual(event.actor_id, self.teacher.id)
+
+    def test_a_failed_run_with_no_tracked_task_still_has_no_school(self):
+        """The emitter's rule for a SYSTEM actor, unchanged: only the
+        reachability refusal borrows the course's school."""
+        with patch("assignments.tasks.grade_engine", side_effect=RuntimeError("x")):
+            grade_engine_async.apply(
+                args=(str(self.teacher.id), str(self.submission.id))
+            )
+
+        [event] = self.failures()
+        self.assertIsNone(event.reason_code)
+        self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+        self.assertIsNone(event.school_id)
+
+
+class ACourseWithNoSchoolTests(RefusalAuditFixture):
+    """A course in a teacher's own session belongs to no school: a run
+    refused there (the runner is not its teacher) has no school, so no
+    school admin sees it."""
+
+    def setUp(self):
+        super().setUp()
+        own_session = Session.objects.create(
+            name="Own term N3",
+            owner_type=SessionOwnerType.INDIVIDUAL,
+            teacher=self.teacher,
+        )
+        own_course = Course.objects.create(
+            name="Own course N3", teacher=self.teacher, session=own_session
+        )
+        self.own_assignment = Assignment.objects.create(
+            title="Own N3",
+            course=own_course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=self.assignment.questions,
+        )
+        self.own_submission = StudentSubmission.objects.create(
+            assignment=self.own_assignment,
+            student=self.student,
+            answers=[{"question_number": 1, "answer_html": "<p>x</p>"}],
+        )
+        self.stranger = make_user("stranger@h38n3.test", UserTypes.TEACHER)
+
+    def test_a_refused_run_on_a_schoolless_course_has_no_school(self):
+        with patch("assignments.tasks.grade_engine") as grade_engine:
+            grade_engine_async.apply(
+                args=(str(self.stranger.id), str(self.own_submission.id))
+            )
+        grade_engine.assert_not_called()
+
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertIsNone(event.school_id)
+
+    def test_a_refused_batch_on_a_schoolless_course_has_no_school(self):
+        with patch("assignments.tasks.grade_engine_async.delay") as delay:
+            result = grade_batch_async.apply(
+                args=(str(self.stranger.id), str(self.own_assignment.id))
+            ).result
+        delay.assert_not_called()
+        self.assertEqual(result, COURSE_NOT_FOUND)
+
+        [event] = self.failures()
+        self.assertRefusal(event)
+        self.assertEqual(event.target_id, self.stranger.id)
+        self.assertIsNone(event.school_id)
+        response = jwt_client(self.admin.email).get(
+            reverse("school-admin-audit-events")
+        )
+        self.assertNotIn(str(event.id), response.content.decode())
 
 
 class NoEventWithoutARefusalTests(RefusalAuditFixture):
