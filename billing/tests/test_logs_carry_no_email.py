@@ -225,12 +225,15 @@ class LicencePathsLogNoAddressTest(TestCase):
     def test_enrolling_and_inviting_logs_no_address(self):
         """The success path: invitation queued, wallet, enrolment, bucket."""
         with self.assertLogs(level="DEBUG") as logs:
-            result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
-                self.licence, self.school, self.admin, "new@h80school.edu"
-            )
-            self.captureOnCommitCallbacks(execute=True)
+            with self.captureOnCommitCallbacks(execute=True):
+                result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                    self.licence, self.school, self.admin, "new@h80school.edu"
+                )
 
         self.assertTrue(result["successful"], result)
+        text = "\n".join(logs.output)
+        self.assertIn("Queued teacher invitation email", text)
+        self.assertIn("Enrolled teacher", text)
         self.assertNoAddress(logs)
 
     def test_a_seat_limit_refusal_logs_its_reason_with_ids(self):
@@ -250,6 +253,24 @@ class LicencePathsLogNoAddressTest(TestCase):
         [reason] = [line for line in logs.output if "seat limit" in line]
         self.assertIn(str(licence.id), reason)
         self.assertIn(str(second.id), reason)
+        self.assertNoAddress(logs)
+
+    def test_an_other_school_refusal_logs_its_reason_with_ids(self):
+        """H-86: the enrolment's own school check says why, by ids."""
+        other_school = School.objects.create(name="H80 Other School")
+        outsider = self.teacher("outsider@h80other.edu")
+        CustomUser.objects.filter(pk=outsider.pk).update(school=other_school)
+        outsider.refresh_from_db()
+
+        with self.assertLogs("billing.license_service", "WARNING") as logs:
+            with self.assertRaises(ValueError):
+                LicenseSubscriptionService._enroll_teacher_internal(
+                    self.licence, outsider
+                )
+
+        [reason] = [line for line in logs.output if "belongs to school" in line]
+        for part in (outsider.id, other_school.id, self.licence.id, self.school.id):
+            self.assertIn(str(part), reason)
         self.assertNoAddress(logs)
 
 
