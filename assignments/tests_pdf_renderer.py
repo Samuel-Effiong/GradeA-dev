@@ -803,14 +803,24 @@ class ConcurrentRenderingTest(SimpleTestCase):
             "</script></body></html>"
         )
 
+        hung = {}
+
         def render_hung():
             try:
                 pdf_renderer.render_html_to_pdf(hung_html, timeout=hung_timeout)
+                hung["outcome"] = "finished"
             except pdf_renderer.PDFRenderError:
-                pass  # expected: it never finishes typesetting
+                # expected: it never finishes typesetting
+                hung["outcome"] = "gave up"
 
         durations, errors = self._time_healthy(6, beside=render_hung)
 
+        # Without a hung render beside them the healthy ones prove nothing.
+        self.assertEqual(
+            hung.get("outcome"),
+            "gave up",
+            "the hung render did not run, or did not hang: nothing was tested",
+        )
         self.assertEqual(errors, [])
         self.assertEqual(len(durations), 6)
         # Comfortably under the hung render's timeout: if the stall
@@ -822,18 +832,6 @@ class ConcurrentRenderingTest(SimpleTestCase):
             f"(alone, the slowest took {baseline:.2f} s; the hung render's "
             f"timeout was {hung_timeout:.2f} s)",
         )
-
-    def test_a_machine_too_loaded_to_judge_fails_the_stall_test_and_says_why(self):
-        """No render here: the healthy renders "took" nine seconds alone,
-        which is past what the stall test will stretch to."""
-        slow = ({i: 9.0 for i in range(6)}, [])
-
-        with patch.object(self, "_time_healthy", return_value=slow) as timed:
-            with self.assertRaises(AssertionError) as raised:
-                self.test_one_slow_render_does_not_stall_the_others()
-
-        timed.assert_called_once_with(6)
-        self.assertIn("too loaded to judge", str(raised.exception))
 
     @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=2)
     def test_a_render_killed_by_a_dying_browser_is_retried_once(self):
@@ -911,6 +909,27 @@ class ConcurrentRenderingTest(SimpleTestCase):
         self.assertLessEqual(
             peak["n"], 2, f"in-flight renders exceeded the bound of 2 (saw {peak['n']})"
         )
+
+
+class StallTestWiringTest(SimpleTestCase):
+    """How the stall test uses stall_limits(). No render and no browser:
+    the stall test's body is called directly, with its timing replaced, so
+    this runs where the browser tests are skipped too."""
+
+    def test_a_machine_too_loaded_to_judge_fails_the_stall_test_and_says_why(self):
+        """The healthy renders "took" nine seconds alone, which is past
+        what the stall test will stretch to."""
+        stall_test = ConcurrentRenderingTest(
+            "test_one_slow_render_does_not_stall_the_others"
+        )
+        slow = ({i: 9.0 for i in range(6)}, [])
+
+        with patch.object(stall_test, "_time_healthy", return_value=slow) as timed:
+            with self.assertRaises(AssertionError) as raised:
+                stall_test.test_one_slow_render_does_not_stall_the_others()
+
+        timed.assert_called_once_with(6)
+        self.assertIn("too loaded to judge", str(raised.exception))
 
 
 class WorkerSingletonTest(SimpleTestCase):

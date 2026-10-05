@@ -7,7 +7,8 @@ One disposable detached worktree at the commit under test. A baseline run
 on the unmutated tree must pass first; then each mutant, with the file
 restored from the commit's blob and sha256-checked after it. BROKEN (a
 load failure) is never counted as a kill. Each mutant names the test
-labels it is run against: the arithmetic mutants need no browser.
+labels it is run against: the arithmetic and wiring mutants need no
+browser.
 
 Rule 17: every run has PYTHONDONTWRITEBYTECODE=1, and the __pycache__
 directories of the mutated modules' packages are deleted before the
@@ -38,8 +39,9 @@ TEST_DB = "test_h123_mut"
 RD = "assignments/pdf_renderer.py"
 TP = "assignments/tests_pdf_renderer.py"
 ARITHMETIC = ["assignments.tests_pdf_renderer.StallLimitsTest"]
+WIRING = ["assignments.tests_pdf_renderer.StallTestWiringTest"]
 BROWSER = ["assignments.tests_pdf_renderer.ConcurrentRenderingTest"]
-TESTS = ARITHMETIC + BROWSER
+TESTS = ARITHMETIC + WIRING + BROWSER
 
 MUTANTS = [
     (
@@ -59,6 +61,15 @@ MUTANTS = [
         TP,
         "            self.fail(str(too_loaded))\n",
         "            return\n",
+        1,
+        WIRING,
+    ),
+    (
+        "S3",
+        "the hung render really runs beside the healthy ones",
+        TP,
+        "        threads = [threading.Thread(target=beside)] if beside else []\n",
+        "        threads = []\n",
         1,
         BROWSER,
     ),
