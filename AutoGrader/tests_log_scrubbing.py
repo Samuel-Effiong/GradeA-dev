@@ -251,7 +251,13 @@ class UrlCredentialsTests(SimpleTestCase):
         self.assertIn("https://app.example.com/register?email=[email]&t=1", output)
 
     def test_text_that_only_looks_like_an_address_is_left_alone(self):
-        for text in ("    @transaction.atomic", "pkg@1.2.3", "a @ b", "x@y"):
+        for text in (
+            "    @transaction.atomic",
+            "pkg@1.2.3",
+            "pkg@1.2.30",
+            "a @ b",
+            "x@y",
+        ):
             with self.subTest(text=text):
                 self.assertIn(text, self.output_of(text))
 

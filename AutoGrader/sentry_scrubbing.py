@@ -9,9 +9,10 @@ variables), so the log record factory in log_scrubbing.py, which scrubs
 what handlers print, does not change what Sentry receives. These three
 hooks do; settings pass them to sentry_sdk.init:
 
-  * scrub_event (before_send): the log entry, the plain message, the
-    exception values with their frame variables, the breadcrumbs and the
-    extras;
+  * scrub_event (before_send, and before_send_transaction: a sampled
+    transaction is an event that does not pass before_send): the log
+    entry, the plain message, the exception values and the threads with
+    their frame variables, the spans, the breadcrumbs and the extras;
   * scrub_breadcrumb (before_breadcrumb): each breadcrumb as it is recorded;
   * scrub_log (before_send_log): each item of the log stream.
 
@@ -34,6 +35,7 @@ _EVENT_TEXT_PARTS = (
     "message",
     "exception",
     "threads",
+    "spans",
     "breadcrumbs",
     "extra",
 )
@@ -66,7 +68,7 @@ def _scrub_parts(container, parts):
 
 
 def scrub_event(event, hint):
-    """sentry_sdk's before_send."""
+    """sentry_sdk's before_send and before_send_transaction."""
     return _scrub_parts(event, _EVENT_TEXT_PARTS)
 
 

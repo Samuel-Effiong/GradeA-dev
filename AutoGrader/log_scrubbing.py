@@ -21,13 +21,29 @@ anything that reads them directly. (Sentry does: see sentry_scrubbing.)
 
 WHAT IS REPLACED
 ----------------
-  * `local-part@domain.tld` becomes `[email]`.
+  * `local-part@domain.tld` becomes `[email]`: letters and digits of any
+    script and the special characters our own validation accepts in the
+    local part, and a domain as it is read or in punycode.
   * The userinfo of a URL (the user and password between "://" and the
-    "@" before the host) becomes `[credentials]`, whatever the host looks
-    like, so no DSN password is printed, on a dotless host such as
+    last "@" before the host) becomes `[credentials]`, whatever the host
+    looks like, so no DSN password is printed, on a dotless host such as
     `redis` or `localhost` either.
 A message with no "@" in it is returned as it is, without running either
 pattern.
+
+WHAT IS NOT, AND WHAT IS REPLACED WITH IT (KNOWN LIMITS)
+--------------------------------------------------------
+  * "/", "=", "?" and "&" are legal in a local part, but they are not
+    followed: `email=a@b.co` and a URL with an address in its query stay
+    readable. An address that itself contains one of the four keeps the
+    piece before that character in print (a fragment, not an address).
+  * A quote, brace or bar directly before an address is a character an
+    address may start with, and is replaced with it.
+  * A URL password with an unencoded "/" in it is not a URL any parser
+    reads; nothing is replaced there.
+  * An address written percent-encoded (`%40` for "@") is not recognised.
+  * A password in a `key=value` connection string (no "://") is not
+    recognised.
 
 IT NEVER RAISES, AND IT FAILS CLOSED
 ------------------------------------
@@ -63,12 +79,25 @@ CREDENTIALS = "[credentials]"
 MESSAGE_WITHHELD = "[log arguments withheld: the message could not be scrubbed]"
 EXCEPTION_WITHHELD = "[exception text withheld: it could not be scrubbed]"
 
+#: A character of an address's local part: a letter or digit of any script,
+#: or one of the special characters Django's validator accepts, EXCEPT
+#: "/", "=", "?" and "&". Those four also separate a key from its value
+#: and the parts of a URL, so the scrubber stops at them (see the
+#: docstring above).
+_LOCAL = r"[\w.!#$%'*+^`{|}~-]"
+#: A character of a domain label: a letter or digit of any script, or "-"
+#: (so an IDN domain matches as it is read and in its punycode form).
+_LABEL = r"(?:[^\W_]|-)"
 _ADDRESS = re.compile(
-    r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"
+    # Only from the start of a run of local-part characters: the match is
+    # the same, and a long unbroken token is scanned once, not once per
+    # character.
+    rf"(?<!{_LOCAL}){_LOCAL}+@"
+    rf"{_LABEL}+(?:\.{_LABEL}+)*\.[^\W\d_]{_LABEL}+"
 )
-#: The userinfo part of a URL: everything between "://" and the "@" that
-#: ends it, with no "/" or whitespace in between.
-_USERINFO = re.compile(r"(?<=://)[^\s/@]+(?=@)")
+#: The userinfo part of a URL: everything between "://" and the LAST "@"
+#: before the next "/" or whitespace (a password may hold an "@").
+_USERINFO = re.compile(r"(?<=://)[^\s/]+(?=@)")
 
 _MARKER = "_scrubs_addresses"
 #: True or False once known; None until Django's settings are configured.

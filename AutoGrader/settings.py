@@ -210,6 +210,8 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # and the exception's own text, which the log record factory
             # above does not reach (AutoGrader/sentry_scrubbing.py).
             before_send=scrub_event,
+            # A sampled transaction is sent without passing before_send.
+            before_send_transaction=scrub_event,
             before_breadcrumb=scrub_breadcrumb,
             before_send_log=scrub_log,
             # Set profile_session_sample_rate to 1.0 to profile 100%
