@@ -824,6 +824,7 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
         }
 
     user_email = user.email
+    user_id = user.id
     school_name = school.name
 
     def _dispatch():
@@ -839,8 +840,9 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
             )
         except Exception:
             logger.exception(
-                "Failed to queue school admin invitation email to %s for school %s.",
-                user_email,
+                "Failed to queue school admin invitation email to user %s for "
+                "school %s.",
+                user_id,
                 school_name,
             )
 
@@ -862,8 +864,8 @@ def resend_school_admin_invitation(user):
     """
     if not user.school:
         logger.error(
-            "Cannot resend school admin invitation for %s: no school attached.",
-            user.email,
+            "Cannot resend school admin invitation for user %s: no school attached.",
+            user.id,
         )
         return
 

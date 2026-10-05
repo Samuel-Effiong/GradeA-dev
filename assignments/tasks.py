@@ -1112,7 +1112,7 @@ def grade_batch_async(
             str(submission.id),
             batch_id=batch_id,
         )
-        print(f"Starting grading of Submission {submission.student.get_full_name}")
+        print(f"Starting grading of Submission {submission.id}")
 
 
 @shared_task(name="assignments.tasks.auto_grade_due_assignment")

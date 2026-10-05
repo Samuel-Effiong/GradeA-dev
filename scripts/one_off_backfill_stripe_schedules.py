@@ -90,7 +90,7 @@ for user_sub in candidates:
     try:
         if user_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
             print(
-                f"SKIPPING {user_sub.id} (user {user_sub.user.email}): "
+                f"SKIPPING {user_sub.id} (user {user_sub.user_id}): "
                 f"PAST_DUE — resolve payment before backfilling this one."
             )
             continue
@@ -111,8 +111,7 @@ for user_sub in candidates:
 
         succeeded += 1
         print(
-            f"OK: {user_sub.id} (user {user_sub.user.email}) -> "
-            f"schedule {schedule_id}"
+            f"OK: {user_sub.id} (user {user_sub.user_id}) -> " f"schedule {schedule_id}"
         )
     except Exception as exc:  # noqa: BLE001 — deliberately broad: one bad
         # row must never stop the rest of the backfill from running.
@@ -120,11 +119,11 @@ for user_sub in candidates:
         logger.error(
             "Backfill failed for subscription %s (user %s): %s",
             user_sub.id,
-            user_sub.user.email,
+            user_sub.user_id,
             exc,
             exc_info=True,
         )
-        print(f"FAILED: {user_sub.id} (user {user_sub.user.email}): {exc}")
+        print(f"FAILED: {user_sub.id} (user {user_sub.user_id}): {exc}")
 
 print(f"\nDone. {succeeded} backfilled, {failed} failed, out of {total} total.")
 if failed:

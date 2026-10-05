@@ -1,0 +1,136 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 967551d2-cf8f-4966-af29-39a86e36e116.
+Cannot activate automatic trial for user 967551d2-cf8f-4966-af29-39a86e36e116 (validation): ValueError
+.Free trial plan not found: no trial activated for user 28416f06-cb82-4a94-985c-f4f0ccf45d40.
+Cannot activate automatic trial for user 28416f06-cb82-4a94-985c-f4f0ccf45d40 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4fa05947-aa52-4400-8f74-31b6604d4929.
+Cannot activate automatic trial for user 4fa05947-aa52-4400-8f74-31b6604d4929 (validation): ValueError
+.Free trial plan not found: no trial activated for user a9c9c2a4-5e88-4aeb-8010-ed69b0add378.
+Cannot activate automatic trial for user a9c9c2a4-5e88-4aeb-8010-ed69b0add378 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6610fbf8-4fd8-4629-9dcd-627ee4f1198b.
+Cannot activate automatic trial for user 6610fbf8-4fd8-4629-9dcd-627ee4f1198b (validation): ValueError
+.Free trial plan not found: no trial activated for user ae107656-8c31-4dfc-ac76-9023e8b27b9f.
+Cannot activate automatic trial for user ae107656-8c31-4dfc-ac76-9023e8b27b9f (validation): ValueError
+FFree trial plan not found: no trial activated for user befac75c-8ae2-446e-932e-4b92506aaf66.
+Cannot activate automatic trial for user befac75c-8ae2-446e-932e-4b92506aaf66 (validation): ValueError
+Free trial plan not found: no trial activated for user 16cf4071-4516-44a6-9d42-4adc0e1ed634.
+Cannot activate automatic trial for user 16cf4071-4516-44a6-9d42-4adc0e1ed634 (validation): ValueError
+FFree trial plan not found: no trial activated for user b35433de-a4d0-4c72-834d-c1ccb32725d5.
+Cannot activate automatic trial for user b35433de-a4d0-4c72-834d-c1ccb32725d5 (validation): ValueError
+.Free trial plan not found: no trial activated for user b6c60ac2-1cb6-4749-800f-130efc737114.
+Cannot activate automatic trial for user b6c60ac2-1cb6-4749-800f-130efc737114 (validation): ValueError
+....F...
+======================================================================
+FAIL: test_drift_is_detected_and_logged_as_an_error (billing.tests.test_price_drift_reconciliation.PriceDriftDetectionTests.test_drift_is_detected_and_logged_as_an_error)
+The regression: Stripe bills price_pro, we recorded the Standard
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_price_drift_reconciliation.py", line 143, in test_drift_is_detected_and_logged_as_an_error
+    self.assertIn(str(self.user.id), drift_lines[0])
+AssertionError: 'ae107656-8c31-4dfc-ac76-9023e8b27b9f' not found in 'ERROR:billing.tasks:PRICE DRIFT: subscription 82fed09b-7ab1-40ca-8e5c-d1019f7fef51 (user drift@gmail.com) is being billed on Stripe price price_pro, but the local plan STANDARD expects price price_standard. The customer is paying for something other than what we recorded. No automatic correction has been made — this needs a human decision. Stripe subscription: sub_drift_1'
+
+======================================================================
+FAIL: test_only_the_drifted_subscription_is_reported (billing.tests.test_price_drift_reconciliation.PriceDriftDetectionTests.test_only_the_drifted_subscription_is_reported)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_price_drift_reconciliation.py", line 254, in test_only_the_drifted_subscription_is_reported
+    self.assertIn(str(self.user.id), drift_lines[0])
+AssertionError: 'befac75c-8ae2-446e-932e-4b92506aaf66' not found in 'ERROR:billing.tasks:PRICE DRIFT: subscription 68c56c52-fceb-401f-94b0-638013353d70 (user drift@gmail.com) is being billed on Stripe price price_pro, but the local plan STANDARD expects price price_standard. The customer is paying for something other than what we recorded. No automatic correction has been made — this needs a human decision. Stripe subscription: sub_drift_1'
+
+======================================================================
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_no_pii_in_logs.py", line 111, in test_no_log_or_print_call_passes_an_address_or_a_name
+    self.assertEqual(problems, [], "\n".join(problems))
+AssertionError: Lists differ: ['assignments/tasks.py:1115: submission.st[3032 chars]ail'] != []
+
+First list contains 66 additional elements.
+First extra element 0:
+'assignments/tasks.py:1115: submission.student.get_full_name'
+
+Diff is 3282 characters long. Set self.maxDiff to None to see it. : assignments/tasks.py:1115: submission.student.get_full_name
+billing/access_control.py:347: user.email
+billing/access_control.py:313: user.email
+billing/access_control.py:332: user.email
+billing/access_control.py:478: user.email
+billing/access_control.py:635: user.email
+billing/access_control.py:503: user.email
+billing/access_control.py:582: request.user.email
+billing/qa_time_travel.py:538: user_sub.user.email
+billing/qa_time_travel.py:1039: request.user.email
+billing/services.py:643: user.email
+billing/services.py:850: user.email
+billing/services.py:1054: user.email
+billing/services.py:1265: user.email
+billing/services.py:1405: user.email
+billing/services.py:1729: user.email
+billing/services.py:1903: user.email
+billing/services.py:2067: user.email
+billing/services.py:2230: target_user.email
+billing/services.py:2230: granted_by.email
+billing/services.py:262: user.email
+billing/services.py:1119: user.email
+billing/services.py:1831: user.email
+billing/services.py:2145: target_user.email
+billing/services.py:316: user.email
+billing/services.py:581: user.email
+billing/services.py:773: user.email
+billing/services.py:958: user.email
+billing/stripe_service.py:655: user.email
+billing/stripe_service.py:1234: user_sub.user.email
+billing/stripe_service.py:1378: user_sub.user.email
+billing/stripe_service.py:2278: user.email
+billing/stripe_service.py:2957: user.email
+billing/stripe_service.py:3495: user.email
+billing/stripe_service.py:3538: user.email
+billing/stripe_service.py:3745: user.email
+billing/stripe_service.py:2908: user.email
+billing/stripe_service.py:2925: user.email
+billing/stripe_service.py:3405: user.email
+billing/stripe_service.py:3627: admin_user.email
+billing/stripe_service.py:3700: user.email
+billing/stripe_service.py:4603: user.email
+billing/stripe_service.py:3571: admin_user.email
+billing/stripe_service.py:3981: user_sub.user.email
+billing/tasks.py:1591: sub.user.email
+billing/tasks.py:774: user.email
+billing/tasks.py:1575: sub.user.email
+billing/tasks.py:474: sub.user.email
+billing/tasks.py:594: sub.user.email
+billing/tasks.py:648: updated_sub.user.email
+billing/tasks.py:656: sub.user.email
+billing/tasks.py:726: user.email
+billing/tasks.py:762: user.email
+billing/tasks.py:785: trial_sub.user.email
+billing/tasks.py:741: user.email
+billing/views.py:1169: request.user.email
+billing/views.py:1305: request.user.email
+classrooms/serializers.py:824: user.email
+classrooms/services/roster_import.py:381: row.first_name
+classrooms/services/roster_import.py:381: row.last_name
+scripts/one_off_backfill_stripe_schedules.py:113: user_sub.user.email
+scripts/one_off_backfill_stripe_schedules.py:92: user_sub.user.email
+scripts/one_off_backfill_stripe_schedules.py:120: user_sub.user.email
+scripts/one_off_backfill_stripe_schedules.py:127: user_sub.user.email
+users/mailerlite_service.py:78: user.email
+users/mailerlite_service.py:100: user.email
+
+----------------------------------------------------------------------
+Ran 16 tests in 3.513s
+
+FAILED (failures=3)
+Destroying test database for alias 'default'...
+Found 16 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+systemd-run failed with exit status 1.
+exit=1 wall_s=37

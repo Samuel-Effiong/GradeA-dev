@@ -263,7 +263,7 @@ class SubscriptionService:
                 "Expired TRIAL bucket %s for user %s on activate_subscription "
                 "(forfeited %d credits).",
                 trial_bucket.id,
-                user.email,
+                user.id,
                 unused,
             )
 
@@ -316,7 +316,7 @@ class SubscriptionService:
                     logger.info(
                         "Rollover fully suppressed by max_bank for user %s: "
                         "requested %d, room 0 (%s).",
-                        user.email,
+                        user.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
                     )
@@ -581,7 +581,7 @@ class SubscriptionService:
                     logger.info(
                         "Immediate-upgrade rollover fully suppressed by "
                         "max_bank for user %s (%s -> %s): requested %d (%s).",
-                        user.email,
+                        user.id,
                         old_plan.name,
                         new_plan.name,
                         cap_meta["requested_rollover"],
@@ -643,7 +643,7 @@ class SubscriptionService:
         logger.info(
             "Applied immediate same-interval plan change for user %s "
             "(subscription %s): %s -> %s. billing_cycle_end unchanged (%s).",
-            user.email,
+            user.id,
             user_sub.id,
             old_plan.name,
             new_plan.name,
@@ -773,7 +773,7 @@ class SubscriptionService:
                     logger.info(
                         "Mid-cycle rollover fully suppressed by max_bank "
                         "for user %s (subscription %s): requested %d (%s).",
-                        user.email,
+                        user.id,
                         user_subscription.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
@@ -851,7 +851,7 @@ class SubscriptionService:
             "Mid-cycle credit grant for annual subscription %s (user %s): "
             "%d credits, next grant at %s.",
             user_subscription.id,
-            user.email,
+            user.id,
             plan.monthly_credits,
             next_due,
         )
@@ -958,7 +958,7 @@ class SubscriptionService:
                     logger.info(
                         "Renewal rollover fully suppressed by max_bank for "
                         "user %s (%s -> %s): requested %d (%s).",
-                        user.email,
+                        user.id,
                         old_plan.name,
                         target_plan.name,
                         cap_meta["requested_rollover"],
@@ -1054,7 +1054,7 @@ class SubscriptionService:
         logger.info(
             "Plan change scheduled for user %s: %s -> %s (type=%s, "
             "stripe_schedule=%s), effective %s.",
-            user.email,
+            user.id,
             current_sub.plan.name,
             new_plan.name,
             change_type,
@@ -1118,7 +1118,7 @@ class SubscriptionService:
             )
             logger.info(
                 "Cancelled scheduled plan change for user %s (was pending " "-> %s).",
-                user.email,
+                user.id,
                 previous_pending.name if previous_pending else "unknown",
             )
 
@@ -1265,7 +1265,7 @@ class SubscriptionService:
         logger.info(
             "Free trial activated for user %s on plan %s. "
             "Trial ends %s. Subscription ID: %s. Credits: %d display (%d raw).",
-            user.email,
+            user.id,
             plan.name,
             trial_end.isoformat(),
             subscription.id,
@@ -1405,7 +1405,7 @@ class SubscriptionService:
         logger.info(
             "Free trial expired for user %s (subscription %s). "
             "Unused credits forfeited.",
-            user.email,
+            user.id,
             user_subscription.id,
         )
         return True
@@ -1728,7 +1728,7 @@ class SubscriptionService:
 
         logger.info(
             "Trial converted to paid via Stripe for user %s (subscription %s).",
-            user.email,
+            user.id,
             trial_sub.id,
         )
 
@@ -1831,7 +1831,7 @@ class SubscriptionService:
             logger.info(
                 "Expired TRIAL bucket %s for user %s (forfeited %d credits)",
                 trial_bucket.id,
-                user.email,
+                user.id,
                 unused,
             )
 
@@ -1905,7 +1905,7 @@ class SubscriptionService:
             "Trial subscription %s upgraded to plan %s (interval: %s). "
             "Granted %d credits. Billing cycle: %s → %s. "
             "Next credit grant: %s. Stripe subscription: %s",
-            user.email,
+            user.id,
             trial_sub.id,
             new_plan.name,
             new_plan.interval,  # ← LOG INTERVAL
@@ -2068,7 +2068,7 @@ class SubscriptionService:
             "Automatic free trial activated for user %s on registration. "
             "Subscription ID: %s. Credits: %d display (%d raw). "
             "Trial ends: %s.",
-            user.email,
+            user.id,
             subscription.id,
             SubscriptionService.TRIAL_CREDITS_DISPLAY,
             SubscriptionService.TRIAL_CREDITS_RAW,
@@ -2144,7 +2144,7 @@ class ManualCreditService:
             except Exception:
                 logger.exception(
                     "Failed to queue manual-credit-grant email to %s",
-                    target_user.email,
+                    target_user.id,
                 )
 
         transaction.on_commit(_dispatch)
@@ -2233,8 +2233,8 @@ class ManualCreditService:
             blocks,
             display_amount,
             raw_amount,
-            target_user.email,
-            granted_by.email if granted_by else "system",
+            target_user.id,
+            granted_by.id if granted_by else "system",
             bucket.id,
             expires_at or "never",
             reason,

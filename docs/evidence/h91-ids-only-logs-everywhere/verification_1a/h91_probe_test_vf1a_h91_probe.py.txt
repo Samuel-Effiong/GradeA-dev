@@ -1,0 +1,245 @@
+"""1a's verification probes for H-91. Not committed.
+
+V1: a handful of the changed log lines, driven for real: each fires, names
+    its user (or row and course) by id, and carries no address and no
+    person's name in the MESSAGE. Tracebacks and exception text are counted
+    separately (the known limit, H-89): an observation, not a failure.
+V2 (the SM's check): the moved guard's own helpers
+    (AutoGrader/tests_no_pii_in_logs.py), pointed at beta's tree
+    (74bfc8d3, read from git), still find the 64 calls in 11 files that
+    H-91 cleaned; and none on the working tree.
+V3 (the SM's question, 2026-10-05): what beta's grading print put in the
+    worker log (a pupil's full name), and that this tree prints the id.
+"""
+
+import ast
+import logging
+import subprocess
+import uuid
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from django.conf import settings
+from django.test import TestCase, override_settings
+
+from AutoGrader.tests_no_pii_in_logs import (
+    is_log_or_print_call,
+    is_production_file,
+    pii_arguments,
+    production_files,
+)
+from billing import access_control
+from classrooms.serializers import resend_school_admin_invitation
+from classrooms.services import roster_import
+from users.mailerlite_service import MailerLiteService
+from users.models import CustomUser, UserTypes
+
+BETA = "74bfc8d3"
+SENTINEL = "Vfsentinelpupil"
+
+
+class Recorder(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        trace = ""
+        if record.exc_info:
+            trace = logging.Formatter().formatException(record.exc_info)
+        self.rows.append((record.name, record.levelname, record.getMessage(), trace))
+
+
+class H91Probes(TestCase):
+    def setUp(self):
+        self.recorder = Recorder()
+        root = logging.getLogger()
+        root.addHandler(self.recorder)
+        self.addCleanup(root.removeHandler, self.recorder)
+        for name in ("billing", "classrooms", "users"):
+            logger = logging.getLogger(name)
+            old = logger.level
+            logger.setLevel(logging.DEBUG)
+            self.addCleanup(logger.setLevel, old)
+        self.user = CustomUser.objects.create_user(
+            email="vf1a-h91@h91probe.edu",
+            password="password123",  # pragma: allowlist secret
+            first_name="Vfsentinel",
+            last_name="Teacher",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        self.recorder.rows.clear()
+
+    def new_lines(self, needle):
+        return [r for r in self.recorder.rows if needle in r[2]]
+
+    def assertIdsOnly(self, row, *ids):
+        for wanted in ids:
+            self.assertIn(str(wanted), row[2])
+        self.assertNotIn("@", row[2])
+        self.assertNotIn("Vfsentinel", row[2])
+
+    # -- V1 --------------------------------------------------------------------
+
+    def test_v1_changed_lines_fire_with_ids(self):
+        seen = []
+
+        # billing/access_control.py: the access context cannot be resolved.
+        with patch.object(
+            access_control, "_resolve_access_context", side_effect=RuntimeError("boom")
+        ):
+            allowed, _ = access_control.can_user_access_ai(self.user)
+        self.assertFalse(allowed)
+        [line] = self.new_lines("Error resolving AI access context")
+        self.assertIdsOnly(line, self.user.id)
+        seen.append(line)
+
+        # users/mailerlite_service.py: no API key, then a failed request.
+        with override_settings(MAILERLITE_API_KEY=""):
+            self.assertIsNone(MailerLiteService.sync_user(self.user))
+        [line] = self.new_lines("MailerLite sync skipped")
+        self.assertIdsOnly(line, self.user.id)
+        seen.append(line)
+
+        import requests
+
+        with override_settings(MAILERLITE_API_KEY="k"), patch(
+            "users.mailerlite_service.requests.post",
+            side_effect=requests.RequestException(
+                f"422 for subscriber {self.user.email}"
+            ),
+        ):
+            self.assertFalse(MailerLiteService.sync_user(self.user))
+        [line] = self.new_lines("MailerLite sync failed")
+        self.assertIdsOnly(line, self.user.id)
+        seen.append(line)
+
+        # classrooms/serializers.py: a pending school admin with no school.
+        admin = CustomUser.objects.create_user(
+            email="vf1a-h91-admin@h91probe.edu",
+            password="password123",  # pragma: allowlist secret
+            first_name="Vfsentinel",
+            last_name="Admin",
+            user_type=UserTypes.SCHOOL_ADMIN,
+            is_active=False,
+        )
+        resend_school_admin_invitation(admin)
+        [line] = self.new_lines("Cannot resend school admin invitation")
+        self.assertIdsOnly(line, admin.id)
+        seen.append(line)
+
+        # classrooms/services/roster_import.py: the second parsed row fails.
+        course = SimpleNamespace(id=uuid.uuid4())
+
+        def row(first):
+            return SimpleNamespace(
+                is_named=True,
+                email=None,
+                first_name=first,
+                last_name="Hninetyone",
+                middle_name="",
+                display_name=f"{first} Hninetyone",
+            )
+
+        def import_or_fail(*, course, row):
+            if row.first_name == SENTINEL:
+                raise RuntimeError(f"could not add {row.display_name}")
+            return {"name": row.display_name, "status": "enrolled"}, True
+
+        with patch.object(
+            roster_import, "_import_row_without_email", side_effect=import_or_fail
+        ):
+            roster_import.import_roster(
+                course=course, rows=[row("Okay"), row(SENTINEL)], total_processed=2
+            )
+        [line] = self.new_lines("Failed to bulk-add the student")
+        self.assertIn("parsed row 2", line[2])
+        self.assertIn(str(course.id), line[2])
+        self.assertNotIn(SENTINEL, line[2])
+        self.assertNotIn("Hninetyone", line[2])
+        self.assertNotIn("@", line[2])
+        seen.append(line)
+
+        traced = [r for r in seen if "@" in r[3] or SENTINEL in r[3]]
+        print(f"\nVF1A_H91_V1 lines driven={len(seen)}, all ids-only in the message")
+        for r in seen:
+            print(f"  {r[0]} {r[1]}: {r[2]}")
+        print(
+            f"  tracebacks carrying an address or a name (the known limit, H-89): "
+            f"{len(traced)} of {len([r for r in seen if r[3]])} lines with a traceback"
+        )
+        # No other line from these calls carries an address in its message.
+        self.assertEqual([r for r in self.recorder.rows if "@" in r[2]], [])
+
+    # -- V3 --------------------------------------------------------------------
+
+    def test_v3_what_betas_grading_print_put_in_the_worker_log(self):
+        """The SM's question (2026-10-05): beta's assignments/tasks.py:1115
+        printed the bound method `submission.student.get_full_name`, not a
+        call. Its text holds the user's repr, which is the full name."""
+        beta_line = [
+            line.strip()
+            for line in self.git("show", "141c8031:assignments/tasks.py").splitlines()
+            if "Starting grading of Submission" in line
+        ]
+        self.assertEqual(
+            beta_line,
+            ['print(f"Starting grading of Submission {submission.student.get_full_name}")'],
+        )
+        submission = SimpleNamespace(student=self.user, id=uuid.uuid4())
+        printed = f"Starting grading of Submission {submission.student.get_full_name}"
+        self.assertIn("Vfsentinel Teacher", printed)
+        self.assertNotIn("@", printed)
+        print(f"\nVF1A_H91_V3 beta 141c8031 printed: {printed}")
+
+        with open(settings.BASE_DIR / "assignments" / "tasks.py", encoding="utf-8") as fh:
+            here = [line.strip() for line in fh if "Starting grading of Submission" in line]
+        self.assertEqual(here, ['print(f"Starting grading of Submission {submission.id}")'])
+        print(f"  this tree prints: {here[0]}")
+
+    # -- V2 --------------------------------------------------------------------
+
+    def git(self, *args):
+        return subprocess.run(
+            ["git", *args], cwd=settings.BASE_DIR, capture_output=True, text=True, check=True
+        ).stdout
+
+    def test_v2_the_moved_guard_finds_the_64_calls_on_betas_tree(self):
+        found = {}
+        for path in self.git("ls-tree", "-r", "--name-only", BETA).splitlines():
+            parts = path.split("/")
+            if not is_production_file(path) or any(
+                p in ("node_modules", "venv") or p.startswith(".") for p in parts
+            ):
+                continue
+            tree = ast.parse(self.git("show", f"{BETA}:{path}"))
+            calls = [
+                node.lineno
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and is_log_or_print_call(node)
+                and pii_arguments(node)
+            ]
+            if calls:
+                found[path] = len(calls)
+        print(
+            f"\nVF1A_H91_V2 the guard's helpers on beta {BETA}: "
+            f"{sum(found.values())} call(s) in {len(found)} file(s)"
+        )
+        for path, count in sorted(found.items()):
+            print(f"  {count:3} {path}")
+        self.assertEqual(sum(found.values()), 64)
+        self.assertEqual(len(found), 11)
+
+        # And on the working tree, through the guard's own file walk: none.
+        here = []
+        for path in production_files("."):
+            with open(settings.BASE_DIR / path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and is_log_or_print_call(node):
+                    here += [f"{path}:{node.lineno}" for _ in pii_arguments(node)]
+        print(f"  on the working tree: {len(here)} call(s)")
+        # My own probe file is a tests-named module, so the walk skips it.
+        self.assertEqual(here, [])

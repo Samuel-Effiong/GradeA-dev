@@ -474,7 +474,7 @@ def process_annual_plan_credit_grants(self):
             logger.error(
                 "Failed mid-cycle credit grant for subscription %s (user %s): %s",
                 sub.id,
-                sub.user.email,
+                sub.user_id,
                 str(exc),
                 exc_info=True,
             )
@@ -597,7 +597,7 @@ def reconcile_subscription_renewals(self):
                     "found — Stripe has not billed a new cycle yet. Skipping "
                     "rather than renewing off a previous-cycle invoice.",
                     sub.id,
-                    sub.user.email,
+                    sub.user_id,
                     invoice.get("id"),
                     sub.billing_cycle_end.isoformat(),
                 )
@@ -648,7 +648,7 @@ def reconcile_subscription_renewals(self):
                 logger.info(
                     "Reconciliation renewed subscription %s for user %s.",
                     updated_sub.id,
-                    updated_sub.user.email,
+                    updated_sub.user_id,
                 )
 
         except Exception as exc:
@@ -656,7 +656,7 @@ def reconcile_subscription_renewals(self):
             logger.error(
                 "Reconciliation failed for subscription %s (user %s): %s",
                 sub.id,
-                sub.user.email,
+                sub.user_id,
                 str(exc),
                 exc_info=True,
             )
@@ -726,7 +726,7 @@ def expire_active_trials(self):
                 logger.info(
                     "Trial expired (14-day window passed) for user %s "
                     "(subscription %s, trial_end: %s).",
-                    user.email,
+                    user.id,
                     trial_sub.id,
                     trial_end.isoformat(),
                 )
@@ -741,7 +741,7 @@ def expire_active_trials(self):
                 logger.error(
                     "Trial user %s (subscription %s) has no CreditWallet! "
                     "This should never happen. Skipping.",
-                    user.email,
+                    user.id,
                     trial_sub.id,
                 )
                 failed_count += 1
@@ -762,7 +762,7 @@ def expire_active_trials(self):
                 logger.info(
                     "Trial expired (credits exhausted) for user %s "
                     "(subscription %s, remaining: %d raw credits).",
-                    user.email,
+                    user.id,
                     trial_sub.id,
                     remaining_credits,
                 )
@@ -774,7 +774,7 @@ def expire_active_trials(self):
             logger.debug(
                 "Trial still valid for user %s: %d days remaining, "
                 "%d raw credits remaining.",
-                user.email,
+                user.id,
                 max(0, (trial_end - now).days) if trial_end else 0,
                 remaining_credits,
             )
@@ -785,7 +785,7 @@ def expire_active_trials(self):
             logger.error(
                 "Failed to process trial expiration for subscription %s (user %s): %s",
                 trial_sub.id,
-                trial_sub.user.email if trial_sub.user else "UNKNOWN",
+                trial_sub.user_id if trial_sub.user else "UNKNOWN",
                 str(exc),
                 exc_info=True,
             )
@@ -1578,7 +1578,7 @@ def reconcile_subscription_prices(self):
                 "schedule=%s), so this is most likely the cycle-boundary race "
                 "and should clear on the next run.",
                 sub.id,
-                sub.user.email,
+                sub.user_id,
                 actual_price_id,
                 sub.plan.name,
                 expected_price_id,
@@ -1595,7 +1595,7 @@ def reconcile_subscription_prices(self):
             "automatic correction has been made — this needs a human "
             "decision. Stripe subscription: %s",
             sub.id,
-            sub.user.email,
+            sub.user_id,
             actual_price_id,
             sub.plan.name,
             expected_price_id,

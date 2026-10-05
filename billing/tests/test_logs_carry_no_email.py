@@ -16,6 +16,10 @@ teacher of another school) reached the operator only as "Skipped enrolling
 The guard reads both modules' source: no logger call may pass an `.email`,
 a name holding an address, failed_results, or an exception's text. The
 behaviour tests drive the paths 1a's probes found leaking.
+
+H-91: every other production file is held to the narrower rule that Epic A's
+check-no-pii-in-logs hook enforces. That guard is repository-wide, so it
+lives with the other repository-wide guards: AutoGrader/tests_no_pii_in_logs.py.
 """
 
 import ast
