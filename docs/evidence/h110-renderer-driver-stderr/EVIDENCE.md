@@ -263,7 +263,7 @@ removes, reached another way.
 - **Not covered by any run:** the 437 OK (6b969824) and 655 OK (59b844c4) runs predate this
   test. A short step with the new test, and the guards, is still to be run on a slot.
 - **Known limit, accepted by the SM as not blocking:** the stderr reader is not rate-limited. A
-  driver that writes without pause is forwarded to the logger line for line. A row for it will be
-  proposed under an H-number the SM gives.
+  driver that writes without pause is forwarded to the logger line for line. It is row H-124
+  (Low, ed) in `docs/HARDENING_BACKLOG.md`.
 - H-110 goes into a bundle after bundle 8, with an independent verifier the SM assigns, not into
   bundle 8.
