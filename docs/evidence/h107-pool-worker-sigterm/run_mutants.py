@@ -139,6 +139,14 @@ MUTANTS = [
         "",
         1,
     ),
+    (
+        "P9",
+        "the stream wraps sys.stderr as it is when the run is set up (1a's Y10)",
+        RT,
+        '        kwargs["stream"] = PatientStream(sys.stderr)\n',
+        '        kwargs["stream"] = PatientStream(sys.__stderr__)\n',
+        1,
+    ),
 ]
 
 #: A test module that could not be loaded, or a traceback that ends in one

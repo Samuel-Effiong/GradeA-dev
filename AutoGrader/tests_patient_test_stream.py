@@ -265,6 +265,30 @@ class WiringTests(PatientStreamTestCase):
         assert stream is not None
         self.assertIs(stream.stream, sys.stderr)
 
+    def test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up(self):
+        """Not the interpreter's original stderr. A run whose sys.stderr
+        has been replaced (a wrapper, a capture) must report on the
+        replacement; the test above cannot tell the two apart, because in
+        an ordinary run they are the same object (1a's mutant, H-107)."""
+        from AutoGrader.redis_test_runner import RedisHygieneRunner
+
+        replacement = io.StringIO()
+        original = sys.stderr
+        sys.stderr = replacement
+        try:
+            # enable_faulthandler=False: the runner's constructor would
+            # otherwise hand faulthandler the replacement's descriptor,
+            # and this one has none.
+            runner = RedisHygieneRunner(enable_faulthandler=False)
+            stream = runner.get_test_runner_kwargs().get("stream")
+        finally:
+            sys.stderr = original
+
+        self.assertIsNot(replacement, sys.__stderr__)
+        self.assertIsInstance(stream, self.module.PatientStream)
+        assert stream is not None
+        self.assertIs(stream.stream, replacement)
+
     def test_unittests_runner_writes_through_it(self):
         import unittest
 
