@@ -1,0 +1,2 @@
+18:28:36 c1_billing_users_p2_9a37e092 wt=Grade-Automator-Plus-h89-log-address-scrubber@9a37e092 parallel=2 stalled=0 ok=2745 [Ran 2751 tests in 485.607s] [OK (skipped=4)] exit=0 wall_s=760
+08:11:19 c2_autograder_serial_9a37e092_rerun wt=Grade-Automator-Plus-h89-log-address-scrubber@9a37e092 parallel=1 stalled=0 ok=352 [Ran 545 tests in 650.367s] [OK] exit=0 wall_s=693

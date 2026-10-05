@@ -1,0 +1,7 @@
+17:11:41 repro 64efdcff exit=1 (red expected)
+17:11:46 repro 6c7d7cac exit=1 (red expected)
+17:14:36 (a) exit=0
+17:18:48 (b) exit=0
+17:18:48 HELD before (c): it needs its own GRANT
+17:27:48 (c) exit=1
+17:27:48 CHAIN END

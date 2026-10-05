@@ -1,0 +1,12 @@
+# Y6: Sentry: a log item's attributes are scrubbed
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    return _scrub_parts(log, ("body", "attributes"))\n'
+# new: '    return _scrub_parts(log, ("body",))\n'
+# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
+# exit: 1
+# elapsed_s: 9.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_log_items_body_and_attributes (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_log_items_body_and_attributes)
+
+FAILED (failures=1)

@@ -1,0 +1,30 @@
+# S10: override_settings switches the scrubber
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: 'setting_changed.connect(_follow_the_setting)\n'
+# new: ''
+# commit: 3da28258a6383bb82339fff0dc24ba2da0ba6487
+# exit: 1
+# elapsed_s: 11.7
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
+FAIL: test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address)
+FAIL: test_a_celery_task_loggers_own_formatter (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_a_celery_task_loggers_own_formatter)
+FAIL: test_an_object_argument_whose_text_is_an_address (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_an_object_argument_whose_text_is_an_address)
+FAIL: test_pythons_last_resort_handler (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_pythons_last_resort_handler)
+FAIL: test_the_console_handler_from_settings (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_the_console_handler_from_settings)
+FAIL: test_a_chained_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_chained_exception)
+FAIL: test_a_constraint_error_naming_the_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_constraint_error_naming_the_address)
+FAIL: test_an_error_built_with_an_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_an_error_built_with_an_address)
+FAIL: test_logger_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_logger_exception)
+FAIL: test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_message_that_cannot_be_formatted_fails_closed)
+FAIL: test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles)
+FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://:s3cret-pass@redis:6379/0')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@localhost:6379/0')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='rediss://[credentials removed from this log]@cache.internal.example.com:6379/0')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='postgres://[credentials removed from this log]@db.example.com:5432/grader')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='amqp://[credentials removed from this log]@rabbit//')
+FAIL: test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string)
+
+FAILED (failures=18, errors=1)
