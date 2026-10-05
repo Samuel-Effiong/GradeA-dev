@@ -1,0 +1,62 @@
+#!/bin/bash
+# H-118 gate chain on the frozen tip: repro on the test commit, (a) modules,
+# (b) battery. (c) is c_h118.sh, on its own grant. Rule 18: every test
+# command writes straight to a file, stdin from /dev/null.
+# Usage: chain.sh <tip-sha8> <red-test-commit-sha8>
+set -euo pipefail
+TIP=$1; RED=$2
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h118-playwright-probe-own-stderr
+RP=$P/Grade-Automator-Plus-h78-repro
+OUT=$P/GAP-d5-runs/h118
+E=docs/evidence/h118-playwright-probe-own-stderr
+export EXEMPT_EMAIL_DOMAINS=
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/chain.status; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: tree not frozen at $TIP"; exit 9; }
+RP_WAS=$(git -C $RP symbolic-ref -q --short HEAD || git -C $RP rev-parse HEAD)
+[ -z "$(git -C $RP status --porcelain)" ] || { say "ABORT: the repro worktree is not clean"; exit 9; }
+BATTERY_RAN=0
+# On every way out: the repro worktree back where it was; the battery's
+# output moved outside the repo; the tree checked against the frozen tip.
+tidy() {
+  set +e
+  git -C $RP checkout -q $RP_WAS 2>/dev/null || git -C $RP checkout -q --detach $RP_WAS
+  [ "$(git -C $RP symbolic-ref -q --short HEAD || git -C $RP rev-parse HEAD)" = "$RP_WAS" ] || say "WARNING: the repro worktree is not back at $RP_WAS"
+  cd $WT
+  if [ $BATTERY_RAN = 1 ] && { [ -e $E/logs ] || [ -e $E/results.tsv ]; }; then
+    mkdir -p $OUT/battery_$TIP && mv $E/logs $E/results.tsv $OUT/battery_$TIP/ || say "WARNING: could not move the battery's output"
+  fi
+  [ -z "$(git status --porcelain)" ] && [ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || say "WARNING: tree not the frozen tip $TIP at exit"
+}
+trap tidy EXIT
+
+# repro: the tests over the code before the change
+git -C $RP checkout -q --detach $RED
+cd $RP; s=$(date +%s); rc=0
+$WRAP python manage.py test AutoGrader.tests_no_playwright_at_import --settings=settings_worktree --noinput > $OUT/repro_$RED.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/repro_$RED.log
+say "repro $RED exit=$rc (red expected)"
+[ $rc -eq 1 ] || { say "STOP: repro $RED was not a plain test failure"; exit 1; }
+git -C $RP checkout -q $RP_WAS 2>/dev/null || git -C $RP checkout -q --detach $RP_WAS
+
+# (a) the new module, the three modules that use the probe's answer, and the repo-wide guard list (0b, 2026-10-05)
+cd $WT; s=$(date +%s); rc=0
+$WRAP python manage.py test AutoGrader.tests_no_playwright_at_import assignments.tests_pdf_renderer assignments.tests_download_pdf assignments.tests_renderer_crash AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension --settings=settings_worktree --noinput --verbosity 2 > $OUT/a_modules_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/a_modules_$TIP.log
+say "(a) exit=$rc"; [ $rc -eq 0 ] || { say "STOP: (a) red"; exit 1; }
+# the probe must have answered "available": no real-rendering test skipped for want of a browser
+n=$(grep -c "Headless Chromium not available" $OUT/a_modules_$TIP.log || true)
+say "(a) tests skipped for want of Chromium: $n"; [ "$n" = 0 ] || { say "STOP: the probe answered not available"; exit 1; }
+
+# (b) the battery
+s=$(date +%s); rc=0; BATTERY_RAN=1
+PYTHONDONTWRITEBYTECODE=1 $WRAP python $E/run_mutants.py $TIP > $OUT/b_mutation_battery_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/b_mutation_battery_$TIP.log
+say "(b) exit=$rc"
+tidy; BATTERY_RAN=0
+[ $rc -eq 0 ] || { say "STOP: (b) not all killed"; exit 1; }
+rc=0; python3 $OUT/expected_kills.py $OUT/battery_$TIP > $OUT/expected_kills_$TIP.txt 2>&1 || rc=$?
+say "expected failing sets: $(tail -n 1 $OUT/expected_kills_$TIP.txt)"
+say "H-118 CHAIN END: (c) needs its own GRANT"

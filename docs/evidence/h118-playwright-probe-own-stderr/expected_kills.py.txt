@@ -1,0 +1,62 @@
+"""H-118: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-05 BEFORE any test run of H-118, by
+reasoning from the code and the tests (a line of why beside each).
+Usage: python expected_kills.py <battery_dir>"""
+import re
+import sys
+from pathlib import Path
+
+B1 = "test_no_driver_is_started_in_the_importing_process"
+A1 = "test_the_child_gets_nothing_of_the_runs_output"
+A2 = "test_the_child_is_this_interpreter_running_the_launch"
+A3 = "test_the_child_is_given_a_time_limit"
+A4 = "test_exit_code_zero_means_available"
+A5 = "test_any_other_exit_code_means_not_available"
+A6 = "test_a_child_that_cannot_be_run_or_does_not_end_means_not_available"
+C1 = "test_no_test_module_reaches_a_starter_at_import"
+C2 = "test_the_scan_reads_the_renderer_tests"
+C3 = "test_the_rule_sees_each_shape"
+C4 = "test_the_rule_allows_what_does_not_run_at_import"
+EXPECTED = {
+    # one stream of the child left to inherit: only the test of the three
+    # streams sees it (the real launch still works, and starts nothing here)
+    "P1": {A1},
+    "P2": {A1},
+    "P3": {A1},
+    # every answer is "available": the non-zero exit codes
+    "P4": {A5},
+    # a timeout is no longer caught: A6's timeout row errors
+    "P5": {A6},
+    # no time limit
+    "P6": {A3},
+    # a real start at module level, by exec of a string: the source rule
+    # cannot see it (C1 passes); the fresh interpreter's import meets the
+    # refusing recorder and fails, so only B1 fails. In the test's own
+    # process the start is real and succeeds, so the A tests pass.
+    "P7": {B1},
+    # the old form inside the probe: the fresh interpreter counts one start
+    # (B1); the source rule names the line (C1); and each A test's refusing
+    # recorder raises AssertionError out of the probe, which it does not
+    # catch (shown in plain Python: diag_refused_start.py), so A1 to A6 error
+    "P8": {B1, C1, A1, A2, A3, A4, A5, A6},
+    # no following of the module's own functions: three of C3's shapes
+    "G1": {C3},
+    # function bodies read as run at import: C4's "inside a test" and
+    # "defined and not called". No test module in the tree calls a starter
+    # inside a function (they patch it by name, in strings), so C1 passes.
+    "G2": {C4},
+    # the async starter forgotten: C3's "through two functions"
+    "G3": {C3},
+}
+logs = Path(sys.argv[1]) / "logs"
+bad = 0
+for mutant, expected in EXPECTED.items():
+    text = (logs / f"{mutant}.log").read_text(errors="replace")
+    failed = set(re.findall(r"^(?:FAIL|ERROR): (test_\w+)", text, re.M))
+    extra, missing = failed - expected, expected - failed
+    bad += failed != expected
+    print(f"{mutant}: {len(failed)} failing, {'as expected' if failed == expected else 'DIFFERS'}"
+          + (f"; unexpected: {sorted(extra)}" if extra else "")
+          + (f"; expected but passed: {sorted(missing)}" if missing else ""))
+print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
