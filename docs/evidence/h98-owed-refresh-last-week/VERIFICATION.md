@@ -3,7 +3,7 @@
 **Verifier:** 1a. **Author:** d5. **Date:** 2026-10-05.
 **Branch:** `task/h98-owed-refresh-last-week` @ **d78ef385** (code tip `8513ae0d`), on `task/beta-batch-7` `27b0d2e0`. For the bundle after bundle 7. Detection only: one more ERROR log line at a licence's renewal. No migration, no model change, no settings change, nothing granted.
 - `ff2edee7` (tests), `19a15de7` (the change, and the mutation runner under `docs/`)
-- `8513ae0d`: 0b's base update; `7ab45f1e`: evidence (docs only)
+- `8513ae0d`: the base update onto `27b0d2e0` (d5's merge, on 0b's instruction); `7ab45f1e`: evidence (docs only)
 - `9e211ca4`, `d78ef385`: the mutation runner in rule 18 form, the battery again, the evidence corrected (docs only)
 
 The evidence is in `docs/evidence/h98-owed-refresh-last-week/`.
