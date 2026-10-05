@@ -77,6 +77,72 @@ class HookHandOverTest(SimpleTestCase):
         self.assertIs(_transport._get_stderr_fileno, self.original)
 
 
+class _BrowserThatIsNeverUsed:
+    def is_connected(self):
+        return True
+
+    async def close(self):
+        return None
+
+
+class _ChromiumThatLaunchesNothing:
+    async def launch(self, **_options):
+        return _BrowserThatIsNeverUsed()
+
+
+class _PlaywrightThatNeverAsksForStderr:
+    """What a Playwright that no longer uses the hook looks like to the
+    renderer: it starts, and our pipe was never asked for."""
+
+    chromium = _ChromiumThatLaunchesNothing()
+
+    async def start(self):
+        return self
+
+    async def stop(self):
+        return None
+
+
+class PipeNotTakenTest(SimpleTestCase):
+    """SM: if Playwright does not take the pipe (an upgrade renamed the
+    hook), the renderer says so with an ERROR and goes on working - once
+    per process, not once per start."""
+
+    def setUp(self):
+        pdf_renderer.reset_worker_for_tests()
+        self.addCleanup(pdf_renderer.reset_worker_for_tests)
+        for target, value in (
+            ("async_playwright", _PlaywrightThatNeverAsksForStderr),
+            ("_pipe_not_taken_reported", False),
+        ):
+            patcher = patch.object(pdf_renderer, target, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def errors_of_a_start(self):
+        with self.assertLogs(LOGGER, level="WARNING") as caught:
+            pdf_renderer.logger.warning("sentinel")
+            worker = pdf_renderer._get_worker()
+            self.assertIsNotNone(worker._browser)  # the renderer did start
+            pdf_renderer.reset_worker_for_tests()
+        return [r.getMessage() for r in caught.records if r.levelname == "ERROR"]
+
+    def test_the_renderer_starts_and_says_so_once_per_process(self):
+        [error] = self.errors_of_a_start()
+        self.assertIn("did not take the renderer's stderr pipe", error)
+        self.assertIn("H-110", error)
+        self.assertEqual(self.errors_of_a_start(), [])
+
+    def test_nothing_is_said_when_playwright_takes_the_pipe(self):
+        class _PlaywrightThatAsks(_PlaywrightThatNeverAsksForStderr):
+            async def start(self):
+                _transport._get_stderr_fileno()
+                return self
+
+        with patch.object(pdf_renderer, "async_playwright", _PlaywrightThatAsks):
+            self.assertEqual(self.errors_of_a_start(), [])
+
+
 class DriverStderrReaderTest(SimpleTestCase):
     def read(self, *chunks, close_timeout=10.0):
         """The log messages the reader makes of `chunks` written to the

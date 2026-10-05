@@ -432,6 +432,24 @@ class _DriverStderr:
             pass
 
 
+_pipe_not_taken_reported = False
+
+
+def _report_pipe_not_taken():
+    """Playwright started its driver without asking for our pipe: say so,
+    once per process (a renderer can be started more than once in one)."""
+    global _pipe_not_taken_reported
+    if _pipe_not_taken_reported:
+        return
+    _pipe_not_taken_reported = True
+    logger.error(
+        "[PDF] Playwright did not take the renderer's stderr pipe for its "
+        "driver, so the driver shares this process's stderr and log lines "
+        "can be lost while it runs (H-110). Check playwright._impl._transport "
+        "after a Playwright upgrade."
+    )
+
+
 class _ChromiumRenderWorker:
     """
     Owns this process's Playwright connection and its one warm Chromium
@@ -606,12 +624,7 @@ class _ChromiumRenderWorker:
             # The driver has its own copy by now, or never started.
             self._driver_stderr.close_write_end()
         if not self._driver_stderr.handed_over:
-            logger.error(
-                "[PDF] Playwright did not take the renderer's stderr pipe for "
-                "its driver, so the driver shares this process's stderr and "
-                "log lines can be lost while it runs (H-110). Check "
-                "playwright._impl._transport after a Playwright upgrade."
-            )
+            _report_pipe_not_taken()
         self._browser = await self._launch(self._playwright)
 
     async def _shutdown(self):

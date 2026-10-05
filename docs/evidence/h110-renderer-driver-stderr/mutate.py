@@ -112,6 +112,15 @@ MUTANTS = {
         "                )\n"
         "            )\n",
     ),
+    "M18_the_missing_pipe_is_reported_on_every_start": (
+        "    if _pipe_not_taken_reported:\n        return\n",
+        "",
+    ),
+    "M19_the_missing_pipe_is_never_reported": (
+        "        if not self._driver_stderr.handed_over:\n"
+        "            _report_pipe_not_taken()\n",
+        "",
+    ),
     "M17_blank_lines_are_logged": (
         "            if not text:\n                return\n",
         "",
