@@ -47,8 +47,17 @@ The checker still parses and still passes on the whole repository after the docs
 (`python scripts/check_no_pii_in_logs.py`: "OK: no new PII-in-logs violations."). That is the
 static script, the same one the pre-commit hook runs; it is not a test run.
 
+## The one run
+
+The SM ruled that one run is worth having because a `.py` file changed, even if only its
+docstring: the checker's own self-test. Run at fd0beda8 under 0b's grant, 2026-10-05 17:40:10
+to 17:40:11, serial, 6G scope, output straight to a file, stdin from the null device:
+
+`python scripts/test_check_no_pii_in_logs.py -v`: exit 0, Ran 6 tests in 0.005s, OK. Log:
+`checker_selftest.txt`.
+
 ## Not done
 
-No test run and no mutants: no executable line changed. The checker's self-test
-(`python scripts/test_check_no_pii_in_logs.py`, no database) was NOT run: it is a test run and
-needs 0b's grant like any other. It is the one run worth asking for if the verifier wants one.
+No other test run and no mutants: no executable line changed. Verification is 0b's read at the
+merge (SM ruling: documents only, so no separate verifier): additions only, the `.py` change
+inside the docstring, no URL with a password in the additions.
