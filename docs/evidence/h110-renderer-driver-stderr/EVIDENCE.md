@@ -237,3 +237,33 @@ including the killed-browser cases, the driver wrote nothing to its stderr. The 
 therefore left as built, with no rate limit: the per-line cut and the bound on an unfinished
 line stay as the only limits. What this does not show: a driver that fails in a way these tests
 do not cause (for example a Node crash with a stack trace) could still write many lines.
+
+### After the daemon-reader test (66f76d72)
+
+The SM's ruling on 1a's Y12 finding: one committed test that fails when the driver's stderr
+reader thread is not a daemon. The reader ends only when the driver is gone, and the driver is
+stopped by an atexit step; Python joins every non-daemon thread before atexit steps, so a
+non-daemon reader would hang a recycled gunicorn worker or Celery child at exit, the hang H-110
+removes, reached another way.
+
+- Test: `assignments/tests_pdf_renderer_driver_stderr.py`,
+  `TheProcessStderrStaysBlockingTest.test_a_process_that_has_rendered_still_ends_by_itself`.
+  A fresh interpreter renders, the test closes the child's input (a normal end, no kill) and
+  requires exit 0 within 30 s, the driver gone within 10 s, and the stderr pipe still blocking.
+- Written by me, uncommitted; committed unchanged by 1c as 66f76d72 (test code only). I checked
+  that `assignments/pdf_renderer.py` is blob-identical at c10ee47d and 66f76d72
+  (`5cb894b3`) and that the commit touches the one test file only (+28 lines).
+- **Run by 1c, not by me; recorded as reported.** Unmutated: the whole file, 6 tests OK in 7.0 s.
+  Mutant `pdf_renderer.py:339`, `daemon=True` to `daemon=False`, run on the test alone: FAILED
+  (failures=1), Ran 1 test in 61.578 s; the child hit `TimeoutExpired` at the 30 s limit and the
+  test failed with its intended message ("the interpreter did not end within 30 s of the end of
+  its work: a thread keeps it alive at exit ..."). 1c reverted the edit with `git checkout`;
+  the blob check above shows the renderer unchanged. This is a hand mutant outside
+  `mutate.py`, whose 19 mutants are unchanged.
+- **Not covered by any run:** the 437 OK (6b969824) and 655 OK (59b844c4) runs predate this
+  test. A short step with the new test, and the guards, is still to be run on a slot.
+- **Known limit, accepted by the SM as not blocking:** the stderr reader is not rate-limited. A
+  driver that writes without pause is forwarded to the logger line for line. A row for it will be
+  proposed under an H-number the SM gives.
+- H-110 goes into a bundle after bundle 8, with an independent verifier the SM assigns, not into
+  bundle 8.
