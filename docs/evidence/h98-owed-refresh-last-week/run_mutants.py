@@ -14,6 +14,11 @@ directories of the mutated modules' packages are deleted before the
 baseline, before each mutant and after each restore, so a stale .pyc
 (same size, same mtime second) can never stand in for the mutant.
 
+Rule 18: each test run writes its stdout and stderr straight to a file,
+with stdin from the null device; nothing is read through a pipe. (The
+first battery, at 8513ae0d, collected them through a pipe that the runner
+read; it was run again in this form.)
+
     python docs/evidence/h98-owed-refresh-last-week/run_mutants.py <commit>
 """
 
@@ -169,26 +174,31 @@ def clear_pycache(worktree):
             shutil.rmtree(cache)
 
 
-def run_tests():
-    return subprocess.run(
-        [
-            sys.executable,
-            "manage.py",
-            "test",
-            *TESTS,
-            "--settings=settings_worktree",
-            "--noinput",
-            "--keepdb",
-        ],
-        cwd=WORKTREE,
-        capture_output=True,
-        text=True,
-        env={
-            **os.environ,
-            "EXEMPT_EMAIL_DOMAINS": "",
-            "PYTHONDONTWRITEBYTECODE": "1",
-        },
-    )
+def run_tests(log_path):
+    """One test run, output straight to `log_path` (rule 18)."""
+    with open(log_path, "w") as log, open(os.devnull) as nothing:
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "manage.py",
+                "test",
+                *TESTS,
+                "--settings=settings_worktree",
+                "--noinput",
+                "--keepdb",
+            ],
+            cwd=WORKTREE,
+            stdin=nothing,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            env={
+                **os.environ,
+                "EXEMPT_EMAIL_DOMAINS": "",
+                "PYTHONDONTWRITEBYTECODE": "1",
+            },
+        )
+    with open(log_path, errors="replace") as log:
+        return proc.returncode, log.read()
 
 
 def main():
@@ -213,12 +223,14 @@ def main():
         logs = os.path.join(HERE, "logs")
         os.makedirs(logs, exist_ok=True)
         clear_pycache(WORKTREE)
-        baseline = run_tests()
+        raw = os.path.join(logs, "raw")
+        os.makedirs(raw, exist_ok=True)
+        code, output = run_tests(os.path.join(raw, "baseline.out"))
         with open(os.path.join(logs, "baseline.log"), "w") as fh:
-            fh.write(f"# baseline, commit {commit}, exit {baseline.returncode}\n\n")
-            fh.write(baseline.stdout + baseline.stderr)
-        print(f"baseline exit={baseline.returncode}", flush=True)
-        if baseline.returncode != 0:
+            fh.write(f"# baseline, commit {commit}, exit {code}\n\n")
+            fh.write(output)
+        print(f"baseline exit={code}", flush=True)
+        if code != 0:
             raise SystemExit("baseline is red: no mutant is run")
         rows = []
         for mid, guard, rel, old, new, nth in selected:
@@ -230,13 +242,12 @@ def main():
                 fh.write(replace_nth(text, old, new, nth))
             clear_pycache(WORKTREE)
             started = time.monotonic()
-            proc = run_tests()
+            code, output = run_tests(os.path.join(raw, f"{mid}.out"))
             elapsed = time.monotonic() - started
             sh("git", "checkout", "--", rel, cwd=WORKTREE)
             clear_pycache(WORKTREE)
             with open(path, "rb") as fh:
                 restored = sha256(fh.read()) == sha256(pristine)
-            output = proc.stdout + proc.stderr
             summary = next(
                 (
                     ln
@@ -245,24 +256,28 @@ def main():
                 ),
                 "NO SUMMARY",
             )
+            ran = next(
+                (ln for ln in reversed(output.splitlines()) if ln.startswith("Ran ")),
+                "NO RAN LINE",
+            )
             loaded = not load_failed(output)
-            if proc.returncode == 0:
-                status = "SURVIVED"
-            elif "Ran " in output and loaded:
-                status = "KILLED"
-            else:
-                status = "BROKEN"
             failing = [
                 ln for ln in output.splitlines() if ln.startswith(("FAIL:", "ERROR:"))
             ]
+            if code == 0:
+                status = "SURVIVED"
+            elif ran.startswith("Ran ") and failing and loaded:
+                status = "KILLED"
+            else:
+                status = "BROKEN"
             with open(os.path.join(logs, f"{mid}.log"), "w") as fh:
                 fh.write(
                     f"# {mid}: {guard}\n# file: {rel} (occurrence {nth})\n"
                     f"# old: {old!r}\n# new: {new!r}\n# commit: {commit}\n"
-                    f"# exit: {proc.returncode}\n# elapsed_s: {elapsed:.1f}\n"
+                    f"# exit: {code}\n# elapsed_s: {elapsed:.1f}\n"
                     f"# restored_sha256_matches_commit_blob: {restored}\n\n"
                 )
-                fh.write("\n".join(failing) + f"\n\n{summary}\n")
+                fh.write("\n".join(failing) + f"\n\n{ran}\n{summary}\n")
             row = (mid, guard, status, summary, str(restored), f"{elapsed:.1f}")
             rows.append(row)
             print("\t".join(row), flush=True)
