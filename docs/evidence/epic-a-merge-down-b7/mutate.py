@@ -13,8 +13,17 @@ H-89's other mutants are on files that are byte-identical to beta's here
 and are not repeated.
 
 Each mutant is applied, its test modules run, the killers are recorded,
-the file is restored. A run whose test module could not be loaded is
-BROKEN and never counted as a kill.
+the file is restored. Judged three ways (rule 18, SM 2026-10-05):
+  SURVIVED  the inner run exits 0;
+  KILLED    non-zero exit, the run's own "Ran" line, no test module that
+            failed to load, and the failing test named in EXPECTED for
+            that mutant among the failing tests;
+  BROKEN    anything else (no "Ran" line, a load failure, no named
+            failing test, or failures that do not include the expected
+            one). Never counted as a kill.
+EXPECTED was written before the first run. For d5's mutants the names
+are the killers in d5's own battery logs on beta; for E1-E4 they are the
+guard's one repository-wide test.
 
 Rule 17: the test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
 mutated module's __pycache__ is deleted before each mutant and after each
@@ -86,10 +95,22 @@ EPIC_ONLY = [
     ),
 ]
 
-#: A test module that could not be loaded, or a traceback ending in one of
-#: these, on a whole line of the output (d5's rule in H-89's battery).
+#: The test that must be among a mutant's failing tests. Written before
+#: the first run of this battery.
+THE_GUARD = "test_no_log_or_print_call_passes_an_address_or_a_name"
+EXPECTED = {
+    **{m: THE_GUARD for m in "P1 P2 P3 P4 P5 P6 P7 P8 P9 Q1 Q4 Q5".split()},
+    **{m: THE_GUARD for m in "E1 E2 E3 E4".split()},
+    "S11": "test_it_is_off_under_the_test_runner",
+    "S16": "test_settings_import_nothing_from_the_project_at_the_top_level",
+    "Y7": "test_settings_pass_the_hooks_to_sentry",
+    "Y8": "test_settings_pass_the_hooks_to_sentry",
+    "Y9": "test_a_failure_to_import_the_hooks_is_not_swallowed",
+    "Y12": "test_settings_pass_the_hooks_to_sentry",
+}
+
+#: A test module that could not be loaded.
 LOAD_FAILURE = "unittest.loader._FailedTest"
-LOAD_ERRORS = ("ImportError", "ModuleNotFoundError", "SyntaxError")
 
 
 def _literal_mutants(path):
@@ -138,15 +159,23 @@ def clear_pycache(path):
     shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
 
 
-def is_broken(text):
-    lines = [line.strip() for line in text.splitlines()]
-    return any(
-        LOAD_FAILURE in line or line.split(":")[0] in LOAD_ERRORS for line in lines
-    )
+def judge(mid, returncode, text):
+    """(status, the run's "Ran" line, the failing tests' names)."""
+    failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", text, re.M)))
+    ran = re.findall(r"^Ran \d+ tests? in .*$", text, re.M)
+    ran_line = ran[-1] if ran else None
+    if returncode == 0:
+        status = "SURVIVED"
+    elif ran_line and LOAD_FAILURE not in text and EXPECTED[mid] in failed:
+        status = "KILLED"
+    else:
+        status = "BROKEN"
+    return status, ran_line, failed
 
 
 def main():
     mutants = all_mutants()
+    assert {m[0] for m in mutants} == set(EXPECTED), "EXPECTED names every mutant"
     originals = {}
     for mid, _what, path, old, new, _tests in mutants:
         source = originals.setdefault(path, open(path).read())
@@ -181,23 +210,22 @@ def main():
             open(path, "w").write(original)
             clear_pycache(path)
         text = log.read_text(errors="replace")
-        failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", text, re.M)))
-        ran = re.findall(r"^Ran (\d+) tests?", text, re.M)
-        broken = is_broken(text)
+        status, ran_line, failed = judge(mid, p.returncode, text)
         results[mid] = {
             "what": what,
             "file": path,
-            "killed": p.returncode != 0 and not broken,
-            "broken": broken,
-            "ran": int(ran[-1]) if ran else None,
+            "status": status,
+            "exit": p.returncode,
+            "ran_line": ran_line,
+            "expected": EXPECTED[mid],
             "failing_tests": failed,
         }
         print(mid, results[mid], flush=True)
     with open(OUT, "w") as f:
         json.dump(results, f, indent=2)
         f.write("\n")
-    print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])
-    print("BROKEN:", [k for k, v in results.items() if v["broken"]])
+    for status in ("KILLED", "SURVIVED", "BROKEN"):
+        print(f"{status}:", [k for k, v in results.items() if v["status"] == status])
 
 
 if __name__ == "__main__":
