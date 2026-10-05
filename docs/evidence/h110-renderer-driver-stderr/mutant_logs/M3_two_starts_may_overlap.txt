@@ -1,0 +1,16 @@
+.....................F.....
+======================================================================
+FAIL: test_a_second_start_waits_and_restores_the_real_hook (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_a_second_start_waits_and_restores_the_real_hook)
+Two starts must not overlap: the second would save the first's
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 65, in test_a_second_start_waits_and_restores_the_real_hook
+    self.assertFalse(entered.wait(0.3), "two starts overlapped")
+AssertionError: True is not false : two starts overlapped
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.137s
+
+FAILED (failures=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

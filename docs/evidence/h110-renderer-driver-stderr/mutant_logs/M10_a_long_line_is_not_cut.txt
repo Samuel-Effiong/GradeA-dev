@@ -1,0 +1,45 @@
+............F.F.F..........
+======================================================================
+FAIL: test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 197, in test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped
+    self.assertEqual(
+AssertionError: Lists differ: ['[PD[2024 chars]yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy[129068 chars]ext'] != ['[PD[2024 chars]yyyyy [cut]', '[PDF] Playwright driver stderr: next']
+
+First differing element 0:
+'[PDF[2023 chars]yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy[129027 chars]yyyy'
+'[PDF[2023 chars]yyyyy [cut]'
+
+Diff is 133179 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_line_that_never_ends_is_logged_before_it_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_that_never_ends_is_logged_before_it_ends)
+What is held of an unfinished line is bounded: after one pipe's
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 219, in test_a_line_that_never_ends_is_logged_before_it_ends
+    self.assertEqual(seen_while_open, [cut])
+AssertionError: Lists differ: ['[PD[2024 chars]wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww[129028 chars]www'] != ['[PD[2024 chars]wwwww [cut]']
+
+First differing element 0:
+'[PDF[2023 chars]wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww[129027 chars]wwww'
+'[PDF[2023 chars]wwwww [cut]'
+
+Diff is 133136 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_long_line_is_cut (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_long_line_is_cut)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 190, in test_a_long_line_is_cut
+    self.assertEqual(
+AssertionError: '[PDF[2023 chars]xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx[2955 chars]xxxx' != '[PDF[2023 chars]xxxxx [cut]'
+Diff is 7077 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.224s
+
+FAILED (failures=3)
+Found 27 test(s).
+System check identified no issues (0 silenced).

@@ -161,8 +161,25 @@ def main():
             text = log.read_text(errors="replace")
             failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", text, re.M)))
             ran = re.findall(r"^Ran (\d+) tests?", text, re.M)
+            # Rule 18 (SM, 2026-10-05): exit 0 = SURVIVED; non-zero with a
+            # "Ran" line, named failing tests and no load failure = KILLED;
+            # anything else is BROKEN and is never counted as a kill.
+            loaded = not re.search(
+                r"unittest\.loader\._FailedTest"
+                r"|^(?:ImportError|ModuleNotFoundError|SyntaxError)\b",
+                text,
+                re.M,
+            )
+            if p.returncode == 0:
+                status = "SURVIVED"
+            elif ran and failed and loaded:
+                status = "KILLED"
+            else:
+                status = "BROKEN"
             results[name] = {
-                "killed": p.returncode != 0,
+                "status": status,
+                "killed": status == "KILLED",
+                "exit": p.returncode,
                 "ran": int(ran[-1]) if ran else None,
                 "failing_tests": failed,
             }
@@ -175,7 +192,8 @@ def main():
     with open(OUT, "w") as f:
         json.dump(results, f, indent=2)
         f.write("\n")
-    print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])
+    print("SURVIVORS:", [k for k, v in results.items() if v["status"] == "SURVIVED"])
+    print("BROKEN:", [k for k, v in results.items() if v["status"] == "BROKEN"])
 
 
 if __name__ == "__main__":

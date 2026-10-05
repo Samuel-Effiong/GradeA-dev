@@ -115,4 +115,56 @@ through the record factory, so the mutant builds the record past it.
 
 ## Runs
 
-@@RUNS@@
+Frozen tip b8e9200e (base `task/beta-batch-7` 27b0d2e0), one grant from 0b, 2026-10-05 15:35:51 to
+15:46:44, one process at a time, 6G scope, rules 12, 13, 16, 17 and 18 (every run wrote straight
+to a file, stdin from the null device, nothing piped). No run was stopped, repeated or failed
+outside what step 0 expects. Nothing ran before this grant except commit hooks and `mutate.py
+--check`.
+
+| Step | What | Result | Log |
+|---|---|---|---|
+| 0 | Reproduce-first: `tests_pdf_renderer_driver_stderr` on the renderer as at 27b0d2e0, own DB | exit 1 as expected: Ran 5, FAILED (failures=3), the three fresh-interpreter tests; the two pin tests pass there | `prefix_unchanged_renderer_failing.txt` |
+| 1a | `makemigrations --check --dry-run` | exit 0, No changes detected | `makemigrations_check.txt` |
+| 1 | The two new modules, the seven caller modules, 21 guard modules | exit 0: Ran 426 in 296 s, OK (skipped=8) | `modules_and_guards.txt` |
+| 2 | 19 mutants on `assignments/pdf_renderer.py`, own DB (dropped afterwards) | 19 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log.txt`, `mutation_results.json`, `mutant_logs/` |
+
+Step 1's eight skips are all `tests_load` ("load tests are opt-in: set RUN_LOAD_TESTS=1"). None
+is a Chromium skip: the fresh-interpreter tests ran.
+
+Still owed: the one owning-app regression (`assignments`), under its own grant.
+
+### How the mutants were counted
+
+By the SM's rule of 2026-10-05 (rule 18): a mutant is KILLED only if its inner run shows its own
+"Ran" line and named failing tests; a non-zero exit alone is not enough, because a runner that
+exits silently is non-zero too. The battery itself judged by exit status alone (`mutate.py` as
+at b8e9200e). The rule was applied afterwards to the fields the battery recorded, with no re-run:
+all 19 have `ran` = 27 and at least one named failing test (1 to 8 each), and each mutant's own
+log in `mutant_logs/` carries its "Ran 27 tests" line.
+
+`mutate.py` was changed AFTER the battery to judge the three ways itself (SURVIVED, KILLED,
+BROKEN) and to record the exit status. That is a tooling change; the results file here is the
+battery's own output and was not regenerated.
+
+The failing tests expected for each mutant were NOT written down before the run. The names in
+`mutation_results.json` are what the run found.
+
+### One log is not verbatim
+
+`mutant_logs/M16_a_line_goes_to_the_log_past_the_record_factory.txt`: M16's failure message
+quotes the test's made-up database URL, which has a password part (a stand-in word the test
+builds from pieces, so no such URL is in the source). No URL with a password is committed, a
+stand-in or a masked label included, so the whole URL reads `[the test's made-up database URL,
+removed]` in the committed copy, in one line. Nothing else in the file differs. The untouched copy is outside the repository, mode 600:
+`~/Documents/Projects/GAP-evidence-logs/h110_M16_full_b8e9200e.txt`. Every other log here is
+as the run wrote it.
+
+### Driver lines per render (the SM's question on a rate limit)
+
+Step 1's log holds 26 `[PDF]` renderer log lines (the crash tests kill Chromium six times), so
+the renderer's WARNING lines do reach that log. It holds 0 lines of `[PDF] Playwright driver
+stderr:` and 0 of the pipe-not-taken ERROR. Across every render in the seven caller modules,
+including the killed-browser cases, the driver wrote nothing to its stderr. The reader is
+therefore left as built, with no rate limit: the per-line cut and the bound on an unfinished
+line stay as the only limits. What this does not show: a driver that fails in a way these tests
+do not cause (for example a Node crash with a stack trace) could still write many lines.
