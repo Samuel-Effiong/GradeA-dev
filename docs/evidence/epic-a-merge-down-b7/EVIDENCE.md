@@ -112,4 +112,19 @@ battery ran on: the names were in the tree before the grant (15:55) and before a
 script's earlier commit dd17b2f3 had no expected names and judged by exit status; it was never
 run.
 
-Still owed: the one regression (`AutoGrader` and `billing`), under its own grant.
+### The regression
+
+Tip b4e8da84 (af350044 plus the gate evidence; no other file differs), its own grant from 0b,
+2026-10-05 16:16:07 to 16:48:31: `AutoGrader billing`, serial, 12G scope, full-suite lock,
+benchmark variables unset, output straight to a file.
+
+Ran 2752 tests in 1887.500s, OK. No skips, no failure, no error. Per app, counted from the test
+id lines: AutoGrader 613, billing 2139.
+
+`regression_b4e8da84.log.gz` is the whole log, gzipped and byte-exact: 32883 lines,
+3108993 bytes unpacked, sha256 of the unpacked log
+c6772a76d7cf9829f82126aaa3a709fb6e6f15b2ed3282b6b1925f5003fa40e6.
+The gate script wrote it as `regression.txt`; only the name and the packing changed.
+
+Nothing is owed by the author after this. Not run here, and left to 0b's Gate 10: every app
+other than AutoGrader and billing.
