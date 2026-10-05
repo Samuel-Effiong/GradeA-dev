@@ -194,7 +194,9 @@ flowchart TD
 
 The business-email requirement is enforcement point #5 of the email-track fork ([users-and-auth.md](users-and-auth.md#where-the-fork-is-enforced)).
 
-The `IndividualSubscriptionConflictError` ([license_service.py:99](../../billing/license_service.py#L99)) is in the user-facing passthrough list ([AutoGrader/error_messages.py:29](../../AutoGrader/error_messages.py#L29)), so its message reaches the admin verbatim. Since H-85 that message is one neutral sentence (`TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`: "This teacher can't be added to your school yet. Please ask them to contact support."), with no address and no mention of a subscription; the reason is in the log, by user id.
+The `IndividualSubscriptionConflictError` ([license_service.py:99](../../billing/license_service.py#L99)) is in the user-facing passthrough list ([AutoGrader/error_messages.py:29](../../AutoGrader/error_messages.py#L29)), so its message reaches the admin verbatim. Since H-85 that message is one neutral sentence (the constant `billing.license_service.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`: "This teacher can't be added to your school yet. Please ask them to contact support."), with no address and no mention of a subscription; the reason is in the log, by user id.
+
+On Epic A the add-teachers route answers per teacher with a coded entry, not the exception's text. `teacher_failure()` maps this exception to the reason code `TEACHER_CANNOT_JOIN_YET`: the same sentence, remediation "Ask the teacher to contact support.", no params, not retryable. The earlier code `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` (S7d) is retired: its name, text, remediation and `email` param each disclosed the subscription. It is not kept as an audit-only code, because a school admin can read their own school's audit events. A client that mapped the old code must map the new one.
 
 ### The invitation context
 
@@ -386,7 +388,7 @@ For a Stripe-billed licence, `StripeSubscriptionMutationService.change_license_p
 | Failure | Behaviour | Recovery |
 |---|---|---|
 | Non-business email offered a seat | refused (raise or warn, per `raise_on_conflict`) | use a school address |
-| Teacher already has an active individual plan | `IndividualSubscriptionConflictError`; the admin sees only a neutral sentence ("This teacher can't be added to your school yet. Please ask them to contact support."), and the log gives the reason by user id (H-85) | the teacher contacts support |
+| Teacher already has an active individual plan | `IndividualSubscriptionConflictError`; the admin sees only a neutral sentence ("This teacher can't be added to your school yet. Please ask them to contact support."), and the log gives the reason by user id (H-85). Per-teacher reason code on Epic A: `TEACHER_CANNOT_JOIN_YET` | the teacher contacts support |
 | Teacher belongs to a different school | refused naming both schools | — |
 | Email already belongs to a non-teacher | refused naming the actual type | — |
 | Superadmin named as licence admin | refused naming the fix | pre-existing rows: `audit_school_admins` |
