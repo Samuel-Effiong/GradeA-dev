@@ -31,8 +31,14 @@ EXPECTED = {
     "P4": {HELD},
     "P5": {GIVES_UP},
     "P6": {"test_the_default_patience"},
-    "P7": {"test_the_runner_reports_on_a_patient_stream_over_stderr"},
+    "P7": {
+        "test_the_runner_reports_on_a_patient_stream_over_stderr",
+        "test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up",
+    },
     "P8": {"test_a_stream_with_no_file_descriptor_is_written_to_as_it_is"},
+    # 1a's Y10. In an ordinary run sys.stderr IS sys.__stderr__, so only the
+    # test that replaces sys.stderr first can see it.
+    "P9": {"test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up"},
 }
 logs = Path(sys.argv[1]) / "logs"
 bad = 0

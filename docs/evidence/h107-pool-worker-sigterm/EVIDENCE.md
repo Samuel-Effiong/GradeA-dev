@@ -88,6 +88,8 @@ inherited (H-65's own docstring says so). SM, 2026-10-05: no row.
 | `de91a6a0` | tests for B (red) |
 | `f3c7ee13` | B: the result stream waits; eight more mutants |
 | `c3c10348` | test-only: the stream tests' helper reader reads through its own descriptor |
+| `9a4bcd1f` | evidence for the gates at `c3c10348` |
+| `6370f662` | test-only, after 1a's verification: a wiring test that tells `sys.stderr` from `sys.__stderr__`; mutant P9 |
 
 ## Gates
 On the frozen tip `c3c10348`, 2026-10-05, under 0b's grants. Status:
@@ -166,6 +168,38 @@ file. Rule 17: the battery and its baseline ran with
 mutated module's package before the baseline, before each mutant and after
 each restore.
 
+## After verification: 1a's surviving mutant, folded (rule 15.4)
+1a's verification at `9a4bcd1f` found a mutant my 13 stream tests did not
+kill (1a's Y10): the runner wrapping `sys.__stderr__` in place of
+`sys.stderr`. My wiring test compared the stream with `sys.stderr`, which
+in an ordinary run is the same object, so it could not tell them apart.
+1a's own probe killed it. The SM ruled FOLD before the merge.
+
+`6370f662` (test-only) adds
+`test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up`: it
+replaces `sys.stderr`, asks the runner for its arguments and expects the
+stream to wrap the replacement. The battery gains that mutant as **P9,
+which is 1a's Y10**. No change to `AutoGrader/redis_test_runner.py` or
+`AutoGrader/testing/patient_stream.py`.
+
+| Run at `6370f662`, 2026-10-05 14:50 | Result | Log |
+|---|---|---|
+| The two new test modules | GREEN: 18 tests, OK | `t_modules_6370f662.log` |
+| The whole battery, 13 mutants (`test_h107_mut`, rule 17) | 13/13 killed, restore verified; every mutant's failing tests are the expected set | `b_mutation_battery_6370f662.log`, `battery_6370f662/` |
+
+The expected sets were written down before the run
+(`expected_kills.py.txt`): P9 fails exactly the new test; P7 (the wiring
+removed) now fails two, the old wiring test and the new one; the other
+eleven as at `c3c10348`. All thirteen matched.
+
+**This battery is on the final test module** (the SM's addendum to rule
+17, 2026-10-05): the last change to either test module is `6370f662`, and
+the battery ran at `6370f662`. The battery at `c3c10348` in the Gates
+table predates that change; it is kept in `battery_c3c10348/` and is
+superseded by this one for the mutants table below. The repros, (a) and
+(c) ran at `c3c10348`; since then only one test module and the mutation
+runner have changed.
+
 ## The slow-pipe diagnostics: B's fix against the real fault
 Stated exceptions to rule 18 (SM, 2026-10-05), and not gates: runs whose
 output deliberately goes through a pipe to a slow reader, with the PDF
@@ -212,6 +246,8 @@ captures, `D4_full_p2_observe.observe` and
 in them differs from the originals in `GAP-d5-runs/`.)
 
 ## Mutants
+The battery at `6370f662`, on the final test modules.
+
 | Id | Guards | Result |
 |---|---|---|
 | W1 | every worker gets the default action back (the pool initializer) | KILLED, `FAILED (failures=1)` |
@@ -224,8 +260,9 @@ in them differs from the originals in `GAP-d5-runs/`.)
 | P4 | a flush that would block waits too | KILLED, `FAILED (errors=1)` |
 | P5 | a reader that takes nothing ends the wait (no bound: a new hang) | KILLED, `FAILED (failures=1)` |
 | P6 | the default patience is 120 seconds | KILLED, `FAILED (failures=1)` |
-| P7 | the runner reports on the patient stream | KILLED, `FAILED (failures=1)` |
+| P7 | the runner reports on the patient stream | KILLED, `FAILED (failures=2)` |
 | P8 | a stream with no file descriptor is written to as it is | KILLED, `FAILED (errors=1)` |
+| P9 | the stream wraps sys.stderr as it is when the run is set up (1a's Y10) | KILLED, `FAILED (failures=1)` |
 
 ## For the verifier
 - The main test of A runs a probe in a fresh interpreter (a pool cannot be
