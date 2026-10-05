@@ -1781,8 +1781,9 @@ class LicenseSubscriptionService:
                 # The same ids-only line as the copied
                 # _invite_and_enroll_one_teacher (H-78), so both lines log a
                 # refused teacher alike: the exception's class, never its
-                # text (the not-business and subscription refusals carry
-                # the address).
+                # text (the not-business refusal carries the address; the
+                # individual-subscription refusal did too, until H-85 made
+                # it one neutral sentence).
                 logger.warning(
                     "Skipped enrolling a teacher in license %s (school %s): %s",
                     license_sub.id,
