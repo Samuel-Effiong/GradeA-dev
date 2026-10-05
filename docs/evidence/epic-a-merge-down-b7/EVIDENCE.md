@@ -89,4 +89,27 @@ repository-wide test.
 
 ## Runs
 
-@@RUNS@@
+Frozen tip af350044, one grant from 0b, 2026-10-05 15:55:14 to 16:04:27, one process at a time,
+6G scope, rules 12, 13, 16, 17 and 18 (every run wrote straight to a file, stdin from the null
+device, nothing piped). No run was stopped, repeated or failed outside what step 0 expects.
+Before this grant nothing of the merge-down ran except commit hooks, the static checker and
+`mutate.py --check`.
+
+| Step | What | Result | Log |
+|---|---|---|---|
+| 0 | Reproduce-first: beta's guard `AutoGrader.tests_no_pii_in_logs` with the seven baselined files put back as at db6f5155, own DB | exit 1 as expected: Ran 4, FAILED (failures=1), `test_no_log_or_print_call_passes_an_address_or_a_name` | `prefix_guard_on_epic_base_files_failing.txt` |
+| 1a | `makemigrations --check --dry-run` | exit 0, No changes detected | `makemigrations_check.txt` |
+| 1 | 14 changed test modules and 18 guard modules of both sides | exit 0: Ran 426 in 231 s, OK, no skips | `modules_and_guards.txt` |
+| 2 | 22 mutants on the epic's files, own DB (dropped afterwards) | 22 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log.txt`, `mutation_results.json`, `mutant_logs/` |
+
+Mutants: every inner run exited 1 with its own "Ran" line ("Ran 16 tests" for the sixteen P, Q
+and E mutants, "Ran 56 tests" for the six on `settings.py`), no test module failed to load, and
+the test named in `EXPECTED` is among the failing tests of each. `mutation_results.json` holds
+status, exit, the "Ran" line, the expected test and the failing tests per mutant.
+
+`EXPECTED` first appears in commit af350044 (committed 15:53:53), which is the frozen tip the
+battery ran on: the names were in the tree before the grant (15:55) and before any run. The
+script's earlier commit dd17b2f3 had no expected names and judged by exit status; it was never
+run.
+
+Still owed: the one regression (`AutoGrader` and `billing`), under its own grant.

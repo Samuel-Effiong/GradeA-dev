@@ -1,0 +1,51 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+....F........................FFF........................
+======================================================================
+FAIL: test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_log_scrubbing.py", line 430, in test_once_settings_are_configured_the_switch_is_theirs
+    self.assertFalse(log_scrubbing.is_enabled())
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+So H-80's and H-91's tests read what the code really logged.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_log_scrubbing.py", line 332, in test_it_is_off_under_the_test_runner
+    self.assertIs(getattr(settings, "LOG_SCRUB_ADDRESSES", None), False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_no_environment_or_variable_can_switch_it_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_no_environment_or_variable_can_switch_it_off)
+In settings.py the switch is computed from "are tests running"
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_log_scrubbing.py", line 371, in test_no_environment_or_variable_can_switch_it_off
+    self.assertEqual(ast.unparse(assignment.value), "not _TESTS_ARE_RUNNING")
+AssertionError: 'True' != 'not _TESTS_ARE_RUNNING'
+- True
++ not _TESTS_ARE_RUNNING
+
+
+======================================================================
+FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_log_scrubbing.py", line 349, in test_override_settings_switches_it_on_and_back_off
+    self.assertIn(ADDRESS, second)
+AssertionError: 'someone.private@school-example.edu' not found in 'INFO second [email]'
+
+----------------------------------------------------------------------
+Ran 56 tests in 6.216s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...
+Found 56 test(s).
