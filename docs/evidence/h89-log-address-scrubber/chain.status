@@ -5,3 +5,7 @@
 17:49:47 (b) exit=1
 17:49:47 STOP: (b) not all killed
 17:55:38 (b) on 9a37e092 exit=0
+09:03:54 repro 8f4e9ef8 exit=1 (red expected)
+09:08:25 (a) exit=0
+09:16:36 (b) exit=0
+09:16:36 FOLD CHAIN END: (c) part 2 needs its own GRANT

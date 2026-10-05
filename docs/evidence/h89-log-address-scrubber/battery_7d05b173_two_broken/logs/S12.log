@@ -25,7 +25,7 @@ FAIL: test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log
 FAIL: test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles)
 FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
 FAIL: test_the_factory_is_installed (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_the_factory_is_installed)
-FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://:s3cret-pass@redis:6379/0')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@redis:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@localhost:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='rediss://[credentials removed from this log]@cache.internal.example.com:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='postgres://[credentials removed from this log]@db.example.com:5432/grader')

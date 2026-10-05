@@ -1,0 +1,15 @@
+# Y1: Sentry: the exception values are scrubbed
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    "exception",\n'
+# new: ''
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_dsn_in_an_exception_never_shows_its_password (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_dsn_in_an_exception_never_shows_its_password)
+FAIL: test_it_fails_closed_and_never_raises (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_it_fails_closed_and_never_raises)
+FAIL: test_no_address_is_left_in_the_events_text (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_no_address_is_left_in_the_events_text)
+FAIL: test_what_makes_the_report_useful_is_kept (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_what_makes_the_report_useful_is_kept)
+
+FAILED (failures=4)

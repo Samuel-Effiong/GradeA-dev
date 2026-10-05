@@ -2,9 +2,9 @@
 # file: AutoGrader/log_scrubbing.py (occurrence 1)
 # old: '    return _ADDRESS.sub(EMAIL, _USERINFO.sub(CREDENTIALS, text))\n'
 # new: '    return _ADDRESS.sub(EMAIL, text)\n'
-# commit: 3da28258a6383bb82339fff0dc24ba2da0ba6487
+# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
 # exit: 1
-# elapsed_s: 13.8
+# elapsed_s: 10.6
 # restored_sha256_matches_commit_blob: True
 
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@redis:6379/0')

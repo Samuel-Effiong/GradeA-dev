@@ -1,0 +1,12 @@
+# S9: exception text that cannot be rendered fails closed
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '        return f"{name}: {EXCEPTION_WITHHELD}"\n'
+# new: '        return str(exc_info[1])\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 14.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_exception_text_that_cannot_be_rendered_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_exception_text_that_cannot_be_rendered_fails_closed)
+
+FAILED (failures=1)

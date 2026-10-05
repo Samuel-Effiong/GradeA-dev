@@ -2,16 +2,19 @@
 # file: AutoGrader/log_scrubbing.py (occurrence 1)
 # old: '    return _ADDRESS.sub(EMAIL, _USERINFO.sub(CREDENTIALS, text))\n'
 # new: '    return _ADDRESS.sub(EMAIL, text)\n'
-# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
 # exit: 1
-# elapsed_s: 10.6
+# elapsed_s: 16.8
 # restored_sha256_matches_commit_blob: True
 
-FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://:s3cret-pass@redis:6379/0')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@redis:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@localhost:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='rediss://[credentials removed from this log]@cache.internal.example.com:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='postgres://[credentials removed from this log]@db.example.com:5432/grader')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='amqp://[credentials removed from this log]@rabbit//')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='redis:6379/0')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='localhost')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='db.example.com:5432/grader')
 FAIL: test_a_dsn_in_an_exception_never_shows_its_password (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_dsn_in_an_exception_never_shows_its_password)
 
-FAILED (failures=6)
+FAILED (failures=9)

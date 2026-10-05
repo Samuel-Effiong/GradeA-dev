@@ -2,9 +2,9 @@
 # file: AutoGrader/__init__.py (occurrence 1)
 # old: '_install_log_scrubbing()\n'
 # new: ''
-# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
 # exit: 1
-# elapsed_s: 14.9
+# elapsed_s: 12.8
 # restored_sha256_matches_commit_blob: True
 
 ERROR: test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
@@ -25,11 +25,14 @@ FAIL: test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log
 FAIL: test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles)
 FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
 FAIL: test_the_factory_is_installed (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_the_factory_is_installed)
-FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://:s3cret-pass@redis:6379/0')
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@redis:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@localhost:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='rediss://[credentials removed from this log]@cache.internal.example.com:6379/0')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='postgres://[credentials removed from this log]@db.example.com:5432/grader')
 FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='amqp://[credentials removed from this log]@rabbit//')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='redis:6379/0')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='localhost')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='db.example.com:5432/grader')
 FAIL: test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string)
 
-FAILED (failures=23, errors=1)
+FAILED (failures=26, errors=1)
