@@ -248,16 +248,20 @@ def main():
                 ),
                 "NO SUMMARY",
             )
+            ran = next(
+                (ln for ln in reversed(output.splitlines()) if ln.startswith("Ran ")),
+                "NO RAN LINE",
+            )
             loaded = not load_failed(output)
-            if code == 0:
-                status = "SURVIVED"
-            elif "Ran " in output and loaded:
-                status = "KILLED"
-            else:
-                status = "BROKEN"
             failing = [
                 ln for ln in output.splitlines() if ln.startswith(("FAIL:", "ERROR:"))
             ]
+            if code == 0:
+                status = "SURVIVED"
+            elif ran.startswith("Ran ") and failing and loaded:
+                status = "KILLED"
+            else:
+                status = "BROKEN"
             with open(os.path.join(logs, f"{mid}.log"), "w") as fh:
                 fh.write(
                     f"# {mid}: {guard}\n# file: {rel} (occurrence {nth})\n"
@@ -265,7 +269,7 @@ def main():
                     f"# exit: {code}\n# elapsed_s: {elapsed:.1f}\n"
                     f"# restored_sha256_matches_commit_blob: {restored}\n\n"
                 )
-                fh.write("\n".join(failing) + f"\n\n{summary}\n")
+                fh.write("\n".join(failing) + f"\n\n{ran}\n{summary}\n")
             row = (mid, guard, status, summary, str(restored), f"{elapsed:.1f}")
             rows.append(row)
             print("\t".join(row), flush=True)
