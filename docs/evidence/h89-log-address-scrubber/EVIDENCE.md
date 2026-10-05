@@ -327,16 +327,30 @@ with or without a user name), taken at the tip of this branch:
 | Where | Lines |
 |---|---|
 | H-89's own files: its four modules, its three test modules, and everything under this evidence folder, plain and gzipped | **0** |
-| The whole tree | 13, in six files, none of them H-89's (below) |
+| The whole tree, archives opened | 16, in seven files, none of them H-89's (below) |
 | Lines added by `git diff 141c8031..tip` | 8, all in `AutoGrader/tests_redis_hygiene_databases.py` |
 
-The six files: `.example.env` (1), `.github/workflows/tests.yml` (1),
-`.github/workflows/migration-safety.yml` (1), `QA_SERVER_SETUP.md` (1) and
-`docs/evidence/mypy_django_stubs/EVIDENCE.md` (1), which the SM looked at
-and classified on 2026-10-05 as placeholders, not credentials, and out of
-scope here; and `AutoGrader/tests_redis_hygiene_databases.py` (8), which
-is H-97's test module, in this branch's diff only because the batch base
-is, and is backlog row H-109 (build those test URLs from variables).
+**Corrected on 2026-10-05, after 1a's verification.** This table first
+said 13 lines in six files. 1a counted 16 in seven: my search did not open
+archives, and three lines are inside
+`docs/evidence/h1_stampede/harness.tar.gz`. The check I run before every
+evidence commit now opens `.gz`, `.tar`, `.tar.gz` and `.zip` files, and
+the count above is taken that way over every tracked file.
+
+The seven files:
+- `.example.env` (1), `.github/workflows/tests.yml` (1),
+  `.github/workflows/migration-safety.yml` (1), `QA_SERVER_SETUP.md` (1)
+  and `docs/evidence/mypy_django_stubs/EVIDENCE.md` (1): the SM looked at
+  these and classified them on 2026-10-05 as placeholders, not
+  credentials, and out of scope here.
+- `docs/evidence/h1_stampede/harness.tar.gz` (3): those three lines hold
+  one literal password-shaped string for a local postgres URL; not
+  H-89's; raised to the SM and the founder on 2026-10-05. (The SM's first
+  classification of these three, as shell-variable references, was wrong
+  and is corrected in 1a's record too.)
+- `AutoGrader/tests_redis_hygiene_databases.py` (8): H-97's test module,
+  in this branch's diff only because the batch base is; it is backlog row
+  H-109 (build those test URLs from variables), in bundle 7.
 
 ## Gates before the fold
 On the then-frozen tip `9a37e092`, under 0b's grants. (a) ran at `7d05b173`;
