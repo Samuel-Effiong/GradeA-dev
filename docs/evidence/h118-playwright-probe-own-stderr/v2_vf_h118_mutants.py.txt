@@ -1,0 +1,136 @@
+"""v2 mutants for H-118 (d5), beyond d5's P1-P8 and G1-G3.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT), inside the rule
+16/13/12 wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h118_mutants.py check |
+baseline | (no args: every mutant).
+
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of the mutated module's directory is deleted before each mutant
+and after each restore; `baseline` deletes it first.
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+PROBE_FILE = "assignments/tests_pdf_renderer.py"
+SCRUB = PROBE_FILE  # the module whose __pycache__ `baseline` clears
+GUARD = ["AutoGrader.tests_no_playwright_at_import"]
+BASELINE = GUARD
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+# Written before the first run (rule 18 addition): the test each mutant must
+# fail, by name. KILLED only with the run's own "Ran" line, named failing
+# tests and this test among them; non-zero without that is BROKEN;
+# KILLED_OTHER = tests failed, but not the one expected.
+EXPECTED = {
+    "V1_the_child_is_some_other_python": {
+        "d5's guard module": (GUARD, "test_the_child_is_this_interpreter_running_the_launch"),
+    },
+    "V2_the_child_launches_no_browser": {
+        "d5's guard module": (GUARD, "test_the_child_is_this_interpreter_running_the_launch"),
+    },
+}
+
+MUTANTS = {
+    # The probe asks whatever "python3" is on PATH, not this interpreter.
+    "V1_the_child_is_some_other_python": (PROBE_FILE, [
+        ("            [sys.executable, \"-c\", _CHROMIUM_PROBE],\n",
+         "            [\"python3\", \"-c\", _CHROMIUM_PROBE],\n"),
+    ]),
+    # The child starts the driver but launches no browser: "available"
+    # where there is no Chromium.
+    "V2_the_child_launches_no_browser": (PROBE_FILE, [
+        ("    browser = p.chromium.launch(args=[\"--no-sandbox\"])\n    browser.close()\n\"\"\"\n",
+         "    pass\n\"\"\"\n"),
+    ]),
+}
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name, (path, edits) in MUTANTS.items():
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        print(name, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SCRUB)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    path, edits = MUTANTS[name]
+    src = open(path).read()
+    counts = [src.count(old) for old, _ in edits]
+    if counts != [1] * len(edits):
+        print(name, "APPLY_FAILED", counts, flush=True)
+        continue
+    mutated = src
+    for old, new in edits:
+        mutated = mutated.replace(old, new, 1)
+    ast.parse(mutated)
+    for who, (label_set, expected) in EXPECTED[name].items():
+        clear_pycache(path)
+        open(path, "w").write(mutated)
+        try:
+            tag = "guard"
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_{tag}.txt")
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif expected in failing:
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            print(name, "|", who, "|", status, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            subprocess.run(["git", "checkout", "--", path], check=True)
+            clear_pycache(path)
+            ok = sha(open(path, "rb").read()) == sha(
+                subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+            )
+            print("  restore", "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)
