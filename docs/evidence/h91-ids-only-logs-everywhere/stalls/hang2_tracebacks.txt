@@ -1,0 +1,78 @@
+17:57:10 Fatal Python error: Aborted
+17:57:10
+17:57:10 Current thread 0x0000723b9a52ebc0 (most recent call first):
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/popen_fork.py", line 27 in poll
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/popen_fork.py", line 43 in wait
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 149 in join
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 732 in _terminate_pool
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/util.py", line 227 in __call__
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/util.py", line 303 in _run_finalizers
+17:57:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/util.py", line 337 in _exit_function
+17:57:10
+17:57:10 Extension modules: yaml._yaml, greenlet._greenlet, _brotli, charset_normalizer.md, psycopg2._psycopg, _cffi_backend, markupsafe._speedups, lxml._elementpath, lxml.etree, PIL._imaging, fitz._fitz, numpy
+17:57:11 systemd-run failed with exit status 134.
+17:57:14 Fatal Python error: Aborted
+17:57:14
+17:57:14 Current thread 0x0000723b9a52ebc0 (most recent call first):
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/synchronize.py", line 95 in __enter__
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/queues.py", line 386 in get
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 108 in run
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 314 in _bootstrap
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/popen_fork.py", line 71 in _launch
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/popen_fork.py", line 19 in __init__
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/context.py", line 282 in _Popen
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 121 in start
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 329 in _repopulate_pool_static
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 306 in _repopulate_pool
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 215 in __init__
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/context.py", line 119 in Pool
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 528 in run
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/suite.py", line 84 in __call__
+17:57:14   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/runner.py", line 240 in run
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1026 in run_suite
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1099 in run_tests
+17:57:14   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/AutoGrader/redis_test_runner.py", line 28 in run_tests
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 63 in handle
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460 in execute
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 416 in run_from_argv
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 24 in run_from_argv
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 436 in execute
+17:57:14   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 442 in execute_from_command_line
+17:57:14   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/manage.py", line 18 in main
+17:57:14   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/manage.py", line 22 in <module>
+17:57:14
+17:57:14 Extension modules: yaml._yaml, greenlet._greenlet, _brotli, charset_normalizer.md, psycopg2._psycopg, _cffi_backend, markupsafe._speedups, lxml._elementpath, lxml.etree, PIL._imaging, fitz._fitz, numpy
+17:57:17 Fatal Python error: Aborted
+17:57:17
+17:57:17 Current thread 0x0000723b9a52ebc0 (most recent call first):
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/synchronize.py", line 95 in __enter__
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/queues.py", line 386 in get
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 108 in run
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 314 in _bootstrap
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/popen_fork.py", line 71 in _launch
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/popen_fork.py", line 19 in __init__
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/context.py", line 282 in _Popen
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/process.py", line 121 in start
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 329 in _repopulate_pool_static
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 306 in _repopulate_pool
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/pool.py", line 215 in __init__
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/multiprocessing/context.py", line 119 in Pool
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 528 in run
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/suite.py", line 84 in __call__
+17:57:17   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/runner.py", line 240 in run
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1026 in run_suite
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1099 in run_tests
+17:57:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/AutoGrader/redis_test_runner.py", line 28 in run_tests
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 63 in handle
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460 in execute
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 416 in run_from_argv
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 24 in run_from_argv
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 436 in execute
+17:57:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 442 in execute_from_command_line
+17:57:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/manage.py", line 18 in main
+17:57:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/manage.py", line 22 in <module>
+17:57:17
+17:57:17 Extension modules: yaml._yaml, greenlet._greenlet, _brotli, charset_normalizer.md, psycopg2._psycopg, _cffi_backend, markupsafe._speedups, lxml._elementpath, lxml.etree, PIL._imaging, fitz._fitz, numpy
+exit=134 wall_s=696

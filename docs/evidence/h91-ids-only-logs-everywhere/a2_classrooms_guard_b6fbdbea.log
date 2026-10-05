@@ -1,0 +1,244 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 824e0bf4-2b52-47fb-a486-a60c157303ac.
+Cannot activate automatic trial for user 824e0bf4-2b52-47fb-a486-a60c157303ac (validation): ValueError
+.Free trial plan not found: no trial activated for user 136bd2d9-f7a6-46d9-a55e-54682dd60777.
+Cannot activate automatic trial for user 136bd2d9-f7a6-46d9-a55e-54682dd60777 (validation): ValueError
+..School 267967ce-ed10-4843-b0f0-1796614840c0 already has active license subscription 9119ed68-0093-4908-9387-9a64d42717b3. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user c82d6af6-f414-49a7-884f-c2149ab1d53c.
+Cannot activate automatic trial for user c82d6af6-f414-49a7-884f-c2149ab1d53c (validation): ValueError
+Free trial plan not found: no trial activated for user 795e753d-c585-488e-9978-1f6c20f2e206.
+Cannot activate automatic trial for user 795e753d-c585-488e-9978-1f6c20f2e206 (validation): ValueError
+.Free trial plan not found: no trial activated for user db7c8b76-f34b-4a81-a113-4934d4ccaad1.
+Cannot activate automatic trial for user db7c8b76-f34b-4a81-a113-4934d4ccaad1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0913241c-780a-41af-834e-52a0cb38bd51.
+Cannot activate automatic trial for user 0913241c-780a-41af-834e-52a0cb38bd51 (validation): ValueError
+...Free trial plan not found: no trial activated for user 8637c0d0-ee24-4bc5-a8af-16fc25867298.
+Cannot activate automatic trial for user 8637c0d0-ee24-4bc5-a8af-16fc25867298 (validation): ValueError
+.Free trial plan not found: no trial activated for user add0c21a-69cb-4cdf-a2bb-24e1d3b3d8ed.
+Cannot activate automatic trial for user add0c21a-69cb-4cdf-a2bb-24e1d3b3d8ed (validation): ValueError
+.Free trial plan not found: no trial activated for user 35c46702-3104-4469-81e5-6d38d8097b91.
+Cannot activate automatic trial for user 35c46702-3104-4469-81e5-6d38d8097b91 (validation): ValueError
+.Free trial plan not found: no trial activated for user abf46992-1ae9-473c-b3fc-1364947fb229.
+Cannot activate automatic trial for user abf46992-1ae9-473c-b3fc-1364947fb229 (validation): ValueError
+.Free trial plan not found: no trial activated for user e9528781-4e26-40f3-aca3-569aaab0b2a0.
+Cannot activate automatic trial for user e9528781-4e26-40f3-aca3-569aaab0b2a0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 29dc3594-8dac-4439-b19c-c8a443bfede6.
+Cannot activate automatic trial for user 29dc3594-8dac-4439-b19c-c8a443bfede6 (validation): ValueError
+.Free trial plan not found: no trial activated for user cc320505-46e9-445c-a70c-0af6117ff8b3.
+Cannot activate automatic trial for user cc320505-46e9-445c-a70c-0af6117ff8b3 (validation): ValueError
+...Free trial plan not found: no trial activated for user cd405074-fbff-489d-a852-49d2b5503654.
+Cannot activate automatic trial for user cd405074-fbff-489d-a852-49d2b5503654 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6395b281-9032-44d0-ab51-bf53b0fa709b.
+Cannot activate automatic trial for user 6395b281-9032-44d0-ab51-bf53b0fa709b (validation): ValueError
+.....Free trial plan not found: no trial activated for user 23935057-4f75-4484-977e-941966642597.
+Cannot activate automatic trial for user 23935057-4f75-4484-977e-941966642597 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/users/views.py", line 1721, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+...Free trial plan not found: no trial activated for user 6127c27e-e944-4f4e-9f66-0a253e01bdaf.
+Cannot activate automatic trial for user 6127c27e-e944-4f4e-9f66-0a253e01bdaf (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/users/views.py", line 995, in otp
+    raise ParseError("Email already verified. Please login.")
+rest_framework.exceptions.ParseError: Email already verified. Please login.
+.Free trial plan not found: no trial activated for user b1d2b6c5-90cb-4d3f-9876-bba27b404de4.
+Cannot activate automatic trial for user b1d2b6c5-90cb-4d3f-9876-bba27b404de4 (validation): ValueError
+Free trial plan not found: no trial activated for user e007416d-2984-4d44-b4f5-27220420637a.
+Cannot activate automatic trial for user e007416d-2984-4d44-b4f5-27220420637a (validation): ValueError
+.Free trial plan not found: no trial activated for user 9600ee6a-2fd0-4b7f-9afb-fe298a9ce9fc.
+Cannot activate automatic trial for user 9600ee6a-2fd0-4b7f-9afb-fe298a9ce9fc (validation): ValueError
+Free trial plan not found: no trial activated for user 21fa94a9-1071-4993-8a63-700e9c5dfadb.
+Cannot activate automatic trial for user 21fa94a9-1071-4993-8a63-700e9c5dfadb (validation): ValueError
+Free trial plan not found: no trial activated for user 77036046-117e-4b1d-978b-5444b8644462.
+Cannot activate automatic trial for user 77036046-117e-4b1d-978b-5444b8644462 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5e20c368-90fa-4be6-abf6-df6490392424.
+Cannot activate automatic trial for user 5e20c368-90fa-4be6-abf6-df6490392424 (validation): ValueError
+Free trial plan not found: no trial activated for user 31df5873-3f6e-4719-99f0-a937c697fa4e.
+Cannot activate automatic trial for user 31df5873-3f6e-4719-99f0-a937c697fa4e (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Free trial plan not found: no trial activated for user 529dbd85-4979-44bb-bcab-6a3ffbb351b0.
+Cannot activate automatic trial for user 529dbd85-4979-44bb-bcab-6a3ffbb351b0 (validation): ValueError
+Free trial plan not found: no trial activated for user 6b032e4d-c80e-4095-a03a-bfc1cd3fb2ea.
+Cannot activate automatic trial for user 6b032e4d-c80e-4095-a03a-bfc1cd3fb2ea (validation): ValueError
+.Free trial plan not found: no trial activated for user 0efaa94a-4dd0-49a8-bfed-7279e0265b8d.
+Cannot activate automatic trial for user 0efaa94a-4dd0-49a8-bfed-7279e0265b8d (validation): ValueError
+Free trial plan not found: no trial activated for user 53045d88-942a-4a4b-85af-2912f34281d2.
+Cannot activate automatic trial for user 53045d88-942a-4a4b-85af-2912f34281d2 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Free trial plan not found: no trial activated for user d8916c2a-eb7b-49b0-b099-99c50dabe15e.
+Cannot activate automatic trial for user d8916c2a-eb7b-49b0-b099-99c50dabe15e (validation): ValueError
+Free trial plan not found: no trial activated for user cb1c3602-4727-4dc2-97dc-e7846c6e17be.
+Cannot activate automatic trial for user cb1c3602-4727-4dc2-97dc-e7846c6e17be (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Free trial plan not found: no trial activated for user 0cd2607c-66fa-409c-a634-dcd5a65cfa45.
+Cannot activate automatic trial for user 0cd2607c-66fa-409c-a634-dcd5a65cfa45 (validation): ValueError
+Free trial plan not found: no trial activated for user 2cd78591-96a6-4215-93d5-d0654ff74cb3.
+Cannot activate automatic trial for user 2cd78591-96a6-4215-93d5-d0654ff74cb3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 29951342-177a-41e3-9e27-7af2c1c70e12.
+Cannot activate automatic trial for user 29951342-177a-41e3-9e27-7af2c1c70e12 (validation): ValueError
+Free trial plan not found: no trial activated for user d22bfba9-3dd2-486a-a299-1e2fcbb3274d.
+Cannot activate automatic trial for user d22bfba9-3dd2-486a-a299-1e2fcbb3274d (validation): ValueError
+.Free trial plan not found: no trial activated for user 48800dc3-6858-4e34-a614-3e189ff6f56e.
+Cannot activate automatic trial for user 48800dc3-6858-4e34-a614-3e189ff6f56e (validation): ValueError
+Free trial plan not found: no trial activated for user a7fa78f4-0355-4613-bbd1-9d3ea22f4e52.
+Cannot activate automatic trial for user a7fa78f4-0355-4613-bbd1-9d3ea22f4e52 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3070b62b-2a4b-429f-afd7-e8638e4baaf0.
+Cannot activate automatic trial for user 3070b62b-2a4b-429f-afd7-e8638e4baaf0 (validation): ValueError
+Free trial plan not found: no trial activated for user 81525281-021d-430d-bb90-7492b1d78866.
+Cannot activate automatic trial for user 81525281-021d-430d-bb90-7492b1d78866 (validation): ValueError
+.Free trial plan not found: no trial activated for user 92ffad72-0f2f-4da1-acc8-462bcbc01777.
+Cannot activate automatic trial for user 92ffad72-0f2f-4da1-acc8-462bcbc01777 (validation): ValueError
+Free trial plan not found: no trial activated for user 26275f38-c453-42be-931d-073e46a1d953.
+Cannot activate automatic trial for user 26275f38-c453-42be-931d-073e46a1d953 (validation): ValueError
+.Free trial plan not found: no trial activated for user c265438c-e48b-432e-a20a-e2335716cf13.
+Cannot activate automatic trial for user c265438c-e48b-432e-a20a-e2335716cf13 (validation): ValueError
+Free trial plan not found: no trial activated for user 415ff43e-88dd-44bc-875d-5c5649d050ac.
+Cannot activate automatic trial for user 415ff43e-88dd-44bc-875d-5c5649d050ac (validation): ValueError
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/serializers.py", line 670, in create
+    student = _create_placeholder_student(**fields)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/serializers.py", line 535, in _create_placeholder_student
+    raise serializers.ValidationError(
+rest_framework.exceptions.ValidationError: [ErrorDetail(string="We couldn't add this student to the course. Please try again.", code='invalid')]
+
+
+django.request ERROR 2026-10-02 16:29:40,214 log 1379070 136624444005312 [request_id=-] Internal Server Error: /api/v1/course/355bbddf-a9d5-40a5-af2c-a75e2b3c4689/direct-add-student
+
+
+Failed to bulk-add the student in parsed row 1 of the import for course 355bbddf-a9d5-40a5-af2c-a75e2b3c4689
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/services/roster_import.py", line 377, in import_roster
+    result, succeeded = _import_row_without_email(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/services/roster_import.py", line 342, in _import_row_without_email
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/serializers.py", line 670, in create
+    student = _create_placeholder_student(**fields)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h91-ids-only-logs-everywhere/classrooms/serializers.py", line 535, in _create_placeholder_student
+    raise serializers.ValidationError(
+rest_framework.exceptions.ValidationError: [ErrorDetail(string="We couldn't add this student to the course. Please try again.", code='invalid')]
+.Free trial plan not found: no trial activated for user 1e09bc18-4a3f-4c9f-b22f-27ad9a10848e.
+Cannot activate automatic trial for user 1e09bc18-4a3f-4c9f-b22f-27ad9a10848e (validation): ValueError
+Free trial plan not found: no trial activated for user 3e5de28e-ecf3-4202-8cd8-7802e2940054.
+Cannot activate automatic trial for user 3e5de28e-ecf3-4202-8cd8-7802e2940054 (validation): ValueError
+.Free trial plan not found: no trial activated for user fedf69ea-d437-4aa3-bb26-32bd3ff65b5f.
+Cannot activate automatic trial for user fedf69ea-d437-4aa3-bb26-32bd3ff65b5f (validation): ValueError
+Free trial plan not found: no trial activated for user 739c01bd-3b70-4692-95c7-c341e8ce0de2.
+Cannot activate automatic trial for user 739c01bd-3b70-4692-95c7-c341e8ce0de2 (validation): ValueError
+.Free trial plan not found: no trial activated for user f40f4c18-89d4-4860-af3d-af97047c4e62.
+Cannot activate automatic trial for user f40f4c18-89d4-4860-af3d-af97047c4e62 (validation): ValueError
+Free trial plan not found: no trial activated for user 693dc200-451a-4107-938c-a8485a96456e.
+Cannot activate automatic trial for user 693dc200-451a-4107-938c-a8485a96456e (validation): ValueError
+.Free trial plan not found: no trial activated for user 34ba9e36-9612-4960-990f-83c57727b62e.
+Cannot activate automatic trial for user 34ba9e36-9612-4960-990f-83c57727b62e (validation): ValueError
+Free trial plan not found: no trial activated for user 84a215c3-93e0-4e54-870e-a02dcb2a07b9.
+Cannot activate automatic trial for user 84a215c3-93e0-4e54-870e-a02dcb2a07b9 (validation): ValueError
+.......
+----------------------------------------------------------------------
+Ran 49 tests in 5.466s
+
+OK
+Destroying test database for alias 'default'...
+Found 49 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+exit=0 wall_s=18
