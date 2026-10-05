@@ -173,6 +173,78 @@ class BeforeSendTests(SentryScrubbingTestCase):
             with self.subTest(event=event):
                 self.assertEqual(self.hooks.scrub_event(dict(event), {}), event)
 
+    def test_the_threads_of_an_event(self):
+        """An event can carry a stack per thread, with frame variables,
+        beside (or instead of) an exception."""
+        event = self.hooks.scrub_event(
+            {
+                "threads": {
+                    "values": [
+                        {
+                            "id": 140213,
+                            "name": f"worker for {ADDRESS}",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "send_invite",
+                                        "vars": {"to": OTHER, "attempt": "2"},
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+            },
+            {},
+        )
+
+        self.assertNotIn(ADDRESS, repr(event))
+        self.assertNotIn(OTHER, repr(event))
+        [thread] = event["threads"]["values"]
+        self.assertEqual(thread["id"], 140213)
+        self.assertEqual(thread["name"], "worker for [email]")
+        self.assertEqual(
+            thread["stacktrace"]["frames"][0]["vars"],
+            {"to": "[email]", "attempt": "2"},
+        )
+
+    def test_the_spans_of_a_transaction(self):
+        """A sampled transaction is an event of its own: it does not pass
+        before_send, and its text is in its spans (a query, an outgoing
+        request's URL)."""
+        event = self.hooks.scrub_event(
+            {
+                "type": "transaction",
+                "transaction": "/api/licenses/{id}/",
+                "spans": [
+                    {
+                        "op": "http.client",
+                        "description": f"GET https://mail.example.com/v1/check?to={ADDRESS}",
+                        "data": {
+                            "url": f"https://mail.example.com/v1/check?to={ADDRESS}"
+                        },
+                        "span_id": "a1b2c3d4e5f60718",
+                    },
+                    {
+                        "op": "db",
+                        "description": f"SELECT 1 FROM users /* invited by {OTHER} */",
+                        "span_id": "0918f6e5d4c3b2a1",
+                    },
+                ],
+            },
+            {},
+        )
+
+        self.assertNotIn(ADDRESS, repr(event))
+        self.assertNotIn(OTHER, repr(event))
+        self.assertEqual(event["transaction"], "/api/licenses/{id}/")
+        self.assertEqual(
+            event["spans"][0]["description"],
+            "GET https://mail.example.com/v1/check?to=[email]",
+        )
+        self.assertEqual(event["spans"][0]["span_id"], "a1b2c3d4e5f60718")
+        self.assertEqual(event["spans"][1]["op"], "db")
+
     def test_a_plain_message_event(self):
         event = self.hooks.scrub_event(
             {"message": f"capture_message for {ADDRESS}"}, {}
@@ -289,7 +361,7 @@ class BreadcrumbAndLogTests(SentryScrubbingTestCase):
 
 
 class WiringTests(SimpleTestCase):
-    def test_settings_pass_the_three_hooks_to_sentry(self):
+    def test_settings_pass_the_hooks_to_sentry(self):
         with open(os.path.join(settings.BASE_DIR, "AutoGrader", "settings.py")) as fh:
             tree = ast.parse(fh.read())
         [init] = [
@@ -303,6 +375,8 @@ class WiringTests(SimpleTestCase):
         }
 
         self.assertEqual(keywords.get("before_send"), "scrub_event")
+        # A sampled transaction is sent without passing before_send.
+        self.assertEqual(keywords.get("before_send_transaction"), "scrub_event")
         self.assertEqual(keywords.get("before_breadcrumb"), "scrub_breadcrumb")
         self.assertEqual(keywords.get("before_send_log"), "scrub_log")
         self.assertEqual(keywords.get("send_default_pii"), "False")

@@ -221,6 +221,21 @@ class UrlCredentialsTests(SimpleTestCase):
                 # The line still says where it was connecting to.
                 self.assertIn(dsn.split("@", 1)[1], output)
 
+    def test_a_password_with_an_at_sign_in_it(self):
+        """The userinfo ends at the LAST "@" before the host, not the
+        first: on a dotless host nothing else would catch the rest."""
+        head, tail = "AB12", "CD34"
+        for dsn in (
+            f"redis://default:{head}@{tail}@redis:6379/0",
+            f"redis://:{head}@{tail}@localhost",
+            f"postgres://grader:{head}@{tail}@db.example.com:5432/grader",
+        ):
+            with self.subTest(host=dsn.rsplit("@", 1)[1]):
+                output = self.output_of(dsn)
+                self.assertNotIn(head, output)
+                self.assertNotIn(tail, output)
+                self.assertIn("://[credentials]@" + dsn.rsplit("@", 1)[1], output)
+
     def test_a_url_without_credentials_is_left_alone(self):
         for url in (
             "https://api.example.com/v1/items?x=1",
@@ -524,9 +539,55 @@ class ScrubTests(SimpleTestCase):
             "a@b.co",
             "first.last+tag@sub.school.edu",
             "UPPER_case-99%x@Example-School.ORG",
+            # Local parts our own validation accepts (Django's validator).
+            "o'brien@school.edu",
+            "a!b#c$d%e*f+g^h_i`j{k|l}m~n-o@school.edu",
+            "j\u00fcrgen@school.edu",
+            # Domains that are not ASCII letters: written as they are read,
+            # and in their encoded (punycode) form.
+            "pupil@m\u00fcnchen.de",
+            "pupil@xn--mnchen-3ya.de",
+            "pupil@school.xn--p1ai",
+            "pupil@\u0448\u043a\u043e\u043b\u0430.\u0440\u0444",
         ):
             with self.subTest(address=address):
                 self.assertEqual(
                     log_scrubbing.scrub(f"<{address}>, ({address})"),
                     "<[email]>, ([email])",
+                )
+
+    def test_a_key_before_an_address_stays_readable(self):
+        self.assertEqual(
+            log_scrubbing.scrub("Key (email)=(o'brien@school.edu) already exists."),
+            "Key (email)=([email]) already exists.",
+        )
+        self.assertEqual(
+            log_scrubbing.scrub("invite failed: email=o'brien@school.edu, row=7"),
+            "invite failed: email=[email], row=7",
+        )
+
+    def test_a_quote_brace_or_bar_just_before_an_address_goes_with_it(self):
+        """They are characters an address may start with, so the scrubber
+        cannot tell them from the address. Accepted (SM): too much is
+        replaced, never too little."""
+        for text, expected in (
+            ("email='pupil@school.edu'", "email=[email]'"),
+            ("{pupil@school.edu}", "[email]}"),
+            ("|pupil@school.edu|", "[email]|"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(log_scrubbing.scrub(text), expected)
+
+    def test_the_four_characters_an_address_is_not_followed_through(self):
+        """A KNOWN LIMIT (SM, 2026-10-05). "/", "=", "?" and "&" are legal
+        in an address's local part, and they are also what separates a key
+        from its value and the parts of a URL. The scrubber stops at them,
+        so `email=...` lines and URLs stay readable. An address that itself
+        contains one keeps the piece before that character in print: a
+        fragment, never a usable address."""
+        for character in "/=?&":
+            with self.subTest(character=character):
+                self.assertEqual(
+                    log_scrubbing.scrub(f"<left{character}right@school.edu>"),
+                    f"<left{character}[email]>",
                 )
