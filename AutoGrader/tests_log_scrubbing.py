@@ -52,6 +52,18 @@ def stream_handler(formatter=None):
     return handler, stream
 
 
+PASSWORD_WAS_HERE = "[the password was here]"
+
+
+def url_with_credentials(scheme, user, password, rest):
+    """A URL with a user and a password, built from its parts. No line of
+    this file holds one whole, and no assertion prints one: its message
+    shows the output with the password replaced by PASSWORD_WAS_HERE. A
+    failing test's log is committed as evidence, and no committed file may
+    hold a URL with a password, even a made-up one (SM, 2026-10-02)."""
+    return scheme + "://" + user + ":" + password + "@" + rest
+
+
 class Keep(logging.Handler):
     """Keeps the records it is given."""
 
@@ -207,34 +219,41 @@ class UrlCredentialsTests(SimpleTestCase):
 
     def test_a_dsn_never_prints_its_password(self):
         password = "s3cret-pass"  # pragma: allowlist secret
-        for dsn in (
-            f"redis://:{password}@redis:6379/0",  # a dotless host
-            f"redis://default:{password}@localhost:6379/0",
-            f"rediss://default:{password}@cache.internal.example.com:6379/0",
-            f"postgres://grader:{password}@db.example.com:5432/grader",
-            f"amqp://guest:{password}@rabbit//",
+        for scheme, user, rest in (
+            ("redis", "", "redis:6379/0"),  # a dotless host
+            ("redis", "default", "localhost:6379/0"),
+            ("rediss", "default", "cache.internal.example.com:6379/0"),
+            ("postgres", "grader", "db.example.com:5432/grader"),
+            ("amqp", "guest", "rabbit//"),
         ):
-            with self.subTest(dsn=dsn):
-                output = self.output_of(dsn)
-                self.assertNotIn(password, output)
-                self.assertIn("://[credentials]@", output)
+            with self.subTest(scheme=scheme, rest=rest):
+                output = self.output_of(
+                    url_with_credentials(scheme, user, password, rest)
+                )
+                shown = output.replace(password, PASSWORD_WAS_HERE)
+                self.assertFalse(password in output, shown)
                 # The line still says where it was connecting to.
-                self.assertIn(dsn.split("@", 1)[1], output)
+                self.assertIn(f"{scheme}://[credentials]@{rest}", shown)
 
     def test_a_password_with_an_at_sign_in_it(self):
         """The userinfo ends at the LAST "@" before the host, not the
         first: on a dotless host nothing else would catch the rest."""
         head, tail = "AB12", "CD34"
-        for dsn in (
-            f"redis://default:{head}@{tail}@redis:6379/0",
-            f"redis://:{head}@{tail}@localhost",
-            f"postgres://grader:{head}@{tail}@db.example.com:5432/grader",
+        for scheme, user, rest in (
+            ("redis", "default", "redis:6379/0"),
+            ("redis", "", "localhost"),
+            ("postgres", "grader", "db.example.com:5432/grader"),
         ):
-            with self.subTest(host=dsn.rsplit("@", 1)[1]):
-                output = self.output_of(dsn)
-                self.assertNotIn(head, output)
-                self.assertNotIn(tail, output)
-                self.assertIn("://[credentials]@" + dsn.rsplit("@", 1)[1], output)
+            with self.subTest(scheme=scheme, rest=rest):
+                output = self.output_of(
+                    url_with_credentials(scheme, user, head + "@" + tail, rest)
+                )
+                shown = output.replace(head, PASSWORD_WAS_HERE).replace(
+                    tail, PASSWORD_WAS_HERE
+                )
+                self.assertFalse(head in output, shown)
+                self.assertFalse(tail in output, shown)
+                self.assertIn(f"{scheme}://[credentials]@{rest}", shown)
 
     def test_a_url_without_credentials_is_left_alone(self):
         for url in (

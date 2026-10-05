@@ -259,7 +259,11 @@ class BeforeSendTests(SentryScrubbingTestCase):
                 "values": [
                     {
                         "type": "ConnectionError",
-                        "value": f"Error connecting to redis://:{password}@redis:6379/0",
+                        # Built from parts: no line here, and no failing
+                        # test's log, holds a URL with a password.
+                        "value": "Error connecting to redis://:"
+                        + password
+                        + "@redis:6379/0",
                     }
                 ]
             }
@@ -268,7 +272,8 @@ class BeforeSendTests(SentryScrubbingTestCase):
         value = self.hooks.scrub_event(event, {})["exception"]["values"][0]["value"]
 
         self.assertEqual(
-            value, "Error connecting to redis://[credentials]@redis:6379/0"
+            value.replace(password, "[the password was here]"),
+            "Error connecting to redis://[credentials]@redis:6379/0",
         )
 
     def test_an_argument_that_is_not_text_yet(self):
