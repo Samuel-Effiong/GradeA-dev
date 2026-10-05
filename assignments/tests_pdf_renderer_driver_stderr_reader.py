@@ -136,6 +136,25 @@ class DriverStderrReaderTest(SimpleTestCase):
             ],
         )
 
+    def test_a_line_that_never_ends_is_logged_before_it_ends(self):
+        """What is held of an unfinished line is bounded: after one pipe's
+        worth it is logged, cut, while the stream is still open."""
+        pipe = _DriverStderr()
+        with self.assertLogs(LOGGER, level="WARNING") as caught:
+            os.write(pipe.write_fd, b"w" * 200_000)  # no newline yet
+            deadline = time.time() + 10
+            while not caught.records and time.time() < deadline:
+                time.sleep(0.01)
+            seen_while_open = [record.getMessage() for record in caught.records]
+            self.assertTrue(pipe.is_reading())
+            os.write(pipe.write_fd, b"\nnext\n")
+            pipe.close(timeout=10)
+        cut = PREFIX + "w" * pdf_renderer.DRIVER_STDERR_MAX_LINE + " [cut]"
+        self.assertEqual(seen_while_open, [cut])
+        self.assertEqual(
+            [record.getMessage() for record in caught.records], [cut, PREFIX + "next"]
+        )
+
     @override_settings(LOG_SCRUB_ADDRESSES=True)
     def test_a_line_is_scrubbed_like_any_log_line(self):
         """The driver can print URLs and page text. Its lines go through

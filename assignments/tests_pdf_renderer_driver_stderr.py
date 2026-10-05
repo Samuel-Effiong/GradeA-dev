@@ -35,9 +35,10 @@ from playwright._impl import _transport
 
 from assignments.tests_pdf_renderer import _CHROMIUM_AVAILABLE
 
-#: Runs in the fresh interpreter: one render with the real renderer, one
-#: line of facts on stdout, then it waits for a line on stdin so that the
-#: driver stays alive while the test looks at the pipe.
+#: Runs in the fresh interpreter: one render with the real renderer and one
+#: line of facts on stdout. Then it stays alive, so the driver does too,
+#: and answers each line on stdin with whether the renderer's reader thread
+#: is still reading. It ends when stdin is closed.
 CHILD = r"""
 import json, os, sys
 from django.conf import settings
@@ -58,7 +59,9 @@ print(json.dumps({
     "handed_over": getattr(stderr_pipe, "handed_over", None),
     "fd2_blocking_seen_inside": os.get_blocking(2),
 }), flush=True)
-sys.stdin.readline()
+for _ in sys.stdin:
+    reading = stderr_pipe.is_reading() if stderr_pipe is not None else None
+    print(json.dumps({"reader_is_reading": reading}), flush=True)
 """
 
 
@@ -97,16 +100,20 @@ class TheProcessStderrStaysBlockingTest(SimpleTestCase):
 
     def end_child(self):
         try:
-            if self.child.poll() is None:
-                self.to_child.write("\n")
-                self.to_child.flush()
+            self.to_child.close()  # end of stdin ends the child
             self.child.wait(timeout=30)
         except (OSError, ValueError, subprocess.TimeoutExpired):
             self.child.kill()  # this test's own child, by its Popen handle
             self.child.wait()
         finally:
-            self.to_child.close()
             self.from_child.close()
+
+    def ask_child(self):
+        self.to_child.write("\n")
+        self.to_child.flush()
+        ready, _, _ = select.select([self.from_child], [], [], 30)
+        self.assertTrue(ready, "the fresh interpreter stopped answering")
+        return json.loads(self.from_child.readline())
 
     def stderr_is_blocking(self):
         # The mode belongs to the pipe's write end, which the test shares
@@ -131,9 +138,14 @@ class TheProcessStderrStaysBlockingTest(SimpleTestCase):
         as long as the service lived: Node never got to put it back."""
         driver_pid = self.facts["driver_pid"]
         self.assertEqual(_parent_pid(driver_pid), self.child.pid)
+        self.assertIs(self.ask_child()["reader_is_reading"], True)
         os.kill(driver_pid, signal.SIGKILL)
         time.sleep(1.0)
         self.assertTrue(self.stderr_is_blocking())
+        # The renderer closed its own copy of the pipe's write end after the
+        # start, so the dead driver's was the last: the reader has ended
+        # and is not left waiting for a process that is gone.
+        self.assertIs(self.ask_child()["reader_is_reading"], False)
 
 
 class PlaywrightStderrHookPinTest(SimpleTestCase):
