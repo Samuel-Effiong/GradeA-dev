@@ -1,0 +1,14 @@
+# S23: P2: the userinfo runs to the last "@" before the host
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '_USERINFO = re.compile(r"(?<=://)[^\\s/]+(?=@)")\n'
+# new: '_USERINFO = re.compile(r"(?<=://)[^\\s/@]+(?=@)")\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='redis:6379/0')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='localhost')
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='db.example.com:5432/grader')
+
+FAILED (failures=3)

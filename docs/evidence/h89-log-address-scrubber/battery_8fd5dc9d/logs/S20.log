@@ -1,0 +1,19 @@
+# S20: P1: the scrubber stops at / = ? & (key=value and URLs stay readable)
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '_LOCAL = r"[\\w.!#$%\'*+^`{|}~-]"\n'
+# new: '_LOCAL = r"[\\w.!#$%\'*+^`{|}~/=?&-]"\n'
+# commit: 8fd5dc9de325d48ff3895e6737570f5c13e8b57a
+# exit: 1
+# elapsed_s: 12.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_key_before_an_address_stays_readable (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_key_before_an_address_stays_readable)
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text="email='pupil@school.edu'")
+FAIL: test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through) (character='/')
+FAIL: test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through) (character='=')
+FAIL: test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through) (character='?')
+FAIL: test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through) (character='&')
+FAIL: test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string)
+FAIL: test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+
+FAILED (failures=8)

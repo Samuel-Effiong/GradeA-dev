@@ -1,0 +1,162 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+...Free trial plan not found: no trial activated for user c01f11fd-62a7-4298-af5f-8c57e1917ec1.
+Cannot activate automatic trial for user c01f11fd-62a7-4298-af5f-8c57e1917ec1 (validation): ValueError
+.Free trial plan not found: no trial activated for user e598ad89-b44a-4f5f-a5d7-e7f0b46840c2.
+Cannot activate automatic trial for user e598ad89-b44a-4f5f-a5d7-e7f0b46840c2 (validation): ValueError
+..School 97886354-97a7-472c-8748-7541696e514f already has active license subscription 0c933c7d-4a34-4c78-86a9-54e1faf7bc94. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user d616af0f-8e96-4730-8d3b-b1c1bd3e38f1.
+Cannot activate automatic trial for user d616af0f-8e96-4730-8d3b-b1c1bd3e38f1 (validation): ValueError
+Free trial plan not found: no trial activated for user 8375676c-3b77-4bb3-b7ed-192c898c035c.
+Cannot activate automatic trial for user 8375676c-3b77-4bb3-b7ed-192c898c035c (validation): ValueError
+.Free trial plan not found: no trial activated for user ffa768d9-e84a-4808-a95d-99c29425bd42.
+Cannot activate automatic trial for user ffa768d9-e84a-4808-a95d-99c29425bd42 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8f59a5f9-e6f4-4fb7-8003-3d03422d2846.
+Cannot activate automatic trial for user 8f59a5f9-e6f4-4fb7-8003-3d03422d2846 (validation): ValueError
+........../home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_course_description". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+....[2026-10-02 16:44:20,245: ERROR/MainProcess] Free trial plan not found: no trial activated for user 93757892-7f09-470a-bfc0-1cf15eb9ebdd.
+...[2026-10-02 16:44:22,088: ERROR/MainProcess] Free trial plan not found: no trial activated for user da4d860e-0332-43fe-a054-0a4dc3f7c02f.
+.[2026-10-02 16:44:22,112: ERROR/MainProcess] Free trial plan not found: no trial activated for user acd7c02e-4a60-452e-b5eb-ba3ed4006825.
+.[2026-10-02 16:44:22,148: ERROR/MainProcess] Free trial plan not found: no trial activated for user 476a2238-94f3-47dd-8946-b68cf6b7f2f2.
+...........................[2026-10-02 16:44:22,329: ERROR/MainProcess] Refused [email] (user 4821)
+..........................................[2026-10-02 16:44:24,021: ERROR/MainProcess] Free trial plan not found: no trial activated for user 43b30b8e-1f86-4ca2-93f8-a0e17dfc928a.
+[2026-10-02 16:44:24,038: ERROR/MainProcess] Free trial plan not found: no trial activated for user cdea66e2-97cd-4741-97f3-27e39bc60b0f.
+[2026-10-02 16:44:24,068: ERROR/MainProcess] Failed to renew credits for teacher cdea66e2-97cd-4741-97f3-27e39bc60b0f under license 0317a482-26fc-4fdb-af08-5098fec9908b: ValueError
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/license_service.py", line 1936, in process_license_renewal
+    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/tests/test_license_renewal_partial_failure.py", line 175, in _rollover
+    raise ValueError("simulated failure part-way through the grant")
+ValueError: simulated failure part-way through the grant
+.[2026-10-02 16:44:24,285: ERROR/MainProcess] Free trial plan not found: no trial activated for user c1f4febb-f362-4a34-8124-ec540164782c.
+[2026-10-02 16:44:24,306: ERROR/MainProcess] Free trial plan not found: no trial activated for user 8f987a80-2c61-4822-868d-43e10933dbea.
+.[2026-10-02 16:44:24,593: ERROR/MainProcess] Free trial plan not found: no trial activated for user 6abc931f-e6d8-4159-9c88-0b9575ca97a0.
+[2026-10-02 16:44:24,615: ERROR/MainProcess] Free trial plan not found: no trial activated for user 7aa7bca5-6e4d-4a73-9dd1-c7014f3714aa.
+[2026-10-02 16:44:24,655: ERROR/MainProcess] Failed to renew credits for teacher 7aa7bca5-6e4d-4a73-9dd1-c7014f3714aa under license c7a96403-ff15-4c35-bef0-ceeb33e2bb7f: ValueError
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/license_service.py", line 1936, in process_license_renewal
+    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/tests/test_license_renewal_partial_failure.py", line 175, in _rollover
+    raise ValueError("simulated failure part-way through the grant")
+ValueError: simulated failure part-way through the grant
+.[2026-10-02 16:44:24,945: ERROR/MainProcess] Free trial plan not found: no trial activated for user fbd6f89b-cae7-41b8-a49c-5e92ae26d384.
+[2026-10-02 16:44:24,968: ERROR/MainProcess] Free trial plan not found: no trial activated for user 60075227-c9be-462d-81b2-1311e5d91c3a.
+.[2026-10-02 16:44:25,306: ERROR/MainProcess] Free trial plan not found: no trial activated for user 66d1ee88-5fa6-46a8-b7e9-f72a58861325.
+.................................................................
+
+ai_processor.benchmark.archive ERROR 2026-10-02 16:44:43,030 archive 1458850 134986931010496 [request_id=-] [Benchmark] Could not build the run archive.
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/ai_processor/benchmark/archive.py", line 196, in prepare
+    blob = compress(build_bundle(run, report, run_record, question_records))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ValueError: bad
+..
+
+ai_processor.benchmark.archive INFO 2026-10-02 16:44:43,039 archive 1458850 134986931010496 [request_id=-] [Benchmark] Archived run run-1 to /media/benchmark_archives/run-1.json.gz
+
+
+.
+
+ai_processor.benchmark.archive WARNING 2026-10-02 16:44:43,044 archive 1458850 134986931010496 [request_id=-] [Benchmark] Could not write the local archive copy: disk full
+
+
+
+
+ai_processor.benchmark.archive INFO 2026-10-02 16:44:43,046 archive 1458850 134986931010496 [request_id=-] [Benchmark] Archived run run-1 to /media/benchmark_archives/run-1.json.gz
+
+
+..
+
+ai_processor.benchmark.archive INFO 2026-10-02 16:44:43,054 archive 1458850 134986931010496 [request_id=-] [Benchmark] Archived run run-1 to /media/benchmark_archives/run-1.json.gz
+
+
+.
+
+ai_processor.benchmark.archive WARNING 2026-10-02 16:44:43,059 archive 1458850 134986931010496 [request_id=-] [Benchmark] Archive upload failed for run-1 (OSError: Cloudinary unreachable). The local copy at /tmp/tmpws17qint/run-1.json.gz is intact and can be uploaded later.
+
+
+..................................................................[2026-10-02 16:45:24,203: ERROR/MainProcess] Free trial plan not found: no trial activated for user b1f7c6f7-9480-4e93-b4d2-bd85ba73e710.
+[2026-10-02 16:45:24,235: ERROR/MainProcess] Free trial plan not found: no trial activated for user d311b8f7-cbd6-457a-9f40-383a2ded7e84.
+[2026-10-02 16:45:24,250: ERROR/MainProcess] Free trial plan not found: no trial activated for user 89f48cf5-fd9e-41b6-85b0-416919d92490.
+[2026-10-02 16:45:24,263: ERROR/MainProcess] Free trial plan not found: no trial activated for user 83c860d5-08d3-4a86-b4e5-212cfb6e7a32.
+...............Found 267 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+...............
+----------------------------------------------------------------------
+Ran 267 tests in 99.089s
+
+OK
+Destroying test database for alias 'default'...
+exit=0 wall_s=113
