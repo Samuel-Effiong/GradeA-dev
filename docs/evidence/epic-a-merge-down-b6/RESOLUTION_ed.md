@@ -175,4 +175,34 @@ epic's audit tests exercise the licence paths H-88 and H-85 change.
 
 ## Runs
 
-@@RUNS@@
+All runs waited for 0b's GRANT and were released afterwards. Rules 12/13/16 on each (nice,
+`timeout -k 60`, a `systemd-run` scope with MemoryMax and no swap, `systemd-inhibit` with
+handle-lid-switch); rule 17 on the mutants (`PYTHONDONTWRITEBYTECODE=1`, the mutated modules'
+`__pycache__` deleted before each mutant and after each restore). Mutants and the prefix ran on
+their own database (`settings_worktree_mut`), dropped afterwards.
+
+| # | When | Tip | What | Result | File |
+|---|---|---|---|---|---|
+| 1 | 2026-10-02 17:37 | e917f52a | step 0 prefix, 1a, step 1 (6G) | **RED**: 922 run, 2 failures (H-85 on the epic; one cause). Mutants not run | `run1_failed_e917f52a_modules_and_guards.txt` |
+| 2 | 2026-10-05 08:13 | 54cc7c1b | step 0 only | **Stopped by my script**, not by the code: its restore check ran over the whole tree and counted the prefix log, tracked since 2409ca36, as a change. The prefix itself ran as intended (16 run, 4 failures). The check now excludes the evidence folder; same command restarted with 0b's word | `run2_stopped_54cc7c1b_prefix_only.txt` |
+| 3 | 2026-10-05 08:15-08:30 | 54cc7c1b | step 0 prefix | 16 run, FAILED (failures=4): `test_a_bulk_row_refuses_it`, H-99's module as merged, on the epic's code. Expected | `prefix_h99_test_as_merged_failing.txt` |
+| | | | step 1a `makemigrations --check` | exit 0, no changes | `makemigrations_check.txt` |
+| | | | step 1: changed + caller modules + both sides' guards (6G) | **Ran 956 tests in 484.235s, OK** | `modules_and_guards.txt` (last 200 lines; full log sha256 08259779d73e85c6…) |
+| | | | step 2: 19 mutants | **19 killed, no survivor** (P1, P3-P10, E1-E4, H1-H6) | `mutation_log.txt`, `mutation_results.json` |
+| 4 | 2026-10-05 08:31-09:02 | d22dff5a | ONE regression, 12G, `flock`, timeout 3600: billing classrooms users AutoGrader dashboard audit | **Ran 4441 tests in 1823.511s, OK (skipped=8)**. billing 2136, classrooms 434, users 698, AutoGrader 536, dashboard 270, audit 367 | `regression.txt` (last 200 lines; full log sha256 82f25f59b66d2324…) |
+
+d22dff5a is 54cc7c1b plus run logs: `git diff 54cc7c1b d22dff5a -- . ':!docs/evidence'` is empty, so
+steps 1 and 2 and the regression gated the same code. The commits after d22dff5a are evidence only.
+
+Run 1's two failures are both green in run 3: H-85's response test, and the sync-only guard.
+
+Not run, and why: the other apps (assignments, students, ai_processor and the rest). The merge changes
+production code in billing and classrooms only; 0b's Gate 10 runs the whole suite after the merge.
+
+## The retired code: what still names it, and whether anything stores it (0b's questions)
+
+`grep_retired_code_repo_wide.txt`. In short: the only code hit is beta's H-85 constant of the same
+name, which is the neutral sentence and not a reason code; the documents say "retired"; older evidence
+is left as written. No audit event and no task row was ever written with the code (read from the code;
+staging was not queried), and an old row would still read. The frontend is outside this repo and must
+map the new code.
