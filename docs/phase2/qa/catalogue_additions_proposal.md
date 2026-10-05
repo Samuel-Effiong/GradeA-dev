@@ -4,6 +4,8 @@
 > - Question 3: the neutral privacy wording is confirmed. `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` keeps the proposed text. The founder was told it discloses the teacher's own-subscription status. The text lives in ONE constant (`AutoGrader/reason_codes.py`), so it can be switched to the generic "This email can't be added as a teacher." later.
 > - Question 4: `FILE_NOT_A_PDF` is a separate code (option 1).
 >
+> **AMENDMENT, 2026-10-05 (founder, option B; H-85).** `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` is **retired** and replaced by `TEACHER_CANNOT_JOIN_YET` (section E2). On 2026-10-02 the founder decided that a school admin must not learn that a teacher pays for their own subscription; the old entry told them four ways (the code's name, the message, the remediation, the echoed address). The old code is not kept for audit either, because a school admin can read their school's audit events. This supersedes the Question 3 sentence about that code above. Every other entry is unchanged.
+>
 > Source: `task/qa-catalogue-proposal` at 0ecad75. Built in Epic A slice S7d (sections B–F); A and G were already built. The "staging only, not beta" line below no longer applies to the approved codes.
 
 # Error catalogue: proposed additions for QA approval
@@ -113,7 +115,7 @@ The result gains a **list of successes** (today only a count) and a code on each
 |---|---|---|---|---|---|
 | `TEACHER_EMAIL_NOT_BUSINESS` | failed | "{email} isn't a school or work email address." | `email` | "Use the teacher's school or work email." | "Email … is not a business email. Only business emails are allowed." |
 | `TEACHER_EMAIL_OTHER_ROLE` | failed | "This email can't be added as a teacher." | — | "Use the teacher's own account email." | "Email … already belongs to a STUDENT account, not a teacher." This told any school admin the role of an arbitrary address. **Already fixed on beta** (the add-teachers disclosure fix) to the proposed text. |
-| `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` | failed | "{email} has their own subscription, which must be cancelled before they can join the licence." | `email` | "Ask the teacher to cancel their individual subscription, then add them again." | a longer version of the same. **Please weigh:** this tells any school admin whether an arbitrary teacher pays for their own subscription (their billing status). It is useful to a genuine admin but a disclosure to anyone else. The alternative is the generic "This email can't be added as a teacher." |
+| `TEACHER_CANNOT_JOIN_YET` | failed | "This teacher can't be added to your school yet. Please ask them to contact support." | — | "Ask the teacher to contact support." | **Amended 2026-10-05 (H-85).** Replaces `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` ("{email} has their own subscription, which must be cancelled before they can join the licence." / param `email` / "Ask the teacher to cancel their individual subscription, then add them again."), approved on 2026-09-30 and now retired: it told any school admin whether an arbitrary teacher pays for their own subscription. The new entry gives no reason and no address; support sees the reason, by user id, in the server log. |
 | `TEACHER_IN_OTHER_SCHOOL` | failed | "This teacher already belongs to another school." | — | "Contact support if the teacher has moved schools." | "Teacher '…' already belongs to school '{other school's name}'…". That named another school to any admin; **already fixed on beta** to the proposed text. |
 | `TEACHER_ALREADY_ON_LICENCE` | skipped | "{email} is already on this licence." | `email` | none | Silently skipped today (not reported at all) |
 | `TEACHER_NOT_ON_LICENCE` | failed (removal) | "This teacher isn't an active teacher on this licence." | — | none | same |
@@ -141,7 +143,7 @@ Teachers can now retry the failed items of a batch (a batch upload or grade-all)
 ## What we need from QA
 1. For each code: **approve**, **change** (the wording, the remediation or the status) or **reject**.
 2. Confirm the two **new checks** in D2 (`ROW_EMAIL_INVALID`, `ROW_DUPLICATE`).
-3. Note the **privacy changes** in E2: `TEACHER_IN_OTHER_SCHOOL` and `TEACHER_EMAIL_OTHER_ROLE` were fixed on beta as cross-tenant disclosures; confirm the wording. Decide `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` (it discloses billing status).
+3. Note the **privacy changes** in E2: `TEACHER_IN_OTHER_SCHOOL` and `TEACHER_EMAIL_OTHER_ROLE` were fixed on beta as cross-tenant disclosures; confirm the wording. Decide `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` (it discloses billing status). *Decided again on 2026-10-05: retired for `TEACHER_CANNOT_JOIN_YET`; see the amendment at the top.*
 4. Choose the option in C (a separate `FILE_NOT_A_PDF` code, recommended, or a variant of `FILE_UNREADABLE`).
 5. Section G: approve `NOT_RETRYABLE` and its two `why` texts, and the **changed remediation** of `INSUFFICIENT_CREDITS_MID_BATCH`.
 

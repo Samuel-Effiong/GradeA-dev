@@ -419,12 +419,11 @@ APPROVED_ADDITIONS = {
         "This email can't be added as a teacher.",
         "Use the teacher's own account email.",
     ),
-    "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION": (
+    "TEACHER_CANNOT_JOIN_YET": (
         422,
-        "{email} has their own subscription, which must be cancelled before they "
-        "can join the licence.",
-        "Ask the teacher to cancel their individual subscription, then add them "
-        "again.",
+        "This teacher can't be added to your school yet. Please ask them to "
+        "contact support.",
+        "Ask the teacher to contact support.",
     ),
     "TEACHER_IN_OTHER_SCHOOL": (
         422,
@@ -493,12 +492,36 @@ class QaCatalogueAdditionsTests(SimpleTestCase):
             "Your licence has no seats left (10 of 10 in use).",
         )
 
-    def test_the_individual_subscription_text_lives_in_one_constant(self):
-        from AutoGrader import reason_codes
+    def test_the_cannot_join_yet_entry_is_h85s_sentence_and_nothing_more(self):
+        """H-85 on Epic A: the entry says what beta's refusal says, takes no
+        param (so no address) and is not worth a retry."""
+        from billing.license_service import TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
 
-        self.assertEqual(
-            REASON_CODES[ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION].message,
-            reason_codes.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION_MESSAGE,
+        spec = REASON_CODES[ReasonCode("TEACHER_CANNOT_JOIN_YET")]
+        self.assertEqual(spec.message, TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)
+        self.assertEqual(spec.params, frozenset())
+        self.assertIs(spec.retryable, False)
+
+    def test_no_code_says_a_teacher_has_a_subscription(self):
+        """The retired TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION must not come back
+        under any name: a school admin reads reason codes in responses and
+        in their school's audit events."""
+        for code, spec in REASON_CODES.items():
+            with self.subTest(code=code):
+                if code.value.startswith("TEACHER_"):
+                    told = " ".join(
+                        [
+                            code.value,
+                            str(code.label),
+                            spec.message,
+                            spec.remediation,
+                            *spec.alternative_remediations,
+                        ]
+                    ).lower()
+                    for word in ("subscription", "individual", "billing", "paid"):
+                        self.assertNotIn(word, told)
+        self.assertNotIn(
+            "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION", {code.value for code in ReasonCode}
         )
 
     def test_a_row_code_always_carries_its_row(self):

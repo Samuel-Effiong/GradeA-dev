@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 38152 lines; full log (sha256 prefix 5cdb0dd665023f79) at ~/Documents/Projects/GAP-evidence-logs/h101_a2ef7a33_regression_billing_audit.txt]
+17:05:38 test_a_nested_object_is_dropped (audit.tests_metadata.SanitiseTest.test_a_nested_object_is_dropped) ... ok
+17:05:38 test_a_non_string_key_is_dropped (audit.tests_metadata.SanitiseTest.test_a_non_string_key_is_dropped) ... ok
+17:05:38 test_a_string_over_the_limit_is_dropped_so_answer_text_cannot_ride_along (audit.tests_metadata.SanitiseTest.test_a_string_over_the_limit_is_dropped_so_answer_text_cannot_ride_along) ... ok
+17:05:38 test_a_string_with_a_nul_byte_is_dropped (audit.tests_metadata.SanitiseTest.test_a_string_with_a_nul_byte_is_dropped) ... ok
+17:05:38 test_a_value_shaped_like_an_email_address_is_dropped_wherever_it_hides (audit.tests_metadata.SanitiseTest.test_a_value_shaped_like_an_email_address_is_dropped_wherever_it_hides) ... ok
+17:05:38 test_a_value_that_is_not_an_object_is_dropped_whole (audit.tests_metadata.SanitiseTest.test_a_value_that_is_not_an_object_is_dropped_whole) ... ok
+17:05:38 test_allowed_scalars_pass_through_unchanged (audit.tests_metadata.SanitiseTest.test_allowed_scalars_pass_through_unchanged) ... ok
+17:05:38 test_an_unknown_key_is_dropped_and_named_in_the_problems (audit.tests_metadata.SanitiseTest.test_an_unknown_key_is_dropped_and_named_in_the_problems) ... ok
+17:05:38 test_more_than_the_maximum_number_of_keys_is_dropped (audit.tests_metadata.SanitiseTest.test_more_than_the_maximum_number_of_keys_is_dropped) ... ok
+17:05:38 test_non_finite_numbers_are_dropped (audit.tests_metadata.SanitiseTest.test_non_finite_numbers_are_dropped) ... ok
+17:05:38 test_none_and_empty_mean_no_metadata_and_no_problem (audit.tests_metadata.SanitiseTest.test_none_and_empty_mean_no_metadata_and_no_problem) ... ok
+17:05:38 test_the_input_is_never_modified (audit.tests_metadata.SanitiseTest.test_the_input_is_never_modified) ... ok
+17:05:38 test_the_serialised_size_is_bounded (audit.tests_metadata.SanitiseTest.test_the_serialised_size_is_bounded) ... ok
+17:05:38 test_two_concurrent_delete_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_delete_sweeps_never_double_process_or_raise) ... Beat task audit.tasks.sweep_audit_retention: another run already holds the lock; skipping this one (key gaplus-t1276840:1:beat-lock:audit.tasks.sweep_audit_retention, held by run direct:6acab779dfb8; this run direct:8b7612922ca6).
+17:05:38 ok
+17:05:38 test_two_concurrent_pii_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_pii_sweeps_never_double_process_or_raise) ... Beat task audit.tasks.sweep_audit_pii_short_retention: another run already holds the lock; skipping this one (key gaplus-t1276840:1:beat-lock:audit.tasks.sweep_audit_pii_short_retention, held by run direct:543c536b18c2; this run direct:3f0b7b5be18f).
+17:05:38 ok
+17:05:38 test_a_throttled_request_is_not_recorded (audit.tests_state_change.RequestStateIsolationTests.test_a_throttled_request_is_not_recorded)
+17:05:38 Only the 429 stops it: the same authenticated write on a real, ... ok
+17:05:38 test_concurrent_requests_never_share_state (audit.tests_state_change.RequestStateIsolationTests.test_concurrent_requests_never_share_state) ... ok
+17:05:38 test_every_exclusion_has_a_reason (audit.tests_state_change.RequestStateIsolationTests.test_every_exclusion_has_a_reason) ... ok
+17:05:38 test_marking_outside_a_request_is_a_no_op (audit.tests_state_change.RequestStateIsolationTests.test_marking_outside_a_request_is_a_no_op) ... ok
+17:05:38 test_state_is_per_request_and_restored_on_exception (audit.tests_state_change.RequestStateIsolationTests.test_state_is_per_request_and_restored_on_exception) ... ok
+17:05:38 test_a_rolled_back_named_event_leaves_exactly_the_generic_one (audit.tests_state_change.RolledBackNamedEventCommitTests.test_a_rolled_back_named_event_leaves_exactly_the_generic_one) ... Free trial plan not found: no trial activated for user 1979b0b6-667a-4f06-afeb-fbcaa1a8a67a.
+17:05:38 Cannot activate automatic trial for user 1979b0b6-667a-4f06-afeb-fbcaa1a8a67a (validation): ValueError
+17:05:38 API Exception
+17:05:38 Traceback (most recent call last):
+17:05:38   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+17:05:38     response = handler(request, *args, **kwargs)
+17:05:38                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17:05:38   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-escalation-event-once/audit/tests_state_change.py", line 439, in create
+17:05:38     raise ValidationError("refused after a named event")
+17:05:38 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused after a named event', code='invalid')]
+17:05:38 ok
+17:05:38 test_a_surviving_named_event_is_the_only_one (audit.tests_state_change.RolledBackNamedEventCommitTests.test_a_surviving_named_event_is_the_only_one)
+17:05:38 Control: when the named event survives, no generic is added. ... Free trial plan not found: no trial activated for user df82f9fa-4692-4221-91c6-a9b64fb704ce.
+17:05:38 Cannot activate automatic trial for user df82f9fa-4692-4221-91c6-a9b64fb704ce (validation): ValueError
+17:05:38 API Exception
+17:05:38 Traceback (most recent call last):
+17:05:38   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+17:05:38     response = handler(request, *args, **kwargs)
+17:05:38                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17:05:38   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-escalation-event-once/audit/tests_state_change.py", line 436, in create
+17:05:38     raise ValidationError("refused")
+17:05:38 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+17:05:38 ok
+17:05:39 test_an_event_naming_someone_else_does_not_stand_in (audit.tests_state_change.RolledBackNamedEventCommitTests.test_an_event_naming_someone_else_does_not_stand_in)
+17:05:39 V1 (v2): a surviving event whose actor is another user (a ... Free trial plan not found: no trial activated for user c5b6cd17-f9e3-44b6-9f79-1aefed6b9101.
+17:05:39 Cannot activate automatic trial for user c5b6cd17-f9e3-44b6-9f79-1aefed6b9101 (validation): ValueError
+17:05:39 Free trial plan not found: no trial activated for user d9554768-eb27-4c27-859d-14a91d628e82.
+17:05:39 Cannot activate automatic trial for user d9554768-eb27-4c27-859d-14a91d628e82 (validation): ValueError
+17:05:39 API Exception
+17:05:39 Traceback (most recent call last):
+17:05:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+17:05:39     response = handler(request, *args, **kwargs)
+17:05:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17:05:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-escalation-event-once/audit/tests_state_change.py", line 538, in create
+17:05:39     raise ValidationError("refused")
+17:05:39 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+17:05:39 ok
+17:05:39 test_the_first_event_is_rolled_back_and_the_second_survives (audit.tests_state_change.RolledBackNamedEventCommitTests.test_the_first_event_is_rolled_back_and_the_second_survives) ... Free trial plan not found: no trial activated for user 05b62bc7-ef22-40cf-8a31-23837cb49bff.
+17:05:39 Cannot activate automatic trial for user 05b62bc7-ef22-40cf-8a31-23837cb49bff (validation): ValueError
+17:05:39 API Exception
+17:05:39 Traceback (most recent call last):
+17:05:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+17:05:39     response = handler(request, *args, **kwargs)
+17:05:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17:05:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-escalation-event-once/audit/tests_state_change.py", line 487, in create
+17:05:39     raise ValidationError("refused")
+17:05:39 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+17:05:39 ok
+17:05:39 test_the_first_event_survives_and_the_second_is_rolled_back (audit.tests_state_change.RolledBackNamedEventCommitTests.test_the_first_event_survives_and_the_second_is_rolled_back) ... Free trial plan not found: no trial activated for user 625705ef-94a4-4c3e-a296-48396f998db1.
+17:05:39 Cannot activate automatic trial for user 625705ef-94a4-4c3e-a296-48396f998db1 (validation): ValueError
+17:05:39 API Exception
+17:05:39 Traceback (most recent call last):
+17:05:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+17:05:39     response = handler(request, *args, **kwargs)
+17:05:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17:05:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-escalation-event-once/audit/tests_state_change.py", line 487, in create
+17:05:39     raise ValidationError("refused")
+17:05:39 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+17:05:39 ok
+17:05:39 test_a_failing_existence_check_writes_the_generic_event (audit.tests_state_change.SurvivalCheckFailsSafeTests.test_a_failing_existence_check_writes_the_generic_event)
+17:05:39 If the check itself errors, answer 'nothing survived': a second ... ok
+17:05:39 test_an_anonymous_requester_needs_no_query (audit.tests_state_change.SurvivalCheckFailsSafeTests.test_an_anonymous_requester_needs_no_query)
+17:05:39 v2's pre-read: AnonymousUser.pk is None, which must never be ... ok
+17:05:39 test_no_stored_event_needs_no_query (audit.tests_state_change.SurvivalCheckFailsSafeTests.test_no_stored_event_needs_no_query) ... ok
+17:05:39 test_the_error_reference_is_the_server_id (audit.tests_trace_server_owned.CodedErrorReferenceTests.test_the_error_reference_is_the_server_id) ... ok
+17:05:39 test_a_write_inside_the_report_is_refused (audit.tests_volume_report.ReadOnlyTests.test_a_write_inside_the_report_is_refused) ... ok
+17:05:40
+17:05:40 ----------------------------------------------------------------------
+17:05:40 Ran 2440 tests in 291.708s
+17:05:40
+17:05:40 OK (skipped=2)
+17:05:40 Destroying test database for alias 'default' ('test_epic_a_escalation_event_once')...
+17:05:41  OK
+17:05:41 H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+17:05:41 H38P2 assignments/views.py:1238 generate (positive control - active teacher) WRITE(paid AI) status=201 changed=True
+17:05:41 H38P2 assignments/views.py:782 upload (positive control - active teacher) WRITE status=201 changed=True
+17:05:41 H38P2 dashboard/views.py custom-ai-prompt (positive control - active teacher) READ(paid AI) status=200 changed=False
+17:05:41 H38P2 assignments/views.py:1461 generated-drafts save (positive control - active teacher) WRITE status=201 changed=True
+17:05:41 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name (positive control - active teacher) WRITE status=200 changed=True
+17:05:41 H38P2 assignments/views.py associate-topic WRITE status=404 changed=False
+17:05:41 H38P2 assignments/views.py:310 delete DELETE status=404 changed=False
+17:05:41 H38P2 assignments/views.py:1238 generate WRITE(paid AI) status=404 changed=False
+17:05:41 H38P2 assignments/views.py grade-all WRITE(paid AI) status=404 changed=False
+17:05:41 H38P2 assignments/views.py:310 list READ status=200 changed=False
+17:05:41 H38P2 assignments/views.py:310 patch WRITE status=404 changed=False
+17:05:41 H38P2 assignments/views.py publish-all-grades WRITE status=404 changed=False
+17:05:41 H38P2 assignments/views.py:310 retrieve READ status=404 changed=False
+17:05:41 H38P2 assignments/views.py:782 upload WRITE status=404 changed=False
+17:05:41 H38P2 assignments/views.py:966 upload-async WRITE status=404 changed=False
+17:05:41 H38P2 classrooms/views.py topics create WRITE status=400 changed=False
+17:05:41 H38P2 classrooms/views.py:1723 course topics WRITE status=404 changed=False
+17:05:41 H38P2 classrooms/views.py:2392 topic delete DELETE status=404 changed=False
+17:05:41 H38P2 classrooms/views.py:2392 topics list READ status=200 changed=False
+17:05:41 H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=False
+17:05:41 H38P2 classrooms/views.py:2392 topic patch WRITE status=404 changed=False
+17:05:41 H38P2 classrooms/views.py:2099 student-course delete DELETE status=404 changed=False
+17:05:41 H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=False
+17:05:41 H38P2 classrooms/views.py:2099 student-course patch WRITE status=404 changed=False
+17:05:41 H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+17:05:41 H38P2 dashboard/views.py teacher assignments/{id} READ status=404 changed=False
+17:05:41 H38P2 dashboard/views.py teacher courses/{id} READ status=404 changed=False
+17:05:41 H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+17:05:41 H38P2 dashboard/views.py teacher students/{course} READ status=404 changed=False
+17:05:41 H38P2 assignments/views.py:1461 generated-drafts save WRITE status=404 changed=False
+17:05:41 H38P2 assignments/views.py:1788 download-pdf teacher view READ status=404 changed=False
+17:05:41 H38P2 assignments/views.py:1788 download-pdf teacher view (object-level guard in isolation) READ status=403 changed=False
+17:05:41 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+17:05:41 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+17:05:41 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+17:05:41 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+17:05:41 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+17:05:41 H38P2 assignments/serializers.py validate_course create WRITE status=400 changed=False
+17:05:41 H38P2 assignments/serializers.py validate_course create-async WRITE status=400 changed=False
+17:05:41 H38P2 classrooms/filters.py my-students ?enrollments__course READ status=200 changed=False
+17:05:41 H38P2 classrooms/views.py my-students enrollments prefetch READ status=200 changed=False
+17:05:41 H38P2 classrooms/filters.py my-students ?enrollments__course__session READ status=200 changed=False
+17:05:41 H38P2 assignments/serializers.py validate_course patch WRITE status=400 changed=False
+17:05:41 H38P2 users/filters.py /users/<id>?enrollments__course READ status=404 changed=False
+17:05:41 H38P2 users/filters.py /users/<id>?enrollments__course__session READ status=404 changed=False
+17:05:41 H38P2 students/views.py:158 batch-upload WRITE status=404 changed=False
+17:05:41 H38P2 students/views.py:358 delete DELETE status=404 changed=False
+17:05:41 H38P2 students/views.py grade WRITE(paid AI) status=404 changed=False
+17:05:41 H38P2 students/views.py:358 list READ status=200 changed=False
+17:05:41 H38P2 students/views.py publish WRITE status=404 changed=False
+17:05:41 H38P2 students/views.py:358 retrieve READ status=404 changed=False
+17:05:41 H38P2 students/views.py teacher_feedback READ status=402 changed=False
+17:05:41 H38P2 students/views.py update-grade WRITE status=402 changed=False
+17:05:41
+17:05:41 [G6 replay] background=2000 queries=1 p50_ms=0.88 p95_ms=0.99
+17:05:41 [G6 replay plan background=2000]
+17:05:41 Limit  (cost=8.64..8.65 rows=5 width=24)
+17:05:41   ->  Sort  (cost=8.64..8.65 rows=5 width=24)
+17:05:41         Sort Key: processed_at
+17:05:41         ->  Index Scan using billing_stripeevent_status_f161152f on billing_stripeevent  (cost=0.28..8.58 rows=5 width=24)
+17:05:41               Index Cond: ((status)::text = 'FAILED'::text)
+17:05:41               Filter: ((auto_replay_attempts < 3) AND ((event_type)::text = 'checkout.session.completed'::text))
+17:05:41
+17:05:41 [G6 replay] background=20000 queries=1 p50_ms=0.90 p95_ms=1.03
+17:05:41 [G6 replay plan background=20000]
+17:05:41 Limit  (cost=8.51..8.52 rows=5 width=24)
+17:05:41   ->  Sort  (cost=8.51..8.52 rows=5 width=24)
+17:05:41         Sort Key: processed_at
+17:05:41         ->  Index Scan using billing_stripeevent_status_f161152f on billing_stripeevent  (cost=0.29..8.45 rows=5 width=24)
+17:05:41               Index Cond: ((status)::text = 'FAILED'::text)
+17:05:41               Filter: ((auto_replay_attempts < 3) AND ((event_type)::text = 'checkout.session.completed'::text))
+17:05:41
+17:05:41 [G6 sweep] background=2000 actionable=25 filled=25 queries=51 peak_mem_kb=165 idle_p50_ms=1.35 idle_p95_ms=1.48
+17:05:41 [G6 sweep plan background=2000]
+17:05:41 Limit  (cost=57.88..57.89 rows=1 width=24)
+17:05:41   ->  Sort  (cost=57.88..57.89 rows=1 width=24)
+17:05:41         Sort Key: occurred_at DESC
+17:05:41         ->  Bitmap Heap Scan on billing_billingtransaction  (cost=4.64..57.87 rows=1 width=24)
+17:05:41               Recheck Cond: ((occurred_at >= '2026-09-29 16:02:29.869173+00'::timestamp with time zone) AND (occurred_at <= '2026-10-02 15:57:29.869173+00'::timestamp with time zone))
+17:05:41               Filter: (((stripe_invoice_id IS NOT NULL) OR (stripe_charge_id IS NOT NULL) OR (stripe_payment_intent_id IS NOT NULL)) AND ((receipt_url IS NULL) OR ((receipt_url)::text = ''::text)))
+17:05:41               ->  Bitmap Index Scan on billing_billingtransaction_occurred_at_f0011b46  (cost=0.00..4.64 rows=36 width=0)
+17:05:41                     Index Cond: ((occurred_at >= '2026-09-29 16:02:29.869173+00'::timestamp with time zone) AND (occurred_at <= '2026-10-02 15:57:29.869173+00'::timestamp with time zone))
+17:05:41
+17:05:41 [G6 sweep] background=20000 actionable=25 filled=25 queries=51 peak_mem_kb=101 idle_p50_ms=0.92 idle_p95_ms=1.08
+17:05:41 [G6 sweep plan background=20000]
+17:05:41 Limit  (cost=322.49..322.50 rows=1 width=24)
+17:05:41   ->  Sort  (cost=322.49..322.50 rows=1 width=24)
+17:05:41         Sort Key: occurred_at DESC
+17:05:41         ->  Bitmap Heap Scan on billing_billingtransaction  (cost=5.59..322.48 rows=1 width=24)
+17:05:41               Recheck Cond: ((occurred_at >= '2026-09-29 16:02:30.590429+00'::timestamp with time zone) AND (occurred_at <= '2026-10-02 15:57:30.590429+00'::timestamp with time zone))
+17:05:41               Filter: (((stripe_invoice_id IS NOT NULL) OR (stripe_charge_id IS NOT NULL) OR (stripe_payment_intent_id IS NOT NULL)) AND ((receipt_url IS NULL) OR ((receipt_url)::text = ''::text)))
+17:05:41               ->  Bitmap Index Scan on billing_billingtransaction_occurred_at_f0011b46  (cost=0.00..5.59 rows=130 width=0)
+17:05:41                     Index Cond: ((occurred_at >= '2026-09-29 16:02:30.590429+00'::timestamp with time zone) AND (occurred_at <= '2026-10-02 15:57:30.590429+00'::timestamp with time zone))
+17:05:41
+17:05:41   backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+17:05:41
+17:05:41   backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+17:05:41
+17:05:41   attributed 0 ledger row(s) to their Stripe payment
+17:05:41
+17:05:41   backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+17:05:41
+17:05:41   attributed 0 ledger row(s) to their Stripe payment

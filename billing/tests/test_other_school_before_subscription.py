@@ -26,6 +26,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from billing.license_service import (
+    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
     IndividualSubscriptionConflictError,
     LicenseSubscriptionService,
 )
@@ -167,13 +168,13 @@ class OtherSchoolBeforeSubscriptionTest(APITestCase):
     def test_control_own_schools_paying_teacher_still_gets_the_subscription_refusal(
         self,
     ):
-        """Unchanged: the admin's own teacher's subscription is theirs to see."""
+        """The same refusal class; since H-85 its text is neutral."""
         teacher = self.teacher("paying@h78own.edu", self.school, paying=True)
 
         with self.assertRaises(IndividualSubscriptionConflictError) as caught:
             self.invite(teacher.email, raise_on_conflict=True)
 
-        self.assertIn("active individual subscription", str(caught.exception))
+        self.assertEqual(str(caught.exception), TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)
 
     def test_control_unattached_paying_teacher_still_gets_the_subscription_refusal(
         self,

@@ -97,15 +97,6 @@ class ReasonSpec:
 
 _FILE = frozenset({"file_name"})
 
-#: The one place TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION's text lives. QA kept it
-#: knowing it tells a school admin whether a teacher pays for their own
-#: subscription; the generic alternative is "This email can't be added as a
-#: teacher." (TEACHER_EMAIL_OTHER_ROLE's text). Change it here only.
-TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION_MESSAGE = (
-    "{email} has their own subscription, which must be cancelled before they "
-    "can join the licence."
-)
-
 
 def _item_spec(
     message, remediation, *, params=(), retryable=False, alternative_remediations=()
@@ -472,11 +463,13 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "This email can't be added as a teacher.",
         "Use the teacher's own account email.",
     ),
-    ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION: _item_spec(
-        TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION_MESSAGE,
-        "Ask the teacher to cancel their individual subscription, then add "
-        "them again.",
-        params={"email"},
+    # Neutral on purpose (H-85): the teacher has a subscription of their
+    # own, and nothing here - the code's name, the text, a param - may say
+    # so. The text is billing.license_service's H-85 sentence.
+    ReasonCode.TEACHER_CANNOT_JOIN_YET: _item_spec(
+        "This teacher can't be added to your school yet. "
+        "Please ask them to contact support.",
+        "Ask the teacher to contact support.",
     ),
     # Generic on purpose: never names the other school.
     ReasonCode.TEACHER_IN_OTHER_SCHOOL: _item_spec(

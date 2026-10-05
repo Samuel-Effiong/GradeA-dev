@@ -1,0 +1,62 @@
+# The retired reason code's name, repo-wide, at d22dff5a (asked by 0b). Files, with what each hit is.
+$ grep -rl "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION" . --exclude-dir=.git --exclude-dir=__pycache__ | sort
+AutoGrader/tests_codederror_serialization.py
+AutoGrader/tests_reason_codes.py
+billing/license_service.py
+billing/tests/test_license_service.py
+billing/tests/test_neutral_subscription_refusal.py
+billing/tests/test_other_school_before_subscription.py
+billing/tests/test_s7d_licence_teacher_codes.py
+docs/backend/billing-licenses.md
+docs/evidence/add-teachers-school-leak/EVIDENCE.md
+docs/evidence/add-teachers-school-leak/VERIFICATION_1a_152a8da.md
+docs/evidence/epic-a-escalation-event-once/modules_and_guards.txt
+docs/evidence/epic-a-merge-down-b6/grep_callers_h85.txt
+docs/evidence/epic-a-merge-down-b6/modules_and_guards.txt
+docs/evidence/epic-a-merge-down-b6/RESOLUTION_ed.md
+docs/evidence/epic-a-merge-down-b6/run1_failed_e917f52a_modules_and_guards.txt
+docs/evidence/epic-a-resolve-intent-audit/modules_and_guards.txt
+docs/evidence/epic-a-s7d/EVIDENCE.md
+docs/evidence/epic-a-s7d/run1_stopped_changed_modules_and_guards.txt
+docs/evidence/epic-a-s7d/wording_modules_and_guards.txt
+docs/evidence/h85-neutral-subscription-refusal/EVIDENCE.md
+docs/evidence/h85-neutral-subscription-refusal/logs/N1.log
+docs/evidence/h85-neutral-subscription-refusal/logs/N2.log
+docs/evidence/h85-neutral-subscription-refusal/logs/N4.log
+docs/evidence/h85-neutral-subscription-refusal/logs/N5.log
+docs/evidence/h85-neutral-subscription-refusal/run_mutants.py
+docs/evidence/h85-neutral-subscription-refusal/verification_1a/runs/h85_e3952a12.log
+docs/evidence/h85-neutral-subscription-refusal/verification_1a/runs/h85_eabc8cab.log
+docs/evidence/h85-neutral-subscription-refusal/verification_1a/runs/h85_ef67cee3.log
+docs/evidence/h85-neutral-subscription-refusal/verification_1a/runs/h85_mutant_Y7_e3952a12.log
+docs/evidence/h85-neutral-subscription-refusal/verification_1a/runs/h85_mutant_Y7_eabc8cab.log
+docs/evidence/h85-neutral-subscription-refusal/verification_1a/runs/h85_mutant_Y7_ef67cee3.log
+docs/evidence/h85-neutral-subscription-refusal/VERIFICATION.md
+docs/phase2/architecture/08a_epic_a_s6_s7_reason_codes_and_batch_design.md
+docs/phase2/qa/catalogue_additions_proposal.md
+
+# What the hits are
+# Code: billing/license_service.py only. It is beta's H-85 constant of that name (the neutral sentence): the
+#   definition and the two raises. Not a reason code.
+# Tests: billing test_license_service, test_neutral_subscription_refusal, test_other_school_before_subscription,
+#   test_s7d_licence_teacher_codes and AutoGrader/tests_reason_codes use that constant; tests_reason_codes also
+#   asserts the retired value is not in the enum; tests_codederror_serialization names it in a comment.
+# Docs: docs/backend/billing-licenses.md, the 08a design and the QA catalogue, each saying it is retired.
+#   No frontend contract document in this repo names it.
+# History, left as written: docs/evidence of add-teachers-school-leak, epic-a-s7d, h85-neutral-subscription-refusal,
+#   epic-a-escalation-event-once and epic-a-resolve-intent-audit (run logs where a guard test prints the name in
+#   a sentinel line), and this merge-down's own record and logs.
+
+# Can a stored row or a client still hold the old code? (from reading the code; staging was not queried)
+# AuditEvent.reason_code: the add-teachers route never emitted an event with this code. It went into the
+#   response's per-teacher entry and one server log line only.
+$ grep -n "failure.reason_code" billing/license_service.py
+1799-            logger.info(
+1800-                "Teacher not added to license %s (school %s): %s",
+1801-                license_sub.id,
+1802-                license_sub.school_id,
+1803:                failure.reason_code,
+# BackgroundProcessingTask.reason_code: the code was sync-only, never raised and never reached from a task
+#   (AutoGrader.tests_codederror_serialization's guard, green on every epic run since S7d).
+# A row holding it would still read: the column has no choices and the emitter validates on write only.
+# Clients: the frontend is outside this repo and was not checked. It must map TEACHER_CANNOT_JOIN_YET.

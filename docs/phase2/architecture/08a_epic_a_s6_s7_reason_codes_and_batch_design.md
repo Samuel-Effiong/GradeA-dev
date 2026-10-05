@@ -226,7 +226,7 @@ All URLs are under `/api/v1/`. "Item result today" lists the exact field names.
 
 **SM ruling (2026-10-01, Epic A S7d): the sync-only email exception.**
 - **The rule:** no coded `params` key may be an email or an id (`tests_codederror_serialization`), because a CodedError raised in a task reaches the Celery result backend.
-- **The exception:** exactly four QA-approved codes whose approved text names the address may carry `email`: `ROW_EMAIL_INVALID`, `TEACHER_EMAIL_NOT_BUSINESS`, `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`, `TEACHER_ALREADY_ON_LICENCE`. They are item codes of SYNC routes (roster import rows, licence teachers), answered only to the requester in a result list.
+- **The exception:** exactly three QA-approved codes whose approved text names the address may carry `email`: `ROW_EMAIL_INVALID`, `TEACHER_EMAIL_NOT_BUSINESS`, `TEACHER_ALREADY_ON_LICENCE`. (There were four until 2026-10-05, when `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` was retired for the neutral `TEACHER_CANNOT_JOIN_YET`, which takes no param: H-85.) They are item codes of SYNC routes (roster import rows, licence teachers), answered only to the requester in a result list.
 - **Guarded** (`SYNC_ONLY_EMAIL_CODES`):
   - none of the four is ever raised;
   - no task module names them or their entry builders (`import_roster`, `add_teachers_batch`);

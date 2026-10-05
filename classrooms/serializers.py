@@ -487,10 +487,15 @@ class AddStudentToCourseSerializer(serializers.Serializer):
         from .services import (
             NOT_A_STUDENT_MESSAGE,
             find_account_by_email,
+            is_placeholder_email,
             normalize_email,
         )
 
         value = normalize_email(value)
+        # H-99: a placeholder address is the server's key to a roster-only
+        # student, never something a caller may supply.
+        if is_placeholder_email(value):
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
         existing_user = find_account_by_email(value)
 
         # H-71: one neutral answer for every non-student role, so the form
@@ -499,6 +504,37 @@ class AddStudentToCourseSerializer(serializers.Serializer):
             raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
 
         return value
+
+
+def _create_placeholder_student(**fields):
+    """Create a roster-only student under a fresh placeholder address (H-99).
+
+    Only ever creates. An address that is already in use is skipped, not
+    attached: this row is a new student, whoever else has the same name.
+    The check and the insert are not one statement, so two requests could
+    still pick the same token; the unique `email` column refuses the second
+    insert, and that request takes another address.
+    """
+    from .services import (
+        PLACEHOLDER_EMAIL_ATTEMPTS,
+        find_account_by_email,
+        new_placeholder_email,
+    )
+
+    for _ in range(PLACEHOLDER_EMAIL_ATTEMPTS):
+        email = new_placeholder_email(fields["first_name"], fields["last_name"])
+        if find_account_by_email(email) is not None:
+            continue
+        try:
+            with transaction.atomic():
+                return CustomUser.objects.create(email=email, **fields)
+        except IntegrityError:
+            continue
+    # The views' own fallback sentence: no new wording for a case that
+    # needs several 64-bit collisions in a row.
+    raise serializers.ValidationError(
+        "We couldn't add this student to the course. Please try again."
+    )
 
 
 class DirectAddStudentSerializer(serializers.Serializer):
@@ -525,10 +561,15 @@ class DirectAddStudentSerializer(serializers.Serializer):
         from .services import (
             NOT_A_STUDENT_MESSAGE,
             find_account_by_email,
+            is_placeholder_email,
             normalize_email,
         )
 
         value = normalize_email(value)
+        # H-99: a placeholder address is the server's key to a roster-only
+        # student, never something a caller may supply.
+        if is_placeholder_email(value):
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
         existing_user = find_account_by_email(value)
 
         # H-71: every non-student role, not just teachers, and the same
@@ -574,17 +615,13 @@ class DirectAddStudentSerializer(serializers.Serializer):
         if not course:
             raise serializers.ValidationError("Course context is required.")
 
-        # Generate a tracked backend email if not provided
-        if not email:
-            unique_suffix = secrets.randbelow(10000)
-            safe_first = "".join(c for c in first_name.lower() if c.isalnum())
-            safe_last = "".join(c for c in last_name.lower() if c.isalnum())
-            email = f"{safe_first}.{safe_last}{unique_suffix}@student.local"
-
         with transaction.atomic():
             from .services import find_account_by_email
 
-            student = find_account_by_email(email)
+            # H-99: only an address the CALLER supplied can name an existing
+            # account. With no address the student is always new: the
+            # placeholder generated below is never looked up to attach.
+            student = find_account_by_email(email) if email else None
 
             if student:
                 # Check if already enrolled
@@ -618,19 +655,22 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     auto_added=True,
                 )
             else:
-                student = CustomUser.objects.create(
-                    email=email,
-                    first_name=first_name,
-                    middle_name=middle_name,
-                    last_name=last_name,
-                    profile_image=validated_data.get("profile_image"),
-                    user_type=UserTypes.STUDENT,
-                    school=course.teacher.school,
-                    is_active=True,
-                )
+                fields = {
+                    "first_name": first_name,
+                    "middle_name": middle_name,
+                    "last_name": last_name,
+                    "profile_image": validated_data.get("profile_image"),
+                    "user_type": UserTypes.STUDENT,
+                    "school": course.teacher.school,
+                    "is_active": True,
+                }
+                if email:
+                    student = CustomUser.objects.create(email=email, **fields)
+                else:
+                    student = _create_placeholder_student(**fields)
                 # No password, rather than a shared literal. Every student
                 # created this way used to get the SAME known password, on
-                # an active account whose address follows a guessable
+                # an active account whose address followed a guessable
                 # pattern (first.last<0-9999>@student.local) - so anyone
                 # who learned the literal could sign in as any of them.
                 # These are teacher-managed roster entries that are never

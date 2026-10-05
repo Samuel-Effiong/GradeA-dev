@@ -458,16 +458,30 @@ def _set_status(intent, status, **fields) -> bool:
     database itself is what failed, the intent keeps its last committed
     state, which the stale-intent check reports. Returns whether it saved.
 
-    A move to ESCALATED is audited in the same transaction."""
-    was = intent.status
+    A move to ESCALATED is audited in the same transaction, once: the event
+    is written only if the stored row was not ESCALATED already, and its
+    `before` is the stored status. The copy in memory can be stale (the
+    stale-intent check may have escalated the row meanwhile), and a second
+    event for the same move would say the intent was escalated twice."""
     intent.status = status
     for name, value in fields.items():
         setattr(intent, name, value)
+    escalating = status == LicenseStripeMutationStatus.ESCALATED
     try:
         with transaction.atomic(durable=True):
+            stored = None
+            if escalating:
+                # Locked, so the stale-intent check cannot claim the row
+                # between this read and the save below.
+                stored = (
+                    LicenseStripeMutationIntent.objects.select_for_update()
+                    .filter(pk=intent.pk)
+                    .values_list("status", flat=True)
+                    .first()
+                )
             intent.save(update_fields=["status", "updated_at", *fields])
-            if status == LicenseStripeMutationStatus.ESCALATED:
-                audit_intent_status(intent, was, status)
+            if escalating and stored != LicenseStripeMutationStatus.ESCALATED:
+                audit_intent_status(intent, stored, status)
         return True
     except Exception:  # noqa: BLE001 - a failed record must not mask the cause
         logger.exception(

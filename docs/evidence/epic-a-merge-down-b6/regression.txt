@@ -1,0 +1,204 @@
+# Trimmed: the last 200 of 61680 lines. Full log (chmod 600, outside the repo): GAP-evidence-logs/epic-a-merge-down-b6_regression_d22dff5a_full.txt
+# sha256 of the full log: 82f25f59b66d23246e89afa428942a071e412803624d9ceb381a6b4a16b29bed
+# Regression at d22dff5a, 2026-10-05 08:31:36-09:02:56: billing classrooms users AutoGrader dashboard audit.
+# Ran 4441 tests in 1823.511s, OK (skipped=8). Per app: billing 2136, classrooms 434, users 698, AutoGrader 536, dashboard 270, audit 367.
+09:02:25                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:25   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+09:02:25     return self._mock_call(*args, **kwargs)
+09:02:25            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:25   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+09:02:25     return self._execute_mock_call(*args, **kwargs)
+09:02:25            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:25   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+09:02:25     raise effect
+09:02:25 RuntimeError: provider down
+09:02:26
+09:02:26
+09:02:26 django.request ERROR 2026-10-05 08:02:26,006 log 100467 125990802013120 [request_id=- client_request_id=-] Internal Server Error: /api/v1/teacher-admin/dashboard/custom-ai-prompt
+09:02:26
+09:02:26
+09:02:26 [2026-10-05 08:02:26,006: ERROR/MainProcess] Internal Server Error: /api/v1/teacher-admin/dashboard/custom-ai-prompt
+09:02:26 ok
+09:02:26 test_school_admin_chat (dashboard.tests_dashboard_remediation.AIChatTransactionTest.test_school_admin_chat) ... ok
+09:02:27 test_superadmin_chat (dashboard.tests_dashboard_remediation.AIChatTransactionTest.test_superadmin_chat) ... ok
+09:02:27 test_teacher_chat (dashboard.tests_dashboard_remediation.AIChatTransactionTest.test_teacher_chat) ... [2026-10-05 08:02:27,747: ERROR/MainProcess] Free trial plan not found: no trial activated for user 364dc6a4-bd29-4d80-b7a1-d46f8fa0b44b.
+09:02:27 ok
+09:02:28 test_answers_list_shape_does_not_raise (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_answers_list_shape_does_not_raise) ... ok
+09:02:28 test_at_most_two_of_each_are_returned (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_at_most_two_of_each_are_returned) ... ok
+09:02:28 test_average_is_across_submissions (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_average_is_across_submissions) ... ok
+09:02:28 test_easiest_is_ordered_best_first (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_easiest_is_ordered_best_first) ... ok
+09:02:28 test_hardest_and_easiest_are_identified (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_hardest_and_easiest_are_identified) ... ok
+09:02:28 test_malformed_evaluations_are_skipped_not_fatal (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_malformed_evaluations_are_skipped_not_fatal) ... ok
+09:02:28 test_missing_question_evaluations_key_is_handled (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_missing_question_evaluations_key_is_handled) ... ok
+09:02:28 test_negative_scores_are_clamped (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_negative_scores_are_clamped) ... ok
+09:02:28 test_no_submissions_returns_empty (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_no_submissions_returns_empty) ... ok
+09:02:28 test_scores_above_the_maximum_are_clamped (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_scores_above_the_maximum_are_clamped) ... ok
+09:02:28 test_scores_are_normalised_to_a_fraction_of_available_marks (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_scores_are_normalised_to_a_fraction_of_available_marks) ... ok
+09:02:28 test_single_question_appears_in_both_lists (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_single_question_appears_in_both_lists) ... ok
+09:02:28 test_string_and_integer_question_numbers_are_merged (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_string_and_integer_question_numbers_are_merged) ... ok
+09:02:28 test_submissions_without_feedback_are_skipped (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_submissions_without_feedback_are_skipped) ... ok
+09:02:28 test_ties_resolve_in_a_stable_order (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_ties_resolve_in_a_stable_order) ... ok
+09:02:28 test_zero_mark_questions_are_skipped (dashboard.tests_question_difficulty.AnalyzeQuestionDifficultyTest.test_zero_mark_questions_are_skipped) ... ok
+09:02:28 test_demanding_work_students_cannot_cope_with_is_a_concern (dashboard.tests_rigor.RigorVerdictTest.test_demanding_work_students_cannot_cope_with_is_a_concern) ... ok
+09:02:28 test_demanding_work_with_healthy_results_is_the_good_pattern (dashboard.tests_rigor.RigorVerdictTest.test_demanding_work_with_healthy_results_is_the_good_pattern) ... ok
+09:02:28 test_demanding_work_with_near_perfect_scores_flags_the_marking (dashboard.tests_rigor.RigorVerdictTest.test_demanding_work_with_near_perfect_scores_flags_the_marking) ... ok
+09:02:28 test_easy_questions_with_high_scores_reads_as_too_easy (dashboard.tests_rigor.RigorVerdictTest.test_easy_questions_with_high_scores_reads_as_too_easy) ... ok
+09:02:28 test_every_verdict_carries_a_label_meaning_and_tone (dashboard.tests_rigor.RigorVerdictTest.test_every_verdict_carries_a_label_meaning_and_tone) ... ok
+09:02:28 test_good_rubric_coverage_produces_no_note (dashboard.tests_rigor.RigorVerdictTest.test_good_rubric_coverage_produces_no_note) ... ok
+09:02:28 test_missing_rubrics_are_called_out_separately (dashboard.tests_rigor.RigorVerdictTest.test_missing_rubrics_are_called_out_separately) ... ok
+09:02:28 test_no_demand_reads_as_missing_data_not_a_bad_score (dashboard.tests_rigor.RigorVerdictTest.test_no_demand_reads_as_missing_data_not_a_bad_score) ... ok
+09:02:28 test_recall_questions_students_still_fail_is_a_support_problem (dashboard.tests_rigor.RigorVerdictTest.test_recall_questions_students_still_fail_is_a_support_problem) ... ok
+09:02:28 test_thin_coverage_is_disclosed (dashboard.tests_rigor.RigorVerdictTest.test_thin_coverage_is_disclosed) ... ok
+09:02:28 test_ungraded_work_is_judged_on_questions_alone (dashboard.tests_rigor.RigorVerdictTest.test_ungraded_work_is_judged_on_questions_alone) ... ok
+09:02:28 test_a_clawback_racing_the_cleanup_expires_each_bucket_once (audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_cleanup_expires_each_bucket_once) ... [2026-10-05 08:02:28,293: ERROR/MainProcess] Free trial plan not found: no trial activated for user 8027c977-ef66-4ace-b9ce-721cf53d21f5.
+09:02:28 ok
+09:02:28 test_a_clawback_racing_the_monthly_grant_expires_nothing_twice (audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_monthly_grant_expires_nothing_twice) ... [2026-10-05 08:02:28,826: ERROR/MainProcess] Free trial plan not found: no trial activated for user 9372f621-340f-4670-b23f-fc4082b36a85.
+09:02:28 ok
+09:02:29 test_a_floor_below_the_thresholds_is_an_error (audit.tests_checks.FailedAuthFloorCheckTests.test_a_floor_below_the_thresholds_is_an_error) ... ok
+09:02:29 test_a_floor_equal_to_the_largest_threshold_passes (audit.tests_checks.FailedAuthFloorCheckTests.test_a_floor_equal_to_the_largest_threshold_passes) ... ok
+09:02:29 test_a_limit_equal_to_a_threshold_is_an_error (audit.tests_checks.FailedAuthFloorCheckTests.test_a_limit_equal_to_a_threshold_is_an_error)
+09:02:29 v2's N2: at LIMIT == threshold, the first refusal after the lock ... ok
+09:02:29 test_a_limit_one_above_the_largest_threshold_passes (audit.tests_checks.FailedAuthFloorCheckTests.test_a_limit_one_above_the_largest_threshold_passes) ... ok
+09:02:29 test_each_threshold_raised_above_the_floor_is_caught (audit.tests_checks.FailedAuthFloorCheckTests.test_each_threshold_raised_above_the_floor_is_caught) ... ok
+09:02:29 test_manage_py_check_fails_on_a_floor_set_below_a_threshold (audit.tests_checks.FailedAuthFloorCheckTests.test_manage_py_check_fails_on_a_floor_set_below_a_threshold)
+09:02:32 The deploy-time proof. This test module imports audit.checks ... ok
+09:02:32 test_the_check_is_registered (audit.tests_checks.FailedAuthFloorCheckTests.test_the_check_is_registered)
+09:02:32 It runs with every `manage.py check`, not only when called. ... ok
+09:02:32 test_the_shipped_settings_pass (audit.tests_checks.FailedAuthFloorCheckTests.test_the_shipped_settings_pass) ... ok
+09:02:32 test_an_unreachable_database_does_not_raise (audit.tests_emitter.DatabaseUnreachableTest.test_an_unreachable_database_does_not_raise) ... ok
+09:02:33 test_a_verb_is_stable_meaning_its_value_is_its_name (audit.tests_enums.ActionVocabularyTest.test_a_verb_is_stable_meaning_its_value_is_its_name) ... ok
+09:02:33 test_every_action_the_requirement_lists_has_a_verb (audit.tests_enums.ActionVocabularyTest.test_every_action_the_requirement_lists_has_a_verb) ... ok
+09:02:33 test_the_actions_kept_three_years_are_exactly_the_documented_ones (audit.tests_enums.ActionVocabularyTest.test_the_actions_kept_three_years_are_exactly_the_documented_ones)
+09:02:33 Grading, roster changes, submissions and (Epic A S4, D6) grade ... ok
+09:02:33 test_each_threshold_summary_is_written_exactly_once (audit.tests_failed_auth_cap.ConcurrentSummaryTests.test_each_threshold_summary_is_written_exactly_once) ... [2026-10-05 08:02:33,295: ERROR/MainProcess] Free trial plan not found: no trial activated for user 0b0606cd-420f-4cd7-be46-9a11141b562e.
+09:02:33 ok
+09:02:33 test_a_publish_and_a_score_save_each_record_their_own_change (audit.tests_history.ConcurrentGradeWritesTests.test_a_publish_and_a_score_save_each_record_their_own_change) ... [2026-10-05 08:02:33,802: ERROR/MainProcess] Free trial plan not found: no trial activated for user a05c3f3e-7ff6-46a8-bab1-3d914e61db1d.
+09:02:33 ok
+09:02:34 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+09:02:38 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+09:02:41 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+09:02:41 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+09:02:45 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+09:02:45 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+09:02:49 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+09:02:49 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+09:02:49 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+09:02:49 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+09:02:49 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+09:02:49 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+09:02:49 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+09:02:49 test_no_allowed_key_names_a_person_or_their_work (audit.tests_metadata.AllowListTest.test_no_allowed_key_names_a_person_or_their_work) ... ok
+09:02:49 test_the_allow_list_is_not_empty_and_holds_only_lowercase_snake_case (audit.tests_metadata.AllowListTest.test_the_allow_list_is_not_empty_and_holds_only_lowercase_snake_case) ... ok
+09:02:49 test_a_key_that_fails_the_generic_rules_is_dropped_before_the_per_action_check (audit.tests_metadata.PerActionAllowListTest.test_a_key_that_fails_the_generic_rules_is_dropped_before_the_per_action_check)
+09:02:49 A malformed value never gets a free pass just because its key is on ... ok
+09:02:49 test_a_key_valid_for_this_action_passes_through (audit.tests_metadata.PerActionAllowListTest.test_a_key_valid_for_this_action_passes_through) ... ok
+09:02:49 test_a_key_valid_globally_but_not_for_this_action_is_dropped (audit.tests_metadata.PerActionAllowListTest.test_a_key_valid_globally_but_not_for_this_action_is_dropped)
+09:02:49 `credits` is a real, PII-safe key (CREDIT_TRANSACTION carries it) - ... ok
+09:02:49 test_an_action_with_no_call_site_yet_accepts_no_metadata (audit.tests_metadata.PerActionAllowListTest.test_an_action_with_no_call_site_yet_accepts_no_metadata) ... ok
+09:02:49 test_every_action_has_an_entry (audit.tests_metadata.PerActionAllowListTest.test_every_action_has_an_entry)
+09:02:49 No action silently falls through to an unbounded default - an ... ok
+09:02:49 test_every_per_action_key_is_also_in_the_shared_pool (audit.tests_metadata.PerActionAllowListTest.test_every_per_action_key_is_also_in_the_shared_pool)
+09:02:49 The per-action list can only narrow ALLOWED_KEYS, never widen it - ... ok
+09:02:49 test_metadata_allowlist_for_an_unmapped_action_is_empty (audit.tests_metadata.PerActionAllowListTest.test_metadata_allowlist_for_an_unmapped_action_is_empty) ... ok
+09:02:49 test_none_and_empty_mean_no_metadata_and_no_problem (audit.tests_metadata.PerActionAllowListTest.test_none_and_empty_mean_no_metadata_and_no_problem) ... ok
+09:02:49 test_a_key_that_looks_like_personal_data_is_dropped_before_it_is_reported (audit.tests_metadata.SanitiseTest.test_a_key_that_looks_like_personal_data_is_dropped_before_it_is_reported)
+09:02:49 A careless call site can pass a name as the KEY. It is never echoed ... ok
+09:02:49 test_a_list_holding_an_object_is_dropped (audit.tests_metadata.SanitiseTest.test_a_list_holding_an_object_is_dropped) ... ok
+09:02:49 test_a_list_item_over_its_limit_is_dropped (audit.tests_metadata.SanitiseTest.test_a_list_item_over_its_limit_is_dropped) ... ok
+09:02:49 test_a_list_of_scalars_up_to_the_limit_is_kept (audit.tests_metadata.SanitiseTest.test_a_list_of_scalars_up_to_the_limit_is_kept) ... ok
+09:02:49 test_a_longer_list_is_dropped (audit.tests_metadata.SanitiseTest.test_a_longer_list_is_dropped) ... ok
+09:02:49 test_a_nested_object_is_dropped (audit.tests_metadata.SanitiseTest.test_a_nested_object_is_dropped) ... ok
+09:02:49 test_a_non_string_key_is_dropped (audit.tests_metadata.SanitiseTest.test_a_non_string_key_is_dropped) ... ok
+09:02:49 test_a_string_over_the_limit_is_dropped_so_answer_text_cannot_ride_along (audit.tests_metadata.SanitiseTest.test_a_string_over_the_limit_is_dropped_so_answer_text_cannot_ride_along) ... ok
+09:02:49 test_a_string_with_a_nul_byte_is_dropped (audit.tests_metadata.SanitiseTest.test_a_string_with_a_nul_byte_is_dropped) ... ok
+09:02:49 test_a_value_shaped_like_an_email_address_is_dropped_wherever_it_hides (audit.tests_metadata.SanitiseTest.test_a_value_shaped_like_an_email_address_is_dropped_wherever_it_hides) ... ok
+09:02:49 test_a_value_that_is_not_an_object_is_dropped_whole (audit.tests_metadata.SanitiseTest.test_a_value_that_is_not_an_object_is_dropped_whole) ... ok
+09:02:49 test_allowed_scalars_pass_through_unchanged (audit.tests_metadata.SanitiseTest.test_allowed_scalars_pass_through_unchanged) ... ok
+09:02:49 test_an_unknown_key_is_dropped_and_named_in_the_problems (audit.tests_metadata.SanitiseTest.test_an_unknown_key_is_dropped_and_named_in_the_problems) ... ok
+09:02:49 test_more_than_the_maximum_number_of_keys_is_dropped (audit.tests_metadata.SanitiseTest.test_more_than_the_maximum_number_of_keys_is_dropped) ... ok
+09:02:49 test_non_finite_numbers_are_dropped (audit.tests_metadata.SanitiseTest.test_non_finite_numbers_are_dropped) ... ok
+09:02:49 test_none_and_empty_mean_no_metadata_and_no_problem (audit.tests_metadata.SanitiseTest.test_none_and_empty_mean_no_metadata_and_no_problem) ... ok
+09:02:49 test_the_input_is_never_modified (audit.tests_metadata.SanitiseTest.test_the_input_is_never_modified) ... ok
+09:02:49 test_the_serialised_size_is_bounded (audit.tests_metadata.SanitiseTest.test_the_serialised_size_is_bounded) ... ok
+09:02:49 test_two_concurrent_delete_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_delete_sweeps_never_double_process_or_raise) ... ok
+09:02:49 test_two_concurrent_pii_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_pii_sweeps_never_double_process_or_raise) ... ok
+09:02:50 test_a_throttled_request_is_not_recorded (audit.tests_state_change.RequestStateIsolationTests.test_a_throttled_request_is_not_recorded)
+09:02:50 Only the 429 stops it: the same authenticated write on a real, ... ok
+09:02:50 test_concurrent_requests_never_share_state (audit.tests_state_change.RequestStateIsolationTests.test_concurrent_requests_never_share_state) ... ok
+09:02:50 test_every_exclusion_has_a_reason (audit.tests_state_change.RequestStateIsolationTests.test_every_exclusion_has_a_reason) ... ok
+09:02:50 test_marking_outside_a_request_is_a_no_op (audit.tests_state_change.RequestStateIsolationTests.test_marking_outside_a_request_is_a_no_op) ... ok
+09:02:50 test_state_is_per_request_and_restored_on_exception (audit.tests_state_change.RequestStateIsolationTests.test_state_is_per_request_and_restored_on_exception) ... ok
+09:02:50 test_a_rolled_back_named_event_leaves_exactly_the_generic_one (audit.tests_state_change.RolledBackNamedEventCommitTests.test_a_rolled_back_named_event_leaves_exactly_the_generic_one) ... [2026-10-05 08:02:50,138: ERROR/MainProcess] Free trial plan not found: no trial activated for user d2830f23-01fe-41f8-956c-9a27b45340cd.
+09:02:50 [2026-10-05 08:02:50,152: ERROR/MainProcess] API Exception
+09:02:50 Traceback (most recent call last):
+09:02:50   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+09:02:50     response = handler(request, *args, **kwargs)
+09:02:50                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:50   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/audit/tests_state_change.py", line 439, in create
+09:02:50     raise ValidationError("refused after a named event")
+09:02:50 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused after a named event', code='invalid')]
+09:02:50 ok
+09:02:50 test_a_surviving_named_event_is_the_only_one (audit.tests_state_change.RolledBackNamedEventCommitTests.test_a_surviving_named_event_is_the_only_one)
+09:02:50 Control: when the named event survives, no generic is added. ... [2026-10-05 08:02:50,571: ERROR/MainProcess] Free trial plan not found: no trial activated for user 3f7314b6-eef8-4982-a3a4-2e07a0ec6c3a.
+09:02:50 [2026-10-05 08:02:50,585: ERROR/MainProcess] API Exception
+09:02:50 Traceback (most recent call last):
+09:02:50   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+09:02:50     response = handler(request, *args, **kwargs)
+09:02:50                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:50   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/audit/tests_state_change.py", line 436, in create
+09:02:50     raise ValidationError("refused")
+09:02:50 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+09:02:50 ok
+09:02:50 test_an_event_naming_someone_else_does_not_stand_in (audit.tests_state_change.RolledBackNamedEventCommitTests.test_an_event_naming_someone_else_does_not_stand_in)
+09:02:51 V1 (v2): a surviving event whose actor is another user (a ... [2026-10-05 08:02:51,006: ERROR/MainProcess] Free trial plan not found: no trial activated for user 23d05a47-d5c7-4321-b7cc-d2a962464cae.
+09:02:51 [2026-10-05 08:02:51,030: ERROR/MainProcess] Free trial plan not found: no trial activated for user f3ae8c13-78c0-49ca-b3ec-f327a844254e.
+09:02:51 [2026-10-05 08:02:51,045: ERROR/MainProcess] API Exception
+09:02:51 Traceback (most recent call last):
+09:02:51   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+09:02:51     response = handler(request, *args, **kwargs)
+09:02:51                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:51   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/audit/tests_state_change.py", line 538, in create
+09:02:51     raise ValidationError("refused")
+09:02:51 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+09:02:51 ok
+09:02:51 test_the_first_event_is_rolled_back_and_the_second_survives (audit.tests_state_change.RolledBackNamedEventCommitTests.test_the_first_event_is_rolled_back_and_the_second_survives) ... [2026-10-05 08:02:51,476: ERROR/MainProcess] Free trial plan not found: no trial activated for user d8e6915c-463c-46c2-99c1-49c34ea8001d.
+09:02:51 [2026-10-05 08:02:51,494: ERROR/MainProcess] API Exception
+09:02:51 Traceback (most recent call last):
+09:02:51   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+09:02:51     response = handler(request, *args, **kwargs)
+09:02:51                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:51   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/audit/tests_state_change.py", line 487, in create
+09:02:51     raise ValidationError("refused")
+09:02:51 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+09:02:51 ok
+09:02:51 test_the_first_event_survives_and_the_second_is_rolled_back (audit.tests_state_change.RolledBackNamedEventCommitTests.test_the_first_event_survives_and_the_second_is_rolled_back) ... [2026-10-05 08:02:51,950: ERROR/MainProcess] Free trial plan not found: no trial activated for user 6f485414-ac04-4653-a1fd-4a62f8713eca.
+09:02:51 [2026-10-05 08:02:51,970: ERROR/MainProcess] API Exception
+09:02:51 Traceback (most recent call last):
+09:02:51   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+09:02:51     response = handler(request, *args, **kwargs)
+09:02:51                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+09:02:51   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/audit/tests_state_change.py", line 487, in create
+09:02:51     raise ValidationError("refused")
+09:02:51 rest_framework.exceptions.ValidationError: [ErrorDetail(string='refused', code='invalid')]
+09:02:51 ok
+09:02:52 test_a_failing_existence_check_writes_the_generic_event (audit.tests_state_change.SurvivalCheckFailsSafeTests.test_a_failing_existence_check_writes_the_generic_event)
+09:02:52 If the check itself errors, answer 'nothing survived': a second ... ok
+09:02:52 test_an_anonymous_requester_needs_no_query (audit.tests_state_change.SurvivalCheckFailsSafeTests.test_an_anonymous_requester_needs_no_query)
+09:02:52 v2's pre-read: AnonymousUser.pk is None, which must never be ... ok
+09:02:52 test_no_stored_event_needs_no_query (audit.tests_state_change.SurvivalCheckFailsSafeTests.test_no_stored_event_needs_no_query) ... ok
+09:02:52 test_the_error_reference_is_the_server_id (audit.tests_trace_server_owned.CodedErrorReferenceTests.test_the_error_reference_is_the_server_id) ... ok
+09:02:52 test_a_write_inside_the_report_is_refused (audit.tests_volume_report.ReadOnlyTests.test_a_write_inside_the_report_is_refused) ... ok
+09:02:52 test_a_validation_error_on_a_field_named_code_still_renders_as_before (users.tests_renderers.APIJSONRendererTests.test_a_validation_error_on_a_field_named_code_still_renders_as_before) ... ok
+09:02:52 test_manual_error_key_becomes_plain_error_message (users.tests_renderers.APIJSONRendererTests.test_manual_error_key_becomes_plain_error_message) ... ok
+09:02:52 test_manual_error_status_is_rendered_as_error (users.tests_renderers.APIJSONRendererTests.test_manual_error_status_is_rendered_as_error) ... ok
+09:02:52 test_refusal_code_beside_the_message_is_not_shown_as_text (users.tests_renderers.APIJSONRendererTests.test_refusal_code_beside_the_message_is_not_shown_as_text) ... ok
+09:02:52 test_success_response_promotes_detail_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_detail_to_message) ... ok
+09:02:52 test_success_response_promotes_message_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_message_to_message) ... ok
+09:02:52 test_unhandled_exception_never_leaks_raw_technical_detail (users.tests_renderers.APIJSONRendererTests.test_unhandled_exception_never_leaks_raw_technical_detail) ... ok
+09:02:52 test_validation_errors_keep_numbered_message_and_field_errors (users.tests_renderers.APIJSONRendererTests.test_validation_errors_keep_numbered_message_and_field_errors) ... ok
+09:02:52
+09:02:52 ----------------------------------------------------------------------
+09:02:52 Ran 4441 tests in 1823.511s
+09:02:52
+09:02:52 OK (skipped=8)
+09:02:52 Destroying test database for alias 'default' ('test_epic_a_merge_down_b6')...

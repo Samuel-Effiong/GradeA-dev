@@ -1,0 +1,357 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d535f218-8f76-42de-8b37-43727ca05f65.
+Cannot activate automatic trial for user d535f218-8f76-42de-8b37-43727ca05f65 (validation): ValueError
+FFree trial plan not found: no trial activated for user b638f90a-da83-4651-94e3-2587bd3214cd.
+Cannot activate automatic trial for user b638f90a-da83-4651-94e3-2587bd3214cd (validation): ValueError
+.Free trial plan not found: no trial activated for user cefb1cd6-da1d-44db-b0d1-3b49073be953.
+Cannot activate automatic trial for user cefb1cd6-da1d-44db-b0d1-3b49073be953 (validation): ValueError
+FFree trial plan not found: no trial activated for user 322d8542-31ad-424d-8465-9fdd7f612ab1.
+Cannot activate automatic trial for user 322d8542-31ad-424d-8465-9fdd7f612ab1 (validation): ValueError
+FFree trial plan not found: no trial activated for user 41449fb1-9beb-4856-90e1-496b741b2f2e.
+Cannot activate automatic trial for user 41449fb1-9beb-4856-90e1-496b741b2f2e (validation): ValueError
+.Free trial plan not found: no trial activated for user eac9e7f5-f61f-4a7d-9780-0b485371092e.
+Cannot activate automatic trial for user eac9e7f5-f61f-4a7d-9780-0b485371092e (validation): ValueError
+FFree trial plan not found: no trial activated for user 0a6a9053-e727-4863-a476-c4cb5548bd28.
+Cannot activate automatic trial for user 0a6a9053-e727-4863-a476-c4cb5548bd28 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2e185f74-3d29-4657-a12f-2d1be0414825.
+Cannot activate automatic trial for user 2e185f74-3d29-4657-a12f-2d1be0414825 (validation): ValueError
+FFree trial plan not found: no trial activated for user 5474e5df-ac75-4673-b02d-94e7ccbfa272.
+Cannot activate automatic trial for user 5474e5df-ac75-4673-b02d-94e7ccbfa272 (validation): ValueError
+FFree trial plan not found: no trial activated for user 9659c9ab-269f-4b38-ba58-7798674006df.
+Cannot activate automatic trial for user 9659c9ab-269f-4b38-ba58-7798674006df (validation): ValueError
+FFree trial plan not found: no trial activated for user fcfc5e9e-626c-4a87-ab6c-993b011fa9ba.
+Cannot activate automatic trial for user fcfc5e9e-626c-4a87-ab6c-993b011fa9ba (validation): ValueError
+EFree trial plan not found: no trial activated for user b83ab119-83ef-46cf-9b0f-36d536cc9737.
+Cannot activate automatic trial for user b83ab119-83ef-46cf-9b0f-36d536cc9737 (validation): ValueError
+EFree trial plan not found: no trial activated for user 799f4770-f749-4f80-9109-564a69aed722.
+Cannot activate automatic trial for user 799f4770-f749-4f80-9109-564a69aed722 (validation): ValueError
+EFree trial plan not found: no trial activated for user 83123c1f-486f-4799-bfe2-5f20d0672040.
+Cannot activate automatic trial for user 83123c1f-486f-4799-bfe2-5f20d0672040 (validation): ValueError
+EFree trial plan not found: no trial activated for user 597170c5-d88b-4f89-9445-f741b2a9d468.
+Cannot activate automatic trial for user 597170c5-d88b-4f89-9445-f741b2a9d468 (validation): ValueError
+EEFree trial plan not found: no trial activated for user dbe800e5-940c-4726-9d66-335777914b1e.
+Cannot activate automatic trial for user dbe800e5-940c-4726-9d66-335777914b1e (validation): ValueError
+EFree trial plan not found: no trial activated for user b4d99b1f-6db4-4fd6-b814-923631c3865a.
+Cannot activate automatic trial for user b4d99b1f-6db4-4fd6-b814-923631c3865a (validation): ValueError
+.Free trial plan not found: no trial activated for user 305d586f-2701-44bc-bb3f-f382f9c39c29.
+Cannot activate automatic trial for user 305d586f-2701-44bc-bb3f-f382f9c39c29 (validation): ValueError
+.Free trial plan not found: no trial activated for user 64576098-dd73-45fd-a9cd-b3a8bb1dca56.
+Cannot activate automatic trial for user 64576098-dd73-45fd-a9cd-b3a8bb1dca56 (validation): ValueError
+FFree trial plan not found: no trial activated for user 95789e9f-4b50-42fc-8ae1-0e18545c8273.
+Cannot activate automatic trial for user 95789e9f-4b50-42fc-8ae1-0e18545c8273 (validation): ValueError
+FFree trial plan not found: no trial activated for user ee00a3c8-5f64-4e05-8d30-91aa0fe2a762.
+Cannot activate automatic trial for user ee00a3c8-5f64-4e05-8d30-91aa0fe2a762 (validation): ValueError
+.Free trial plan not found: no trial activated for user 68c22942-10fc-453a-9ffa-d619c9310898.
+Cannot activate automatic trial for user 68c22942-10fc-453a-9ffa-d619c9310898 (validation): ValueError
+.Free trial plan not found: no trial activated for user bd8559e1-aecc-462d-8927-0a859149f581.
+Cannot activate automatic trial for user bd8559e1-aecc-462d-8927-0a859149f581 (validation): ValueError
+FFree trial plan not found: no trial activated for user c430d3de-7199-43c2-a8be-7581411bb454.
+Cannot activate automatic trial for user c430d3de-7199-43c2-a8be-7581411bb454 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5079bb11-d717-4fa1-b423-304c355c39db.
+Cannot activate automatic trial for user 5079bb11-d717-4fa1-b423-304c355c39db (validation): ValueError
+FFree trial plan not found: no trial activated for user 517ff11d-9b96-436d-bd5d-b08f7d4b7ce8.
+Cannot activate automatic trial for user 517ff11d-9b96-436d-bd5d-b08f7d4b7ce8 (validation): ValueError
+F
+======================================================================
+ERROR: test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one)
+The transition hazard: a 31 January licence whose old chain is on
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'grant_anchor_at'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 421, in test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one
+    self.old_row(allocation, drifted)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 402, in old_row
+    SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 1235, in update
+    query.add_update_values(kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/sql/subqueries.py", line 88, in add_update_values
+    field = self.get_meta().get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: SchoolCreditAllocation has no field named 'grant_anchor_at'
+
+======================================================================
+ERROR: test_a_renewal_overwrites_the_stored_anchor (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_renewal_overwrites_the_stored_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 477, in test_a_renewal_overwrites_the_stored_anchor
+    self.assertLess(allocation.grant_anchor_at - renewed, timedelta(seconds=1))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SchoolCreditAllocation' object has no attribute 'grant_anchor_at'
+
+======================================================================
+ERROR: test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm)
+Re-enrolled on the 23rd under a licence that began on the 10th,
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'grant_anchor_at'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 448, in test_a_row_re_enrolled_before_the_field_keeps_its_own_rhythm
+    self.old_row(allocation, due)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 402, in old_row
+    SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 1235, in update
+    query.add_update_values(kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/sql/subqueries.py", line 88, in add_update_values
+    field = self.get_meta().get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: SchoolCreditAllocation has no field named 'grant_anchor_at'
+
+======================================================================
+ERROR: test_an_enrolment_stores_its_anchor (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_an_enrolment_stores_its_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 410, in test_an_enrolment_stores_its_anchor
+    self.assertIsNotNone(allocation.grant_anchor_at)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SchoolCreditAllocation' object has no attribute 'grant_anchor_at'
+
+======================================================================
+ERROR: test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal)
+The fallback is the LATER of the row's creation and the licence's
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'grant_anchor_at'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 506, in test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal
+    self.old_row(allocation, due)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 402, in old_row
+    SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 1235, in update
+    query.add_update_values(kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/sql/subqueries.py", line 88, in add_update_values
+    field = self.get_meta().get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: SchoolCreditAllocation has no field named 'grant_anchor_at'
+
+======================================================================
+ERROR: test_the_admin_allocation_stores_its_anchor_and_restarts_on_reactivation (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_the_admin_allocation_stores_its_anchor_and_restarts_on_reactivation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 521, in test_the_admin_allocation_stores_its_anchor_and_restarts_on_reactivation
+    anchor = admin_allocation.grant_anchor_at
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SchoolCreditAllocation' object has no attribute 'grant_anchor_at'
+
+======================================================================
+ERROR: test_the_renewal_task_overwrites_the_stored_anchor (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_the_renewal_task_overwrites_the_stored_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 490, in test_the_renewal_task_overwrites_the_stored_anchor
+    self.assertGreaterEqual(allocation.grant_anchor_at, renewed)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SchoolCreditAllocation' object has no attribute 'grant_anchor_at'
+
+======================================================================
+FAIL: test_a_leap_february_from_the_30th (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_leap_february_from_the_30th)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 224, in test_a_leap_february_from_the_30th
+    self.assertEqual(dates, self.anchor_dates(start, range(1, 12)))
+AssertionError: Lists differ: [date[42 chars], 3, 29), datetime.date(2028, 4, 29), datetime[241 chars] 29)] != [date[42 chars], 3, 30), datetime.date(2028, 4, 30), datetime[213 chars] 30)]
+
+First differing element 1:
+datetime.date(2028, 3, 29)
+datetime.date(2028, 3, 30)
+
+First list contains 1 additional elements.
+First extra element 11:
+datetime.date(2029, 1, 29)
+
+Diff is 1298 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_renewal_mid_chain_restarts_the_teachers_month (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_renewal_mid_chain_restarts_the_teachers_month)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 282, in test_a_renewal_mid_chain_restarts_the_teachers_month
+    self.assertEqual(
+AssertionError: Lists differ: [date[42 chars], 3, 28), datetime.date(2026, 5, 21), datetime[269 chars] 21)] != [date[42 chars], 3, 31), datetime.date(2026, 5, 21), datetime[269 chars] 21)]
+
+First differing element 1:
+datetime.date(2026, 3, 28)
+datetime.date(2026, 3, 31)
+
+  [datetime.date(2026, 2, 28),
+-  datetime.date(2026, 3, 28),
+?                         ^^
+
++  datetime.date(2026, 3, 31),
+?                         ^^
+
+   datetime.date(2026, 5, 21),
+   datetime.date(2026, 6, 21),
+   datetime.date(2026, 7, 21),
+   datetime.date(2026, 8, 21),
+   datetime.date(2026, 9, 21),
+   datetime.date(2026, 10, 21),
+   datetime.date(2026, 11, 21),
+   datetime.date(2026, 12, 21),
+   datetime.date(2027, 1, 21),
+   datetime.date(2027, 2, 21),
+   datetime.date(2027, 3, 21)]
+
+======================================================================
+FAIL: test_a_teacher_enrolled_on_the_31st_gets_11_refreshes_on_their_days (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_teacher_enrolled_on_the_31st_gets_11_refreshes_on_their_days)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 201, in test_a_teacher_enrolled_on_the_31st_gets_11_refreshes_on_their_days
+    self.assertEqual(
+AssertionError: Lists differ: [date[42 chars], 3, 28), datetime.date(2026, 4, 28), datetime[241 chars] 28)] != [date[42 chars], 3, 31), datetime.date(2026, 4, 30), datetime[213 chars] 31)]
+
+First differing element 1:
+datetime.date(2026, 3, 28)
+datetime.date(2026, 3, 31)
+
+First list contains 1 additional elements.
+First extra element 11:
+datetime.date(2027, 1, 28)
+
+Diff is 1298 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_the_consumption_window_reopens_at_every_months_refresh (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_the_consumption_window_reopens_at_every_months_refresh)
+A 31st anchor's months are 28 to 31 days. The window must reopen
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 255, in test_the_consumption_window_reopens_at_every_months_refresh
+    self.assertEqual(len(self.runs), 11)
+AssertionError: 12 != 11
+
+======================================================================
+FAIL: test_a_catch_up_at_the_cycle_end_never_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_a_catch_up_at_the_cycle_end_never_outlives_the_contract)
+An outage over the last two anchors, ending two days before the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 392, in test_a_catch_up_at_the_cycle_end_never_outlives_the_contract
+    self.assertLessEqual(
+AssertionError: datetime.datetime(2027, 2, 28, 3, 0, 0, 3000, tzinfo=datetime.timezone.utc) not less than or equal to datetime.datetime(2027, 1, 31, 1, 0, tzinfo=datetime.timezone.utc) : the bucket granted at 2027-01-29 03:00:00+00:00 outlives 2027-01-31 01:00:00+00:00
+
+======================================================================
+FAIL: test_a_catch_up_never_grants_more_than_the_months_paid_for (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_a_catch_up_never_grants_more_than_the_months_paid_for)
+The SM's check: N refreshes on consecutive days grant N months'
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 338, in test_a_catch_up_never_grants_more_than_the_months_paid_for
+    self.assertEqual(monthly.count(), 12)
+AssertionError: 10 != 12
+
+======================================================================
+FAIL: test_a_three_month_outage_is_caught_up_one_refresh_per_run (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_a_three_month_outage_is_caught_up_one_refresh_per_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 301, in test_a_three_month_outage_is_caught_up_one_refresh_per_run
+    with self.assertLogs(SERVICE_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_service
+
+======================================================================
+FAIL: test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_licence_grant_anchor.py", line 366, in test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract
+    self.assertEqual(len(self.runs), 11)
+AssertionError: 9 != 11
+
+======================================================================
+FAIL: test_the_last_grant_never_made_is_reported (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_the_last_grant_never_made_is_reported)
+1a's H-82 O2.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_owed_grant_detection.py", line 165, in test_the_last_grant_never_made_is_reported
+    with self.assertLogs("billing.services", "ERROR") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on billing.services
+
+======================================================================
+FAIL: test_three_grants_never_made_are_counted (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_three_grants_never_made_are_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_owed_grant_detection.py", line 176, in test_three_grants_never_made_are_counted
+    with self.assertLogs("billing.services", "ERROR") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on billing.services
+
+======================================================================
+FAIL: test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal)
+1a's O2, driven: Beat stops before the last two anchors and the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_owed_grant_detection.py", line 90, in test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal
+    with self.assertLogs("billing.license_service", "ERROR") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on billing.license_service
+
+======================================================================
+FAIL: test_the_last_refresh_never_made_is_reported_by_the_renewal_task (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_last_refresh_never_made_is_reported_by_the_renewal_task)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_owed_grant_detection.py", line 98, in test_the_last_refresh_never_made_is_reported_by_the_renewal_task
+    with self.assertLogs("billing.license_service", "ERROR") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on billing.license_service
+
+======================================================================
+FAIL: test_the_renewal_still_renews (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_renewal_still_renews)
+Detection only: the renewal goes on, and grants one month.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_owed_grant_detection.py", line 131, in test_the_renewal_still_renews
+    with self.assertLogs("billing.license_service", "ERROR") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on billing.license_service
+
+----------------------------------------------------------------------
+Ran 27 tests in 20.407s
+
+FAILED (failures=13, errors=7)
+Destroying test database for alias 'default'...
+Found 27 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+systemd-run failed with exit status 1.
+exit=1 wall_s=100
