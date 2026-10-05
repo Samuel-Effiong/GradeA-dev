@@ -232,8 +232,13 @@ class SweepTests(RedisHygieneTestCase):
         sibling = self.spawn("import time; print('ready', flush=True); time.sleep(120)")
         alive_key = f"gaplus-t{sibling.pid}:1:sibling"
         own_key = f"gaplus-t{os.getpid()}:1:hygiene-own"
-        other_key = "secreplay-hygiene-test:1:x"  # another session's namespace
-        no_pid_key = "gaplus-tnotapid:1:x"
+        # Unique to this process (H-97, v2's note): with fixed names, another
+        # run's tearDown could delete this run's copy between the put and the
+        # assertions below. The shapes are what matter: another session's
+        # namespace, and a `gaplus-t` prefix that is not a pid.
+        other_key = f"secreplay-hygiene-test-{os.getpid()}:1:x"
+        no_pid_key = f"gaplus-tnotapid{os.getpid()}:1:x"
+        self.assertIsNone(hygiene._PREFIX_RE.match(no_pid_key.encode()))
         self.put(f"gaplus-t{dead}:1:a")
         self.put(f"gaplus-t{dead}:1:b", db=15)
         self.put(f"gaplus-t{dead}:", db=10)  # the Celery-style namespace root

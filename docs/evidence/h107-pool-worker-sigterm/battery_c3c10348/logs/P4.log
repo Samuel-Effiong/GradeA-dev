@@ -1,0 +1,12 @@
+# P4: a flush that would block waits too
+# file: AutoGrader/testing/patient_stream.py (occurrence 1)
+# old: '            except BlockingIOError:\n                if fd is None:\n                    raise\n                self._wait(fd)\n'
+# new: '            except BlockingIOError:\n                raise\n'
+# commit: c3c10348d456513b85764a5b170bd850a00c67f5
+# exit: 1
+# elapsed_s: 11.8
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_what_the_stream_itself_still_holds_goes_out_first (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_what_the_stream_itself_still_holds_goes_out_first)
+
+FAILED (errors=1)

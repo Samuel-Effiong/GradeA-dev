@@ -1,0 +1,12 @@
+# S7: a second install still sets the switch
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '    set_enabled(enabled)\n    previous = logging.getLogRecordFactory()\n'
+# new: '    previous = logging.getLogRecordFactory()\n'
+# commit: 7d05b17342e11450893a2de06f244b1e36effa57
+# exit: 1
+# elapsed_s: 0.2
+# restored_sha256_matches_commit_blob: True
+
+
+
+NO SUMMARY

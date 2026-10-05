@@ -1,79 +1,82 @@
-"""Sentry `before_send` PII scrubbing (FR-A-04 / NFR-CMP-02, plan §0.5a item 3).
+"""
+H-89: no email address, and no URL password, in the text of what is sent
+to Sentry.
 
-`send_default_pii=False` (see settings.py) only suppresses Sentry's
-*automatic* user/request context. It does nothing about the string content
-of a log message: `LoggingIntegration(event_level="ERROR")` turns every
-`logger.error`/`.exception` call into a Sentry event, so a leaked email or
-name in a log message still ships as event text regardless of that flag.
+Sentry's logging integration is not a logging handler. For each ERROR
+record it builds an event from the record's parts (the message template,
+the raw arguments, the exception object's own text and the frames' local
+variables), so the log record factory in log_scrubbing.py, which scrubs
+what handlers print, does not change what Sentry receives. These three
+hooks do; settings pass them to sentry_sdk.init:
 
-This is defense-in-depth, not a substitute for fixing call sites: a lint
-rule (see scripts/check_no_pii_in_logs.py) only catches patterns it is told
-to look for, and a raw `f"{exc}"` on some future exception is not something
-static analysis can catch. This hook scrubs known-shaped PII (currently:
-email addresses) out of the two places that content actually lands in a
-Sentry event, immediately before transmission.
+  * scrub_event (before_send, and before_send_transaction: a sampled
+    transaction is an event that does not pass before_send): the log
+    entry, the plain message, the exception values and the threads with
+    their frame variables, the spans, the breadcrumbs and the extras;
+  * scrub_breadcrumb (before_breadcrumb): each breadcrumb as it is recorded;
+  * scrub_log (before_send_log): each item of the log stream.
+
+They touch text only. The event's user context, its tags and its request
+are left alone: send_default_pii=False already keeps Sentry from adding a
+user's address there, and an address someone sets as a tag on purpose is
+not this module's to remove.
+
+A hook never raises and never drops the event. A part whose text cannot be
+scrubbed is replaced by WITHHELD (fail closed).
 """
 
-import re
+from AutoGrader.log_scrubbing import scrub
 
-_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_REDACTED = "[redacted-email]"
+WITHHELD = "[withheld: this text could not be scrubbed]"
 
-
-def _scrub_text(value: str) -> str:
-    return _EMAIL_RE.sub(_REDACTED, value)
-
-
-def _scrub_logentry(logentry: dict) -> None:
-    message = logentry.get("message")
-    if isinstance(message, str):
-        logentry["message"] = _scrub_text(message)
-
-    formatted = logentry.get("formatted")
-    if isinstance(formatted, str):
-        logentry["formatted"] = _scrub_text(formatted)
-
-    # `params` holds the raw %-style substitution arguments for the log
-    # record (e.g. the second positional arg to `logger.error("... %s", x)`).
-    # Sentry renders `message` from these too, so an unscrubbed param can
-    # reintroduce what `message`/`formatted` just had removed.
-    params = logentry.get("params")
-    if isinstance(params, list):
-        logentry["params"] = [
-            _scrub_text(p) if isinstance(p, str) else p for p in params
-        ]
+#: The parts of an event that carry free text.
+_EVENT_TEXT_PARTS = (
+    "logentry",
+    "message",
+    "exception",
+    "threads",
+    "spans",
+    "breadcrumbs",
+    "extra",
+)
 
 
-def _scrub_exception(exception: dict) -> None:
-    for value in exception.get("values", []) or []:
-        exc_value = value.get("value")
-        if isinstance(exc_value, str):
-            value["value"] = _scrub_text(exc_value)
+def _scrubbed(value):
+    """`value` with every string in it scrubbed. Numbers, booleans and None
+    are kept; any other object is replaced by its scrubbed text (an
+    argument Sentry has not turned into text yet)."""
+    if isinstance(value, str):
+        return scrub(value)
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, dict):
+        return {key: _scrubbed(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_scrubbed(item) for item in value]
+    return scrub(str(value))
 
-        for frame in (value.get("stacktrace") or {}).get("frames", []) or []:
-            frame_vars = frame.get("vars")
-            if isinstance(frame_vars, dict):
-                for key, val in list(frame_vars.items()):
-                    if isinstance(val, str):
-                        frame_vars[key] = _scrub_text(val)
+
+def _scrub_parts(container, parts):
+    for part in parts:
+        if container.get(part) is None:
+            continue
+        try:
+            container[part] = _scrubbed(container[part])
+        except Exception:  # noqa: BLE001 - never into Sentry's caller
+            container[part] = WITHHELD
+    return container
 
 
-def scrub_pii_before_send(event: dict, hint: dict) -> dict:
-    """`before_send` hook: scrub email-shaped strings from an outgoing event.
+def scrub_event(event, hint):
+    """sentry_sdk's before_send and before_send_transaction."""
+    return _scrub_parts(event, _EVENT_TEXT_PARTS)
 
-    Never raises — a bug in this function must not block a legitimate error
-    report (same "logging failure never fails the caller" posture as
-    FR-A-11's audit emitter).
-    """
-    try:
-        logentry = event.get("logentry")
-        if isinstance(logentry, dict):
-            _scrub_logentry(logentry)
 
-        exception = event.get("exception")
-        if isinstance(exception, dict):
-            _scrub_exception(exception)
-    except Exception:  # pragma: no cover - defensive, see docstring
-        pass
+def scrub_breadcrumb(crumb, hint):
+    """sentry_sdk's before_breadcrumb."""
+    return _scrub_parts(crumb, ("message", "data"))
 
-    return event
+
+def scrub_log(log, hint):
+    """sentry_sdk's before_send_log."""
+    return _scrub_parts(log, ("body", "attributes"))

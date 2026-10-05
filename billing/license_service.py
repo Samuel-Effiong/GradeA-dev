@@ -828,8 +828,9 @@ class LicenseSubscriptionService:
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
             # Class and ids only, never the refusal's text (H-78): the
-            # not-business and individual-subscription refusals carry the
-            # address. Each refusal logs its own ids-only line.
+            # not-business refusal carries the address. (The
+            # individual-subscription refusal did too, until H-85 made it
+            # one neutral sentence.) Each refusal logs its own ids-only line.
             logger.warning(
                 "Skipped enrolling a teacher in license %s (school %s): %s",
                 license_sub.id,
@@ -1780,8 +1781,9 @@ class LicenseSubscriptionService:
                 # The same ids-only line as the copied
                 # _invite_and_enroll_one_teacher (H-78), so both lines log a
                 # refused teacher alike: the exception's class, never its
-                # text (the not-business and subscription refusals carry
-                # the address).
+                # text (the not-business refusal carries the address; the
+                # individual-subscription refusal did too, until H-85 made
+                # it one neutral sentence).
                 logger.warning(
                     "Skipped enrolling a teacher in license %s (school %s): %s",
                     license_sub.id,

@@ -1,0 +1,12 @@
+# P3: billing/stripe_service.py: a subscription's user by id
+# file: billing/stripe_service.py (occurrence 1)
+# old: '            user_sub.user_id,\n'
+# new: '            user_sub.user.email,\n'
+# commit: 2c336a509a82d61dc35e647160844cee7aab6c0c
+# exit: 1
+# elapsed_s: 9.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+
+FAILED (failures=1)

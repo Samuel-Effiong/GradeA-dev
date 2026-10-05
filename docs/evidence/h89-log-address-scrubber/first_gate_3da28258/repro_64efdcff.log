@@ -1,0 +1,270 @@
+FFFFFFFFF--- Logging error ---
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/logging/__init__.py", line 1160, in emit
+    msg = self.format(record)
+          ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/logging/__init__.py", line 999, in format
+    return fmt.format(record)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/logging/__init__.py", line 703, in format
+    record.message = record.getMessage()
+                     ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/logging/__init__.py", line 392, in getMessage
+    msg = msg % self.args
+          ~~~~^~~~~~~~~~~
+TypeError: %d format: a real number is required, not str
+Call stack:
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/manage.py", line 22, in <module>
+    main()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 24, in run_from_argv
+    super().run_from_argv(argv)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 416, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/commands/test.py", line 63, in handle
+    failures = test_runner.run_tests(test_labels)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/redis_test_runner.py", line 28, in run_tests
+    return super().run_tests(*args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1099, in run_tests
+    result = self.run_suite(suite)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/runner.py", line 1026, in run_suite
+    return runner.run(suite)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/runner.py", line 240, in run
+    test(result)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/suite.py", line 122, in run
+    test(result)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/testcases.py", line 321, in __call__
+    self._setup_and_call(result)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/testcases.py", line 376, in _setup_and_call
+    super().__call__(result)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 690, in __call__
+    return self.run(*args, **kwds)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 262, in test_a_message_that_cannot_be_formatted_fails_closed
+    standalone_logger("h89", handler).info("Enrolled %d of %s", ADDRESS)
+Message: 'Enrolled %d of %s'
+Arguments: ('someone.private@school-example.edu',)
+FFEFEFFFFFFF.F.
+======================================================================
+ERROR: test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
+Only getMessage() and the rendered exception text are scrubbed;
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 255, in test_msg_args_and_exc_info_are_left_as_they_were
+    self.assertNotIn(ADDRESS, record.exc_text)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 1156, in assertNotIn
+    if member in container:
+       ^^^^^^^^^^^^^^^^^^^
+TypeError: argument of type 'NoneType' is not iterable
+
+======================================================================
+ERROR: test_no_environment_or_variable_can_switch_it_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_no_environment_or_variable_can_switch_it_off)
+In settings.py the switch is computed from "are tests running"
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 314, in test_no_environment_or_variable_can_switch_it_off
+    [assignment] = [
+    ^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 1, got 0)
+
+======================================================================
+FAIL: test_a_celery_task_loggers_own_formatter (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_a_celery_task_loggers_own_formatter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 123, in test_a_celery_task_loggers_own_formatter
+    self.assertScrubbed(output)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 74, in assertScrubbed
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in '\x1b[1;31m[2026-10-02 16:11:39,681: ERROR/MainProcess] ???[???]: Failed to renew credits for teacher 4821\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 66, in raise_and_log\n    raise error\nValueError: Teacher someone.private@school-example.edu has a plan\x1b[0m\n'
+
+======================================================================
+FAIL: test_an_object_argument_whose_text_is_an_address (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_an_object_argument_whose_text_is_an_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 135, in test_an_object_argument_whose_text_is_an_address
+    self.assertScrubbed(stream.getvalue())
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 74, in assertScrubbed
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'INFO Enrolled someone.private@school-example.edu\n'
+
+======================================================================
+FAIL: test_pythons_last_resort_handler (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_pythons_last_resort_handler)
+What prints a billing.* or users.* line when the process has
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 101, in test_pythons_last_resort_handler
+    self.assertScrubbed(output)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 74, in assertScrubbed
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'Refused someone.private@school-example.edu (user 4821)\n'
+
+======================================================================
+FAIL: test_the_console_handler_from_settings (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_the_console_handler_from_settings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 90, in test_the_console_handler_from_settings
+    self.assertScrubbed(stream.getvalue())
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 74, in assertScrubbed
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in '\n\ndjango ERROR 2026-10-02 16:11:39,685 tests_log_scrubbing 1296683 124319801748416 [request_id=-] Refused someone.private@school-example.edu (user 4821)\n\n\n'
+
+======================================================================
+FAIL: test_a_chained_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_chained_exception)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 193, in test_a_chained_exception
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'ERROR Invitation failed for user 4821\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 186, in test_a_chained_exception\n    raise IntegrityError(CONSTRAINT)\ndjango.db.utils.IntegrityError: duplicate key value violates unique constraint "users_customuser_email_key"\nDETAIL:  Key (email)=(someone.private@school-example.edu) already exists.\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 188, in test_a_chained_exception\n    raise ValueError(f"Could not invite {ADDRESS}") from exc\nValueError: Could not invite someone.private@school-example.edu\n'
+
+======================================================================
+FAIL: test_a_constraint_error_naming_the_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_constraint_error_naming_the_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 158, in test_a_constraint_error_naming_the_address
+    self.assertTracebackWithoutAddress(output, "IntegrityError")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 152, in assertTracebackWithoutAddress
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'ERROR Failed to renew credits for teacher 4821\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 66, in raise_and_log\n    raise error\ndjango.db.utils.IntegrityError: duplicate key value violates unique constraint "users_customuser_email_key"\nDETAIL:  Key (email)=(someone.private@school-example.edu) already exists.\n'
+
+======================================================================
+FAIL: test_an_error_built_with_an_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_an_error_built_with_an_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 167, in test_an_error_built_with_an_address
+    self.assertTracebackWithoutAddress(output, "ValueError")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 152, in assertTracebackWithoutAddress
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'ERROR Failed to renew credits for teacher 4821\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 66, in raise_and_log\n    raise error\nValueError: Teacher someone.private@school-example.edu does not belong to this school.\n'
+
+======================================================================
+FAIL: test_logger_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_logger_exception)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 177, in test_logger_exception
+    self.assertTracebackWithoutAddress(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 152, in assertTracebackWithoutAddress
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'ERROR Failed for teacher 4821\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 173, in test_logger_exception\n    raise ValueError(f"Teacher {ADDRESS} has a plan")\nValueError: Teacher someone.private@school-example.edu has a plan\n'
+
+======================================================================
+FAIL: test_it_is_on_and_scrubs_from_the_first_record (AutoGrader.tests_log_scrubbing.OutsideTheTestRunnerTests.test_it_is_on_and_scrubs_from_the_first_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 358, in test_it_is_on_and_scrubs_from_the_first_record
+    self.assertEqual(result.returncode, 0, result.stderr)
+AssertionError: 1 != 0 : Refused someone.private@school-example.edu (user 4821)
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+AttributeError: module 'AutoGrader.settings' has no attribute 'LOG_SCRUB_ADDRESSES'
+
+
+======================================================================
+FAIL: test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_message_that_cannot_be_formatted_fails_closed)
+The template and a marker; never the arguments, and no error
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 265, in test_a_message_that_cannot_be_formatted_fails_closed
+    self.assertIn("Enrolled %d of %s", output)
+AssertionError: 'Enrolled %d of %s' not found in ''
+
+======================================================================
+FAIL: test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 278, in test_a_record_still_pickles
+    self.assertNotIn(ADDRESS, copy.getMessage())
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'Refused someone.private@school-example.edu'
+
+======================================================================
+FAIL: test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+So H-80's and H-91's tests read what the code really logged.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 290, in test_it_is_off_under_the_test_runner
+    self.assertIs(getattr(settings, "LOG_SCRUB_ADDRESSES", None), False)
+AssertionError: None is not False
+
+======================================================================
+FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 306, in test_override_settings_switches_it_on_and_back_off
+    self.assertNotIn(ADDRESS, first)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'INFO first someone.private@school-example.edu'
+
+======================================================================
+FAIL: test_the_factory_is_installed (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_the_factory_is_installed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 283, in test_the_factory_is_installed
+    self.assertTrue(
+AssertionError: False is not true : settings did not install the scrubbing log record factory
+
+======================================================================
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@redis:6379/0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 217, in test_a_dsn_never_prints_its_password
+    self.assertNotIn(password, output)
+AssertionError: '[made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to redis://[credentials removed from this log]@redis:6379/0\n'
+
+======================================================================
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='redis://[credentials removed from this log]@localhost:6379/0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 217, in test_a_dsn_never_prints_its_password
+    self.assertNotIn(password, output)
+AssertionError: '[made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to redis://[credentials removed from this log]@localhost:6379/0\n'
+
+======================================================================
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='rediss://[credentials removed from this log]@cache.internal.example.com:6379/0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 217, in test_a_dsn_never_prints_its_password
+    self.assertNotIn(password, output)
+AssertionError: '[made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to rediss://[credentials removed from this log]@cache.internal.example.com:6379/0\n'
+
+======================================================================
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='postgres://[credentials removed from this log]@db.example.com:5432/grader')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 217, in test_a_dsn_never_prints_its_password
+    self.assertNotIn(password, output)
+AssertionError: '[made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to postgres://[credentials removed from this log]@db.example.com:5432/grader\n'
+
+======================================================================
+FAIL: test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) (dsn='amqp://[credentials removed from this log]@rabbit//')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 217, in test_a_dsn_never_prints_its_password
+    self.assertNotIn(password, output)
+AssertionError: '[made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to amqp://[credentials removed from this log]@rabbit//\n'
+
+======================================================================
+FAIL: test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 233, in test_an_address_in_a_query_string
+    self.assertNotIn(ADDRESS, output)
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in 'WARNING Cannot connect to https://app.example.com/register?email=someone.private@school-example.edu&t=1\n'
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.584s
+
+FAILED (failures=20, errors=2)
+Found 20 test(s).
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=8

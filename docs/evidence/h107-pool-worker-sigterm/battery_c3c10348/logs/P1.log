@@ -1,0 +1,15 @@
+# P1: a write that would block waits and carries on (no retry: it raises)
+# file: AutoGrader/testing/patient_stream.py (occurrence 1)
+# old: '            except BlockingIOError:\n                self._wait(fd)\n                continue\n'
+# new: '            except BlockingIOError:\n                raise\n'
+# commit: c3c10348d456513b85764a5b170bd850a00c67f5
+# exit: 1
+# elapsed_s: 12.3
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_everything_arrives_once_and_in_order (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_everything_arrives_once_and_in_order)
+ERROR: test_one_write_larger_than_the_pipe_arrives_whole (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_one_write_larger_than_the_pipe_arrives_whole)
+FAIL: test_a_reader_that_is_slow_but_reading_is_waited_for (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_is_slow_but_reading_is_waited_for)
+FAIL: test_it_gives_up_loudly_after_its_patience_not_never (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_it_gives_up_loudly_after_its_patience_not_never)
+
+FAILED (failures=2, errors=2)

@@ -1,0 +1,24 @@
+import os, signal, subprocess, sys, time
+from playwright._impl._driver import compute_driver_executable
+node, cli = compute_driver_executable()
+r, w = os.pipe()
+print("before, blocking:", os.get_blocking(w), flush=True)
+# 1. A Node child that uses stderr and is still alive.
+p = subprocess.Popen([str(node), "-e", "console.error('x'); setTimeout(()=>{}, 60000)"], stderr=w)
+time.sleep(1.5)
+print("while a Node child that wrote to stderr is ALIVE, blocking:", os.get_blocking(w), flush=True)
+p.send_signal(signal.SIGKILL); p.wait()
+print("after that child was KILLED (SIGKILL), blocking:", os.get_blocking(w), flush=True)
+os.set_blocking(w, True)
+# 2. The same, ended with SIGTERM.
+p = subprocess.Popen([str(node), "-e", "console.error('x'); setTimeout(()=>{}, 60000)"], stderr=w)
+time.sleep(1.5)
+p.send_signal(signal.SIGTERM); p.wait()
+print("after such a child was ended with SIGTERM, blocking:", os.get_blocking(w), flush=True)
+os.set_blocking(w, True)
+# 3. Playwright's own driver, started the way Playwright starts it, then killed.
+p = subprocess.Popen([str(node), str(cli), "run-driver"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=w)
+time.sleep(2.5)
+print("while Playwright's driver is ALIVE, blocking:", os.get_blocking(w), flush=True)
+p.send_signal(signal.SIGKILL); p.wait()
+print("after Playwright's driver was KILLED, blocking:", os.get_blocking(w), flush=True)

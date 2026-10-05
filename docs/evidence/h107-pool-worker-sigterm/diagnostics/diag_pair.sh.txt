@@ -1,0 +1,29 @@
+#!/bin/bash
+# H-107: the second slow-pipe diagnostic (SM and 0b, 2026-10-05), both
+# stated exceptions to rule 18. First the UNFIXED control (the runner as at
+# 085adecd, detached in the h78-repro worktree, put back on every exit),
+# then the FIXED runner at the frozen tip. Same labels, same reader.
+# Usage: diag_pair.sh <fixed-tip-sha8>      (reader: SLOW_MS, default 100)
+set -u
+TIP=$1
+export SLOW_MS=${SLOW_MS:-100}
+P=/home/bond-servant-in-training/Documents/Projects
+D=$P/GAP-d5-runs/h107
+RP=$P/Grade-Automator-Plus-h78-repro
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $D/chain.status; }
+RP_WAS=$(git -C $RP symbolic-ref -q --short HEAD || git -C $RP rev-parse HEAD)
+[ -z "$(git -C $RP status --porcelain)" ] || { say "ABORT: the repro worktree is not clean"; exit 9; }
+back() { git -C $RP checkout -q $RP_WAS 2>/dev/null || git -C $RP checkout -q --detach $RP_WAS; [ "$(git -C $RP symbolic-ref -q --short HEAD || git -C $RP rev-parse HEAD)" = "$RP_WAS" ] || say "WARNING: the repro worktree is not back at $RP_WAS"; }
+trap back EXIT
+git -C $RP checkout -q --detach 085adecd || { say "ABORT: checkout 085adecd"; exit 9; }
+DIAG_WT=$RP DIAG_ROLE=control $D/diag_slow_pipe.sh 085adecd
+back
+C=$D/diag_slow_pipe_${SLOW_MS}ms_control_085adecd.log
+if grep -qE "^[0-9:]+ Ran [0-9]+ tests" $C; then
+  say "control at 085adecd printed a Ran line: the form does not fill the pipe when the parent writes. STOP before the fixed run."
+  exit 2
+fi
+say "control at 085adecd: no Ran line (expected). Now the fixed runner."
+DIAG_ROLE=fixed $D/diag_slow_pipe.sh $TIP
+F=$D/diag_slow_pipe_${SLOW_MS}ms_fixed_$TIP.log
+say "fixed at $TIP: [$(grep -oE 'Ran [0-9]+ tests in [0-9.]+s' $F | tail -1)] lines in the stamped log: $(wc -l < $F) (the fast-reader run had 2584)"
