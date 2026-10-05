@@ -1,0 +1,23 @@
+3da28258a638	S1	an address is replaced	KILLED	FAILED (failures=25)	True	11.5
+3da28258a638	S2	a URL's credentials are replaced, dotless hosts too	KILLED	FAILED (failures=6)	True	13.8
+3da28258a638	S3	the exception text is rendered and scrubbed when the record is made	KILLED	FAILED (failures=7, errors=1)	True	10.6
+3da28258a638	S4	a message that cannot be scrubbed fails closed (SM's D4)	KILLED	FAILED (failures=1)	True	10.7
+3da28258a638	S5	the wrapped factory makes the record	KILLED	FAILED (failures=2)	True	11.4
+3da28258a638	S6	a second install does not wrap again	KILLED	FAILED (failures=1)	True	10.4
+3da28258a638	S7	a second install still sets the switch	KILLED	FAILED (failures=5)	True	12.0
+3da28258a638	S8	a record whose class cannot be replaced fails closed	KILLED	FAILED (failures=1)	True	10.8
+3da28258a638	S9	exception text that cannot be rendered fails closed	KILLED	FAILED (failures=1)	True	14.4
+3da28258a638	S10	override_settings switches the scrubber	KILLED	FAILED (failures=18, errors=1)	True	11.7
+3da28258a638	S11	the scrubber is off while tests run	KILLED	FAILED (failures=3)	True	12.0
+3da28258a638	S12	settings install the factory	KILLED	FAILED (failures=21, errors=1)	True	9.7
+3da28258a638	S13	settings pass the switch to the factory	KILLED	FAILED (failures=1)	True	7.3
+3da28258a638	S14	a switched-off scrubber leaves the text alone	KILLED	FAILED (failures=2)	True	5.3
+3da28258a638	S15	text that only looks like an address is left alone	KILLED	FAILED (failures=2)	True	6.1
+3da28258a638	Y1	Sentry: the exception values are scrubbed	KILLED	FAILED (failures=4)	True	5.3
+3da28258a638	Y2	Sentry: a part that cannot be scrubbed fails closed	KILLED	FAILED (failures=2)	True	6.2
+3da28258a638	Y3	Sentry: the user context is left alone	KILLED	FAILED (failures=1)	True	5.0
+3da28258a638	Y4	Sentry: an argument that is not text yet is scrubbed	KILLED	FAILED (failures=3)	True	5.5
+3da28258a638	Y5	Sentry: a breadcrumb's data is scrubbed	KILLED	FAILED (failures=1)	True	5.6
+3da28258a638	Y6	Sentry: a log item's attributes are scrubbed	KILLED	FAILED (failures=1)	True	6.1
+3da28258a638	Y7	Sentry: settings pass before_send	KILLED	FAILED (failures=1)	True	6.0
+3da28258a638	Y8	Sentry: settings pass before_send_log	KILLED	FAILED (failures=1)	True	5.2

@@ -1,0 +1,12 @@
+# Y5: Sentry: a breadcrumb's data is scrubbed
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    return _scrub_parts(crumb, ("message", "data"))\n'
+# new: '    return _scrub_parts(crumb, ("message",))\n'
+# commit: 3da28258a6383bb82339fff0dc24ba2da0ba6487
+# exit: 1
+# elapsed_s: 5.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_breadcrumbs_message_and_data (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_breadcrumbs_message_and_data)
+
+FAILED (failures=1)

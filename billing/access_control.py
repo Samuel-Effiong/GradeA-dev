@@ -313,7 +313,7 @@ def can_user_access_ai(
     except Exception as exc:
         logger.error(
             "Error resolving AI access context for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
         )
         return False, "Internal Error: Could not verify subscription status"
@@ -332,7 +332,7 @@ def can_user_access_ai(
         if not context.trial_end:
             logger.warning(
                 "Trial subscription has no trial_end set. User %s.",
-                user.email,
+                user.id,
             )
             return False, "Internal Error: Trial subscription configuration issue"
 
@@ -347,7 +347,7 @@ def can_user_access_ai(
     if context.wallet is None:
         logger.error(
             "Error fetching wallet for user %s: no CreditWallet found",
-            user.email,
+            user.id,
         )
         return False, "Internal Error: Could not verify credit balance"
 
@@ -478,7 +478,7 @@ def get_user_ai_access_status(user, feature: Optional[str] = None) -> dict:
     except Exception as exc:
         logger.error(
             "Error resolving AI access context for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
         )
         return {
@@ -503,7 +503,7 @@ def get_user_ai_access_status(user, feature: Optional[str] = None) -> dict:
         except Exception as exc:
             logger.error(
                 "Error computing wallet balance for user %s: %s",
-                user.email,
+                user.id,
                 str(exc),
             )
 
@@ -582,7 +582,7 @@ def require_ai_access(view_func=None, *, feature: Optional[str] = None):
             if not can_access:
                 logger.warning(
                     "AI access denied for user %s (feature=%s): %s",
-                    request.user.email if request.user.is_authenticated else "ANON",
+                    request.user.id if request.user.is_authenticated else "ANON",
                     feature,
                     reason,
                 )
@@ -639,7 +639,7 @@ def get_remaining_trial_days(user) -> int:
     except Exception as exc:
         logger.error(
             "Error fetching trial days for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
         )
         return 0

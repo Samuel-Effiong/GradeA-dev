@@ -1,0 +1,24 @@
+12:49:26
+    PID    PPID STAT ELAPSED %CPU WCHAN                NLWP COMMAND
+ 180789  180788 SN      1035  2.9 do_wait                 1 python manage.py test billing users classrooms assignments AutoGrader.tests_beat
+ 181462  180789 SNl     1004 33.1 futex_do_wait           3 python manage.py test billing users classrooms assignments AutoGrader.tests_beat
+ 181464  180789 SN      1004 33.8 futex_do_wait           1 python manage.py test billing users classrooms assignments AutoGrader.tests_beat
+ 180770  180762 S          17:16  |   |   |           \_ /bin/bash /home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/hang/iso.sh c_apps_guards_b6fbd
+ 180779  180770 S          17:16  |   |   |               \_ /bin/bash /home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/hang/iso.sh c_apps_guards_b
+ 180780  180779 S          17:16  |   |   |               |   \_ systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block s
+ 180786  180780 SN         17:15  |   |   |               |   |   \_ flock /home/bond-servant-in-training/.machine-fullsuite.lock timeout -k 60 1800 python mana
+ 180788  180786 SN         17:15  |   |   |               |   |       \_ timeout -k 60 1800 python manage.py test billing users classrooms assignments AutoGrade
+ 180789  180788 SN         17:15  |   |   |               |   |           \_ python manage.py test billing users classrooms assignments AutoGrader.tests_beat_lo
+ 181462  180789 SNl        16:44  |   |   |               |   |               \_ python manage.py test billing users classrooms assignments AutoGrader.tests_bea
+ 181464  180789 SN         16:44  |   |   |               |   |               \_ python manage.py test billing users classrooms assignments AutoGrader.tests_bea
+ 180782  180779 S          17:16  |   |   |               |   \_ /bin/bash /home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/hang/iso.sh c_apps_guar
+ 262174  180770 R          00:00  |   |   |               \_ ps -e -o pid,ppid,stat,etime,cmd --forest
+ 262177  180770 S          00:00  |   |   |               \_ cut -c1-160
+  35703    5697 Sl      01:03:57  |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/resources/native
+  35922    5697 Sl      01:03:51  |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/resources/native
+  36161    5697 Sl      01:03:42  |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/resources/native
+  61655    5697 Sl         52:09  |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/resources/native
+ 259896    5697 Sl         02:54  |   |   \_ /home/bond-servant-in-training/Documents/Programs/Antigravity IDE/antigravity-ide /home/bond-servant-in-training/Do
+   5699    5227 Sl      01:18:33  |   \_ /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --rend
+   5717    5227 Sl      01:18:33  |   \_ /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --rend
+   7448    5717 Sl      01:18:22  |   |   \_ /home/bond-servant-in-training/Documents/Programs/Antigravity IDE/antigravity-ide /home/bond-servant-in-training/Do

@@ -1170,7 +1170,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 "Subscription %s resumed for user %s. stripe_changed=%s "
                 "local_changed=%s is_trial=%s.",
                 sub.id,
-                request.user.email,
+                request.user.id,
                 stripe_changed,
                 local_changed,
                 sub.is_trial,
@@ -1304,7 +1304,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         except Exception:
             logger.exception(
                 "Unexpected error during overage purchase for user %s",
-                request.user.email,
+                request.user.id,
             )
             return Response(
                 {"detail": "An unexpected error occurred. Please try again later."},

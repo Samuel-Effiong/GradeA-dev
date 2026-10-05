@@ -1,0 +1,54 @@
+# 1a H-89 mutant Y9 at 26774ba89d7aa63f56aaad24f4adfe1c413e50ee, PYTHONDONTWRITEBYTECODE=1
+pycache dirs under AutoGrader and billing after clear: 0
+applied Y9
+mutated sha differs: True
+ AutoGrader/sentry_scrubbing.py | 1 -
+ 1 file changed, 1 deletion(-)
+test_u4_a_real_client_sends_no_address_in_events_or_logs (billing.tests.test_vf1a_h89_probe.RealSentryClientProbe.test_u4_a_real_client_sends_no_address_in_events_or_logs) ... ok
+test_a_dsn_in_an_exception_never_shows_its_password (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_dsn_in_an_exception_never_shows_its_password) ... ok
+test_a_plain_message_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_plain_message_event) ... ok
+test_an_argument_that_is_not_text_yet (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_argument_that_is_not_text_yet)
+An object among the params whose text is an address. ... ok
+test_an_event_with_none_of_these_parts_passes_through (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_event_with_none_of_these_parts_passes_through) ... ok
+test_frame_variables_that_hold_no_address_are_unchanged (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_frame_variables_that_hold_no_address_are_unchanged)
+The debugging value of locals is kept: ids, UUIDs, numbers, ... ok
+test_it_fails_closed_and_never_raises (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_it_fails_closed_and_never_raises)
+A part that cannot be scrubbed is replaced by a marker; the event ... ok
+test_no_address_is_left_in_the_events_text (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_no_address_is_left_in_the_events_text) ... ok
+test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+A sampled transaction is an event of its own: it does not pass ... ok
+test_the_threads_of_an_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_threads_of_an_event)
+An event can carry a stack per thread, with frame variables, ... FAIL
+test_user_context_tags_and_request_are_left_alone (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_left_alone)
+The SM's ruling: this is about addresses inside text. ... ok
+test_what_makes_the_report_useful_is_kept (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_what_makes_the_report_useful_is_kept) ... ok
+test_a_breadcrumbs_message_and_data (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_breadcrumbs_message_and_data) ... ok
+test_a_log_items_body_and_attributes (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_log_items_body_and_attributes) ... ok
+test_the_small_hooks_never_raise_either (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_the_small_hooks_never_raise_either) ... ok
+test_a_failure_to_import_the_hooks_is_not_swallowed (AutoGrader.tests_sentry_scrubbing.WiringTests.test_a_failure_to_import_the_hooks_is_not_swallowed)
+settings.py has a try/except ImportError for a missing sentry-sdk ... ok
+test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry) ... ok
+
+======================================================================
+FAIL: test_the_threads_of_an_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_threads_of_an_event)
+An event can carry a stack per thread, with frame variables,
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h89/AutoGrader/tests_sentry_scrubbing.py", line 201, in test_the_threads_of_an_event
+    self.assertNotIn(ADDRESS, repr(event))
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in "{'threads': {'values': [{'id': 140213, 'name': 'worker for someone.private@school-example.edu', 'stacktrace': {'frames': [{'function': 'send_invite', 'vars': {'to': 'second.person@example.org', 'attempt': '2'}}]}}]}}"
+
+----------------------------------------------------------------------
+Ran 17 tests in 1.105s
+
+FAILED (failures=1)
+Found 17 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+
+VF1A_H89_U4 what a real client handed its transport: {'event': {'items': 1, 'with_address': 0, 'with_marker': 1}, 'transaction': {'items': 1, 'with_address': 0, 'with_marker': 1}}
+systemd-run failed with exit status 1.
+exit=1 wall_s=7
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader and billing after clear: 0
+tracked changes after restore: 0

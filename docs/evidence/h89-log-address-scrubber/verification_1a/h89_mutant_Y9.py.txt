@@ -1,0 +1,13 @@
+"""1a's mutant Y9 for H-89: "threads" dropped from the parts of a Sentry
+event that are scrubbed (AutoGrader/sentry_scrubbing.py). At 5bd912ad no
+test builds an event with "threads"; d5 adds one in the fold, which should
+kill this. Applied in place in the current directory; restore with git
+checkout. Run with python -B (rule 17). Re-check the target at the frozen
+tip: the fold may add "spans" to the same tuple."""
+
+P = "AutoGrader/sentry_scrubbing.py"
+s = open(P, encoding="utf-8").read()
+old = '    "threads",\n'
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, ""))
+print("applied Y9")

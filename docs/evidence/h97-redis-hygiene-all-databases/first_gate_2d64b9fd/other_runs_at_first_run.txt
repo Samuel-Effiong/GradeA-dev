@@ -1,0 +1,5 @@
+16:17:30
+1196189 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP test run --mode=block systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0 nice -n 10 flock /home/bond-servant-in-training/.mac
+1196194 flock /home/bond-servant-in-training/.machine-fullsuite.lock timeout -k 60 3600 python manage.py test --noinput --verbosity 2 --settings=settings_worktree billing audit
+1196197 timeout -k 60 3600 python manage.py test --noinput --verbosity 2 --settings=settings_worktree billing audit
+1196198 python manage.py test --noinput --verbosity 2 --settings=settings_worktree billing audit

@@ -1,0 +1,29 @@
+H-97: what a dead-pid sweep of gaplus-t<pid>: keys would delete, per database (read-only listing) 2026-10-02 16:11
+db0: WOULD DELETE 0 keys under 0 dead-pid prefixes; leaves 54 keys of 1 live pids; leaves 39 keys of other families
+db1: nothing to delete; 2 keys of other families untouched
+db2: nothing to delete; 1 keys of other families untouched
+db3: WOULD DELETE 3 keys under 1 dead-pid prefixes; leaves 0 keys of 0 live pids; leaves 0 keys of other families
+      1 × gaplus-t<pid>:1:cachegen:sch:dc127cea-13f8-44e3-93
+      1 × gaplus-t<pid>:1:cachegen:global
+      1 × gaplus-t<pid>:1:cachegen:anysch
+db6: WOULD DELETE 12 keys under 1 dead-pid prefixes; leaves 0 keys of 0 live pids; leaves 0 keys of other families
+      1 × gaplus-t<pid>:1:cachegen:sch:e8281cc5-df25-4428-80
+      1 × gaplus-t<pid>:1:cachegen:usr:a14efbb2-e463-4fff-8f
+      1 × gaplus-t<pid>:1:cachegen:usr:f7f89eae-b2b0-401e-ba
+      1 × gaplus-t<pid>:1:cachegen:crs:dc26ef3d-c8df-4de5-ac
+db7: nothing to delete; 12 keys of other families untouched
+db8: nothing to delete; 4 keys of other families untouched
+db9: nothing to delete; 18 keys of other families untouched
+db10: nothing to delete; 28 keys of other families untouched
+db11: nothing to delete; 76 keys of other families untouched
+db12: nothing to delete; 2 keys of other families untouched
+db13: nothing to delete; 154 keys of other families untouched
+db14: WOULD DELETE 115 keys under 115 dead-pid prefixes; leaves 0 keys of 0 live pids; leaves 29 keys of other families
+      114 × gaplus-t<pid>:1:presence:online
+      1 × gaplus-t<pid>:1:cachegen:usr:h9-fixed-db-counter
+db15: WOULD DELETE 56 keys under 1 dead-pid prefixes; leaves 0 keys of 0 live pids; leaves 25 keys of other families
+      1 × gaplus-t<pid>:1:cachegen:usr:88d85ae8-88eb-4f4f-90
+      1 × gaplus-t<pid>:1:cachegen:crs:cea39656-ecd4-4aaa-b4
+      1 × gaplus-t<pid>:1:cachegen:usr:80d53332-9ff8-476e-b7
+      1 × gaplus-t<pid>:1:cachegen:usr:035c2111-05e9-4e76-af
+TOTAL keys a sweep would delete: 186

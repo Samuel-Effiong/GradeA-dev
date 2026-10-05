@@ -1,0 +1,86 @@
+test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name) ... FAIL
+test_tests_and_migrations_are_not_scanned (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_tests_and_migrations_are_not_scanned) ... ok
+test_the_rule_allows_what_the_hook_allows (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_allows_what_the_hook_allows)
+Ids, exception text and built messages are outside this rule. ... ok
+test_the_rule_sees_each_shape_the_hook_does (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_sees_each_shape_the_hook_does) ... ok
+
+======================================================================
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_no_pii_in_logs.py", line 111, in test_no_log_or_print_call_passes_an_address_or_a_name
+    self.assertEqual(problems, [], "\n".join(problems))
+AssertionError: Lists differ: ['billing/access_control.py:348: user.emai[2639 chars]ail'] != []
+
+First list contains 59 additional elements.
+First extra element 0:
+'billing/access_control.py:348: user.email'
+
+Diff is 2868 characters long. Set self.maxDiff to None to see it. : billing/access_control.py:348: user.email
+billing/access_control.py:314: user.email
+billing/access_control.py:333: user.email
+billing/access_control.py:479: user.email
+billing/access_control.py:640: user.email
+billing/access_control.py:504: user.email
+billing/access_control.py:583: request.user.email
+billing/qa_time_travel.py:538: user_sub.user.email
+billing/qa_time_travel.py:1039: request.user.email
+billing/services.py:647: user.email
+billing/services.py:854: user.email
+billing/services.py:1058: user.email
+billing/services.py:1273: user.email
+billing/services.py:1413: user.email
+billing/services.py:1753: user.email
+billing/services.py:1927: user.email
+billing/services.py:2091: user.email
+billing/services.py:2254: target_user.email
+billing/services.py:2254: granted_by.email
+billing/services.py:266: user.email
+billing/services.py:1123: user.email
+billing/services.py:1855: user.email
+billing/services.py:2169: target_user.email
+billing/services.py:320: user.email
+billing/services.py:585: user.email
+billing/services.py:777: user.email
+billing/services.py:962: user.email
+billing/stripe_service.py:655: user.email
+billing/stripe_service.py:1234: user_sub.user.email
+billing/stripe_service.py:1378: user_sub.user.email
+billing/stripe_service.py:2278: user.email
+billing/stripe_service.py:2957: user.email
+billing/stripe_service.py:3495: user.email
+billing/stripe_service.py:3538: user.email
+billing/stripe_service.py:3745: user.email
+billing/stripe_service.py:2908: user.email
+billing/stripe_service.py:2925: user.email
+billing/stripe_service.py:3405: user.email
+billing/stripe_service.py:3627: admin_user.email
+billing/stripe_service.py:3700: user.email
+billing/stripe_service.py:4603: user.email
+billing/stripe_service.py:3571: admin_user.email
+billing/stripe_service.py:3981: user_sub.user.email
+billing/tasks.py:1596: sub.user.email
+billing/tasks.py:779: user.email
+billing/tasks.py:1580: sub.user.email
+billing/tasks.py:479: sub.user.email
+billing/tasks.py:599: sub.user.email
+billing/tasks.py:653: updated_sub.user.email
+billing/tasks.py:661: sub.user.email
+billing/tasks.py:731: user.email
+billing/tasks.py:767: user.email
+billing/tasks.py:790: trial_sub.user.email
+billing/tasks.py:746: user.email
+billing/views.py:1169: request.user.email
+billing/views.py:1305: request.user.email
+scripts/one_off_backfill_stripe_schedules.py:113: user_sub.user.email
+scripts/one_off_backfill_stripe_schedules.py:92: user_sub.user.email
+scripts/one_off_backfill_stripe_schedules.py:120: user_sub.user.email
+
+----------------------------------------------------------------------
+Ran 4 tests in 3.286s
+
+FAILED (failures=1)
+Found 4 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
