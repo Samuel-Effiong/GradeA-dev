@@ -1,7 +1,7 @@
 # H-110: the PDF renderer's Playwright driver shared the service's stderr
 
 Author: ed (Security), 2026-10-05. Branch `task/h110-renderer-driver-stderr`, off
-`task/beta-batch-7` c823cdca. For the bundle after bundle 7 (SM), and before the renderer is
+`task/beta-batch-7` 27b0d2e0 (first written on c823cdca; base update 80599da2). For the bundle after bundle 7 (SM), and before the renderer is
 promoted to main. MEDIUM. Verifier: 1a.
 
 ## The defect
