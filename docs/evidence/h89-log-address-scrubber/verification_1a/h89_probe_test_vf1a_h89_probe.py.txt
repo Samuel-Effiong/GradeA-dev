@@ -1,0 +1,275 @@
+"""1a's verification probes for H-89. Not committed.
+
+U1: a nested override_settings restores the switch at each level.
+U2: a record of the standard class, and of another factory's class, still
+    pickles; the copy's message is still scrubbed.
+U3: a real IntegrityError from the database (a second account with the same
+    address), logged with its traceback through a real handler: the
+    constraint's "Key (email)=(...)" text is printed without the address.
+U4: a real sentry_sdk client in a subprocess, with the settings' own
+    integrations and the three hooks, and a transport that keeps what it is
+    given instead of sending it. One ERROR with a traceback, one INFO line
+    before it, and one transaction with a span. The event and the log items
+    and the transaction (my P3, folded) must carry no address.
+U5: the shapes of my P1 and P2, through a real logger and handler: an
+    apostrophe in the local part, a non-ASCII domain and its punycode
+    form, and a URL password that holds an "@" on a dotless host.
+"""
+
+import io
+import json
+import logging
+import pickle
+import subprocess
+import sys
+
+from django.conf import settings
+from django.db import IntegrityError, transaction
+from django.test import SimpleTestCase, TestCase, override_settings
+
+from AutoGrader import log_scrubbing
+from users.models import CustomUser, UserTypes
+
+ADDRESS = "vf1a.private@h89probe-example.edu"
+
+
+def handler_and_stream():
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    return handler, stream
+
+
+def lone_logger(handler):
+    logger = logging.Logger("vf1a.h89")
+    logger.addHandler(handler)
+    return logger
+
+
+class SwitchAndPickleProbes(SimpleTestCase):
+    def test_u1_nested_overrides_restore_the_switch(self):
+        seen = [log_scrubbing.is_enabled()]
+        with override_settings(LOG_SCRUB_ADDRESSES=True):
+            seen.append(log_scrubbing.is_enabled())
+            with override_settings(LOG_SCRUB_ADDRESSES=False):
+                seen.append(log_scrubbing.is_enabled())
+                with override_settings(LOG_SCRUB_ADDRESSES=True):
+                    seen.append(log_scrubbing.is_enabled())
+                seen.append(log_scrubbing.is_enabled())
+            seen.append(log_scrubbing.is_enabled())
+        seen.append(log_scrubbing.is_enabled())
+        print(f"\nVF1A_H89_U1 switch through three nested overrides: {seen}")
+        self.assertEqual(seen, [False, True, False, True, False, True, False])
+
+        # An override of another setting leaves it alone.
+        with override_settings(LOG_SCRUB_ADDRESSES=True):
+            with override_settings(DEBUG=True):
+                self.assertTrue(log_scrubbing.is_enabled())
+            self.assertTrue(log_scrubbing.is_enabled())
+        self.assertFalse(log_scrubbing.is_enabled())
+
+    @override_settings(LOG_SCRUB_ADDRESSES=True)
+    def test_u2_records_pickle_and_stay_scrubbed(self):
+        class Keep(logging.Handler):
+            records: list = []
+
+            def emit(self, record):
+                self.records.append(record)
+
+        keep = Keep()
+        logger = lone_logger(keep)
+        try:
+            raise ValueError(f"no plan for {ADDRESS}")
+        except ValueError:
+            logger.error("Refused %s (user %s)", ADDRESS, 4821, exc_info=True)
+        [record] = keep.records
+        # What QueueHandler.prepare does before it pickles a record.
+        text = logging.Formatter("%(message)s").format(record)
+        record.exc_info = None
+        copy = pickle.loads(pickle.dumps(record))
+
+        self.assertIs(type(copy), type(record))
+        self.assertEqual(copy.getMessage(), "Refused [email] (user 4821)")
+        self.assertNotIn(ADDRESS, text)
+        self.assertNotIn(ADDRESS, copy.exc_text)
+        self.assertIn("ValueError: no plan for [email]", copy.exc_text)
+        print(
+            f"\nVF1A_H89_U2 {type(record).__module__}.{type(record).__name__} "
+            f"pickles; the copy prints {copy.getMessage()!r}"
+        )
+
+
+class RealConstraintErrorProbe(TestCase):
+    @override_settings(LOG_SCRUB_ADDRESSES=True)
+    def test_u3_a_real_constraint_error_is_printed_without_the_address(self):
+        handler, stream = handler_and_stream()
+        logger = lone_logger(handler)
+
+        def create():
+            return CustomUser.objects.create_user(
+                email=ADDRESS,
+                password="password123",  # pragma: allowlist secret
+                first_name="Vf",
+                last_name="Probe",
+                user_type=UserTypes.TEACHER,
+            )
+
+        create()
+        raised = None
+        try:
+            with transaction.atomic():
+                create()
+        except IntegrityError as exc:
+            raised = str(exc)
+            logger.exception("Could not create the account for user %s", 4821)
+
+        self.assertIsNotNone(raised, "the second create did not raise")
+        # The control: the database's own text does name the address.
+        self.assertIn(ADDRESS, raised)
+        output = stream.getvalue()
+        self.assertIn("Could not create the account for user 4821", output)
+        self.assertIn("Traceback (most recent call last)", output)
+        self.assertIn("IntegrityError", output)
+        self.assertIn("[email]", output)
+        self.assertNotIn(ADDRESS, output)
+        self.assertNotIn("@", output)
+        last = [line for line in output.splitlines() if "Key (" in line]
+        print(f"\nVF1A_H89_U3 the database said (scrubbed): {last}")
+
+
+class FoldedShapesProbe(SimpleTestCase):
+    @override_settings(LOG_SCRUB_ADDRESSES=True)
+    def test_u5_the_shapes_of_p1_and_p2_through_a_real_handler(self):
+        secret = "Vf1aTailXyz"
+        url = "redis" + "://" + "user:Ab" + chr(64) + secret + chr(64) + "redis:6379/0"
+        cases = {
+            "apostrophe": "Key (email)=(o'brien@h89probe-example.edu) already exists.",
+            "non-ASCII domain": "Refused pupil@m\u00fcnchen-h89probe.de today",
+            "punycode domain": "Refused pupil@xn--mnchen-h89probe-9vb.de today",
+            "non-ASCII local part": "Refused jos\u00e9.vf@h89probe-example.edu today",
+            "an @ in a URL password": f"Could not connect to {url}",
+        }
+        printed = {}
+        for name, text in cases.items():
+            handler, stream = handler_and_stream()
+            lone_logger(handler).warning("%s", text)
+            printed[name] = stream.getvalue().strip()
+        print("\nVF1A_H89_U5 the folded shapes, as printed:")
+        for name, line in printed.items():
+            print(f"  {name}: {line}")
+
+        for name in cases:
+            if name != "an @ in a URL password":
+                self.assertNotIn("@", printed[name], name)
+                self.assertIn("[email]", printed[name], name)
+        self.assertNotIn("brien", printed["apostrophe"])
+        self.assertNotIn("jos", printed["non-ASCII local part"])
+        self.assertNotIn(secret, printed["an @ in a URL password"])
+        self.assertNotIn("user:Ab", printed["an @ in a URL password"])
+        self.assertIn("[credentials]", printed["an @ in a URL password"])
+        self.assertIn("redis:6379/0", printed["an @ in a URL password"])
+        # Text that only looks like an address is still left alone.
+        for text in ("@transaction.atomic", "pkg@1.2.3", "a @ b", "x@y"):
+            self.assertEqual(log_scrubbing.scrub(text), text)
+
+
+SENTRY_SCRIPT = r"""
+import json, logging, sys
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.transport import Transport
+from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
+
+ADDRESS = sys.stdin.readline().strip()
+kept = []
+
+
+class Keeps(Transport):
+    def capture_envelope(self, envelope):
+        for item in envelope.items:
+            payload = item.payload.json
+            if payload is None and item.payload.bytes:
+                try:
+                    payload = json.loads(item.payload.bytes)
+                except Exception:
+                    payload = repr(item.payload.bytes)
+            kept.append((item.headers.get("type"), payload))
+
+    def flush(self, timeout, callback=None):
+        pass
+
+    def kill(self):
+        pass
+
+
+# Assembled so that no URL with a userinfo part is written anywhere.
+dsn = "http" + "://" + "publickey" + chr(64) + "localhost/1"
+sentry_sdk.init(
+    dsn=dsn,
+    transport=Keeps,
+    default_integrations=False,
+    integrations=[LoggingIntegration(level=None, event_level="ERROR")],
+    enable_logs=True,
+    traces_sample_rate=1.0,
+    send_default_pii=False,
+    before_send=scrub_event,
+    before_send_transaction=scrub_event,
+    before_breadcrumb=scrub_breadcrumb,
+    before_send_log=scrub_log,
+)
+logger = logging.getLogger("billing.vf1a")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.NullHandler())
+
+
+def renew(teacher_email, attempts):
+    people = [teacher_email, "x"]
+    raise ValueError(f"Teacher {teacher_email} does not belong to this school")
+
+
+with sentry_sdk.start_transaction(op="task", name="vf1a renewal"):
+    with sentry_sdk.start_span(op="http.client", description=f"GET /subscribers/{ADDRESS}"):
+        pass
+    logger.info("Renewing for %s", ADDRESS)
+    try:
+        renew(ADDRESS, 2)
+    except ValueError:
+        logger.error("Failed to renew for %s (user %s)", ADDRESS, 4821, exc_info=True)
+sentry_sdk.flush()
+sentry_sdk.get_client().close()
+
+summary = {}
+for kind, payload in kept:
+    text = json.dumps(payload, default=str)
+    row = summary.setdefault(kind, {"items": 0, "with_address": 0, "with_marker": 0})
+    row["items"] += 1
+    row["with_address"] += ADDRESS in text
+    row["with_marker"] += "[email]" in text
+print(json.dumps(summary, sort_keys=True))
+"""
+
+
+class RealSentryClientProbe(SimpleTestCase):
+    def test_u4_a_real_client_sends_no_address_in_events_or_logs(self):
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", SENTRY_SCRIPT],
+            cwd=str(settings.BASE_DIR),
+            input=ADDRESS + "\n",
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        summary = json.loads(result.stdout.strip().splitlines()[-1])
+        print(f"\nVF1A_H89_U4 what a real client handed its transport: {summary}")
+
+        self.assertIn("event", summary)
+        self.assertEqual(summary["event"]["with_address"], 0)
+        self.assertGreater(summary["event"]["with_marker"], 0)
+        if "log" in summary:
+            self.assertEqual(summary["log"]["with_address"], 0)
+        # P3, folded: a sampled transaction passes before_send_transaction,
+        # and its span's text is scrubbed.
+        self.assertIn("transaction", summary, "no transaction reached the transport")
+        self.assertEqual(summary["transaction"]["with_address"], 0)
+        self.assertGreater(summary["transaction"]["with_marker"], 0)
