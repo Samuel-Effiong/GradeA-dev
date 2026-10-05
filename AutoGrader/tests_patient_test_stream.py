@@ -49,21 +49,30 @@ def non_blocking_pipe():
 
 class Reader(threading.Thread):
     """Reads the pipe to its end, starting late and in small pieces: a
-    reader that is behind."""
+    reader that is behind.
+
+    It reads through a descriptor of its own (a dup). The test closes its
+    read end when it finishes, and the next test's pipe may be given the
+    same number: a reader still running on the test's number would then
+    read the next test's pipe (seen once, 2026-10-05: the test with no
+    reader had one)."""
 
     def __init__(self, read_fd, start_after=0.3):
         super().__init__(daemon=True)
-        self.read_fd = read_fd
+        self.read_fd = os.dup(read_fd)
         self.start_after = start_after
         self.data = b""
 
     def run(self):
-        time.sleep(self.start_after)
-        while True:
-            piece = os.read(self.read_fd, 4096)
-            if not piece:
-                return
-            self.data += piece
+        try:
+            time.sleep(self.start_after)
+            while True:
+                piece = os.read(self.read_fd, 4096)
+                if not piece:
+                    return
+                self.data += piece
+        finally:
+            os.close(self.read_fd)
 
 
 class PatientStreamTestCase(SimpleTestCase):
@@ -201,8 +210,12 @@ class AReaderThatTakesNothingTests(PatientStreamTestCase):
         patient = self.module.PatientStream(stream, patience=1.0)
 
         outcome = self.write_in_a_thread(patient, "y" * (PIPE_AT_LEAST * 3))
+        stream.close()
+        reader.join(timeout=30)
 
         self.assertTrue(outcome.get("returned"), outcome)
+        self.assertFalse(reader.is_alive(), "the reader never saw the end")
+        self.assertEqual(len(reader.data), PIPE_AT_LEAST * 3)
 
     def test_a_reader_that_has_gone_is_an_error_at_once(self):
         read_fd, stream = self.pipe()
