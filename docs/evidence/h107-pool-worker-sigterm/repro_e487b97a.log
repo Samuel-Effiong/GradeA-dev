@@ -1,0 +1,37 @@
+FF.F
+======================================================================
+FAIL: test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_pool_worker_sigterm.py", line 112, in test_a_forked_worker_terminated_in_the_middle_of_a_test_dies
+    self.assertNotIn(SURVIVED, probe.stdout, shown)
+AssertionError: 'THE WORKER SURVIVED THE TERMINATE' unexpectedly found in 'THE WORKER SURVIVED THE TERMINATE\n' : stdout:
+THE WORKER SURVIVED THE TERMINATE
+
+stderr:
+
+
+======================================================================
+FAIL: test_the_setup_of_a_spawned_worker_restores_the_default_action_too (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_pool_worker_sigterm.py", line 125, in test_the_setup_of_a_spawned_worker_restores_the_default_action_too
+    self.assertIs(signal.getsignal(signal.SIGTERM), signal.SIG_DFL)
+AssertionError: <function ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too.<locals>.handler at 0x71704c57ab60> is not <Handlers.SIG_DFL: 0>
+
+======================================================================
+FAIL: test_our_suite_starts_each_worker_through_our_own (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_our_suite_starts_each_worker_through_our_own)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_pool_worker_sigterm.py", line 146, in test_our_suite_starts_each_worker_through_our_own
+    self.assertIsNotNone(
+AssertionError: unexpectedly None : AutoGrader.redis_test_runner has no _init_worker
+
+----------------------------------------------------------------------
+Ran 4 tests in 13.589s
+
+FAILED (failures=3)
+Found 4 test(s).
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=19
