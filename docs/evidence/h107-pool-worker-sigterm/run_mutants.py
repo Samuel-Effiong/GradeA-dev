@@ -1,7 +1,8 @@
 """
-Mutation battery for H-107 (rule 15): a parallel test worker starts with
-SIGTERM's default action, so a terminated worker dies instead of recording
-the signal as a test error and living on.
+Mutation battery for H-107 (rule 15). W mutants: a parallel test worker
+starts with SIGTERM's default action, so a terminated worker dies instead
+of recording the signal as a test error and living on. P mutants: the
+run's result stream waits when a write would block instead of raising.
 
 One disposable detached worktree at the commit under test. A baseline run
 on the unmutated tree must pass first; then each mutant, with the file
@@ -31,8 +32,10 @@ WORKTREE = os.path.join(os.path.dirname(REPO), "Grade-Automator-Plus-h107-mut")
 TEST_DB = "test_h107_mut"
 
 RT = "AutoGrader/redis_test_runner.py"
+PS = "AutoGrader/testing/patient_stream.py"
 TESTS = [
     "AutoGrader.tests_pool_worker_sigterm",
+    "AutoGrader.tests_patient_test_stream",
 ]
 
 MUTANTS = [
@@ -66,6 +69,74 @@ MUTANTS = [
         RT,
         "    signal.signal(signal.SIGTERM, signal.SIG_DFL)\n",
         "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n",
+        1,
+    ),
+    # Finding B: the result stream waits when a write would block.
+    (
+        "P1",
+        "a write that would block waits and carries on (no retry: it raises)",
+        PS,
+        "            except BlockingIOError:\n                self._wait(fd)\n                continue\n",
+        "            except BlockingIOError:\n                raise\n",
+        1,
+    ),
+    (
+        "P2",
+        "it carries on from the byte it stopped at (nothing twice)",
+        PS,
+        "            data = data[written:]\n",
+        "            data = data[len(data) if written else 0 :]\n",
+        1,
+    ),
+    (
+        "P3",
+        "what the stream itself still holds goes out first",
+        PS,
+        "        # What the stream itself still holds goes out first.\n        self.flush()\n",
+        "",
+        1,
+    ),
+    (
+        "P4",
+        "a flush that would block waits too",
+        PS,
+        "            except BlockingIOError:\n"
+        "                if fd is None:\n"
+        "                    raise\n"
+        "                self._wait(fd)\n",
+        "            except BlockingIOError:\n                raise\n",
+        1,
+    ),
+    (
+        "P5",
+        "a reader that takes nothing ends the wait (no bound: a new hang)",
+        PS,
+        "        if not writable:\n",
+        "        if False:\n",
+        1,
+    ),
+    (
+        "P6",
+        "the default patience is 120 seconds",
+        PS,
+        "PATIENCE = 120\n",
+        "PATIENCE = 12000\n",
+        1,
+    ),
+    (
+        "P7",
+        "the runner reports on the patient stream",
+        RT,
+        '        kwargs["stream"] = PatientStream(sys.stderr)\n',
+        "",
+        1,
+    ),
+    (
+        "P8",
+        "a stream with no file descriptor is written to as it is",
+        PS,
+        "        if fd is None:\n            return self.stream.write(text)\n",
+        "",
         1,
     ),
 ]

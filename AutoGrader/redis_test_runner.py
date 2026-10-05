@@ -1,14 +1,18 @@
 """Test runner that keeps Redis clean (`redis_test_hygiene`), blocks real
-outbound network calls (`network_guard`, H-39) and clears Beat task locks
-before every test (`testing.beat_locks`, H-65)."""
+outbound network calls (`network_guard`, H-39), clears Beat task locks
+before every test (`testing.beat_locks`, H-65), and (H-107) lets a
+terminated parallel worker die and reports on a stream whose writes wait
+when the run's output pipe is full (`testing.patient_stream`)."""
 
 import signal
+import sys
 
 from django.test.runner import DiscoverRunner, ParallelTestSuite
 
 from AutoGrader.network_guard import block_real_network_calls
 from AutoGrader.redis_test_hygiene import redis_test_hygiene
 from AutoGrader.testing.beat_locks import isolate_beat_locks_per_test
+from AutoGrader.testing.patient_stream import PatientStream
 
 
 def _die_on_sigterm():
@@ -46,6 +50,13 @@ class IsolatedParallelTestSuite(ParallelTestSuite):
 
 class RedisHygieneRunner(DiscoverRunner):
     parallel_test_suite = IsolatedParallelTestSuite
+
+    def get_test_runner_kwargs(self):
+        """Report on stderr through a stream that waits when a write would
+        block, instead of raising out of the result loop (H-107)."""
+        kwargs = super().get_test_runner_kwargs()
+        kwargs["stream"] = PatientStream(sys.stderr)
+        return kwargs
 
     def run_tests(self, *args, **kwargs):
         isolate_beat_locks_per_test()
