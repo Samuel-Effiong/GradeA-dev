@@ -1,0 +1,23 @@
+# D5: a socket URL keeps its credentials (v2's finding)
+# file: AutoGrader/redis_test_hygiene.py (occurrence 1)
+# old: '        return f"unix://{parts.netloc}{parts.path}?{urlencode(query)}"\n'
+# new: '        return f"unix://{parts.path}?{urlencode(query)}"\n'
+# commit: 085adecd340a2d630a2597e988f66a9e1594050f
+# exit: 1
+# elapsed_s: 14.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', db=0)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', db=5)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', db=15)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', check='the credentials are kept')
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', db=0)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', db=5)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', db=15)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', check='the credentials are kept')
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', db=0)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', db=5)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', db=15)
+FAIL: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', check='the credentials are kept')
+
+FAILED (failures=12)
