@@ -31,7 +31,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from billing.license_service import LicenseSubscriptionService
+from billing.license_service import (
+    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
+    LicenseSubscriptionService,
+)
 from billing.models import (
     LicenseBillingMethod,
     PlanCategory,
@@ -307,13 +310,36 @@ class PerTeacherCodeTests(LicenceFixture):
         )
         self.assert_error(
             errors["payer@s7d-lic.school.edu"],
-            "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION",
-            "payer@s7d-lic.school.edu has their own subscription, which must be "
-            "cancelled before they can join the licence.",
-            {"email": "payer@s7d-lic.school.edu"},
+            "TEACHER_CANNOT_JOIN_YET",
+            "This teacher can't be added to your school yet. Please ask them "
+            "to contact support.",
+            {},
         )
         self.assertNotIn("SECRET", str(errors))
         self.assertNotIn("student", str(errors["pupil@s7d-lic.school.edu"]).lower())
+        self.assertEqual(self.on_licence(), set())
+
+    def test_a_paying_teacher_is_refused_without_the_reason(self):
+        """H-85 on Epic A (founder, 2026-10-05): the admin is told only that
+        the teacher can't join yet. Nothing in the answer - the code's name,
+        the message, the remediation, a param - says the teacher pays for a
+        subscription, and the address is not repeated in any text."""
+        payer = self.teacher("payer@s7d-lic.school.edu")
+        self.subscribe(payer)
+
+        response = self.add([payer.email])
+        entry = self.errors_by_email(response)[payer.email]
+
+        self.assertEqual(entry["reason_code"], "TEACHER_CANNOT_JOIN_YET")
+        self.assertEqual(entry["message"], TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)
+        self.assertEqual(entry["remediation"], "Ask the teacher to contact support.")
+        self.assertEqual(entry["params"], {})
+        self.assertIs(entry["retryable"], False)
+        for text in (entry["message"], entry["error"], entry["remediation"]):
+            self.assertNotIn("@", text)
+        body = response.content.decode().lower()
+        for word in ("subscription", "individual", "billing", "cancel", "paid"):
+            self.assertNotIn(word, body)
         self.assertEqual(self.on_licence(), set())
 
     def test_another_schools_paying_teacher_shows_no_billing_hint(self):

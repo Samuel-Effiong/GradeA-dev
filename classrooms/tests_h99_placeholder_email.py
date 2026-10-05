@@ -291,7 +291,7 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
                 self.assertEqual(row["error"], "Row 1: t" + NOT_A_STUDENT_MESSAGE[1:])
                 self.assertNothingWasAdded()
 
-    def assertSameAnswerAsAStaffAddress(self, url_name, payload):
+    def assertSameAnswerAsAStaffAddress(self, url_name, payload, refusal_status):
         """On every route the refusal is H-71's, byte for byte: the same
         status, text, code and envelope as for a staff address. Only the
         per-response support reference and the address the caller sent
@@ -305,7 +305,7 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
             return response.status_code, body.replace(address.encode(), b"<address>")
 
         staff = answer(self.owner.email)
-        self.assertGreaterEqual(staff[0], 200)
+        self.assertEqual(staff[0], refusal_status)
         self.assertIn(b"can't be added as a student", staff[1])
         for address in (self.taken, "nobody.atall.ffffffffffffffff@student.local"):
             with self.subTest(address=address):
@@ -314,7 +314,9 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
 
     def test_single_add_answers_as_for_a_staff_address(self):
         self.assertSameAnswerAsAStaffAddress(
-            "course-students", lambda address: {"email": address}
+            "course-students",
+            lambda address: {"email": address},
+            status.HTTP_400_BAD_REQUEST,
         )
 
     def test_direct_add_answers_as_for_a_staff_address(self):
@@ -325,12 +327,14 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
                 "last_name": "Row",
                 "email": address,
             },
+            status.HTTP_400_BAD_REQUEST,
         )
 
     def test_a_bulk_row_answers_as_for_a_staff_address(self):
         self.assertSameAnswerAsAStaffAddress(
             "course-bulk-add-students",
             lambda address: {"raw_data": f"Probe,Row,{address}"},
+            status.HTTP_200_OK,
         )
 
     def test_each_form_refuses_it_before_any_lookup_or_save(self):
