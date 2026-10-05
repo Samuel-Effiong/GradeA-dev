@@ -56,6 +56,93 @@ bulk-row test (step 0 of the gate).
 (the bulk-row assertion and the three epic-only tests). Future merge-downs keep the epic's
 version, with the others listed in the b5 record.
 
+## Epic-side adaptation: H-85 lands in the catalogue as TEACHER_CANNOT_JOIN_YET (founder, option B)
+
+**Found by the gate, not by reading.** The first run of step 1, at e917f52a, was red: 922 tests,
+2 failures (`run1_failed_e917f52a_modules_and_guards.txt`). Both have one cause. My static
+checks above did not predict it, and the merge was textually clean, because beta changed the
+exception's *text* while the epic maps the exception's *class* to a catalogue entry.
+
+- `test_the_add_teachers_response_says_nothing_about_a_subscription` (H-85's own test): on the
+  epic `teacher_failure()` answered with S7d's `TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION`, so the
+  code's name, the message, the remediation and `params.email` all still told the admin that
+  the teacher pays for a plan. This is the reproduce-first evidence for the change.
+- The sync-only email-code guard matched beta's constant of the same name inside both raises.
+
+**Decision.** The founder chose option B on 2026-10-05 (relayed by the SM): a neutral entry,
+and the old code retired outright.
+
+| | |
+|---|---|
+| Code | `TEACHER_CANNOT_JOIN_YET` |
+| Message | "This teacher can't be added to your school yet. Please ask them to contact support." (H-85's sentence) |
+| Remediation | "Ask the teacher to contact support." |
+| Params | none |
+| Retryable | no |
+| Status / class | 422 if ever answered directly, USER: an item code like its neighbours |
+
+`TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` leaves the enum, the catalogue and the sync-only email
+set. It is **not** kept as an audit-only code: `SchoolAdminAuditEventListView` shows a school
+admin their school's audit events with `reason_code`, so the disclosure would only move. No
+audit event carried the code before this change, and none is added. Support has the reason by
+user id in H-85's log line beside each raise.
+
+Commits, after the merge and in this order:
+
+- 17e36892, tests first: `billing/tests/test_s7d_licence_teacher_codes.py` (the pinned entry;
+  a new test on code, message, remediation, empty params, not retryable, and no telling word
+  in the response), `AutoGrader/tests_reason_codes.py` (the catalogue pin; the entry's message
+  equals beta's constant; no `TEACHER_` code, label or text mentions a subscription; the
+  retired name is not in the enum), `AutoGrader/tests_codederror_serialization.py` (the email
+  exception is three codes).
+- e8b9242c, production: `billing/license_service.py` (`teacher_failure()`),
+  `AutoGrader/reason_codes.py`, `audit/enums.py`. No model field lists the enum, so there is
+  no migration (step 1a checks).
+- d4b5f8e0, documents: the QA catalogue (an amendment under the approval record; the E2 row),
+  the 08a design (three codes, not four), `docs/backend/billing-licenses.md` (with the client
+  note).
+
+**The SM's question: does beta's constant name still trip the guard?** No. The guard matches
+names against the values of `SYNC_ONLY_EMAIL_CODES`; with the code out of the set,
+`TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` in a raise matches nothing (checked statically with the
+guard's own name walk, then by the guard in step 1). Nothing was renamed:
+`billing.license_service.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` stays byte-identical to beta, and
+so do H-85's test module and both raise sites.
+
+**v2's check list.**
+
+- Both raise sites (`_get_or_invite_teacher`, `_enroll_teacher_internal`): untouched; they
+  raise beta's constant.
+- The catchers at `license_service.py` 829 and 917 (`_invite_and_enroll_one_teacher`, the
+  carry-forward): untouched beta code; they put `str(exc)`, the neutral sentence, in `error`.
+  The catcher in `add_teachers_batch` calls `teacher_failure()`, the one place changed.
+- `AutoGrader/error_messages.py`: untouched; the exception stays in the passthrough list and
+  its text is the neutral sentence.
+- Remediation and `params.email`: asserted in the new S7d test and pinned in the catalogue.
+- The audit reason code of the same name: gone from `audit/enums.py`.
+- `SYNC_ONLY_EMAIL_CODES` and its exact-set test: three codes.
+- One stale comment is left on purpose: lines 829 and 1779 say the subscription refusal
+  "carries the address". True before H-85, harmless now; 829 is beta's line and I kept the
+  pair alike rather than diverge from beta for a comment.
+
+**Callers.** `grep_callers_h85.txt`: ten test modules reach the changed mapping, the route or
+the exception; all ten are in step 1.
+
+**Mutants H1-H6** (`mutate.py`): the mapping removed; the mapping pointing at
+`TEACHER_EMAIL_OTHER_ROLE` (option C); the message saying why; the remediation saying why; the
+entry taking an `email` param; the entry retryable.
+
+**Also in 17e36892, v2's pre-read note on afdc54fc:** `assertSameAnswerAsAStaffAddress`
+asserted `status >= 200`, which cannot fail. Each route now names its exact refusal status:
+400 (single add), 400 (direct add), 200 (a bulk row).
+
+**For the frontend:** in the add-teachers result the per-teacher code
+`TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION` is replaced by `TEACHER_CANNOT_JOIN_YET`; its message and
+remediation no longer mention a subscription and it has no `email` param.
+
+**A divergence from beta, new:** none in shared files. The three epic test modules above and
+the catalogue are epic-only.
+
 ## Cross-side checks before the gate (static, on the merged tree)
 
 - **The epic's `check_no_pii_in_logs` hook** (SM: tell me what it flags): nothing new.

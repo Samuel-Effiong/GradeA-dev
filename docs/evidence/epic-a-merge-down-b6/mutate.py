@@ -1,6 +1,8 @@
 """Bundle 6 merge-down: H-99's nine mutants against the EPIC's versions of the
-files, plus three on the epic-side adaptation (E1-E3). Apply each, run the
-test module, record the killers, restore.
+files, plus four on the epic-side adaptation (E1-E4), plus six on H-85's
+landing in the epic catalogue (H1-H6, TEACHER_CANNOT_JOIN_YET; these run
+the four modules in H85_TESTS). Apply each, run its test modules, record
+the killers, restore.
 Every anchor must occur exactly once and every mutant must parse.
 
 Rule 17: the test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
@@ -21,6 +23,14 @@ SERIALIZERS = "classrooms/serializers.py"
 ENROLLMENT = "classrooms/services/enrollment.py"
 ROSTER = "classrooms/services/roster_import.py"
 TESTS = ["classrooms.tests_h99_placeholder_email"]
+LICENCE = "billing/license_service.py"
+CATALOGUE = "AutoGrader/reason_codes.py"
+H85_TESTS = [
+    "billing.tests.test_s7d_licence_teacher_codes",
+    "billing.tests.test_neutral_subscription_refusal",
+    "AutoGrader.tests_reason_codes",
+    "AutoGrader.tests_codederror_serialization",
+]
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 OUT = os.environ.get(
     "MUT_RESULTS", "docs/evidence/epic-a-merge-down-b6/mutation_results.json"
@@ -34,6 +44,19 @@ FORM_REFUSAL = (
     "            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)\n"
     "        existing_user = find_account_by_email(value)\n"
     "\n"
+)
+H85_MAPPING = (
+    "    if isinstance(exc, IndividualSubscriptionConflictError):\n"
+    "        # H-85: no address and no reason. The raise's own log line gives\n"
+    "        # support the reason, by id.\n"
+    "        return CodedError(ReasonCode.TEACHER_CANNOT_JOIN_YET)\n"
+)
+H85_ENTRY = (
+    "    ReasonCode.TEACHER_CANNOT_JOIN_YET: _item_spec(\n"
+    '        "This teacher can\'t be added to your school yet. "\n'
+    '        "Please ask them to contact support.",\n'
+    '        "Ask the teacher to contact support.",\n'
+    "    ),\n"
 )
 SINGLE_ADD = FORM_REFUSAL + "        # H-71: one neutral answer"
 DIRECT_ADD = FORM_REFUSAL + "        # H-71: every non-student role"
@@ -112,6 +135,55 @@ MUTANTS = {
         "if c.isalnum())[:20]\n    safe_last",
         "if c.isalnum())\n    safe_last",
     ),
+    "H1_the_paying_teacher_refusal_is_not_mapped": (
+        LICENCE,
+        H85_MAPPING,
+        "",
+        H85_TESTS,
+    ),
+    "H2_the_refusal_takes_the_other_role_code": (
+        LICENCE,
+        H85_MAPPING,
+        H85_MAPPING.replace("TEACHER_CANNOT_JOIN_YET", "TEACHER_EMAIL_OTHER_ROLE"),
+        H85_TESTS,
+    ),
+    "H3_the_message_says_why": (
+        CATALOGUE,
+        H85_ENTRY,
+        H85_ENTRY.replace(
+            '        "Please ask them to contact support.",\n',
+            '        "They have a subscription of their own.",\n',
+        ),
+        H85_TESTS,
+    ),
+    "H4_the_remediation_says_why": (
+        CATALOGUE,
+        H85_ENTRY,
+        H85_ENTRY.replace(
+            '"Ask the teacher to contact support."',
+            '"Ask the teacher to cancel their plan."',
+        ),
+        H85_TESTS,
+    ),
+    "H5_the_entry_takes_an_email_param": (
+        CATALOGUE,
+        H85_ENTRY,
+        H85_ENTRY.replace(
+            '        "Ask the teacher to contact support.",\n',
+            '        "Ask the teacher to contact support.",\n'
+            '        params={"email"},\n',
+        ),
+        H85_TESTS,
+    ),
+    "H6_the_entry_is_retryable": (
+        CATALOGUE,
+        H85_ENTRY,
+        H85_ENTRY.replace(
+            '        "Ask the teacher to contact support.",\n',
+            '        "Ask the teacher to contact support.",\n        retryable=True,\n',
+        ),
+        H85_TESTS,
+    ),
 }
 
 
@@ -123,7 +195,8 @@ originals: dict = {}
 results = {}
 env = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
 try:
-    for name, (path, a, b) in MUTANTS.items():
+    for name, (path, a, b, *own_tests) in MUTANTS.items():
+        tests = own_tests[0] if own_tests else TESTS
         src = originals.setdefault(path, open(path).read())
         assert src.count(a) == 1, f"{name}: anchor found {src.count(a)} times"
         mutated = src.replace(a, b, 1)
@@ -131,7 +204,7 @@ try:
         clear_pycache(path)
         open(path, "w").write(mutated)
         p = subprocess.run(
-            [sys.executable, "manage.py", "test", *TESTS]
+            [sys.executable, "manage.py", "test", *tests]
             + [f"--settings={SETTINGS}", "--keepdb", "--noinput"],
             capture_output=True,
             text=True,
