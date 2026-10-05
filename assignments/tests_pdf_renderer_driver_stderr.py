@@ -12,6 +12,8 @@ tests_pdf_renderer_driver_stderr_reader.
     interpreter whose stderr is a pipe this test owns. The pipe's mode is
     read from the test's own end while the driver is alive, and again after
     the driver is SIGKILLed (the case that used to stay broken for good).
+    It also ends by itself after a render: the reader thread must not be
+    what keeps a recycled gunicorn worker or Celery child alive.
     A fresh interpreter, because replacing fd 2 of a test process would
     take that process's whole output with it.
   * PlaywrightStderrHookPinTest - the private Playwright function the fix
@@ -146,6 +148,32 @@ class TheProcessStderrStaysBlockingTest(SimpleTestCase):
         # start, so the dead driver's was the last: the reader has ended
         # and is not left waiting for a process that is gone.
         self.assertIs(self.ask_child()["reader_is_reading"], False)
+
+    def test_a_process_that_has_rendered_still_ends_by_itself(self):
+        """The reader ends only when the driver is gone, and the driver is
+        stopped by an atexit step. Python joins every thread that is not a
+        daemon BEFORE that step, so a reader that were not a daemon would
+        wait for a driver that nothing stops any more: the same hang H-110
+        removes, reached another way. No kill here; a normal end."""
+        driver_pid = self.facts["driver_pid"]
+        self.assertIs(self.ask_child()["reader_is_reading"], True)
+        self.to_child.close()  # the end of the child's work
+        try:
+            status = self.child.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            self.fail(
+                "the interpreter did not end within 30 s of the end of its "
+                "work: a thread keeps it alive at exit (is the driver's "
+                "stderr reader still a daemon thread?)"
+            )
+        self.assertEqual(status, 0)
+        deadline = time.monotonic() + 10
+        while os.path.exists(f"/proc/{driver_pid}") and time.monotonic() < deadline:
+            time.sleep(0.1)
+        self.assertFalse(
+            os.path.exists(f"/proc/{driver_pid}"), "the driver outlived the process"
+        )
+        self.assertTrue(self.stderr_is_blocking())
 
 
 class PlaywrightStderrHookPinTest(SimpleTestCase):
