@@ -1,0 +1,65 @@
+"""H-119, reading aid (plain Python, no database, not a test run): for each
+of the 13 files the check still fails, every operation, and for an
+AlterField the field's state before and after, from Django's own
+migration graph (MigrationLoader with no connection)."""
+import os, sys
+sys.path.insert(0, os.getcwd())
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
+import django
+django.setup()
+from django.db.migrations.loader import MigrationLoader
+
+FILES = """assignments 0038_assignment_updated_at
+assignments 0040_db_defaults_for_rollback
+billing 0009_betaprofile_uuid_and_more
+billing 0011_remove_betaprofile_uuid_betaprofile_uid_and_more
+billing 0013_remove_betaprofile_id_alter_betaprofile_uid
+billing 0014_rename_uid_betaprofile_id
+billing 0016_planfeature_alter_subscriptionplan_options_and_more
+billing 0017_remove_subscriptionplan_overage_credit_price_cents_and_more
+billing 0021_alter_creditbucket_bucket_type_and_more
+billing 0022_usersubscription_is_trial_usersubscription_trial_end_and_more
+billing 0023_alter_subscriptionplan_name
+billing 0025_alter_subscriptionplan_name
+billing 0059_append_only_audit_tables
+students 0026_alter_backgroundprocessingtask_task_type""".splitlines()
+
+def desc(f):
+    if f is None:
+        return "-"
+    d = f.has_default()
+    dbd = getattr(f, "db_default", None)
+    from django.db.models.fields import NOT_PROVIDED
+    extra = []
+    if dbd is not NOT_PROVIDED and dbd is not None: extra.append("db_default")
+    for a in ("max_length", "unique", "primary_key"):
+        v = getattr(f, a, None)
+        if v: extra.append(f"{a}={v}")
+    ch = getattr(f, "choices", None)
+    if ch: extra.append(f"choices={len(ch)}")
+    return f"{type(f).__name__} null={f.null} default={'yes' if d else 'no'} " + " ".join(extra)
+
+loader = MigrationLoader(None)
+for line in FILES:
+    app, name = line.split()
+    mig = loader.graph.nodes[(app, name)]
+    before = loader.project_state(nodes=[(app, name)], at_end=False)
+    print(f"\n== {app}/{name}")
+    state = before.clone()
+    for op in mig.operations:
+        kind = type(op).__name__
+        if kind == "AlterField":
+            old = state.models[app, op.model_name_lower].fields.get(op.name)
+            became = (old is not None and old.null and not op.field.null)
+            print(f"  AlterField {op.model_name}.{op.name}: BEFORE {desc(old)} | AFTER {desc(op.field)} | becomes NOT NULL: {became}")
+        elif kind == "AddField":
+            print(f"  AddField {op.model_name}.{op.name}: {desc(op.field)} preserve_default={op.preserve_default}")
+        elif kind in ("RemoveField",):
+            print(f"  RemoveField {op.model_name}.{op.name}")
+        elif kind == "RenameField":
+            print(f"  RenameField {op.model_name}.{op.old_name} -> {op.new_name}")
+        elif kind in ("RunSQL", "RunPython"):
+            print(f"  {kind}")
+        else:
+            print(f"  {kind} {getattr(op, 'name', '') or getattr(op, 'model_name', '')}")
+        op.state_forwards(app, state)

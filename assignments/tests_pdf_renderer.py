@@ -10,6 +10,8 @@ Split into two layers:
     ai_processor/benchmark/render.py for the same reason.
 """
 
+import subprocess
+import sys
 import threading
 import time
 import unittest
@@ -20,22 +22,41 @@ from django.test import SimpleTestCase, override_settings
 
 from assignments import pdf_renderer
 
+#: What the probe's child runs: one real launch of headless Chromium.
+_CHROMIUM_PROBE = """
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(args=["--no-sandbox"])
+    browser.close()
+"""
+
 
 def _chromium_available():
     """
     Probe once whether a real headless Chromium launch succeeds, so the
     real-rendering tests can skip cleanly in an environment without a
     matching browser installed, rather than failing the whole suite.
+
+    The launch runs in a child interpreter whose stdin, stdout and stderr
+    are the null device (H-118). Playwright hands its Node driver the
+    stderr of the process that starts it, and Node leaves a pipe it is
+    given in non-blocking mode for every process that holds it. This
+    module is imported by the test runner's parent at discovery; started
+    here, the driver would do that to the whole run's output pipe for the
+    length of the probe (H-107).
     """
     try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(args=["--no-sandbox"])
-            browser.close()
-        return True
-    except Exception:
+        child = subprocess.run(
+            [sys.executable, "-c", _CHROMIUM_PROBE],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired):
         return False
+    return child.returncode == 0
 
 
 _CHROMIUM_AVAILABLE = _chromium_available()

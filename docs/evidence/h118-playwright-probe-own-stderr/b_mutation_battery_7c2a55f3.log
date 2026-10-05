@@ -1,0 +1,15 @@
+baseline exit=0
+P1	the child's stderr is its own	KILLED	FAILED (failures=1)	True	21.8
+P2	the child's stdout is its own	KILLED	FAILED (failures=1)	True	16.2
+P3	the child's stdin is its own	KILLED	FAILED (failures=1)	True	17.0
+P4	a child that fails means not available	KILLED	FAILED (failures=3)	True	19.3
+P5	a child that does not end means not available	KILLED	FAILED (errors=1)	True	29.2
+P6	the child has a time limit	KILLED	FAILED (failures=1)	True	16.1
+P7	nothing at module level starts the driver here (unseen by the source rule)	KILLED	FAILED (failures=1)	True	13.9
+P8	the probe itself does not start the driver here (the old form)	KILLED	FAILED (failures=11)	True	14.0
+G1	the rule follows a call through the module's own functions	KILLED	FAILED (failures=4)	True	17.5
+G2	the rule does not read the bodies of functions as run at import	KILLED	FAILED (failures=2)	True	41.5
+G3	the rule knows the async starter too	KILLED	FAILED (failures=1)	True	24.8
+
+11/11 killed with verified restore
+exit=0 wall_s=259
