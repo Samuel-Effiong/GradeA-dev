@@ -48,6 +48,21 @@ Source: ed's reading for H-110, confirmed by d5 (H-107's record).
   to it (mutant P7 is exactly that, and only the fresh-interpreter test
   catches it). The fresh-interpreter test covers one module,
   `assignments.tests_pdf_renderer`, the only one that probes today.
+- **Shapes the source rule misses, and two false alarms** (found by v2
+  on sample sources, confirmed by me in plain Python). Missed: a
+  starter imported under another name (`import sync_playwright as sp`,
+  then `sp()`); a starter bound to a name and called (`start =
+  api.sync_playwright`, then `start()`); a static or class method that
+  reaches a starter, called at import (`OK = H.available()`); and
+  `getattr(api, "sync_playwright")()`. In `tests_pdf_renderer` the
+  fresh-interpreter test would still catch each of them, as it catches
+  P7; in any other test module nothing would. False alarms, both on the
+  safe side: a module-level call of a helper whose body binds a local
+  named like a starter (`with mock.patch(...) as async_playwright`),
+  and a call of a method that shares its name with a module function
+  that reaches a starter. Neither test module is changed for this here
+  (the battery stands on them as they are); following aliases would be
+  a row of its own.
 - **The probe still costs one real browser launch per import** of the
   module, now in a child. A spawned parallel worker would probe again;
   forked workers inherit the answer.
@@ -85,8 +100,8 @@ and that a refused driver start raises instead of hanging
 | Repro: the new module at `3d2e6b50` (h78-repro worktree) | 16:05:12 – 16:05:25 | RED as expected: 11 tests, failures=4, errors=2, exit 1 | `repro_3d2e6b50.log.gz` |
 | (a) 25 labels, serial, `--verbosity 2` | 16:05:25 – 16:10:44 | GREEN: 340 tests, OK; none skipped for want of Chromium, none skipped at all | `a_modules_7c2a55f3.log.gz` |
 | (b) battery (`test_h118_mut`), 11 mutants | 16:10:44 – 16:15:03 | 11/11 killed, restore verified, none BROKEN; every mutant's failing tests are the expected set; each log has its "Ran" line | `b_mutation_battery_7c2a55f3.log`, `battery_7c2a55f3.tar.gz` (raw output of each run in `logs/raw/`), `expected_kills.py.txt`, `expected_kills_7c2a55f3.txt` |
-| (c) the owning app, assignments, `--parallel 2`: **first run** | 17:01:50 – 17:10:00 | **RED: 628 tests in 372.9 s, 1 failure**, 13 opt-in skips, none for want of Chromium, no stall. Machine heavily loaded (below) | `c_assignments_p2_7c2a55f3.log.gz`, `LOAD_AT_RED.txt`, `iso.status` |
-| (c) the same, **second run**, a stated exception approved by the SM, on a quiet machine | 17:49:30 – 17:52:56 | GREEN: 628 tests in 150.4 s, OK, 13 opt-in skips, none for want of Chromium, no stall. Load average 3.80 at the start, 5.84 at the end | `c_assignments_p2_run2_7c2a55f3.log.gz`, `c_assignments_p2_run2_7c2a55f3.load.txt`, `C_RERUN_PREDICTION.md`, `iso.status` |
+| (c) the owning app, assignments, `--parallel 2`: **first run** | 17:01:50 – 17:10:00 | **RED: 628 tests in 372.9 s, 1 failure**, 13 opt-in skips, none for want of Chromium, no stall. Machine heavily loaded (below) | **`c_assignments_p2_7c2a55f3.raw.log.gz`** (whole), `c_assignments_p2_7c2a55f3.log.gz` (stamped copy, cut short: see below), `LOAD_AT_RED.txt`, `iso.status` |
+| (c) the same, **second run**, a stated exception approved by the SM, on a quiet machine | 17:49:30 – 17:52:56 | GREEN: 628 tests in 150.4 s, OK, 13 opt-in skips, none for want of Chromium, no stall. Load average 3.80 at the start, 5.84 at the end | **`c_assignments_p2_run2_7c2a55f3.raw.log.gz`** (whole), `c_assignments_p2_run2_7c2a55f3.log.gz` (stamped copy, cut short), `c_assignments_p2_run2_7c2a55f3.load.txt`, `C_RERUN_PREDICTION.md`, `iso.status` |
 
 **(c) took two runs, and the first stays red in this record.**
 - *The first run* failed one test:
@@ -122,6 +137,26 @@ and that a refused driver start raises instead of hanging
   nothing in that test is changed here. From this day a whole-tree
   credential scan takes the slot like a run, and runs with wall-clock
   assertions start only on a quiet machine with the load recorded (SM).
+
+**Which (c) log is which (a defect in this evidence, found by v2).**
+At `5f2e45df` only the side-stamped copies of the two (c) logs were
+committed, and both are cut short: 12,069 of 12,406 lines for the first
+run and 12,166 of 12,408 for the second. Neither holds its "Ran 628
+tests" line or its result, and the red one holds no FAIL block: the
+assertion with its 7.2 s against 4.0 s was in no committed file. The
+cause is in my wrapper: the reader that adds timestamps from the side
+is given ten seconds to catch up after the run and is then stopped; a
+parallel run prints its tracebacks and its summary in one burst at the
+end, and under load the reader was more than ten seconds behind. The
+`.raw.log.gz` files added now are the files the test processes wrote
+themselves, whole and byte-exact, and they are the evidence: the red
+run's ends "Ran 628 tests in 372.875s / FAILED (failures=1,
+skipped=13)" with the assertion and the six durations, the green one's
+"Ran 628 tests in 150.397s / OK (skipped=13)". The stamped copies stay
+for their timestamps (the "... FAIL" mark at 17:07:41). The stamped
+copies of the other runs made with this wrapper (H-91, H-107, H-98)
+are whole: each has as many lines as its raw file and its "Ran" line; I
+counted them. The wrapper's ten-second cap is being removed.
 
 **The repro, plainly.** All six failing tests fail on behaviour; none is
 an import error. The fresh interpreter counted one driver start in the
