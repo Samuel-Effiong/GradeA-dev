@@ -36,8 +36,12 @@ Each statement in the two notes was read against the tree at 806c227e:
 - `scripts/pii_log_baseline.txt` has no line that is not a comment.
 - `AutoGrader/tests_no_pii_in_logs.py` exists; 2919e5aa is the merge of the bundle 7 merge-down.
 - The three evidence folders the note names exist.
-- No Python file outside `docs/` reads the plan or the checker's docstring (grep), so no test
-  depends on either text.
+- No Python file reads either text. Five files outside `docs/` name the plan or the checker
+  (grep): `audit/views.py`, `audit/tests_query_api.py`,
+  `billing/tests/test_credit_transaction_audit.py` and `AutoGrader/tests_no_pii_in_logs.py`
+  name them in a docstring or comment only. `scripts/test_check_no_pii_in_logs.py`, the
+  checker's own self-test, imports the checker and calls `find_violations()`; it does not read
+  the docstring.
 
 The checker still parses and still passes on the whole repository after the docstring change
 (`python scripts/check_no_pii_in_logs.py`: "OK: no new PII-in-logs violations."). That is the
@@ -45,5 +49,6 @@ static script, the same one the pre-commit hook runs; it is not a test run.
 
 ## Not done
 
-No test run and no mutants: no executable line changed. If the verifier wants the guard module
-run on this tip, that is one short module under 0b's grant.
+No test run and no mutants: no executable line changed. The checker's self-test
+(`python scripts/test_check_no_pii_in_logs.py`, no database) was NOT run: it is a test run and
+needs 0b's grant like any other. It is the one run worth asking for if the verifier wants one.
