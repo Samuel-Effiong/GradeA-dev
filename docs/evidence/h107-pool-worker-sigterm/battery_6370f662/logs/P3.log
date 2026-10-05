@@ -1,0 +1,12 @@
+# P3: what the stream itself still holds goes out first
+# file: AutoGrader/testing/patient_stream.py (occurrence 1)
+# old: '        # What the stream itself still holds goes out first.\n        self.flush()\n'
+# new: ''
+# commit: 6370f662bae94068ef0e1f8f880bf6127997a711
+# exit: 1
+# elapsed_s: 11.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_what_the_stream_itself_still_holds_goes_out_first (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_what_the_stream_itself_still_holds_goes_out_first)
+
+FAILED (failures=1)

@@ -1,0 +1,13 @@
+# S15: text that only looks like an address is left alone
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '\\.[A-Za-z]{2,}"'
+# new: '"'
+# commit: 3da28258a6383bb82339fff0dc24ba2da0ba6487
+# exit: 1
+# elapsed_s: 6.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_text_that_only_looks_like_an_address_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_text_that_only_looks_like_an_address_is_left_alone) (text='pkg@1.2.3')
+FAIL: test_text_that_only_looks_like_an_address_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_text_that_only_looks_like_an_address_is_left_alone) (text='x@y')
+
+FAILED (failures=2)

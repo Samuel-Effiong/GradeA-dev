@@ -1,0 +1,30 @@
+baseline exit=0
+S1	an address is replaced	KILLED	FAILED (failures=26)	True	8.6
+S2	a URL's credentials are replaced, dotless hosts too	KILLED	FAILED (failures=6)	True	10.6
+S3	the exception text is rendered and scrubbed when the record is made	KILLED	FAILED (failures=7, errors=1)	True	9.6
+S4	a message that cannot be scrubbed fails closed (SM's D4)	KILLED	FAILED (failures=1)	True	9.9
+S5	the wrapped factory makes the record	KILLED	FAILED (failures=2)	True	14.7
+S6	a second install does not wrap again	KILLED	FAILED (failures=1)	True	14.5
+S7	a second install still sets the switch	KILLED	FAILED (failures=4)	True	8.4
+S8	a record whose class cannot be replaced fails closed	KILLED	FAILED (failures=1)	True	9.9
+S9	exception text that cannot be rendered fails closed	KILLED	FAILED (failures=1)	True	9.0
+S10	override_settings switches the scrubber	KILLED	FAILED (failures=4)	True	10.4
+S11	the scrubber is off while tests run	KILLED	FAILED (failures=4)	True	12.9
+S12	the AutoGrader package installs the factory	KILLED	FAILED (failures=23, errors=1)	True	14.9
+S13	a record made before settings are configured is scrubbed	KILLED	FAILED (failures=2)	True	13.1
+S14	a switched-off scrubber leaves the text alone	KILLED	FAILED (failures=2)	True	7.0
+S16	settings.py imports nothing from the project	KILLED	FAILED (failures=3)	True	5.4
+S17	the switch is read from settings once they are configured	KILLED	FAILED (failures=1)	True	5.1
+S15	text that only looks like an address is left alone	KILLED	FAILED (failures=2)	True	5.0
+Y1	Sentry: the exception values are scrubbed	KILLED	FAILED (failures=4)	True	6.5
+Y2	Sentry: a part that cannot be scrubbed fails closed	KILLED	FAILED (failures=2)	True	6.2
+Y3	Sentry: the user context is left alone	KILLED	FAILED (failures=1)	True	6.1
+Y4	Sentry: an argument that is not text yet is scrubbed	KILLED	FAILED (failures=3)	True	6.8
+Y5	Sentry: a breadcrumb's data is scrubbed	KILLED	FAILED (failures=1)	True	12.2
+Y6	Sentry: a log item's attributes are scrubbed	KILLED	FAILED (failures=1)	True	9.8
+Y7	Sentry: settings pass before_send	KILLED	FAILED (failures=1)	True	8.4
+Y8	Sentry: settings pass before_send_log	KILLED	FAILED (failures=1)	True	11.9
+Y9	Sentry: a failure to import the hooks is not swallowed	KILLED	FAILED (failures=1)	True	9.2
+
+26/26 killed with verified restore
+exit=0 wall_s=256

@@ -1,0 +1,18 @@
+"""Does a SIGTERM that arrives while a unittest test is running end the
+process, when the process has a Python handler that raises SystemExit?"""
+import io, os, signal, unittest
+
+def _terminate(signum, _frame):
+    raise SystemExit(128 + signum)
+
+signal.signal(signal.SIGTERM, _terminate)
+
+class T(unittest.TestCase):
+    def test_signalled_mid_test(self):
+        os.kill(os.getpid(), signal.SIGTERM)   # as Pool.terminate() does to a worker
+        for _ in range(1000):                  # let the handler run
+            pass
+
+result = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromTestCase(T))
+print("process still alive after the signal; errors recorded:", len(result.errors))
+print("recorded as:", result.errors[0][1].strip().splitlines()[-1] if result.errors else None)

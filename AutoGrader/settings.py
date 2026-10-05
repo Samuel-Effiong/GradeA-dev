@@ -92,6 +92,17 @@ LOGGING = {
     },
 }
 
+# H-89: no email address and no URL password in anything this process logs.
+# The scrubbing itself is a log record factory that the AutoGrader package
+# installs when it is imported (AutoGrader/__init__.py, log_scrubbing.py);
+# this is only its switch. On in every environment; off only while tests
+# run, so that the tests which prove log lines carry ids and not addresses
+# read what the code really logged. No environment variable switches it off.
+# (Nothing is imported from the project here: this file must still load on
+# its own, by path, as the frontend-domain setting tests load it.)
+_TESTS_ARE_RUNNING = "test" in sys.argv or "pytest" in sys.modules
+LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -157,6 +168,24 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
 
+        _SENTRY_SDK_INSTALLED = True
+    except ImportError:  # pragma: no cover - depends on deploy state
+        import logging
+
+        _SENTRY_SDK_INSTALLED = False
+        logging.getLogger(__name__).warning(
+            "SENTRY_DSN is set but sentry-sdk is not installed; "
+            "error reporting is disabled. Run `pip install -r requirements.txt`."
+        )
+
+    if _SENTRY_SDK_INSTALLED:
+        # Outside the try above on purpose (H-89): that except is for a
+        # missing sentry-sdk package. If our own hooks module failed to
+        # import, the process must fail at start, not run with Sentry
+        # silently off. The hooks go to init in the same call, so Sentry is
+        # never initialised without them.
+        from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
+
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             environment=ENVIRONMENT,
@@ -176,19 +205,21 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # These carry student work, grades, and billing identifiers.
             # Keep them out of the error reports.
             send_default_pii=False,
+            # H-89: and no address in the TEXT of what is sent either. The
+            # logging integration builds events from a record's raw parts
+            # and the exception's own text, which the log record factory
+            # above does not reach (AutoGrader/sentry_scrubbing.py).
+            before_send=scrub_event,
+            # A sampled transaction is sent without passing before_send.
+            before_send_transaction=scrub_event,
+            before_breadcrumb=scrub_breadcrumb,
+            before_send_log=scrub_log,
             # Set profile_session_sample_rate to 1.0 to profile 100%
             # of profile sessions.
             profile_session_sample_rate=1.0,
             # Set profile_lifecycle to "trace" to automatically
             # run the profiler on when there is an active transaction
             profile_lifecycle="trace",
-        )
-    except ImportError:  # pragma: no cover - depends on deploy state
-        import logging
-
-        logging.getLogger(__name__).warning(
-            "SENTRY_DSN is set but sentry-sdk is not installed; "
-            "error reporting is disabled. Run `pip install -r requirements.txt`."
         )
 
 # Host-header allowlist. Gated by ENVIRONMENT like the CORS settings below -
