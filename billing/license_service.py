@@ -156,9 +156,9 @@ def teacher_failure(exc, email):
     teacher raised. Anything not recognised is TEACHER_ADD_FAILED; its own
     text never reaches the result."""
     if isinstance(exc, IndividualSubscriptionConflictError):
-        return CodedError(
-            ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION, params={"email": email}
-        )
+        # H-85: no address and no reason. The raise's own log line gives
+        # support the reason, by id.
+        return CodedError(ReasonCode.TEACHER_CANNOT_JOIN_YET)
     if isinstance(exc, ValueError):
         text = str(exc)
         if text == _not_business_text(email):
