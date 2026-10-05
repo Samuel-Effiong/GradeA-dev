@@ -139,7 +139,9 @@ class PriceDriftDetectionTests(TestCase):
         # The alarm has to carry enough to act on.
         self.assertIn("price_pro", drift_lines[0])
         self.assertIn("price_standard", drift_lines[0])
-        self.assertIn("drift@gmail.com", drift_lines[0])
+        # The user by id, never by address (H-91).
+        self.assertIn(str(self.user.id), drift_lines[0])
+        self.assertNotIn("@", drift_lines[0])
         self.assertIn("sub_drift_1", drift_lines[0])
 
     def test_a_matching_price_is_silent(self):
@@ -248,7 +250,9 @@ class PriceDriftDetectionTests(TestCase):
         self.assertIn("1 drifted", summary)
         drift_lines = [line for line in logs.output if "PRICE DRIFT" in line]
         self.assertEqual(len(drift_lines), 1)
-        self.assertIn("drift@gmail.com", drift_lines[0])
+        # The user by id, never by address (H-91).
+        self.assertIn(str(self.user.id), drift_lines[0])
+        self.assertNotIn("@", drift_lines[0])
 
 
 class PriceDriftListingFailureTests(TestCase):

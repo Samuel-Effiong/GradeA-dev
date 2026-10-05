@@ -828,8 +828,9 @@ class LicenseSubscriptionService:
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
             # Class and ids only, never the refusal's text (H-78): the
-            # not-business and individual-subscription refusals carry the
-            # address. Each refusal logs its own ids-only line.
+            # not-business refusal carries the address. (The
+            # individual-subscription refusal did too, until H-85 made it
+            # one neutral sentence.) Each refusal logs its own ids-only line.
             logger.warning(
                 "Skipped enrolling a teacher in license %s (school %s): %s",
                 license_sub.id,

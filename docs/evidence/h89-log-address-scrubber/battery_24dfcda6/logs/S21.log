@@ -1,0 +1,13 @@
+# S21: P1: a domain in letters that are not ASCII
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '_LABEL = r"(?:[^\\W_]|-)"\n'
+# new: '_LABEL = r"[A-Za-z0-9-]"\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@münchen.de')
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@школа.рф')
+
+FAILED (failures=2)

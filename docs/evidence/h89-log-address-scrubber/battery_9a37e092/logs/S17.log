@@ -1,0 +1,12 @@
+# S17: the switch is read from settings once they are configured
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '                _enabled = bool(getattr(settings, "LOG_SCRUB_ADDRESSES", True))\n'
+# new: '                _enabled = True\n'
+# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
+# exit: 1
+# elapsed_s: 5.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs)
+
+FAILED (failures=1)

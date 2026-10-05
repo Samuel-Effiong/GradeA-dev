@@ -655,7 +655,7 @@ class StripeCheckoutService:
         logger.info(
             "Created unified individual checkout session for user %s -> plan %s "
             "(trial_subscription_id=%s). Checkout session: %s.",
-            user.email,
+            user.id,
             plan.name,
             trial_sub.id if trial_sub else None,
             session.id,
@@ -1233,7 +1233,7 @@ class StripeSubscriptionMutationService:
 
         logger.info(
             "Upgraded subscription for user %s: %s -> %s (Stripe subscription %s).",
-            user_sub.user.email,
+            user_sub.user_id,
             old_plan.name,
             new_plan.name,
             stripe_subscription_id,
@@ -1378,7 +1378,7 @@ class StripeSubscriptionMutationService:
         logger.info(
             "Created upgrade checkout session for user %s: %s -> %s, "
             "amount_due=%d cents. Checkout session: %s.",
-            user_sub.user.email,
+            user_sub.user_id,
             user_sub.plan.name,
             new_plan.name,
             amount_due,
@@ -2278,7 +2278,7 @@ class StripeOverageService:
         logger.info(
             "Created overage checkout session for user %s (plan %s, price "
             "%d cents). Checkout session: %s.",
-            user.email,
+            user.id,
             plan.name,
             plan.overage_block_price,
             session.id,
@@ -2910,7 +2910,7 @@ class StripeWebhookHandler:
                 "user %s. Stripe subscription: %s.",
                 trial_sub.id,
                 plan.name,
-                user.email,
+                user.id,
                 session["subscription"],
             )
             return
@@ -2925,7 +2925,7 @@ class StripeWebhookHandler:
             logger.info(
                 "individual_checkout webhook for user %s already applied "
                 "(duplicate delivery for session %s) — skipping.",
-                user.email,
+                user.id,
                 session["id"],
             )
             return
@@ -2958,7 +2958,7 @@ class StripeWebhookHandler:
             "Checkout completed: fresh activation of plan %s for user %s "
             "(no trial to finalize). Stripe subscription: %s.",
             plan.name,
-            user.email,
+            user.id,
             session["subscription"],
         )
 
@@ -3411,7 +3411,7 @@ class StripeWebhookHandler:
                 "succeeded on Stripe and needs a manual refund if it "
                 "shouldn't have gone through.",
                 session["id"],
-                user.email,
+                user.id,
                 old_user_sub.id,
                 current_active_sub.id if current_active_sub else "none",
             )
@@ -3495,7 +3495,7 @@ class StripeWebhookHandler:
         logger.info(
             "Upgrade checkout completed for user %s: %s -> %s (subscription "
             "%s, amount_paid=%s cents).",
-            user.email,
+            user.id,
             old_user_sub.plan.name,
             new_plan.name,
             stripe_subscription_id,
@@ -3537,7 +3537,7 @@ class StripeWebhookHandler:
 
         logger.info(
             "Stripe checkout completed: individual subscribe for user %s, plan %s.",
-            user.email,
+            user.id,
             plan.name,
         )
 
@@ -3573,7 +3573,7 @@ class StripeWebhookHandler:
                 "for school %s: %s. Falling back to the school's own admin so "
                 "the paid license is still provisioned.",
                 session.get("id"),
-                admin_user.email,
+                admin_user.id,
                 school.name,
                 exc,
             )
@@ -3633,7 +3633,7 @@ class StripeWebhookHandler:
                 enrollment_results["failed"],
                 enrollment_results["successful"] + enrollment_results["failed"],
                 enrollment_results["errors"],
-                admin_user.email,
+                admin_user.id,
             )
         else:
             logger.info(
@@ -3701,7 +3701,7 @@ class StripeWebhookHandler:
                 "trial_to_paid checkout: trial subscription %s for user %s is no longer active/trial. "
                 "Skipping conversion. (is_trial=%s, is_active=%s)",
                 trial_sub.id,
-                user.email,
+                user.id,
                 trial_sub.is_trial,
                 trial_sub.is_active,
             )
@@ -3745,7 +3745,7 @@ class StripeWebhookHandler:
         logger.info(
             "Stripe checkout completed: trial-to-paid conversion for user %s. "
             "Trial subscription: %s, New plan: %s, Stripe subscription: %s",
-            user.email,
+            user.id,
             trial_sub.id,
             new_plan.name,
             stripe_subscription_id,
@@ -3984,7 +3984,7 @@ class StripeWebhookHandler:
                     "This is the expected outcome for an out-of-order or "
                     "retried delivery arriving after cancellation.",
                     user_sub.id,
-                    user_sub.user.email,
+                    user_sub.user_id,
                     skip_reason,
                     invoice.get("id"),
                 )
@@ -4606,7 +4606,7 @@ class StripeWebhookHandler:
                 "plan metadata — credits NOT granted. Needs manual "
                 "reconciliation (refund or manual grant).",
                 payment_intent["id"],
-                user.email,
+                user.id,
             )
             return
 

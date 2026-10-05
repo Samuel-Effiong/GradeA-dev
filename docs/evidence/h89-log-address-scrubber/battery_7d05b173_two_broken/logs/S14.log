@@ -1,0 +1,13 @@
+# S14: a switched-off scrubber leaves the text alone
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '        if not is_enabled():\n            return super().getMessage()  # type: ignore[misc]\n'
+# new: ''
+# commit: 7d05b17342e11450893a2de06f244b1e36effa57
+# exit: 1
+# elapsed_s: 8.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
+
+FAILED (failures=2)

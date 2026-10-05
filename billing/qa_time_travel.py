@@ -218,9 +218,8 @@ def new_customer_test_clock_kwargs(email, label=None) -> dict:
         )
 
     logger.warning(
-        "[QA TIME TRAVEL] Created Test Clock %s for new Stripe customer (%s).",
+        "[QA TIME TRAVEL] Created Test Clock %s for a new Stripe customer.",
         clock_id,
-        email,
     )
     return {"test_clock": clock_id}
 
@@ -539,7 +538,7 @@ class QATimeTravelService:
             "[QA TIME TRAVEL] Individual subscription %s (user %s) rewound. "
             "mode=%s target=%s before=%s after=%s",
             user_sub.id,
-            user_sub.user.email,
+            user_sub.user_id,
             mode,
             target.isoformat(),
             before,
@@ -1039,7 +1038,7 @@ class BillingTimeTravelView(APIView):
         logger.warning(
             "[QA TIME TRAVEL] Executed by superadmin %s: type=%s id=%s "
             "mode=%s warnings=%s",
-            request.user.email,
+            request.user.id,
             d["subscription_type"],
             d["subscription_id"],
             d["mode"],

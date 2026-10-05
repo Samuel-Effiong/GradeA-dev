@@ -1,0 +1,32 @@
+BEFORE
+{
+  "exception": {
+    "type": "ValueError",
+    "value": "Teacher someone.private@school-example.edu does not belong to this school"
+  },
+  "frame": {
+    "function": "renew",
+    "vars": {
+      "teacher": "<CustomUser: someone.private@school-example.edu>",
+      "license_id": "'3f2b8c1e-9d4a-4c7b-8e21-5a6f0d9b7c13'",
+      "allocation_id": "77",
+      "attempts": "2"
+    }
+  }
+}
+AFTER
+{
+  "exception": {
+    "type": "ValueError",
+    "value": "Teacher [email] does not belong to this school"
+  },
+  "frame": {
+    "function": "renew",
+    "vars": {
+      "teacher": "<CustomUser: [email]>",
+      "license_id": "'3f2b8c1e-9d4a-4c7b-8e21-5a6f0d9b7c13'",
+      "allocation_id": "77",
+      "attempts": "2"
+    }
+  }
+}

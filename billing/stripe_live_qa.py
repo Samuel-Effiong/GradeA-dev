@@ -776,10 +776,11 @@ class LiveQAHarness:
         removed, _ = UserSubscription.objects.filter(user=user).delete()
         if removed:
             logger.debug(
-                "[LIVE QA %s] Cleared %d signal-created subscription row(s) for %s.",
+                "[LIVE QA %s] Cleared %d signal-created subscription row(s) for "
+                "user %s.",
                 self.run_id,
                 removed,
-                email,
+                user.id,
             )
         return user
 

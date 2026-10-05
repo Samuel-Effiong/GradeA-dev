@@ -45,12 +45,13 @@ import os
 import re
 import signal
 import threading
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
 
 #: Redis ships with 16 logical databases. Tests use the default one plus the
-#: fixed numbers in `real_redis_caches(...)` (7, 8, 11, 12, 15), so all 16 are
-#: visited.
+#: fixed numbers in `real_redis_caches(...)` (11, 12, 14, 15 today), so all 16
+#: are visited.
 DATABASES = range(16)
 
 #: The colon is part of the match on purpose: `gaplus-t12:` must not match
@@ -70,7 +71,35 @@ def _clients():
     if isinstance(location, (list, tuple)):
         location = location[0]
     for db in DATABASES:
-        yield db, redis.Redis.from_url(location, db=db)
+        yield db, redis.Redis.from_url(location_for(location, db))
+
+
+def location_for(location, db):
+    """`location` (a Redis URL) pointed at database `db`.
+
+    Not `redis.Redis.from_url(location, db=db)`: when the URL names a
+    database (`redis://host:6379/0`, the local and the CI layout) redis-py
+    takes the database from the URL and ignores the argument, so every
+    "per database" client was on the URL's own database and the other 15
+    were never visited (H-97). So the database goes into the URL itself:
+    the path of a redis:// or rediss:// URL, the `db` parameter of a
+    unix:// one.
+    """
+    parts = urlsplit(location)
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        if key != "db"
+    ]
+    if parts.scheme == "unix":
+        # Built by hand: with an empty network location urlunsplit drops
+        # the "//" redis-py needs. The network location is kept, since a
+        # password-protected socket carries its credentials there.
+        query.append(("db", str(db)))
+        return f"unix://{parts.netloc}{parts.path}?{urlencode(query)}"
+    return urlunsplit(
+        (parts.scheme, parts.netloc, f"/{db}", urlencode(query), parts.fragment)
+    )
 
 
 def pid_is_alive(pid):
