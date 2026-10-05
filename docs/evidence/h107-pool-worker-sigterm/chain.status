@@ -1,0 +1,13 @@
+13:41:56 repro e487b97a exit=1 (red expected)
+13:42:01 repro de91a6a0 exit=1 (red expected)
+13:45:01 (a) exit=0
+13:48:21 (b) exit=0
+13:48:22 H-107 CHAIN END: (c) needs its own GRANT
+13:51:16 repro e487b97a exit=1 (red expected)
+13:51:21 repro de91a6a0 exit=1 (red expected)
+13:54:09 (a) exit=0
+13:57:25 (b) exit=0
+13:57:25 H-107 CHAIN END: (c) needs its own GRANT
+14:00:06 flake check at c3c10348: 15 rounds, 0 not green
+14:31:06 control at 085adecd: no Ran line (expected). Now the fixed runner.
+14:34:01 fixed at c3c10348: [Ran 139 tests in 97.661s] lines in the stamped log: 1490 (the fast-reader run had 2584)

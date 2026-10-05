@@ -1,0 +1,208 @@
+EEEEEEEEEEEEE
+======================================================================
+ERROR: test_a_reader_that_has_gone_is_an_error_at_once (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_has_gone_is_an_error_at_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_a_reader_that_is_slow_but_reading_is_waited_for (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_is_slow_but_reading_is_waited_for)
+The patience is per wait, not for the whole write: a reader
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_it_gives_up_loudly_after_its_patience_not_never (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_it_gives_up_loudly_after_its_patience_not_never)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_the_default_patience (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_the_default_patience)
+Longer than any pause of a live reader; shorter than the five
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_everything_arrives_once_and_in_order (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_everything_arrives_once_and_in_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_one_write_larger_than_the_pipe_arrives_whole (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_one_write_larger_than_the_pipe_arrives_whole)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_text_that_cannot_be_encoded_is_written_as_the_stream_would (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_text_that_cannot_be_encoded_is_written_as_the_stream_would)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_the_condition_is_real_a_plain_stream_raises (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_the_condition_is_real_a_plain_stream_raises)
+The control: without the wrapper, the same writes to the same
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_what_the_stream_itself_still_holds_goes_out_first (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_what_the_stream_itself_still_holds_goes_out_first)
+Something written through the underlying stream and still in
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_a_stream_with_no_file_descriptor_is_written_to_as_it_is (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_a_stream_with_no_file_descriptor_is_written_to_as_it_is)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_everything_else_is_the_streams_own (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_everything_else_is_the_streams_own)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_the_runner_reports_on_a_patient_stream_over_stderr (AutoGrader.tests_patient_test_stream.WiringTests.test_the_runner_reports_on_a_patient_stream_over_stderr)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+======================================================================
+ERROR: test_unittests_runner_writes_through_it (AutoGrader.tests_patient_test_stream.WiringTests.test_unittests_runner_writes_through_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_patient_test_stream.py", line 71, in setUp
+    self.module = importlib.import_module("AutoGrader.testing.patient_stream")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.testing.patient_stream'
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.018s
+
+FAILED (errors=13)
+Found 13 test(s).
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=5
