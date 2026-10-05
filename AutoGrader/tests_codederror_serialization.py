@@ -185,7 +185,8 @@ class CodedErrorSerializationTests(SimpleTestCase):
 
 
 #: The one exception to "no param is an email" (SM ruling, 2026-10-01, Epic
-#: A S7d): the four QA-approved codes whose text names the address. They are
+#: A S7d): the three QA-approved codes whose text names the address (four
+#: until H-85 retired TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION). They are
 #: item codes of SYNC routes (a roster import's rows, a licence's teachers),
 #: answered only to the requester in a result list, never raised - so never
 #: in a task's stored exception or result. The guard below keeps it so.
@@ -193,7 +194,6 @@ SYNC_ONLY_EMAIL_CODES = frozenset(
     {
         ReasonCode.ROW_EMAIL_INVALID,
         ReasonCode.TEACHER_EMAIL_NOT_BUSINESS,
-        ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
         ReasonCode.TEACHER_ALREADY_ON_LICENCE,
     }
 )
@@ -301,7 +301,7 @@ class StoredFormPersonalDataTests(SimpleTestCase):
                     self.assertNotIn("email", name)
                     self.assertFalse(name == "id" or name.endswith("_id"), name)
 
-    def test_the_email_exception_is_exactly_the_four_approved_codes(self):
+    def test_the_email_exception_is_exactly_the_three_approved_codes(self):
         with_email = {
             code for code, spec in REASON_CODES.items() if "email" in spec.params
         }

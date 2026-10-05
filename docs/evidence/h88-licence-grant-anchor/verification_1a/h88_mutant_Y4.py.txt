@@ -1,0 +1,20 @@
+"""1a's mutant Y4 for H-93: the licence's consumption window reopens on
+EVERY refresh (the "once per licence month" condition is dropped), so N
+catch-up refreshes would reopen it N times and every teacher's refresh
+would reset the licence's consumption. Same idea as d5's W5. Applied in
+place to billing/license_service.py in the current directory; restore with
+git checkout. Run with python -B (rule 17)."""
+
+P = "billing/license_service.py"
+s = open(P, encoding="utf-8").read()
+old = (
+    "            | Q(\n"
+    "                consumption_window_start__lt=latest_monthly_point(\n"
+    "                    license_sub.billing_cycle_start, refresh_due_by(now)\n"
+    "                )\n"
+    "            ),\n"
+)
+new = "            | Q(consumption_window_start__lt=now),\n"
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y4")

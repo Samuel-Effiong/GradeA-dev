@@ -16,6 +16,7 @@ Key principles:
 """
 
 import logging
+from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from dateutil.relativedelta import relativedelta  # type: ignore
@@ -68,8 +69,9 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
+from .refresh_timing import allocation_anchor, grants_owed, latest_monthly_point
 from .refresh_timing import monthly_bucket_expiry as grace_expiry
-from .refresh_timing import refresh_due_by
+from .refresh_timing import next_monthly_grant, refresh_due_by
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +110,17 @@ class IndividualSubscriptionConflictError(Exception):
     pass
 
 
+#: What a school admin is told when the teacher they add has an active
+#: individual subscription (H-85). One fixed sentence: no address, and no
+#: mention of a subscription, which would tell any admin who types an
+#: address that its owner pays for a plan. The log line beside each raise
+#: gives support the reason, by id.
+TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION = (
+    "This teacher can't be added to your school yet. "
+    "Please ask them to contact support."
+)
+
+
 class LicenseRequestError(ValueError):
     """A license request the caller can fix (seat count, plan choice, admin).
 
@@ -143,9 +156,9 @@ def teacher_failure(exc, email):
     teacher raised. Anything not recognised is TEACHER_ADD_FAILED; its own
     text never reaches the result."""
     if isinstance(exc, IndividualSubscriptionConflictError):
-        return CodedError(
-            ReasonCode.TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION, params={"email": email}
-        )
+        # H-85: no address and no reason. The raise's own log line gives
+        # support the reason, by id.
+        return CodedError(ReasonCode.TEACHER_CANNOT_JOIN_YET)
     if isinstance(exc, ValueError):
         text = str(exc)
         if text == _not_business_text(email):
@@ -689,6 +702,7 @@ class LicenseSubscriptionService:
                 "is_active": True,
                 "is_admin_allocation": True,
                 "next_credit_grant_at": next_refresh,
+                "grant_anchor_at": now,
             },
         )
 
@@ -711,12 +725,14 @@ class LicenseSubscriptionService:
             allocation.is_admin_allocation = True
             allocation.monthly_allocation = raw_amount
             allocation.next_credit_grant_at = next_refresh
+            allocation.grant_anchor_at = now
             allocation.save(
                 update_fields=[
                     "is_active",
                     "is_admin_allocation",
                     "monthly_allocation",
                     "next_credit_grant_at",
+                    "grant_anchor_at",
                     "updated_at",
                 ]
             )
@@ -1236,17 +1252,14 @@ class LicenseSubscriptionService:
             has_individual_sub = user.subscriptions.filter(is_active=True).exists()
 
             if has_individual_sub:
-                error_msg = (
-                    f"Teacher {email} has an active individual subscription. "
-                    "Individual subscriptions cannot be converted to a license. "
-                    "Please cancel the individual subscription first."
-                )
                 logger.warning(
                     "Teacher %s has an individual subscription: not enrolled.",
                     user.id,
                 )
                 if raise_on_conflict:
-                    raise IndividualSubscriptionConflictError(error_msg)
+                    raise IndividualSubscriptionConflictError(
+                        TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+                    )
                 return None
 
             # Associate the teacher with the school if they don't have one
@@ -1417,16 +1430,13 @@ class LicenseSubscriptionService:
         # 4. Check for and handle existing INDIVIDUAL subscriptions
         active_individual_sub = teacher.subscriptions.filter(is_active=True).exists()
         if active_individual_sub:
-            error_msg = (
-                f"Teacher {teacher.email} has an active individual subscription. "
-                "Individual subscriptions cannot be converted to a license. "
-                "Please cancel the individual subscription first."
-            )
             logger.warning(
                 "Teacher %s has an individual subscription: not enrolled.",
                 teacher.id,
             )
-            raise IndividualSubscriptionConflictError(error_msg)
+            raise IndividualSubscriptionConflictError(
+                TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+            )
 
         now = timezone.now()
 
@@ -1604,11 +1614,16 @@ class LicenseSubscriptionService:
 
         now = timezone.now()
 
-        # Set the first refresh date to exactly one month from now
+        # The first refresh is due a month from now, and every later one is
+        # counted from this moment (H-88): enrolment, re-enrolment and
+        # reactivation each restart the teacher's month here.
         next_refresh = now + relativedelta(months=1)
 
         allocation.next_credit_grant_at = next_refresh
-        allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+        allocation.grant_anchor_at = now
+        allocation.save(
+            update_fields=["next_credit_grant_at", "grant_anchor_at", "updated_at"]
+        )
 
         # 6. Create new MONTHLY bucket for the license allocation
         monthly_bucket = CreditBucket.objects.create(
@@ -2044,6 +2059,10 @@ class LicenseSubscriptionService:
             )
         )
 
+        LicenseSubscriptionService._report_owed_refreshes(
+            license_sub, active_allocations, now
+        )
+
         renewal_start = now
         renewal_end = now + relativedelta(months=license_sub.contract_months)
 
@@ -2091,9 +2110,15 @@ class LicenseSubscriptionService:
                         },
                     )
 
+                    # The renewal restarts the teacher's month (H-88).
                     allocation.next_credit_grant_at = now + relativedelta(months=1)
+                    allocation.grant_anchor_at = now
                     allocation.save(
-                        update_fields=["next_credit_grant_at", "updated_at"]
+                        update_fields=[
+                            "next_credit_grant_at",
+                            "grant_anchor_at",
+                            "updated_at",
+                        ]
                     )
 
                     wallet.overage_blocks_used = 0
@@ -3841,6 +3866,37 @@ class LicenseSubscriptionService:
         return breakdown
 
     @staticmethod
+    def _report_owed_refreshes(license_sub, allocations, now) -> None:
+        """H-81: before a renewal overwrites the allocations' due times, log
+        (ERROR, ids only) each monthly refresh that came due in the ending
+        cycle and was never made. Beat was down from the due time to the
+        cycle's end, where the refresh task stops serving it. Detection
+        only: nothing is granted here."""
+        until = min(license_sub.billing_cycle_end, now)
+        for allocation in allocations:
+            due = allocation.next_credit_grant_at
+            if due is None:
+                continue
+            anchor = allocation_anchor(
+                allocation.grant_anchor_at,
+                max(allocation.created_at, license_sub.billing_cycle_start),
+                due,
+            )
+            owed = grants_owed(anchor, due, until)
+            if owed:
+                logger.error(
+                    "License %s renewal: allocation %s (user %s) is owed %d "
+                    "monthly refresh(es): due from %s, never made before the "
+                    "cycle ended at %s.",
+                    license_sub.id,
+                    allocation.id,
+                    allocation.user_id,
+                    owed,
+                    due,
+                    license_sub.billing_cycle_end,
+                )
+
+    @staticmethod
     @transaction.atomic
     def _refresh_teacher_credits(allocation: SchoolCreditAllocation, now=None) -> None:
         """
@@ -3854,7 +3910,39 @@ class LicenseSubscriptionService:
         wallet = teacher.credit_wallet
         license_sub = allocation.license_subscription
         now = now or timezone.now()
-        next_refresh = now + relativedelta(months=1)
+
+        # H-88: the next due time comes from the allocation's anchor and the
+        # due time being served, not from `now`. `now + 1 month` clamped a
+        # 31st to the 28th for good (13 refreshes in a 12-month contract)
+        # and drifted by every late run. Capped at the contract's end: the
+        # renewal owns that boundary.
+        served_due = allocation.next_credit_grant_at or now
+        anchor = allocation_anchor(
+            allocation.grant_anchor_at,
+            max(allocation.created_at, license_sub.billing_cycle_start),
+            served_due,
+        )
+        period, next_refresh = next_monthly_grant(
+            anchor, served_due, license_sub.billing_cycle_end
+        )
+        if served_due + timedelta(days=1) < now:
+            # A missed run (an outage): the refresh is still owed and is
+            # made now, one per run, until the chain is current again.
+            logger.warning(
+                "Monthly refresh for allocation %s (license %s) caught up: "
+                "the refresh due at %s (period %d) is made late.",
+                allocation.id,
+                license_sub.id,
+                served_due,
+                period - 1,
+            )
+        # A caught-up bucket lives a month from now, not to a due time that
+        # has already passed (it would be born expired).
+        bucket_due = (
+            next_refresh
+            if next_refresh > now
+            else min(now + relativedelta(months=1), license_sub.billing_cycle_end)
+        )
 
         # Open a new monthly consumption window, at most once per month per
         # LICENSE. total_credits_consumed is measured against
@@ -3872,12 +3960,17 @@ class LicenseSubscriptionService:
         LicenseSubscription.objects.filter(
             Q(pk=license_sub.pk),
             Q(consumption_window_start__isnull=True)
-            # The same tolerance as the refresh's due check (1a's F1): a run
-            # a few seconds earlier than last month's refreshes the teacher,
-            # so it must reopen the window too.
+            # H-93: the window is the licence's, so it reopens on the
+            # licence's own monthly points (its cycle start plus k months),
+            # not on the window's age: teachers anchored on different days
+            # then share 12 windows a year, and a clamped date (28 Feb,
+            # 30 Apr) is a point like any other. The same tolerance as the
+            # refresh's due check (1a's F1): a run a few seconds before a
+            # point refreshes the teacher, so it must reopen the window too.
             | Q(
-                consumption_window_start__lte=refresh_due_by(now)
-                - relativedelta(months=1)
+                consumption_window_start__lt=latest_monthly_point(
+                    license_sub.billing_cycle_start, refresh_due_by(now)
+                )
             ),
         ).update(
             total_credits_consumed=0,
@@ -3890,7 +3983,7 @@ class LicenseSubscriptionService:
             wallet=wallet,
             plan=license_sub.plan,
             grant_amount=allocation.monthly_allocation,
-            new_expiry=grace_expiry(next_refresh, license_sub.billing_cycle_end),
+            new_expiry=grace_expiry(bucket_due, license_sub.billing_cycle_end),
             now=now,
             reference=f"Monthly grant for license {license_sub.id}",
             metadata={
@@ -3899,9 +3992,14 @@ class LicenseSubscriptionService:
                 "refresh_month": now.strftime("%Y-%m"),
             },
         )
-        # 3. Update allocation's next_credit_grant_at
+        # 3. Update allocation's next_credit_grant_at. A row older than the
+        # anchor field keeps the anchor just resolved for it, so its chain
+        # is counted from one fixed moment from here on.
         allocation.next_credit_grant_at = next_refresh
-        allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+        allocation.grant_anchor_at = anchor
+        allocation.save(
+            update_fields=["next_credit_grant_at", "grant_anchor_at", "updated_at"]
+        )
 
         logger.info(
             "Refreshed monthly credits for teacher %s under license %s. "
@@ -3961,6 +4059,9 @@ class LicenseSubscriptionService:
                 "user__credit_wallet"
             )
         )
+        LicenseSubscriptionService._report_owed_refreshes(
+            license_sub, active_allocations, now
+        )
 
         renewed_count = 0
         failed_teachers = []
@@ -3991,9 +4092,15 @@ class LicenseSubscriptionService:
                         },
                     )
 
+                    # The renewal restarts the teacher's month (H-88).
                     allocation.next_credit_grant_at = now + relativedelta(months=1)
+                    allocation.grant_anchor_at = now
                     allocation.save(
-                        update_fields=["next_credit_grant_at", "updated_at"]
+                        update_fields=[
+                            "next_credit_grant_at",
+                            "grant_anchor_at",
+                            "updated_at",
+                        ]
                     )
 
                     wallet.overage_blocks_used = 0

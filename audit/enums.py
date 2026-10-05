@@ -184,10 +184,8 @@ class ReasonCode(models.TextChoices):
         "TEACHER_EMAIL_OTHER_ROLE",
         "Teacher: email can't be added as a teacher",
     )
-    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION = (
-        "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION",
-        "Teacher: has an individual subscription",
-    )
+    # H-85: neutral in name and label. A school admin reads reason codes.
+    TEACHER_CANNOT_JOIN_YET = "TEACHER_CANNOT_JOIN_YET", "Teacher: can't join yet"
     TEACHER_IN_OTHER_SCHOOL = "TEACHER_IN_OTHER_SCHOOL", "Teacher: in another school"
     TEACHER_ALREADY_ON_LICENCE = (
         "TEACHER_ALREADY_ON_LICENCE",

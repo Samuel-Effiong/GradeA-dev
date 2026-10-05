@@ -1,0 +1,13 @@
+# M11: a caught-up bucket lives from its grant time
+# file: billing/license_service.py (occurrence 1)
+# old: '            if next_refresh > now\n'
+# new: '            if True\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 14.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_catch_up_at_the_cycle_end_never_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_a_catch_up_at_the_cycle_end_never_outlives_the_contract)
+FAIL: test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract)
+
+FAILED (failures=2)
