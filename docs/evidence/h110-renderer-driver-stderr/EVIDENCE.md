@@ -131,7 +131,41 @@ outside what step 0 expects. Nothing ran before this grant except commit hooks a
 Step 1's eight skips are all `tests_load` ("load tests are opt-in: set RUN_LOAD_TESTS=1"). None
 is a Chromium skip: the fresh-interpreter tests ran.
 
-Still owed: the one owning-app regression (`assignments`), under its own grant.
+### The owning-app regression (`assignments`)
+
+Frozen tip 59b844c4 (the gated tip b8e9200e plus evidence only), same base 27b0d2e0, its own
+grant from 0b, 2026-10-05 23:56:29 to 2026-10-06 00:01:31. One run, serial, 12G scope, the
+full-suite lock, timeout 3600, rules 12, 13, 16 and 18. Not stopped, not repeated.
+
+| What | Result | Log |
+|---|---|---|
+| `manage.py test assignments` | exit 0: Ran 655 tests in 263.867s, OK (skipped=13) | `regression_59b844c4.log.gz` |
+
+- The log is committed whole, gzipped and byte-exact: 1,053,058 bytes and 12,466 lines unpacked,
+  sha256 `0ae51a79f7c66f3b84042e270c3b62f8f4b5348d33ebad8337aaa89954bc6c18`. "Ran" is line 12438
+  and "OK" line 12440; the 26 lines after them are the load tests' buffered standard output, so
+  the file does not end with "OK".
+- The 13 skips are all opt-in: 8 "load tests are opt-in: set RUN_LOAD_TESTS=1", 1 "set
+  RUN_LOAD_TESTS=1 to build the 6,000-student school", 4 "Real AI call is opt-in and billed: set
+  RUN_REAL_AI=1". None is a Chromium skip. No FAIL or ERROR line.
+- Driver lines: 26 `[PDF]` lines, 0 of `[PDF] Playwright driver stderr:`, as in step 1.
+- Load average: 3.06 8.58 11.43 at the start, 3.50 5.92 9.51 at the end (both printed by the
+  gate script). 0b read a 1-minute figure of 5.77 at 23:59:57, during the run.
+
+**The machine was not fully quiet.** The SM's ruling is that a run holding the renderer's
+wall-clock test (`ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others`,
+H-123) goes only on a quiet machine. The grant was given on that footing, and the check before
+the start found no other test run. After the run, the process list showed another project's
+browser test on the same laptop: a Playwright run started 23:53:44, whose headless browser
+started 23:59:00 and was still alive at 00:01:52. So it overlapped at least the last two and a
+half minutes of this run. The wall-clock test passed all the same. A green under extra load says
+no less about H-110 than a green on a quiet machine would; what it cannot be is a timing
+reference. Whether the run stands is the SM's decision. Nothing of that other project was
+touched; the process list was only read.
+
+**What this run does not cover:** `task/beta-batch-8` has since taken H-118, which changes
+`assignments/tests_pdf_renderer.py`. H-110 does not change that file, but its test module
+imports `_CHROMIUM_AVAILABLE` from it. This run was on the base before H-118.
 
 ### How the mutants were counted
 
