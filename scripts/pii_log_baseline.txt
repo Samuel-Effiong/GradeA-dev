@@ -18,10 +18,10 @@
 # this PR was assigned.
 #
 # Remove a file from this list once every violation inside it is fixed.
-billing/access_control.py
-billing/qa_time_travel.py
-billing/services.py
-billing/stripe_service.py
-billing/tasks.py
-billing/views.py
-scripts/one_off_backfill_stripe_schedules.py
+#
+# EMPTY since the bundle 7 merge-down (2026-10-05): H-91 on beta fixed the
+# last seven listed files (billing/access_control.py, qa_time_travel.py,
+# services.py, stripe_service.py, tasks.py, views.py and
+# scripts/one_off_backfill_stripe_schedules.py). Each was checked with
+# find_violations() on the merged tree before it left. Add no file here
+# without a backlog row.
