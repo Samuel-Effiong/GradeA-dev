@@ -1,556 +1,556 @@
-17:32:14 Creating test database for alias 'default' ('test_epic_a_merge_down_b6_mut')...
-17:32:14 Found 16 test(s).
-17:32:14 Operations to perform:
-17:32:14   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
-17:32:14   Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
-17:32:14 Synchronizing apps without migrations:
-17:32:14   Creating tables...
-17:32:14     Running deferred SQL...
-17:32:14 Running migrations:
-17:32:14   Applying contenttypes.0001_initial... OK
-17:32:14   Applying contenttypes.0002_remove_content_type_name... OK
-17:32:14   Applying auth.0001_initial... OK
-17:32:14   Applying auth.0002_alter_permission_name_max_length... OK
-17:32:14   Applying auth.0003_alter_user_email_max_length... OK
-17:32:14   Applying auth.0004_alter_user_username_opts... OK
-17:32:14   Applying auth.0005_alter_user_last_login_null... OK
-17:32:14   Applying auth.0006_require_contenttypes_0002... OK
-17:32:14   Applying auth.0007_alter_validators_add_error_messages... OK
-17:32:14   Applying auth.0008_alter_user_username_max_length... OK
-17:32:14   Applying auth.0009_alter_user_last_name_max_length... OK
-17:32:14   Applying auth.0010_alter_group_name_max_length... OK
-17:32:14   Applying auth.0011_update_proxy_permissions... OK
-17:32:14   Applying auth.0012_alter_user_first_name_max_length... OK
-17:32:14   Applying users.0001_initial... OK
-17:32:14   Applying admin.0001_initial... OK
-17:32:14   Applying admin.0002_logentry_remove_auto_add... OK
-17:32:14   Applying admin.0003_logentry_add_action_flag_choices... OK
-17:32:14   Applying classrooms.0001_initial... OK
-17:32:14   Applying ai_processor.0001_initial... OK
-17:32:14   Applying ai_processor.0002_initial... OK
-17:32:14   Applying ai_processor.0003_chatsession_user... OK
-17:32:14   Applying ai_processor.0004_chatsession_assistant_type... OK
-17:32:14   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
-17:32:14   Applying classrooms.0002_initial... OK
-17:32:14   Applying classrooms.0003_coursecategory_course_categories... OK
-17:32:14   Applying classrooms.0004_course_teacher... OK
-17:32:14   Applying classrooms.0005_rename_studentsection_studentcourse... OK
-17:32:14   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
-17:32:15   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
-17:32:15   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
-17:32:15   Applying classrooms.0009_school... OK
-17:32:15   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
-17:32:15   Applying classrooms.0011_remove_course_categories_topic... OK
-17:32:15   Applying classrooms.0012_studentcourse_auto_added... OK
-17:32:15   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
-17:32:15   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
-17:32:15   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
-17:32:15   Applying classrooms.0016_school_is_active... OK
-17:32:15   Applying assignments.0001_initial... OK
-17:32:15   Applying assignments.0002_initial... OK
-17:32:15   Applying assignments.0003_initial... OK
-17:32:15   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
-17:32:15   Applying assignments.0005_alter_assignment_options... OK
-17:32:15   Applying assignments.0006_assignment_estimated_time... OK
-17:32:15   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
-17:32:15   Applying assignments.0008_alter_assignment_due_date... OK
-17:32:15   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
-17:32:15   Applying assignments.0010_assignment_custom_ai_prompt... OK
-17:32:15   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
-17:32:15   Applying assignments.0012_assignment_was_overridden... OK
-17:32:15   Applying assignments.0013_alter_assignment_ai_generated... OK
-17:32:15   Applying assignments.0014_assignment_self_assessment_and_more... OK
-17:32:15   Applying assignments.0015_alter_assignment_potential_issues... OK
-17:32:15   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
-17:32:15   Applying assignments.0017_assignment_grading_status... OK
-17:32:15   Applying assignments.0018_assignment_topic... OK
-17:32:15   Applying assignments.0019_alter_assignment_title_and_more... OK
-17:32:15   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
-17:32:15   Applying assignments.0021_assignment_overridden_at... OK
-17:32:15   Applying assignments.0022_assignment_raw_input... OK
-17:32:15   Applying assignments.0023_delete_rubric... OK
-17:32:16   Applying assignments.0024_alter_assignment_instructions_and_more... OK
-17:32:16   Applying assignments.0025_alter_assignment_instructions... OK
-17:32:16   Applying assignments.0026_assignment_status... OK
-17:32:16   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
-17:32:16   Applying assignments.0028_alter_assignment_raw_input_hash... OK
-17:32:16   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
-17:32:16   Applying assignments.0030_alter_assignment_status... OK
-17:32:16   Applying assignments.0031_assignment_grading_task_name_and_more... OK
-17:32:16   Applying assignments.0032_assignmentgenerationsession_and_message... OK
-17:32:16   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
-17:32:16   Applying assignments.0034_assignment_admin_grading_notified_at... OK
-17:32:16   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
-17:32:16   Applying assignments.0036_backfill_assignment_rigor... OK
-17:32:16   Applying assignments.0037_assignment_course_title_index... OK
-17:32:16   Applying assignments.0038_assignment_updated_at... OK
-17:32:16   Applying assignments.0039_assignment_upload_fingerprint... OK
-17:32:17   Applying assignments.0040_db_defaults_for_rollback... OK
-17:32:17   Applying audit.0001_initial... OK
-17:32:17   Applying audit.0002_alter_auditevent_actor_role... OK
-17:32:17   Applying authtoken.0001_initial... OK
-17:32:17   Applying authtoken.0002_auto_20160226_1747... OK
-17:32:17   Applying authtoken.0003_tokenproxy... OK
-17:32:17   Applying authtoken.0004_alter_tokenproxy_options... OK
-17:32:17   Applying users.0002_customuser_activation_expires_and_more... OK
-17:32:17   Applying users.0003_passwordresetotp... OK
-17:32:17   Applying users.0004_customuser_email_verified_at... OK
-17:32:17   Applying users.0005_alter_passwordresetotp_code... OK
-17:32:17   Applying users.0006_alter_passwordresetotp_code... OK
-17:32:17   Applying users.0007_passwordchangeotp... OK
-17:32:17   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
-17:32:17   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
-17:32:17   Applying users.0010_customuser_school_alter_customuser_user_type... OK
-17:32:18   Applying billing.0001_initial... OK
-17:32:18   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
-17:32:18   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
-17:32:18   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
-17:32:18   Applying billing.0005_usersubscription_pending_plan... OK
-17:32:18   Applying billing.0006_alter_subscriptionplan_name... OK
-17:32:18   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
-17:32:18   Applying billing.0008_betaprofile... OK
-17:32:19   Applying billing.0009_betaprofile_uuid_and_more... OK
-17:32:19   Applying billing.0010_alter_betaprofile_id... OK
-17:32:19   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
-17:32:19   Applying billing.0012_populate_beta_profile_uuids... OK
-17:32:19   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
-17:32:19   Applying billing.0014_rename_uid_betaprofile_id... OK
-17:32:19   Applying billing.0015_betaprofile_credits_used_feedback... OK
-17:32:19   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
-17:32:19   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
-17:32:19   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
-17:32:19   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
-17:32:20   Applying billing.0020_licensesubscription_contract_months_and_more... OK
-17:32:20   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
-17:32:20   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
-17:32:20   Applying billing.0023_alter_subscriptionplan_name... OK
-17:32:20   Applying billing.0024_licensesubscription_custom_price_cents... OK
-17:32:20   Applying billing.0025_alter_subscriptionplan_name... OK
-17:32:20   Applying billing.0026_licensesubscription_total_credits_consumed... OK
-17:32:20   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
-17:32:20   Applying billing.0028_alter_usersubscription_is_trial... OK
-17:32:20   Applying billing.0029_usersubscription_next_credit_grant_at... OK
-17:32:20   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
-17:32:20   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
-17:32:20   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
-17:32:20   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
-17:32:20   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
-17:32:20   Applying billing.0035_licensesubscription_stripe_customer_id... OK
-17:32:20   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
-17:32:21   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
-17:32:21   Applying billing.0038_licensesubscription_billing_method_and_more... OK
-17:32:21   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
-17:32:21   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
-17:32:21   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
-17:32:21   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
-17:32:21   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
-17:32:21   Applying billing.0044_alter_creditusagelog_feature... OK
-17:32:21   Applying billing.0045_billingtransaction... OK
-17:32:21   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
-17:32:21   Applying billing.0047_subscriptionplan_carry_over_max... OK
-17:32:21   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
-17:32:21   Applying billing.0049_billingtransaction_receipt_url... OK
-17:32:22   Applying billing.0050_creditusagelog_course... OK
-17:32:22   Applying billing.0051_creditusagelog_task_id_index... OK
-17:32:22   Applying billing.0052_creditusagelog_school... OK
-17:32:22   Applying billing.0053_backfill_creditusagelog_school... OK
-17:32:22   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
-17:32:22   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
-17:32:22   Applying billing.0056_liveqarun... OK
-17:32:22   Applying billing.0057_usersubscription_cancelled_at... OK
-17:32:22   Applying billing.0058_alter_licensebillingrecord_record_type... OK
-17:32:23   Applying billing.0059_append_only_audit_tables... OK
-17:32:23   Applying billing.0060_backfill_audit_identity...
-17:32:23   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
-17:32:23  OK
-17:32:23   Applying billing.0061_add_audit_table_time_indexes... OK
-17:32:23   Applying billing.0062_liveqarun_skipped_and_error_status... OK
-17:32:24   Applying billing.0063_payment_disputes... OK
-17:32:24   Applying billing.0064_refund_credit_reversal... OK
-17:32:24   Applying billing.0065_backfill_ledger_payment_intent...
-17:32:24   attributed 0 ledger row(s) to their Stripe payment
-17:32:24  OK
-17:32:24   Applying billing.0066_dispute_deficit_by_wallet... OK
-17:32:24   Applying billing.0067_stripe_event_recovery... OK
-17:32:24   Applying billing.0068_price_reconciliation... OK
-17:32:24   Applying billing.0069_price_sync_audit... OK
-17:32:25   Applying billing.0070_db_defaults_for_rollback... OK
-17:32:25   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
-17:32:25   Applying billing.0072_license_stripe_mutation_intent... OK
-17:32:25   Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
-17:32:25   Applying dashboard.0001_initial... OK
-17:32:25   Applying dashboard.0002_schoolatrisksnapshot... OK
-17:32:25   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
-17:32:25   Applying dashboard.0004_db_defaults_for_rollback... OK
-17:32:26   Applying django_celery_beat.0001_initial... OK
-17:32:26   Applying django_celery_beat.0002_auto_20161118_0346... OK
-17:32:26   Applying django_celery_beat.0003_auto_20161209_0049... OK
-17:32:26   Applying django_celery_beat.0004_auto_20170221_0000... OK
-17:32:26   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
-17:32:26   Applying django_celery_beat.0006_auto_20180322_0932... OK
-17:32:26   Applying django_celery_beat.0007_auto_20180521_0826... OK
-17:32:26   Applying django_celery_beat.0008_auto_20180914_1922... OK
-17:32:26   Applying django_celery_beat.0006_auto_20180210_1226... OK
-17:32:26   Applying django_celery_beat.0006_periodictask_priority... OK
-17:32:26   Applying django_celery_beat.0009_periodictask_headers... OK
-17:32:27   Applying django_celery_beat.0010_auto_20190429_0326... OK
-17:32:27   Applying django_celery_beat.0011_auto_20190508_0153... OK
-17:32:27   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
-17:32:27   Applying django_celery_beat.0013_auto_20200609_0727... OK
-17:32:27   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
-17:32:27   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
-17:32:27   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
-17:32:27   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
-17:32:27   Applying django_celery_beat.0018_improve_crontab_helptext... OK
-17:32:27   Applying django_celery_beat.0019_alter_periodictasks_options... OK
-17:32:27   Applying django_celery_results.0001_initial... OK
-17:32:27   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
-17:32:27   Applying django_celery_results.0003_auto_20181106_1101... OK
-17:32:27   Applying django_celery_results.0004_auto_20190516_0412... OK
-17:32:27   Applying django_celery_results.0005_taskresult_worker... OK
-17:32:27   Applying django_celery_results.0006_taskresult_date_created... OK
-17:32:27   Applying django_celery_results.0007_remove_taskresult_hidden... OK
-17:32:27   Applying django_celery_results.0008_chordcounter... OK
-17:32:27   Applying django_celery_results.0009_groupresult... OK
-17:32:27   Applying django_celery_results.0010_remove_duplicate_indices... OK
-17:32:27   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
-17:32:27   Applying django_celery_results.0012_taskresult_date_started... OK
-17:32:27   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
-17:32:27   Applying django_celery_results.0014_alter_taskresult_status... OK
-17:32:27   Applying sessions.0001_initial... OK
-17:32:27   Applying users.0011_concurrentusersnapshot_useractivity... OK
-17:32:27   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
-17:32:27   Applying users.0013_customuser_middle_name... OK
-17:32:28   Applying users.0014_alter_customuser_middle_name... OK
-17:32:28   Applying users.0015_customuser_bio_settings... OK
-17:32:28   Applying users.0016_remove_customuser_bio_delete_settings... OK
-17:32:28   Applying users.0017_settings... OK
-17:32:28   Applying users.0018_customuser_bio... OK
-17:32:28   Applying users.0019_betawhitelist... OK
-17:32:28   Applying users.0020_waitlist_betawhitelist_mode... OK
-17:32:28   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
-17:32:28   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
-17:32:28   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
-17:32:28   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
-17:32:28   Applying users.0025_customuser_profile_image... OK
-17:32:28   Applying students.0001_initial... OK
-17:32:28   Applying students.0002_initial... OK
-17:32:29   Applying students.0003_studentsubmission_graded_at_and_more... OK
-17:32:29   Applying students.0004_alter_studentsubmission_graded_at... OK
-17:32:29   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
-17:32:29   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
-17:32:29   Applying students.0007_studentsubmission_extraction_confidence... OK
-17:32:29   Applying students.0008_studentsubmission_formatted_grade... OK
-17:32:29   Applying students.0009_studentsubmission_raw_input... OK
-17:32:29   Applying students.0010_batchuploadsession... OK
-17:32:30   Applying students.0011_batchuploadsession_course_and_more... OK
-17:32:30   Applying students.0012_alter_batchuploadsession_task_type... OK
-17:32:30   Applying students.0013_studentsubmission_max_points_and_more... OK
-17:32:30   Applying students.0014_alter_studentsubmission_score_percentage... OK
-17:32:30   Applying students.0015_studentsubmission_is_published... OK
-17:32:30   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
-17:32:30   Applying students.0017_backgroundprocessingtask... OK
-17:32:30   Applying students.0018_studentsubmission_attempt_count... OK
-17:32:31   Applying students.0019_alter_studentsubmission_attempt_count... OK
-17:32:31   Applying students.0020_studentsubmission_grading_state... OK
-17:32:31   Applying students.0021_studentsubmission_needs_review... OK
-17:32:31   Applying students.0022_studentsubmission_review_severity... OK
-17:32:31   Applying students.0023_studentsubmission_review_tier_and_more... OK
-17:32:31   Applying students.0024_repair_raw_input_json... OK
-17:32:31   Applying students.0025_student_submission_hot_path_indexes... OK
-17:32:32   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
-17:32:32   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
-17:32:32   Applying students.0028_backfill_ai_grading_completed_at... OK
-17:32:32   Applying students.0029_background_task_item_result... OK
-17:32:32   Applying students.0030_batch_session_credits_exhausted_at... OK
-17:32:32   Applying token_blacklist.0001_initial... OK
-17:32:33   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
-17:32:33   Applying token_blacklist.0003_auto_20171017_2007... OK
-17:32:33   Applying token_blacklist.0004_auto_20171017_2013... OK
-17:32:33   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
-17:32:33   Applying token_blacklist.0006_auto_20171017_2113... OK
-17:32:33   Applying token_blacklist.0007_auto_20171017_2214... OK
-17:32:33   Applying token_blacklist.0008_migrate_to_bigautofield... OK
-17:32:34   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
-17:32:34   Applying token_blacklist.0011_linearizes_history... OK
-17:32:34   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
-17:32:34   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
-17:32:34   Applying users.0026_customuser_registration_method... OK
-17:32:34   Applying users.0027_customuser_profile_image_url... OK
-17:32:34   Applying users.0028_alter_customuser_middle_name... OK
-17:32:34   Applying users.0029_usergooglecredentials... OK
-17:32:34   Applying users.0030_usergooglecredentials_access_token_and_more... OK
-17:32:34   Applying users.0031_settings_notify_new_assignment_posted... OK
-17:32:35   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
-17:32:35   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
-17:32:35   Applying users.0034_passwordresetotp_attempts_and_more... OK
-17:32:35   Applying users.0035_settings_notify_assignment_edited... OK
-17:32:35   Applying users.0036_customuser_failed_login_attempts_and_more... OK
-17:32:35   Applying users.0037_customuser_must_change_password... OK
-17:32:36   Applying users.0038_alter_customuser_must_change_password... OK
-17:32:36   Applying users.0039_customuser_token_epoch... OK
-17:32:37   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
-17:32:37
-17:32:37 WARNINGS:
-17:32:37 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
-17:32:37
-17:32:37 System check identified 1 issue (0 silenced).
-17:32:38 test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) ... Free trial plan not found: no trial activated for user d1b8d4bd-3a35-415d-87f0-603645b021de.
-17:32:38 Cannot activate automatic trial for user d1b8d4bd-3a35-415d-87f0-603645b021de (validation): ValueError
-17:32:38 Free trial plan not found: no trial activated for user e5c96142-16d4-4c06-b541-dd16664821e7.
-17:32:38 Cannot activate automatic trial for user e5c96142-16d4-4c06-b541-dd16664821e7 (validation): ValueError
-17:32:38
-17:32:38   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ada.lovelace.678da21195ac352d@student.local') ... FAIL
-17:32:38   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ADA.LOVELACE.678DA21195AC352D@Student.LOCAL') ... FAIL
-17:32:38   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='  ada.lovelace.678da21195ac352d@student.local  ') ... FAIL
-17:32:38   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='nobody.atall.ffffffffffffffff@student.local') ... FAIL
-17:32:38 test_a_real_students_address_is_still_added (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_real_students_address_is_still_added)
-17:32:38 Control: the refusal is for the placeholder domain only. ... Free trial plan not found: no trial activated for user c4513c2f-2fc5-44c5-a196-336a32bdabeb.
-17:32:38 Cannot activate automatic trial for user c4513c2f-2fc5-44c5-a196-336a32bdabeb (validation): ValueError
-17:32:38 Free trial plan not found: no trial activated for user 0c7dc456-6a31-4ca3-acc3-fafed1dfe6d0.
-17:32:38 Cannot activate automatic trial for user 0c7dc456-6a31-4ca3-acc3-fafed1dfe6d0 (validation): ValueError
-17:32:38 Free trial plan not found: no trial activated for user 2b97e579-0d40-43ad-90da-991c79518a2a.
-17:32:38 Cannot activate automatic trial for user 2b97e579-0d40-43ad-90da-991c79518a2a (validation): ValueError
-17:32:38 ok
-17:32:38 test_direct_add_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_direct_add_refuses_it) ... Free trial plan not found: no trial activated for user 395fda75-e6fa-473e-a2ac-72d976f7bf25.
-17:32:38 Cannot activate automatic trial for user 395fda75-e6fa-473e-a2ac-72d976f7bf25 (validation): ValueError
-17:32:38 Free trial plan not found: no trial activated for user 883106de-203e-413a-aa91-5fac4e9679c2.
-17:32:38 Cannot activate automatic trial for user 883106de-203e-413a-aa91-5fac4e9679c2 (validation): ValueError
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 ok
-17:32:39 test_each_form_refuses_it_before_any_lookup_or_save (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_each_form_refuses_it_before_any_lookup_or_save)
-17:32:39 Isolates the two serializers' own check from the shared service's ... Free trial plan not found: no trial activated for user 4d06c776-7149-4a43-b7a1-c9d32c921bc2.
-17:32:39 Cannot activate automatic trial for user 4d06c776-7149-4a43-b7a1-c9d32c921bc2 (validation): ValueError
-17:32:39 Free trial plan not found: no trial activated for user 1bb868d8-fae9-4b77-b27e-4faf9ac76801.
-17:32:39 Cannot activate automatic trial for user 1bb868d8-fae9-4b77-b27e-4faf9ac76801 (validation): ValueError
-17:32:39 ok
-17:32:39 test_single_add_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_single_add_refuses_it) ... Free trial plan not found: no trial activated for user 29eb277e-eca8-442d-9c4c-a525f53f59d8.
-17:32:39 Cannot activate automatic trial for user 29eb277e-eca8-442d-9c4c-a525f53f59d8 (validation): ValueError
-17:32:39 Free trial plan not found: no trial activated for user a4b2e11b-259c-4a32-b591-5da70838f211.
-17:32:39 Cannot activate automatic trial for user a4b2e11b-259c-4a32-b591-5da70838f211 (validation): ValueError
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 ok
-17:32:39 test_the_owner_cannot_use_it_either (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_the_owner_cannot_use_it_either)
-17:32:39 The rule is about the domain, not about whose student it is: the ... Free trial plan not found: no trial activated for user fdb2131b-2b6a-42e3-92d0-84a1d2c049b7.
-17:32:39 Cannot activate automatic trial for user fdb2131b-2b6a-42e3-92d0-84a1d2c049b7 (validation): ValueError
-17:32:39 Free trial plan not found: no trial activated for user 87a3dbc2-143e-4745-9201-a9dde7b67f38.
-17:32:39 Cannot activate automatic trial for user 87a3dbc2-143e-4745-9201-a9dde7b67f38 (validation): ValueError
-17:32:39 API Exception
-17:32:39 Traceback (most recent call last):
-17:32:39   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
-17:32:39     response = handler(request, *args, **kwargs)
-17:32:39                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:39   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
-17:32:39     raise ValidationError(serializer.errors)
-17:32:39 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
-17:32:39 ok
-17:32:39 test_the_shared_service_refuses_it_and_logs_ids_only (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_the_shared_service_refuses_it_and_logs_ids_only) ... Free trial plan not found: no trial activated for user ea5d0d2f-160d-4afd-8695-f1d91b425360.
-17:32:39 Cannot activate automatic trial for user ea5d0d2f-160d-4afd-8695-f1d91b425360 (validation): ValueError
-17:32:39 Free trial plan not found: no trial activated for user fe96a55c-0086-4195-b497-fbb848d118fd.
-17:32:39 Cannot activate automatic trial for user fe96a55c-0086-4195-b497-fbb848d118fd (validation): ValueError
-17:32:39 ok
-17:32:39 test_a_bulk_row_makes_a_new_student (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_a_bulk_row_makes_a_new_student) ... Free trial plan not found: no trial activated for user 7ead4008-c5d5-4ffc-9793-85cf877bb4d4.
-17:32:39 Cannot activate automatic trial for user 7ead4008-c5d5-4ffc-9793-85cf877bb4d4 (validation): ValueError
-17:32:39 Free trial plan not found: no trial activated for user 057bceb7-6d41-4242-aee4-8b48c717a919.
-17:32:39 Cannot activate automatic trial for user 057bceb7-6d41-4242-aee4-8b48c717a919 (validation): ValueError
-17:32:40 ok
-17:32:40 test_direct_add_makes_a_new_student (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_direct_add_makes_a_new_student) ... Free trial plan not found: no trial activated for user 5fb415e2-ea11-472c-92fc-102cbb27f421.
-17:32:40 Cannot activate automatic trial for user 5fb415e2-ea11-472c-92fc-102cbb27f421 (validation): ValueError
-17:32:40 Free trial plan not found: no trial activated for user 1920b772-9450-444a-b5a0-8cbce6a8e127.
-17:32:40 Cannot activate automatic trial for user 1920b772-9450-444a-b5a0-8cbce6a8e127 (validation): ValueError
-17:32:40 ok
-17:32:40 test_the_same_teachers_other_course_gets_a_new_student_by_direct_add (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_the_same_teachers_other_course_gets_a_new_student_by_direct_add)
-17:32:40 Direct add never reuses an account, even the teacher's own. ... Free trial plan not found: no trial activated for user 40c68749-781e-4c57-9fcc-d60908cb88ed.
-17:32:40 Cannot activate automatic trial for user 40c68749-781e-4c57-9fcc-d60908cb88ed (validation): ValueError
-17:32:40 Free trial plan not found: no trial activated for user fc717c82-edd0-4a08-a6e2-e89de9fda75b.
-17:32:40 Cannot activate automatic trial for user fc717c82-edd0-4a08-a6e2-e89de9fda75b (validation): ValueError
-17:32:40 ok
-17:32:40 test_two_requests_picking_one_token_end_as_two_students (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_two_requests_picking_one_token_end_as_two_students)
-17:32:40 The concurrent double-add: the address looked free to this ... Free trial plan not found: no trial activated for user c7442155-1a71-409e-982d-005daefec991.
-17:32:40 Cannot activate automatic trial for user c7442155-1a71-409e-982d-005daefec991 (validation): ValueError
-17:32:40 Free trial plan not found: no trial activated for user b2f6af5a-4c56-4b19-98eb-744a45a052f0.
-17:32:40 Cannot activate automatic trial for user b2f6af5a-4c56-4b19-98eb-744a45a052f0 (validation): ValueError
-17:32:40 ok
-17:32:40 test_when_every_attempt_collides_nothing_is_attached (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_when_every_attempt_collides_nothing_is_attached) ... Free trial plan not found: no trial activated for user 048a60aa-7a07-4b22-b354-e4c4e353d399.
-17:32:40 Cannot activate automatic trial for user 048a60aa-7a07-4b22-b354-e4c4e353d399 (validation): ValueError
-17:32:40 Free trial plan not found: no trial activated for user 10eff818-1e2d-446a-a5a5-e1556b103f9f.
-17:32:40 Cannot activate automatic trial for user 10eff818-1e2d-446a-a5a5-e1556b103f9f (validation): ValueError
-17:32:41 Failed to direct-add student to course
-17:32:41 Traceback (most recent call last):
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1399, in direct_add_student
-17:32:41     student = serializer.save()
-17:32:41               ^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
-17:32:41     self.instance = self.create(validated_data)
-17:32:41                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 670, in create
-17:32:41     student = _create_placeholder_student(**fields)
-17:32:41               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 535, in _create_placeholder_student
-17:32:41     raise serializers.ValidationError(
-17:32:41 rest_framework.exceptions.ValidationError: [ErrorDetail(string="We couldn't add this student to the course. Please try again.", code='invalid')]
-17:32:41
-17:32:41
-17:32:41 django.request ERROR 2026-10-02 16:32:41,038 log 1409257 138039535119296 [request_id=- client_request_id=-] Internal Server Error: /api/v1/course/778d7448-e1f5-415a-a732-37cf19f1b02e/direct-add-student
-17:32:41
-17:32:41
-17:32:41 Failed to bulk-add student at row 1 of course 778d7448-e1f5-415a-a732-37cf19f1b02e
-17:32:41 Traceback (most recent call last):
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/services/roster_import.py", line 572, in _import_one
-17:32:41     return _import_row_without_email(course=course, row=row)
-17:32:41            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/services/roster_import.py", line 499, in _import_row_without_email
-17:32:41     student = serializer.save()
-17:32:41               ^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
-17:32:41     self.instance = self.create(validated_data)
-17:32:41                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 670, in create
-17:32:41     student = _create_placeholder_student(**fields)
-17:32:41               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 535, in _create_placeholder_student
-17:32:41     raise serializers.ValidationError(
-17:32:41 rest_framework.exceptions.ValidationError: [ErrorDetail(string="We couldn't add this student to the course. Please try again.", code='invalid')]
-17:32:41 ok
-17:32:41 test_is_placeholder_email_ignores_case_and_surrounding_spaces (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_is_placeholder_email_ignores_case_and_surrounding_spaces) ... Free trial plan not found: no trial activated for user 314e4aa8-a978-40b4-8786-04dfe6b6f428.
-17:32:41 Cannot activate automatic trial for user 314e4aa8-a978-40b4-8786-04dfe6b6f428 (validation): ValueError
-17:32:41 Free trial plan not found: no trial activated for user 42eba641-7aa4-4a08-84f7-42b43f8c4fa9.
-17:32:41 Cannot activate automatic trial for user 42eba641-7aa4-4a08-84f7-42b43f8c4fa9 (validation): ValueError
-17:32:41 ok
-17:32:41 test_it_is_in_the_placeholder_domain_with_a_long_random_token (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_it_is_in_the_placeholder_domain_with_a_long_random_token) ... Free trial plan not found: no trial activated for user bd97fe28-e4d1-4ebc-859e-12095f4a4f1e.
-17:32:41 Cannot activate automatic trial for user bd97fe28-e4d1-4ebc-859e-12095f4a4f1e (validation): ValueError
-17:32:41 Free trial plan not found: no trial activated for user 2577dce6-95dd-43a9-bfb7-ee4fe66a0d7e.
-17:32:41 Cannot activate automatic trial for user 2577dce6-95dd-43a9-bfb7-ee4fe66a0d7e (validation): ValueError
-17:32:41 ok
-17:32:41 test_the_name_parts_are_folded_and_kept_short (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_the_name_parts_are_folded_and_kept_short) ... Free trial plan not found: no trial activated for user f9ea0603-a16d-47ff-8837-a0c6d7d42c02.
-17:32:41 Cannot activate automatic trial for user f9ea0603-a16d-47ff-8837-a0c6d7d42c02 (validation): ValueError
-17:32:41 Free trial plan not found: no trial activated for user 8149b41a-ff11-4856-b97a-b9fbd8aa8df1.
-17:32:41 Cannot activate automatic trial for user 8149b41a-ff11-4856-b97a-b9fbd8aa8df1 (validation): ValueError
-17:32:41 ok
-17:32:41 test_two_addresses_for_one_name_differ (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_two_addresses_for_one_name_differ) ... Free trial plan not found: no trial activated for user dfa17b82-a0ec-40c4-a51d-b1ff99d8b3c5.
-17:32:41 Cannot activate automatic trial for user dfa17b82-a0ec-40c4-a51d-b1ff99d8b3c5 (validation): ValueError
-17:32:41 Free trial plan not found: no trial activated for user aa57eb90-7622-453a-a8d2-b29b195967ca.
-17:32:41 Cannot activate automatic trial for user aa57eb90-7622-453a-a8d2-b29b195967ca (validation): ValueError
-17:32:41 ok
-17:32:41
-17:32:41 ======================================================================
-17:32:41 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ada.lovelace.678da21195ac352d@student.local')
-17:32:41 ----------------------------------------------------------------------
-17:32:41 Traceback (most recent call last):
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
-17:32:41     self.assertEqual(
-17:32:41 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
-17:32:41 - Row 1: this email can't be added as a student.
-17:32:41 ? ^^^^^^^^
-17:32:41 + This email can't be added as a student.
-17:32:41 ? ^
-17:32:41
-17:32:41
-17:32:41 ======================================================================
-17:32:41 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ADA.LOVELACE.678DA21195AC352D@Student.LOCAL')
-17:32:41 ----------------------------------------------------------------------
-17:32:41 Traceback (most recent call last):
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
-17:32:41     self.assertEqual(
-17:32:41 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
-17:32:41 - Row 1: this email can't be added as a student.
-17:32:41 ? ^^^^^^^^
-17:32:41 + This email can't be added as a student.
-17:32:41 ? ^
-17:32:41
-17:32:41
-17:32:41 ======================================================================
-17:32:41 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='  ada.lovelace.678da21195ac352d@student.local  ')
-17:32:41 ----------------------------------------------------------------------
-17:32:41 Traceback (most recent call last):
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
-17:32:41     self.assertEqual(
-17:32:41 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
-17:32:41 - Row 1: this email can't be added as a student.
-17:32:41 ? ^^^^^^^^
-17:32:41 + This email can't be added as a student.
-17:32:41 ? ^
-17:32:41
-17:32:41
-17:32:41 ======================================================================
-17:32:41 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='nobody.atall.ffffffffffffffff@student.local')
-17:32:41 ----------------------------------------------------------------------
-17:32:41 Traceback (most recent call last):
-17:32:41   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
-17:32:41     self.assertEqual(
-17:32:41 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
-17:32:41 - Row 1: this email can't be added as a student.
-17:32:41 ? ^^^^^^^^
-17:32:41 + This email can't be added as a student.
-17:32:41 ? ^
-17:32:41
-17:32:41
-17:32:41 ----------------------------------------------------------------------
-17:32:41 Ran 16 tests in 3.857s
-17:32:41
-17:32:41 FAILED (failures=4)
-17:32:41 Destroying test database for alias 'default' ('test_epic_a_merge_down_b6_mut')...
-17:32:42  OK
-17:32:42 systemd-run failed with exit status 1.
+08:15:16 Creating test database for alias 'default' ('test_epic_a_merge_down_b6_mut')...
+08:15:16 Found 16 test(s).
+08:15:16 Operations to perform:
+08:15:16   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+08:15:16   Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+08:15:16 Synchronizing apps without migrations:
+08:15:16   Creating tables...
+08:15:16     Running deferred SQL...
+08:15:16 Running migrations:
+08:15:16   Applying contenttypes.0001_initial... OK
+08:15:16   Applying contenttypes.0002_remove_content_type_name... OK
+08:15:16   Applying auth.0001_initial... OK
+08:15:16   Applying auth.0002_alter_permission_name_max_length... OK
+08:15:16   Applying auth.0003_alter_user_email_max_length... OK
+08:15:16   Applying auth.0004_alter_user_username_opts... OK
+08:15:16   Applying auth.0005_alter_user_last_login_null... OK
+08:15:16   Applying auth.0006_require_contenttypes_0002... OK
+08:15:16   Applying auth.0007_alter_validators_add_error_messages... OK
+08:15:16   Applying auth.0008_alter_user_username_max_length... OK
+08:15:16   Applying auth.0009_alter_user_last_name_max_length... OK
+08:15:16   Applying auth.0010_alter_group_name_max_length... OK
+08:15:16   Applying auth.0011_update_proxy_permissions... OK
+08:15:16   Applying auth.0012_alter_user_first_name_max_length... OK
+08:15:16   Applying users.0001_initial... OK
+08:15:16   Applying admin.0001_initial... OK
+08:15:16   Applying admin.0002_logentry_remove_auto_add... OK
+08:15:16   Applying admin.0003_logentry_add_action_flag_choices... OK
+08:15:16   Applying classrooms.0001_initial... OK
+08:15:16   Applying ai_processor.0001_initial... OK
+08:15:16   Applying ai_processor.0002_initial... OK
+08:15:17   Applying ai_processor.0003_chatsession_user... OK
+08:15:17   Applying ai_processor.0004_chatsession_assistant_type... OK
+08:15:17   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+08:15:17   Applying classrooms.0002_initial... OK
+08:15:17   Applying classrooms.0003_coursecategory_course_categories... OK
+08:15:17   Applying classrooms.0004_course_teacher... OK
+08:15:17   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+08:15:17   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+08:15:17   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+08:15:17   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+08:15:17   Applying classrooms.0009_school... OK
+08:15:17   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+08:15:17   Applying classrooms.0011_remove_course_categories_topic... OK
+08:15:17   Applying classrooms.0012_studentcourse_auto_added... OK
+08:15:17   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+08:15:18   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+08:15:18   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+08:15:18   Applying classrooms.0016_school_is_active... OK
+08:15:18   Applying assignments.0001_initial... OK
+08:15:18   Applying assignments.0002_initial... OK
+08:15:18   Applying assignments.0003_initial... OK
+08:15:18   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+08:15:18   Applying assignments.0005_alter_assignment_options... OK
+08:15:18   Applying assignments.0006_assignment_estimated_time... OK
+08:15:18   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+08:15:18   Applying assignments.0008_alter_assignment_due_date... OK
+08:15:18   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+08:15:18   Applying assignments.0010_assignment_custom_ai_prompt... OK
+08:15:18   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+08:15:18   Applying assignments.0012_assignment_was_overridden... OK
+08:15:18   Applying assignments.0013_alter_assignment_ai_generated... OK
+08:15:18   Applying assignments.0014_assignment_self_assessment_and_more... OK
+08:15:18   Applying assignments.0015_alter_assignment_potential_issues... OK
+08:15:18   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+08:15:19   Applying assignments.0017_assignment_grading_status... OK
+08:15:19   Applying assignments.0018_assignment_topic... OK
+08:15:19   Applying assignments.0019_alter_assignment_title_and_more... OK
+08:15:19   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+08:15:19   Applying assignments.0021_assignment_overridden_at... OK
+08:15:19   Applying assignments.0022_assignment_raw_input... OK
+08:15:19   Applying assignments.0023_delete_rubric... OK
+08:15:19   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+08:15:19   Applying assignments.0025_alter_assignment_instructions... OK
+08:15:19   Applying assignments.0026_assignment_status... OK
+08:15:19   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+08:15:19   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+08:15:19   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+08:15:19   Applying assignments.0030_alter_assignment_status... OK
+08:15:19   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+08:15:19   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+08:15:20   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+08:15:20   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+08:15:20   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+08:15:20   Applying assignments.0036_backfill_assignment_rigor... OK
+08:15:20   Applying assignments.0037_assignment_course_title_index... OK
+08:15:20   Applying assignments.0038_assignment_updated_at... OK
+08:15:20   Applying assignments.0039_assignment_upload_fingerprint... OK
+08:15:20   Applying assignments.0040_db_defaults_for_rollback... OK
+08:15:20   Applying audit.0001_initial... OK
+08:15:20   Applying audit.0002_alter_auditevent_actor_role... OK
+08:15:20   Applying authtoken.0001_initial... OK
+08:15:20   Applying authtoken.0002_auto_20160226_1747... OK
+08:15:20   Applying authtoken.0003_tokenproxy... OK
+08:15:20   Applying authtoken.0004_alter_tokenproxy_options... OK
+08:15:20   Applying users.0002_customuser_activation_expires_and_more... OK
+08:15:20   Applying users.0003_passwordresetotp... OK
+08:15:20   Applying users.0004_customuser_email_verified_at... OK
+08:15:20   Applying users.0005_alter_passwordresetotp_code... OK
+08:15:20   Applying users.0006_alter_passwordresetotp_code... OK
+08:15:20   Applying users.0007_passwordchangeotp... OK
+08:15:21   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+08:15:21   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+08:15:21   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+08:15:21   Applying billing.0001_initial... OK
+08:15:21   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+08:15:22   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+08:15:22   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+08:15:22   Applying billing.0005_usersubscription_pending_plan... OK
+08:15:22   Applying billing.0006_alter_subscriptionplan_name... OK
+08:15:22   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+08:15:22   Applying billing.0008_betaprofile... OK
+08:15:22   Applying billing.0009_betaprofile_uuid_and_more... OK
+08:15:22   Applying billing.0010_alter_betaprofile_id... OK
+08:15:22   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+08:15:23   Applying billing.0012_populate_beta_profile_uuids... OK
+08:15:23   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+08:15:23   Applying billing.0014_rename_uid_betaprofile_id... OK
+08:15:23   Applying billing.0015_betaprofile_credits_used_feedback... OK
+08:15:23   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+08:15:23   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+08:15:23   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+08:15:23   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+08:15:24   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+08:15:24   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+08:15:24   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+08:15:24   Applying billing.0023_alter_subscriptionplan_name... OK
+08:15:24   Applying billing.0024_licensesubscription_custom_price_cents... OK
+08:15:24   Applying billing.0025_alter_subscriptionplan_name... OK
+08:15:24   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+08:15:24   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+08:15:24   Applying billing.0028_alter_usersubscription_is_trial... OK
+08:15:24   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+08:15:24   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+08:15:25   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+08:15:25   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+08:15:25   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+08:15:25   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+08:15:25   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+08:15:25   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+08:15:25   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+08:15:25   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+08:15:26   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+08:15:26   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+08:15:26   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+08:15:26   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+08:15:26   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+08:15:26   Applying billing.0044_alter_creditusagelog_feature... OK
+08:15:26   Applying billing.0045_billingtransaction... OK
+08:15:26   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+08:15:26   Applying billing.0047_subscriptionplan_carry_over_max... OK
+08:15:26   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+08:15:27   Applying billing.0049_billingtransaction_receipt_url... OK
+08:15:27   Applying billing.0050_creditusagelog_course... OK
+08:15:27   Applying billing.0051_creditusagelog_task_id_index... OK
+08:15:27   Applying billing.0052_creditusagelog_school... OK
+08:15:27   Applying billing.0053_backfill_creditusagelog_school... OK
+08:15:27   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+08:15:27   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+08:15:28   Applying billing.0056_liveqarun... OK
+08:15:28   Applying billing.0057_usersubscription_cancelled_at... OK
+08:15:28   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+08:15:29   Applying billing.0059_append_only_audit_tables... OK
+08:15:29   Applying billing.0060_backfill_audit_identity...
+08:15:29   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+08:15:29  OK
+08:15:29   Applying billing.0061_add_audit_table_time_indexes... OK
+08:15:29   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+08:15:29   Applying billing.0063_payment_disputes... OK
+08:15:30   Applying billing.0064_refund_credit_reversal... OK
+08:15:30   Applying billing.0065_backfill_ledger_payment_intent...
+08:15:30   attributed 0 ledger row(s) to their Stripe payment
+08:15:30  OK
+08:15:30   Applying billing.0066_dispute_deficit_by_wallet... OK
+08:15:30   Applying billing.0067_stripe_event_recovery... OK
+08:15:30   Applying billing.0068_price_reconciliation... OK
+08:15:30   Applying billing.0069_price_sync_audit... OK
+08:15:31   Applying billing.0070_db_defaults_for_rollback... OK
+08:15:31   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+08:15:31   Applying billing.0072_license_stripe_mutation_intent... OK
+08:15:31   Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+08:15:31   Applying dashboard.0001_initial... OK
+08:15:31   Applying dashboard.0002_schoolatrisksnapshot... OK
+08:15:31   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+08:15:31   Applying dashboard.0004_db_defaults_for_rollback... OK
+08:15:32   Applying django_celery_beat.0001_initial... OK
+08:15:32   Applying django_celery_beat.0002_auto_20161118_0346... OK
+08:15:32   Applying django_celery_beat.0003_auto_20161209_0049... OK
+08:15:32   Applying django_celery_beat.0004_auto_20170221_0000... OK
+08:15:32   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+08:15:32   Applying django_celery_beat.0006_auto_20180322_0932... OK
+08:15:32   Applying django_celery_beat.0007_auto_20180521_0826... OK
+08:15:32   Applying django_celery_beat.0008_auto_20180914_1922... OK
+08:15:32   Applying django_celery_beat.0006_auto_20180210_1226... OK
+08:15:32   Applying django_celery_beat.0006_periodictask_priority... OK
+08:15:32   Applying django_celery_beat.0009_periodictask_headers... OK
+08:15:33   Applying django_celery_beat.0010_auto_20190429_0326... OK
+08:15:33   Applying django_celery_beat.0011_auto_20190508_0153... OK
+08:15:33   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+08:15:33   Applying django_celery_beat.0013_auto_20200609_0727... OK
+08:15:33   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+08:15:33   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+08:15:33   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+08:15:33   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+08:15:33   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+08:15:33   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+08:15:33   Applying django_celery_results.0001_initial... OK
+08:15:33   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+08:15:33   Applying django_celery_results.0003_auto_20181106_1101... OK
+08:15:33   Applying django_celery_results.0004_auto_20190516_0412... OK
+08:15:33   Applying django_celery_results.0005_taskresult_worker... OK
+08:15:33   Applying django_celery_results.0006_taskresult_date_created... OK
+08:15:33   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+08:15:33   Applying django_celery_results.0008_chordcounter... OK
+08:15:34   Applying django_celery_results.0009_groupresult... OK
+08:15:34   Applying django_celery_results.0010_remove_duplicate_indices... OK
+08:15:34   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+08:15:34   Applying django_celery_results.0012_taskresult_date_started... OK
+08:15:34   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+08:15:34   Applying django_celery_results.0014_alter_taskresult_status... OK
+08:15:34   Applying sessions.0001_initial... OK
+08:15:34   Applying users.0011_concurrentusersnapshot_useractivity... OK
+08:15:34   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+08:15:34   Applying users.0013_customuser_middle_name... OK
+08:15:34   Applying users.0014_alter_customuser_middle_name... OK
+08:15:34   Applying users.0015_customuser_bio_settings... OK
+08:15:35   Applying users.0016_remove_customuser_bio_delete_settings... OK
+08:15:35   Applying users.0017_settings... OK
+08:15:35   Applying users.0018_customuser_bio... OK
+08:15:35   Applying users.0019_betawhitelist... OK
+08:15:35   Applying users.0020_waitlist_betawhitelist_mode... OK
+08:15:35   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+08:15:35   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+08:15:35   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+08:15:35   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+08:15:35   Applying users.0025_customuser_profile_image... OK
+08:15:36   Applying students.0001_initial... OK
+08:15:36   Applying students.0002_initial... OK
+08:15:37   Applying students.0003_studentsubmission_graded_at_and_more... OK
+08:15:37   Applying students.0004_alter_studentsubmission_graded_at... OK
+08:15:38   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+08:15:38   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+08:15:38   Applying students.0007_studentsubmission_extraction_confidence... OK
+08:15:38   Applying students.0008_studentsubmission_formatted_grade... OK
+08:15:38   Applying students.0009_studentsubmission_raw_input... OK
+08:15:39   Applying students.0010_batchuploadsession... OK
+08:15:39   Applying students.0011_batchuploadsession_course_and_more... OK
+08:15:39   Applying students.0012_alter_batchuploadsession_task_type... OK
+08:15:40   Applying students.0013_studentsubmission_max_points_and_more... OK
+08:15:40   Applying students.0014_alter_studentsubmission_score_percentage... OK
+08:15:40   Applying students.0015_studentsubmission_is_published... OK
+08:15:40   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+08:15:40   Applying students.0017_backgroundprocessingtask... OK
+08:15:40   Applying students.0018_studentsubmission_attempt_count... OK
+08:15:41   Applying students.0019_alter_studentsubmission_attempt_count... OK
+08:15:41   Applying students.0020_studentsubmission_grading_state... OK
+08:15:41   Applying students.0021_studentsubmission_needs_review... OK
+08:15:41   Applying students.0022_studentsubmission_review_severity... OK
+08:15:42   Applying students.0023_studentsubmission_review_tier_and_more... OK
+08:15:42   Applying students.0024_repair_raw_input_json... OK
+08:15:42   Applying students.0025_student_submission_hot_path_indexes... OK
+08:15:42   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+08:15:42   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+08:15:43   Applying students.0028_backfill_ai_grading_completed_at... OK
+08:15:43   Applying students.0029_background_task_item_result... OK
+08:15:44   Applying students.0030_batch_session_credits_exhausted_at... OK
+08:15:44   Applying token_blacklist.0001_initial... OK
+08:15:44   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+08:15:44   Applying token_blacklist.0003_auto_20171017_2007... OK
+08:15:45   Applying token_blacklist.0004_auto_20171017_2013... OK
+08:15:45   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+08:15:45   Applying token_blacklist.0006_auto_20171017_2113... OK
+08:15:45   Applying token_blacklist.0007_auto_20171017_2214... OK
+08:15:46   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+08:15:46   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+08:15:46   Applying token_blacklist.0011_linearizes_history... OK
+08:15:46   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+08:15:46   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+08:15:47   Applying users.0026_customuser_registration_method... OK
+08:15:47   Applying users.0027_customuser_profile_image_url... OK
+08:15:47   Applying users.0028_alter_customuser_middle_name... OK
+08:15:47   Applying users.0029_usergooglecredentials... OK
+08:15:48   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+08:15:48   Applying users.0031_settings_notify_new_assignment_posted... OK
+08:15:49   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+08:15:49   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+08:15:49   Applying users.0034_passwordresetotp_attempts_and_more... OK
+08:15:50   Applying users.0035_settings_notify_assignment_edited... OK
+08:15:50   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+08:15:50   Applying users.0037_customuser_must_change_password... OK
+08:15:50   Applying users.0038_alter_customuser_must_change_password... OK
+08:15:51   Applying users.0039_customuser_token_epoch... OK
+08:15:53   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+08:15:53
+08:15:53 WARNINGS:
+08:15:53 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+08:15:53
+08:15:53 System check identified 1 issue (0 silenced).
+08:15:53 test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) ... Free trial plan not found: no trial activated for user 1d3f9948-375d-4882-be0b-1a1684b6f7d4.
+08:15:53 Cannot activate automatic trial for user 1d3f9948-375d-4882-be0b-1a1684b6f7d4 (validation): ValueError
+08:15:53 Free trial plan not found: no trial activated for user 9be539c6-730b-4a6d-bfef-e1a503be0446.
+08:15:53 Cannot activate automatic trial for user 9be539c6-730b-4a6d-bfef-e1a503be0446 (validation): ValueError
+08:15:54
+08:15:54   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ada.lovelace.aeacf0eef4b72ac9@student.local') ... FAIL
+08:15:54   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ADA.LOVELACE.AEACF0EEF4B72AC9@Student.LOCAL') ... FAIL
+08:15:54   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='  ada.lovelace.aeacf0eef4b72ac9@student.local  ') ... FAIL
+08:15:54   test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='nobody.atall.ffffffffffffffff@student.local') ... FAIL
+08:15:54 test_a_real_students_address_is_still_added (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_real_students_address_is_still_added)
+08:15:54 Control: the refusal is for the placeholder domain only. ... Free trial plan not found: no trial activated for user 3756e79e-fef1-4976-a0cb-25ee3fe1ac6d.
+08:15:54 Cannot activate automatic trial for user 3756e79e-fef1-4976-a0cb-25ee3fe1ac6d (validation): ValueError
+08:15:54 Free trial plan not found: no trial activated for user 7e0c7d83-96ee-4547-a75c-dab28152e92d.
+08:15:54 Cannot activate automatic trial for user 7e0c7d83-96ee-4547-a75c-dab28152e92d (validation): ValueError
+08:15:55 Free trial plan not found: no trial activated for user c251b13a-d111-4213-a90b-3e6390d35c6d.
+08:15:55 Cannot activate automatic trial for user c251b13a-d111-4213-a90b-3e6390d35c6d (validation): ValueError
+08:15:55 ok
+08:15:55 test_direct_add_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_direct_add_refuses_it) ... Free trial plan not found: no trial activated for user 0ca0f762-ded6-4637-a52f-304e1b6ed531.
+08:15:55 Cannot activate automatic trial for user 0ca0f762-ded6-4637-a52f-304e1b6ed531 (validation): ValueError
+08:15:55 Free trial plan not found: no trial activated for user 31a3512a-0dac-4f29-ae9f-191aafdad844.
+08:15:55 Cannot activate automatic trial for user 31a3512a-0dac-4f29-ae9f-191aafdad844 (validation): ValueError
+08:15:55 API Exception
+08:15:55 Traceback (most recent call last):
+08:15:55   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:55     response = handler(request, *args, **kwargs)
+08:15:55                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
+08:15:55     raise ValidationError(serializer.errors)
+08:15:55 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:55 API Exception
+08:15:55 Traceback (most recent call last):
+08:15:55   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:55     response = handler(request, *args, **kwargs)
+08:15:55                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
+08:15:55     raise ValidationError(serializer.errors)
+08:15:55 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:55 API Exception
+08:15:55 Traceback (most recent call last):
+08:15:55   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:55     response = handler(request, *args, **kwargs)
+08:15:55                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
+08:15:55     raise ValidationError(serializer.errors)
+08:15:55 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:55 API Exception
+08:15:55 Traceback (most recent call last):
+08:15:55   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:55     response = handler(request, *args, **kwargs)
+08:15:55                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1396, in direct_add_student
+08:15:55     raise ValidationError(serializer.errors)
+08:15:55 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:55 ok
+08:15:55 test_each_form_refuses_it_before_any_lookup_or_save (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_each_form_refuses_it_before_any_lookup_or_save)
+08:15:55 Isolates the two serializers' own check from the shared service's ... Free trial plan not found: no trial activated for user 1af5c10f-f3e4-4668-b61e-566cb8714d9d.
+08:15:55 Cannot activate automatic trial for user 1af5c10f-f3e4-4668-b61e-566cb8714d9d (validation): ValueError
+08:15:55 Free trial plan not found: no trial activated for user 9f196f2f-5efa-4462-9648-92a4f826209c.
+08:15:55 Cannot activate automatic trial for user 9f196f2f-5efa-4462-9648-92a4f826209c (validation): ValueError
+08:15:56 ok
+08:15:56 test_single_add_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_single_add_refuses_it) ... Free trial plan not found: no trial activated for user 62df4cfa-94e9-4291-a615-e837f69e4265.
+08:15:56 Cannot activate automatic trial for user 62df4cfa-94e9-4291-a615-e837f69e4265 (validation): ValueError
+08:15:56 Free trial plan not found: no trial activated for user 5d9ab4ed-6f72-43dc-9ca4-8ecef4937103.
+08:15:56 Cannot activate automatic trial for user 5d9ab4ed-6f72-43dc-9ca4-8ecef4937103 (validation): ValueError
+08:15:56 API Exception
+08:15:56 Traceback (most recent call last):
+08:15:56   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:56     response = handler(request, *args, **kwargs)
+08:15:56                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:56   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
+08:15:56     raise ValidationError(serializer.errors)
+08:15:56 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:56 API Exception
+08:15:56 Traceback (most recent call last):
+08:15:56   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:56     response = handler(request, *args, **kwargs)
+08:15:56                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:56   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
+08:15:56     raise ValidationError(serializer.errors)
+08:15:56 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:56 API Exception
+08:15:56 Traceback (most recent call last):
+08:15:56   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:56     response = handler(request, *args, **kwargs)
+08:15:56                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:56   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
+08:15:56     raise ValidationError(serializer.errors)
+08:15:56 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:56 API Exception
+08:15:56 Traceback (most recent call last):
+08:15:56   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:56     response = handler(request, *args, **kwargs)
+08:15:56                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:56   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
+08:15:56     raise ValidationError(serializer.errors)
+08:15:56 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:56 ok
+08:15:56 test_the_owner_cannot_use_it_either (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_the_owner_cannot_use_it_either)
+08:15:56 The rule is about the domain, not about whose student it is: the ... Free trial plan not found: no trial activated for user b6f99fb2-2925-4619-895b-a6258028b44d.
+08:15:56 Cannot activate automatic trial for user b6f99fb2-2925-4619-895b-a6258028b44d (validation): ValueError
+08:15:56 Free trial plan not found: no trial activated for user 10427afd-347a-477d-8151-85677bfb9c24.
+08:15:56 Cannot activate automatic trial for user 10427afd-347a-477d-8151-85677bfb9c24 (validation): ValueError
+08:15:57 API Exception
+08:15:57 Traceback (most recent call last):
+08:15:57   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+08:15:57     response = handler(request, *args, **kwargs)
+08:15:57                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:15:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1335, in students
+08:15:57     raise ValidationError(serializer.errors)
+08:15:57 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+08:15:57 ok
+08:15:57 test_the_shared_service_refuses_it_and_logs_ids_only (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_the_shared_service_refuses_it_and_logs_ids_only) ... Free trial plan not found: no trial activated for user aeb8eecd-b504-4afc-baed-50fec508ee74.
+08:15:57 Cannot activate automatic trial for user aeb8eecd-b504-4afc-baed-50fec508ee74 (validation): ValueError
+08:15:57 Free trial plan not found: no trial activated for user 40f18dde-0172-488b-96d2-3cdc8993ccc1.
+08:15:57 Cannot activate automatic trial for user 40f18dde-0172-488b-96d2-3cdc8993ccc1 (validation): ValueError
+08:15:57 ok
+08:15:57 test_a_bulk_row_makes_a_new_student (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_a_bulk_row_makes_a_new_student) ... Free trial plan not found: no trial activated for user 522ea8a2-10ca-4a74-bc41-1107d08aa75a.
+08:15:57 Cannot activate automatic trial for user 522ea8a2-10ca-4a74-bc41-1107d08aa75a (validation): ValueError
+08:15:57 Free trial plan not found: no trial activated for user ffad313b-a583-4a55-ad42-105903d8d26f.
+08:15:57 Cannot activate automatic trial for user ffad313b-a583-4a55-ad42-105903d8d26f (validation): ValueError
+08:15:58 ok
+08:15:58 test_direct_add_makes_a_new_student (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_direct_add_makes_a_new_student) ... Free trial plan not found: no trial activated for user 409e49ac-515a-488b-8ff9-928cf13b8f87.
+08:15:58 Cannot activate automatic trial for user 409e49ac-515a-488b-8ff9-928cf13b8f87 (validation): ValueError
+08:15:58 Free trial plan not found: no trial activated for user 20bdd1fc-4eca-4807-a371-f3c9063b783e.
+08:15:58 Cannot activate automatic trial for user 20bdd1fc-4eca-4807-a371-f3c9063b783e (validation): ValueError
+08:15:58 ok
+08:15:58 test_the_same_teachers_other_course_gets_a_new_student_by_direct_add (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_the_same_teachers_other_course_gets_a_new_student_by_direct_add)
+08:15:58 Direct add never reuses an account, even the teacher's own. ... Free trial plan not found: no trial activated for user 98f12089-6b0c-42f6-bf43-efd7e473c17c.
+08:15:58 Cannot activate automatic trial for user 98f12089-6b0c-42f6-bf43-efd7e473c17c (validation): ValueError
+08:15:58 Free trial plan not found: no trial activated for user 9dbfa350-09d9-4ce1-bda7-0b0e65d4ad02.
+08:15:58 Cannot activate automatic trial for user 9dbfa350-09d9-4ce1-bda7-0b0e65d4ad02 (validation): ValueError
+08:15:59 ok
+08:15:59 test_two_requests_picking_one_token_end_as_two_students (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_two_requests_picking_one_token_end_as_two_students)
+08:15:59 The concurrent double-add: the address looked free to this ... Free trial plan not found: no trial activated for user afc36fcc-387e-4789-b084-2ec8cf040194.
+08:15:59 Cannot activate automatic trial for user afc36fcc-387e-4789-b084-2ec8cf040194 (validation): ValueError
+08:15:59 Free trial plan not found: no trial activated for user c4ab6989-28cd-4b9d-a417-9f56c76420fb.
+08:15:59 Cannot activate automatic trial for user c4ab6989-28cd-4b9d-a417-9f56c76420fb (validation): ValueError
+08:16:00 ok
+08:16:00 test_when_every_attempt_collides_nothing_is_attached (classrooms.tests_h99_placeholder_email.AGeneratedAddressNeverAttachesTests.test_when_every_attempt_collides_nothing_is_attached) ... Free trial plan not found: no trial activated for user 5a7c1272-4343-4d8f-bb24-01072f73f9b9.
+08:16:00 Cannot activate automatic trial for user 5a7c1272-4343-4d8f-bb24-01072f73f9b9 (validation): ValueError
+08:16:00 Free trial plan not found: no trial activated for user 72732cc8-8f6b-4aba-812b-b71cbb3cd5c3.
+08:16:00 Cannot activate automatic trial for user 72732cc8-8f6b-4aba-812b-b71cbb3cd5c3 (validation): ValueError
+08:16:00 Failed to direct-add student to course
+08:16:00 Traceback (most recent call last):
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/views.py", line 1399, in direct_add_student
+08:16:00     student = serializer.save()
+08:16:00               ^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+08:16:00     self.instance = self.create(validated_data)
+08:16:00                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 670, in create
+08:16:00     student = _create_placeholder_student(**fields)
+08:16:00               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 535, in _create_placeholder_student
+08:16:00     raise serializers.ValidationError(
+08:16:00 rest_framework.exceptions.ValidationError: [ErrorDetail(string="We couldn't add this student to the course. Please try again.", code='invalid')]
+08:16:00
+08:16:00
+08:16:00 django.request ERROR 2026-10-05 07:16:00,855 log 83497 138195128978368 [request_id=- client_request_id=-] Internal Server Error: /api/v1/course/3ec0c3d5-8637-4ce3-9f23-2b9e2f935153/direct-add-student
+08:16:00
+08:16:00
+08:16:00 Failed to bulk-add student at row 1 of course 3ec0c3d5-8637-4ce3-9f23-2b9e2f935153
+08:16:00 Traceback (most recent call last):
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/services/roster_import.py", line 572, in _import_one
+08:16:00     return _import_row_without_email(course=course, row=row)
+08:16:00            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/services/roster_import.py", line 499, in _import_row_without_email
+08:16:00     student = serializer.save()
+08:16:00               ^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+08:16:00     self.instance = self.create(validated_data)
+08:16:00                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 670, in create
+08:16:00     student = _create_placeholder_student(**fields)
+08:16:00               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+08:16:00   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/serializers.py", line 535, in _create_placeholder_student
+08:16:00     raise serializers.ValidationError(
+08:16:00 rest_framework.exceptions.ValidationError: [ErrorDetail(string="We couldn't add this student to the course. Please try again.", code='invalid')]
+08:16:01 ok
+08:16:01 test_is_placeholder_email_ignores_case_and_surrounding_spaces (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_is_placeholder_email_ignores_case_and_surrounding_spaces) ... Free trial plan not found: no trial activated for user 304a1e07-e8c1-4a71-a73c-7222e0b574a2.
+08:16:01 Cannot activate automatic trial for user 304a1e07-e8c1-4a71-a73c-7222e0b574a2 (validation): ValueError
+08:16:01 Free trial plan not found: no trial activated for user 907d512d-f11b-4164-8a18-882ac3c27fae.
+08:16:01 Cannot activate automatic trial for user 907d512d-f11b-4164-8a18-882ac3c27fae (validation): ValueError
+08:16:01 ok
+08:16:01 test_it_is_in_the_placeholder_domain_with_a_long_random_token (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_it_is_in_the_placeholder_domain_with_a_long_random_token) ... Free trial plan not found: no trial activated for user 5055eab5-b4c9-46a5-9562-f8301681635f.
+08:16:01 Cannot activate automatic trial for user 5055eab5-b4c9-46a5-9562-f8301681635f (validation): ValueError
+08:16:01 Free trial plan not found: no trial activated for user 026f4b24-009b-4a77-af0c-06db76f641dd.
+08:16:01 Cannot activate automatic trial for user 026f4b24-009b-4a77-af0c-06db76f641dd (validation): ValueError
+08:16:02 ok
+08:16:02 test_the_name_parts_are_folded_and_kept_short (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_the_name_parts_are_folded_and_kept_short) ... Free trial plan not found: no trial activated for user 60a713b0-0618-476a-8109-2d1144c7d4e9.
+08:16:02 Cannot activate automatic trial for user 60a713b0-0618-476a-8109-2d1144c7d4e9 (validation): ValueError
+08:16:02 Free trial plan not found: no trial activated for user b69ed49f-b6a4-4ab2-93a6-4f7ff638585d.
+08:16:02 Cannot activate automatic trial for user b69ed49f-b6a4-4ab2-93a6-4f7ff638585d (validation): ValueError
+08:16:02 ok
+08:16:02 test_two_addresses_for_one_name_differ (classrooms.tests_h99_placeholder_email.TheGeneratedAddressTests.test_two_addresses_for_one_name_differ) ... Free trial plan not found: no trial activated for user 9fa474d4-7664-4597-a66d-87afef202ec8.
+08:16:02 Cannot activate automatic trial for user 9fa474d4-7664-4597-a66d-87afef202ec8 (validation): ValueError
+08:16:02 Free trial plan not found: no trial activated for user 2ab5ca19-db71-4a03-92b8-34e3056f34f1.
+08:16:02 Cannot activate automatic trial for user 2ab5ca19-db71-4a03-92b8-34e3056f34f1 (validation): ValueError
+08:16:02 ok
+08:16:02
+08:16:02 ======================================================================
+08:16:02 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ada.lovelace.aeacf0eef4b72ac9@student.local')
+08:16:02 ----------------------------------------------------------------------
+08:16:02 Traceback (most recent call last):
+08:16:02   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
+08:16:02     self.assertEqual(
+08:16:02 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+08:16:02 - Row 1: this email can't be added as a student.
+08:16:02 ? ^^^^^^^^
+08:16:02 + This email can't be added as a student.
+08:16:02 ? ^
+08:16:02
+08:16:02
+08:16:02 ======================================================================
+08:16:02 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='ADA.LOVELACE.AEACF0EEF4B72AC9@Student.LOCAL')
+08:16:02 ----------------------------------------------------------------------
+08:16:02 Traceback (most recent call last):
+08:16:02   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
+08:16:02     self.assertEqual(
+08:16:02 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+08:16:02 - Row 1: this email can't be added as a student.
+08:16:02 ? ^^^^^^^^
+08:16:02 + This email can't be added as a student.
+08:16:02 ? ^
+08:16:02
+08:16:02
+08:16:02 ======================================================================
+08:16:02 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='  ada.lovelace.aeacf0eef4b72ac9@student.local  ')
+08:16:02 ----------------------------------------------------------------------
+08:16:02 Traceback (most recent call last):
+08:16:02   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
+08:16:02     self.assertEqual(
+08:16:02 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+08:16:02 - Row 1: this email can't be added as a student.
+08:16:02 ? ^^^^^^^^
+08:16:02 + This email can't be added as a student.
+08:16:02 ? ^
+08:16:02
+08:16:02
+08:16:02 ======================================================================
+08:16:02 FAIL: test_a_bulk_row_refuses_it (classrooms.tests_h99_placeholder_email.ACallerSuppliedPlaceholderAddressIsRefusedTests.test_a_bulk_row_refuses_it) (address='nobody.atall.ffffffffffffffff@student.local')
+08:16:02 ----------------------------------------------------------------------
+08:16:02 Traceback (most recent call last):
+08:16:02   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b6/classrooms/tests_h99_placeholder_email.py", line 283, in test_a_bulk_row_refuses_it
+08:16:02     self.assertEqual(
+08:16:02 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+08:16:02 - Row 1: this email can't be added as a student.
+08:16:02 ? ^^^^^^^^
+08:16:02 + This email can't be added as a student.
+08:16:02 ? ^
+08:16:02
+08:16:02
+08:16:02 ----------------------------------------------------------------------
+08:16:02 Ran 16 tests in 9.494s
+08:16:02
+08:16:02 FAILED (failures=4)
+08:16:02 Destroying test database for alias 'default' ('test_epic_a_merge_down_b6_mut')...
+08:16:04  OK
+08:16:05 systemd-run failed with exit status 1.
