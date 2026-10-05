@@ -1,0 +1,13 @@
+# W2: our suite starts its workers through our initializer
+# file: AutoGrader/redis_test_runner.py (occurrence 1)
+# old: '    init_worker = _init_worker\n'
+# new: ''
+# commit: c3c10348d456513b85764a5b170bd850a00c67f5
+# exit: 1
+# elapsed_s: 20.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies)
+FAIL: test_our_suite_starts_each_worker_through_our_own (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_our_suite_starts_each_worker_through_our_own)
+
+FAILED (failures=2)

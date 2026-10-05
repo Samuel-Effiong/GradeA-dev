@@ -1,0 +1,12 @@
+# W1: every worker gets the default action back (the pool initializer)
+# file: AutoGrader/redis_test_runner.py (occurrence 1)
+# old: '    _die_on_sigterm()\n    return ParallelTestSuite.init_worker(*args, **kwargs)\n'
+# new: '    return ParallelTestSuite.init_worker(*args, **kwargs)\n'
+# commit: f3c7ee131c29c2714afa7bab135929f6b22e4c7f
+# exit: 1
+# elapsed_s: 24.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies)
+
+FAILED (failures=1)
