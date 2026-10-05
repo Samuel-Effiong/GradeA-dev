@@ -1,7 +1,8 @@
 # H-110: the PDF renderer's Playwright driver shared the service's stderr
 
 Author: ed (Security), 2026-10-05. Branch `task/h110-renderer-driver-stderr`, off
-`task/beta-batch-7` 27b0d2e0 (first written on c823cdca; base update 80599da2). For the bundle after bundle 7 (SM), and before the renderer is
+`task/beta-batch-7` 27b0d2e0 (first written on c823cdca; base update 80599da2), then on
+`task/beta-batch-8` e578e3db (base update 944da47f, 2026-10-06; see "After the base update"). For the bundle after bundle 7 (SM), and before the renderer is
 promoted to main. MEDIUM. Verifier: 1a.
 
 ## The defect
@@ -156,16 +157,32 @@ full-suite lock, timeout 3600, rules 12, 13, 16 and 18. Not stopped, not repeate
 wall-clock test (`ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others`,
 H-123) goes only on a quiet machine. The grant was given on that footing, and the check before
 the start found no other test run. After the run, the process list showed another project's
-browser test on the same laptop: a Playwright run started 23:53:44, whose headless browser
-started 23:59:00 and was still alive at 00:01:52. So it overlapped at least the last two and a
+browser test on the same laptop: a Playwright run started 23:53:44, before 0b's notice of our
+start reached that project, whose six headless browser processes started 23:59:00 and were
+still alive at 00:01:52. So it overlapped at least the last two and a
 half minutes of this run. The wall-clock test passed all the same. A green under extra load says
 no less about H-110 than a green on a quiet machine would; what it cannot be is a timing
-reference. Whether the run stands is the SM's decision. Nothing of that other project was
-touched; the process list was only read.
+reference. Nothing of that other project was touched; the process list was only read. **SM's ruling,
+2026-10-06: the run counts and is not repeated.**
 
 **What this run does not cover:** `task/beta-batch-8` has since taken H-118, which changes
 `assignments/tests_pdf_renderer.py`. H-110 does not change that file, but its test module
 imports `_CHROMIUM_AVAILABLE` from it. This run was on the base before H-118.
+
+### After the base update onto `task/beta-batch-8` e578e3db
+
+0b merged e578e3db into the branch at a688919d: 944da47f, a clean merge (H-98, H-119, H-118).
+Against e578e3db the branch differs outside this folder in three files only:
+`assignments/pdf_renderer.py` and the two new test modules. By the SM's ruling the short step
+(the two new modules, the seven caller modules, the guard modules) is run once more on the new
+base before the freeze. The reproduce-first step, the mutants and the owning-app regression are
+not repeated (rule 15): the merge changes none of the three files, and the mutants are on
+`pdf_renderer.py` alone.
+
+The guard list for this run has one module more than step 1 had, 22 in all:
+`AutoGrader.tests_no_playwright_at_import`, which H-118 changed.
+
+Not yet run at this commit. The result is added here by the next commit.
 
 ### How the mutants were counted
 
