@@ -142,7 +142,23 @@ def latest_monthly_point(anchor, at):
     return anchor + relativedelta(months=k)
 
 
-def grants_owed(anchor, next_due, until):
+#: Inside a cycle's last ANCHOR_SNAP, an unserved point counts as owed only
+#: if it came due at least this long before the end (H-98). The refresh
+#: runs once a day and serves a due time only on a run between that time
+#: and the cycle's end: a point due later than this may have had no run at
+#: all with Beat healthy, and reporting it would say Beat was down.
+OWED_MARGIN = timedelta(days=1)
+
+
+def is_anchor_point(anchor, at):
+    """True when `at` is exactly `anchor` + k months, k >= 0."""
+    k = 0
+    while anchor + relativedelta(months=k) < at:
+        k += 1
+    return anchor + relativedelta(months=k) == at
+
+
+def grants_owed(anchor, next_due, until, on_stored_anchor=False):
     """How many monthly grants came due before `until` and were never made
     (H-81), for a chain anchored at `anchor` whose next due time is
     `next_due`.
@@ -151,9 +167,23 @@ def grants_owed(anchor, next_due, until):
     cycle's end, so nothing is owed. A due time within ANCHOR_SNAP of
     `until` is the same period as `until` itself (the renewal's): a row
     drifted to the 28th against a cycle ending on the 31st owes nothing.
+
+    H-98: that last ANCHOR_SNAP also hid a real point left unserved by an
+    outage that ran to the end. With `on_stored_anchor` (the caller's word
+    that `anchor` is the allocation's STORED anchor, not a fallback and not
+    the due time itself), a due time there counts when it is exactly one of
+    the anchor's points and lies at least OWED_MARGIN before `until`. A
+    drifted row is near a point, not on it, and is still ignored. A point
+    due in the last OWED_MARGIN is not counted.
     """
     owed = 0
     while next_due + ANCHOR_SNAP < until:
         owed += 1
         _, next_due = next_monthly_grant(anchor, next_due, until)
+    if (
+        on_stored_anchor
+        and next_due + OWED_MARGIN <= until
+        and is_anchor_point(anchor, next_due)
+    ):
+        owed += 1
     return owed

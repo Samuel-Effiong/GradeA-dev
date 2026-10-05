@@ -1,0 +1,528 @@
+# 1a H-98 baseline at 7ab45f1e814dcd9b22fbd8e9a79642e1d102d22c, unmutated, PYTHONDONTWRITEBYTECODE=1
+pycache dirs under AutoGrader and billing after clear: 0
+Creating test database for alias 'default' ('test_vf_h98')...
+Found 68 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_w3_the_last_run_45_seconds_late (billing.tests.test_vf1a_h98_probe.H98LateRunProbe.test_w3_the_last_run_45_seconds_late) ... Free trial plan not found: no trial activated for user 0570017b-7709-43f7-bc0d-a23d48825985.
+Cannot activate automatic trial for user 0570017b-7709-43f7-bc0d-a23d48825985 (validation): ValueError
+ok
+test_w3_the_last_run_on_time (billing.tests.test_vf1a_h98_probe.H98LateRunProbe.test_w3_the_last_run_on_time) ... Free trial plan not found: no trial activated for user 9bdc2c57-0d12-47f4-a15e-0872f447d2cb.
+Cannot activate automatic trial for user 9bdc2c57-0d12-47f4-a15e-0872f447d2cb (validation): ValueError
+ok
+test_w1_01 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w1_01) ... Free trial plan not found: no trial activated for user 3141bb51-0860-48d8-8385-6df3851d2492.
+Cannot activate automatic trial for user 3141bb51-0860-48d8-8385-6df3851d2492 (validation): ValueError
+ok
+test_w1_02 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w1_02) ... Free trial plan not found: no trial activated for user 56297e87-7ec3-47c9-8773-40de4724fd21.
+Cannot activate automatic trial for user 56297e87-7ec3-47c9-8773-40de4724fd21 (validation): ValueError
+ok
+test_w1_03 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w1_03) ... Free trial plan not found: no trial activated for user f800bbb9-cda5-4d08-8877-d239dc3743cd.
+Cannot activate automatic trial for user f800bbb9-cda5-4d08-8877-d239dc3743cd (validation): ValueError
+ok
+test_w2_01 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_01) ... Free trial plan not found: no trial activated for user 597bd2f3-8c04-43b3-aa0f-25cbf3e080d4.
+Cannot activate automatic trial for user 597bd2f3-8c04-43b3-aa0f-25cbf3e080d4 (validation): ValueError
+ok
+test_w2_02 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_02) ... Free trial plan not found: no trial activated for user 9cc9db70-e93e-4c73-8048-fed7bb011175.
+Cannot activate automatic trial for user 9cc9db70-e93e-4c73-8048-fed7bb011175 (validation): ValueError
+ok
+test_w2_03 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_03) ... Free trial plan not found: no trial activated for user 2d264ae2-b8f5-4bc7-a20a-b4a014079c60.
+Cannot activate automatic trial for user 2d264ae2-b8f5-4bc7-a20a-b4a014079c60 (validation): ValueError
+ok
+test_w2_04 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_04) ... Free trial plan not found: no trial activated for user 42879eee-0f80-405d-bd30-898a5fd7e5a8.
+Cannot activate automatic trial for user 42879eee-0f80-405d-bd30-898a5fd7e5a8 (validation): ValueError
+ok
+test_w2_05 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_05) ... Free trial plan not found: no trial activated for user e2084c41-7513-4a2d-ac3d-52eeeefee596.
+Cannot activate automatic trial for user e2084c41-7513-4a2d-ac3d-52eeeefee596 (validation): ValueError
+ok
+test_w2_06 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_06) ... Free trial plan not found: no trial activated for user a59cec84-7c63-4ece-879a-cb2feecba179.
+Cannot activate automatic trial for user a59cec84-7c63-4ece-879a-cb2feecba179 (validation): ValueError
+ok
+test_w2_07 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_07) ... Free trial plan not found: no trial activated for user ee65e473-d2a9-4c14-b617-208eccdd2d7c.
+Cannot activate automatic trial for user ee65e473-d2a9-4c14-b617-208eccdd2d7c (validation): ValueError
+ok
+test_w2_08 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_08) ... Free trial plan not found: no trial activated for user 9c1e5b72-ffa5-412f-baa9-016ae3e3e096.
+Cannot activate automatic trial for user 9c1e5b72-ffa5-412f-baa9-016ae3e3e096 (validation): ValueError
+ok
+test_w2_09 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_09) ... Free trial plan not found: no trial activated for user e204ab9d-1468-441d-8503-e1a4fab6a769.
+Cannot activate automatic trial for user e204ab9d-1468-441d-8503-e1a4fab6a769 (validation): ValueError
+ok
+test_w2_10 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_10) ... Free trial plan not found: no trial activated for user 48c901cb-8ee6-41bd-be2f-dffc1e6344c2.
+Cannot activate automatic trial for user 48c901cb-8ee6-41bd-be2f-dffc1e6344c2 (validation): ValueError
+ok
+test_w2_11 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_11) ... Free trial plan not found: no trial activated for user dbaa0d1b-a7cd-4162-8d58-988a399aa4dc.
+Cannot activate automatic trial for user dbaa0d1b-a7cd-4162-8d58-988a399aa4dc (validation): ValueError
+ok
+test_w2_12 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_12) ... Free trial plan not found: no trial activated for user 3f2c959e-78eb-4bc0-99bb-ed8d8fe15b83.
+Cannot activate automatic trial for user 3f2c959e-78eb-4bc0-99bb-ed8d8fe15b83 (validation): ValueError
+ok
+test_w2_13 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_13) ... Free trial plan not found: no trial activated for user edba1d27-241e-425f-bc36-fe862d7e6b05.
+Cannot activate automatic trial for user edba1d27-241e-425f-bc36-fe862d7e6b05 (validation): ValueError
+ok
+test_w2_14 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_14) ... Free trial plan not found: no trial activated for user 2c2df34c-a16d-4e71-a590-cd1b5223dfad.
+Cannot activate automatic trial for user 2c2df34c-a16d-4e71-a590-cd1b5223dfad (validation): ValueError
+ok
+test_w2_15 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_15) ... Free trial plan not found: no trial activated for user e482f085-1f6e-4a13-a19d-a17d79b4d46e.
+Cannot activate automatic trial for user e482f085-1f6e-4a13-a19d-a17d79b4d46e (validation): ValueError
+ok
+test_w2_16 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_16) ... Free trial plan not found: no trial activated for user 0a69e6df-7e62-42c0-8206-89999edc8d30.
+Cannot activate automatic trial for user 0a69e6df-7e62-42c0-8206-89999edc8d30 (validation): ValueError
+ok
+test_w2_17 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_17) ... Free trial plan not found: no trial activated for user 3d0a9b8c-65c2-4410-b012-4933deb26045.
+Cannot activate automatic trial for user 3d0a9b8c-65c2-4410-b012-4933deb26045 (validation): ValueError
+ok
+test_w2_18 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w2_18) ... Free trial plan not found: no trial activated for user be6ce203-17f4-4b1a-b6da-62e1bf1b4838.
+Cannot activate automatic trial for user be6ce203-17f4-4b1a-b6da-62e1bf1b4838 (validation): ValueError
+ok
+test_w4_01 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w4_01) ... Free trial plan not found: no trial activated for user 7c2bc5ce-969b-46b1-bfd6-21561d07a59c.
+Cannot activate automatic trial for user 7c2bc5ce-969b-46b1-bfd6-21561d07a59c (validation): ValueError
+ok
+test_w4_02 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w4_02) ... Free trial plan not found: no trial activated for user d9d191a9-c2c6-4af0-a9a3-47454ceb21bd.
+Cannot activate automatic trial for user d9d191a9-c2c6-4af0-a9a3-47454ceb21bd (validation): ValueError
+ok
+test_w4_03 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w4_03) ... Free trial plan not found: no trial activated for user efefae92-0c7f-4ab8-8382-a8e3dc7aa829.
+Cannot activate automatic trial for user efefae92-0c7f-4ab8-8382-a8e3dc7aa829 (validation): ValueError
+ok
+test_w4_04 (billing.tests.test_vf1a_h98_probe.H98Probe.test_w4_04) ... Free trial plan not found: no trial activated for user eaeedb56-96c0-429d-97cd-5888dd503572.
+Cannot activate automatic trial for user eaeedb56-96c0-429d-97cd-5888dd503572 (validation): ValueError
+ok
+test_w5_a_stored_anchor_not_in_use_and_a_near_miss (billing.tests.test_vf1a_h98_probe.H98Probe.test_w5_a_stored_anchor_not_in_use_and_a_near_miss) ... Free trial plan not found: no trial activated for user 217a17f2-3a87-4564-9df2-dcee6b9f113e.
+Cannot activate automatic trial for user 217a17f2-3a87-4564-9df2-dcee6b9f113e (validation): ValueError
+ok
+test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing)
+The count runs to the cycle's end, not to the renewal's moment ... Free trial plan not found: no trial activated for user 6ae3e28d-aef6-4711-a4c2-5d70bd3e63fa.
+Cannot activate automatic trial for user 6ae3e28d-aef6-4711-a4c2-5d70bd3e63fa (validation): ValueError
+ok
+test_a_row_drifted_to_the_28th_is_not_reported_as_owed (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_a_row_drifted_to_the_28th_is_not_reported_as_owed) ... Free trial plan not found: no trial activated for user caf6603a-0088-46a5-a682-7b7dc9eb6817.
+Cannot activate automatic trial for user caf6603a-0088-46a5-a682-7b7dc9eb6817 (validation): ValueError
+ok
+test_control_a_chain_served_to_the_end_reports_nothing (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_control_a_chain_served_to_the_end_reports_nothing) ... Free trial plan not found: no trial activated for user a79637e7-1f97-43eb-b961-81b7da205579.
+Cannot activate automatic trial for user a79637e7-1f97-43eb-b961-81b7da205579 (validation): ValueError
+ok
+test_the_last_grant_never_made_is_reported (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_the_last_grant_never_made_is_reported)
+1a's H-82 O2. ... Free trial plan not found: no trial activated for user cc3da437-5072-404e-8ca8-d0951437d9cb.
+Cannot activate automatic trial for user cc3da437-5072-404e-8ca8-d0951437d9cb (validation): ValueError
+ok
+test_three_grants_never_made_are_counted (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_three_grants_never_made_are_counted) ... Free trial plan not found: no trial activated for user eab6703a-23b0-4929-a8ba-a2a614e1af3e.
+Cannot activate automatic trial for user eab6703a-23b0-4929-a8ba-a2a614e1af3e (validation): ValueError
+ok
+test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing)
+1a's mutant: the count runs to the cycle's end, not to the ... Free trial plan not found: no trial activated for user 82fce26e-6d11-4b9f-a310-b327f55620d6.
+Cannot activate automatic trial for user 82fce26e-6d11-4b9f-a310-b327f55620d6 (validation): ValueError
+ok
+test_a_row_drifted_to_the_28th_is_not_reported_as_owed (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_a_row_drifted_to_the_28th_is_not_reported_as_owed)
+An old chain's last due time, three days before a cycle ending ... Free trial plan not found: no trial activated for user 771f0b62-4cee-4537-a609-04b0df6adec4.
+Cannot activate automatic trial for user 771f0b62-4cee-4537-a609-04b0df6adec4 (validation): ValueError
+ok
+test_an_early_offline_renewal_reports_nothing (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_early_offline_renewal_reports_nothing)
+A superadmin renewing in month 4: the later refreshes of the old ... Free trial plan not found: no trial activated for user 7ec4e713-9874-4dcc-9558-723ed9f807fa.
+Cannot activate automatic trial for user 7ec4e713-9874-4dcc-9558-723ed9f807fa (validation): ValueError
+ok
+test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal)
+1a's O2, driven: Beat stops before the last two anchors and the ... Free trial plan not found: no trial activated for user abc00403-9ffa-41f4-b6b4-6db94a2ccae9.
+Cannot activate automatic trial for user abc00403-9ffa-41f4-b6b4-6db94a2ccae9 (validation): ValueError
+ok
+test_control_a_chain_served_to_the_end_reports_nothing (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_control_a_chain_served_to_the_end_reports_nothing) ... Free trial plan not found: no trial activated for user eb1e225b-434a-456f-9fff-e012a68cad34.
+Cannot activate automatic trial for user eb1e225b-434a-456f-9fff-e012a68cad34 (validation): ValueError
+ok
+test_the_last_refresh_never_made_is_reported_by_the_renewal_task (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_last_refresh_never_made_is_reported_by_the_renewal_task) ... Free trial plan not found: no trial activated for user b7a3b99b-7f26-4a3d-9ad4-44c71080380a.
+Cannot activate automatic trial for user b7a3b99b-7f26-4a3d-9ad4-44c71080380a (validation): ValueError
+ok
+test_the_renewal_still_renews (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_renewal_still_renews)
+Detection only: the renewal goes on, and grants one month. ... Free trial plan not found: no trial activated for user 9b80b41d-f69b-4772-89cf-8df65cff3a15.
+Cannot activate automatic trial for user 9b80b41d-f69b-4772-89cf-8df65cff3a15 (validation): ValueError
+ok
+test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor)
+1a's F1: anchor 5 January, due time moved to 28 March. Not the ... ok
+test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_off_the_fallbacks_chain_is_its_own_anchor)
+A teacher re-enrolled since the last renewal: the fallback is the ... ok
+test_a_due_time_on_the_fallbacks_chain_uses_the_fallback (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_on_the_fallbacks_chain_uses_the_fallback)
+Every start day, every month, drifted by the old chain: up to 3 ... ok
+test_a_fallback_later_than_the_due_time_does_not_loop (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_fallback_later_than_the_due_time_does_not_loop) ... ok
+test_a_stored_anchor_wins_while_the_due_time_is_on_its_chain (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_stored_anchor_wins_while_the_due_time_is_on_its_chain) ... ok
+test_the_snap_window_is_ANCHOR_SNAP_on_both_sides (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_the_snap_window_is_ANCHOR_SNAP_on_both_sides) ... ok
+test_a_chain_served_to_the_end_owes_nothing (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_a_chain_served_to_the_end_owes_nothing)
+The due time is then capped at the cycle's end, or beyond it. ... ok
+test_a_due_time_near_a_point_but_not_on_it_is_ignored (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_a_due_time_near_a_point_but_not_on_it_is_ignored)
+The drifted rows the 7 days exist for: near a point, not on it. ... ok
+test_an_outage_that_ran_to_the_end_counts_the_last_point_too (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_an_outage_that_ran_to_the_end_counts_the_last_point_too)
+Unserved from month 9: months 9 and 10 are more than 7 days ... ok
+test_an_unserved_point_of_a_stored_anchor_is_owed (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_an_unserved_point_of_a_stored_anchor_is_owed) ... ok
+test_every_day_of_the_month_clamped_dates_too (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_every_day_of_the_month_clamped_dates_too) ... ok
+test_it_needs_one_full_day_before_the_end (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_it_needs_one_full_day_before_the_end) ... ok
+test_outside_the_last_week_nothing_changes (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_outside_the_last_week_nothing_changes)
+H-81's own table, with and without a stored anchor. ... ok
+test_without_a_stored_anchor_it_is_ignored_as_before (billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_without_a_stored_anchor_it_is_ignored_as_before) ... ok
+test_a_drifted_last_due_time_is_the_renewals_own_period (billing.tests.test_allocation_anchor.GrantsOwedTests.test_a_drifted_last_due_time_is_the_renewals_own_period) ... ok
+test_a_due_time_after_until_owes_nothing (billing.tests.test_allocation_anchor.GrantsOwedTests.test_a_due_time_after_until_owes_nothing)
+An early renewal: `until` is the renewal's moment. ... ok
+test_the_count_is_the_anchor_points_never_served (billing.tests.test_allocation_anchor.GrantsOwedTests.test_the_count_is_the_anchor_points_never_served) ... ok
+test_a_clamped_date_is_a_point (billing.tests.test_allocation_anchor.LatestMonthlyPointTests.test_a_clamped_date_is_a_point)
+31 January, then 28 February: under a calendar month apart. ... ok
+test_at_a_point_it_is_that_point_and_just_before_it_the_one_before (billing.tests.test_allocation_anchor.LatestMonthlyPointTests.test_at_a_point_it_is_that_point_and_just_before_it_the_one_before) ... ok
+test_before_the_first_month_ends_it_is_the_anchor (billing.tests.test_allocation_anchor.LatestMonthlyPointTests.test_before_the_first_month_ends_it_is_the_anchor) ... ok
+test_a_drifted_row_converges_without_a_double_refresh (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_drifted_row_converges_without_a_double_refresh)
+The example: a 31 January licence, the row drifted to 28 March. ... ok
+test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval (billing.tests.test_allocation_anchor.OldRowChainTests.test_a_re_enrolled_row_keeps_its_rhythm_with_no_irregular_interval)
+The residual group. Every day of the month it could be on, against ... ok
+test_every_start_day_drifted_at_any_month_gets_one_refresh_a_period (billing.tests.test_allocation_anchor.OldRowChainTests.test_every_start_day_drifted_at_any_month_gets_one_refresh_a_period) ... ok
+test_weekly_runs_only_delay (billing.tests.test_allocation_anchor.OldRowChainTests.test_weekly_runs_only_delay) ... ok
+test_a_point_of_the_stored_anchor_in_the_last_week_is_reported (billing.tests.test_allocation_anchor.TheRenewalReportsTests.test_a_point_of_the_stored_anchor_in_the_last_week_is_reported) ... ok
+test_a_row_with_no_stored_anchor_is_not_reported_there (billing.tests.test_allocation_anchor.TheRenewalReportsTests.test_a_row_with_no_stored_anchor_is_not_reported_there)
+A row older than the field: its fallback anchor (created_at ... ok
+test_a_stored_anchor_that_is_not_the_one_in_use_does_not_count (billing.tests.test_allocation_anchor.TheRenewalReportsTests.test_a_stored_anchor_that_is_not_the_one_in_use_does_not_count)
+The due time is far off the stored anchor's chain (something ... ok
+test_the_individual_plan_caller_has_no_stored_anchor_and_says_so (billing.tests.test_allocation_anchor.TheRenewalReportsTests.test_the_individual_plan_caller_has_no_stored_anchor_and_says_so)
+billing/services.py passes the cycle start as the anchor; there ... ok
+
+----------------------------------------------------------------------
+Ran 68 tests in 29.029s
+
+OK
+Destroying test database for alias 'default' ('test_vf_h98')...
+ OK
+
+VF1A_H98_W3 last run 45 s late: not served (the cycle ends inside the run's 5-minute tolerance), owed lines=1
+
+VF1A_H98_W3 last run on time: served, owed lines=0
+
+VF1A_H98_W1 real rows, outage to the end, anchored on the 27th: last point 27 Feb 10:00, 2 days, 14:59:59.979000 before the end -> owed 1
+
+VF1A_H98_W1 real rows, outage to the end, anchored on the 31st (28 Feb, clamped): last point 28 Feb 10:00, 1 day, 14:59:59.979000 before the end -> owed 1
+
+VF1A_H98_W1 real rows, outage to the end, anchored on the 26th, out from month 9: last point 26 Feb 10:00, 3 days, 14:59:59.979000 before the end -> owed 3
+
+VF1A_H98_W2 last point 8 days before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 8 days before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 7 days + 1 h before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 7 days + 1 h before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 7 days before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 7 days before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 7 days - 1 h before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 7 days - 1 h before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 3 days before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 3 days before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 1 day + 1 h before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 1 day + 1 h before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 1 day + 1 min before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 1 day + 1 min before the end, outage: served=False, owed lines=1
+
+VF1A_H98_W2 last point 1 day - 1 min before the end, healthy: served=True, owed lines=0
+
+VF1A_H98_W2 last point 1 day - 1 min before the end, outage: served=False, owed lines=0
+
+VF1A_H98_W2 last point 6 h before the end, healthy: served=False, owed lines=0
+
+VF1A_H98_W2 last point 6 h before the end, outage: served=False, owed lines=0
+
+VF1A_H98_W4 offline renewal before the end; outage, renewed 1 h BEFORE the point: owed lines=0
+
+VF1A_H98_W4 offline renewal before the end; outage, renewed 23 h after the point: owed lines=0
+
+VF1A_H98_W4 offline renewal before the end; outage, renewed 25 h after the point: owed lines=1
+
+VF1A_H98_W4 offline renewal before the end; healthy, renewed 25 h after the point: owed lines=0
+
+VF1A_H98_W5 a near miss and a stored anchor not in use: owed lines 0 and 0
+exit=0 wall_s=62
