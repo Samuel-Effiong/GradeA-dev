@@ -31,6 +31,14 @@ baseline once every violation in it is fixed; this script does not
 auto-detect that, so remove a file by hand once it is clean, the same way
 E800's per-file exemptions were burned down (docs/evidence/
 ITEM9_E800_BURNDOWN_EVIDENCE.md).
+
+Since 2026-10-05 (the bundle 7 merge-down; note added by H-122): the
+baseline has no entry, because H-91 fixed the last listed files. The same
+rule also runs as a test, AutoGrader/tests_no_pii_in_logs.py. What reaches
+Sentry is scrubbed by the three hooks of AutoGrader/sentry_scrubbing.py
+(H-89), which replaced the single before_send function this check was
+first paired with; what log handlers print is scrubbed by the record
+factory in AutoGrader/log_scrubbing.py.
 """
 import ast
 import sys
