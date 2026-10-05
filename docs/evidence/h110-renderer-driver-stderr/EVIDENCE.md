@@ -68,14 +68,14 @@ That is how main behaves today. No bounded alternative is built.
 ### Limits
 
 - A private Playwright function. Pinned by `PlaywrightStderrHookPinTest`; re-check on every upgrade.
-- **H-107's fix and rule 18 are still needed after this change** (agreed with d5). Two places
-  still start a driver on the calling process's own stderr, and any other child process that sets
-  a shared pipe non-blocking would do the same:
-  - `assignments/tests_pdf_renderer.py` runs `_chromium_available()` at import: a `sync_playwright`
-    start and a real Chromium inside the importing process, which in a parallel run is the
-    runner's parent at discovery. The shared pipe is non-blocking for that moment in every run
-    that imports the module. It does not go through the renderer, so this change does not remove
-    it. d5 has proposed moving the probe into a subprocess as a row of its own.
+- **H-107's fix and rule 18 are still needed after this change** (agreed with d5). One place
+  still starts a driver on the calling process's own stderr, and any other child process that
+  sets a shared pipe non-blocking would do the same:
+  - (Corrected 2026-10-06, after the base update onto e578e3db.) This list used to name a second
+    place: `assignments/tests_pdf_renderer.py` ran `_chromium_available()` at import, starting a
+    driver and a real Chromium inside the importing process. That was true on the base the gates
+    ran on (27b0d2e0). H-118 (d5), which is in the present base, moved that probe into a child
+    interpreter whose stdin, stdout and stderr are the null device, so it no longer applies.
   - `ai_processor/benchmark/render.py`, an offline tool: not a service and not run by the suite.
     If the benchmark is ever run with its output piped, it has the same exposure.
 - The driver's output is now IN the log (it used to go to stderr raw). It can carry URLs and page
@@ -182,7 +182,25 @@ not repeated (rule 15): the merge changes none of the three files, and the mutan
 The guard list for this run has one module more than step 1 had, 22 in all:
 `AutoGrader.tests_no_playwright_at_import`, which H-118 changed.
 
-Not yet run at this commit. The result is added here by the next commit.
+Frozen tip 6b969824, one grant from 0b, 2026-10-06 00:09:53 to 00:14:46. One run, serial, 6G
+scope, timeout 1800, rules 12, 13, 16 and 18. Not stopped, not repeated.
+
+| What | Result | Log |
+|---|---|---|
+| The two new modules, the seven caller modules, 22 guard modules | exit 0: Ran 437 tests in 259.048s, OK (skipped=8) | `modules_and_guards_6b969824.txt` |
+
+- Written before the run: OK, 8 skips, more than step 1's 426 tests by an amount not known
+  beforehand. Found: 437, eleven more, and the log has eleven lines for
+  `AutoGrader.tests_no_playwright_at_import`.
+- The 8 skips are the `tests_load` opt-in ones, as in step 1. No Chromium skip, no FAIL or ERROR
+  line. The wall-clock renderer test passed.
+- Driver lines: 26 `[PDF]` lines, 0 of `[PDF] Playwright driver stderr:`, as before.
+- Load average: 2.60 6.70 8.71 at the start, 3.04 4.05 7.00 at the end. The other project held
+  its work for this run; no other test run or headless browser was on the machine before or
+  after it.
+- The log is as the run wrote it: 171,153 bytes, 1588 lines, sha256
+  `3fd65a69605a269be15cca7d83e69f177899715ede988133299e81ce87681039`. "Ran" is line 1585 and "OK"
+  line 1587; the one line after them is the runner's "Destroying test database" line.
 
 ### How the mutants were counted
 
