@@ -226,6 +226,12 @@ class EveryDatabaseIsVisitedTests(SimpleTestCase):
         other parameters and the credentials are the URL's own. (A failure
         names the shape, never the URL: some carry a password.)"""
         password = "h97-not-a-real-password"  # pragma: allowlist secret
+
+        def secured(scheme, user, rest, secret=None):
+            # Built from its parts (H-109): no line of this file holds a URL
+            # with a password, even this made-up one.
+            return scheme + "://" + user + ":" + (secret or password) + "@" + rest
+
         shapes = {
             "names database 0": "redis://127.0.0.1:6379/0",
             "names database 7": "redis://127.0.0.1:6379/7",
@@ -235,26 +241,27 @@ class EveryDatabaseIsVisitedTests(SimpleTestCase):
             "a db parameter": "redis://127.0.0.1:6379?db=3",
             "an empty-valued parameter": "redis://127.0.0.1:6379/0?client_name=",
             "an IPv6 host": "redis://[::1]:6379/0",
-            "a password": f"redis://:{password}@127.0.0.1:6379/0",
-            "a user and a password": f"redis://grader:{password}@127.0.0.1:6379/2",
-            "a password and two parameters": (
-                f"redis://:{password}@cache.example.com:6380/2"
-                "?ssl_cert_reqs=none&socket_timeout=5"
+            "a password": secured("redis", "", "127.0.0.1:6379/0"),
+            "a user and a password": secured("redis", "grader", "127.0.0.1:6379/2"),
+            "a password and two parameters": secured(
+                "redis",
+                "",
+                "cache.example.com:6380/2?ssl_cert_reqs=none&socket_timeout=5",
             ),
-            "a percent-encoded password": (
-                f"rediss://grader:{password}%40x@cache.example.com:6379/0"  # pragma: allowlist secret
+            "a percent-encoded password": secured(
+                "rediss", "grader", "cache.example.com:6379/0", password + "%40x"
             ),
             "TLS": "rediss://cache.example.com:6380/2",
-            "TLS with a user and a password": (
-                f"rediss://grader:{password}@cache.example.com:6380/2"
+            "TLS with a user and a password": secured(
+                "rediss", "grader", "cache.example.com:6380/2"
             ),
             "a socket": "unix:///tmp/redis.sock?db=4",
-            "a socket with a password": f"unix://:{password}@/tmp/redis.sock?db=4",
-            "a socket with a user and a password": (
-                f"unix://grader:{password}@/tmp/redis.sock?db=4"
+            "a socket with a password": secured("unix", "", "/tmp/redis.sock?db=4"),
+            "a socket with a user and a password": secured(
+                "unix", "grader", "/tmp/redis.sock?db=4"
             ),
-            "a socket with a password and another parameter": (
-                f"unix://:{password}@/tmp/redis.sock?db=4&socket_timeout=2"
+            "a socket with a password and another parameter": secured(
+                "unix", "", "/tmp/redis.sock?db=4&socket_timeout=2"
             ),
             "a socket that names no database": "unix:///tmp/redis.sock",
         }
