@@ -1,0 +1,15 @@
+baseline exit=0
+R1	only a STORED anchor is trusted in the last week	KILLED	FAILED (failures=97)	True	12.1
+R2	the due time is exactly a point of the anchor, not near one	KILLED	FAILED (failures=7)	True	11.7
+R3	it lies a full day before the end (any time before the end counts)	KILLED	FAILED (failures=3)	True	11.7
+R4	exactly one full day is enough (the boundary)	KILLED	FAILED (failures=32)	True	10.6
+R5	a chain served to the end owes nothing (the margin removed)	KILLED	FAILED (failures=376)	True	10.6
+R6	the margin is one day	KILLED	FAILED (failures=32)	True	10.8
+R7	is_anchor_point is equality with a point	KILLED	FAILED (failures=7)	True	10.7
+C1	the renewal says 'stored' only when the stored anchor is the one in use	KILLED	FAILED (failures=1)	True	11.0
+C2	a row with no stored anchor does not claim one	KILLED	FAILED (failures=2)	True	10.3
+C3	the renewal passes the claim at all	KILLED	FAILED (failures=1)	True	10.8
+C4	the individual-plan caller claims no stored anchor	KILLED	FAILED (failures=1)	True	10.6
+
+11/11 killed with verified restore
+exit=0 wall_s=135

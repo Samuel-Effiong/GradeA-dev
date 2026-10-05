@@ -52,9 +52,10 @@ the grant up.
 | `ff2edee7` | tests (red): `GrantsOwedInTheLastWeekTests`, `TheRenewalReportsTests` in `billing/tests/test_allocation_anchor.py` |
 | `19a15de7` | the change; the mutation runner |
 | `8513ae0d` | base update: merge of `task/beta-batch-7` `27b0d2e0` (no conflict) |
+| `9e211ca4` | the mutation runner only: each run straight to a file; a kill needs the run's "Ran" line and named failing tests |
 
 ## Gates
-On the frozen tip `8513ae0d`, 2026-10-05, under 0b's two grants. Times are
+On the frozen tip `8513ae0d`, 2026-10-05, under 0b's grants; the battery again on `9e211ca4` (the runner only differs). Times are
 the shell's clock; in `chain.status` each time is the step's END. Nothing
 of H-98 had been run under Django before these runs.
 
@@ -62,7 +63,8 @@ of H-98 had been run under Django before these runs.
 |---|---|---|---|
 | Repro: `billing.tests.test_allocation_anchor` at `ff2edee7` (h78-repro worktree) | 15:22:14 – 15:22:24 | RED as expected: 28 tests, failures=1, errors=480, exit 1 | `repro_ff2edee7.log.gz` |
 | (a) 34 labels, serial | 15:22:25 – 15:26:32 | GREEN: 470 tests, OK | `a_modules_8513ae0d.log.gz` |
-| (b) battery (`test_h98_mut`), 11 mutants | 15:26:32 – 15:28:38 | 11/11 killed, restore verified; every mutant's failing tests are the expected set | `b_mutation_battery_8513ae0d.log`, `battery_8513ae0d.tar.gz`, `expected_kills.py.txt`, `expected_kills_8513ae0d.txt` |
+| (b) battery (`test_h98_mut`), 11 mutants, **in rule 18 form, on `9e211ca4`** | 15:51:56 – 15:54:11 | 11/11 killed, restore verified, none BROKEN; every mutant's failing tests are the expected set; each log has its "Ran 28 tests" line | `b_mutation_battery_9e211ca4.log`, `battery_9e211ca4.tar.gz` (raw output of each run in `logs/raw/`), `expected_kills.py.txt`, `expected_kills_9e211ca4.txt`, `battery2.status` |
+| (b) the first battery, on `8513ae0d`, **in pipe form: kept, not the gate** | 15:26:32 – 15:28:38 | the same result: 11/11, the same sets | `b_mutation_battery_8513ae0d.log`, `battery_8513ae0d.tar.gz`, `expected_kills_8513ae0d.txt` |
 | (c) the owning app, billing, `--parallel 2` | 15:29:40 – 15:35:02 | GREEN: 2109 tests, OK, no stall | `c_billing_p2_8513ae0d.log.gz`, `iso.status` |
 
 **The repro is weaker than its numbers look, and I say so.** The 480
@@ -117,9 +119,9 @@ figures in the battery log count subtests; the table below counts tests.
 **How the runs were made.** `--settings=settings_worktree`, an empty
 `EXEMPT_EMAIL_DOMAINS`, `systemd-inhibit --what=idle:sleep:handle-lid-switch
 … --mode=block systemd-run --user --scope -p MemoryMax=6G -p MemorySwapMax=0
-nice -n 10 timeout -k 60 1800` (rules 12, 13, 16). Rule 18: every run
-wrote stdout and stderr straight to a file with stdin from `/dev/null`;
-(c) ran under `flock ~/.machine-fullsuite.lock` with `--verbosity 2`,
+nice -n 10 timeout -k 60 1800` (rules 12, 13, 16). Rule 18: the repro,
+(a), (c) and the battery of `9e211ca4` wrote stdout and stderr straight
+to a file with stdin from `/dev/null`; (c) ran under `flock ~/.machine-fullsuite.lock` with `--verbosity 2`,
 `PYTHONFAULTHANDLER=1` and the 300 s log-silence watchdog, its timestamps
 added from the side by a reader of the log file. Rule 17: the battery and
 its baseline ran with `PYTHONDONTWRITEBYTECODE=1`, and the runner deleted
@@ -128,6 +130,22 @@ before each mutant and after each restore. **The battery is on the final
 test module:** `billing/tests/test_allocation_anchor.py` has not changed
 since `ff2edee7`. The gate scripts stop at the first failed step
 (`set -euo pipefail`) and assert the frozen tip and a clean tree first.
+
+**Why the battery ran twice (a correction of mine).** This file first
+said that every run wrote straight to a file. That was not true of the
+first battery's inner runs: the runner collected each mutant's test
+output through a pipe that it read continuously (`capture_output`), and
+only the battery's own summary went to a file. No renderer is involved
+(one billing module) and all twelve runs ended normally, but rule 18
+says every run. I raised it; the SM ruled a re-run in file form.
+`9e211ca4` changes the runner only: each run's stdout and stderr go to
+a file, stdin is the null device, and the file is read after the run
+has ended. A mutant now counts as killed only with the run's own "Ran"
+line, named failing tests and no load failure, never on a non-zero exit
+alone, and the "Ran" line is kept in its log (0b). The second battery
+is the gate; it gave the same result as the first, against the same
+expected sets, which were written before either ran. The test module
+and the code are the same at both tips.
 
 ## Mutants
 | Id | Guards | Failing tests (expected = actual) |
