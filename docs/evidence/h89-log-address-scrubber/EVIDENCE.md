@@ -250,6 +250,8 @@ when the record is made only for records that carry `exc_info`.
 | `5bd912ad` | evidence for the gates at `9a37e092` |
 | `8f4e9ef8` | tests for 1a's pre-review points (red) |
 | `24dfcda6` | the fold: wider address shapes, "@" in a password, transactions and spans; nine more mutants |
+| `3f667b09` | evidence for the fold; removes the credential URLs the first redaction missed |
+| `8fd5dc9d` | test-only: the DSN tests no longer hold or print a URL with a password |
 
 ## Gates after the fold (the current tip)
 On the frozen code tip `24dfcda6`, 2026-10-05, under 0b's grants. Status:
@@ -299,6 +301,42 @@ no user name, plain and gzipped logs): none is left in the tree. They
 remain in the history at `5bd912ad`; what happens to that is the SM's
 ruling. The password is the tests' invented one, not a credential.
 The battery at `9a37e092` is kept in `battery_9a37e092/`.
+
+## After the gates: the DSN tests (rule 15.4), and the pattern counts
+**A test-only change at `8fd5dc9d`** (SM, 2026-10-05, after the miss
+described above). The three tests that feed a DSN to the scrubber (two in
+`tests_log_scrubbing`, one in `tests_sentry_scrubbing`) now build the URL
+from its parts, so no source line holds one whole, and their assertion
+messages show the output with the made-up password replaced by a marker.
+What they assert is unchanged: the password is not in the output, and the
+line still says where it was connecting to. No production file changed
+since `24dfcda6`.
+
+| Run at `8fd5dc9d`, 2026-10-05 | Result | Log |
+|---|---|---|
+| The two touched modules | GREEN: 51 tests, OK | `t_modules_8fd5dc9d.log` |
+| The battery again, all 36 mutants (`test_h89_mut`, rule 17) | 36/36 killed, restore verified | `battery_8fd5dc9d/` |
+
+The logs of this battery needed no editing: with the tests changed, a
+failing run no longer prints a URL with a password (checked with the
+pattern below before anything was touched).
+
+**Counts of the pattern** `://[^/ @]*:[^/ @]+@` (a URL with a password,
+with or without a user name), taken at the tip of this branch:
+
+| Where | Lines |
+|---|---|
+| H-89's own files: its four modules, its three test modules, and everything under this evidence folder, plain and gzipped | **0** |
+| The whole tree | 13, in six files, none of them H-89's (below) |
+| Lines added by `git diff 141c8031..tip` | 8, all in `AutoGrader/tests_redis_hygiene_databases.py` |
+
+The six files: `.example.env` (1), `.github/workflows/tests.yml` (1),
+`.github/workflows/migration-safety.yml` (1), `QA_SERVER_SETUP.md` (1) and
+`docs/evidence/mypy_django_stubs/EVIDENCE.md` (1), which the SM looked at
+and classified on 2026-10-05 as placeholders, not credentials, and out of
+scope here; and `AutoGrader/tests_redis_hygiene_databases.py` (8), which
+is H-97's test module, in this branch's diff only because the batch base
+is, and is backlog row H-109 (build those test URLs from variables).
 
 ## Gates before the fold
 On the then-frozen tip `9a37e092`, under 0b's grants. (a) ran at `7d05b173`;
@@ -430,6 +468,12 @@ follows the new pattern.
   add/add conflicts, and `settings.py` conflicts in the Sentry block. The
   two scrubbers have to be made one there; neither side's file can simply
   win.
+- **Please repeat the pattern check on the tip** (SM): the pattern and my
+  counts are in "After the gates"; the miss it follows from is under
+  "Logs, and a miss of mine".
+- The token-start change to the address pattern replaces the same text
+  and has no mutant; the tests that would catch a change in what is
+  replaced are named under "The patterns".
 - The P1 choice: SM ruling "A" (stop at `/ = ? &`). 1a named "/" in the
   pre-review; it is a recorded limit, not covered.
 - H-89 edits `AutoGrader/settings.py` in two places (the switch after
