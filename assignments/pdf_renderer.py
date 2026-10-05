@@ -35,17 +35,32 @@ Nothing ever blocks while holding that lock: a healthy browser is
 recycled only at a moment when no render is in flight, because waiting
 for in-flight work to drain would queue every other render behind the
 slowest one - see _acquire_browser.
+
+The driver's stderr (H-110): Playwright starts its Node driver with this
+process's own stderr as the driver's stderr, and Node sets a pipe it is
+given non-blocking. That setting belongs to the pipe, not to Node: from
+the first render on, every process sharing the stderr (all of gunicorn's
+workers, or a Celery worker and its children) would write to a
+non-blocking pipe, and a log line written while the pipe is full would be
+lost or cut with no error to the caller. So the driver is given a pipe of
+its own instead (_DriverStderr), and a small thread passes what it writes
+there to this module's logger - where it is scrubbed like any log line.
+A blocked writer waits for the log collector again instead of losing
+lines.
 """
 
 import asyncio
 import atexit
+import contextlib
 import json
 import logging
+import os
 import threading
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
 
 from django.conf import settings
+from playwright._impl import _transport as _playwright_transport
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
@@ -290,6 +305,133 @@ async def _serve_katex_asset(route):
     await route.fulfill(status=200, content_type=content_type, body=body)
 
 
+#: The longest driver stderr line passed to the log; the rest is cut.
+DRIVER_STDERR_MAX_LINE = 2000
+#: How much of a line with no newline yet is held before it is logged cut
+#: and the rest of it dropped: one pipe's worth.
+_DRIVER_STDERR_MAX_PENDING = 65536
+_DRIVER_STDERR_CUT = " [cut]"
+
+#: Playwright has no option for the driver's stderr: it asks the private
+#: playwright._impl._transport._get_stderr_fileno() when it starts the
+#: driver. One start at a time replaces that function, so the saved
+#: original is always the real one.
+_driver_start_lock = threading.Lock()
+
+
+class _DriverStderr:
+    """
+    A pipe of our own for the Node driver's stderr, and the thread that
+    reads it into the log (H-110, see the module docstring).
+
+    The thread is on the render path: if it stopped reading, the pipe
+    would fill and the driver's writes would stall. So nothing a line
+    contains can end it - only the end of the stream does.
+    """
+
+    def __init__(self):
+        self._read_fd, self._write_fd = os.pipe()
+        self._write_open = True
+        self._lock = threading.Lock()
+        #: Whether Playwright asked for the fd while it was offered.
+        self.handed_over = False
+        self._thread = threading.Thread(
+            target=self._forward, name="pdf-driver-stderr", daemon=True
+        )
+        self._thread.start()
+
+    @property
+    def write_fd(self) -> int:
+        return self._write_fd
+
+    @contextlib.contextmanager
+    def handed_to_playwright(self):
+        """While inside, a Playwright start in this process gives its
+        driver our pipe as stderr instead of the process's own."""
+        with _driver_start_lock:
+            original = getattr(_playwright_transport, "_get_stderr_fileno", None)
+            if not callable(original):
+                # Playwright changed (the pin in
+                # tests_pdf_renderer_driver_stderr fails first). Rendering
+                # still works; the driver shares our stderr again.
+                yield
+                return
+
+            def _ours():
+                self.handed_over = True
+                return self._write_fd
+
+            _playwright_transport._get_stderr_fileno = _ours
+            try:
+                yield
+            finally:
+                _playwright_transport._get_stderr_fileno = original
+
+    def close_write_end(self):
+        """Close OUR copy of the write end. The driver keeps its own; the
+        reader then sees the end of the stream when the driver exits."""
+        with self._lock:
+            if self._write_open:
+                self._write_open = False
+                try:
+                    os.close(self._write_fd)
+                except OSError:
+                    pass
+
+    def close(self, timeout: float = 5.0):
+        """Close our write end and wait for the reader to finish, which
+        it does once the driver (the only other writer) is gone."""
+        self.close_write_end()
+        self._thread.join(timeout=timeout)
+
+    def is_reading(self) -> bool:
+        return self._thread.is_alive()
+
+    def _forward(self):
+        pending = b""
+        dropping = False  # inside a line that was already logged cut
+        try:
+            while True:
+                try:
+                    chunk = os.read(self._read_fd, 65536)
+                except InterruptedError:
+                    continue
+                except OSError:
+                    break
+                if not chunk:
+                    break
+                *lines, pending = (pending + chunk).split(b"\n")
+                for line in lines:
+                    if dropping:
+                        dropping = False
+                    else:
+                        self._emit(line)
+                if len(pending) > _DRIVER_STDERR_MAX_PENDING:
+                    if not dropping:
+                        self._emit(pending)
+                    pending, dropping = b"", True
+            if pending and not dropping:
+                self._emit(pending)  # a last line with no newline
+        finally:
+            try:
+                os.close(self._read_fd)
+            except OSError:
+                pass
+
+    @staticmethod
+    def _emit(raw: bytes):
+        try:
+            text = raw.decode("utf-8", "replace").strip()
+            if not text:
+                return
+            text = "".join(c if c.isprintable() else "?" for c in text)
+            if len(text) > DRIVER_STDERR_MAX_LINE:
+                text = text[:DRIVER_STDERR_MAX_LINE] + _DRIVER_STDERR_CUT
+            logger.warning("[PDF] Playwright driver stderr: %s", text)
+        except Exception:  # noqa: BLE001 - the reader must keep reading
+            pass
+
+
 class _ChromiumRenderWorker:
     """
     Owns this process's Playwright connection and its one warm Chromium
@@ -299,6 +441,7 @@ class _ChromiumRenderWorker:
     def __init__(self):
         self._loop = None
         self._playwright = None
+        self._driver_stderr = None
         self._browser = None
         self._renders_since_launch = 0
         self._in_flight = 0
@@ -453,7 +596,22 @@ class _ChromiumRenderWorker:
     # --- event loop --------------------------------------------------------
 
     async def _startup(self):
-        self._playwright = await async_playwright().start()
+        # H-110: the driver gets a pipe of ours as its stderr, never this
+        # process's own (see the module docstring).
+        self._driver_stderr = _DriverStderr()
+        try:
+            with self._driver_stderr.handed_to_playwright():
+                self._playwright = await async_playwright().start()
+        finally:
+            # The driver has its own copy by now, or never started.
+            self._driver_stderr.close_write_end()
+        if not self._driver_stderr.handed_over:
+            logger.error(
+                "[PDF] Playwright did not take the renderer's stderr pipe for "
+                "its driver, so the driver shares this process's stderr and "
+                "log lines can be lost while it runs (H-110). Check "
+                "playwright._impl._transport after a Playwright upgrade."
+            )
         self._browser = await self._launch(self._playwright)
 
     async def _shutdown(self):
@@ -464,6 +622,11 @@ class _ChromiumRenderWorker:
             except Exception:
                 logger.exception("Error stopping Playwright during renderer shutdown")
             self._playwright = None
+        if self._driver_stderr is not None:
+            # After the driver is stopped its end of the pipe is closed;
+            # the reader finishes and closes its own.
+            self._driver_stderr.close()
+            self._driver_stderr = None
 
     def _run(self):
         loop = asyncio.new_event_loop()
