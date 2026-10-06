@@ -326,6 +326,50 @@ after the first battery (rule 17's addendum), and every earlier mutant on
 
 The first gate's logs (at e7d4b376) are kept, moved into `gate1_e7d4b376/`.
 
+### The delta's gate at c239131b: GREEN
+
+One grant from 0b, 2026-10-06 17:34:26 to 17:42:22, the whole of step 1 again. One run, all
+serial, 6G scope, rules 12, 13, 16, 17 and 18. Not stopped, not repeated, nothing of the team's
+beside it. This was the first run of the delta's 21 tests and 11 mutants.
+
+| Step | Result | Log |
+|---|---|---|
+| 0 the red run: the test module against `services.py` and `grading_cache.py` as at 88884176 | exit 1 as expected: Ran 53 tests in 1.895s, FAILED (failures=10). **Exactly the 6 tests named beforehand** fail, compared by name by program; 47 pass | `red_run_code_as_at_red_commit.txt.gz` |
+| 1a makemigrations --check | exit 0, No changes detected | `makemigrations_check.txt` |
+| 1 three changed modules, thirteen near modules, 26 guards | exit 0: Ran 627 tests in 169.047s, OK. No skips. 627 as predicted | `modules_and_guards.txt.gz` |
+| 2 the 34 mutants | 34 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log.txt`, `mutation_results.json`, `mutant_logs/` |
+
+- Load average 9.71 9.12 6.82 at the start (the other project's run), 4.06 6.56 6.87 at the
+  end. No test here asserts on the wall clock.
+- Step 0's 10 failures are per sub-case: the separator test has several. The second key-parts
+  test passed on the old code, as corrected before the run.
+- All 34 inner runs exited 1 with "Ran 94 tests"; none of the 34 logs holds a load failure; each
+  expected test is among the failing ones. The 23 earlier mutants are killed again on the
+  changed code and the changed test module.
+- Logs a commit hook would alter are gzipped, byte-exact, with each one's sha256 taken before
+  gzipping in `gzipped_logs_sha256.txt`. `console.txt.gz` is the gate script's own output.
+- After the run the source was as committed and the mutation database was dropped.
+- Pattern check of the new files, by program, values never printed: no URL with a password
+  part; the word "secret" appears in none of them; the NAME=value matches are the same four
+  code names as in the first gate (`token_count`, `node_tokens`, `single_pass_mode`, a
+  token-budget constant), each with code text as its "value". None is a credential.
+
+The eleven new mutants:
+
+| Mutant | What is broken | Result | Expected test, found among the failing |
+|---|---|---|---|
+| A1 | the answer's status is left out of the key | KILLED, Ran 94 tests | `test_the_same_text_with_a_different_status_is_a_fresh_grade` |
+| A2 | the answer's transcription notes are left out of the key | KILLED, Ran 94 tests | `test_the_same_text_with_different_notes_is_a_fresh_grade` |
+| A3 | the answer's page is put into the key | KILLED, Ran 94 tests | `test_a_different_page_and_confidence_do_not_break_the_match` |
+| A4 | a field that is None is not the same as an empty one | KILLED, Ran 94 tests | `test_no_status_is_one_thing_however_it_is_written` |
+| A5 | outer whitespace of status and notes is compared | KILLED, Ran 94 tests | `test_outer_whitespace_of_the_notes_is_not_compared` |
+| A6 | a status that is not text is refused | KILLED, Ran 94 tests | `test_a_status_that_is_not_text_does_not_crash_the_grading` |
+| J1 | the parts of the key are joined with nothing between them | KILLED, Ran 94 tests | `test_a_character_moved_across_a_boundary_changes_the_key` |
+| J2 | the parts of the key are joined by a character a part can hold | KILLED, Ran 94 tests | `test_a_separator_inside_a_part_cannot_pass_for_a_boundary` |
+| C1 | a long paper's answers are not saved | KILLED, Ran 94 tests | `test_an_identical_second_long_paper_makes_no_provider_call` |
+| C2 | a chunk's reply keeps its own markers | KILLED, Ran 94 tests | `test_a_graded_by_in_a_chunks_reply_is_replaced` |
+| C3 | the single-pass reply keeps its own markers | KILLED, Ran 94 tests | `test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered` |
+
 ### Still owed
 
 The regression: one full run by 0b on the frozen tip (SM ruling). By the same ruling it stands as
