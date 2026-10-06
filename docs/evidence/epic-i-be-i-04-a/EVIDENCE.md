@@ -178,6 +178,75 @@ What I re-read before asking for the next run (SM's condition):
 - L9 is new: the model loses one column's database default. It gives the corrected assertion a
   mutant of its own.
 
-### Run 2
+### Run 2 at b0da8237: GREEN
 
-None yet at this commit.
+One grant from 0b, 2026-10-06 12:32:34 to 12:52:40. One run, all serial, 6G scope, rules 12, 13,
+16, 17 and 18. Not stopped, not repeated, nothing beside it. b0da8237 is 80adc937 plus the two
+fixes, the temperature wording, mutant L9 and the write-up of run 1.
+
+| Step | Result | Log |
+|---|---|---|
+| 0 reproduce-first | exit 1 as expected: Ran 42 tests in 0.280s, FAILED (failures=11, errors=26). **Exactly the twelve tests named beforehand**, compared by name; no thirteenth | `prefix_base_code_failing.txt.gz` |
+| 1a makemigrations --check | exit 0, No changes detected | `makemigrations_check.txt` |
+| 1 two new modules, one near module, 26 guards | exit 0: Ran 400 tests in 404.078s, OK. No skips | `modules_and_guards.txt` |
+| 2 the 27 mutants | 27 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log.txt`, `mutation_results.json`, `mutant_logs/` |
+
+- Load average: 8.29 7.44 7.78 at the start, 12.74 15.16 13.74 at the end. The other project ran
+  beside it. No test here asserts on the wall clock.
+- The failure and error counts of step 0 are per sub-test (one per column); the twelve are the
+  distinct test names.
+- `modules_and_guards.txt`: "Ran" is line 4824 and "OK" line 4826 of 4827; the last line is the
+  runner's "Destroying test database" line. sha256
+  `2d8b7bcc9b57900841cfe8e512f42ca1155b0f83181668cfab460852a24836f4`.
+- `console.txt` is the gate script's own output for this run.
+- **Fifteen logs are gzipped, byte-exact,** because they have trailing whitespace or a blank last
+  line that a commit hook would alter: step 0's log and fourteen of the mutant logs. Each one's
+  sha256, taken before gzipping, is in `gzipped_logs_sha256.txt`. The other logs are as written.
+- After the run the source was as committed ("source clean after mutants"), migration 0031 was
+  in place and the mutation database was dropped.
+
+How each mutant was judged: KILLED needs a non-zero exit, the inner run's own "Ran" line, no test
+module that failed to load, and the expected test among the failing ones. All 27 inner runs
+exited 1; none of the 27 logs holds a load failure. The expected names were in the runner before
+any mutant ran (26 since 75849b7f, L9 since b0da8237).
+
+| Mutant | What is broken | Result | Expected test, found among the failing |
+|---|---|---|---|
+| G1 | a grade-shaping setting is forgotten in the list | KILLED, Ran 25 tests | `test_every_grading_setting_is_in_the_version_or_named_as_left_out` |
+| G2 | a grade-shaping setting is also named as left out | KILLED, Ran 25 tests | `test_no_name_is_in_both_lists` |
+| G3 | the release is hashed into the version | KILLED, Ran 25 tests | `test_the_release_never_changes_the_version` |
+| G4 | a list setting is kept as the caller's own list, not frozen | KILLED, Ran 25 tests | `test_a_list_setting_mutated_after_the_reading_is_not_seen` |
+| G5 | get() reads the live setting again, not the reading | KILLED, Ran 25 tests | `test_a_setting_changed_after_the_reading_is_not_seen` |
+| G6 | the version is written with "@", which audit metadata drops | KILLED, Ran 25 tests | `test_audit_metadata_would_keep_it` |
+| G7 | a model list is sorted, so its order is lost | KILLED, Ran 25 tests | `test_the_order_of_a_model_list_is_part_of_the_version` |
+| G8 | an empty release is stored as an empty string | KILLED, Ran 25 tests | `test_no_release_from_the_host_is_the_word_none` |
+| G9 | a long release is not cut to the column | KILLED, Ran 25 tests | `test_a_long_release_is_cut_to_the_column` |
+| G10 | a code constant is forgotten in the list | KILLED, Ran 25 tests | `test_the_other_values_cover_every_name` |
+| G11 | get() answers None for a name the version does not cover | KILLED, Ran 25 tests | `test_get_refuses_a_name_the_version_does_not_cover` |
+| G12 | the version is computed from the names only | KILLED, Ran 25 tests | `test_each_grade_shaping_setting_changes_the_version` |
+| G13 | the grading service is imported at module level | KILLED, Ran 25 tests | `test_it_does_not_import_the_grading_service_at_module_level` |
+| G14 | the way a version is computed changes | KILLED, Ran 25 tests | `test_the_version_for_a_fixed_reading_is_pinned` |
+| G15 | the release setting is no longer named as left out | KILLED, Ran 25 tests | `test_every_grading_setting_is_in_the_version_or_named_as_left_out` |
+| L1 | one column's Django default is no longer the placeholder | KILLED, Ran 17 tests | `test_each_has_the_placeholder_as_both_defaults` |
+| L2 | one column's length differs from the design | KILLED, Ran 17 tests | `test_each_is_a_not_null_text_column_of_the_designed_length` |
+| L3 | one column's help text loses the founder's sentence | KILLED, Ran 17 tests | `test_each_column_carries_the_sentence_in_its_help_text` |
+| L4 | the label columns can be edited in the admin screen | KILLED, Ran 17 tests | `test_the_six_columns_are_read_only_there` |
+| L5 | the placeholder word changes in the code but not in the database | KILLED, Ran 17 tests | `test_each_column_is_not_null_with_the_placeholder_as_its_default` |
+| L6 | the founder's sentence no longer says a later stage improves on it | KILLED, Ran 17 tests | `test_the_sentence_says_first_form_and_names_the_later_table` |
+| L7 | a serializer file names a label column | KILLED, Ran 17 tests | `test_no_serializer_file_names_a_label_column` |
+| L8 | plan 07 no longer says this is the first form of the record | KILLED, Ran 17 tests | `test_each_document_says_first_form_and_names_the_later_table` |
+| L9 | one column's database default is dropped from the model | KILLED, Ran 17 tests | `test_each_has_the_placeholder_as_both_defaults` |
+| M1 | the migration adds one column with no database default | KILLED, Ran 29 tests | `test_each_column_is_not_null_with_the_placeholder_as_its_default` |
+| M2 | the migration indexes one column | KILLED, Ran 29 tests | `test_no_index_was_added_for_them` |
+| M3 | the migration makes one column nullable | KILLED, Ran 29 tests | `test_each_column_is_not_null_with_the_placeholder_as_its_default` |
+
+G1 to G15 ran `ai_processor.tests_grading_config` (25 tests). L1 to L9 ran
+`students.tests_grading_label_fields` (17). M1 to M3 ran that module and
+`AutoGrader.tests_migration_rollback_defaults` (29 together), each on a database built from the
+mutated migration.
+
+### Still owed
+
+The regression. `StudentSubmission` is read by every app, so it is the full suite. By the SM's
+ruling 0b makes one full run on the frozen tip with its own script; the author writes no
+parallel script. Its result is added here by a later, evidence-only commit.
