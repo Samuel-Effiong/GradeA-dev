@@ -370,8 +370,42 @@ The eleven new mutants:
 | C2 | a chunk's reply keeps its own markers | KILLED, Ran 94 tests | `test_a_graded_by_in_a_chunks_reply_is_replaced` |
 | C3 | the single-pass reply keeps its own markers | KILLED, Ran 94 tests | `test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered` |
 
-### Still owed
+### The regression: one full run by 0b at 6ca94c09: GREEN
 
-The regression: one full run by 0b on the frozen tip (SM ruling). By the same ruling it stands as
-Gate 10 for release 1 (slices A and B) if the merged epic tree equals this slice's tree. Its
-result is added here by a later, evidence-only commit.
+By the SM's ruling the regression for this slice is one full run by 0b (the Release Engineer) on
+the frozen tip, with its own script; step 3 of the author's script was replaced by it and never
+run. The author did not touch the worktree while it ran.
+
+| What | Result |
+|---|---|
+| Whole-repository mypy | Passed |
+| `makemigrations --check` | No changes detected |
+| Full suite, `--parallel 4` | exit 0: Ran 6496 tests in 454.078s, OK (skipped=30). No FAIL or ERROR header |
+
+- Run by 0b: `gate10_slice_b.sh`, the Phase 2 Gate 10 script pointed at this worktree and branch
+  (sha256 prefix e35656ac9ef99d3f; a copy is committed here as `gate10_slice_b.sh.txt`). 12G
+  cap, the shared machine lock, the sleep inhibitor, a silence watchdog that never fired, output
+  straight to a file.
+- Times, 2026-10-06: script start 18:01:00 (load 2.49); suite 18:01:40 (load 2.53) to 18:09:47
+  (load 6.32), 487 s on the wall. No suspend, no blocked outbound call.
+- Per app: ai_processor 908, assignments 663, audit 367, AutoGrader 613, billing 2139, classrooms
+  434, dashboard 270, students 404, users 698; sum 6496. That is 54 more than slice A's full run
+  (6442): 53 in ai_processor (the slice's test module) and 1 in students (slice A's migration
+  test).
+- The 30 skips are the same opt-in kinds as in slice A's run, by 0b's reading.
+- For the record, as 0b asked: two commit-hook runs by other sessions ended at 17:58:40 and
+  17:59:31, both before the script's start. One of them was mine (slice C's commit df648e6c,
+  17:58).
+- The log is committed whole and byte-exact as `full_run_0b_6ca94c09.log.xz`: 8,677,854 bytes
+  unpacked, sha256 `fdcc7d6dc898d1736f505d06815f4dfb5d02f6385e66be455337a3d9b4e60993`, the figure
+  0b gave and the one I computed from 0b's file. "Ran" is line 113930 and "OK" line 113932. 0b's
+  summary is `full_run_0b_6ca94c09.summary.txt`.
+- Pattern check of that log, by program, values never printed: no URL with a password part.
+  Nine NAME=value matches on names containing "token", each with code text as its value. Two
+  lines (81995 and 82000) are a test's "blocked unsafe fetch" warning for a made-up host whose
+  address carries the word "secret", the same test stand-in the SM accepted in slice A's log.
+- The run was at 6ca94c09. This commit adds only files in this evidence folder on top of it, so
+  the run stands for the new tip. By the SM's ruling it also stands as Gate 10 for release 1
+  (slices A and B) if the merged epic tree equals this slice's tree at the merge.
+
+Nothing is owed by the author for slice B after this but committing the verifier's record.
