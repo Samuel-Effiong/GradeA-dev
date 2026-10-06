@@ -674,7 +674,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 e, "We couldn't save your update. Please try again."
             )
 
-        serializer = StudentSubmissionListSerializer(submission)
+        # With the request, so the serializer knows a student is asking
+        # (H-127: it hides the unreleased score and the review fields).
+        serializer = StudentSubmissionListSerializer(
+            submission, context=self.get_serializer_context()
+        )
         return Response(serializer.data, status=HTTP_201_CREATED)
 
     @extend_schema(

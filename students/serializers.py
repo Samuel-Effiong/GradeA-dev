@@ -198,6 +198,29 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "is_grading_scheduled",
         ]
 
+    #: H-127: the teacher's review-queue fields, and what a student is sent
+    #: in their place, released or not. `review_reasons` holds both AI
+    #: graders' marks for each disputed question; the rest say that the
+    #: graders disagreed and how sure the grader was.
+    STUDENT_REVIEW_FIELD_VALUES = {
+        "needs_review": False,
+        "review_reasons": None,
+        "review_severity": None,
+        "review_tier": None,
+        "grading_confidence": None,
+    }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT":
+            data.update(self.STUDENT_REVIEW_FIELD_VALUES)
+            # A student may know when a RELEASED grade was made, not that
+            # an unreleased one exists.
+            if not instance.is_published:
+                data["graded_at"] = None
+        return data
+
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
 
