@@ -44,11 +44,12 @@ TEST_DB = "test_h145_mut"
 TK = "assignments/tasks.py"
 SV = "students/services.py"
 VW = "students/views.py"
+ST = "AutoGrader/settings.py"
 TESTS = ["students.tests_formatting_task_superseded"]
 
 COMPARED = "            superseded = result_stamp is not None and (\n"
 MOMENTS = "        for moment in (submission.graded_at, submission.regraded_at)\n"
-FROM_A_ROUTE = "result_stamp=grading_result_stamp(submission),\n"
+FROM_A_ROUTE = "**result_stamp_argument(submission),\n"
 THE_TEXT = (
     'FORMATTED_GRADE_SUPERSEDED = "Superseded by a newer grade; nothing written"\n'
 )
@@ -122,7 +123,7 @@ MUTANTS = [
         "S8",
         "grading passes the stamp",
         SV,
-        "                result_stamp=result_stamp,\n",
+        "                **result_stamp,\n",
         "",
         1,
         TESTS,
@@ -157,6 +158,24 @@ MUTANTS = [
         "\n"
         "        self.update_state(\n",
         "            submission.save()\n\n        self.update_state(\n",
+        1,
+        TESTS,
+    ),
+    (
+        "S12",
+        "while the setting is off no queuer sends the stamp",
+        SV,
+        "    if not settings.FORMATTED_GRADE_SEND_RESULT_STAMP:\n        return {}\n",
+        "",
+        1,
+        TESTS,
+    ),
+    (
+        "S13",
+        "the setting is off unless switched on",
+        ST,
+        '    "FORMATTED_GRADE_SEND_RESULT_STAMP", default=False\n',
+        '    "FORMATTED_GRADE_SEND_RESULT_STAMP", default=True\n',
         1,
         TESTS,
     ),

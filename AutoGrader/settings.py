@@ -749,6 +749,17 @@ DASHBOARD_CUSTOM_AI_PROMPT_ENABLED = env.bool(
 # real cost on classes with a common wrong answer. Kill switch: False
 # restores today's behavior of a fresh call per submission.
 GRADING_ANSWER_CACHE_ENABLED = env.bool("GRADING_ANSWER_CACHE_ENABLED", default=True)
+
+# H-145: whether the code that QUEUES the formatting task sends it the
+# stamp of the grading result to word. The task accepts the stamp either
+# way. A worker still running a release older than H-145 does not know the
+# argument and fails a task queued with it, so this stays off until every
+# worker runs H-145 or later; switched on, a formatting task that has been
+# overtaken by a newer grade writes nothing. Off, formatting behaves as
+# it did before H-145.
+FORMATTED_GRADE_SEND_RESULT_STAMP = env.bool(
+    "FORMATTED_GRADE_SEND_RESULT_STAMP", default=False
+)
 GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
     "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
 )
