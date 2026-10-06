@@ -261,8 +261,10 @@ def _mark_grading_claim_failed(submission_id):
 # restricted to these (not a full-row save) because a run takes minutes,
 # and the in-memory instance was loaded before it started: a full save
 # would write back the stale copy of every OTHER column - a re-upload's
-# `answers`/`attempt_count`, a publish's `is_published`, a formatter's
-# `formatted_grade` - silently reverting whatever landed in between.
+# `answers`/`attempt_count`, a publish's `is_published` - silently
+# reverting whatever landed in between.
+# `formatted_grade` is among them to be CLEARED, never to be written back:
+# see _populate_and_save_grade (H-146).
 GRADING_RESULT_FIELDS = (
     "ai_graded_at",
     "ai_grading_completed_at",
@@ -271,6 +273,7 @@ GRADING_RESULT_FIELDS = (
     "max_points",
     "score_percentage",
     "feedback",
+    "formatted_grade",
     "grading_confidence",
     "graded_at",
     "grading_state",
@@ -399,6 +402,14 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
     )
     submission.graded_at = timezone.now()
     submission.grading_state = GradingState.DONE
+    # The formatted grade words the PREVIOUS result, and its first sentence
+    # states the previous score. Cleared by the same UPDATE that writes the
+    # new score, as the manual grade does (H-144): until the follow-up task
+    # has worded this result, and for good if that task fails, a student
+    # reads no formatted grade rather than a wrong one. A first grading has
+    # nothing to clear. The follow-up is queued only after this save has
+    # committed, so its text is never the one cleared here.
+    submission.formatted_grade = None
 
     # Review queue: when the blind second grader disagreed with grader A
     # on any question, flag the submission for the teacher — with both

@@ -125,8 +125,8 @@ class ARegradeSupersedesTheFirstGradingsTask(SupersededBase):
 
         self.run_task(first)
 
-        # grading does not clear the text; what is stored is the fixture's
-        self.assertEqual(self.stored_formatted(), str(OLD_FORMATTED))
+        # the regrade cleared the text (H-146); the older task wrote nothing
+        self.assertIsNone(self.stored_formatted())
 
     def test_the_regrades_own_task_writes(self):
         self.grade_by_ai(self.submission, 3)
