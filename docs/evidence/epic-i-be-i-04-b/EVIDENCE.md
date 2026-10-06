@@ -408,4 +408,35 @@ run. The author did not touch the worktree while it ran.
   the run stands for the new tip. By the SM's ruling it also stands as Gate 10 for release 1
   (slices A and B) if the merged epic tree equals this slice's tree at the merge.
 
-Nothing is owed by the author for slice B after this but committing the verifier's record.
+## The Checker's verdict and the delta it requires
+
+Verdict at 728491a2: **VERIFIED-WITH-NOTES**, with three items required before the merge. All
+three are tests; none is a fault in the code the slice ships.
+
+| # | Item | Done by |
+|---|---|---|
+| 1 | A test that fails when the chunk call's or the summary call's teacher-instructions splice stops using the run's reading | `ai_processor/tests_grading_cache_key_v2_checker.py`, `OneReadingPerRunOnALongPaperTest`; mutants P1 (the chunk call's site) and P2 (the summary call's site) |
+| 2 | A test that the answer side's parts cannot run together | same module, `TheAnswerSidesPartsCannotRunTogetherTest`; mutants P3 (status and notes joined) and P4 (text and status joined) |
+| 3 | `test_the_last_part_of_the_context_and_the_answer_cannot_run_together` cannot fail | **Removed.** The question lies between those two parts of the key, so the test could not fail whatever the key did. Item 2's tests hold the answer side; the context's parts are held by `test_a_character_moved_across_a_boundary_changes_the_key` and the separator test |
+
+- **Both new classes are the Checker's.** By the SM's ruling the Checker handed over two probe
+  classes with their helpers (both passed at 6ca94c09 in the Checker's own run). They are adopted
+  as written; the module docstring and the two class names are mine. I read only that hand-over
+  file and the record I am asked to commit.
+- **Order kept:** this commit is tests only (the new module, the removal). The mutants and the
+  document lines follow in the next commit.
+
+### Expected of the delta's tests, written before any run
+
+All three new tests are expected to PASS on the code as it stands (the Checker ran them green at
+6ca94c09); the proof that each can fail is its mutant, with the expected failing test named
+before the run:
+- P1, the chunk call's splice reads the live switch: `test_the_run_keeps_its_starting_reading`
+  (the second chunk's prompt is built after the switch flips).
+- P2, the summary call's splice reads the live switch: the same test (the summary call's prompt).
+  If P2 survives, the test does not look at the summary call and an assertion is owed; that
+  would be reported, not explained away.
+- P3, status and notes joined into one part: `test_status_and_notes_cannot_run_together`.
+- P4, text and status joined into one part: `test_text_and_status_cannot_run_together`.
+
+Test count of the slice's own module after the removal: 52; the new module: 3.
