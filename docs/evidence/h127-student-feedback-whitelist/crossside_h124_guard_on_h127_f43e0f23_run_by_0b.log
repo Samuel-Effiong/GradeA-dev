@@ -1,0 +1,36 @@
+# 0b cross-side check: H-124's guard (AutoGrader.tests_no_playwright_at_import) on H-127's merged tree f43e0f2381f21f5702e92a7c6476b62dac41944a, 2026-10-06 15:12:25 WAT
+loadavg before: 3.53 7.54 9.89 2/2800 1674022
+test_no_driver_is_started_in_the_importing_process (AutoGrader.tests_no_playwright_at_import.ImportingTheRendererTestsStartsNoDriverHereTests.test_no_driver_is_started_in_the_importing_process) ... ok
+test_no_test_module_reaches_a_starter_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_no_test_module_reaches_a_starter_at_import) ... ok
+test_the_false_alarms_that_are_known_and_kept (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_false_alarms_that_are_known_and_kept)
+All err on the safe side. The first two need to know which names ... ok
+test_the_rule_allows_what_does_not_run_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_allows_what_does_not_run_at_import) ... ok
+test_the_rule_follows_a_class_made_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_class_made_at_import) ... ok
+test_the_rule_follows_a_decorator_applied_without_brackets (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_decorator_applied_without_brackets) ... ok
+test_the_rule_follows_a_lambda_bound_to_a_name (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_lambda_bound_to_a_name) ... ok
+test_the_rule_follows_a_starter_under_another_name (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_starter_under_another_name) ... ok
+test_the_rule_follows_methods (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_methods) ... ok
+test_the_rule_reads_getattr_with_the_starters_name (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_reads_getattr_with_the_starters_name) ... ok
+test_the_rule_reads_through_staticmethod_and_classmethod (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_reads_through_staticmethod_and_classmethod) ... ok
+test_the_rule_sees_each_shape (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_sees_each_shape) ... ok
+test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets)
+The scan's quick first look decides which files the rule reads at ... ok
+test_the_scan_reads_the_renderer_tests (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_scan_reads_the_renderer_tests) ... ok
+test_the_wider_rule_still_allows_what_starts_nothing (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_wider_rule_still_allows_what_starts_nothing) ... ok
+test_what_the_rule_still_does_not_see (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_what_the_rule_still_does_not_see)
+The limits, pinned so that nobody takes the rule for more than it ... ok
+test_a_child_that_cannot_be_run_or_does_not_end_means_not_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_a_child_that_cannot_be_run_or_does_not_end_means_not_available) ... ok
+test_any_other_exit_code_means_not_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_any_other_exit_code_means_not_available) ... ok
+test_exit_code_zero_means_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_exit_code_zero_means_available) ... ok
+test_the_child_gets_nothing_of_the_runs_output (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_gets_nothing_of_the_runs_output) ... ok
+test_the_child_is_given_a_time_limit (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_is_given_a_time_limit) ... ok
+test_the_child_is_this_interpreter_running_the_launch (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_is_this_interpreter_running_the_launch) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 7.016s
+
+OK
+Found 22 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+exit=0 wall_s=12 loadavg after: 2.97 7.22 9.75 3/2769 1674242

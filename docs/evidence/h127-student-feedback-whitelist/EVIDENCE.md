@@ -346,3 +346,42 @@ scope. Not stopped, not repeated. 8610d16e is 595e323e (the code tip) and docs.
 
 The one owning-app regression (assignments, dashboard, students, ai_processor), on this results
 tip, under the full-suite lock on a quiet machine. Its result is added in a later docs commit.
+
+### The base update onto batch 10 and the regression, at f43e0f23
+
+Batch 9 was pushed without H-127 (origin/beta 8bbf44f9, 2026-10-06). 0b opened
+`task/beta-batch-10` at 8bbf44f9 and merged it into this branch at c7882331: f43e0f23, no
+conflict. Against 8bbf44f9 the branch's diff outside `docs/` and outside test modules is the same
+eight production files. Against c7882331 the one path outside `docs/` that the merge changes is
+`AutoGrader/tests_no_playwright_at_import.py` (H-124, which widens that guard over every test
+module, this branch's four new ones included).
+
+| Run | By | Result | Log |
+|---|---|---|---|
+| H-124's guard on the merged tree (a cross-side check, SM-approved) | **0b, not me**, 15:12 | Ran 22 tests in 7.016s, OK, exit 0 | `crossside_h124_guard_on_h127_f43e0f23_run_by_0b.log`, byte-identical to 0b's file (sha256 starts 4dd09ccc66f4c1f3) |
+| The one owning-app regression: assignments, dashboard, students, ai_processor, serial, under the full-suite lock (`run_h127_gate.sh f43e0f23 3`, script sha256 605806c89058ca84) | me, 0b's GRANT 15:13, 15:13:35 to 15:23:32 | exit 0: **Ran 2059 tests in 559.833s, OK (skipped=22)** | `regression_f43e0f23.txt.gz` |
+
+- Written before the run: OK. Found: OK. One run, on a quiet machine (the other project had
+  stopped for the afternoon), nothing beside it, not stopped, not repeated.
+- The 22 skips are all opt-in by their own messages: 12 real, billed AI calls (`RUN_REAL_AI`), 9
+  load tests (`RUN_LOAD_TESTS`), 1 live network check (`CI_REQUIRE_NETWORK`). None for want of
+  Chromium; the real-browser rendering tests ran.
+- Load average: 2.55 6.34 9.30 at the start, 3.66 3.27 6.17 at the end.
+- The log before gzip: 2,866,592 bytes, 51,225 lines, sha256 starts 90ce244569013b27. "Ran" is
+  line 51218 and "OK" line 51220. After them: the runner's "Destroying test database" line and two
+  "[scale] ..." lines that two tests print to standard output, which reaches the file at exit.
+- The modules-and-guards step and the mutants were not repeated on f43e0f23 (rule 15): the merge
+  changes none of this branch's files, and 0b's check covers the one guard the merge changes.
+
+### Summary of the runs
+
+| What | Tip | Result |
+|---|---|---|
+| Reproduce-first on the old production files | bbd2b53d | red, exactly the 28 named tests |
+| Modules and guards | bbd2b53d, then 8610d16e | Ran 469, OK; Ran 473, OK |
+| Mutants | 25 at bbd2b53d, 9 at 8610d16e | 34 of 34 KILLED on the final code |
+| H-124's guard on the merged tree (0b) | f43e0f23 | Ran 22, OK |
+| Regression, four apps | f43e0f23 | Ran 2059, OK (skipped=22) |
+
+Nothing differed from what was written before each run. Nothing was observed on a live or staging
+service, and the frontend was not read.
