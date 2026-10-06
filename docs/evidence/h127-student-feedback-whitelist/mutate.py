@@ -48,6 +48,7 @@ S = "students.tests_student_feedback_scoping.StudentFeedbackScopingTest."
 C = "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest."
 G = "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest."
 RULE_1 = G + "test_rule_1_every_raw_read_is_a_named_one"
+FG = R + "StudentFormattedGradeTest."
 LIST_UNPUBLISHED = (
     R + "StudentSubmissionListReviewFieldsTest."
     "test_an_unpublished_grade_shows_a_student_no_review_field"
@@ -107,7 +108,7 @@ MUTANTS = {
             S + "test_second_opinion_is_never_visible_to_the_student",
             S + "test_internal_and_teacher_only_fields_are_stripped",
             RULE_1,
-            G + "test_rule_2_the_student_detail_serializer_projects_its_feedback",
+            G + "test_rule_2_the_student_detail_serializer_projects_both_columns",
         ],
     ),
     "A4_a_value_that_is_not_a_dictionary_is_returned_as_stored": (
@@ -118,6 +119,75 @@ MUTANTS = {
             R + "StudentSafeFeedbackFunctionTest."
             "test_a_value_that_is_not_a_dictionary_is_shown_as_nothing",
         ],
+    ),
+    # ---- H-127, formatted_grade (found by Verifier 1's pre-read).
+    "F1_the_student_page_returns_the_formatted_grade_as_stored": (
+        "students/serializers.py",
+        "        if not obj.is_published:\n"
+        "            return None\n"
+        "        return student_safe_formatted_grade(obj.formatted_grade)\n",
+        "        if not obj.is_published:\n"
+        "            return None\n"
+        "        return obj.formatted_grade\n",
+        [
+            FG + "test_a_released_grade_stored_in_python_text_form",
+            FG + "test_json_text_that_is_also_python_text_is_projected_the_same_way",
+            FG + "test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+            RULE_1,
+            G + "test_rule_2_the_student_detail_serializer_projects_both_columns",
+        ],
+    ),
+    "F2_the_allow_list_is_widened_to_for_teacher": (
+        "students/feedback_projection.py",
+        'STUDENT_FORMATTED_RECOMMENDATION_FIELDS = ("for_student",)\n',
+        'STUDENT_FORMATTED_RECOMMENDATION_FIELDS = ("for_student", "for_teacher")\n',
+        [
+            FG + "test_a_released_grade_stored_in_python_text_form",
+            FG + "test_json_text_that_is_also_python_text_is_projected_the_same_way",
+        ],
+    ),
+    "F3_text_that_cannot_be_read_is_shown_as_stored": (
+        "students/feedback_projection.py",
+        '        except Exception:  # noqa: BLE001 - every failure to read is "nothing"\n'
+        "            return None\n",
+        '        except Exception:  # noqa: BLE001 - every failure to read is "nothing"\n'
+        "            return stored\n",
+        [
+            FG + "test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+            FG + "test_json_text_that_is_not_python_text_is_shown_as_nothing",
+            FG + "test_a_deeply_nested_value_is_shown_as_nothing",
+            FG + "test_text_that_would_run_code_is_only_ever_read_never_run",
+            FG + "test_an_empty_value_is_shown_as_nothing",
+        ],
+    ),
+    "F4_a_literal_that_is_not_a_dictionary_is_shown_as_stored": (
+        "students/feedback_projection.py",
+        "    if not isinstance(formatted, dict):\n        return None\n",
+        "    if not isinstance(formatted, dict):\n        return stored\n",
+        [FG + "test_a_list_is_shown_as_nothing"],
+    ),
+    "F5_no_size_limit": (
+        "students/feedback_projection.py",
+        "        if len(stored) > MAX_FORMATTED_GRADE_CHARACTERS:\n            return None\n",
+        "        if False:\n            return None\n",
+        [FG + "test_a_very_long_value_is_shown_as_nothing"],
+    ),
+    "F6_unknown_sections_are_copied": (
+        "students/feedback_projection.py",
+        "    return str(safe)\n",
+        "    return str({**formatted, **safe})\n",
+        [
+            FG + "test_a_released_grade_stored_in_python_text_form",
+            FG + "test_json_text_that_is_also_python_text_is_projected_the_same_way",
+        ],
+    ),
+    "F7_an_unreleased_formatted_grade_is_shown": (
+        "students/serializers.py",
+        "        if not obj.is_published:\n"
+        "            return None\n"
+        "        return student_safe_formatted_grade(obj.formatted_grade)\n",
+        "        return student_safe_formatted_grade(obj.formatted_grade)\n",
+        [FG + "test_an_unreleased_grade_shows_nothing"],
     ),
     # ---- H-127, the student's list: the review-queue fields.
     "B1_the_list_replaces_no_review_field": (
