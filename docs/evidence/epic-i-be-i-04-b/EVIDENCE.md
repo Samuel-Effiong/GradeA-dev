@@ -514,6 +514,39 @@ Mode `1d` again at the new tip: part 1 OK, 629 tests; 38 KILLED, with P1 and P2 
 `test_the_run_keeps_its_starting_reading`. If P2 still survives, the summary call does not carry
 the teacher's instructions in its system prompt at all and that is reported as a finding.
 
-### Delta 2's second run
+### Delta 2's second run at c24f057c: GREEN
 
-None yet at this commit.
+One grant from 0b, 2026-10-06 18:54:02 to 19:12:26, mode `1d` again. One run, serial, 6G scope,
+rules 12, 13, 16, 17 and 18. Not stopped, not repeated. c24f057c is 525fdf88 plus the first
+run's logs and the corrected assertion; outside this folder it differs from 525fdf88 in one test
+module only.
+
+| Part | Result | Log |
+|---|---|---|
+| 1: four changed modules, thirteen near modules, 26 guards | exit 0: Ran 629 tests in 488.446s, OK. No skips. 629 as predicted | `modules_and_guards_c24f057c.txt.gz` |
+| 2: all 38 mutants | 38 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log_c24f057c.txt`, `mutation_results_c24f057c.json`, `mutant_logs_c24f057c/` |
+
+- Load average 2.45 4.18 8.19 at the start, 23.15 19.60 15.62 at the end; the run took twice
+  as long as the first for that reason. No test here asserts on the wall clock.
+- **P1 and P2 are now KILLED,** each by `test_the_run_keeps_its_starting_reading` and each at
+  the call it was written for: P1's failing sub-case is `call=2` (the second chunk's call), P2's
+  is `call=3` (the summary call). So the corrected assertion has been seen red under both
+  (rule 19), and the Checker's item 1 is met: a test fails when the chunk call's or the summary
+  call's splice stops using the run's reading.
+- P3 and P4 killed again by their two tests; the 34 earlier mutants killed again. Every inner
+  run exited 1 with its own "Ran 96 tests" line; no log holds a load failure.
+- Logs a commit hook would alter are gzipped byte-exact; their hashes are in
+  `gzipped_logs_sha256_c24f057c.txt`. `console_c24f057c.txt` is the gate script's own output.
+- Pattern check of the new files, by program: no URL with a password part; the word "secret" in
+  none; the NAME=value matches are the same four code names as before, with code text as values.
+
+### Where slice B stands
+
+- The regression: 0b's one full run at 6ca94c09, Ran 6496, OK. By 0b's and the SM's ruling it
+  stands: since then, outside this folder, the changes are one new test module (the Checker's
+  two classes, one assertion corrected), one test removed, docstring lines in
+  `ai_processor/grading_cache.py` (the syntax trees of the two revisions are equal once
+  docstrings are blanked; checked by 0b and by me) and lines of the 03a document.
+- The Checker's three items: 1 met (above); 2 met (P3, P4); 3 done (the test that could not fail
+  is removed).
+- Mutants in all: 38, all KILLED at c24f057c.
