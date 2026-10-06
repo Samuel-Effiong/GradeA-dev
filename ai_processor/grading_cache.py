@@ -29,8 +29,13 @@ there is nothing to invalidate by hand. Before v2 the key held six fields
 of the question and the answer only, and a teacher's edited instructions
 were answered with grades made under the old ones for up to three days.
 
-What the key does NOT hold, a stated limit: the other questions of the
-paper, the other answers, and the answer's place in a batch.
+The answer as sent is its text, its `answer_status` and its
+`transcription_notes` (a delta after the Checker's reading, 2026-10-06).
+
+What the key does NOT hold, stated limits: the other questions of the
+paper, the other answers, and the answer's place in a batch; and the
+answer's `source_page`, `confidence` and own copy of `question_text`,
+which differ from student to student for the same text.
 
 What is stored is an envelope this module writes: the evaluation, and
 beside it the model that answered. A reused answer is marked from the
@@ -133,20 +138,51 @@ def _question_as_sent(question):
     return json.dumps(question, sort_keys=True, default=str)
 
 
-def build_cache_key(question, answer_html, *, model_name, context):
-    """One key per (question as sent, answer, assignment context, prompt
-    version, settings version, intended model).
+def _said(value):
+    """What an answer's `answer_status` or `transcription_notes` says, for
+    the key. "Nothing said" is one thing however it is written: a field
+    that is missing, None, empty or only whitespace gives the same key.
+    Outer whitespace is not compared; an inner difference is. A value that
+    is not text is serialised, never refused: a grading must not fail over
+    the key."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    return json.dumps(value, sort_keys=True, default=str)
 
-    STATED LIMIT: the key does not hold the other questions of the paper,
-    the other answers, or the answer's place in a batch, all of which the
-    AI also sees in the same call. Two identical answers to one question
-    can therefore have been marked in different company.
+
+def build_cache_key(
+    question,
+    answer_html,
+    *,
+    model_name,
+    context,
+    answer_status=None,
+    transcription_notes=None,
+):
+    """One key per (question as sent, answer as sent, assignment context,
+    prompt version, settings version, intended model).
+
+    The answer as sent is its text, its `answer_status` and its
+    `transcription_notes`: two answers with the same text, one blank and
+    one "not found in the document", or one clean and one "partly
+    illegible", tell the AI different things and must not share a grade.
+
+    STATED LIMITS. The key does not hold:
+    * the other questions of the paper, the other answers, or the answer's
+      place in a batch, all of which the AI also sees in the same call;
+    * the answer's `source_page`, its `confidence`, or its own copy of
+      `question_text`, which are sent too. They differ from student to
+      student for the same text, so matching on them would end all reuse.
 
     The release is deliberately absent (it is recorded beside the settings
     version, never inside it), so a deploy does not empty the store.
+
+    The parts are hashed as one JSON list, so no two neighbouring parts
+    can run together and nothing inside a part can pass for a boundary.
     """
-    digest = hashlib.sha256()
-    for part in (
+    parts = [
         CACHE_VERSION,
         model_name or "",
         context.assignment_id,
@@ -157,9 +193,10 @@ def build_cache_key(question, answer_html, *, model_name, context):
         context.custom_instructions,
         _question_as_sent(question),
         _normalize_answer(answer_html),
-    ):
-        digest.update(part.encode("utf-8"))
-        digest.update(b"\x00")
+        _said(answer_status),
+        _said(transcription_notes),
+    ]
+    digest = hashlib.sha256(json.dumps(parts).encode("utf-8"))
     return f"{CACHE_KEY_PREFIX}:{digest.hexdigest()}"
 
 
@@ -177,7 +214,15 @@ def _open_envelope(stored):
     return evaluation, served_model
 
 
-def get_cached_evaluation(question, answer_html, *, model_name, context):
+def get_cached_evaluation(
+    question,
+    answer_html,
+    *,
+    model_name,
+    context,
+    answer_status=None,
+    transcription_notes=None,
+):
     """Returns the saved evaluation for reuse, or None on a miss, when the
     store is switched off, on a backend error, or when what is stored is
     not an envelope.
@@ -192,7 +237,14 @@ def get_cached_evaluation(question, answer_html, *, model_name, context):
     """
     if not _enabled():
         return None
-    key = build_cache_key(question, answer_html, model_name=model_name, context=context)
+    key = build_cache_key(
+        question,
+        answer_html,
+        model_name=model_name,
+        context=context,
+        answer_status=answer_status,
+        transcription_notes=transcription_notes,
+    )
     try:
         stored = cache.get(key)
     except Exception:
@@ -211,14 +263,29 @@ def get_cached_evaluation(question, answer_html, *, model_name, context):
 
 
 def store_evaluation(
-    question, answer_html, evaluation, *, model_name, served_model, context
+    question,
+    answer_html,
+    evaluation,
+    *,
+    model_name,
+    served_model,
+    context,
+    answer_status=None,
+    transcription_notes=None,
 ):
     """Writes one evaluation to the cache, in an envelope with the model
     that answered beside it (None when the provider named none). Never
     raises."""
     if not _enabled():
         return
-    key = build_cache_key(question, answer_html, model_name=model_name, context=context)
+    key = build_cache_key(
+        question,
+        answer_html,
+        model_name=model_name,
+        context=context,
+        answer_status=answer_status,
+        transcription_notes=transcription_notes,
+    )
     kept = {k: v for k, v in evaluation.items() if k != "from_cache"}
     envelope = {"evaluation": kept, "served_model": served_model}
     try:

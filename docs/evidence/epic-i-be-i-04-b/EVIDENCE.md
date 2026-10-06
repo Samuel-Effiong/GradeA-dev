@@ -266,15 +266,21 @@ A second tests-only commit, before any code of the delta: `TheChunkedPathTest` (
 `ThePartsOfTheKeyCannotRunTogetherTest` (5 tests) in the same module. I wrote these tests; the
 Checker probes on its own. Expected against the code as at 59990797, written before any run:
 
-Expected to FAIL (2), where the behaviour is new:
+Expected to FAIL (1), where the behaviour is new:
 - `test_a_separator_inside_a_part_cannot_pass_for_a_boundary`: today each part is followed by a
   NUL byte, so a part ending in NUL beside an empty part gives the same bytes as the part beside
   a part that is one NUL.
-- `test_the_last_part_of_the_context_and_the_answer_cannot_run_together`: the same weakness
-  between the teacher's instructions and the answer.
 
-Expected to PASS today (7); the code already does it, and a mutant with its expected failing
+**Corrected before any run (in the code commit, not the tests commit):** the tests commit
+88884176 named a second expected failure,
+`test_the_last_part_of_the_context_and_the_answer_cannot_run_together`. That was wrong, by my
+own reading afterwards: the question lies between the teacher's instructions and the answer in
+the key, so those two parts are not neighbours and the test passes on the old code. It is
+expected to pass. So: 1 expected to fail, 8 to pass.
+
+Expected to PASS today (8); the code already does it, and a mutant with its expected failing
 test named first is the proof:
+- `test_the_last_part_of_the_context_and_the_answer_cannot_run_together`
 - `test_the_first_long_paper_is_marked_in_parts` (a guard on the fixture)
 - `test_an_identical_second_long_paper_makes_no_provider_call`
 - `test_a_graded_by_in_a_chunks_reply_is_replaced`
@@ -285,6 +291,40 @@ test named first is the proof:
 
 A NUL cannot be stored in a text column of this database, so the weakness the two red tests show
 is not one a teacher could reach today; the key is made unambiguous all the same.
+
+### The delta's code
+
+`ai_processor/grading_cache.py`: the key takes `answer_status` and `transcription_notes`
+(`_said`: missing, `None`, empty and whitespace-only are one thing; outer whitespace not
+compared; a value that is not text is serialised, never refused), and its twelve parts are
+hashed as one JSON list, so two neighbouring parts cannot run together and nothing inside a
+part can pass for a boundary. The key version stays `v2`: no `v2` key has reached any service.
+`ai_processor/services.py`: one helper, `_answer_as_said`, feeds both the lookup and the store.
+`docs/phase2/architecture/03a_data_model.md`: a dated note on what the match holds and its
+stated limits. The module's docstring states the same limits.
+
+### The delta's mutants (expected failing test named before any run)
+
+Eleven added to `mutate.py`, 34 in all: A1 status left out; A2 notes left out; A3 the answer's
+page put in; A4 `None` not the same as empty; A5 outer whitespace compared; A6 a status that is
+not text refused; J1 parts joined with nothing between; J2 parts joined by a character a part
+can hold; C1 a long paper's answers not saved; C2 a chunk's reply keeps its own markers; C3 the
+single-pass reply keeps its own markers. No mutant is offered for
+`test_the_first_long_paper_is_marked_in_parts` (a guard on the fixture) or for
+`test_the_same_parts_give_the_same_key`.
+
+**All 34 are run again,** not only the new ones: the test module they are judged by changed
+after the first battery (rule 17's addendum), and every earlier mutant on
+`ai_processor/grading_cache.py` acts on a function this delta rewrote.
+
+### Expected for the delta's gate, written before it
+
+- Step 0, the red run: the test module (53 tests) against `services.py` and `grading_cache.py`
+  as at 88884176: non-zero exit, a "Ran" line, **6 failing** (the five named under
+  `TheAnswerAsSentTest` and the separator test) and 47 passing.
+- Step 1a clean. Step 1 OK. Step 2: 34 KILLED.
+
+The first gate's logs (at e7d4b376) are kept, moved into `gate1_e7d4b376/`.
 
 ### Still owed
 

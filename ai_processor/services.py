@@ -3095,6 +3095,19 @@ Do not include any explanatory text before or after the JSON
             )
         return deterministic_evaluations, llm_questions, llm_answers
 
+    @staticmethod
+    def _answer_as_said(answer):
+        """The parts of an answer, besides its text, that the saved-answer
+        key takes: what is said ABOUT the answer and sent to the AI with
+        it. One place, so the lookup and the store cannot differ. NOT
+        source_page, confidence or the answer's own question_text: see the
+        stated limits in ai_processor/grading_cache.py."""
+        answer = answer if isinstance(answer, dict) else {}
+        return {
+            "answer_status": answer.get("answer_status"),
+            "transcription_notes": answer.get("transcription_notes"),
+        }
+
     def _match_context(self, assignment_model, run):
         """What the saved-answer key holds besides the question and the
         answer, from the run's one reading (BE-I-04 slice B)."""
@@ -3142,12 +3155,13 @@ Do not include any explanatory text before or after the JSON
                 remaining_questions.append(question)
                 continue
             key = self._question_number_key(question.get("question_number"))
-            answer_html = answer_by_key.get(key, {}).get("answer_html", "")
+            answer = answer_by_key.get(key, {})
             hit = grading_cache.get_cached_evaluation(
                 question,
-                answer_html,
+                answer.get("answer_html", ""),
                 model_name=MAIN_MODEL,
                 context=context,
+                **self._answer_as_said(answer),
             )
             if hit is not None:
                 cached_evaluations.append(hit)
@@ -3224,13 +3238,13 @@ Do not include any explanatory text before or after the JSON
             question = question_by_key.get(key)
             if question is None:
                 continue
-            answer_html = answer_by_key.get(key, {}).get("answer_html", "")
+            answer = answer_by_key.get(key, {})
             # `graded_by` was assigned by _stamp_graded_by from the
             # response our code read, never taken from the reply.
             graded_by = evaluation.get("graded_by")
             grading_cache.store_evaluation(
                 question,
-                answer_html,
+                answer.get("answer_html", ""),
                 evaluation,
                 model_name=MAIN_MODEL,
                 served_model=(
@@ -3240,6 +3254,7 @@ Do not include any explanatory text before or after the JSON
                     else None
                 ),
                 context=context,
+                **self._answer_as_said(answer),
             )
 
     @staticmethod
