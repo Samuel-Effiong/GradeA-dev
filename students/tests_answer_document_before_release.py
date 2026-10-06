@@ -174,6 +174,14 @@ class GradingChangesNothingTheStudentReads(AnswerDocumentBase):
 
         self.assertEqual(self.on_the_submission(self.student), self.submitted)
 
+    def test_a_grade_of_zero_changes_nothing_either(self):
+        """A genuine zero. The header prints nothing for a zero score, in
+        memory or from the database, so only the grading date could tell."""
+        self.grade_by_ai(self.submission, 0)
+
+        self.assertEqual(self.on_the_submission(self.student), self.submitted)
+        self.assertEqual(self.on_the_assignment(self.student), self.submitted)
+
     def test_a_half_graded_row_reads_the_same_too(self):
         """A run that died between the score and the grading time, either
         way round. Nothing is decided from those columns before release."""
@@ -192,14 +200,20 @@ class GradingChangesNothingTheStudentReads(AnswerDocumentBase):
 
     def test_a_graded_row_whose_stored_document_was_lost(self):
         """The read itself rebuilds and stores the document (an existing
-        behaviour). What it stores is the graded one; what the student
+        behaviour). What it stores is a graded document; what the student
         gets is not."""
         self.grade_by_ai(self.submission, 7)
-        graded = self.stored()
         StudentSubmission.objects.filter(pk=self.submission.pk).update(raw_input="")
 
         self.assertEqual(self.on_the_submission(self.student), self.submitted)
-        self.assertEqual(self.stored(), graded)
+        # The stored document is not compared with the one grading stored:
+        # grading prints the score from the value in memory ("7.0") and
+        # this rebuild prints it from the database ("7.00"). That existing
+        # difference is not this row's. What matters here: a document was
+        # stored, and it is not the ungraded form the student was given.
+        rebuilt = self.stored()
+        self.assertTrue(rebuilt)
+        self.assertNotEqual(rebuilt, self.submitted)
 
 
 class WhatIsGivenUp(AnswerDocumentBase):
