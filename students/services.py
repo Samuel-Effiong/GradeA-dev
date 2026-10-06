@@ -50,10 +50,14 @@ logger = logging.getLogger(__name__)
 MAX_STUDENT_SUBMISSION_ATTEMPTS = 3
 
 
-def student_submission_to_html(submission) -> str:
+def student_submission_to_html(submission, *, show_grade=True) -> str:
     """
     Converts student submission JSON into a globally standard HTML format
     suitable for rich-text editors (ProseMirror, TinyMCE, Quill, CKEditor, etc).
+
+    `show_grade=False` writes the header as it stands before any grading
+    ("Not graded yet" twice), whatever the row holds: the form a student
+    reads until the grade is released (see `answer_document_for_student`).
 
     Two different escapes are used on purpose. `safe()` escapes plain values
     that must never be markup. `rich()` runs the allowlist over the fields that
@@ -71,6 +75,8 @@ def student_submission_to_html(submission) -> str:
         return AssignmentProcessingService.sanitize_ai_html(val) if val else ""
 
     student_name = submission.student.get_full_name()
+    graded_at = submission.graded_at if show_grade else None
+    score = submission.score if show_grade else None
 
     meta_html = f"""
     <section>
@@ -86,9 +92,9 @@ def student_submission_to_html(submission) -> str:
         <h3>Submission Metadata</h3>
         <p><strong>Submitted At:</strong> {safe(submission.submission_date.strftime("%Y-%m-%d"))}</p>
         <p><strong>Graded At:</strong>
-        {safe(submission.graded_at.strftime("%Y-%m-%d")) if submission.graded_at else "Not graded yet"}</p>
+        {safe(graded_at.strftime("%Y-%m-%d")) if graded_at else "Not graded yet"}</p>
         <p><strong>Score:</strong>
-        {safe(submission.score) if submission.score is not None else "Not graded yet"}</p>
+        {safe(score) if score is not None else "Not graded yet"}</p>
     </section>
     <hr/><br/>
     """
@@ -128,9 +134,25 @@ def student_submission_to_html(submission) -> str:
 def answer_document_for_student(submission):
     """The answer document as a student may read it.
 
-    The one place a student-facing reader gets `raw_input` from (H-130).
+    The one place a student-facing reader gets `raw_input` from (H-130). A
+    student must not learn that a grade exists before the teacher releases
+    it, and the stored document says so in its header ("Graded At",
+    "Score") from the moment grading saves it. So for a graded row that is
+    not released, the student gets the document rebuilt from the row in
+    its ungraded form: the very text a submitted, ungraded row holds.
+
+    Nothing stored is rewritten, and staff read the stored document as
+    before. Rebuilding loses nothing: every writer of `raw_input` builds
+    it from the row with `student_submission_to_html` (upload, grading,
+    the raw-text edit, the lazy rebuild on a read), and a graded row
+    accepts no edit.
     """
-    return submission.raw_input
+    graded = submission.graded_at is not None or submission.score is not None
+    if submission.is_published or not graded:
+        return submission.raw_input
+    return AssignmentProcessingService.html_to_prosemirror_text(
+        student_submission_to_html(submission, show_grade=False)
+    )
 
 
 # Celery's hard kill point for one grading run - grade_engine_async sets

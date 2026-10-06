@@ -9,7 +9,11 @@ from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
     SecondOpinionSerializer,
 )
-from .services import get_grade_details, remaining_student_attempts
+from .services import (
+    answer_document_for_student,
+    get_grade_details,
+    remaining_student_attempts,
+)
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -395,6 +399,8 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
     grade_letter = serializers.SerializerMethodField()
     feedback = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
+    # Not the stored column: before release it carries the grade (H-130).
+    raw_input = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
@@ -507,6 +513,9 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         if safe_for_student is not None:
             safe["recommendations"] = {"for_student": safe_for_student}
         return safe
+
+    def get_raw_input(self, obj):
+        return answer_document_for_student(obj)
 
     def get_feedback(self, obj):
         if obj.is_published:
