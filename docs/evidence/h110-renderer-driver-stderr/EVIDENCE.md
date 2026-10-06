@@ -2,7 +2,8 @@
 
 Author: ed (Security), 2026-10-05. Branch `task/h110-renderer-driver-stderr`, off
 `task/beta-batch-7` 27b0d2e0 (first written on c823cdca; base update 80599da2), then on
-`task/beta-batch-8` e578e3db (base update 944da47f, 2026-10-06; see "After the base update"). For the bundle after bundle 7 (SM), and before the renderer is
+`task/beta-batch-8` e578e3db (base update 944da47f, 2026-10-06; see "After the base update"), then on `task/beta-batch-9`
+74065867 (base update 45bff75f, 2026-10-06; see the last section). For the bundle after bundle 7 (SM), and before the renderer is
 promoted to main. MEDIUM. Verifier: 1a.
 
 ## The defect
@@ -240,8 +241,11 @@ do not cause (for example a Node crash with a stack trace) could still write man
 
 ### After the daemon-reader test (66f76d72)
 
-The SM's ruling on 1a's Y12 finding: one committed test that fails when the driver's stderr
-reader thread is not a daemon. The reader ends only when the driver is gone, and the driver is
+1a's Y12 finding: no test of mine failed when the driver's stderr reader thread was not a
+daemon. This test was committed for that. The SM has no record of a ruling from the night it was
+committed; the ruling is the SM's of 2026-10-06 10:30 WAT, not earlier: Y12's gap is closed by a
+committed test before the merge, and 66f76d72 is accepted as that test subject to a logged run.
+The reader ends only when the driver is gone, and the driver is
 stopped by an atexit step; Python joins every non-daemon thread before atexit steps, so a
 non-daemon reader would hang a recycled gunicorn worker or Celery child at exit, the hang H-110
 removes, reached another way.
@@ -253,17 +257,56 @@ removes, reached another way.
 - Written by me, uncommitted; committed unchanged by 1c as 66f76d72 (test code only). I checked
   that `assignments/pdf_renderer.py` is blob-identical at c10ee47d and 66f76d72
   (`5cb894b3`) and that the commit touches the one test file only (+28 lines).
-- **Run by 1c, not by me; recorded as reported.** Unmutated: the whole file, 6 tests OK in 7.0 s.
+- **Run by 1c, not by me; recorded as reported. No log survives, not counted** (SM, 2026-10-06
+  10:30 WAT). "1c" is not a role on the team table, and there is no grant and no log file for
+  what follows. Nothing in this evidence rests on it. Unmutated: the whole file, 6 tests OK in 7.0 s.
   Mutant `pdf_renderer.py:339`, `daemon=True` to `daemon=False`, run on the test alone: FAILED
   (failures=1), Ran 1 test in 61.578 s; the child hit `TimeoutExpired` at the 30 s limit and the
   test failed with its intended message ("the interpreter did not end within 30 s of the end of
   its work: a thread keeps it alive at exit ..."). 1c reverted the edit with `git checkout`;
   the blob check above shows the renderer unchanged. This is a hand mutant outside
   `mutate.py`, whose 19 mutants are unchanged.
-- **Not covered by any run:** the 437 OK (6b969824) and 655 OK (59b844c4) runs predate this
-  test. A short step with the new test, and the guards, is still to be run on a slot.
-- **Known limit, accepted by the SM as not blocking:** the stderr reader is not rate-limited. A
-  driver that writes without pause is forwarded to the logger line for line. It is row H-124
-  (Low, ed) in `docs/HARDENING_BACKLOG.md`.
+- The 437 OK (6b969824) and 655 OK (59b844c4) runs predate this test. Its first logged run is
+  the short step at 45bff75f, in the next section. The owning-app regression is not repeated
+  for it (rule 15: a test-only commit, the touched modules are run).
+- **Known limit, not blocking (SM, 2026-10-06 10:30 WAT, on the 0 driver lines per render
+  measured here):** the stderr reader is not rate-limited. A driver that writes without pause
+  is forwarded to the logger line for line. It is row H-126 (Low, ed) in
+  `docs/HARDENING_BACKLOG.md`. The row was first committed on this branch as H-124 (2eead95c);
+  batch 8 had taken that number, and 0b renumbered it at the base update.
 - H-110 goes into a bundle after bundle 8, with an independent verifier the SM assigns, not into
   bundle 8.
+
+### After the base update onto `task/beta-batch-9` 74065867
+
+Batch 8 was pushed without H-110 (the user's decision, 2026-10-06); H-110 leads batch 9. 0b
+opened `task/beta-batch-9` at 74065867 (batch 8 as pushed) and merged it into the branch at
+2eead95c: 45bff75f. One conflict, in `docs/HARDENING_BACKLOG.md`, resolved by 0b keeping both
+sides, with this branch's new row renumbered H-126. Between 2eead95c and 45bff75f no file
+outside `docs/` differs. Against 74065867 the branch differs outside `docs/` in three files
+only: `assignments/pdf_renderer.py` (blob `5cb894b3`, the same as at c10ee47d, where 1a's runs
+were) and the two new test modules.
+
+Frozen tip 45bff75f, one grant from 0b, 2026-10-06 10:41:41 to 10:47:01 WAT. One run, serial,
+6G scope, timeout 1800, rules 12, 13, 16 and 18. Not stopped, not repeated. The same label
+list as the run at 6b969824; 0b read it against the current guard list and found nothing
+missing.
+
+| What | Result | Log |
+|---|---|---|
+| The two new modules, the seven caller modules, 22 guard modules | exit 0: Ran 438 tests in 283.486s, OK (skipped=8) | `modules_and_guards_45bff75f.txt` |
+
+- 438 is the 437 of the run at 6b969824 and the daemon-reader test. Its line in the log:
+  `test_a_process_that_has_rendered_still_ends_by_itself ... ok` (log lines 1113 and 1114).
+  This is the test's first logged run.
+- The 8 skips are the `tests_load` opt-in ones. No FAIL or ERROR line.
+- Driver lines: 26 `[PDF]` lines, 0 of `[PDF] Playwright driver stderr:`, as before.
+- Load average: 3.48 3.46 3.27 at the start, 2.68 3.46 3.39 at the end. No other test run and
+  no scan beside it.
+- The log is as the run wrote it: 171,413 bytes, 1590 lines, sha256
+  `8d675a73e83f8158b5078520b03a8b54b3246ee833535a7c1486b84cb95a9ba8`. "Ran" is line 1587 and "OK"
+  line 1589; the one line after them is the runner's "Destroying test database" line.
+- **Not shown by this run:** that the new test fails when the reader is not a daemon. A green
+  run cannot show that. Y12 against the two new modules is 1a's run, inside its delta check,
+  with the expected failing test written down beforehand (SM, 2026-10-06 10:30 WAT). I did not
+  run it.
