@@ -119,6 +119,25 @@ class AnswerDocumentBase(FinalGradeZeroScoreBase):
         return response.data["student_submission_raw_input"]
 
 
+class AStudentWhoIsOnlyInvitedReadsNoAssignment(AnswerDocumentBase):
+    """The shape this module's fixture had by mistake, kept on purpose: a
+    PENDING student is refused the assignment route, so a test that reads
+    that route as such a student tests nothing but the refusal."""
+
+    def test_the_assignment_route_answers_not_found(self):
+        StudentCourse.objects.filter(student=self.student, course=self.course).update(
+            enrollment_status=EnrollmentStatusType.PENDING
+        )
+        cache.clear()
+        self.client.force_authenticate(self.student)
+
+        response = self.client.get(
+            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
 class ASubmittedDocumentIsUnchangedByThisRow(AnswerDocumentBase):
     """Before any grading the student reads what production returns today."""
 
