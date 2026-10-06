@@ -61,6 +61,11 @@ hold each of those places.
    slice A only; for slices B and C the red tests are their own commit first, with its red run
    logged.
 
+3. **The founder's sentence in the docstring of `_populate_and_save_grade` is OWED IN SLICE C.**
+   The note put it there as one of the places for slice A. That function does not write the
+   label until slice C, and this slice does not touch it. It is in the help text of the six
+   columns, the comment at the fields, both new modules and the three documents now.
+
 ## Limits
 
 - No grade is labelled by this slice.
@@ -276,4 +281,55 @@ script and did not touch the worktree while it ran.
 - The run was at 58326e45. This commit adds only files in this evidence folder on top of it, so
   the run stands for the new tip.
 
-Nothing is owed by the author for slice A after this but committing the verifier's record.
+- **The pattern check of that log,** by program, values never printed. No URL with a password
+  part. Nine NAME=value matches on names containing "token" (lines 40440 to 55821): each value
+  is made only of lowercase letters, underscores, dots and brackets, the shape of code text in
+  test output. Two lines (80444 and 80449) are a test's "blocked unsafe fetch" warning for a
+  made-up host, whose address carries the word "secret"; my first report did not list them, the
+  SM's message named them and accepted them as a test stand-in.
+
+## The Checker's verdict and the delta it requires
+
+Verdict at 58326e45: **VERIFIED-WITH-NOTES**, with five items required before the merge; none is
+a fault in the code the slice ships. The record is committed byte-identical as
+`VERIFICATION_be_i_04_slice_a.md` (sha256
+`e47b32fca3a3bf669913b59678c4860fba754a26cd14d1be5bf817d3c3494163`, compared with the Checker's
+file before the commit and with the committed blob after it).
+
+| # | Item | Done by |
+|---|---|---|
+| 1 | A committed test that a row made at `students` 0030 reads `unlabelled` in all six columns after 0031, and that the migration reverses; with a mutant as its red proof | `students/tests_grading_label_migration.py`; mutant M4 |
+| 2 | The evidence says the founder's sentence in `_populate_and_save_grade` is owed in slice C | "Differences from the accepted design note", point 3 |
+| 3 | The gate script committed | `run_be_i_04_a_gate.sh.txt`, a copy of `~/Documents/Projects/GAP-builder-scripts/run_be_i_04_a_gate.sh` as it stands for the delta run |
+| 4 | `GRADING_RELEASE_ID` named in the example environment file, empty, one comment line | `.example.env` |
+| 5 | 0b's full-suite log committed and its result written here | de05d7c6, the section above |
+
+- **Item 1's test is the Checker's.** By the SM's ruling the Checker handed over one probe class
+  with its helpers (it passed at 58326e45 in the Checker's own run). It is adopted as written;
+  the class name and the two docstrings are mine, and one expression was changed for the type
+  checker: `float(fresh.score)` became `float(fresh.score or 0)`. A missing score still fails
+  that assertion (0.0 is not 7.0). I changed an assertion for the type checker once before in
+  this slice and it was wrong; this one I checked by reading: `score` is a nullable decimal, and
+  the row is created with 7. I read nothing else of the Checker's but the
+  record I was asked to commit.
+- **Mutant M4, written before any run of it:** the migration gives `grading_model` the word
+  `legacy` as its database default. Expected failing test:
+  `test_a_row_made_before_0031_reads_the_placeholder_after_it`. It runs on a database built
+  fresh and destroyed afterwards, because the test moves the schema back and forth through the
+  mutated migration.
+- **The gate script has a new mode, `1d`,** for this delta: part 1 (the modules, now with the
+  new one, and the 26 guards) and M4 alone. Step 0 and the other 27 mutants are not repeated:
+  the delta changes no file they act on. `mutate.py` gained a `MUT_ONLY` switch for that; its
+  other 27 entries and their expected names are unchanged.
+- **Not re-run:** the full suite. The delta adds one test module and one line of an example
+  environment file; whether that needs a new full run is 0b's to say.
+
+### Expected for the delta run, written before it
+
+- Part 1: OK. One test more than run 2's 400, so 401, if the new module's one test is the only
+  change in count.
+- M4: KILLED, with its own "Ran" line (Ran 1 test) and the expected test failing.
+
+### Delta run
+
+None yet at this commit.

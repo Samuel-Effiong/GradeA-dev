@@ -1,0 +1,79 @@
+#!/bin/bash
+# BE-I-04 slice A gate. Usage: run_be_i_04_a_gate.sh <tip> <step>
+# STEP=1 (6G, one grant): 0 reproduce-first (the two new test modules against the model, admin, settings as at the
+#   base and without migration 0031; own DB, built fresh), 1a makemigrations --check, 1 changed modules + guards,
+#   2 the mutants (rule 17; own DB; 28 since the delta).
+# A trap on EXIT restores the tree (0b's condition, 2026-10-06).
+# STEP=1d (6G, one grant; the delta after the Checker's verdict): ONLY part 1 (the modules, now with
+#   students.tests_grading_label_migration, and the guards) and the ONE new mutant M4. No step 0, no other mutant.
+#   Logs: modules_and_guards_<tip>.txt, mutation_log_delta.txt, mutation_results_delta.json, mutant_logs/M4.txt.
+# The regression was 0b's one full run with its own script (SM ruling); it is not in this script.
+# Rules 12/13/16. RULE 18: every run writes stdout+stderr straight to a file, stdin from /dev/null; nothing is piped.
+set -u
+TIP=$1; STEP=${2:-1}; BASE=9a581258
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-i-be-i-04-a || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/epic-i-be-i-04-a
+MIG=students/migrations/0031_submission_grading_label.py
+HOLD=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/be-i-04-a/held_0031.py
+INH='systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block'
+CAP="$INH systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0"
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || [ "$STEP" = 1d ] || { echo "steps are 1 and 1d"; exit 1; }
+# If the script is killed inside step 0 or the mutants (timeout, memory cap, a stop), put the tree back:
+# migration 0031 from its hold file, and every tracked file steps 0 and 2 rewrite, as committed.
+MUTATED="students/models.py students/admin.py AutoGrader/settings.py ai_processor/grading_config.py students/grading_label.py students/serializers.py docs/phase2/architecture/07_epic_i1_implementation_plan.md"
+restore_tree() { [ -f "$HOLD" ] && mv "$HOLD" "$MIG"; git checkout HEAD -- $MUTATED $MIG 2>/dev/null; find students AutoGrader ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+NEW="ai_processor.tests_grading_config students.tests_grading_label_fields students.tests_grading_label_migration"
+NEAR="students.tests_grading_duration_migration"
+GUARDS="AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_reason_codes AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_codederror_serialization billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension audit.tests_history_guard audit.tests_route_coverage audit.tests_sweep_beat_lock"
+echo "load at start: $(cat /proc/loadavg)"
+if [ "$STEP" = 1d ]; then
+  OUT=$E/modules_and_guards_$(git rev-parse --short=8 HEAD).txt
+  echo "=== 1 (delta). new modules + near module + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+  eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEW $NEAR $GUARDS" < /dev/null > $OUT 2>&1
+  echo "exit=$? $(date +%T)"; summary $OUT
+  if grep -qE "^FAILED \(" $OUT || ! grep -qE "^OK" $OUT; then echo "STOP: not green"; exit 2; fi
+  echo "=== 2 (delta). the one new mutant, M4 (own DB, built fresh; rules 17 and 18) $(date +%T)"
+  eval "MUT_ONLY=M4 MUT_RESULTS=$E/mutation_results_delta.json MUT_SETTINGS=settings_worktree_mut $CAP nice -n 10 timeout -k 60 1800 python $E/mutate.py" < /dev/null > $E/mutation_log_delta.txt 2>&1
+  echo "mutant exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log_delta.txt
+  git diff --quiet HEAD -- . ":!$E" && echo "source clean after the mutant" || echo "STOP: source not clean after the mutant"
+  dropmut
+  echo "load at end: $(cat /proc/loadavg)"
+  exit 0
+fi
+echo "=== 0. reproduce-first: the new tests against models/admin/settings as at $BASE, no migration 0031 (own DB, fresh) $(date +%T)"
+for f in students/models.py students/admin.py AutoGrader/settings.py; do git show ${BASE}:$f > $f; done
+mv $MIG $HOLD
+find students AutoGrader ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $NEW" < /dev/null > $E/prefix_base_code_failing.txt 2>&1
+echo "prefix exit=$? (non-zero expected)"
+mv $HOLD $MIG; git checkout HEAD -- students/models.py students/admin.py AutoGrader/settings.py
+find students AutoGrader ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+summary $E/prefix_base_code_failing.txt 40
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: the migration does not match the models"; exit 2; }
+echo "=== 1. new modules + near module + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEW $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 27 (own DB, rules 17 and 18) $(date +%T)"
+eval "MUT_SETTINGS=settings_worktree_mut $CAP nice -n 10 timeout -k 60 3000 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
