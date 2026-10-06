@@ -170,6 +170,22 @@ class AShortPaperTest(_RouteCase):
             [grading_label.MODEL_UNKNOWN],
         )
 
+    def test_a_grader_named_inside_the_reply_does_not_reach_the_label(
+        self, mock_execute
+    ):
+        """Nothing the AI writes about itself is trusted: the reply says a
+        backup graded it and that it came from the store; the provider's
+        response, as our code read it, says the main model answered."""
+        payload = {
+            "question_evaluations": [
+                dict(_evaluation(1), graded_by=BACKUP, from_cache=True)
+            ],
+            "grading_model": BACKUP,
+        }
+        mock_execute.return_value = _reply(payload, MAIN)
+        run = self.grade([_essay(1)], [_answer(1)])
+        self.assert_run(run, MAIN, grading_label.FALLBACK_NO, [MAIN])
+
     def test_one_call_marking_three_answers_votes_three_times(self, mock_execute):
         """The majority is per ANSWER: a reused answer by a backup against
         three fresh ones by the main model."""

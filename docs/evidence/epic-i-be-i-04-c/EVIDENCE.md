@@ -46,6 +46,13 @@ Expected to FAIL or be in error (81): every other test. By module: all 37 of
 `tests_grading_run_label` (the run has no such methods yet); 18 of `tests_grading_run_pipeline`;
 26 of `tests_grading_label_written`.
 
+### One test more, still tests only (a second commit before any code)
+
+`AShortPaperTest.test_a_grader_named_inside_the_reply_does_not_reach_the_label`, added while
+mapping the tests to the SM's rulings: no test of the first commit showed that a grader named
+inside the AI's own reply cannot reach the label. Expected to be in error today, like its
+neighbours. So: 91 tests, 82 expected to fail, 9 to pass; `tests_grading_run_pipeline` has 21.
+
 ## Runs
 
 None yet.
