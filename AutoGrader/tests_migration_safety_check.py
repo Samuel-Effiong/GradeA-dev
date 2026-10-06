@@ -320,6 +320,10 @@ class TheOperationsOfOneMigration(SimpleTestCase):
 #
 # All of them are already applied. "Needs a decision" says what the rule
 # makes of the file, not that something is broken today.
+#
+# Each line was checked against the file itself, read to its last
+# operation (2026-10-06). An earlier version of the billing/0059 line said
+# its work was raw SQL; it has none.
 PASSES = []
 REMOVED, RENAMED = "RemoveField", "RenameField"
 THE_REAL_MIGRATIONS = {
@@ -334,17 +338,20 @@ THE_REAL_MIGRATIONS = {
         PASSES,
     ),
     "billing/migrations/0009_betaprofile_uuid_and_more.py": (
-        "One more choice on CreditBucket.bucket_type (NOT NULL already), "
-        "and a new column that has a default.",
+        "One more choice on CreditBucket.bucket_type (NOT NULL already), a "
+        "new column that has a default, and two more columns altered with "
+        "nothing about NULL or type changed.",
         PASSES,
     ),
     "billing/migrations/0011_remove_betaprofile_uuid_betaprofile_uid_and_more.py": (
-        "Drops BetaProfile.uuid and changes BetaProfile.id from text to an "
-        "automatic number.",
+        "Drops BetaProfile.uuid, adds a nullable uid, and changes "
+        "BetaProfile.id from text to an automatic number.",
         [REMOVED, type_change("CharField", "BigAutoField")],
     ),
     "billing/migrations/0013_remove_betaprofile_id_alter_betaprofile_uid.py": (
-        "Drops BetaProfile.id and makes uid the primary key.",
+        "Drops BetaProfile.id; uid becomes NOT NULL and the primary key (it "
+        "has a default, and 0012 fills it first, so that part is not "
+        "reported).",
         [REMOVED],
     ),
     "billing/migrations/0014_rename_uid_betaprofile_id.py": (
@@ -352,17 +359,20 @@ THE_REAL_MIGRATIONS = {
         [RENAMED],
     ),
     "billing/migrations/0016_planfeature_alter_subscriptionplan_options_and_more.py": (
-        "Drops SubscriptionPlan.overage_block_price, adds tagline as a NOT "
-        "NULL column with no default, and adds the features many-to-many "
-        "(which is no longer reported).",
+        "Twenty-one operations: drops SubscriptionPlan.overage_block_price; "
+        "adds ten columns, one of them (tagline) NOT NULL with no default; "
+        "alters six without narrowing any; makes two new tables; adds the "
+        "features many-to-many (which is no longer reported).",
         [REMOVED, ADDED],
     ),
     "billing/migrations/0017_remove_subscriptionplan_overage_credit_price_cents_and_more.py": (
-        "Drops SubscriptionPlan.overage_credit_price_cents.",
+        "Drops SubscriptionPlan.overage_credit_price_cents, and alters one "
+        "column with nothing about it changed.",
         [REMOVED],
     ),
     "billing/migrations/0021_alter_creditbucket_bucket_type_and_more.py": (
-        "One more choice each on three columns that were NOT NULL already.",
+        "One more choice each on four columns that were NOT NULL already "
+        "(three of them had no default, and were the ones reported).",
         PASSES,
     ),
     "billing/migrations/0022_usersubscription_is_trial_usersubscription_trial_end_and_more.py": (
@@ -379,8 +389,13 @@ THE_REAL_MIGRATIONS = {
         PASSES,
     ),
     "billing/migrations/0059_append_only_audit_tables.py": (
-        "Two foreign keys altered with nothing about NULL changed. The "
-        "file's real weight is its raw SQL, which the check does not read.",
+        "Drops the database's foreign-key constraints on six relations of "
+        "the two financial audit tables and lets one of them be NULL; "
+        "turns CreditLedger.user from a relation into a plain id column in "
+        "Django's own record only (same column, no data touched); adds "
+        "four nullable columns. Nothing is removed, renamed or narrowed. "
+        "The check has no rule about a dropped foreign-key constraint, so "
+        "a person should still look at this file although it passes.",
         PASSES,
     ),
     "students/migrations/0026_alter_backgroundprocessingtask_task_type.py": (
