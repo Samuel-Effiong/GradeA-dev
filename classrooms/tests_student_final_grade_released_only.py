@@ -96,8 +96,8 @@ class StudentFinalGradeBase(FinalGradeZeroScoreBase):
 
 class TheStudentsNumberDoesNotMoveBeforeRelease(StudentFinalGradeBase):
     def test_graded_but_unreleased_work_reads_like_submitted_work_on_the_detail(self):
-        """The founder's rule itself: the same payload before and after
-        grading, while nothing is released."""
+        """The founder's rule itself: the same number and the same letter
+        before and after grading, while nothing is released."""
         submitted = self.detail(self.student)
 
         self.grade_by_ai(self.first, 7)
