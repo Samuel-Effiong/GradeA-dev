@@ -373,6 +373,33 @@ module, this branch's four new ones included).
 - The modules-and-guards step and the mutants were not repeated on f43e0f23 (rule 15): the merge
   changes none of this branch's files, and 0b's check covers the one guard the merge changes.
 
+### After Verifier 1's runs: one test-only commit, 1d6824e7
+
+Verifier 1 found no defect in the code. Its mutant Y14 narrowed the formatted-grade reader's
+`except Exception` to syntax and value errors, and every test of mine passed under it: the ruling
+"every failure to read is an answer of nothing" was claimed above and not pinned. My
+deeply-nested test raises a SyntaxError in this Python, so it never reached the wide `except`.
+SM ruling (2026-10-06 about 15:25): fold a test before the merge. 1d6824e7 adds two tests through
+the student's page, with Verifier 1's two cases: a stored text in which a list is used as a
+dictionary key (a TypeError inside the reader) and 400,000 minus signs before a number (a
+MemoryError, inside the size limit). Each expects a 200, `formatted_grade` null and no
+teacher-only word in the response. **No production file changes.**
+
+| Run | Written before | Found | Log |
+|---|---|---|---|
+| `students.tests_student_feedback_routes` once at 1d6824e7 (rule 15.4; `run_h127_module_once.sh`, sha256 d516d353a394b934; 0b's GRANT 15:37) | Ran 31 tests (the 29 of the last run and the two new), OK | exit 0: **Ran 31 tests in 3.144s, OK**, 15:37:28 to 15:38:03 | `routes_module_1d6824e7.txt` |
+
+- Load average 2.64 4.39 5.13 at the start, 4.70 4.74 5.22 at the end; another serial run beside
+  it; no wall-clock test.
+- The log is as the run wrote it: 42,311 bytes, 534 lines, sha256 starts b05851c63fe8de26. "Ran"
+  is line 530 and "OK" line 532; after them the runner's "Destroying test database" line and one
+  " OK" that Django flushes from standard output at exit.
+- Not shown by this run: that the two tests fail when the `except` is narrowed. That is Verifier
+  1's Y14, run by Verifier 1, with the expected failing tests written down beforehand in its own
+  records.
+- Nothing else is repeated. The code is unchanged since 595e323e, so the mutants (34 of 34) and the
+  regression (2059, OK) stand; the routes test module only gained tests.
+
 ### Summary of the runs
 
 | What | Tip | Result |
@@ -382,6 +409,7 @@ module, this branch's four new ones included).
 | Mutants | 25 at bbd2b53d, 9 at 8610d16e | 34 of 34 KILLED on the final code |
 | H-124's guard on the merged tree (0b) | f43e0f23 | Ran 22, OK |
 | Regression, four apps | f43e0f23 | Ran 2059, OK (skipped=22) |
+| The routes test module once, after the test-only commit | 1d6824e7 | Ran 31, OK |
 
 Nothing differed from what was written before each run. Nothing was observed on a live or staging
 service, and the frontend was not read.
