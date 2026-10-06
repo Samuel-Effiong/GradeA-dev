@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from users.models import CustomUser
 
+from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
 from .models import StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
@@ -201,6 +202,29 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "is_grading_scheduled",
         ]
 
+    #: H-127: the teacher's review-queue fields, and what a student is sent
+    #: in their place, released or not. `review_reasons` holds both AI
+    #: graders' marks for each disputed question; the rest say that the
+    #: graders disagreed and how sure the grader was.
+    STUDENT_REVIEW_FIELD_VALUES = {
+        "needs_review": False,
+        "review_reasons": None,
+        "review_severity": None,
+        "review_tier": None,
+        "grading_confidence": None,
+    }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT":
+            data.update(self.STUDENT_REVIEW_FIELD_VALUES)
+            # A student may know when a RELEASED grade was made, not that
+            # an unreleased one exists.
+            if not instance.is_published:
+                data["graded_at"] = None
+        return data
+
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
 
@@ -354,8 +378,11 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
 
     def get_formatted_grade(self, obj):
         request = self.context.get("request")
-        if request and request.user.user_type == "STUDENT" and not obj.is_published:
-            return None
+        if request and request.user.user_type == "STUDENT":
+            # H-127: a student is never sent the column itself.
+            if not obj.is_published:
+                return None
+            return student_safe_formatted_grade(obj.formatted_grade)
         return obj.formatted_grade
 
     def get_submission_status(self, obj):
@@ -439,87 +466,18 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "feedback",
         ]
 
-    # Fields on a question_evaluations entry that are safe to show a
-    # student. Everything else — flag_for_review, graded_by provenance,
-    # snapped_from, evaluation_rationale (a teacher-directed note on level
-    # selection), and evidence_quotes (internal verification detail) — is
-    # stripped. second_opinion is not in this list at all: it is a second
-    # grader's dissenting score and rationale, meant for the teacher's
-    # review queue, never for a student to read as ammunition in a grade
-    # dispute.
-    _STUDENT_EVALUATION_FIELDS = (
-        "question_number",
-        "question_text",
-        "question_type",
-        "max_points",
-        "student_answer",
-        "score_awarded",
-        "level_achieved",
-        "strengths",
-        "weaknesses",
-        "improvement_suggestions",
-        "feedback_for_student",
-    )
-
-    @classmethod
-    def _student_safe_feedback(cls, feedback):
-        """
-        Whitelist projection of the grading feedback blob for student eyes.
-        Built explicitly rather than by exclusion, so a new key added to
-        the grading output (e.g. a future second_opinion-like block) is
-        hidden from students by default instead of leaking until someone
-        remembers to blocklist it.
-        """
-        if not isinstance(feedback, dict):
-            return feedback
-
-        summary = feedback.get("grading_summary")
-        safe_summary = None
-        if isinstance(summary, dict):
-            safe_summary = {
-                key: summary.get(key)
-                for key in ("total_score", "max_total_points", "percentage")
-                if key in summary
-            }
-
-        evaluations = feedback.get("question_evaluations")
-        safe_evaluations = None
-        if isinstance(evaluations, list):
-            safe_evaluations = [
-                {
-                    key: evaluation.get(key)
-                    for key in cls._STUDENT_EVALUATION_FIELDS
-                    if key in evaluation
-                }
-                for evaluation in evaluations
-                if isinstance(evaluation, dict)
-            ]
-
-        overall = feedback.get("overall_performance_analysis")
-        safe_overall = overall if isinstance(overall, dict) else None
-
-        recommendations = feedback.get("recommendations")
-        safe_for_student = None
-        if isinstance(recommendations, dict):
-            safe_for_student = recommendations.get("for_student")
-
-        safe: dict = {}
-        if safe_summary is not None:
-            safe["grading_summary"] = safe_summary
-        if safe_evaluations is not None:
-            safe["question_evaluations"] = safe_evaluations
-        if safe_overall is not None:
-            safe["overall_performance_analysis"] = safe_overall
-        if safe_for_student is not None:
-            safe["recommendations"] = {"for_student": safe_for_student}
-        return safe
+    # What a student is shown of the saved grading result is decided in
+    # students/feedback_projection.py (H-127), which every student route
+    # shares. second_opinion is not in it at all: it is a second grader's
+    # dissenting score and rationale, meant for the teacher's review queue,
+    # never for a student to read as ammunition in a grade dispute.
 
     def get_raw_input(self, obj):
         return answer_document_for_student(obj)
 
     def get_feedback(self, obj):
         if obj.is_published:
-            return self._student_safe_feedback(obj.feedback)
+            return student_safe_feedback(obj.feedback)
 
     def get_score(self, obj):
         request = self.context.get("request")
@@ -534,10 +492,12 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return obj.score_percentage
 
     def get_formatted_grade(self, obj):
-        request = self.context.get("request")
-        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+        # This serializer is the student's. H-127: the formatter's output
+        # also holds advice to the teacher (its prompt asks for it), so the
+        # student is sent a projection of it, and nothing before release.
+        if not obj.is_published:
             return None
-        return obj.formatted_grade
+        return student_safe_formatted_grade(obj.formatted_grade)
 
     def get_submission_status(self, obj):
         return "SUBMITTED"

@@ -1,0 +1,27 @@
+import sys
+sys.path.insert(0, "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-8")
+from AutoGrader.tests_no_playwright_at_import import playwright_started_at_import as rule, STARTERS
+
+def prefilter(source):
+    return bool(STARTERS & set(source.replace("(", " ").replace(".", " ").split()))
+
+S = {
+ "M1 alias import": "from playwright.sync_api import sync_playwright as sp\np = sp().start()\n",
+ "M2 assignment": "import playwright.sync_api as api\nstart = api.sync_playwright\np = start()\n",
+ "M3a staticmethod": "class T:\n    @staticmethod\n    def available():\n        return bool(sync_playwright())\nOK = T.available()\n",
+ "M3b classmethod": "class T:\n    @classmethod\n    def available(cls):\n        return bool(sync_playwright())\nOK = T.available()\n",
+ "M4 getattr literal": "import playwright.sync_api as api\np = getattr(api, 'sync_playwright')()\n",
+ "M4b getattr only, double quotes": 'import playwright.sync_api as api\np = getattr(api, "sync_playwright")()\n',
+ "F1 import with comma": "from playwright.sync_api import sync_playwright, Page\nwith sync_playwright() as p:\n    pass\n",
+ "F2 import list first": "from playwright.sync_api import Page, sync_playwright\nwith sync_playwright()as p:\n    pass\n",
+ "F3 comma import, call via helper": "from playwright.sync_api import (sync_playwright,\n Page)\ndef a():\n    return sync_playwright ()\nX = a()\n",
+ "F4 passed as argument": "import functools\nfrom playwright.sync_api import sync_playwright as sp\nX = functools.partial(sp)()\n",
+ "F5 call result subscripted": "starters = [sync_playwright]\nX = starters[0]()\n",
+ "F6 alias of own helper": "def a():\n    return sync_playwright()\nb = a\nX = b()\n",
+ "F7 import alias of module fn in class": "class T:\n    def a(self):\n        return sync_playwright()\nX = T().a()\n",
+ "A1 false alarm local": "def helper():\n    sync_playwright = None\n    return 1\nX = helper()\n",
+ "A2 false alarm method name": "def available():\n    return sync_playwright()\nclass T:\n    def available(self):\n        return 1\nX = T().available()\n",
+}
+for k, src in S.items():
+    compile(src, k, "exec")
+    print(f"{k:38} rule={rule(src)!s:8} prefilter_passes={prefilter(src)}")
