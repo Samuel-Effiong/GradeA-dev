@@ -1,0 +1,270 @@
+"""
+H-127: every route that shows a student their graded work returns the
+student projection of the saved feedback, never the saved column itself.
+
+The student's own submission endpoint has done so since the second-opinion
+work (students/tests_student_feedback_scoping.py). Two other student routes
+returned `submission.feedback` as stored once the grade was published:
+
+  * the assignment detail a student opens (`performance_summary`,
+    assignments/serializers.py);
+  * the student dashboard's assignment list (`feedback`,
+    dashboard/views.py).
+
+The stored feedback holds what is written for the teacher: the second
+grader's marks and reasons, which model graded, the review flags, the
+rationale for the level chosen, the evidence quotes, the advice to the
+teacher, and the text of a failed second opinion.
+
+Each route is pinned to the EXACT projection, so a key added to the grading
+result later stays hidden from students until someone decides otherwise.
+
+Run with:
+    python manage.py test students.tests_student_feedback_routes
+"""
+
+import ast
+import json
+
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from assignments.models import Assignment, AssignmentStatus
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.models import StudentSubmission
+from users.models import CustomUser, UserTypes
+
+#: Words that appear only in the parts of FULL_FEEDBACK a student must not
+#: be sent. Looked for in the whole response body, so a leak under another
+#: key is caught too.
+TEACHER_ONLY_MARKERS = (
+    "second_opinion",
+    "second-grader-model",
+    "first-grader-model",
+    "SECOND GRADER RATIONALE",
+    "INTERNAL NOTE ON LEVEL",
+    "evidence_quotes",
+    "flag_for_review",
+    "graded_by",
+    "snapped_from",
+    "evaluation_rationale",
+    "for_teacher",
+    "ADVICE TO THE TEACHER",
+    "follow_up_actions",
+    "RAW SECOND OPINION ERROR",
+    "grading_model",
+    "A KEY NOBODY HAS CLASSIFIED",
+)
+
+FULL_FEEDBACK = {
+    "grading_summary": {
+        "total_score": 8,
+        "max_total_points": 10,
+        "percentage": 80.0,
+        "confidence_note": "INTERNAL NOTE ON LEVEL (summary)",
+    },
+    "question_evaluations": [
+        {
+            "question_number": 1,
+            "question_text": "Q1?",
+            "question_type": "SHORT-ANSWER",
+            "max_points": 10,
+            "student_answer": "An answer.",
+            "model_answer": "The model answer.",
+            "evidence_quotes": ["An answer."],
+            "score_awarded": 8,
+            "level_achieved": "good",
+            "evaluation_rationale": "INTERNAL NOTE ON LEVEL selection.",
+            "strengths": ["Clear reasoning."],
+            "weaknesses": ["Missing a detail."],
+            "improvement_suggestions": ["Add the missing detail."],
+            "feedback_for_student": "Solid answer overall.",
+            "flag_for_review": "check the rubric",
+            "graded_by": "first-grader-model",
+            "snapped_from": 8.4,
+        }
+    ],
+    "overall_performance_analysis": {
+        "score_breakdown": "Student scored 8 out of 10 points (80.00%)",
+    },
+    "grading_confidence": 92,
+    "grading_model": "first-grader-model",
+    "recommendations": {
+        "for_student": ["Review the missing detail."],
+        "for_teacher": ["ADVICE TO THE TEACHER"],
+        "follow_up_actions": ["Flag for a rubric review."],
+    },
+    "second_opinion": {
+        "model": "second-grader-model",
+        "error": "RAW SECOND OPINION ERROR: you only have 12 credits",
+        "disagreements": [
+            {
+                "question_number": 1,
+                "a": {"score_awarded": 8},
+                "b": {
+                    "score_awarded": 10,
+                    "evaluation_rationale": "SECOND GRADER RATIONALE",
+                },
+            }
+        ],
+    },
+    "a_future_block": "A KEY NOBODY HAS CLASSIFIED",
+}
+
+#: What a student is sent for FULL_FEEDBACK: the same shape their own
+#: submission endpoint returns.
+STUDENT_FEEDBACK = {
+    "grading_summary": {
+        "total_score": 8,
+        "max_total_points": 10,
+        "percentage": 80.0,
+    },
+    "question_evaluations": [
+        {
+            "question_number": 1,
+            "question_text": "Q1?",
+            "question_type": "SHORT-ANSWER",
+            "max_points": 10,
+            "student_answer": "An answer.",
+            "score_awarded": 8,
+            "level_achieved": "good",
+            "strengths": ["Clear reasoning."],
+            "weaknesses": ["Missing a detail."],
+            "improvement_suggestions": ["Add the missing detail."],
+            "feedback_for_student": "Solid answer overall.",
+        }
+    ],
+    "overall_performance_analysis": {
+        "score_breakdown": "Student scored 8 out of 10 points (80.00%)",
+    },
+    "recommendations": {"for_student": ["Review the missing detail."]},
+}
+
+
+def as_plain(value):
+    """A response value as plain dicts and lists, for an exact comparison."""
+    return json.loads(json.dumps(value, default=str))
+
+
+class StudentFeedbackRoutesBase(APITestCase):
+    def setUp(self):
+        stamp = timezone.now().timestamp()
+        self.teacher = CustomUser.objects.create_user(
+            email=f"h127-teacher-{stamp}@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        self.student = CustomUser.objects.create_user(
+            email=f"h127-student-{stamp}@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+        )
+        session = Session.objects.create(name="S", teacher=self.teacher)
+        course = Course.objects.create(
+            name="C", teacher=self.teacher, session=session, is_active=True
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.assignment = Assignment.objects.create(
+            title="A",
+            course=course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+        )
+        self.submission = StudentSubmission.objects.create(
+            assignment=self.assignment,
+            student=self.student,
+            answers=[{"question_number": 1, "answer_html": "An answer."}],
+        )
+        self.set_grade(is_published=True)
+        self.client.force_authenticate(user=self.student)
+
+    def set_grade(self, **changes):
+        """A queryset update, as the scoping test does: no signals, and the
+        row holds exactly what the test names."""
+        fields = {
+            "graded_at": timezone.now(),
+            "score": 8,
+            "max_points": 10,
+            "score_percentage": 80.0,
+            "feedback": FULL_FEEDBACK,
+        }
+        fields.update(changes)
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(**fields)
+
+    def assert_nothing_for_the_teacher_in(self, response):
+        body = json.dumps(as_plain(response.data))
+        for marker in TEACHER_ONLY_MARKERS:
+            self.assertNotIn(marker, body)
+
+
+class AssignmentDetailPerformanceSummaryTest(StudentFeedbackRoutesBase):
+    """GET /assignments/<id>/ as the student: `performance_summary`."""
+
+    def get_summary(self):
+        response = self.client.get(
+            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response
+
+    def test_a_published_grade_is_shown_as_the_student_projection(self):
+        response = self.get_summary()
+        self.assertEqual(
+            as_plain(response.data["performance_summary"]), STUDENT_FEEDBACK
+        )
+        self.assert_nothing_for_the_teacher_in(response)
+
+    def test_the_older_ai_feedback_column_is_projected_too(self):
+        """The route falls back to `ai_feedback` when `feedback` is empty;
+        that column holds the same kind of result."""
+        self.set_grade(feedback=None, ai_feedback=FULL_FEEDBACK)
+        response = self.get_summary()
+        self.assertEqual(
+            as_plain(response.data["performance_summary"]), STUDENT_FEEDBACK
+        )
+        self.assert_nothing_for_the_teacher_in(response)
+
+    def test_an_unpublished_grade_shows_nothing(self):
+        self.set_grade(is_published=False)
+        response = self.get_summary()
+        self.assertIsNone(response.data["performance_summary"])
+        self.assert_nothing_for_the_teacher_in(response)
+
+
+class StudentDashboardAssignmentsFeedbackTest(StudentFeedbackRoutesBase):
+    """GET /student-admin/dashboard/assignments/: each row's `feedback`.
+
+    That field is declared as text (dashboard/serializers.py), so the row
+    carries the Python text form of the dictionary, as it always has. H-127
+    changes what is in it, not its type."""
+
+    def get_row(self):
+        response = self.client.get(reverse("student-assignments"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        rows = [
+            row
+            for row in response.data["results"]
+            if str(row["assignment_id"]) == str(self.assignment.pk)
+        ]
+        self.assertEqual(len(rows), 1)
+        return response, rows[0]
+
+    def test_a_published_grade_is_shown_as_the_student_projection(self):
+        response, row = self.get_row()
+        self.assertIsInstance(row["feedback"], str)
+        self.assertEqual(ast.literal_eval(row["feedback"]), STUDENT_FEEDBACK)
+        self.assert_nothing_for_the_teacher_in(response)
+
+    def test_an_unpublished_grade_shows_nothing(self):
+        self.set_grade(is_published=False)
+        response, row = self.get_row()
+        self.assertIsNone(row["feedback"])
+        self.assert_nothing_for_the_teacher_in(response)
