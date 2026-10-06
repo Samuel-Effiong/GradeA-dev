@@ -373,6 +373,8 @@ class StudentSubmissionListReviewFiltersTest(StudentFeedbackRoutesBase):
             {"review_tier": "moderate"},
             {"ordering": "-review_severity"},
             {"ordering": "student__first_name,review_severity"},
+            # A spaced list is a valid ordering to the framework too.
+            {"ordering": "student__first_name, -review_severity"},
         ):
             with self.subTest(query=query):
                 response = self.client.get(self.url, query)
@@ -596,3 +598,128 @@ class StudentFormattedGradeTest(StudentFeedbackRoutesBase):
         self.set_grade(is_published=True, formatted_grade=str(FULL_FORMATTED_GRADE))
         _, shown = self.get_formatted_grade(user=self.teacher)
         self.assertEqual(ast.literal_eval(shown), FULL_FORMATTED_GRADE)
+
+
+#: Verifier 1's read: a value NESTED under an allowed name. Every value
+#: holding the word below sits where the grader or the formatter was asked
+#: for a sentence, a number or a list of sentences.
+NESTED = "NESTED TEACHER TEXT"
+
+NESTED_FEEDBACK = {
+    "grading_summary": {"total_score": {"flag": NESTED}, "percentage": 80.0},
+    "question_evaluations": [
+        {
+            "question_number": 1,
+            "score_awarded": 8,
+            "strengths": ["Clear reasoning.", {"for_teacher": NESTED}],
+            "weaknesses": [["a list inside the list", NESTED]],
+            "feedback_for_student": {"evaluation_rationale": NESTED},
+            "improvement_suggestions": ["Add the missing detail."],
+        }
+    ],
+    "recommendations": {"for_student": {"for_teacher": [NESTED]}},
+}
+STUDENT_NESTED_FEEDBACK = {
+    "grading_summary": {"percentage": 80.0},
+    "question_evaluations": [
+        {
+            "question_number": 1,
+            "score_awarded": 8,
+            "improvement_suggestions": ["Add the missing detail."],
+        }
+    ],
+}
+
+NESTED_FORMATTED_GRADE = {
+    "overall_performance_summary": {
+        "score_statement": {"flag": NESTED},
+        "performance_narrative": "You did well.",
+    },
+    "strengths": ["Question 1: clear reasoning.", {"for_teacher": NESTED}],
+    "areas_for_improvement": ["Question 1: add the missing detail."],
+    "question_by_question_breakdown": [
+        {
+            "question_number": 1,
+            "max_score": 10,
+            "narrative": {"flags_for_teacher_review": [NESTED]},
+            "strengths": [[NESTED]],
+            "feedback_for_student": "Solid answer overall.",
+        }
+    ],
+    "final_recommendations": {"for_student": {"for_teacher": [NESTED]}},
+}
+STUDENT_NESTED_FORMATTED_GRADE = {
+    "overall_performance_summary": {"performance_narrative": "You did well."},
+    "areas_for_improvement": ["Question 1: add the missing detail."],
+    "question_by_question_breakdown": [
+        {
+            "question_number": 1,
+            "max_score": 10,
+            "feedback_for_student": "Solid answer overall.",
+        }
+    ],
+    "final_recommendations": {},
+}
+
+
+class NestedValuesUnderAllowedNamesTest(StudentFeedbackRoutesBase):
+    """Under a name a student is shown, only text, a number, true or false,
+    nothing, or a list of those is shown. Anything else leaves the name
+    out: a dictionary there would bring every key in it."""
+
+    def assert_no_nested_text(self, response):
+        self.assertNotIn(NESTED, json.dumps(as_plain(response.data)))
+
+    def test_the_feedback_on_the_assignment_detail(self):
+        self.set_grade(is_published=True, feedback=NESTED_FEEDBACK)
+        response = self.client.get(
+            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            as_plain(response.data["performance_summary"]), STUDENT_NESTED_FEEDBACK
+        )
+        self.assert_no_nested_text(response)
+
+    def test_the_feedback_and_formatted_grade_on_the_submission_page(self):
+        self.set_grade(
+            is_published=True,
+            feedback=NESTED_FEEDBACK,
+            formatted_grade=str(NESTED_FORMATTED_GRADE),
+        )
+        response = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(as_plain(response.data["feedback"]), STUDENT_NESTED_FEEDBACK)
+        self.assertEqual(
+            response.data["formatted_grade"], str(STUDENT_NESTED_FORMATTED_GRADE)
+        )
+        self.assert_no_nested_text(response)
+
+    def test_plain_values_and_lists_of_them_still_pass(self):
+        """The rule removes nothing from a result of the expected shape."""
+        from students.feedback_projection import (
+            student_safe_feedback,
+            student_safe_formatted_grade,
+        )
+
+        self.assertEqual(student_safe_feedback(FULL_FEEDBACK), STUDENT_FEEDBACK)
+        self.assertEqual(
+            student_safe_formatted_grade(str(FULL_FORMATTED_GRADE)),
+            str(STUDENT_FORMATTED_GRADE),
+        )
+        plain = {"strengths": ["a", 1, 2.5, True, None]}
+        self.assertEqual(student_safe_formatted_grade(str(plain)), str(plain))
+
+    def test_the_whole_analysis_block_is_still_copied_whole(self):
+        """A stated limit, pinned so that it is a decision and not an
+        accident: `overall_performance_analysis` is nested by design and is
+        shown to students as stored."""
+        from students.feedback_projection import student_safe_feedback
+
+        block = {"strengths_summary": {"overall_strengths": ["Good grasp."]}}
+        self.assertEqual(
+            student_safe_feedback({"overall_performance_analysis": block}),
+            {"overall_performance_analysis": block},
+        )
