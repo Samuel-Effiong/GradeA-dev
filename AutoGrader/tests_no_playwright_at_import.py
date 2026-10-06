@@ -97,6 +97,7 @@ def all_test_modules(root=None):
 
 
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+DECORATED = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
 
 
 def nodes_run_at_import(tree):
@@ -131,6 +132,18 @@ def name_asked_of_getattr(node):
     ):
         return node.args[1].value
     return None
+
+
+def unwrapped(node):
+    """staticmethod(thing) and classmethod(thing) stand for the thing."""
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in ("staticmethod", "classmethod")
+        and len(node.args) == 1
+    ):
+        return node.args[0]
+    return node
 
 
 def names_in(node):
@@ -179,7 +192,9 @@ def playwright_started_at_import(source):
     names that reach a starter when called as name(), `asked` those that
     reach one when called as thing.name(). A module function is called by
     its bare name; a method is asked of its class or of an object, or
-    called by its bare name inside its own class body."""
+    called by its bare name inside its own class body. A class whose
+    __init__ or __new__ reaches a starter is called by its bare name. A
+    decorator applied without brackets is called too."""
     tree = ast.parse(source)
     bare, asked = set(STARTERS), set(STARTERS)
 
@@ -189,8 +204,11 @@ def playwright_started_at_import(source):
         )
 
     def is_one(node):
-        """The node is itself a starter, or a function or method that
-        reaches one: not a call of it, and not something read off it."""
+        """The node is itself a starter, or a function, method or lambda
+        that reaches one: not a call of it, and not something read off it."""
+        node = unwrapped(node)
+        if isinstance(node, ast.Lambda):
+            return reaches(node.body)
         if isinstance(node, ast.Name):
             return node.id in bare
         if isinstance(node, ast.Attribute):
@@ -199,7 +217,7 @@ def playwright_started_at_import(source):
 
     functions = list(module_functions(tree))
     methods = [
-        method
+        (owner, method)
         for owner in ast.walk(tree)
         if isinstance(owner, ast.ClassDef)
         for method in methods_of(owner)
@@ -216,9 +234,11 @@ def playwright_started_at_import(source):
         for function in functions:
             if any(reaches(statement) for statement in function.body):
                 bare.add(function.name)
-        for method in methods:
+        for owner, method in methods:
             if any(reaches(statement) for statement in method.body):
                 asked.add(method.name)
+                if method.name in ("__init__", "__new__"):
+                    bare.add(owner.name)
         for node in ast.walk(tree):
             if isinstance(node, ast.Assign):
                 targets = node.targets
@@ -235,16 +255,24 @@ def playwright_started_at_import(source):
                         asked.add(target.attr)
         grew = len(bare) + len(asked) > before
 
+    def called(node, owner):
+        """Calling this, in the body of this class (or of none), reaches a
+        starter."""
+        own = {method.name for method in methods_of(owner)} & asked if owner else set()
+        return any(
+            name in (bare | own if kind == "bare" else asked)
+            for kind, name in names_in(node)
+        )
+
     found = set()
     for node, owner in nodes_run_at_import(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        own = {method.name for method in methods_of(owner)} & asked if owner else set()
-        if any(
-            name in (bare | own if kind == "bare" else asked)
-            for kind, name in names_in(node.func)
-        ):
-            found.add(node.lineno)
+        if isinstance(node, ast.Call):
+            if called(node.func, owner):
+                found.add(node.lineno)
+        elif isinstance(node, DECORATED):
+            for decorator in node.decorator_list:
+                if not isinstance(decorator, ast.Call) and called(decorator, owner):
+                    found.add(decorator.lineno)
     return sorted(found)
 
 
