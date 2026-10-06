@@ -463,6 +463,29 @@ Test count of the slice's own module after the removal: 52; the new module: 3.
   run, since the delta's tests pass on the code as it stands. Expected: OK (627 before; one test
   removed and three added, so 629 if nothing else moved); 38 KILLED.
 
-### Delta 2's run
+### Delta 2's run at 525fdf88: the modules green, TWO MUTANTS SURVIVED (disclosed)
 
-None yet at this commit.
+One grant from 0b, 2026-10-06 18:31:14 to 18:40:10, mode `1d`. One run, serial, 6G scope, rules
+12, 13, 16, 17 and 18. Not stopped, not repeated.
+
+| Part | Result | Log |
+|---|---|---|
+| 1: four changed modules, thirteen near modules, 26 guards | exit 0: Ran 629 tests in 199.954s, OK. No skips. 629 as predicted | `modules_and_guards_525fdf88.txt.gz` |
+| 2: all 38 mutants | **36 KILLED, 2 SURVIVED, 0 BROKEN** | `mutation_log_525fdf88.txt`, `mutation_results_525fdf88.json`, `mutant_logs_525fdf88/` |
+
+- Load average 8.41 12.50 12.19 at the start, 11.34 10.85 11.19 at the end.
+- The 34 earlier mutants were all killed again. P3 and P4 were killed by their named tests: the
+  Checker's item 2 is met.
+- **P1 and P2 SURVIVED** (exit 0, "Ran 96 tests", nothing failing): the chunk call's and the
+  summary call's splice of the teacher's instructions can each read the live switch without any
+  test failing. **The Checker's item 1 was NOT met by this delta.** Nothing was re-run.
+- **Why.** The adopted test asserted that the teacher's text is in
+  `json.dumps(kwargs, default=str)` for every provider call. Those keyword arguments include
+  `assignment=<the assignment object>`, and the test's stand-in assignment is a plain namespace
+  whose text form prints its `custom_ai_prompt`. So the text was in every dump whether or not it
+  was spliced into the prompt: the assertion could not fail. It passed at 6ca94c09 in the
+  Checker's run for the same reason.
+- **My part.** I adopted the class without checking by reading that its assertion could fail
+  under the mutants I had written for it, and spent a slot finding out.
+- Logs a commit hook would alter are gzipped byte-exact; their hashes are in
+  `gzipped_logs_sha256_525fdf88.txt`. `console_525fdf88.txt` is the gate script's own output.
