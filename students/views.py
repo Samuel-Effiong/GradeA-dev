@@ -324,13 +324,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission = self.get_object()
         # `usr` ALONE, and this was corrected by a test rather than
         # reasoned: `global` was added here first, on the assumption that
-        # the payload renders the teacher-owned assignment live. It does
-        # not. `assignment` is serialised as a bare UUID and `raw_input` is
-        # a snapshot materialised ONCE and persisted on the submission row,
-        # so a teacher retitling the assignment provably does not change
-        # this response. Everything this payload does reflect - score,
-        # feedback, grade status, raw_input - belongs to the submission,
-        # whose save bumps its student's generation.
+        # the payload renders the teacher-owned assignment live. For staff
+        # it does not: `assignment` is serialised as a bare UUID and
+        # `raw_input` is a snapshot materialised ONCE and persisted on the
+        # submission row, so a teacher retitling the assignment does not
+        # change a staff response. Everything that payload reflects -
+        # score, feedback, grade status, raw_input - belongs to the
+        # submission, whose save bumps its student's generation.
+        #
+        # Since H-130 a STUDENT's response before release does follow the
+        # assignment: the document is rebuilt from the row at read time
+        # (students.services.answer_document_for_student), with the
+        # assignment's current title and due date. `usr` is still enough,
+        # because an assignment's save bumps every enrolled student's
+        # generation (assignments/signals.py); the test
+        # test_a_rename_the_teacher_saves_refreshes_the_students_cached_document
+        # holds that link.
         cache_key = versioned_key(
             f"studentsubmissions:user_id__{request.user.id}"
             f":instance_id__{submission.id}",

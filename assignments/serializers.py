@@ -554,9 +554,14 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         return str(submission.id) if submission else None
 
     def get_student_submission_raw_input(self, obj):
+        # Not the stored column: before release it carries the grade
+        # (H-130). Imported here because students.services imports this
+        # app's services.
+        from students.services import answer_document_for_student
+
         submission = self._get_submission(obj)
         if submission:
-            return submission.raw_input
+            return answer_document_for_student(submission)
         return None
 
     def get_assignment_raw_input(self, obj):

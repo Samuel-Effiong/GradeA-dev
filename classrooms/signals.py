@@ -1,8 +1,6 @@
 import logging
-from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
-from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
@@ -16,6 +14,7 @@ from AutoGrader.cache_generation import (
     SCOPE_USER,
     bump_many,
 )
+from classrooms.final_grade import final_grade_from
 from classrooms.models import Course, School, Session, StudentCourse, Topic
 from students.models import StudentSubmission
 
@@ -187,14 +186,14 @@ def _course_id_for_assignment(assignment_id):
 def compute_final_grade(student_id, course_id):
     """The final grade the student's graded work implies, or None.
 
-    A points-weighted average across all graded submissions:
-    sum(score) / sum(points) * 100, clamped to 0-100 and rounded to 2dp.
-    Weighted (not a plain mean of percentages) so a 100-point exam counts
-    more than a 5-point quiz.
+    A points-weighted average across all graded submissions: the
+    arithmetic is `classrooms.final_grade.final_grade_from`, and this
+    function decides which submissions count and with what weight.
 
     Pure read: `_recalculate_final_grade` writes the result, and the
     `recalculate_final_grades` command previews it for existing rows. Both
-    must agree, so this is the only place the formula lives.
+    must agree, so this is the only place the stored figure's rows are
+    chosen.
     """
     # Submissions graded before `max_points` was stored have it NULL.
     # Weight them by the assignment's total_points - the same fallback the
@@ -202,7 +201,7 @@ def compute_final_grade(student_id, course_id):
     # on `max_points > 0` alone silently left a graded 4/5 out of a
     # student's final grade (H-33). A stored max_points always wins; a row
     # with no maximum anywhere still can't be weighted.
-    totals = (
+    scored = (
         StudentSubmission.objects.filter(
             student_id=student_id,
             assignment__course_id=course_id,
@@ -211,21 +210,9 @@ def compute_final_grade(student_id, course_id):
         )
         .annotate(points=Coalesce("max_points", "assignment__total_points"))
         .filter(points__gt=0)
-        .aggregate(total_score=Sum("score"), total_max_points=Sum("points"))
+        .values_list("score", "points")
     )
-
-    total_score = totals["total_score"]
-    total_max_points = totals["total_max_points"]
-
-    if not total_max_points:
-        return None
-    raw_grade = (total_score / total_max_points) * 100
-    # Clamp to the documented 0-100 scale so bad upstream data (extra
-    # credit pushing a score over 100%, a negative adjustment) can't
-    # silently fall outside every grade band in grade-distribution
-    # reporting.
-    clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))
-    return clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return final_grade_from(scored)
 
 
 def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
