@@ -99,6 +99,32 @@ filters, which this branch extends, so that runner's `--check` no longer passes 
 is not edited: its results are for the tree it ran on. This branch's runner has its own two
 mutants on that line (F1, F2).
 
+## The base, and one line of an H-130 test (added 2026-10-06 about 17:40, still before any run of mine)
+
+- 0b moved the branch onto `task/beta-batch-11` twice: 7dcdac89 (onto 3457df56, batch 10 as
+  pushed, which holds H-127 and H-128) and 20e3a3a5 (onto 7944259e, after d5's H-130 was merged).
+  No conflict either time. H-130 edits three of the files this branch edits
+  (`students/serializers.py`, `students/services.py`, `students/views.py`); by my reading and
+  0b's the hunks do not meet: H-130 changes the answer document near the top of `services.py` and
+  the student's detail serializer, this branch the closing check further down and the list
+  serializer. H-130 calls none of the three functions whose signatures this branch changes.
+- **By the SM's ruling this branch is gated once, on the tree that holds H-130.**
+- **One assertion of an H-130 test is changed here, test only (2233be8a), with d5's agreement and
+  the SM's, both 2026-10-06.** `students/tests_answer_document_before_release.py`,
+  `TheUploadRoutesOwnAnswer.test_an_upload_on_a_graded_unreleased_row_is_refused_with_no_document`
+  pinned the refusal's body as exactly `["error"]`; this branch adds `"code"`. I found it by
+  reading before the two were on one tree. It now asserts what the test is for: no answer document
+  and no grade field in the refusal (`raw_input`, `score`, `score_percentage`, `feedback`,
+  `formatted_grade`, `graded_at` named absent), and no key outside `{"error", "code"}`. The 409
+  line and the stored-document line around it are untouched. v2, H-130's verifier, was told.
+- **0b's cross-side run, not mine** (its own grant; its expectation written at 17:19 before the
+  run, `crossside_expected_written_by_0b.txt`): on 20e3a3a5, before that test change, H-124's
+  guard, H-127's guard as this branch extends it, and d5's module: Ran 62 tests, FAILED
+  (failures=1), exactly that one test, with `['error', 'code'] != ['error']`. Both guards pass and
+  no other test of d5's module fails. Log, byte-identical to 0b's file:
+  `crossside_guards_and_h130_tests_on_h133_20e3a3a5_run_by_0b.log`.
+- The gate's list of related modules now includes d5's two H-130 test modules.
+
 ## Written before the runs
 
 **Step 0, reproduce-first** (`students.tests_no_grade_tell_before_release` and the guard, on the
@@ -111,8 +137,9 @@ five production files as at the base). I expect exit non-zero and these 17 red, 
 - `TheRefusalCodesAreAClosedListTest`, 1;
 - the guard, 2: rule 3, and the H-133 declaration test.
 
-**Step 1** (the new module, the guard, ten related modules among them the two older ones above,
-the 22 guard modules): exit 0, OK. I have not counted the tests.
+**Step 1** (the new module, the guard, twelve related modules, among them the two older ones
+above and d5's two H-130 modules, and the 22 guard modules): exit 0, OK. I have not counted the
+tests. In particular the H-130 test changed in 2233be8a passes.
 
 **Mutants:** 17, each with the tests it must fail named in `mutate.py` before any run: six on who
 is told which sentence, three on the codes, six on the list, two on the filters. I expect 17
