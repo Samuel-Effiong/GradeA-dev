@@ -318,3 +318,31 @@ at once.
 **Written before the second run:** the 1b step at the final tip: exit 0, OK, 473 tests (the 469
 and the four new ones). The nine mutants: 9 KILLED, each with every test named for it in
 `mutate.py`; G1 and G2 by the two nested-value route tests.
+
+### The second run, at 8610d16e (0b's GRANT, 2026-10-06 15:01:07 WAT)
+
+One run of the gate's 1b mode with the nine named mutants (`MUT_ONLY=...`; script sha256
+605806c89058ca84, runner sha256 37c71d952f0e0cf4), 15:01:28 to 15:10:48, script exit 0, serial, 6G
+scope. Not stopped, not repeated. 8610d16e is 595e323e (the code tip) and docs.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| The 4 new modules, 11 related, 22 guard modules, at the tip | exit 0, OK, 473 tests | exit 0: **Ran 473 tests in 330.677s, OK** | `modules_and_guards_8610d16e.txt.gz` |
+| The nine mutants on `students/feedback_projection.py` (A4, D4, F2 to F6, G1, G2) | 9 KILLED | **9 of 9 KILLED**; SURVIVED 0, KILLED_NOT_AS_EXPECTED 0, BROKEN 0 | `mutation_log_8610d16e.txt`, `mutation_results_8610d16e.json`, `mutant_logs_8610d16e/` |
+
+- Each inner run shows its own "Ran 74 tests" line, exit 1, every named test among the failures,
+  0 `__pycache__` directories left. G1 and G2 were each failed by the two nested-value route tests.
+- **Where each mutant's result is, on the final code:** the nine above at 8610d16e; the other 25 at
+  bbd2b53d, on production files that 5ca8f909 and 595e323e do not change. 34 mutants, 34 KILLED,
+  none counted twice.
+- Load average: 19.16 15.02 11.56 at the start (the other project's checks beside it), 9.14 at the
+  end of the first part, 5.28 9.06 10.58 at the end. Nothing in this run has a wall-clock limit.
+- The log before gzip: 211,598 bytes, 2,371 lines, sha256 starts 1e15a39371941600, "Ran" at line
+  2368, "OK" at 2370, then the runner's "Destroying test database" line.
+- The reproduce-first step was not repeated for the two later commits (rule 15). That the two
+  nested-value route tests fail without the rule is shown by mutant G1, which removes it.
+
+### Still owed as this is committed
+
+The one owning-app regression (assignments, dashboard, students, ai_processor), on this results
+tip, under the full-suite lock on a quiet machine. Its result is added in a later docs commit.
