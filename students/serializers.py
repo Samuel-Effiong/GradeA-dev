@@ -5,7 +5,7 @@ from rest_framework import serializers
 from users.models import CustomUser
 
 from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
-from .models import StudentSubmission
+from .models import GradingState, StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
     SecondOpinionSerializer,
@@ -210,11 +210,28 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         "grading_confidence": None,
     }
 
+    #: H-133: the teacher's scheduling of a grading run, and what a student
+    #: is sent in its place. Before release a student is shown nothing that
+    #: tells a grade exists or is on its way.
+    STUDENT_SCHEDULE_FIELD_VALUES = {
+        "scheduled_grading_at": None,
+        "grading_task_name": None,
+        "is_grading_scheduled": False,
+    }
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
         if request and request.user.user_type == "STUDENT":
             data.update(self.STUDENT_REVIEW_FIELD_VALUES)
+            data.update(self.STUDENT_SCHEDULE_FIELD_VALUES)
+            # H-133: DONE once the grade is released; until then IDLE, what
+            # a submitted paper shows. Never RUNNING or FAILED.
+            data["grading_state"] = (
+                GradingState.DONE.value
+                if instance.is_published
+                else GradingState.IDLE.value
+            )
             # A student may know when a RELEASED grade was made, not that
             # an unreleased one exists.
             if not instance.is_published:

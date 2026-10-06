@@ -116,7 +116,12 @@ SUBMISSION_CLOSED_ERRORS = (
 
 
 def _submission_closed_response(exc):
-    return Response({"error": str(exc)}, status=HTTP_409_CONFLICT)
+    """409 with the refusal's sentence and its stable code (H-133). The
+    sentence was chosen where the refusal was raised, by who is told."""
+    return Response(
+        {"error": str(exc), "code": getattr(exc, "code", None)},
+        status=HTTP_409_CONFLICT,
+    )
 
 
 def _failure_response(exc, fallback_message):
@@ -267,7 +272,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     #: or order their own list by it would learn, from which rows come
     #: back, that the two graders disagreed and how badly - the very thing
     #: the list serializer hides from them.
-    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier")
+    # H-133: `grading_state` too. Before release a student is shown IDLE
+    # whatever the state is, and a filter on the real value would tell.
+    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier", "grading_state")
     TEACHER_ONLY_ORDERINGS = ("review_severity",)
 
     def _refuse_review_queue_query_from_a_student(self):
@@ -641,7 +648,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 CustomUser.objects.select_for_update().get(pk=request.user.pk)
-                ensure_no_active_extraction(assignment=assignment, student=request.user)
+                ensure_no_active_extraction(
+                    assignment=assignment, student=request.user, told_to_student=True
+                )
                 processing_task = create_processing_task(
                     requested_by=request.user,
                     task_type=BackgroundTaskType.ANSWER_EXTRACTION,
@@ -739,8 +748,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 locked = StudentSubmission.objects.select_for_update().get(
                     pk=submission.pk
                 )
-                ensure_submission_open(locked)
-                ensure_no_active_extraction(submission=locked)
+                told_to_student = request.user.user_type == UserTypes.STUDENT
+                ensure_submission_open(locked, told_to_student=told_to_student)
+                ensure_no_active_extraction(
+                    submission=locked, told_to_student=told_to_student
+                )
                 processing_task = create_processing_task(
                     requested_by=request.user,
                     task_type=BackgroundTaskType.ANSWER_EXTRACTION,

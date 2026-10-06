@@ -68,6 +68,14 @@ COURSE_NOT_FOUND = "This course wasn't found."
 # budget (3 attempts of a multi-minute call is still well under this).
 EXTRACTION_TASK_STALE_AFTER_SECONDS = 60 * 60
 
+
+def _refusal_code(exc):
+    """The refusal's stable code beside its sentence, when it has one
+    (H-133: the four refusals that close a submission to changes)."""
+    code = getattr(exc, "code", None)
+    return {"code": code} if code else {}
+
+
 UPLOAD_REFUSALS = (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
@@ -429,6 +437,7 @@ def extract_answer_background_task(
         return {
             "status": states.FAILURE,
             "message": describe_background_task_error(exc),
+            **_refusal_code(exc),
         }
     except Exception as exc:
         if self.request.retries < self.max_retries:
@@ -869,7 +878,7 @@ def upload_answers_engine_async(
             session.update_result(
                 file_name, "FAILED", error=task.error if task else message
             )
-        return {"status": states.FAILURE, "message": message}
+        return {"status": states.FAILURE, "message": message, **_refusal_code(exc)}
     except Exception as exc:
         if self.request.retries < self.max_retries:
             # Not a failure yet. Marking FAILURE here (as this used to)
