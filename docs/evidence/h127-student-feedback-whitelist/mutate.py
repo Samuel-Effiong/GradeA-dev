@@ -17,6 +17,11 @@ each restore. Rule 18: each inner run writes straight to a file
     python docs/evidence/h127-student-feedback-whitelist/mutate.py --check
 checks the anchors (each exactly once) and that every mutant parses, and
 runs nothing.
+
+MUT_ONLY=name,name,... runs just those mutants (rule 17 addendum: after a
+change to one module, the mutants on that module are run again on the
+final module; the others keep their earlier result, which the evidence
+names). MUT_RESULTS and MUT_LOGS say where that run writes.
 """
 
 import ast
@@ -49,6 +54,7 @@ C = "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest."
 G = "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest."
 RULE_1 = G + "test_rule_1_every_raw_read_is_a_named_one"
 FG = R + "StudentFormattedGradeTest."
+N = R + "NestedValuesUnderAllowedNamesTest."
 LIST_UNPUBLISHED = (
     R + "StudentSubmissionListReviewFieldsTest."
     "test_an_unpublished_grade_shows_a_student_no_review_field"
@@ -188,6 +194,27 @@ MUTANTS = {
         "        return student_safe_formatted_grade(obj.formatted_grade)\n",
         "        return student_safe_formatted_grade(obj.formatted_grade)\n",
         [FG + "test_an_unreleased_grade_shows_nothing"],
+    ),
+    # ---- H-127, a value nested under an allowed name (Verifier 1's read).
+    "G1_any_value_under_an_allowed_name_is_copied": (
+        "students/feedback_projection.py",
+        "    return _is_plain(value) or (\n"
+        "        isinstance(value, list) and all(_is_plain(item) for item in value)\n"
+        "    )\n",
+        "    return True\n",
+        [
+            N + "test_the_feedback_on_the_assignment_detail",
+            N + "test_the_feedback_and_formatted_grade_on_the_submission_page",
+        ],
+    ),
+    "G2_a_list_is_copied_whatever_it_holds": (
+        "students/feedback_projection.py",
+        "        isinstance(value, list) and all(_is_plain(item) for item in value)\n",
+        "        isinstance(value, list)\n",
+        [
+            N + "test_the_feedback_on_the_assignment_detail",
+            N + "test_the_feedback_and_formatted_grade_on_the_submission_page",
+        ],
     ),
     # ---- H-127, the student's list: the review-queue fields.
     "B1_the_list_replaces_no_review_field": (
@@ -394,10 +421,15 @@ def main():
     check()
     if "--check" in sys.argv:
         return
+    only = [name for name in os.environ.get("MUT_ONLY", "").split(",") if name]
+    unknown = sorted(set(only) - set(MUTANTS))
+    assert not unknown, f"MUT_ONLY names no such mutant: {unknown}"
+    selected = {name: MUTANTS[name] for name in (only or MUTANTS)}
+    print(len(selected), "of", len(MUTANTS), "mutants selected", flush=True)
     LOGS.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     results = {}
-    for name, (path, old, new, expected) in MUTANTS.items():
+    for name, (path, old, new, expected) in selected.items():
         target = pathlib.Path(path)
         original = target.read_text(encoding="utf-8")
         try:

@@ -66,6 +66,9 @@ The last I read in the installed provider library (openai 1.107.1,
 | 22c3967e, 8a76e046 | Tests first: a student is sent a projection of `formatted_grade`; then the SM's rulings as tests |
 | 93db0af5 | `student_safe_formatted_grade`; the student's serializer uses it; a dead method removed |
 | a7216ae3 | The guard covers `formatted_grade`; a called method is not a read; its limits named |
+| bbd2b53d | Evidence and runner before any run. **The first gate ran on this commit.** |
+| 5ca8f909 | Tests first: a value nested under an allowed name must not reach a student; a spaced ordering case |
+| 595e323e | Under an allowed name only plain values pass (`_copy_plain`), in both projections |
 
 No model change, no migration, no setting. Production files: `assignments/serializers.py`,
 `dashboard/views.py`, `students/serializers.py`, `students/views.py`, `students/services.py`,
@@ -86,9 +89,22 @@ Behaviour changes, each stated because someone may meet it:
   `feedback_for_student`, `strengths`, `weaknesses`), `final_recommendations.for_student`.
   Dropped: `for_teacher`, `follow_up_actions`, any other key. **Shown as nothing:** text that is not
   a Python literal (plain words; JSON holding `null` or `true`), a literal that is not a dictionary,
-  text over 500,000 characters, an empty value, any failure to read. My own choice within the
-  ruling, for the SM to strike if wrong: `narrative` is kept (the prompt calls it a third-person
-  description of the answer, and it is most of what the page shows per question).
+  text over 500,000 characters, an empty value, any failure to read.
+  **`narrative` is kept per question by choice** (mine; the SM agreed and asked Verifier 1 to weigh
+  it): the prompt defines it as a third-person description of what the answer covered, and it is the
+  body of what the page shows per question, so dropping it would empty the page. The formatter
+  writes it with the teacher-directed input still in front of it, so it is the most likely place
+  for a review flag to be restated: the limit named below.
+- **Under an allowed name only plain values pass, in both projections** (added after the first
+  gate, from Verifier 1's read of bbd2b53d; SM ruling about 14:15): text, a number, true or false,
+  nothing, or a list of those. A dictionary, or a list holding a dictionary or a list, leaves that
+  name out. The values come from an AI's reply; a dictionary nested where a sentence was asked for
+  would otherwise be copied with every key in it. A result of the expected shape is unchanged. A
+  stored result that does hold such a value loses that entry for students; no stored row was read,
+  so whether one exists is not known. **One stated exception:** `overall_performance_analysis` in
+  the feedback is still copied whole. It is nested by design, students are shown it today, and its
+  real keys are not known without reading real rows, which was not done (SM ruling). A test pins
+  that this is a decision.
 - **For a student, the submission list** sends `needs_review` false and `review_reasons`,
   `review_severity`, `review_tier`, `grading_confidence` null, always; `graded_at` only for a
   released grade. A teacher's list is unchanged.
@@ -249,3 +265,56 @@ check, that test is red at the tip and I correct the test or the claim, not the 
 
 Nothing run. No database, staging or live service contacted. The frontend not read. Whether any
 stored row holds a non-dictionary feedback: not checked.
+
+## Results
+
+Everything above this heading was written before the runs and is left as written, except where a
+line says "added after the first gate".
+
+### The first gate, at bbd2b53d (0b's GRANT, 2026-10-06 14:11:06 WAT)
+
+One run of `run_h127_gate.sh bbd2b53d 1 9fb6d4fe` (script sha256 82c0de0d96b34311), 14:11:25 to
+14:40:19, script exit 0, serial, 6G scope, rules 12, 13, 16, 17 and 18. Not stopped, not repeated.
+Vezi's browser suite ran beside it; nothing in this gate has a wall-clock limit.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0, the new modules and the scoping module on the production files as at 9fb6d4fe | red, 28 named tests, no others | exit 1: Ran 57 tests in 8.716s, FAILED (failures=31, errors=2). **Exactly the 28 named tests**: 15 in the routes module, 3 in the formatter module, 6 in the error-code module, 4 in the guard. 33 result lines, because one of the 28, the filter test, has six sub-cases. The scoping module passed. | `prefix_base_production_failing_bbd2b53d.txt.gz` |
+| makemigrations --check | no changes | no changes | `makemigrations_check_bbd2b53d.txt` |
+| 1, 4 new modules, 11 related, 22 guard modules, at the tip | exit 0, OK | exit 0: **Ran 469 tests in 366.123s, OK** | `modules_and_guards_bbd2b53d.txt.gz` |
+| 2, mutants | 32 KILLED | **32 of 32 KILLED**; SURVIVED 0, KILLED_NOT_AS_EXPECTED 0, BROKEN 0 | `mutation_log_bbd2b53d.txt`, `mutation_results_bbd2b53d.json`, `mutant_logs_bbd2b53d/` |
+
+- **The doubt written beforehand is settled:** `test_evidence_rejected` passed at the tip and mutant
+  E3 failed it with the two others, as named. The batch's last error is the evidence refusal.
+- Every mutant's inner run shows its own "Ran 70 tests" line, exit 1, every named test among the
+  failures, and 0 `__pycache__` directories left. The route mutants A1, A2, A3 and F1 were each
+  caught by a route test AND by the guard's rule 1, as written.
+- The files were restored after step 0 and after every mutant ("source restored", "source clean
+  after mutants"); the mutants' database was dropped.
+- Load average: 5.28 4.15 4.08 at the start; step 1 started at 6.98 and ended at 18.94 12.24 7.75;
+  6.35 12.24 14.01 at the end of the battery.
+- The logs are as the runs wrote them, gzipped because they are large (step 0's holds the
+  600,000-character test value) or have trailing whitespace. Before gzip: step 1's log 208,333
+  bytes, 2,338 lines, sha256 starts ccbeeb5ae0c7f414, "Ran" at line 2335, "OK" at 2337, then the
+  runner's "Destroying test database" line; step 0's log 688,775 bytes, 765 lines, sha256 starts
+  9c02626539600954, "Ran" at line 760, "FAILED" at 762. Its last line, "systemd-run failed with
+  exit status 1.", is the scope reporting the test command's own non-zero exit.
+
+### After the first gate
+
+Two commits changed code after that run (5ca8f909 tests, 595e323e the nested-value rule), both in
+or for `students/feedback_projection.py` and the routes test module. So bbd2b53d's results stand
+for everything those two commits do not touch, and the following are owed on the final tip and are
+NOT yet run as I write this: the modules and guards once more (the gate's 1b mode), and the nine
+mutants on `students/feedback_projection.py` (A4, D4, F2 to F6, and two new ones, G1 and G2, for
+the nested-value rule), under the rule 17 addendum. The other 25 mutants are on files the two
+commits do not change; the routes test module gained one test class and one sub-case and lost
+nothing, so their kills are not stale. Then the four-app regression.
+
+Disclosed: those two commits ran their pre-commit hooks at about 14:41 to 14:43, inside a quiet
+window 0b had just declared for batch 9's full run; the notice reached me after them. Told to 0b
+at once.
+
+**Written before the second run:** the 1b step at the final tip: exit 0, OK, 473 tests (the 469
+and the four new ones). The nine mutants: 9 KILLED, each with every test named for it in
+`mutate.py`; G1 and G2 by the two nested-value route tests.
