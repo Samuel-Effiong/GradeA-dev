@@ -94,6 +94,7 @@ from .services import (
     ensure_student_may_submit,
     ensure_submission_open,
     grade_engine,
+    grading_result_stamp,
     notify_student_of_graded_submission,
     student_submission_to_html,
     update_submission_from_raw_text,
@@ -981,6 +982,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     processing_task,
                     str(submission.id),
                     user_prompt,
+                    result_stamp=grading_result_stamp(submission),
                 )
                 task_id = task.id
 
@@ -1171,6 +1173,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 formatted_processing_task,
                 str(submission.id),
                 user_prompt,
+                result_stamp=grading_result_stamp(submission),
             )
         except Exception as exc:  # noqa: BLE001 - the grade is already saved
             # The score is saved and the notice sent. Answering a failure

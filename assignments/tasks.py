@@ -30,6 +30,7 @@ from students.models import BatchUploadSession, BatchUploadType, StudentSubmissi
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
     grade_engine,
+    grading_result_stamp,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -722,8 +723,11 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         submission.formatted_grade = _reconcile_formatted_grade_numbers(
             formatted_grade, submission
         )
+        # Only its own field (BE-I-04): this row was read before a slow AI
+        # call. A whole-row save would write the score and the label it
+        # read back over a grading that landed meanwhile.
         with cancellable_final_save(processing_task_id):
-            submission.save()
+            submission.save(update_fields=["formatted_grade"])
 
         self.update_state(
             state="PROGRESS", meta={"step": "Grade formatted successfully"}
@@ -906,6 +910,11 @@ def upload_answers_engine_async(
         raise exc
 
 
+#: How a formatting task ends when the result it worded is no longer the
+#: row's. A success: nothing went wrong. It names no score.
+FORMATTED_GRADE_SUPERSEDED = "Superseded by a newer grade; nothing written"
+
+
 @shared_task()
 def formatted_grade_async(
     submission_id, user_prompt, processing_task_id=None, result_stamp=None
@@ -926,7 +935,38 @@ def formatted_grade_async(
             formatted_grade, submission
         )
         with cancellable_final_save(processing_task_id):
-            submission.save(update_fields=["formatted_grade"])
+            # The prompt was built from the grading result as it was when
+            # this task was queued, and the AI call takes seconds. If the
+            # row holds another result by now (a regrade, a teacher's
+            # manual grade), this wording is of a result that is gone:
+            # write nothing. The row lock holds a grade being saved at
+            # this moment back until this has written, or lets it finish
+            # first. A message with no stamp was queued before H-145 and
+            # writes as it always did.
+            superseded = result_stamp is not None and (
+                grading_result_stamp(
+                    StudentSubmission.objects.select_for_update()
+                    .only("graded_at", "regraded_at")
+                    .get(id=submission_id)
+                )
+                != result_stamp
+            )
+            if not superseded:
+                submission.save(update_fields=["formatted_grade"])
+
+        if superseded:
+            mark_processing_task_success(
+                processing_task_id,
+                meta={
+                    "step": FORMATTED_GRADE_SUPERSEDED,
+                    "submission_id": str(submission.id),
+                },
+            )
+            return {
+                "status": states.SUCCESS,
+                "submission_id": submission_id,
+                "message": FORMATTED_GRADE_SUPERSEDED,
+            }
 
         mark_processing_task_success(
             processing_task_id,

@@ -571,6 +571,10 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     Return a formatted response
     """
 
+    # Of the result just saved, taken now: by the time the follow-up runs
+    # the row may hold a newer one.
+    result_stamp = grading_result_stamp(submission)
+
     def _dispatch_followups():
         try:
             formatted_processing_task = create_processing_task(
@@ -585,6 +589,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 formatted_processing_task,
                 str(submission.id),
                 user_prompt,
+                result_stamp=result_stamp,
             )
             # Invalidate ai_summary
             student_summary_async.delay(
