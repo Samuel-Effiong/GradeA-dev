@@ -9,14 +9,20 @@ with both filled in and stores it, and the student's own serializers
 returned the stored text: every other grade-bearing field was withheld
 until release, and the score stood in the document.
 
-For a student reader of an unreleased submission the document is now
-rebuilt from the row in its ungraded form. Nothing stored changes and the
-teacher reads what the teacher read before. The test of the rule is
-byte-identity: graded-but-unreleased must read exactly as submitted did.
+Until release a student now always reads the document rebuilt from the row
+in its ungraded form, the header exactly as a newly submitted row has it.
+After release, the stored document. Nothing stored changes and staff read
+what they read before. Because the rebuild happens before grading as well
+as after it, grading changes nothing the student reads.
+
+The submission here is made the way production makes one, through the
+upload engine, not by a bare `create()`: the score column has a default of
+zero, and what a submitted document's header says follows from that.
 """
 
 import ast
 import inspect
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.urls import reverse
@@ -26,25 +32,43 @@ import assignments.serializers
 import classrooms.serializers
 import dashboard.serializers
 import students.serializers
+from assignments.models import Assignment
 from assignments.serializers import AssignmentDetailStudentSerializer
 from classrooms.tests_final_grade_zero_score import FinalGradeZeroScoreBase
 from students.models import StudentSubmission
-from students.services import answer_document_for_student
+from students.services import upload_answers_engine
 
-UNGRADED = "Not graded yet"
+EXTRACTED = {
+    "answers": [
+        {
+            "question_number": 1,
+            "question_text": "<p>Name the narrator.</p>",
+            "answer_html": "<p>It is Scout.</p>",
+        }
+    ]
+}
 
 
 class AnswerDocumentBase(FinalGradeZeroScoreBase):
     def setUp(self):
         super().setUp()
-        self.submission.answers = [
-            {
-                "question_number": 1,
-                "question_text": "<p>Name the narrator.</p>",
-                "answer_html": "<p>It is Scout.</p>",
-            }
-        ]
-        self.submission.save(update_fields=["answers"])
+        self.assignment = self.assignments[0]
+        # The base's row for this assignment came from a bare create().
+        # Replace it with one the upload engine makes.
+        self.submission.delete()
+        with (
+            patch(
+                "students.services.ai_processor.extract_answer_with_retry",
+                return_value=EXTRACTED,
+            ),
+            patch("students.services.send_email_task.delay"),
+        ):
+            upload_answers_engine(
+                self.assignment, [{"type": "text", "text": "an answer"}], self.student
+            )
+        self.submission = StudentSubmission.objects.get(
+            student=self.student, assignment=self.assignment
+        )
 
     def stored(self):
         return StudentSubmission.objects.get(pk=self.submission.pk).raw_input
@@ -55,6 +79,13 @@ class AnswerDocumentBase(FinalGradeZeroScoreBase):
             reverse(
                 "student-submission-publish-grade", kwargs={"pk": self.submission.pk}
             )
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+    def release_all(self):
+        self.client.force_authenticate(self.teacher)
+        response = self.client.post(
+            reverse("assignment-publish-all-grades", kwargs={"pk": self.assignment.pk})
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
@@ -73,110 +104,167 @@ class AnswerDocumentBase(FinalGradeZeroScoreBase):
             cache.clear()
         self.client.force_authenticate(user)
         response = self.client.get(
-            reverse("assignment-detail", kwargs={"pk": self.assignments[0].pk})
+            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response.data["student_submission_raw_input"]
 
 
-class GradedButUnreleasedReadsLikeSubmitted(AnswerDocumentBase):
+class ASubmittedDocumentIsUnchangedByThisRow(AnswerDocumentBase):
+    """Before any grading the student reads what production returns today."""
+
+    def test_the_upload_engine_stored_a_document(self):
+        self.assertTrue(self.stored())
+        self.assertIsNone(self.submission.graded_at)
+        self.assertFalse(self.submission.is_published)
+
     def test_on_the_students_own_submission(self):
-        submitted = self.on_the_submission(self.student)
-        self.assertEqual(submitted.count(UNGRADED), 2)
-
-        self.grade_by_ai(self.submission, 7)
-
-        self.assertEqual(self.on_the_submission(self.student), submitted)
+        self.assertEqual(self.on_the_submission(self.student), self.stored())
 
     def test_on_the_students_view_of_the_assignment(self):
-        self.on_the_submission(self.student)  # the document is first built here
-        submitted = self.on_the_assignment(self.student)
-        self.assertEqual(submitted.count(UNGRADED), 2)
+        self.assertEqual(self.on_the_assignment(self.student), self.stored())
 
+
+class GradingChangesNothingTheStudentReads(AnswerDocumentBase):
+    def setUp(self):
+        super().setUp()
+        self.submitted = self.stored()
+
+    def test_on_the_students_own_submission(self):
         self.grade_by_ai(self.submission, 7)
 
-        self.assertEqual(self.on_the_assignment(self.student), submitted)
+        self.assertEqual(self.on_the_submission(self.student), self.submitted)
+
+    def test_on_the_students_view_of_the_assignment(self):
+        self.grade_by_ai(self.submission, 7)
+
+        self.assertEqual(self.on_the_assignment(self.student), self.submitted)
 
     def test_a_regrade_changes_nothing_either(self):
-        submitted = self.on_the_submission(self.student)
         self.grade_by_ai(self.submission, 7)
         self.grade_by_ai(self.submission, 3)
 
-        self.assertEqual(self.on_the_submission(self.student), submitted)
+        self.assertEqual(self.on_the_submission(self.student), self.submitted)
 
-    def test_a_graded_row_whose_stored_document_is_empty(self):
-        """An older row: the read itself rebuilds and stores the document.
-        What it stores is the graded one; what the student gets is not."""
-        submitted = self.on_the_submission(self.student)
+    def test_a_half_graded_row_reads_the_same_too(self):
+        """A run that died between the score and the grading time, either
+        way round. Nothing is decided from those columns before release."""
+        halves = {
+            "a score and no grading time": {"graded_at": None},
+            "a grading time and no score": {"score": None},
+        }
+        for name, columns in halves.items():
+            with self.subTest(row=name):
+                self.grade_by_ai(self.submission, 7)
+                StudentSubmission.objects.filter(pk=self.submission.pk).update(
+                    **columns
+                )
+
+                self.assertEqual(self.on_the_submission(self.student), self.submitted)
+
+    def test_a_graded_row_whose_stored_document_was_lost(self):
+        """The read itself rebuilds and stores the document (an existing
+        behaviour). What it stores is the graded one; what the student
+        gets is not."""
         self.grade_by_ai(self.submission, 7)
+        graded = self.stored()
         StudentSubmission.objects.filter(pk=self.submission.pk).update(raw_input="")
 
-        self.assertEqual(self.on_the_submission(self.student), submitted)
-        self.assertEqual(self.stored().count(UNGRADED), 0)
+        self.assertEqual(self.on_the_submission(self.student), self.submitted)
+        self.assertEqual(self.stored(), graded)
 
-    def test_a_half_graded_row_is_treated_as_graded(self):
-        """A score with no grading time (a run that died between the two):
-        the stored header shows the score, so the student must not get it."""
+
+class WhatIsGivenUp(AnswerDocumentBase):
+    """Before release the header is today's, not the one at upload time."""
+
+    def test_a_rename_shows_when_it_happens_and_not_when_grading_happens(self):
         submitted = self.on_the_submission(self.student)
-        self.grade_by_ai(self.submission, 7)
-        StudentSubmission.objects.filter(pk=self.submission.pk).update(graded_at=None)
 
-        self.assertEqual(self.on_the_submission(self.student), submitted)
+        Assignment.objects.filter(pk=self.assignment.pk).update(title="Essay, revised")
+        renamed = self.on_the_submission(self.student)
+        self.grade_by_ai(self.submission, 7)
+        graded = self.on_the_submission(self.student)
+
+        self.assertNotEqual(renamed, submitted)
+        self.assertEqual(graded, renamed)
 
 
 class NothingElseChanges(AnswerDocumentBase):
     def setUp(self):
         super().setUp()
-        self.submitted = self.on_the_submission(self.student)
+        self.submitted = self.stored()
         self.grade_by_ai(self.submission, 7)
+        self.graded = self.stored()
 
-    def test_the_stored_document_is_the_graded_one_and_a_students_read_leaves_it(self):
-        graded = self.stored()
-        self.assertEqual(graded.count(UNGRADED), 0)
-        self.assertNotEqual(graded, self.submitted)
+    def test_grading_stores_a_different_document_and_a_students_read_leaves_it(self):
+        self.assertNotEqual(self.graded, self.submitted)
 
         self.on_the_submission(self.student)
         self.on_the_assignment(self.student)
 
-        self.assertEqual(self.stored(), graded)
+        self.assertEqual(self.stored(), self.graded)
 
     def test_the_teacher_reads_the_graded_document_before_release(self):
-        self.assertEqual(self.on_the_submission(self.teacher), self.stored())
+        self.assertEqual(self.on_the_submission(self.teacher), self.graded)
 
     def test_after_release_the_student_reads_what_the_teacher_reads(self):
         self.release()
 
-        self.assertEqual(self.on_the_submission(self.student), self.stored())
-        self.assertEqual(self.on_the_assignment(self.student), self.stored())
-        self.assertEqual(self.on_the_submission(self.teacher), self.stored())
+        self.assertEqual(self.on_the_submission(self.student), self.graded)
+        self.assertEqual(self.on_the_assignment(self.student), self.graded)
+        self.assertEqual(self.on_the_submission(self.teacher), self.graded)
 
-    def test_an_ungraded_row_is_served_as_stored(self):
-        """No rebuild where there is nothing to hide."""
-        other = self.ungraded[0]
-        StudentSubmission.objects.filter(pk=other.pk).update(raw_input="as stored")
-        other.refresh_from_db()
+    def test_a_row_with_no_stored_document_is_served_as_it_is(self):
+        """Nothing is made up where there is no document: a submission
+        still being processed looks as it did."""
+        for nothing in (None, ""):
+            with self.subTest(stored=repr(nothing)):
+                StudentSubmission.objects.filter(pk=self.submission.pk).update(
+                    raw_input=nothing
+                )
 
-        self.assertEqual(answer_document_for_student(other), "as stored")
+                self.assertEqual(self.on_the_assignment(self.student), nothing)
 
 
 class TheCachedResponse(AnswerDocumentBase):
-    def test_a_response_cached_before_grading_is_not_the_graded_form_after_it(self):
-        submitted = self.on_the_submission(self.student)
+    def setUp(self):
+        super().setUp()
+        self.submitted = self.on_the_submission(self.student)
 
+    def test_a_response_cached_before_grading_is_not_the_graded_form_after_it(self):
         self.grade_by_ai(self.submission, 7)
 
-        self.assertEqual(self.on_the_submission(self.student, fresh=False), submitted)
+        self.assertEqual(
+            self.on_the_submission(self.student, fresh=False), self.submitted
+        )
 
     def test_a_response_cached_before_release_is_not_served_after_it(self):
         self.grade_by_ai(self.submission, 7)
-        before = self.on_the_submission(self.student)
-        self.assertEqual(before.count(UNGRADED), 2)
+        self.assertEqual(self.on_the_submission(self.student), self.submitted)
 
         self.release()
 
         after = self.on_the_submission(self.student, fresh=False)
         self.assertEqual(after, self.stored())
-        self.assertEqual(after.count(UNGRADED), 0)
+        self.assertNotEqual(after, self.submitted)
+
+    def test_nor_after_the_release_of_the_whole_assignment(self):
+        """That route updates the rows with no save signal."""
+        self.grade_by_ai(self.submission, 7)
+        self.assertEqual(self.on_the_submission(self.student), self.submitted)
+        self.assertEqual(
+            self.on_the_assignment(self.student, fresh=False), self.submitted
+        )
+
+        self.release_all()
+
+        self.assertEqual(
+            self.on_the_submission(self.student, fresh=False), self.stored()
+        )
+        self.assertEqual(
+            self.on_the_assignment(self.student, fresh=False), self.stored()
+        )
+        self.assertNotEqual(self.stored(), self.submitted)
 
 
 #: Every serializer of a submission that carries the document, and who it
