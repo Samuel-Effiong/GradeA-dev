@@ -438,6 +438,12 @@ class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
             "a helper bound to a second name": "def inner():\n    return sync_playwright()\n"
             "other = inner\n"
             "X = other()\n",
+            "bound to a name in a class body, asked of the class": "class T:\n"
+            "    start = sync_playwright\n"
+            "p = T.start()\n",
+            "bound to an attribute of something": "class T:\n    pass\n"
+            "T.start = sync_playwright\n"
+            "p = T.start()\n",
         }
         for shape, source in shapes.items():
             with self.subTest(shape=shape):
