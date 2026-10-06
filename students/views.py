@@ -24,7 +24,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, ParseError
+from rest_framework.exceptions import NotAcceptable, ParseError, PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -262,7 +262,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     ordering_fields = ["student__first_name", "student__last_name", "review_severity"]
     ordering = ["student__first_name"]
 
+    #: H-127: the review queue is the teacher's. A student who could filter
+    #: or order their own list by it would learn, from which rows come
+    #: back, that the two graders disagreed and how badly - the very thing
+    #: the list serializer hides from them.
+    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier")
+    TEACHER_ONLY_ORDERINGS = ("review_severity",)
+
+    def _refuse_review_queue_query_from_a_student(self):
+        if self.request.user.user_type != UserTypes.STUDENT:
+            return
+        params = self.request.query_params
+        ordering = params.get(api_settings.ORDERING_PARAM) or ""
+        ordered_by = {term.strip().lstrip("-") for term in ordering.split(",")}
+        if any(name in params for name in self.TEACHER_ONLY_FILTERS) or (
+            ordered_by & set(self.TEACHER_ONLY_ORDERINGS)
+        ):
+            raise PermissionDenied(
+                "This filter or ordering is not available for your account."
+            )
+
     def filter_queryset(self, queryset):
+        self._refuse_review_queue_query_from_a_student()
         queryset = super().filter_queryset(queryset)
         # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
         # ?ordering=-review_severity returned every un-flagged submission
