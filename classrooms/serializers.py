@@ -365,16 +365,14 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     # that a grade exists before the teacher releases it, so anyone who is
     # not staff gets the figure that released work alone implies, by the
     # same arithmetic. "Not staff" rather than "a student": a reader this
-    # cannot identify is treated as one.
+    # cannot identify is treated as one. Staff here means a teacher: the
+    # viewset serves enrollments to teachers and students and to nobody
+    # else (StudentCourseViewSet.get_queryset).
 
     def _reader_is_staff(self):
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
-        return getattr(user, "user_type", None) in (
-            UserTypes.TEACHER,
-            UserTypes.SCHOOL_ADMIN,
-            UserTypes.SUPER_ADMIN,
-        )
+        return getattr(user, "user_type", None) == UserTypes.TEACHER
 
     def _final_grade_for_reader(self, obj):
         if self._reader_is_staff():

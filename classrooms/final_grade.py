@@ -49,7 +49,8 @@ def released_final_grade(submissions, course_id):
     `submissions` are the student's submissions, each with its assignment
     loaded. The rows are chosen as `compute_final_grade` chooses them
     (graded, scored, weighted by the stored maximum or else the
-    assignment's points), with one more condition: released.
+    assignment's points), with one more condition: released. A row with no
+    score is left out by `final_grade_from` itself.
     """
     return final_grade_from(
         (
@@ -64,5 +65,4 @@ def released_final_grade(submissions, course_id):
         if submission.assignment.course_id == course_id
         and submission.is_published
         and submission.graded_at is not None
-        and submission.score is not None
     )

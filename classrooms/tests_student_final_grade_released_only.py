@@ -24,7 +24,11 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
+from assignments.models import Assignment, AssignmentStatus
 from classrooms.final_grade import final_grade_from
+from classrooms.models import Course, StudentCourse
+from classrooms.serializers import StudentCourseSerializer
+from classrooms.services import enroll_student_by_email
 from classrooms.signals import compute_final_grade
 from classrooms.tests_final_grade_zero_score import FinalGradeZeroScoreBase
 from students.models import StudentSubmission
@@ -151,14 +155,28 @@ class ReleaseIsWhatMovesTheStudentsNumber(StudentFinalGradeBase):
         self.assert_grade(self.listed(self.student, fresh=False), "50.00", "F")
 
     def test_releasing_a_whole_assignment_adds_it(self):
+        """That route updates the rows with no save signal: the student's
+        cached detail AND cached list must still not outlive it."""
         self.grade_by_ai(self.first, 10)
         self.release(self.first)
         self.grade_by_ai(self.second, 0)
         self.assert_grade(self.detail(self.student), "100.00", "A+")
+        self.assert_grade(self.listed(self.student, fresh=False), "100.00", "A+")
 
         self.release_all(self.second.assignment)
 
         self.assert_grade(self.detail(self.student, fresh=False), "50.00", "F")
+        self.assert_grade(self.listed(self.student, fresh=False), "50.00", "F")
+
+    def test_a_regrade_after_release_moves_the_number_at_once(self):
+        """Intended: the work is released, so its new score is too."""
+        self.grade_by_ai(self.first, 10)
+        self.release(self.first)
+        self.assert_grade(self.detail(self.student), "100.00", "A+")
+
+        self.grade_by_ai(self.first, 0)
+
+        self.assert_grade(self.detail(self.student, fresh=False), "0.00", "F")
 
     def test_a_released_zero_is_a_grade(self):
         self.grade_by_ai(self.first, 0)
@@ -183,6 +201,121 @@ class ReleaseIsWhatMovesTheStudentsNumber(StudentFinalGradeBase):
         )
 
         self.assert_grade(self.detail(self.student), "40.00", "F")
+
+
+class WhichRowsCountForTheStudent(StudentFinalGradeBase):
+    def test_another_courses_released_work_is_not_counted(self):
+        other = Course.objects.create(
+            name="History 7", teacher=self.teacher, session=self.course.session
+        )
+        enroll_student_by_email(course=other, email=self.student.email)
+        essay = Assignment.objects.create(
+            title="Sources",
+            course=other,
+            teacher=self.teacher,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=10,
+        )
+        elsewhere = StudentSubmission.objects.create(
+            student=self.student, assignment=essay, answers={}
+        )
+        self.grade_by_ai(elsewhere, 0)
+        self.release(elsewhere)
+        self.grade_by_ai(self.first, 10)
+        self.release(self.first)
+
+        self.assert_grade(self.detail(self.student), "100.00", "A+")
+
+    def test_a_released_row_with_a_score_and_no_grading_time_is_left_out(self):
+        """As in the stored figure, which asks for a grading time."""
+        StudentSubmission.objects.filter(pk=self.first.pk).update(
+            score=5, max_points=10, graded_at=None, is_published=True
+        )
+
+        self.assertIsNone(compute_final_grade(self.student.pk, self.course.pk))
+        self.assert_no_grade(self.detail(self.student))
+
+    def test_the_student_route_chooses_rows_as_the_stored_figure_does(self):
+        """One row at a time, written straight to the table (no receiver
+        runs, so the stored number stays empty and cannot stand in). What
+        the student reads must be what the stored formula would say of the
+        same row, once it is released; and nothing while it is not."""
+        graded = timezone.now()
+        rows: dict[str, tuple[dict, int | None, bool, Decimal | None]] = {
+            "released, 4 of a stored 10": (
+                {"score": 4, "max_points": 10, "graded_at": graded},
+                10,
+                True,
+                Decimal("40.00"),
+            ),
+            "released, no stored maximum, the assignment has 10": (
+                {"score": 4, "max_points": None, "graded_at": graded},
+                10,
+                True,
+                Decimal("40.00"),
+            ),
+            "released, a stored maximum of zero is not replaced": (
+                {"score": 4, "max_points": 0, "graded_at": graded},
+                10,
+                True,
+                None,
+            ),
+            "released, no maximum anywhere": (
+                {"score": 4, "max_points": None, "graded_at": graded},
+                None,
+                True,
+                None,
+            ),
+            "released, no grading time": (
+                {"score": 4, "max_points": 10, "graded_at": None},
+                10,
+                True,
+                None,
+            ),
+            "released, a grading time and no score": (
+                {"score": None, "max_points": 10, "graded_at": graded},
+                10,
+                True,
+                None,
+            ),
+            "graded, 4 of 10, not released": (
+                {"score": 4, "max_points": 10, "graded_at": graded},
+                10,
+                False,
+                None,
+            ),
+        }
+        for name, (columns, assignment_points, released, expected) in rows.items():
+            with self.subTest(row=name):
+                Assignment.objects.filter(pk=self.first.assignment_id).update(
+                    total_points=assignment_points
+                )
+                StudentSubmission.objects.filter(pk=self.first.pk).update(
+                    is_published=released, **columns
+                )
+
+                shown = self.detail(self.student)["final_grade"]
+
+                self.assertEqual(None if shown is None else Decimal(shown), expected)
+                if released:
+                    self.assertEqual(
+                        compute_final_grade(self.student.pk, self.course.pk), expected
+                    )
+
+    def test_a_reader_the_serializer_cannot_identify_gets_the_students_figure(self):
+        """No request at all: the released-only number, never the stored one."""
+        self.grade_by_ai(self.first, 10)
+        self.release(self.first)
+        self.grade_by_ai(self.second, 0)
+        enrollment = (
+            StudentCourse.objects.select_related("student", "course__teacher")
+            .prefetch_related("course__assignments", "student__submissions__assignment")
+            .get(pk=self.enrollment().pk)
+        )
+
+        data = StudentCourseSerializer(enrollment).data
+
+        self.assert_grade(data, "100.00", "A+")
 
 
 class StaffStillSeeEveryGradedItem(StudentFinalGradeBase):
