@@ -330,6 +330,34 @@ file before the commit and with the committed blob after it).
   change in count.
 - M4: KILLED, with its own "Ran" line (Ran 1 test) and the expected test failing.
 
-### Delta run
+### Delta run at 670a7f65: GREEN
 
-None yet at this commit.
+One grant from 0b, 2026-10-06 15:42:43 to 15:45:59, mode `1d` of the committed gate script. One
+run, serial, 6G scope, rules 12, 13, 16, 17 and 18. Not stopped, not repeated. One other serial
+run of the team's went on beside it, within 0b's limit; no test here asserts on the wall clock.
+
+| Part | Result | Log |
+|---|---|---|
+| 1: three new modules, one near module, 26 guards | exit 0: Ran 401 tests in 153.426s, OK. No skips. 401 as predicted | `modules_and_guards_670a7f65.txt` |
+| M4, on a database built fresh | KILLED: exit 1, its own "Ran 1 test in 2.306s", FAILED (failures=1), no load failure, and the one failing test is the expected `test_a_row_made_before_0031_reads_the_placeholder_after_it` | `mutation_log_delta.txt`, `mutation_results_delta.json`, `mutant_logs/M4.txt` |
+
+- Load average 4.02 4.24 4.86 at the start, 4.44 4.49 4.85 at the end.
+- The new test passed in part 1, and the 26 guard modules ran after it in the same process on
+  the same database, which the migration test had left at the latest state.
+- "source clean after the mutant"; the mutation database was dropped. `console_delta_670a7f65.txt`
+  is the script's own output. All five files are as written (none has trailing whitespace).
+- **My release message for this run went out late,** at 16:32, though the run ended at 15:46.
+  Nothing ran or was re-run in between; 0b had to ask. The run's times above are from the
+  console, whose file time is 15:46:01.
+
+### Why no second full run (0b's ruling)
+
+The full suite passed at 58326e45. After it, outside this evidence folder, exactly two files
+changed: `students/tests_grading_label_migration.py` (new, one test) and `.example.env` (two
+lines, an example file no code reads). No code under test, no model and no migration changed.
+The new test module was run here, once, with the guards (rule 15.4). The staging refresh's own
+full run comes again after slice B in any case.
+
+### Mutants in all
+
+28, all KILLED: 27 in run 2 at b0da8237 and M4 in the delta run at 670a7f65.
