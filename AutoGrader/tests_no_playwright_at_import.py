@@ -30,6 +30,7 @@ import importlib
 import os
 import subprocess
 import sys
+import tempfile
 from unittest import mock
 
 from django.conf import settings
@@ -81,15 +82,16 @@ def is_test_module(path):
     )
 
 
-def all_test_modules():
-    for folder, subfolders, names in os.walk(settings.BASE_DIR):
+def all_test_modules(root=None):
+    root = root or settings.BASE_DIR
+    for folder, subfolders, names in os.walk(root):
         subfolders[:] = sorted(
             name
             for name in subfolders
             if name not in SKIPPED_DIRS and not name.startswith(".")
         )
         for name in sorted(names):
-            path = os.path.relpath(os.path.join(folder, name), settings.BASE_DIR)
+            path = os.path.relpath(os.path.join(folder, name), root)
             if is_test_module(path):
                 yield path
 
@@ -160,6 +162,22 @@ def playwright_started_at_import(source):
         if isinstance(node, ast.Call) and set(names_in(node.func)) & starters:
             found.add(node.lineno)
     return sorted(found)
+
+
+def starts_at_import_under(root=None):
+    """The scan: how many test modules under the root were read, and the
+    "path:line" of every line among them that starts Playwright at import."""
+    root = root or settings.BASE_DIR
+    offenders = []
+    scanned = 0
+    for path in all_test_modules(root):
+        with open(os.path.join(root, path), encoding="utf-8") as handle:
+            source = handle.read()
+        scanned += 1
+        if not STARTERS & set(source.replace("(", " ").replace(".", " ").split()):
+            continue
+        offenders += [f"{path}:{line}" for line in playwright_started_at_import(source)]
+    return scanned, offenders
 
 
 class ImportingTheRendererTestsStartsNoDriverHereTests(SimpleTestCase):
@@ -254,19 +272,7 @@ class TheProbeAsksAChildTests(SimpleTestCase):
 
 class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
     def test_no_test_module_reaches_a_starter_at_import(self):
-        offenders = []
-        scanned = 0
-        for path in all_test_modules():
-            with open(
-                os.path.join(settings.BASE_DIR, path), encoding="utf-8"
-            ) as handle:
-                source = handle.read()
-            scanned += 1
-            if not STARTERS & set(source.replace("(", " ").replace(".", " ").split()):
-                continue
-            offenders += [
-                f"{path}:{line}" for line in playwright_started_at_import(source)
-            ]
+        scanned, offenders = starts_at_import_under()
 
         self.assertGreater(
             scanned, 100, "the scan found too few test modules to mean anything"
@@ -330,3 +336,154 @@ class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
         for shape, source in allowed.items():
             with self.subTest(shape=shape):
                 self.assertEqual(playwright_started_at_import(source), [])
+
+    # H-124: the shapes the rule missed, and the scan's quick first look.
+
+    def test_the_rule_follows_a_starter_under_another_name(self):
+        shapes = {
+            "imported under another name": "from playwright.sync_api import sync_playwright as sp\n"
+            "p = sp().start()\n",
+            "imported under another name, used in a helper": "from playwright.sync_api import sync_playwright as sp\n"
+            "def available():\n    return bool(sp())\n"
+            "AVAILABLE = available()\n",
+            "bound to a second name": "import playwright.sync_api as api\n"
+            "start = api.sync_playwright\n"
+            "p = start()\n",
+            "bound to a second name with an annotation": "start: object = sync_playwright\n"
+            "p = start()\n",
+            "a helper bound to a second name": "def inner():\n    return sync_playwright()\n"
+            "other = inner\n"
+            "X = other()\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_the_rule_follows_methods(self):
+        shapes = {
+            "a static method": "class T:\n    @staticmethod\n    def available():\n"
+            "        return bool(sync_playwright())\n"
+            "OK = T.available()\n",
+            "a class method": "class T:\n    @classmethod\n    def available(cls):\n"
+            "        return bool(sync_playwright())\n"
+            "OK = T.available()\n",
+            "a method of an instance made at import": "class T:\n    def available(self):\n"
+            "        return bool(sync_playwright())\n"
+            "OK = T().available()\n",
+            "through a second method": "class T:\n    def inner(self):\n"
+            "        return sync_playwright()\n"
+            "    def outer(self):\n        return self.inner()\n"
+            "OK = T().outer()\n",
+            "by its bare name in the class body": "class T:\n    def available():\n"
+            "        return bool(sync_playwright())\n"
+            "    OK = available()\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_the_rule_reads_getattr_with_the_starters_name(self):
+        shapes = {
+            "called at once": "import playwright.sync_api as api\n"
+            "p = getattr(api, 'sync_playwright')()\n",
+            "in a helper": "import playwright.async_api as api\n"
+            "def available():\n    return getattr(api, 'async_playwright')()\n"
+            "X = available()\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_the_wider_rule_still_allows_what_starts_nothing(self):
+        allowed = {
+            "another name, imported and not called": "from playwright.sync_api import sync_playwright as sp\n",
+            "another name, called only inside a test": "from playwright.sync_api import sync_playwright as sp\n"
+            "class T:\n    def test_it(self):\n        with sp() as p:\n            pass\n",
+            "a name bound to something read off a starter": "label = sync_playwright.__name__\n"
+            "X = label.upper()\n",
+            "a method that is defined and not called": "class T:\n    @staticmethod\n"
+            "    def available():\n        return bool(sync_playwright())\n",
+            "getattr with some other name": "import playwright.sync_api as api\n"
+            "Page = getattr(api, 'Page')\nX = getattr(api, 'Error')('x')\n",
+            "getattr with a name worked out at run time": "import playwright.sync_api as api\n"
+            "NAME = 'Error'\nX = getattr(api, NAME)('x')\n",
+            "a method sharing its name with a helper that starts one": "def available():\n"
+            "    return sync_playwright()\n"
+            "class T:\n    def available(self):\n        return 1\n"
+            "X = T().available()\n",
+            "a helper sharing its name with a method that starts one": "class T:\n"
+            "    def available(self):\n        return sync_playwright()\n"
+            "def available():\n    return 1\n"
+            "X = available()\n",
+        }
+        for shape, source in allowed.items():
+            with self.subTest(shape=shape):
+                self.assertEqual(playwright_started_at_import(source), [])
+
+    def test_the_false_alarms_that_are_known_and_kept(self):
+        """Both err on the safe side. The first needs to know which names are
+        local to a function; the second, which class an object belongs to.
+        The rule reads names, not scopes or types."""
+        kept = {
+            "a helper with a local named like a starter": "def helper():\n"
+            "    sync_playwright = None\n    return 1\n"
+            "X = helper()\n",
+            "another object's method named like a method that starts one": "class T:\n"
+            "    def available(self):\n        return sync_playwright()\n"
+            "import shutil\n"
+            "X = shutil.available()\n",
+        }
+        for shape, source in kept.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_what_the_rule_still_does_not_see(self):
+        """The limits, pinned so that nobody takes the rule for more than it
+        is: a starter reached through a container or through a name worked
+        out at run time. (A helper in another module is a third: the rule
+        reads one file at a time.) The fresh-interpreter test above is the
+        net for these, in the one module it imports."""
+        unseen = {
+            "kept in a list and called by index": "starters = [sync_playwright]\n"
+            "X = starters[0]()\n",
+            "getattr with a name worked out at run time": "import playwright.sync_api as api\n"
+            "NAME = 'sync_' + 'playwright'\nX = getattr(api, NAME)()\n",
+        }
+        for shape, source in unseen.items():
+            with self.subTest(shape=shape):
+                self.assertEqual(playwright_started_at_import(source), [])
+
+    def test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets(
+        self,
+    ):
+        """The scan's quick first look decides which files the rule reads at
+        all. It must not pass over a file because the starter's name has a
+        quote or a bracket beside it."""
+        files = {
+            "tests_quoted.py": "import playwright.sync_api as api\n"
+            "p = getattr(api, 'sync_playwright')()\n",
+            "tests_bracketed.py": "import functools\n"
+            "from playwright.sync_api import (Page,\n    sync_playwright)\n"
+            "\n"
+            "X = functools.partial(sync_playwright)()\n",
+            "tests_clean.py": "import unittest\n",
+            "helpers.py": "p = getattr(api, 'sync_playwright')()\n",
+        }
+        with tempfile.TemporaryDirectory() as root:
+            os.mkdir(os.path.join(root, "app"))
+            for name, source in files.items():
+                with open(
+                    os.path.join(root, "app", name), "w", encoding="utf-8"
+                ) as handle:
+                    handle.write(source)
+
+            scanned, offenders = starts_at_import_under(root)
+
+        self.assertEqual(scanned, 3)
+        self.assertEqual(
+            offenders,
+            [
+                os.path.join("app", "tests_bracketed.py") + ":5",
+                os.path.join("app", "tests_quoted.py") + ":2",
+            ],
+        )
