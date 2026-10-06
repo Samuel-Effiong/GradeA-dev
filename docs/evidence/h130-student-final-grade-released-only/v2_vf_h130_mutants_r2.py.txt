@@ -1,0 +1,206 @@
+"""v2 mutants for H-130 (d5), beyond d5's A1-A9 and B1-B9.
+
+r2 (2026-10-06, after the first run): identical to vf_h130_mutants.py
+(sha256 prefix 1cb6da8ea0a5ca52) except that each judgement of a mutant
+writes its own file. Mutants, anchors and expected tests are unchanged.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT, with v2's probe
+copied to students/tests_vf2_h130_probe.py), inside the rule 16/13/12
+wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h130_mutants.py check |
+baseline | (no args: every mutant).
+
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of each mutated module's directory is deleted before each
+mutant and after each restore; `baseline` deletes them first. Runs use
+--keepdb (database test_vf2_s1, left for 0b to drop).
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+SV = "students/services.py"
+FG = "classrooms/final_grade.py"
+AS = "assignments/serializers.py"
+SCRUB = SV  # `baseline` clears these three packages' __pycache__
+RD = FG
+PART_A = ["classrooms.tests_student_final_grade_released_only"]
+PART_B = ["students.tests_answer_document_before_release"]
+PROBE = ["students.tests_vf2_h130_probe"]
+BASELINE = PART_A + PART_B + ["classrooms.tests_final_grade_zero_score"] + PROBE
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+RENAME = "test_a_rename_shows_when_it_happens_and_not_when_grading_happens"
+HALF = "test_a_half_graded_row_reads_the_same_too"
+TABLE = "test_the_student_route_chooses_rows_as_the_stored_figure_does"
+SOURCE = "test_the_students_assignment_serializer_does_not_read_the_stored_column"
+SAME_ON_ASSIGNMENT = "test_the_same_on_the_students_view_of_the_assignment"
+D3 = "test_d3_a_rename_on_the_assignment_route"
+D4 = "test_d4_the_due_date_and_the_name_follow_the_same_rule"
+
+# Written 2026-10-06 before any run of H-130, after reading 5a50a220 (rule
+# 18 addition): for each mutant, the tests that must be among the failing
+# ones, by name. KILLED only with the run's own "Ran" line and every
+# expected test named; non-zero without that is BROKEN or KILLED_OTHER.
+# Each mutant is judged twice: against d5's tests, then against v2's probe.
+EXPECTED = {
+    # The first design back in the helper: the stored document is served
+    # while the row has no grading time, the rebuild only afterwards.
+    # d5's tests: the rename test (the rename no longer shows before
+    # grading) and the half-graded test (a score and no grading time: the
+    # stored, graded document is served). v2's probe: D3 and D4.
+    "V1_the_rebuild_only_once_there_is_a_grading_time": {
+        "d5's tests": (PART_B, (RENAME, HALF)),
+        "v2's probe": (PROBE, (D3, D4)),
+    },
+    # The stored maximum is taken with `or`: a stored maximum of zero is
+    # replaced by the assignment's points (the stored figure leaves such a
+    # row out). d5's tests: the table test. v2's probe has no such row.
+    "V2_a_stored_maximum_of_zero_is_replaced": {
+        "d5's tests": (PART_A, (TABLE,)),
+    },
+    # On the assignment route only: the stored document while the row has no
+    # grading time, the helper afterwards. The values a student reads are
+    # the same as with the fix in every case d5's tests read on that route,
+    # so v2 expects ONLY the source guard to fail among d5's tests (it
+    # forbids `submission.raw_input` in that serializer). v2's probe: D3 and
+    # D4 read the renamed header on that route.
+    # UPDATED 2026-10-06 14:36, still before any run: at e8315419 d5 added a
+    # behavioural read of the rename on the assignment route
+    # (WhatIsGivenUp.test_the_same_on_the_students_view_of_the_assignment)
+    # after v2's second pre-read. Expected now: the source guard AND that
+    # test.
+    "V3_the_assignment_route_rebuilds_only_once_graded": {
+        "d5's tests": (PART_B, (SOURCE, SAME_ON_ASSIGNMENT)),
+        "v2's probe": (PROBE, (D3, D4)),
+    },
+}
+PREDICTED_TO_SURVIVE = set()
+
+MUTANTS = {
+    "V1_the_rebuild_only_once_there_is_a_grading_time": (SV, [
+        ("    if submission.is_published or not submission.raw_input:\n",
+         "    if submission.is_published or not submission.raw_input or submission.graded_at is None:\n"),
+    ]),
+    "V2_a_stored_maximum_of_zero_is_replaced": (FG, [
+        ("                submission.max_points\n"
+         "                if submission.max_points is not None\n"
+         "                else submission.assignment.total_points\n",
+         "                submission.max_points or submission.assignment.total_points\n"),
+    ]),
+    "V3_the_assignment_route_rebuilds_only_once_graded": (AS, [
+        ("            return answer_document_for_student(submission)\n",
+         "            if submission.graded_at is None:\n"
+         "                return submission.raw_input\n"
+         "            return answer_document_for_student(submission)\n"),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits)."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SCRUB)
+    clear_pycache(RD)
+    clear_pycache(AS)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            # r2: one file per judgement. The first form wrote both judgements
+            # of a mutant to the same file, so the second overwrote the first.
+            slug = "d5_tests" if who.startswith("d5") else "v2_probe"
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_{slug}.txt")
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif all(name in failing for name in expected):
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if name in PREDICTED_TO_SURVIVE else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

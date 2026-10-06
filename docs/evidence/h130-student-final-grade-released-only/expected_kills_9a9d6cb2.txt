@@ -1,0 +1,19 @@
+A1: 9 failing, as expected
+A2: 11 failing, as expected
+A3: 9 failing, as expected
+A4: 11 failing, as expected
+A5: 3 failing, as expected
+A6: 1 failing, as expected
+A7: 2 failing, as expected
+A8: 3 failing, as expected
+A9: 1 failing, as expected
+B1: 3 failing, as expected
+B2: 1 failing, as expected
+B3: 12 failing, as expected
+B4: 11 failing, as expected
+B5: 10 failing, as expected
+B6: 9 failing, as expected
+B7: 10 failing, as expected
+B8: 5 failing, as expected
+B9: 11 failing, as expected
+every mutant's failing set is the expected one
