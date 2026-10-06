@@ -1,0 +1,78 @@
+"""v2's second pre-read of H-124 (d5), for tip 7134815d, written 2026-10-06
+BEFORE evaluating. Same method as h124_preread_samples.py (pure calls of the
+rule loaded from git blobs; no Django, no test runner).
+
+Part 1: my first 20 samples again. Prediction: C2, M1, M2 and M3 are now
+named; the other 16 answer as they did at c9ae46b3.
+Part 2: new samples for what 0dffc395 added (K1...), each with a prediction.
+Part 3: the rule called on every test module of the tip that mentions a
+starter (found with git grep). Prediction: no line named (the tree-wide test
+must stay green with the three new shapes followed).
+
+Usage: python3 -B h124_preread_samples_round2.py <repo> <c9ae46b3> <new-rev>
+"""
+import subprocess
+import sys
+
+import h124_preread_samples as first
+
+STARTS, NOT = first.STARTS, first.NOT
+FLIPS = ("C2 ", "M1 ", "M2 ", "M3 ")
+NEW = [
+    ("K1 a subclass of a class whose __init__ starts one, made at import",
+     "class B:\n    def __init__(self):\n        self.p = sync_playwright().start()\nclass C(B):\n    pass\nX = C()\n", False, STARTS),
+    ("K2 such a class reached as an attribute (a nested class)",
+     "class Outer:\n    class B:\n        def __init__(self):\n            self.p = sync_playwright().start()\nX = Outer.B()\n", False, STARTS),
+    ("K3 a dataclass whose __post_init__ starts one, made at import",
+     "from dataclasses import dataclass\n@dataclass\nclass B:\n    def __post_init__(self):\n        sync_playwright().start()\nX = B()\n", False, STARTS),
+    ("K4 an object whose __call__ starts one, called at import",
+     "class B:\n    def __call__(self):\n        return sync_playwright()\nb = B()\nX = b()\n", False, STARTS),
+    ("K5 __init__ reaches one through another method",
+     "class B:\n    def open(self):\n        return sync_playwright()\n    def __init__(self):\n        self.open()\nX = B()\n", True, STARTS),
+    ("K6 a lambda in a class body, asked of the class",
+     "class T:\n    ok = lambda: bool(sync_playwright())\nX = T.ok()\n", True, STARTS),
+    ("K7 a class whose __init__ starts one, used as a decorator without brackets",
+     "class B:\n    def __init__(self, fn):\n        sync_playwright()\n@B\ndef test_it():\n    pass\n", True, STARTS),
+    ("K8 FALSE ALARM: a property whose getter starts one, with a setter; never read at import",
+     "class T:\n    @property\n    def ok(self):\n        return bool(sync_playwright())\n    @ok.setter\n    def ok(self, v):\n        pass\n", True, NOT),
+    ("K9 FALSE ALARM (d5's stated cost): @thing.start beside a method start() that starts one",
+     "import thing\nclass T:\n    def start(self):\n        return sync_playwright()\n@thing.start\ndef f():\n    pass\n", True, NOT),
+    ("K10 FALSE ALARM: a constant read off a class whose __init__ starts one, and a method of the constant called",
+     "class B:\n    NAME = 'b'\n    def __init__(self):\n        sync_playwright()\nX = B.NAME.upper()\n", True, NOT),
+    ("K11 such a class only listed and tested against, never made",
+     "class B:\n    def __init__(self):\n        sync_playwright()\nREGISTRY = [B]\nX = isinstance(1, B)\n", False, NOT),
+    ("K12 such a class made only inside a test",
+     "class B:\n    def __init__(self):\n        sync_playwright()\nclass T:\n    def test_it(self):\n        B()\n", False, NOT),
+]
+
+if __name__ == "__main__":
+    repo, mid_rev, new_rev = sys.argv[1:4]
+    mid, new = first.rule_at(repo, mid_rev), first.rule_at(repo, new_rev)
+    wrong = 0
+    for name, source, _old_prediction, really in first.SAMPLES:
+        was, now = bool(mid(source)), bool(new(source))
+        predicted = True if name.startswith(FLIPS) else was
+        wrong += now != predicted
+        print(f"{'as predicted' if now == predicted else 'NOT AS PREDICTED'} | at {mid_rev} {'names it' if was else 'silent'} "
+              f"| at {new_rev} {'names it' if now else 'silent'} | {really} | {name}")
+    for name, source, predicted, really in NEW:
+        compile(source, name, "exec")
+        was, now = bool(mid(source)), bool(new(source))
+        wrong += now != predicted
+        print(f"{'as predicted' if now == predicted else 'NOT AS PREDICTED'} | at {mid_rev} {'names it' if was else 'silent'} "
+              f"| at {new_rev} {'names it' if now else 'silent'} | {really} | {name}")
+    files = subprocess.run(["git", "-C", repo, "grep", "-l", "-E", "sync_playwright|async_playwright", new_rev, "--", "*.py"],
+                           capture_output=True, text=True).stdout.split()
+    named = 0
+    for entry in files:
+        path = entry.split(":", 1)[1]
+        parts = path.split("/")
+        base = parts[-1]
+        if not (base.startswith(("test_", "tests_")) or base == "tests.py" or "tests" in parts[:-1]):
+            continue
+        source = subprocess.run(["git", "-C", repo, "show", f"{new_rev}:{path}"], capture_output=True, text=True, check=True).stdout
+        lines = new(source)
+        named += bool(lines)
+        print(f"tree | {path} | lines named: {lines}")
+    wrong += named != 0
+    print(f"{len(first.SAMPLES) + len(NEW)} samples and the tree part, {wrong} not as predicted")
