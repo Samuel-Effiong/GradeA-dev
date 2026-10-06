@@ -69,6 +69,7 @@ GRADED_LIKE_SUBMITTED = (
 )
 RULE_3 = G + "test_rule_3_a_student_is_refused_every_review_queue_filter"
 P = T + "StudentPollsARefusedTaskTest."
+M = T + "GradedTheWayTheGraderSavesItTest."
 POLL_UPLOAD = [
     P + "test_upload_refused_before_the_extraction",
     P + "test_upload_when_a_grade_lands_during_the_extraction",
@@ -259,6 +260,33 @@ MUTANTS = {
         "            data.update(self.STUDENT_REVIEW_FIELD_VALUES)\n",
         "        if request:\n            data.update(self.STUDENT_REVIEW_FIELD_VALUES)\n",
         [L + "test_the_teacher_still_sees_the_state_and_the_schedule"],
+    ),
+    # ---- max_points (the delta after Verifier 1's baseline run): the three
+    # serializers share one function.
+    "M1_a_student_is_shown_the_graders_maximum_before_release": (
+        "students/serializers.py",
+        "        return submission.assignment.total_points\n"
+        "    return submission.max_points or submission.assignment.total_points\n",
+        "        return submission.max_points or submission.assignment.total_points\n"
+        "    return submission.max_points or submission.assignment.total_points\n",
+        [
+            M + "test_the_list_when_the_assignment_has_no_total",
+            M + "test_the_list_when_the_assignment_total_differs",
+            M + "test_the_page_when_the_assignment_has_no_total",
+            M + "test_the_page_when_the_assignment_total_differs",
+        ],
+    ),
+    "M2_a_student_is_shown_the_assignment_total_after_release_too": (
+        "students/serializers.py",
+        'user_type == "STUDENT" and not submission.is_published:\n',
+        'user_type == "STUDENT":\n',
+        [M + "test_once_released_the_student_reads_the_graders_maximum"],
+    ),
+    "M3_the_teacher_is_shown_the_assignment_total_before_release": (
+        "students/serializers.py",
+        '    if request and request.user.user_type == "STUDENT" and not submission',
+        "    if request and not submission",
+        [M + "test_the_teacher_reads_the_graders_maximum_before_release"],
     ),
     # ---- the filters
     "F1_a_student_may_filter_on_the_grading_state": (

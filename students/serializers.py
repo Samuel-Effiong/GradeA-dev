@@ -143,6 +143,24 @@ class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+def max_points_shown(submission, request):
+    """The maximum a reader of a submission is shown.
+
+    The denominator the score was actually graded against, when the row
+    has one - serving assignment.total_points against a score computed
+    from a different max produces an internally inconsistent display.
+    Falls back to the assignment total for ungraded rows.
+
+    H-133: the row's own maximum is written by the grade save, so for a
+    student it would appear, or change, the moment a paper is graded.
+    Until the grade is released a student is shown what a submitted paper
+    shows: the assignment's total, or nothing.
+    """
+    if request and request.user.user_type == "STUDENT" and not submission.is_published:
+        return submission.assignment.total_points
+    return submission.max_points or submission.assignment.total_points
+
+
 class StudentSubmissionListSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
@@ -263,11 +281,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         )
 
     def get_max_points(self, obj) -> int:
-        # The denominator the score was actually graded against, when
-        # available - serving assignment.total_points against a score
-        # computed from a different max produces an internally inconsistent
-        # display. Falls back to the assignment total for ungraded rows.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
@@ -416,8 +430,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_max_points(self, obj) -> int:
-        # See StudentSubmissionListSerializer.get_max_points.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
@@ -533,8 +546,7 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return None
 
     def get_max_points(self, obj) -> int:
-        # See StudentSubmissionListSerializer.get_max_points.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)

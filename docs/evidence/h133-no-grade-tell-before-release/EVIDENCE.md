@@ -302,3 +302,74 @@ true before this change; no mutant of mine breaks it, and it is not claimed as e
 change.
 
 Nothing was observed on a live or staging service, and the frontend was not read.
+
+## A second delta, from Verifier 1's baseline run at bce9c5d4: max_points (written 2026-10-06 19:22 WAT, before any run of it)
+
+Everything above this heading is left as it was. The summary above and its "22 of 22" describe
+the code at f15c8608; this section adds to it.
+
+**What Verifier 1 found.** On a graded, unreleased paper a second thing differs from the same
+paper when only submitted, besides `remaining_attempts`: `max_points`, on the student's list and
+on the submission page. The three submission serializers showed the row's own stored maximum when
+it had one and the assignment's total otherwise; the stored maximum is written by the grade save
+(`_populate_and_save_grade`, from the grader's own total; also by the teacher's manual grade). So
+wherever the assignment has no total, or a different one, a number appeared or changed at
+grading, before release. The Senior Manager ruled it into this row.
+
+**Why my whole-row test did not show it.** `test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts`
+makes its graded row by hand and does not set `max_points`. The real save always does.
+
+**The change.** One function, `max_points_shown(submission, request)` in `students/serializers.py`,
+which the three serializers now call: for a student, until release, the assignment's total (or
+nothing), exactly what a submitted paper shows; otherwise as before. A teacher's answers, and a
+student's after release, are unchanged. No other file is changed.
+
+**The tests (a5209874, their own commit, before the change).** A new class,
+`GradedTheWayTheGraderSavesItTest`, grades the paper with the real save, with a question the
+grader found no answer to (so the review fields are written too), and compares the whole answer
+with the same paper when only submitted, on the list and on the submission page, with the
+assignment's total absent and with it 20 against the grader's 10. `remaining_attempts` must be the
+only difference. Two more tests pin what must not change: the student reads the grader's maximum
+once released; the teacher reads it before release.
+
+The student routes that carry `max_points`, by reading: the list and the submission page (both
+tested); the answers to an upload and to an edit, which are refused for a graded paper and so
+never answer for one; the teacher's table of submissions on an assignment
+(`AssignmentDetailSerializer`), which a student is not given (they get
+`AssignmentDetailStudentSerializer`). The Hardening Engineer adds, from its own reading, that the
+stored answer document never printed the maximum.
+
+**My other fixtures, checked for the same fault.** The real save writes fifteen columns
+(`GRADING_RESULT_FIELDS`): two AI timestamps, score, ai_score, max_points, score_percentage,
+feedback, grading_confidence, graded_at, grading_state, the four review fields, raw_input.
+  * The list tests' hand-made graded row sets graded_at, score, score_percentage, grading_state,
+    needs_review, review_tier and the schedule. It lacks max_points (the fault), feedback,
+    grading_confidence, ai_score, the two AI timestamps, review_reasons, review_severity and a
+    rewritten raw_input.
+  * The refusal and polling tests use `_submission(graded=True)` of the lock tests, which sets
+    graded_at, score, score_percentage, max_points, feedback, grading_state. Those tests assert
+    the refusal, not a row, so what the row lacks does not weaken them.
+  * Of the columns the list fixture lacks, the list answer carries only grading_confidence,
+    review_reasons and review_severity (replaced for a student by H-127) and max_points. The new
+    tests cover all of them at once, because the row is graded by the real save and the whole
+    answer is compared. I found no second column of this kind by reading; the new tests are what
+    would show one.
+  * Not covered by any test here: a paper graded by the teacher's manual grade (it writes
+    max_points too, through the same column, so the same function hides it), and a re-grade.
+
+**Three mutants** (the ruling asked for one, M1; M2 and M3 are there so that the two "must not
+change" tests are seen red as rule 19 asks; they are the Senior Manager's to strike):
+  * M1 the student is shown the grader's maximum before release: fails the four whole-answer tests.
+  * M2 the student is shown the assignment's total after release too: fails
+    `test_once_released_the_student_reads_the_graders_maximum`.
+  * M3 the teacher is shown the assignment's total before release: fails
+    `test_the_teacher_reads_the_graders_maximum_before_release`.
+
+**Expected, written before the run.**
+  * The modules and guards of the earlier runs, with `students.tests_grading_hardening` added
+    (it holds the older tests of this fallback): OK. The H-133 module now has 35 tests.
+  * No reproduce-first step for this delta: M1 undoes exactly the change and must fail the four.
+  * Mutants re-run on the final file (rule 17 addendum): the six on `students/serializers.py`
+    (L1 to L6) and M1 to M3, nine in all, each KILLED with its named tests. L1, L3, L4 and L5 will
+    fail some of the four new whole-answer tests as well as their named ones; that is expected.
+  * The mutants on files this delta does not touch (S, C, P, F: sixteen) are not re-run.
