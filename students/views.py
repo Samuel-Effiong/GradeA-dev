@@ -1117,7 +1117,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             student_submission_to_html(submission)
         )
 
-        # Update the formatted grade since the score/feedback changed
+        # The formatted grade words the OLD result, and its first sentence
+        # states the old score. Clear it in the same save as the new score:
+        # until the task queued below has worded the new result, and for
+        # good if that task fails, a student reads no formatted grade
+        # rather than a wrong one (H-144).
+        submission.formatted_grade = None
 
         submission.save(
             update_fields=[
@@ -1130,6 +1135,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "needs_review",
                 "review_reasons",
                 "raw_input",
+                "formatted_grade",
             ]
         )
 
@@ -1159,12 +1165,27 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             submission=submission,
             meta={"step": "Queued for formatted grade generation"},
         )
-        launch_processing_task(
-            formatted_grade_async,
-            formatted_processing_task,
-            str(submission.id),
-            user_prompt,
-        )
+        try:
+            launch_processing_task(
+                formatted_grade_async,
+                formatted_processing_task,
+                str(submission.id),
+                user_prompt,
+            )
+        except Exception as exc:  # noqa: BLE001 - the grade is already saved
+            # The score is saved and the notice sent. Answering a failure
+            # here would tell the teacher a grade that went through did
+            # not. The formatted grade stays empty; the background task's
+            # record holds the failure. Ids and the error's type only: a
+            # broker error's text can carry a connection address.
+            logger.error(
+                "Formatted grade not queued after a manual grade: "
+                "submission=%s task=%s error=%s",
+                submission.id,
+                formatted_processing_task.id,
+                # an unreachable broker arrives wrapped; name what it was
+                type(exc.__cause__ or exc).__name__,
+            )
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
