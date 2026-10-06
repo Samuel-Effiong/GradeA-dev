@@ -28,6 +28,7 @@ Run with:
 """
 
 import json
+import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -40,7 +41,10 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
-from assignments.tasks import upload_answers_engine_async
+from assignments.tasks import (
+    extract_answer_background_task,
+    upload_answers_engine_async,
+)
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -416,6 +420,174 @@ class StudentListShowsNoGradingStateTest(APITestCase):
         self.put(grading_state=GradingState.FAILED)
         row = self.row(user=self.teacher, query={"grading_state": "FAILED"})
         self.assertEqual(row["grading_state"], "FAILED")
+
+
+EXTRACTED = {
+    "answers": [{"question_number": 1, "answer_html": "re-upload"}],
+    "extraction_confidence": 80,
+}
+
+
+class StudentPollsARefusedTaskTest(APITestCase):
+    """A queued upload or edit that is refused inside the background task.
+    The student learns of it by asking the task-status route, which serves
+    the tracked row, not the task's return value. Each case runs the real
+    task, then reads that route AS THE STUDENT: the neutral sentence, the
+    stable code, and no form of the word "grade" anywhere in the answer.
+
+    The three checks of an upload (before the extraction, after it, and
+    under the row lock) and the two of an edit are each reached once."""
+
+    def setUp(self):
+        self.teacher, self.student, self.course, self.assignment = _classroom("h133p")
+        self.submission = _submission(self.assignment, self.student, graded=False)
+        self.client.force_authenticate(user=self.student)
+
+    # -- what can land on the row while the extraction is running
+    def a_grade_lands(self, *args, **kwargs):
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            graded_at=timezone.now(), score=8, grading_state=GradingState.DONE
+        )
+        return EXTRACTED
+
+    def a_grading_claim_lands(self, *args, **kwargs):
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            grading_state=GradingState.RUNNING, grading_started_at=timezone.now()
+        )
+        return EXTRACTED
+
+    # -- the two real tasks, run for the student, with a tracked row
+    def tracked(self, **extra):
+        return BackgroundProcessingTask.objects.create(
+            requested_by=self.student,
+            task_type="answer_extraction",
+            assignment=self.assignment,
+            celery_task_id=str(uuid.uuid4()),
+            **extra,
+        )
+
+    def run_upload(self, tracked):
+        with patch(
+            "assignments.tasks.AssignmentProcessingService.prepare_ai_content",
+            return_value="content",
+        ), patch("assignments.tasks.AssignmentProcessingService.rebuild_uploaded_file"):
+            return upload_answers_engine_async.apply(
+                args=(
+                    str(self.assignment.id),
+                    {"name": "x"},
+                    "prompt",
+                    str(self.student.id),
+                ),
+                kwargs={"processing_task_id": str(tracked.id)},
+            ).get()
+
+    def run_edit(self, tracked):
+        return extract_answer_background_task.apply(
+            args=(str(self.submission.id), "edited text", str(self.student.id)),
+            kwargs={"processing_task_id": str(tracked.id)},
+            task_id=str(uuid.uuid4()),
+        ).get()
+
+    def assert_student_reads(self, tracked, result, sentence, code):
+        # the task's own result
+        self.assertEqual(result["status"], "FAILURE")
+        self.assertEqual(result["message"], sentence)
+        self.assertEqual(result["code"], code)
+        # the tracked row
+        tracked.refresh_from_db()
+        self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
+        self.assertEqual(tracked.error, sentence)
+        self.assertEqual(tracked.meta.get("code"), code)
+        # what the student is answered when they ask
+        response = self.client.get(
+            reverse("task-task-status", kwargs={"task_id": tracked.celery_task_id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "failed")
+        self.assertIn(sentence, response.data["meta"])
+        self.assertIn(f"'code': {code!r}", response.data["meta"])
+        self.assertNotIn("grad", json.dumps(plain(response.data)).lower())
+
+    # -- the upload task
+    @patch("students.services.ai_processor")
+    def test_upload_refused_before_the_extraction(self, mock_ai):
+        self.a_grade_lands()
+        tracked = self.tracked()
+        result = self.run_upload(tracked)
+        self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        mock_ai.extract_answer_with_retry.assert_not_called()
+
+    @patch("students.services.ai_processor")
+    def test_upload_when_a_grade_lands_during_the_extraction(self, mock_ai):
+        """Caught by the check after the AI call."""
+        mock_ai.extract_answer_with_retry.side_effect = self.a_grade_lands
+        tracked = self.tracked()
+        result = self.run_upload(tracked)
+        self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        self.assertEqual(mock_ai.extract_answer_with_retry.call_count, 1)
+
+    @patch("students.services.ensure_student_may_submit")
+    @patch("students.services.ai_processor")
+    def test_upload_when_only_the_check_under_the_row_lock_can_catch_it(
+        self, mock_ai, mock_earlier_checks
+    ):
+        """The two earlier checks are taken out, so the answer is the one
+        the check under the row lock gives."""
+        mock_ai.extract_answer_with_retry.side_effect = self.a_grade_lands
+        tracked = self.tracked()
+        result = self.run_upload(tracked)
+        self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        self.assertTrue(mock_earlier_checks.called)
+
+    @patch("students.services.ai_processor")
+    def test_upload_when_a_grading_claim_lands_during_the_extraction(self, mock_ai):
+        mock_ai.extract_answer_with_retry.side_effect = self.a_grading_claim_lands
+        tracked = self.tracked()
+        result = self.run_upload(tracked)
+        self.assert_student_reads(tracked, result, BUSY, "submission_busy")
+
+    @patch("students.services.ensure_student_may_submit")
+    @patch("students.services.ai_processor")
+    def test_upload_claim_caught_only_by_the_check_under_the_row_lock(
+        self, mock_ai, mock_earlier_checks
+    ):
+        mock_ai.extract_answer_with_retry.side_effect = self.a_grading_claim_lands
+        tracked = self.tracked()
+        result = self.run_upload(tracked)
+        self.assert_student_reads(tracked, result, BUSY, "submission_busy")
+
+    # -- the edit task
+    @patch("students.services.ai_processor")
+    def test_edit_refused_before_the_extraction(self, mock_ai):
+        self.a_grade_lands()
+        tracked = self.tracked(submission=self.submission)
+        result = self.run_edit(tracked)
+        self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        mock_ai.extract_answer_with_retry.assert_not_called()
+
+    @patch("students.services.ai_processor")
+    def test_edit_when_a_grade_lands_during_the_extraction(self, mock_ai):
+        """Caught by the check under the row lock, the edit's second."""
+        mock_ai.extract_answer_with_retry.side_effect = self.a_grade_lands
+        tracked = self.tracked(submission=self.submission)
+        result = self.run_edit(tracked)
+        self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        self.assertEqual(mock_ai.extract_answer_with_retry.call_count, 1)
+
+    @patch("students.services.ai_processor")
+    def test_edit_when_a_grading_claim_lands_during_the_extraction(self, mock_ai):
+        mock_ai.extract_answer_with_retry.side_effect = self.a_grading_claim_lands
+        tracked = self.tracked(submission=self.submission)
+        result = self.run_edit(tracked)
+        self.assert_student_reads(tracked, result, BUSY, "submission_busy")
+
+    @patch("students.services.ai_processor")
+    def test_edit_refused_while_the_paper_is_being_graded(self, mock_ai):
+        self.a_grading_claim_lands()
+        tracked = self.tracked(submission=self.submission)
+        result = self.run_edit(tracked)
+        self.assert_student_reads(tracked, result, BUSY, "submission_busy")
+        mock_ai.extract_answer_with_retry.assert_not_called()
 
 
 class TheRefusalCodesAreAClosedListTest(TestCase):
