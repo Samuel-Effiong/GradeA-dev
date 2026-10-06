@@ -58,6 +58,7 @@ from .extraction_schemas import (
     NOT_FOUND_IN_DOCUMENT,
     REVIEW_REQUIRED_STATUSES,
 )
+from .grading_run import GradingRun
 from .grading_schemas import (
     GRADING_BATCH_RESPONSE_SCHEMA,
     GRADING_SINGLE_PASS_RESPONSE_SCHEMA,
@@ -84,6 +85,12 @@ OPENROUTER_API_KEY: str = env.str(
 )
 
 AI_CONFIDENCE_THRESHOLD = 80
+
+# The temperature of every provider call. A named constant, because it is
+# part of the grading settings' version (ai_processor/grading_config.py,
+# BE-I-04): a grade can move because this moved, and the version must show
+# it. SM ruling, 2026-10-06.
+AI_TEMPERATURE = 0.0
 
 # Prompts live beside this module. Anchored to __file__ rather than the
 # process's working directory: these are read at IMPORT time, so a
@@ -787,7 +794,7 @@ class AIProcessor:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.0,
+            "temperature": AI_TEMPERATURE,
             "response_format": response_format,
         }
         if tool_schemas:
@@ -2329,6 +2336,23 @@ Do not include any explanatory text before or after the JSON
         return model_name if isinstance(model_name, str) else None
 
     @staticmethod
+    def _stamp_graded_by(evaluations, model_name):
+        """Mark each freshly graded evaluation with the model that answered
+        (or "llm" when the provider named none), as OUR code read it from
+        the response.
+
+        Assigned, never `setdefault`: a "graded_by" or "from_cache" value
+        that arrives inside the AI's own reply is not trusted (BE-I-04,
+        ruling B6). Kept, a reply's "deterministic" or "from_cache" would
+        make later code skip the second opinion and the saved-answer
+        store, and would name a grader that did not grade.
+        """
+        for evaluation in evaluations or []:
+            if isinstance(evaluation, dict):
+                evaluation.pop("from_cache", None)
+                evaluation["graded_by"] = model_name or grading_cache.UNNAMED_MODEL
+
+    @staticmethod
     def _grading_response_schema(schema):
         """
         The json_schema contract for a grading call, or None when the
@@ -2604,6 +2628,7 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         processing_task_id=None,
         override_model=None,
+        run=None,
     ) -> list:
         """
         Grades a small batch of questions (up to GRADING_QUESTIONS_PER_CHUNK)
@@ -2629,7 +2654,7 @@ Do not include any explanatory text before or after the JSON
             list of question_evaluation dicts from the grading response.
         """
         system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
-            assignment_model
+            assignment_model, run
         )
         assignment_context = self._assignment_context_block(
             assignment_model, batch_number=batch_number, total_batches=total_batches
@@ -2801,11 +2826,7 @@ Do not include any explanatory text before or after the JSON
                     f"[Grading] Batch {batch_number}/{total_batches} complete — "
                     f"{len(evaluations)} question(s) graded."
                 )
-                # Provenance marker for the future eval loop.
-                batch_model = self._response_model_name(response)
-                for ev in evaluations:
-                    if isinstance(ev, dict):
-                        ev.setdefault("graded_by", batch_model or "llm")
+                self._stamp_graded_by(evaluations, self._response_model_name(response))
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -2861,6 +2882,7 @@ Do not include any explanatory text before or after the JSON
         answer_json: str,
         assignment_model=None,
         processing_task_id=None,
+        run=None,
     ) -> dict:
         """
         After all question batches are graded, runs one final AI call to produce
@@ -2890,7 +2912,7 @@ Do not include any explanatory text before or after the JSON
                   defined in GRADING_ASSIGNMENT_PROMPT_5.txt.
         """
         system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
-            assignment_model
+            assignment_model, run
         )
 
         # ── Recalculate score arithmetic in Python — never trust the model ────────
@@ -3073,7 +3095,16 @@ Do not include any explanatory text before or after the JSON
             )
         return deterministic_evaluations, llm_questions, llm_answers
 
-    def _partition_cached(self, questions, answers, assignment_model=None):
+    def _match_context(self, assignment_model, run):
+        """What the saved-answer key holds besides the question and the
+        answer, from the run's one reading (BE-I-04 slice B)."""
+        return grading_cache.MatchContext.for_run(
+            assignment_model,
+            run,
+            self._custom_instructions_block(assignment_model, run),
+        )
+
+    def _partition_cached(self, questions, answers, assignment_model=None, run=None):
         """
         Tier 0.5, after tier 0: reuse a prior evaluation for a question
         whose exact content and exact student answer text were already
@@ -3100,7 +3131,7 @@ Do not include any explanatory text before or after the JSON
             for a in (answers or [])
             if isinstance(a, dict)
         }
-        assignment_id = getattr(assignment_model, "id", None)
+        context = self._match_context(assignment_model, run or GradingRun.start())
 
         cached_evaluations = []
         remaining_questions = []
@@ -3116,7 +3147,7 @@ Do not include any explanatory text before or after the JSON
                 question,
                 answer_html,
                 model_name=MAIN_MODEL,
-                assignment_id=assignment_id,
+                context=context,
             )
             if hit is not None:
                 cached_evaluations.append(hit)
@@ -3140,7 +3171,13 @@ Do not include any explanatory text before or after the JSON
         return cached_evaluations, remaining_questions, remaining_answers
 
     def _store_cache_evaluations(
-        self, fresh_evaluations, questions, answers, result, assignment_model=None
+        self,
+        fresh_evaluations,
+        questions,
+        answers,
+        result,
+        assignment_model=None,
+        run=None,
     ):
         """
         Writes fresh LLM evaluations to the answer cache — called only
@@ -3170,7 +3207,8 @@ Do not include any explanatory text before or after the JSON
             for q in (questions or [])
             if isinstance(q, dict)
         }
-        assignment_id = getattr(assignment_model, "id", None)
+        # The SAME reading the lookup of this run used: never a fresh one.
+        context = self._match_context(assignment_model, run or GradingRun.start())
 
         for evaluation in fresh_evaluations or []:
             if not isinstance(evaluation, dict):
@@ -3187,12 +3225,21 @@ Do not include any explanatory text before or after the JSON
             if question is None:
                 continue
             answer_html = answer_by_key.get(key, {}).get("answer_html", "")
+            # `graded_by` was assigned by _stamp_graded_by from the
+            # response our code read, never taken from the reply.
+            graded_by = evaluation.get("graded_by")
             grading_cache.store_evaluation(
                 question,
                 answer_html,
                 evaluation,
                 model_name=MAIN_MODEL,
-                assignment_id=assignment_id,
+                served_model=(
+                    graded_by
+                    if isinstance(graded_by, str)
+                    and graded_by != grading_cache.UNNAMED_MODEL
+                    else None
+                ),
+                context=context,
             )
 
     @staticmethod
@@ -3231,7 +3278,7 @@ Do not include any explanatory text before or after the JSON
         return "\n".join(lines) + "\n"
 
     @staticmethod
-    def _custom_instructions_block(assignment_model):
+    def _custom_instructions_block(assignment_model, run=None):
         """
         Splices a teacher's Assignment.custom_ai_prompt into the grading
         system prompt when set — e.g. "always require units", "accept
@@ -3246,7 +3293,14 @@ Do not include any explanatory text before or after the JSON
         that turns out to cause a bad interaction can be switched off
         without a deploy.
         """
-        if not getattr(settings, "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", True):
+        # The run's ONE reading of the settings when there is a run, so the
+        # text spliced into the prompt and the text in the saved-answer
+        # key cannot disagree (BE-I-04 slice B).
+        if run is not None:
+            enabled = run.config.get("GRADING_CUSTOM_INSTRUCTIONS_ENABLED")
+        else:
+            enabled = getattr(settings, "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", True)
+        if not enabled:
             return ""
         custom_prompt = (
             getattr(assignment_model, "custom_ai_prompt", None) or ""
@@ -3388,6 +3442,7 @@ Do not include any explanatory text before or after the JSON
         user,
         assignment_model=None,
         processing_task_id=None,
+        run=None,
     ):
         """
         Selective blind second opinion (see ai_processor/second_opinion.py
@@ -3506,6 +3561,7 @@ Do not include any explanatory text before or after the JSON
                         assignment_model=assignment_model,
                         processing_task_id=processing_task_id,
                         override_model=second_model,
+                        run=run,
                     )
                 )
 
@@ -3599,6 +3655,7 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         processing_task_id=None,
         final_attempt=False,
+        run=None,
     ):
         """
         Main entry point for grading a student submission.
@@ -3623,6 +3680,7 @@ Do not include any explanatory text before or after the JSON
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
                 final_attempt=final_attempt,
+                run=run,
             )
         # Stamped HERE, outside the impl, because this is the one choke
         # point every grading path returns through - the deterministic-only
@@ -3741,6 +3799,7 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         processing_task_id=None,
         final_attempt=False,
+        run=None,
     ):
         """
         The actual grading pipeline (see grade_student_submission for the
@@ -3784,6 +3843,11 @@ Do not include any explanatory text before or after the JSON
 
         ensure_task_not_cancelled(processing_task_id)
 
+        # BE-I-04: the run's one reading of the settings. A caller that
+        # starts a run (extract_grade_with_retry) passes it, so every
+        # attempt shares it; a direct caller gets one for this call.
+        run = run or GradingRun.start()
+
         # Parse answers once — the deterministic partition needs the list
         # form (the LLM prompt builders keep accepting either form).
         try:
@@ -3810,7 +3874,7 @@ Do not include any explanatory text before or after the JSON
         # ai_processor/grading_cache.py for why this makes cross-student
         # consistency a guarantee rather than a hope.
         cached_evaluations, llm_questions, llm_answers = self._partition_cached(
-            llm_questions, llm_answers, assignment_model=assignment_model
+            llm_questions, llm_answers, assignment_model=assignment_model, run=run
         )
 
         claimed_evaluations = deterministic_evaluations + cached_evaluations
@@ -3862,7 +3926,7 @@ Do not include any explanatory text before or after the JSON
             )
 
             system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
-                assignment_model
+                assignment_model, run
             )
             assignment_context = self._assignment_context_block(assignment_model)
 
@@ -3981,12 +4045,8 @@ Do not include any explanatory text before or after the JSON
                     f"{'; '.join(violations)}"
                 )
 
-            # Provenance marker for the future eval loop: which grader
-            # produced each evaluation.
             model_name = self._response_model_name(response)
-            for ev in evaluations:
-                if isinstance(ev, dict):
-                    ev.setdefault("graded_by", model_name or "llm")
+            self._stamp_graded_by(evaluations, model_name)
 
             # Captured before the merge below: exactly the questions this
             # call freshly graded (excludes deterministic and cache-hit
@@ -4019,6 +4079,7 @@ Do not include any explanatory text before or after the JSON
                 user,
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
+                run=run,
             )
             self._store_cache_evaluations(
                 fresh_evaluations,
@@ -4026,6 +4087,7 @@ Do not include any explanatory text before or after the JSON
                 llm_answers,
                 final_result,
                 assignment_model=assignment_model,
+                run=run,
             )
             return final_result
 
@@ -4070,6 +4132,7 @@ Do not include any explanatory text before or after the JSON
                 total_batches=total_batches,
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
+                run=run,
             )
             all_evaluations.extend(batch_evaluations)
 
@@ -4107,6 +4170,7 @@ Do not include any explanatory text before or after the JSON
             answer_json=answer_json,
             assignment_model=assignment_model,
             processing_task_id=processing_task_id,
+            run=run,
         )
 
         # Step 6: Assemble the final result — evaluations + summary
@@ -4128,6 +4192,7 @@ Do not include any explanatory text before or after the JSON
             user,
             assignment_model=assignment_model,
             processing_task_id=processing_task_id,
+            run=run,
         )
         self._store_cache_evaluations(
             fresh_evaluations,
@@ -4135,6 +4200,7 @@ Do not include any explanatory text before or after the JSON
             llm_answers,
             graded_result,
             assignment_model=assignment_model,
+            run=run,
         )
         return graded_result
 
@@ -4146,7 +4212,12 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         max_retries: int = 3,
         processing_task_id=None,
+        run=None,
     ):
+        # BE-I-04: ONE reading of the grading settings for the whole run,
+        # taken above the retry loop, so every attempt, the saved-answer
+        # lookup and the saved-answer store all use the same one.
+        run = run or GradingRun.start()
         last_error = None
 
         for attempt in range(max_retries):
@@ -4158,6 +4229,7 @@ Do not include any explanatory text before or after the JSON
                     answer_json,
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
+                    run=run,
                     # The single-pass path has no retry loop of its own,
                     # so it cannot know it is out of chances. Tell it, so
                     # its evidence check can degrade to "log" instead of

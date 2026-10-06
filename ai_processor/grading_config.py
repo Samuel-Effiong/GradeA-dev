@@ -21,11 +21,9 @@ What the version covers, and what it does not:
 * NOT the saved-answer store's switch and lifetime: they decide whether an
   answer is reused, not what a grade is. Listed in NOT_GRADE_SHAPING so the
   omission is a decision and not an oversight.
-* NOT YET the temperature of the grading calls. It is a literal inside a
-  shared request builder today. It is to be added in slice B (SM ruling,
-  2026-10-06): named as a constant that both the grading call and this
-  module read. The release does not stand in for it: a release changes on
-  every deploy, so it cannot say that a grade moved because the
+* The temperature of the provider calls (`AI_TEMPERATURE`), since slice B
+  (SM ruling, 2026-10-06). The release does not stand in for it: a release
+  changes on every deploy, so it cannot say that a grade moved because the
   temperature moved.
 * NOT what is written directly in the code: the instruction text outside
   the versioned prompt file, the reply schemas, the retry counts. No list
@@ -77,6 +75,7 @@ NOT_GRADE_SHAPING = {
 #: Module-level names in ai_processor.services that shape a grade.
 CODE_CONSTANTS = (
     "AI_CONFIDENCE_THRESHOLD",
+    "AI_TEMPERATURE",
     "GRADING_FALLBACK_MODELS",
     "GRADING_QUESTIONS_PER_CHUNK",
     "MAIN_MODEL",

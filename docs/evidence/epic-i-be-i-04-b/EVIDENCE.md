@@ -68,6 +68,74 @@ later to show it has teeth:
 These expectations come from reading today's code, with no run behind them. Where the red run
 differs, the difference is reported as a difference.
 
+## The code (commits after 17890114)
+
+| Piece | File |
+|---|---|
+| The key, version two, and the envelope | `ai_processor/grading_cache.py` |
+| What a run carries: one reading of the settings and the prompt version | `ai_processor/grading_run.py` (new) |
+| The run started above the retry loop and passed down; the grader marker assigned, not defaulted; the temperature as a constant | `ai_processor/services.py` |
+| The temperature in the settings version | `ai_processor/grading_config.py` |
+| Older tests moved to the new signatures; the settings-version pin | `ai_processor/tests_grading_cache.py`, `ai_processor/tests_grading_config.py` |
+
+- **The key** now holds: its version (`v2`), the intended model, the assignment's id, the prompt
+  version, the settings version, the assignment's title and instructions, the teacher's extra
+  instructions as spliced, the whole question as serialised into the prompt, and the answer with
+  outer whitespace removed (as before).
+- **Stated limit, also in the module:** the key does not hold the other questions, the other
+  answers or the answer's place in a batch. A test pins this.
+- **The release is not in the key,** so a deploy does not empty the store. A test pins this.
+- **One reading per run.** `extract_grade_with_retry` starts a `GradingRun` above its retry loop.
+  The lookup, the store, the teacher-instructions splice and every attempt use it. A direct
+  caller of an inner function with no run gets one for that call.
+- **The envelope.** A stored value is `{"evaluation": ..., "served_model": ...}`, written by our
+  code. Anything else under a key is a miss. A reused answer's `graded_by` comes from the
+  envelope.
+- **The marker.** `graded_by` is assigned from the response our code read, and a `from_cache` in
+  a fresh reply is dropped, at both places a reply is parsed (batch and single pass), before any
+  later step reads them.
+- **The temperature** is `AI_TEMPERATURE` in the grading service, used by the one provider call
+  and read by `GradingConfig` (SM ruling). The pinned settings version changes from
+  `cfg:c039947043de` to `cfg:d09ab0c0d559` for that reason. No grade carries a version yet, so no
+  stored value stops matching.
+
+## What an operator must know
+
+**This slice empties the store of saved answers once, when it reaches a service.** Every key
+changes (`v1` to `v2`), so nothing saved before is found again; old entries expire by their own
+lifetime (three days by default). Until the store refills, more answers are sent to the AI, and
+AI cost rises for a while. The founder's representative accepted this (decision 3). Its size
+cannot be worked out without live figures. Nothing else changes for users or the frontend.
+
+## Limits
+
+- Only the teacher-instructions switch is read from the run's reading in this slice. The other
+  fifteen places the grading code reads a setting still read it live; they move in slice C.
+- The key's intended model is still the main model, not the one that answered. The envelope
+  records the one that answered.
+- A provider named `llm` could not be told from "not named". No such model name is known.
+- The answer is matched with outer whitespace removed, as before; inner differences count.
+- Nothing is labelled yet; the envelope's `served_model` is first read in slice C.
+
+## One test added with the code
+
+`TheSpliceUsesTheRunsReadingTest.test_a_switch_flipped_after_the_run_started_is_not_seen` was
+not in the red commit. I found, while writing the mutants, that no test would catch the splice
+reading the live switch. It is expected to be in error in the red run (it imports the new
+module), so the red run should show **25** failing: the 24 named above and this one.
+
+## Expected for the gate, written before any run
+
+- Step 0, the red run (the test module against the code as at 17890114): non-zero exit, a "Ran"
+  line, 32 tests, the 25 failing as above and the 7 passing as above.
+- Step 1a: no model or migration is changed; makemigrations clean.
+- Step 1: three changed test modules, twelve near modules, 26 guard modules: OK.
+- Step 2: 23 mutants; the failing test expected for each is `EXPECTED` in `mutate.py`.
+- Step 3, its own grant: `ai_processor` and `students`, the two apps that call this code.
+
+By the SM's ruling no gate run for this slice is asked for before the Checker's verdict on
+slice A.
+
 ## Runs
 
 None yet.

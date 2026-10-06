@@ -356,6 +356,24 @@ class OneReadingPerRunTest(TestCase):
             self.assertEqual(second.call_count, 0)
 
 
+class TheSpliceUsesTheRunsReadingTest(SimpleTestCase):
+    """Added with the code, after the red commit (said in the evidence):
+    the teacher's instructions spliced into the prompt and the ones in the
+    saved-answer key must come from the SAME reading of the switch."""
+
+    def test_a_switch_flipped_after_the_run_started_is_not_seen(self):
+        from ai_processor.grading_run import GradingRun
+
+        processor = AIProcessor()
+        with override_settings(GRADING_CUSTOM_INSTRUCTIONS_ENABLED=True):
+            run = GradingRun.start()
+        with override_settings(GRADING_CUSTOM_INSTRUCTIONS_ENABLED=False):
+            block = processor._custom_instructions_block(_assignment(), run)
+            context = processor._match_context(_assignment(), run)
+        self.assertIn("Always require units.", block)
+        self.assertEqual(context.custom_instructions, block)
+
+
 @override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 @patch.object(AIProcessor, "execute_graded_task")
 class TheSavedAnswersEnvelopeTest(_PipelineCase):

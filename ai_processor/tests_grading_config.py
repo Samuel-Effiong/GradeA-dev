@@ -52,6 +52,7 @@ OTHER_VALUE = {
 
 OTHER_CONSTANT = {
     "AI_CONFIDENCE_THRESHOLD": 123456,
+    "AI_TEMPERATURE": 0.7,
     "GRADING_FALLBACK_MODELS": ["be-i-04/other-backup"],
     "GRADING_QUESTIONS_PER_CHUNK": 123456,
     "MAIN_MODEL": "be-i-04/other-main",
@@ -78,11 +79,12 @@ PINNED_SETTINGS = {
 }
 PINNED_CONSTANTS = {
     "AI_CONFIDENCE_THRESHOLD": 80,
+    "AI_TEMPERATURE": 0.0,
     "GRADING_FALLBACK_MODELS": ["pinned/backup"],
     "GRADING_QUESTIONS_PER_CHUNK": 10,
     "MAIN_MODEL": "pinned/main",
 }
-PINNED_VERSION = "cfg:c039947043de"
+PINNED_VERSION = "cfg:d09ab0c0d559"
 
 
 def _grading_names_in_settings_file():
