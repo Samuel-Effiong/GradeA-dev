@@ -125,6 +125,14 @@ def student_submission_to_html(submission) -> str:
     """
 
 
+def answer_document_for_student(submission):
+    """The answer document as a student may read it.
+
+    The one place a student-facing reader gets `raw_input` from (H-130).
+    """
+    return submission.raw_input
+
+
 # Celery's hard kill point for one grading run - grade_engine_async sets
 # this as its time_limit (see assignments.tasks), and the Redis broker
 # visibility_timeout in settings is sized above it. Referenced by name in
