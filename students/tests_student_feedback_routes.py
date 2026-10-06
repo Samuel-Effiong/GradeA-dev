@@ -345,6 +345,67 @@ class StudentSubmissionListReviewFieldsTest(StudentFeedbackRoutesBase):
         self.assertIsNotNone(row["graded_at"])
 
 
+class StudentSubmissionListReviewFiltersTest(StudentFeedbackRoutesBase):
+    """The list's review-queue filters and ordering are the teacher's too.
+
+    Hiding the fields is not enough while a student can ask the list for
+    `?needs_review=true` or `?review_tier=critical` and see whether their
+    own row comes back."""
+
+    def setUp(self):
+        super().setUp()
+        self.set_grade(
+            is_published=False,
+            needs_review=True,
+            review_tier="critical",
+            review_severity=2.2,
+        )
+        self.url = reverse("student-submission-list")
+
+    def ids(self, response):
+        return {str(row["id"]) for row in response.data["results"]}
+
+    def test_a_student_cannot_filter_on_the_review_queue(self):
+        for query in (
+            {"needs_review": "true"},
+            {"needs_review": "false"},
+            {"review_tier": "critical"},
+            {"review_tier": "moderate"},
+            {"ordering": "-review_severity"},
+            {"ordering": "student__first_name,review_severity"},
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(self.url, query)
+                self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+                self.assertNotIn(
+                    str(self.submission.pk), json.dumps(as_plain(response.data))
+                )
+
+    def test_a_student_can_still_list_and_use_the_other_filters(self):
+        for query in (
+            {},
+            {"assignment": str(self.assignment.pk)},
+            {"ordering": "student__first_name"},
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(self.url, query)
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(self.ids(response), {str(self.submission.pk)})
+
+    def test_the_teacher_can_still_filter_and_order_the_review_queue(self):
+        self.client.force_authenticate(user=self.teacher)
+        for query, expected in (
+            ({"needs_review": "true"}, {str(self.submission.pk)}),
+            ({"needs_review": "false"}, set()),
+            ({"review_tier": "critical"}, {str(self.submission.pk)}),
+            ({"ordering": "-review_severity"}, {str(self.submission.pk)}),
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(self.url, query)
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(self.ids(response), expected)
+
+
 class StudentSafeFeedbackFunctionTest(StudentFeedbackRoutesBase):
     """The shared projection itself, on values the routes rarely hold."""
 
