@@ -268,3 +268,95 @@ class StudentDashboardAssignmentsFeedbackTest(StudentFeedbackRoutesBase):
         response, row = self.get_row()
         self.assertIsNone(row["feedback"])
         self.assert_nothing_for_the_teacher_in(response)
+
+
+class StudentSubmissionListReviewFieldsTest(StudentFeedbackRoutesBase):
+    """GET /submissions/ as the student: the teacher's review-queue fields.
+
+    `review_reasons` holds both AI graders' marks for each disputed
+    question. The list hid `score` until release and returned these fields
+    as stored, released or not."""
+
+    REVIEW_STATE = {
+        "needs_review": True,
+        "review_reasons": [
+            {
+                "type": "grader_disagreement",
+                "question_number": 1,
+                "a_score": 8,
+                "b_score": 10,
+                "tier": "critical",
+                "gap_fraction": 0.2,
+            }
+        ],
+        "review_severity": 2.2,
+        "review_tier": "critical",
+        "grading_confidence": 92,
+    }
+
+    def get_row(self, user=None):
+        if user is not None:
+            self.client.force_authenticate(user=user)
+        response = self.client.get(reverse("student-submission-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        rows = [
+            row
+            for row in response.data["results"]
+            if str(row["id"]) == str(self.submission.pk)
+        ]
+        self.assertEqual(len(rows), 1)
+        return rows[0]
+
+    def assert_no_review_fields(self, row):
+        self.assertIs(row["needs_review"], False)
+        self.assertIsNone(row["review_reasons"])
+        self.assertIsNone(row["review_severity"])
+        self.assertIsNone(row["review_tier"])
+        self.assertIsNone(row["grading_confidence"])
+        body = json.dumps(as_plain(row))
+        for marker in ("a_score", "b_score", "grader_disagreement", "critical"):
+            self.assertNotIn(marker, body)
+
+    def test_an_unpublished_grade_shows_a_student_no_review_field(self):
+        self.set_grade(is_published=False, **self.REVIEW_STATE)
+        row = self.get_row()
+        self.assert_no_review_fields(row)
+        self.assertIsNone(row["graded_at"])
+        self.assertIsNone(row["score"])
+
+    def test_a_published_grade_shows_a_student_no_review_field(self):
+        self.set_grade(is_published=True, **self.REVIEW_STATE)
+        row = self.get_row()
+        self.assert_no_review_fields(row)
+        # A student may know when a released grade was made.
+        self.assertIsNotNone(row["graded_at"])
+        self.assertEqual(float(row["score"]), 8.0)
+
+    def test_the_teacher_still_sees_the_review_queue_fields(self):
+        self.set_grade(is_published=False, **self.REVIEW_STATE)
+        row = self.get_row(user=self.teacher)
+        self.assertIs(row["needs_review"], True)
+        self.assertEqual(
+            as_plain(row["review_reasons"]), self.REVIEW_STATE["review_reasons"]
+        )
+        self.assertEqual(row["review_severity"], 2.2)
+        self.assertEqual(row["review_tier"], "critical")
+        self.assertEqual(row["grading_confidence"], 92)
+        self.assertIsNotNone(row["graded_at"])
+
+
+class StudentSafeFeedbackFunctionTest(StudentFeedbackRoutesBase):
+    """The shared projection itself, on values the routes rarely hold."""
+
+    def test_a_value_that_is_not_a_dictionary_is_shown_as_nothing(self):
+        from students.feedback_projection import student_safe_feedback
+
+        for stored in (None, "RAW TEXT", ["RAW", "LIST"], 7):
+            self.assertIsNone(student_safe_feedback(stored))
+
+    def test_the_result_never_shares_the_top_level_with_what_is_stored(self):
+        from students.feedback_projection import student_safe_feedback
+
+        shown = student_safe_feedback(FULL_FEEDBACK)
+        self.assertEqual(shown, STUDENT_FEEDBACK)
+        self.assertIsNot(shown, FULL_FEEDBACK)
