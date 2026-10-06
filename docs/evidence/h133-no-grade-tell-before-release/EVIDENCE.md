@@ -211,3 +211,36 @@ tests.
 
 **Written before the second run:** the 1b step: exit 0, OK, 536 tests (the 527 and the nine new),
 skipped=1. The twelve mutants: 12 KILLED, each with every test named for it.
+
+### The second run, at e85e2ae0 (0b's GRANT, 2026-10-06 18:17 WAT)
+
+One run of the gate's 1b mode with twelve named mutants (script sha256 a599fabeb3b21dfb, runner
+sha256 b1e0e2b0158dc16b), 18:17:21 to 18:30:03, script exit 0, serial, 6G scope. Not stopped, not
+repeated. e85e2ae0 is f15c8608 (the code tip) and docs.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| The new module, the guard, 12 related modules, 22 guard modules, at the tip | exit 0, OK, 536 tests, skipped=1 | exit 0: **Ran 536 tests in 380.814s, OK (skipped=1)** | `modules_and_guards_e85e2ae0.txt.gz` |
+| The twelve mutants on `assignments/tasks.py` and `students/services.py` (C2, P1 to P5, S1 to S6) | 12 KILLED | **12 of 12 KILLED**; SURVIVED 0, KILLED_NOT_AS_EXPECTED 0, BROKEN 0 | `mutation_log_e85e2ae0.txt`, `mutation_results_e85e2ae0.json`, `mutant_logs_e85e2ae0/` |
+
+- The nine polling tests ran here for the first time, and passed. That each fails without the
+  code on the tracked row is shown by P1 (the five upload tests) and P2 (the four edit tests); that
+  a teacher's sentence cannot reach a student's task is shown, check by check, by P3, P4 and P5.
+  They were not run against the code as it stood before f15c8608 (no reproduce-first step for the
+  delta, rule 15); P1 and P2 undo exactly that commit's two changes.
+- Each inner run shows its own "Ran 75 tests" line, exit 1, every named test among the failures,
+  0 `__pycache__` directories left.
+- **Where each mutant's result is, on the final code:** these twelve at e85e2ae0; the other ten
+  (C1, C3, L1 to L6, F1, F2) at 6fc161e2, on three production files unchanged since. 22 mutants,
+  22 KILLED, none counted twice (S1 to S6 and C2 ran at both tips and were KILLED at both).
+- Load average: 12.48 13.29 9.64 at the start, 16.67 at the end of the first part, 10.20 13.75
+  12.54 at the end: another project's full run beside it. Nothing in this run has a wall-clock
+  limit.
+- The log before gzip: 273,261 bytes, 2,844 lines, sha256 starts 590f4f32088f7a73, "Ran" at line
+  2841, "OK" at 2843.
+
+### Still owed as this is committed
+
+0b's base update onto batch 11's current tip with its cross-side guards, then the one owning-app
+regression (students, assignments) on that tip, on a quiet machine. Its result is added in a later
+docs commit.
