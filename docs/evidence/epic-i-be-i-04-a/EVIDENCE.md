@@ -245,8 +245,35 @@ G1 to G15 ran `ai_processor.tests_grading_config` (25 tests). L1 to L9 ran
 `AutoGrader.tests_migration_rollback_defaults` (29 together), each on a database built from the
 mutated migration.
 
-### Still owed
+### The regression: one full run by 0b at 58326e45: GREEN
 
-The regression. `StudentSubmission` is read by every app, so it is the full suite. By the SM's
-ruling 0b makes one full run on the frozen tip with its own script; the author writes no
-parallel script. Its result is added here by a later, evidence-only commit.
+`StudentSubmission` is read by every app, so the regression for this model change is the full
+suite. By the SM's ruling 0b made it, once, with its own script; the author wrote no parallel
+script and did not touch the worktree while it ran.
+
+| What | Result |
+|---|---|
+| Whole-repository mypy | Passed |
+| `makemigrations --check` | No changes detected |
+| Full suite, `--parallel 4` | exit 0: Ran 6442 tests in 471.359s, OK (skipped=30). No FAIL or ERROR header |
+
+- Run by 0b (the Release Engineer): `gate10_slice_a.sh 58326e45 a1`, the Phase 2 Gate 10 script
+  pointed at this worktree and branch (script sha256 prefix 26686784a172115f, kept in
+  `~/Documents/Projects/GAP-0b-runs/`). 12G cap, the shared machine lock, the sleep inhibitor, a
+  300 s silence watchdog that never fired, output straight to a file.
+- Times, 2026-10-06: script start 15:27:01 (load 1.80); suite 15:27:33 (load 2.20 2.64 5.24) to
+  15:35:51 (load 7.03 5.58 5.57), 498 s on the wall. No suspend. Nothing else ran beside it.
+- Per app: ai_processor 855, assignments 663, audit 367, AutoGrader 613, billing 2139, classrooms
+  434, dashboard 270, students 403, users 698; sum 6442.
+- The 30 skips, by 0b's count of their printed reasons: 12 real AI, 9 load tests, 4 network,
+  1 Redis, 2 audit benchmarks, 2 that cannot fork inside a parallel worker. None for want of
+  Chromium.
+- The log is committed whole and byte-exact as `full_run_0b_58326e45.log.xz` (xz, because gzip
+  left it above the hook's 500 KB limit): 8,553,294 bytes unpacked, sha256
+  `b16ab45546617954b6f16d6a332e8bd16e59b5b8359bef508378f0bc96705733`, which is the figure 0b gave
+  and the one I computed from 0b's file. "Ran" is line 112058 and "OK" line 112060. 0b's own
+  summary is `full_run_0b_58326e45.summary.txt`.
+- The run was at 58326e45. This commit adds only files in this evidence folder on top of it, so
+  the run stands for the new tip.
+
+Nothing is owed by the author for slice A after this but committing the verifier's record.
