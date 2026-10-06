@@ -1,0 +1,26 @@
+baseline exit=0
+N1	a starter imported under another name is followed	KILLED	FAILED (failures=2)	True	15.6
+N2	a name bound to a starter is followed	KILLED	FAILED (failures=10)	True	14.5
+N3	only the thing itself binds a name, not any mention of it	KILLED	FAILED (failures=4)	True	15.2
+N4	a method that reaches a starter is followed	KILLED	FAILED (failures=7)	True	18.1
+N5	a module function counts by its bare name only	KILLED	FAILED (failures=1)	True	19.8
+N6	a method does not count by its bare name outside its class	KILLED	FAILED (failures=1)	True	14.8
+N7	a method counts by its bare name inside its own class body	KILLED	FAILED (failures=1)	True	15.9
+N8	getattr with the name written out is read	KILLED	FAILED (failures=3)	True	14.6
+N9	the scan's first look finds a name beside a quote or a bracket	KILLED	FAILED (failures=1)	True	16.4
+N10	a binding with an annotation is followed	KILLED	FAILED (failures=1)	True	15.3
+N11	a starter asked of a module binds a name	KILLED	FAILED (failures=1)	True	16.0
+N12	a bare starter or helper binds a name	KILLED	FAILED (failures=7)	True	14.9
+N13	a starter bound to an attribute is followed	KILLED	FAILED (failures=1)	True	16.7
+N14	a name bound in a class body counts when asked of the class	KILLED	FAILED (failures=3)	True	17.6
+N15	staticmethod(thing) and classmethod(thing) stand for the thing	KILLED	FAILED (failures=2)	True	16.6
+N16	a class whose __init__ or __new__ reaches a starter is followed	KILLED	FAILED (failures=2)	True	16.2
+N17	a decorator applied without brackets is a call	KILLED	FAILED (failures=2)	True	17.1
+N18	a lambda that reaches a starter binds a name	KILLED	FAILED (failures=2)	True	17.0
+N19	only __init__ and __new__ make a class count, not any method	KILLED	FAILED (failures=3)	True	16.9
+G1	H-118's G1, new anchor: the rule follows the module's own functions	KILLED	FAILED (failures=13)	True	16.1
+G2	H-118's G2: function bodies are not read as run at import	KILLED	FAILED (failures=10)	True	14.5
+G3	H-118's G3: the rule knows the async starter too	KILLED	FAILED (failures=2)	True	14.4
+
+22/22 killed with verified restore
+exit=0 wall_s=373

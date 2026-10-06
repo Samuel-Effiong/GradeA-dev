@@ -10,3 +10,15 @@
 10:56:47 (b) exit=0
 10:56:47 expected failing sets: every mutant's failing set is the expected one
 10:56:47 H-124 CHAIN END: (c) needs its own GRANT
+11:33:38 (r) start: loadavg 10.27 8.76 9.60 24/2700 1344885
+11:34:09 (r) end: loadavg 11.67 9.22 9.72 12/2677 1345403
+11:34:09 (r) exit=1 (1 is the expected one)
+11:34:09 (r) the red set is the expected one
+11:34:09 (a) start: loadavg 11.67 9.22 9.72 16/2691 1345431
+11:40:44 (a) end: loadavg 9.84 11.56 10.97 14/2658 1353848
+11:40:44 (a) exit=0
+11:40:44 (b) start: loadavg 9.84 11.56 10.97 12/2658 1353855
+11:46:57 (b) end: loadavg 6.03 8.11 9.60 6/2618 1363468
+11:46:57 (b) exit=0
+11:46:57 expected failing sets: every mutant's failing set is the expected one
+11:46:57 H-124 CHAIN END: (c) needs its own GRANT
