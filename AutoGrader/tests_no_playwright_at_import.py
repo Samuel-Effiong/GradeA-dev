@@ -100,27 +100,49 @@ FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 
 
 def nodes_run_at_import(tree):
-    """Every node that is evaluated when the module is imported: the module
+    """Every node that is evaluated when the module is imported, with the
+    class whose body it stands in (None outside any class): the module
     body and class bodies, with the decorators, default values and
     annotations of functions, but not the bodies of functions."""
-    pending = list(ast.iter_child_nodes(tree))
+    pending: list = [(node, None) for node in ast.iter_child_nodes(tree)]
     while pending:
-        node = pending.pop()
-        yield node
+        node, owner = pending.pop()
+        yield node, owner
         if isinstance(node, FUNCTIONS):
-            pending.extend(getattr(node, "decorator_list", []))
-            pending.extend(node.args.defaults)
-            pending.extend(default for default in node.args.kw_defaults if default)
+            inner = list(getattr(node, "decorator_list", []))
+            inner.extend(node.args.defaults)
+            inner.extend(default for default in node.args.kw_defaults if default)
         else:
-            pending.extend(ast.iter_child_nodes(node))
+            if isinstance(node, ast.ClassDef):
+                owner = node
+            inner = list(ast.iter_child_nodes(node))
+        pending.extend((child, owner) for child in inner)
+
+
+def name_asked_of_getattr(node):
+    """The name in getattr(thing, "name"), when it is written out."""
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "getattr"
+        and len(node.args) >= 2
+        and isinstance(node.args[1], ast.Constant)
+        and isinstance(node.args[1].value, str)
+    ):
+        return node.args[1].value
+    return None
 
 
 def names_in(node):
+    """The names a piece of code mentions, in two kinds: a bare name, and a
+    name asked of something (thing.name, or getattr(thing, "name"))."""
     for inner in ast.walk(node):
         if isinstance(inner, ast.Name):
-            yield inner.id
+            yield "bare", inner.id
         elif isinstance(inner, ast.Attribute):
-            yield inner.attr
+            yield "asked", inner.attr
+        elif name_asked_of_getattr(inner):
+            yield "asked", name_asked_of_getattr(inner)
 
 
 def module_functions(tree):
@@ -138,28 +160,90 @@ def module_functions(tree):
             )
 
 
+def methods_of(owner):
+    return [
+        node
+        for node in owner.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+
 def playwright_started_at_import(source):
     """Line numbers of code that runs at import and reaches one of the
-    starters: by name, or by calling a function of the same module whose
-    body reaches one (through any number of such functions)."""
+    starters.
+
+    A starter is reached by its own name, by another name it was imported
+    under or bound to, or by calling a function or a method of the same
+    module whose body reaches one (through any number of them). Two sets of
+    names are kept, because a call is written in two ways: `bare` holds the
+    names that reach a starter when called as name(), `asked` those that
+    reach one when called as thing.name(). A module function is called by
+    its bare name; a method is asked of its class or of an object, or
+    called by its bare name inside its own class body."""
     tree = ast.parse(source)
-    reaching = {
-        function.name: {
-            name for statement in function.body for name in names_in(statement)
-        }
-        for function in module_functions(tree)
-    }
-    starters = set(STARTERS)
+    bare, asked = set(STARTERS), set(STARTERS)
+
+    def reaches(node):
+        return any(
+            name in (bare if kind == "bare" else asked) for kind, name in names_in(node)
+        )
+
+    def is_one(node):
+        """The node is itself a starter, or a function or method that
+        reaches one: not a call of it, and not something read off it."""
+        if isinstance(node, ast.Name):
+            return node.id in bare
+        if isinstance(node, ast.Attribute):
+            return node.attr in asked
+        return name_asked_of_getattr(node) in asked
+
+    functions = list(module_functions(tree))
+    methods = [
+        method
+        for owner in ast.walk(tree)
+        if isinstance(owner, ast.ClassDef)
+        for method in methods_of(owner)
+    ]
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                if alias.name in STARTERS and alias.asname:
+                    bare.add(alias.asname)
+
     grew = True
     while grew:
-        grew = False
-        for name, used in reaching.items():
-            if name not in starters and used & starters:
-                starters.add(name)
-                grew = True
+        before = len(bare) + len(asked)
+        for function in functions:
+            if any(reaches(statement) for statement in function.body):
+                bare.add(function.name)
+        for method in methods:
+            if any(reaches(statement) for statement in method.body):
+                asked.add(method.name)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+            elif isinstance(node, ast.AnnAssign):
+                targets = [node.target]
+            else:
+                continue
+            if node.value is not None and is_one(node.value):
+                for target in targets:
+                    if isinstance(target, ast.Name):
+                        bare.add(target.id)
+                        asked.add(target.id)
+                    elif isinstance(target, ast.Attribute):
+                        asked.add(target.attr)
+        grew = len(bare) + len(asked) > before
+
     found = set()
-    for node in nodes_run_at_import(tree):
-        if isinstance(node, ast.Call) and set(names_in(node.func)) & starters:
+    for node, owner in nodes_run_at_import(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        own = {method.name for method in methods_of(owner)} & asked if owner else set()
+        if any(
+            name in (bare | own if kind == "bare" else asked)
+            for kind, name in names_in(node.func)
+        ):
             found.add(node.lineno)
     return sorted(found)
 
@@ -174,7 +258,7 @@ def starts_at_import_under(root=None):
         with open(os.path.join(root, path), encoding="utf-8") as handle:
             source = handle.read()
         scanned += 1
-        if not STARTERS & set(source.replace("(", " ").replace(".", " ").split()):
+        if not any(name in source for name in STARTERS):
             continue
         offenders += [f"{path}:{line}" for line in playwright_started_at_import(source)]
     return scanned, offenders
