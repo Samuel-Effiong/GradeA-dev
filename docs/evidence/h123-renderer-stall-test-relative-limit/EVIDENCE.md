@@ -43,7 +43,8 @@ always above the old fixed 4.0 s:
 | S1 | about 2 | 1.59 s | 6.35 s | 5.08 s |
 | S3 | about 2 | 1.30 s | 5.18 s | 4.15 s |
 | (c), `--parallel 2` | 3.11 | 2.29 s | 9.15 s | 7.32 s |
-| the deliberate-load run | 11.36 | 11.5 s | (46 s: over the ceiling) | none: FAILED, "too loaded to judge" |
+| the first deliberate-load run | 11.36 | 11.5 s | (46 s: over the ceiling) | none: FAILED, "too loaded to judge" |
+| the second deliberate-load run | 10.43 | 3.46 s | 13.85 s | 11.08 s |
 
 - **Why the baseline is over a second even when the machine is fairly
   quiet:** it is six renders at once on a fresh worker, so it includes
@@ -140,7 +141,7 @@ mutant's failing set equals its expected set
 - **The battery is on the final test module:** the module is blob
   `f08e88cc` at `d0beb906` and at `d9396620`.
 
-## The deliberate-load run (the SM's extra run)
+## The first deliberate-load run (the SM's extra run)
 `load_h123.sh d9396620`: the stall test alone, after 60 seconds of 12
 niced busy loops on this 8-core machine. 0b's GRANT 12:02:47, agreed with
 the other project's manager beforehand; one run; either outcome was to be
@@ -165,7 +166,41 @@ a result.
   renders at 5.6 to 7.2 s under a load of 22). The stretched limit
   passing under real load is shown by (c): baseline 2.29 s, limit
   7.32 s, green, where the old fixed 4.0 s limit had less room.
-- **Not run again:** one run was granted; a gentler one is the SM's call.
+- **Not run again in this configuration** (SM's ruling: it is accepted
+  as showing the ceiling). The SM ordered one more run in a different
+  configuration, below.
+
+## The second deliberate-load run (SM's ruling of 2026-10-06, about 12:08)
+`load2_h123.sh fe41c8d9`: the same test alone, after 60 seconds of 8 busy
+loops at nice 10, the test's own niceness. Why: the row exists because a
+fixed limit went falsely red under load, and until this run nothing
+showed the relative limit PASSING on a busy machine ((a), (b) and (c) ran
+at loads of 2 to 5). The tip `fe41c8d9` is `d9396620` plus the first
+evidence commit, docs only. 0b's GRANT 12:29:52, agreed with the other
+project's manager; one run; no third in any case.
+
+- **The expected outcome was written first:** `load2_expected.txt`, file
+  clock 12:07:33, read by 0b before the grant (sha256 prefix
+  `87272c18ab6c1670`).
+- **Outcome: a PASS.** Ran 1 test in 20.693s, OK, exit=0.
+  "[stall test] slowest healthy render alone: 3.46 s; hung render's
+  timeout: 13.85 s; limit for healthy renders beside it: 11.08 s".
+- **Load:** 2.72 before the loops, 10.43 at the test's start, 13.32 when
+  it ended (`load2_stall_test_fe41c8d9.load.txt`). All 8 loops were
+  stopped; none was left.
+- **Against the note:** a pass, as expected; the baseline inside the
+  expected 2.0 to 7.5 s and the limit clearly above 4.0 s, as expected.
+  **One point missed:** I expected a load of about 7 to 9 at the test's
+  start and it was 10.43. The run is a pass on a busier machine than was
+  aimed for, not on a gentler one.
+- **What it shows:** on a machine at a load of 10 to 13 the six healthy
+  renders took up to 3.46 s with nothing hung beside them, close to the
+  old fixed 4.0 s limit before the test proper had begun. The relative
+  limit passed there with no stall: the false red this row is about did
+  not happen.
+- **What it does not show:** how long the healthy renders took beside
+  the hung one in this run (a passing test prints its limits, not its
+  timings); and it is one run.
 
 ## The credential pattern
 This folder, archives opened: 0 URLs with anything in the password
@@ -184,8 +219,12 @@ passed:".
   `logs/raw/*.out`, each inner run's whole output.
 - `chain.status` (times and load of (a) and (b)), `wait_for_quiet.log`,
   `expected_kills_d9396620.txt`.
-- The load run: `load_stall_test_d9396620.log.gz` (raw) and
+- The first load run: `load_stall_test_d9396620.log.gz` (raw) and
   `load_stall_test_d9396620.load.txt`.
+- The second load run: `load2_stall_test_fe41c8d9.log.gz` (raw),
+  `load2_stall_test_fe41c8d9.load.txt`, `load2_expected.txt` (the
+  expected outcome, as written beforehand), `load2_h123.sh.txt` and its
+  starter `run_load2.sh.txt`.
 - Scripts as run: `chain.sh.txt`, `c_h123.sh.txt` with `iso_file.sh.txt`,
   `load_h123.sh.txt`, `expected_kills.py.txt`; `wait_and_run.sh.txt` and
   `run_c.sh.txt` are the small starters that waited for the load.
