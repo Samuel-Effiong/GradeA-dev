@@ -1,0 +1,191 @@
+"""v2 mutants for H-123 (d5), beyond d5's S1-S3 and L1-L5.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT), inside the rule
+16/13/12 wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h123_mutants.py check |
+baseline | (no args: every mutant).
+
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of the mutated module's directory is deleted before each mutant
+and after each restore; `baseline` deletes it first.
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+TP = "assignments/tests_pdf_renderer.py"
+RD = "assignments/pdf_renderer.py"
+SCRUB = TP  # the module whose __pycache__ `baseline` clears
+STALL = ["assignments.tests_pdf_renderer.ConcurrentRenderingTest"
+         ".test_one_slow_render_does_not_stall_the_others"]
+WIRING = ["assignments.tests_pdf_renderer.StallTestWiringTest"]
+LIMITS = ["assignments.tests_pdf_renderer.StallLimitsTest"]
+BASELINE = STALL + WIRING + LIMITS
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+STALL_TEST = "test_one_slow_render_does_not_stall_the_others"
+WIRING_TEST = "test_a_machine_too_loaded_to_judge_fails_the_stall_test_and_says_why"
+
+# Written before the first run (rule 18 addition): the test each mutant must
+# fail, by name. KILLED only with the run's own "Ran" line, named failing
+# tests and this test among them; non-zero without that is BROKEN;
+# KILLED_OTHER = tests failed, but not the one expected.
+#
+# W3 is a question, not an expected kill. v2's prediction, written before
+# the run: W3 SURVIVES (nothing checks which timeout the hung render was
+# given). If it does, it is reported as SURVIVED, with that prediction.
+EXPECTED = {
+    "W1_the_hung_document_does_not_hang": {"the stall test": (STALL, STALL_TEST)},
+    "W2_the_measured_baseline_is_not_used": {"the wiring test": (WIRING, WIRING_TEST)},
+    "W3_the_hung_render_gets_the_default_timeout": {"the stall test": (STALL, STALL_TEST)},
+    # Added 2026-10-06 (new v2 session), before any run of H-123.
+    # W4: d5's S1 (the stall put back in the renderer) AND a slow machine
+    # (the measured baseline replaced by 2.5 s: hung timeout 10 s, limit 8 s).
+    # Expected KILLED by the stall test: the healthy renders that reach the
+    # recycle wait for the hung render's whole 10 s, which is over 8 s. This
+    # is the claim H-123 rests on, tried with real timing at a stretched
+    # limit; d5's S1 tries it at the 5 s floor only.
+    "W4_the_stall_is_back_on_a_slow_machine": {"the stall test": (STALL, STALL_TEST)},
+    # W5: the control for W4: the same slow-machine numbers and NO stall.
+    # v2's prediction: SURVIVES (the stall test passes; healthy renders do
+    # not get slower because the hung one is given longer). If it fails,
+    # W4's kill proves nothing and that is a finding.
+    "W5_a_slow_machine_and_no_stall": {"the stall test": (STALL, STALL_TEST)},
+}
+PREDICTED_TO_SURVIVE = {"W3_the_hung_render_gets_the_default_timeout",
+                        "W5_a_slow_machine_and_no_stall"}
+
+MUTANTS = {
+    # The "hung" document finishes typesetting: no hung render beside the
+    # healthy ones (d5's S3 drops the thread; this keeps it and unhangs it).
+    "W1_the_hung_document_does_not_hang": (TP, [
+        ("            \"{get:function(){return false;}});\"\n",
+         "            \"{get:function(){return true;}});\"\n"),
+    ]),
+    # The limits are worked out from nothing: the fixed numbers again.
+    "W2_the_measured_baseline_is_not_used": (TP, [
+        ("        baseline = max(baseline_durations.values())\n",
+         "        baseline = 0.0\n"),
+    ]),
+    # The stretched timeout is worked out but not given to the hung render.
+    "W3_the_hung_render_gets_the_default_timeout": (TP, [
+        ("                pdf_renderer.render_html_to_pdf(hung_html, timeout=hung_timeout)\n",
+         "                pdf_renderer.render_html_to_pdf(hung_html)\n"),
+    ]),
+    "W4_the_stall_is_back_on_a_slow_machine": [
+        (RD, [("            elif self._needs_recycle() and self._in_flight == 0:\n",
+               "            elif self._needs_recycle():\n"
+               "                while self._in_flight:\n"
+               "                    await asyncio.sleep(0.01)\n")]),
+        (TP, [("        baseline = max(baseline_durations.values())\n",
+               "        baseline = 2.5\n")]),
+    ],
+    "W5_a_slow_machine_and_no_stall": (TP, [
+        ("        baseline = max(baseline_durations.values())\n",
+         "        baseline = 2.5\n"),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits): most touch one file, W4 two."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SCRUB)
+    clear_pycache(RD)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_run.txt")
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif expected in failing:
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if name in PREDICTED_TO_SURVIVE else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)
