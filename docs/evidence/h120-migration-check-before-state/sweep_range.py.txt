@@ -1,0 +1,31 @@
+"""H-120, reading aid (plain Python: direct calls of the check's own
+classify() and has_ack(), old rule and new rule, on every migration file
+the pull request adds against origin/dev; no database, no test runner,
+and not the check's command line). Run from the repository root.
+Usage: python sweep_range.py <old-check.py> <base-ref>"""
+import importlib.util, os, subprocess, sys, re
+sys.path.insert(0, os.getcwd())
+import django; django.setup()
+from pathlib import Path
+def load(path, name):
+    spec=importlib.util.spec_from_file_location(name, path); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m.REPO_ROOT=Path(os.getcwd()); return m
+new=load("scripts/check_migration_safety.py","new"); old=load(sys.argv[1],"old")
+names=subprocess.run(["git","diff","--name-only","--diff-filter=A",f"{sys.argv[2]}...HEAD"],capture_output=True,text=True,check=True).stdout.splitlines()
+files=[n for n in names if re.search(r"/migrations/\d[^/]*\.py$", n)]
+k=lambda fs: sorted({x.split(" - ")[0] for x in fs})
+rows=[]
+for f in files:
+    o,n,ack=old.classify(f),new.classify(f),new.has_ack(f)
+    rows.append((f,bool(o),bool(n),ack,k(o),k(n)))
+verdict=lambda has,ack: "OK" if not has else ("ACK" if ack else "FAIL")
+count=lambda which: {v: sum(1 for r in rows if verdict(r[which],r[3])==v) for v in ("OK","ACK","FAIL")}
+print(len(files), "migration files added against", sys.argv[2])
+print("old rule:", count(1)); print("new rule:", count(2))
+for title,cond in (("FAIL under both",lambda r: verdict(r[1],r[3])=="FAIL" and verdict(r[2],r[3])=="FAIL"),
+                   ("FAIL old, passes new",lambda r: verdict(r[1],r[3])=="FAIL" and verdict(r[2],r[3])=="OK"),
+                   ("passes old, FAIL new",lambda r: verdict(r[1],r[3])=="OK" and verdict(r[2],r[3])=="FAIL"),
+                   ("marked (ACK) old, additive new",lambda r: verdict(r[1],r[3])=="ACK" and not r[2]),
+                   ("additive old, marked and reported new",lambda r: not r[1] and r[2] and r[3])):
+    sel=[r for r in rows if cond(r)]
+    print(f"\n== {title}: {len(sel)}")
+    for r in sel: print("  ", r[0].replace("/migrations/","/"), "| new:", r[5])

@@ -1,0 +1,19 @@
+H-120, v2: the script run end to end against origin/dev (4cae3265) at 047da1bd, as the workflow runs it.
+Expected, written by v2 at 2026-10-06 17:39:00 WAT BEFORE any run of the check by v2, from v2's own statement
+of the rules (h120_predict_pr2_v2.py): 107 files; exit code 1; exactly these 12 FAIL lines, 3 ACK lines
+(billing/0032, 0033, 0046) and 92 OK lines.
+FAIL:
+  assignments/migrations/0038_assignment_updated_at.py
+  billing/migrations/0010_alter_betaprofile_id.py
+  billing/migrations/0011_remove_betaprofile_uuid_betaprofile_uid_and_more.py
+  billing/migrations/0013_remove_betaprofile_id_alter_betaprofile_uid.py
+  billing/migrations/0014_rename_uid_betaprofile_id.py
+  billing/migrations/0016_planfeature_alter_subscriptionplan_options_and_more.py
+  billing/migrations/0017_remove_subscriptionplan_overage_credit_price_cents_and_more.py
+  billing/migrations/0031_alter_licensesubscription_custom_price_cents_and_more.py
+  billing/migrations/0034_alter_licensesubscription_custom_price_cents.py
+  billing/migrations/0036_alter_licensesubscription_contract_months_and_more.py
+  billing/migrations/0039_alter_subscriptionplan_overage_block_price.py
+  students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py
+The six of the founder's table: assignments/0038, billing/0011, 0013, 0014, 0016, 0017.
+The six the new type-change rule reports for the first time: billing/0010, 0031, 0034, 0036, 0039, students/0027.
