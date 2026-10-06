@@ -188,6 +188,41 @@ By module: `tests_grading_run_label` 55, all fail; `tests_grading_run_pipeline` 
 - The audit entry's `model` is cut to 128 characters and the lists' names to 64, for reading.
   The row holds 255. Nothing is classified from a cut name.
 
+## The mutants (expected failing test named before any run)
+
+51 in `mutate.py`, each with one expected failing test in `EXPECTED`: R1 to R20 on the run's
+rules (`ai_processor/grading_run.py`); S1 to S12 on what the grading service keeps and on its
+settings reads; T1 to T10 on the save and the audit entry (`students/services.py`); A1 to A4 on
+the permitted keys and the measurement; F1 the formatting job; M1 a teacher's manual change; X1 a
+serializer; E1 a third place emitting the entry; and **V1, the reverse half of slice A's
+migration test** (the Checker's note on slice A): the migration's way back spoils the grade, on a
+database built fresh.
+
+**One test was strengthened after the code commit and before any run,** and I say so plainly:
+`test_one_call_marking_three_answers_votes_three_times`. As first written (one reused answer by a
+backup against three fresh ones by the main model) it would have passed even with mutant S3 (a
+reply votes once, not once per answer): one vote each is a tie, and the tie rule gives the main
+model. It now sets two reused answers by a backup against three fresh ones in one call, so a
+per-call count names the backup. I found it while writing S3's expected test. It is still
+expected to fail in the red run, like its neighbours.
+
+No mutant is offered for the guards on the guards (the two scan guards, the serializer walk's own
+guard) or for `test_a_grader_named_inside_the_reply_does_not_reach_the_label`: the label is built
+only from what the run kept, and the run is fed only the model our code read from the response,
+so there is no single line to break that leaves the rest standing; slice B's mutants B1, B2, C2
+and C3 are the ones that put a reply's own marker back.
+
+## Expected for the gate, written before any run
+
+- Step 0, the red run: the five new test modules against the seven code files as at 9c0370f1:
+  non-zero exit, a "Ran" line, 124 tests, **111 failing or in error and 13 passing**, as named
+  above.
+- Step 1a clean (no model, no migration changed). Step 1 OK. Step 2: 51 KILLED.
+- The regression is 0b's one full run on the frozen tip (SM ruling).
+
+The gate script is committed here as `run_be_i_04_c_gate.sh.txt`. No run is asked for before
+slice B is merged and this branch is moved onto that merge.
+
 ## Runs
 
 None yet.

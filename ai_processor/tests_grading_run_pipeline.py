@@ -187,14 +187,15 @@ class AShortPaperTest(_RouteCase):
         self.assert_run(run, MAIN, grading_label.FALLBACK_NO, [MAIN])
 
     def test_one_call_marking_three_answers_votes_three_times(self, mock_execute):
-        """The majority is per ANSWER: a reused answer by a backup against
-        three fresh ones by the main model."""
-        mock_execute.return_value = _reply(_evaluations([9]), BACKUP)
-        self.grade([_essay(9)], [_answer(9)])
+        """The majority is per ANSWER, not per call: two reused answers
+        first made by a backup against three fresh ones marked by the main
+        model in ONE call. Counted per call the backup would lead two to
+        one."""
+        mock_execute.return_value = _reply(_evaluations([8, 9]), BACKUP)
+        self.grade([_essay(8), _essay(9)], [_answer(8), _answer(9)])
         mock_execute.return_value = _reply(_evaluations([1, 2, 3]), MAIN)
-        run = self.grade(
-            [_essay(n) for n in (1, 2, 3, 9)], [_answer(n) for n in (1, 2, 3, 9)]
-        )
+        numbers = (1, 2, 3, 8, 9)
+        run = self.grade([_essay(n) for n in numbers], [_answer(n) for n in numbers])
         self.assert_run(run, MAIN, grading_label.FALLBACK_YES, [MAIN], reused=[BACKUP])
 
 
