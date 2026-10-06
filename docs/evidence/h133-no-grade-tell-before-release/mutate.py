@@ -274,6 +274,8 @@ MUTANTS = {
             M + "test_the_list_when_the_assignment_total_differs",
             M + "test_the_page_when_the_assignment_has_no_total",
             M + "test_the_page_when_the_assignment_total_differs",
+            M + "test_the_list_after_the_teachers_manual_grade",
+            M + "test_the_page_after_the_teachers_manual_grade",
         ],
     ),
     "M2_a_student_is_shown_the_assignment_total_after_release_too": (

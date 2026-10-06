@@ -373,3 +373,31 @@ change" tests are seen red as rule 19 asks; they are the Senior Manager's to str
     (L1 to L6) and M1 to M3, nine in all, each KILLED with its named tests. L1, L3, L4 and L5 will
     fail some of the four new whole-answer tests as well as their named ones; that is expected.
   * The mutants on files this delta does not touch (S, C, P, F: sixteen) are not re-run.
+
+### Added 2026-10-06 19:25 WAT, still before any run of this delta
+
+**The teacher's manual grade, by the Senior Manager's word.** Two more tests in the same class,
+their own commit: the paper is graded by the real save and then given a manual grade through the
+teacher's route (`update-grade`, which only accepts a paper that already has a grading result, and
+writes the stored maximum again); the whole answer is compared with the submitted one, on the list
+(assignment total 20) and on the page (no total). `remaining_attempts` must be the only
+difference. They were written after the fix was committed, so they were never red on their own
+commit; M1 names them, and under M1 they must fail. The H-133 module now has 37 tests. Where the
+section above says "Not covered: a paper graded by the teacher's manual grade", that is now
+covered; a re-grade (a second AI grading of a graded paper) stays not covered by any test here.
+
+**Paths that build one of the three serializers WITHOUT the request (the Release Engineer's
+point).** `max_points_shown` withholds only when the request is in the serializer's context, as
+the score and the other H-127 and H-133 masks in these serializers do. By reading
+`students/views.py`, every construction: the list, the submission page, the edit answer, the
+release route and the mark-reviewed route pass the request. Three do not: the answer to a
+synchronous grade (`grade`, teachers only), the answer to the manual grade (`update_grade`,
+teachers only), and the answer to a student's own upload (`upload_answers`). The last is the one a
+student reaches; it answers only for a paper just uploaded, which is refused when the paper is
+graded, so it never answers for a graded paper. That route's staff-shaped answer is row H-141,
+which replaces its serializer. No test of this delta pins that a future student route passes the
+request; H-141's guard additions (every action of the submissions view classified, serializers
+declare their audience) are where that is to be pinned.
+
+**Expected, replacing the counts above:** M1 must fail six tests (the four and these two). The
+rest as written.

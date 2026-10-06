@@ -687,11 +687,34 @@ class GradedTheWayTheGraderSavesItTest(APITestCase):
         self.assertTrue(row.raw_input)
         self.assertFalse(row.is_published)
 
-    def assert_only_the_attempts_differ(self, reading, total):
+    def regrade_by_hand(self):
+        """The teacher's manual grade, through its route. It is the other
+        way a row gets its grade; it writes the stored maximum too. The
+        route only accepts a paper that already has a grading result."""
+        self.client.force_authenticate(user=self.teacher)
+        with patch("students.views.formatted_grade_async"):
+            response = self.client.patch(
+                reverse(
+                    "student-submission-update-grade",
+                    kwargs={"pk": self.submission.pk},
+                ),
+                {"score": 5},
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        row = StudentSubmission.objects.get(pk=self.submission.pk)
+        self.assertEqual(row.score, 5)
+        self.assertEqual(row.max_points, 10)
+        self.assertTrue(row.was_regraded)
+        self.assertFalse(row.is_published)
+
+    def assert_only_the_attempts_differ(self, reading, total, by_hand=False):
         self.set_total(total)
         submitted = self.read(reading)
         self.assertEqual(submitted["max_points"], total)
         self.grade()
+        if by_hand:
+            self.regrade_by_hand()
         graded = self.read(reading)
 
         self.assertGreater(submitted.pop("remaining_attempts"), 0)
@@ -709,6 +732,12 @@ class GradedTheWayTheGraderSavesItTest(APITestCase):
 
     def test_the_page_when_the_assignment_total_differs(self):
         self.assert_only_the_attempts_differ("page", 20)
+
+    def test_the_list_after_the_teachers_manual_grade(self):
+        self.assert_only_the_attempts_differ("list", 20, by_hand=True)
+
+    def test_the_page_after_the_teachers_manual_grade(self):
+        self.assert_only_the_attempts_differ("page", None, by_hand=True)
 
     def test_once_released_the_student_reads_the_graders_maximum(self):
         self.set_total(20)
