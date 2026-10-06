@@ -421,3 +421,139 @@ class StudentSafeFeedbackFunctionTest(StudentFeedbackRoutesBase):
         shown = student_safe_feedback(FULL_FEEDBACK)
         self.assertEqual(shown, STUDENT_FEEDBACK)
         self.assertIsNot(shown, FULL_FEEDBACK)
+
+
+#: The formatter's output (ai_processor/GRADE_FORMATTER_2.txt). Its prompt
+#: asks for advice to the teacher and for every review flag to be surfaced
+#: there; the words in capitals stand for those.
+FULL_FORMATTED_GRADE = {
+    "overall_performance_summary": {
+        "score_statement": "You scored 8 out of 10 points.",
+        "performance_narrative": "You did well.",
+        "grade_tier_context": "A good grasp.",
+        "an_unknown_summary_key": "UNCLASSIFIED SUMMARY TEXT",
+    },
+    "strengths": ["Question 1: clear reasoning."],
+    "areas_for_improvement": ["Question 1: add the missing detail."],
+    "question_by_question_breakdown": [
+        {
+            "question_number": 1,
+            "question_text": "Q1?",
+            "max_score": 10,
+            "score_awarded": 8,
+            "narrative": "The response covered the main point.",
+            "feedback_for_student": "Solid answer overall.",
+            "strengths": ["Clear reasoning."],
+            "weaknesses": ["Missing a detail."],
+            "an_unknown_question_key": "UNCLASSIFIED QUESTION TEXT",
+        }
+    ],
+    "final_recommendations": {
+        "for_student": ["Review the missing detail."],
+        "for_teacher": ["FLAG FOR THE TEACHER: the graders disagreed on Q1"],
+        "follow_up_actions": ["FOLLOW-UP ACTION: schedule a session"],
+    },
+    "an_unknown_section": "UNCLASSIFIED SECTION TEXT",
+}
+
+STUDENT_FORMATTED_GRADE = {
+    "overall_performance_summary": {
+        "score_statement": "You scored 8 out of 10 points.",
+        "performance_narrative": "You did well.",
+        "grade_tier_context": "A good grasp.",
+    },
+    "strengths": ["Question 1: clear reasoning."],
+    "areas_for_improvement": ["Question 1: add the missing detail."],
+    "question_by_question_breakdown": [
+        {
+            "question_number": 1,
+            "question_text": "Q1?",
+            "max_score": 10,
+            "score_awarded": 8,
+            "narrative": "The response covered the main point.",
+            "feedback_for_student": "Solid answer overall.",
+            "strengths": ["Clear reasoning."],
+            "weaknesses": ["Missing a detail."],
+        }
+    ],
+    "final_recommendations": {"for_student": ["Review the missing detail."]},
+}
+
+FORMATTED_TEACHER_ONLY_MARKERS = (
+    "for_teacher",
+    "FLAG FOR THE TEACHER",
+    "follow_up_actions",
+    "FOLLOW-UP ACTION",
+    "UNCLASSIFIED",
+    "an_unknown",
+)
+
+
+class StudentFormattedGradeTest(StudentFeedbackRoutesBase):
+    """GET /submissions/<id>/ as the student: `formatted_grade`.
+
+    The column is text. The formatting task assigns it a dictionary, which
+    the database stores in Python's text form; a student is sent the
+    projection in the same text form the row holds. One GET per test: the
+    route caches its response per caller."""
+
+    def get_formatted_grade(self, user=None):
+        if user is not None:
+            self.client.force_authenticate(user=user)
+        response = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response, response.data["formatted_grade"]
+
+    def assert_nothing_for_the_teacher(self, response):
+        body = json.dumps(as_plain(response.data))
+        for marker in FORMATTED_TEACHER_ONLY_MARKERS:
+            self.assertNotIn(marker, body)
+
+    def test_a_released_grade_stored_in_python_text_form(self):
+        self.set_grade(is_published=True, formatted_grade=str(FULL_FORMATTED_GRADE))
+        response, shown = self.get_formatted_grade()
+        self.assertIsInstance(shown, str)
+        self.assertEqual(ast.literal_eval(shown), STUDENT_FORMATTED_GRADE)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_a_released_grade_stored_as_json_text(self):
+        self.set_grade(
+            is_published=True, formatted_grade=json.dumps(FULL_FORMATTED_GRADE)
+        )
+        response, shown = self.get_formatted_grade()
+        self.assertIsInstance(shown, str)
+        self.assertEqual(json.loads(shown), STUDENT_FORMATTED_GRADE)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_text_that_is_not_a_dictionary_is_shown_as_nothing(self):
+        self.set_grade(
+            is_published=True,
+            formatted_grade="FLAG FOR THE TEACHER: free text, no sections",
+        )
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_a_list_is_shown_as_nothing(self):
+        self.set_grade(is_published=True, formatted_grade=str(["FLAG FOR THE TEACHER"]))
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_an_unreleased_grade_shows_nothing(self):
+        self.set_grade(is_published=False, formatted_grade=str(FULL_FORMATTED_GRADE))
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_no_formatted_grade_yet_shows_nothing(self):
+        self.set_grade(is_published=True, formatted_grade=None)
+        _, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+
+    def test_the_teacher_still_reads_it_whole(self):
+        self.set_grade(is_published=True, formatted_grade=str(FULL_FORMATTED_GRADE))
+        _, shown = self.get_formatted_grade(user=self.teacher)
+        self.assertEqual(ast.literal_eval(shown), FULL_FORMATTED_GRADE)
