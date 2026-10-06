@@ -75,6 +75,12 @@ Behaviour changes, each stated because someone may meet it:
 - **The grading batch's final failure is raised `from` its last error**, so the kind can be read.
   Its message is unchanged.
 
+**At deployment, cached responses outlive the change for a few minutes.** The student dashboard's
+assignment list is cached per student for 15 minutes (`dashboard/views.py`, `cache.set(cache_key,
+data, 60 * 15)`), and the submission list per caller and query for `CACHE_TTL` (5 minutes by
+default, `users/mixins.py`). A response built before the deploy can be served until it expires,
+unless the deploy clears the cache. Read in the code; lifetimes on the live service not checked.
+
 **Old rows are not rewritten.** A row saved before H-128 keeps whatever error text it holds, and
 every row keeps its second-opinion block. For students, the projection is what keeps both away.
 A teacher still sees the old text on old rows.
