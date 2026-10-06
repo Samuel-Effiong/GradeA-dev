@@ -98,6 +98,32 @@ class ARegradeClearsTheOldWording(SupersededBase):
         self.assertIn('"graded_at"', clearing[0])
 
 
+class BeforeReleaseItIsClearedToo(SupersededBase):
+    """Graded, worded (the teacher opened the feedback), regraded, and only
+    then released. A student reads nothing before release whatever is
+    stored; what is stored at release is what they read after it. Asked
+    for by v2's pre-read: every other test here regrades a released paper.
+    """
+
+    released = False
+
+    def test_a_regrade_before_release_clears_the_stored_wording(self):
+        self.assertIn(OLD_STATEMENT, self.stored_formatted())
+
+        self.grade_by_ai(self.submission, 3)
+
+        self.assertIsNone(self.stored_formatted())
+
+    def test_released_afterwards_the_student_reads_no_old_sentence(self):
+        self.grade_by_ai(self.submission, 3)
+
+        self.release()
+
+        after = self.student_reads()
+        self.assertEqual(Decimal(str(after["score"])), Decimal("3"))
+        self.assertIsNone(after["formatted_grade"])
+
+
 class AFirstGradingHasNothingToClear(AnswerDocumentBase):
     def test_a_first_grading_leaves_no_formatted_grade(self):
         row = StudentSubmission.objects.get(pk=self.submission.pk)

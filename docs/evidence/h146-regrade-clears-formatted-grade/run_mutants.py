@@ -63,6 +63,15 @@ MUTANTS = [
         1,
         TESTS,
     ),
+    (
+        "V3",
+        "cleared before release as well",
+        SV,
+        "    submission.formatted_grade = None\n",
+        "    if submission.is_published:\n        submission.formatted_grade = None\n",
+        1,
+        TESTS,
+    ),
 ]
 
 LOAD_FAILURE = "unittest.loader._FailedTest"
