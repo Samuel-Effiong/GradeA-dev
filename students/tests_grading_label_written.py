@@ -346,6 +346,76 @@ class TheFoundersSentenceTest(SimpleTestCase):
         )
 
 
+class TheTwoPlacesThatEmitTheEntryTest(SimpleTestCase):
+    """An entry with no `fresh_backup_used` is measured the old way, by its
+    one `model`; that reading is kept for OLD entries only. So no
+    production code may emit a grading entry without a run: the entry is
+    emitted in exactly two places, each handing over the instance that
+    `grade_engine` returned, which carries the run."""
+
+    EXPECTED = {
+        ("assignments/tasks.py", "grade_engine_async"),
+        ("students/views.py", "grade"),
+    }
+
+    def calls(self):
+        base = Path(settings.BASE_DIR)
+        found = {}
+        for path in sorted(base.glob("*/**/*.py")):
+            relative = path.relative_to(base).as_posix()
+            if (
+                relative.startswith("docs/")
+                or "/tests" in relative
+                or path.name.startswith("tests")
+                or "/migrations/" in relative
+            ):
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            for function in ast.walk(tree):
+                if not isinstance(function, ast.FunctionDef):
+                    continue
+                for node in ast.walk(function):
+                    if (
+                        isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Name)
+                        and node.func.id == "emit_grading_completed"
+                    ):
+                        found[(relative, function.name)] = (function, node)
+        return found
+
+    def test_the_entry_is_emitted_in_exactly_the_two_callers(self):
+        self.assertEqual(set(self.calls()), self.EXPECTED)
+
+    def test_each_hands_over_what_grade_engine_returned(self):
+        for (relative, name), (function, call) in self.calls().items():
+            with self.subTest(file=relative, function=name):
+                first = call.args[0]
+                self.assertIsInstance(first, ast.Name)
+                assigned_from_grade_engine = [
+                    node.lineno
+                    for node in ast.walk(function)
+                    if isinstance(node, ast.Assign)
+                    and any(
+                        isinstance(target, ast.Name) and target.id == first.id
+                        for target in node.targets
+                    )
+                    and isinstance(node.value, ast.Call)
+                    and isinstance(node.value.func, ast.Name)
+                    and node.value.func.id == "grade_engine"
+                ]
+                self.assertTrue(assigned_from_grade_engine, ast.unparse(call))
+                self.assertLess(max(assigned_from_grade_engine), call.lineno)
+
+    def test_what_grade_engine_returns_carries_the_run(self):
+        """The other half: the instance the two callers hand over."""
+        function = _function("students/services.py", "_populate_and_save_grade")
+        source = ast.unparse(function)
+        self.assertIn("submission._grading_run = run", source)
+
+
 class TheAuditEntryTest(_GradingCase):
     def emitted_metadata(self, *kept):
         before = history.snapshot(self.submission)

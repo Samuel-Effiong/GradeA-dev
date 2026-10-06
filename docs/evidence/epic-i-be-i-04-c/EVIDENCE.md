@@ -122,6 +122,29 @@ By module: `tests_grading_run_label` 53, all fail; `tests_grading_run_pipeline` 
 `tests_grading_label_written` 30, 25 fail; `tests_grading_label_routes` 10, all fail;
 `tests_grading_label_not_exposed` 4, none fail.
 
+### Five more tests, still tests only (a fifth commit before any code)
+
+- `tests_grading_label_written.TheTwoPlacesThatEmitTheEntryTest` (3): the SM accepted that an
+  audit entry with no `fresh_backup_used` is measured the old way, for OLD entries only, on
+  condition that no production caller emits a grading entry without a run. These read the code:
+  the entry is emitted in exactly two places (the background task and the immediate route); each
+  hands over what `grade_engine` returned; and that instance carries the run.
+- `tests_grading_run_label.TheWordsAreTheLabelsWordsTest` (2): the run keeps its own copy of the
+  label's words (the AI code does not import the students app); they must equal the label's, and
+  its cut for an audit item must equal the audit limit.
+
+### Expected at this commit, re-written before any run
+
+**124 tests in five modules; 111 expected to fail or be in error, 13 to pass.** Of the five
+added, two pass today because the two callers already exist as described
+(`test_the_entry_is_emitted_in_exactly_the_two_callers`,
+`test_each_hands_over_what_grade_engine_returned`); the other three fail. The other eleven
+expected to pass are those named above.
+
+By module: `tests_grading_run_label` 55, all fail; `tests_grading_run_pipeline` 22, 20 fail;
+`tests_grading_label_written` 33, 26 fail; `tests_grading_label_routes` 10, all fail;
+`tests_grading_label_not_exposed` 4, none fail.
+
 ## Runs
 
 None yet.

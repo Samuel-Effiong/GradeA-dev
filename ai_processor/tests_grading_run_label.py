@@ -58,6 +58,37 @@ class _RunCase(SimpleTestCase):
         self.assertEqual(label["grading_fallback_used"], flag)
 
 
+class TheWordsAreTheLabelsWordsTest(SimpleTestCase):
+    """ai_processor does not import the students app, so the run keeps its
+    own copy of the label's words. They must be the same words."""
+
+    def test_each_word_of_the_run_equals_the_labels(self):
+        from ai_processor import grading_run
+
+        for name in (
+            "STRICTNESS_NOT_YET_SET",
+            "MODEL_DETERMINISTIC",
+            "MODEL_UNKNOWN",
+            "FALLBACK_YES",
+            "FALLBACK_NO",
+            "FALLBACK_UNKNOWN",
+            "FALLBACK_NOT_APPLICABLE",
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    getattr(grading_run, name, None), getattr(grading_label, name)
+                )
+
+    def test_the_cut_for_an_audit_item_is_the_audit_limit(self):
+        from ai_processor import grading_run
+        from audit import metadata
+
+        self.assertEqual(
+            getattr(grading_run, "AUDIT_ITEM_MAX_LENGTH", None),
+            metadata.MAX_ITEM_STRING,
+        )
+
+
 class TheLabelsShapeTest(_RunCase):
     def test_it_has_exactly_the_six_fields(self):
         self.assertEqual(set(self.label()), set(LABEL_FIELDS))
