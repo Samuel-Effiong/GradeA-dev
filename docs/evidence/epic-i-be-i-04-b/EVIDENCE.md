@@ -109,8 +109,14 @@ cannot be worked out without live figures. Nothing else changes for users or the
 
 ## Limits
 
-- Only the teacher-instructions switch is read from the run's reading in this slice. The other
-  fifteen places the grading code reads a setting still read it live; they move in slice C.
+- **A limit of release 1 (slices A and B without C), by the SM's ruling.** The saved-answer key
+  comes from the run's one reading of the settings. Of the grading code itself, only the
+  teacher-instructions switch reads that reading in this slice; the other fifteen places still
+  read their setting live, and move to the reading in slice C. In a running service the two
+  cannot differ: these settings are taken from the environment when the process starts and
+  change only at a restart, so within one process the live value and the reading are the same.
+  They can differ only where something changes a setting inside a living process, which the
+  tests do on purpose and the service does not.
 - The key's intended model is still the main model, not the one that answered. The envelope
   records the one that answered.
 - A provider named `llm` could not be told from "not named". No such model name is known.
