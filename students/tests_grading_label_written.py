@@ -471,6 +471,18 @@ class TheBackupMeasurementTest(SimpleTestCase):
             {"model_unknown_rate": 1.0},
         )
 
+    def test_a_long_backup_name_is_still_a_one_in_the_rate(self):
+        """The audit lists cut a name to 64 characters. The measurement
+        must still know a backup when it sees one: a long backup name must
+        not fall out of the rate as a quiet zero."""
+        backup = "backup/" + "b" * 143
+        with patch.object(ai_services, "GRADING_FALLBACK_MODELS", [backup]):
+            run = GradingRun.start()
+            run.keep_answers(backup, 1)
+            served = run.audit_models()["models_served"]
+            samples = self.samples(models_served=served)
+        self.assertEqual(samples.get("model_fallback_rate"), 1.0)
+
     def test_an_unnamed_model_with_a_backup_is_a_one_in_the_rate(self):
         samples = self.samples(
             models_served=sorted([BACKUP, grading_label.MODEL_UNKNOWN])

@@ -454,6 +454,66 @@ class TheGradingCodeReadsTheRunsReadingTest(TestCase):
         self.assertEqual(mock_execute.call_count, 1)
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+class TheStartOfRunReadingIsEverywhereTest(TestCase):
+    """A grade-shaping setting changes while the AI is answering. The
+    lookup key, the store key and the label must all show the reading the
+    run STARTED with."""
+
+    def setUp(self):
+        self.processor = AIProcessor()
+        django_cache.clear()
+        self.addCleanup(django_cache.clear)
+
+    def grade(self, run=None):
+        run = run or GradingRun.start()
+        self.processor.extract_grade_with_retry(
+            MagicMock(), [_essay(1)], [_answer(1)], assignment_model=ASSIGNMENT, run=run
+        )
+        return run
+
+    def test_the_label_and_both_keys_show_the_reading_the_run_started_with(self):
+        with override_settings(GRADING_SECOND_OPINION_HIGH_POINTS=15):
+            version_at_15 = grading_config.GradingConfig.read().version
+        with override_settings(GRADING_SECOND_OPINION_HIGH_POINTS=16):
+            version_at_16 = grading_config.GradingConfig.read().version
+        self.assertNotEqual(version_at_15, version_at_16)
+        changed = override_settings(GRADING_SECOND_OPINION_HIGH_POINTS=16)
+
+        def reply_and_change_the_setting(**kwargs):
+            changed.enable()
+            return _reply(_evaluations([1]), MAIN)
+
+        with override_settings(GRADING_SECOND_OPINION_HIGH_POINTS=15):
+            with patch.object(
+                AIProcessor,
+                "execute_graded_task",
+                side_effect=reply_and_change_the_setting,
+            ) as first:
+                try:
+                    run = self.grade()
+                finally:
+                    changed.disable()
+            self.assertEqual(first.call_count, 1)
+            # The label: the version of the reading the run started with.
+            self.assertEqual(run.label()["grading_config_version"], version_at_15)
+            # The store key: an identical paper under the starting setting
+            # finds the saved answer.
+            with patch.object(AIProcessor, "execute_graded_task") as again:
+                reused = self.grade()
+            self.assertEqual(again.call_count, 0)
+            self.assertEqual(reused.audit_models()["models_reused"], [MAIN])
+        # And it was not filed under the setting it changed to.
+        with override_settings(GRADING_SECOND_OPINION_HIGH_POINTS=16):
+            with patch.object(
+                AIProcessor,
+                "execute_graded_task",
+                return_value=_reply(_evaluations([1]), MAIN),
+            ) as under_the_new_setting:
+                self.grade()
+        self.assertEqual(under_the_new_setting.call_count, 1)
+
+
 #: Files that may read a grade-shaping setting live, and why.
 LIVE_READS_ALLOWED = {
     "ai_processor/grading_config.py": "the one place that takes the reading",

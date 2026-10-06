@@ -315,3 +315,66 @@ class TheAuditListsTest(_RunCase):
         self.assertEqual(len(served), 1)
         self.assertNotIn("@", served[0])
         self.assertIn("vendor", served[0])
+
+
+class ALongModelNameTest(SimpleTestCase):
+    """A provider's model name is not ours to bound. It is classified by
+    its exact text BEFORE anything is cut, so a long backup name can never
+    become a quiet "no"."""
+
+    def run_with(self, main, backups):
+        with patch.object(services, "MAIN_MODEL", main):
+            with patch.object(services, "GRADING_FALLBACK_MODELS", backups):
+                return GradingRun.start()
+
+    def test_a_backup_name_longer_than_an_audit_item_is_still_yes(self):
+        backup = "backup/" + "b" * 143  # 150 characters
+        run = self.run_with(MAIN, [backup])
+        run.keep_answers(backup, 1)
+        label = run.label()
+        self.assertEqual(label["grading_fallback_used"], grading_label.FALLBACK_YES)
+        self.assertEqual(label["grading_model"], backup)
+        served = run.audit_models()["models_served"]
+        self.assertEqual(len(served), 1)
+        self.assertLessEqual(len(served[0]), 64)
+        self.assertTrue(backup.startswith(served[0][:32]))
+
+    def test_a_backup_name_longer_than_the_column_is_still_yes(self):
+        backup = "backup/" + "b" * 293  # 300 characters
+        run = self.run_with(MAIN, [backup])
+        run.keep_answers(backup, 1)
+        label = run.label()
+        self.assertEqual(label["grading_fallback_used"], grading_label.FALLBACK_YES)
+        self.assertEqual(label["grading_model"], backup[:255])
+
+    def test_a_main_name_longer_than_the_column_is_no(self):
+        main = "main/" + "m" * 295  # 300 characters
+        run = self.run_with(main, [BACKUP])
+        run.keep_answers(main, 1)
+        label = run.label()
+        self.assertEqual(label["grading_fallback_used"], grading_label.FALLBACK_NO)
+        self.assertEqual(label["grading_model"], main[:255])
+
+    def test_a_name_that_only_differs_after_the_cut_is_not_taken_for_the_main_model(
+        self,
+    ):
+        """Two names with the same first 255 characters: one is the main
+        model, the other is on neither list. Classified by the cut text the
+        other would read "no"; by the exact text it is "unknown"."""
+        prefix = "vendor/" + "x" * 292
+        main, other = prefix + "A", prefix + "B"
+        run = self.run_with(main, [BACKUP])
+        run.keep_answers(other, 1)
+        self.assertEqual(
+            run.label()["grading_fallback_used"], grading_label.FALLBACK_UNKNOWN
+        )
+
+    def test_a_name_that_only_differs_after_the_cut_is_not_taken_for_a_backup(self):
+        prefix = "vendor/" + "x" * 292
+        backup, other = prefix + "A", prefix + "B"
+        run = self.run_with(MAIN, [backup])
+        run.keep_answers(MAIN, 1)
+        run.keep_answers(other, 1)
+        self.assertEqual(
+            run.label()["grading_fallback_used"], grading_label.FALLBACK_UNKNOWN
+        )

@@ -53,6 +53,46 @@ mapping the tests to the SM's rulings: no test of the first commit showed that a
 inside the AI's own reply cannot reach the label. Expected to be in error today, like its
 neighbours. So: 91 tests, 82 expected to fail, 9 to pass; `tests_grading_run_pipeline` has 21.
 
+### The SM's additions: a third tests-only commit, before any code
+
+The SM approved the mapping of these tests to its rulings on condition of these additions, and
+did not accept two things I had left out (the two real entry points; running the formatting
+job). All of it is tests only.
+
+New module `students/tests_grading_label_routes.py`, 10 tests:
+- **The background task** (`grade_engine_async`, run eagerly) and **the immediate route** (the
+  HTTP grade route): each reads the STORED audit entry and the six columns from the database and
+  checks they agree. The audit entry is emitted by those two callers, not by `grade_engine`.
+- **An audit failure** does not fail the grade, and the label is on the row.
+- **A re-grade that fails** (a provider failure; a cancel at the final save) leaves the first
+  score with the first label. **A re-grade that succeeds** replaces the whole label (backup
+  "yes" then all main gives "no"; AI then fixed-rule gives "deterministic" and
+  "not_applicable").
+- **Created and graded on the same in-memory instance.**
+- **The formatting job, run for real** with its AI call replaced: a score and a label saved
+  while that call is in flight are not written back over. The code-reading test stays beside it.
+
+Added to the earlier modules, 7 tests:
+- `tests_grading_run_label.ALongModelNameTest` (5): a name longer than an audit item (64) and
+  longer than the column (255) is classified by its exact text before anything is cut; a name
+  that differs from the main model or a backup only after the cut is "unknown", never "no".
+- `tests_grading_label_written.TheBackupMeasurementTest.test_a_long_backup_name_is_still_a_one_in_the_rate`.
+- `tests_grading_run_pipeline.TheStartOfRunReadingIsEverywhereTest` (1): a setting changes while
+  the AI is answering; the label's settings version, the lookup key and the store key all show
+  the reading the run started with.
+
+### Expected at this commit, re-written before any run
+
+**108 tests in five modules; 99 expected to fail or be in error, 9 to pass.** The 9 expected to
+pass are the same nine named above. All 17 added tests are expected to fail: the route and
+re-grade tests because the stand-in for the grading service is not yet handed a run; the
+formatting job's because it saves the whole row today; the others because the run has no label
+yet.
+
+By module: `tests_grading_run_label` 42, all fail; `tests_grading_run_pipeline` 22, 20 fail;
+`tests_grading_label_written` 30, 27 fail; `tests_grading_label_routes` 10, all fail;
+`tests_grading_label_not_exposed` 4, none fail.
+
 ## Runs
 
 None yet.
