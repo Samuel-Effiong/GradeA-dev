@@ -1,0 +1,10 @@
+11:51:08 (a) start: loadavg 4.00 6.81 8.80 3/2640 1369466
+11:55:43 (a) end: loadavg 2.02 4.26 7.24 2/2591 1378302
+11:55:43 (a) exit=0
+11:55:43 (a) tests skipped for want of Chromium: 0
+11:55:43 (a) [stall test] slowest healthy render alone: 1.94 s; hung render's timeout: 7.75 s; limit for healthy renders beside it: 6.20 s
+11:55:43 (b) start: loadavg 2.02 4.26 7.24 2/2592 1378322
+11:57:46 (b) end: loadavg 2.97 4.04 6.80 4/2530 1384404
+11:57:46 (b) exit=0
+11:57:46 expected failing sets: every mutant's failing set is the expected one
+11:57:46 H-123 CHAIN END: (c) needs its own GRANT

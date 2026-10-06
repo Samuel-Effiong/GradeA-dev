@@ -1,0 +1,17 @@
+#!/bin/bash
+# Runs the granted (c) once (0b's GRANT 11:58:55 on 2026-10-06), detached
+# from the session. A refusal on load (exit 8) is not a run: tried again
+# every 20 s for 5 minutes, then given up. Usage: run_c.sh <tip-sha8>
+set -u
+D=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h123
+cd $D; end=$(( $(date +%s) + 300 ))
+while :; do
+  echo "$(date +%H:%M:%S) trying (c) at load $(cut -d' ' -f1 /proc/loadavg)" >> $D/c_wait.log
+  ./c_h123.sh "$1" > $D/c_h123.out 2>&1 < /dev/null; rc=$?
+  echo "$(date +%H:%M:%S) c_h123 exit=$rc" >> $D/c_wait.log
+  [ $rc -eq 8 ] || break
+  rm -f $D/c_assignments_p2_$1.load.txt
+  [ $(date +%s) -lt $end ] || { echo "$(date +%H:%M:%S) GAVE UP: load over 4 for 5 minutes" >> $D/c_wait.log; break; }
+  sleep 20
+done
+echo "$(date +%H:%M:%S) C END" >> $D/c_wait.log

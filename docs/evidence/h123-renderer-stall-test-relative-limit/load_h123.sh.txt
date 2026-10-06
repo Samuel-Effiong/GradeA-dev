@@ -1,0 +1,28 @@
+#!/bin/bash
+# H-123, the SM's extra run: the stall test alone on a machine made busy on
+# purpose, to see the relative limit at work. 12 niced busy loops (8 cores)
+# for the length of the run, each stopped by its own pid afterwards.
+# Either outcome is a result: OK with a stretched limit printed, or FAILED
+# with "too loaded to judge". Rule 18 file output. Usage: load_h123.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h123-renderer-stall-test-relative-limit
+OUT=$P/GAP-d5-runs/h123
+export EXEMPT_EMAIL_DOMAINS=
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+N=load_stall_test_$TIP
+[ ! -e $OUT/$N.log ] || { echo "$N exists already"; exit 9; }
+PIDS=()
+stop_load() { for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null || true; done; echo "$(date +%H:%M:%S) end: loadavg $(cat /proc/loadavg); busy loops stopped: ${#PIDS[@]}" >> $OUT/$N.load.txt; }
+trap stop_load EXIT
+echo "$(date +%H:%M:%S) before the load: loadavg $(cat /proc/loadavg)" > $OUT/$N.load.txt
+for i in $(seq 12); do nice -n 5 timeout 600 sh -c 'while :; do :; done' < /dev/null > /dev/null 2>&1 & PIDS+=($!); done
+sleep 60
+echo "$(date +%H:%M:%S) start, 12 busy loops for 60 s: loadavg $(cat /proc/loadavg)" >> $OUT/$N.load.txt
+rc=0; s=$(date +%s)
+systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 python manage.py test assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others --settings=settings_worktree --noinput --verbosity 2 > $OUT/$N.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/$N.log
+grep -F '[stall test]' $OUT/$N.log || true; grep -E '^(Ran |OK|FAILED)' $OUT/$N.log || true; grep -c "too loaded to judge" $OUT/$N.log || true
+echo "load run exit=$rc"
