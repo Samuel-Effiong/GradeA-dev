@@ -140,6 +140,9 @@ module), so the red run should show **25** failing: the 24 named above and this 
 - Step 1: three changed test modules, thirteen near modules, 26 guard modules: OK.
 - Step 2: 23 mutants; the failing test expected for each is `EXPECTED` in `mutate.py`.
 - Step 3, its own grant: `ai_processor` and `students`, the two apps that call this code.
+  **Replaced (SM ruling, 2026-10-06 17:04):** the grading tasks that call this code live in
+  `assignments` too, so the regression is one full run by 0b on the frozen tip, as for slice A.
+  Step 3 of the script was never run.
 
 By the SM's ruling no gate run for this slice was asked for before the Checker's verdict on
 slice A; that verdict came on 2026-10-06 and slice A was merged at 17:00.
@@ -152,4 +155,67 @@ one code constant (`AI_TEMPERATURE`) to the settings version.
 
 ## Runs
 
-None yet.
+### The gate at e7d4b376: GREEN
+
+One grant from 0b, 2026-10-06 17:15:49 to 17:21:43, step 1 of the committed gate script. One run,
+all serial, 6G scope, rules 12, 13, 16, 17 and 18. Not stopped, not repeated, nothing of the
+team's beside it. This was the first run of any test of this slice.
+
+| Step | Result | Log |
+|---|---|---|
+| 0 the red run: the slice's test module against the code as at 17890114 | exit 1 as expected: Ran 32 tests in 0.615s, FAILED (failures=28, errors=1). **Exactly the 25 tests named beforehand** fail, compared by name by program (none missing, none unexpected); the other 7 pass | `red_run_code_as_at_red_commit.txt.gz` |
+| 1a makemigrations --check | exit 0, No changes detected | `makemigrations_check.txt` |
+| 1 three changed modules, thirteen near modules, 26 guards | exit 0: Ran 606 tests in 173.473s, OK. No skips | `modules_and_guards.txt.gz` |
+| 2 the 23 mutants | 23 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log.txt`, `mutation_results.json`, `mutant_logs/` |
+
+- Load average 2.64 4.27 3.90 at the start, 4.27 4.88 4.41 at the end. No test here asserts on
+  the wall clock (0b read the one comparison in the benchmark module: a ratio of words).
+- Step 0's 28 failures and 1 error are per sub-test: one of the 25 tests has five sub-cases. The
+  one error is the test added with the code, which imports the new module.
+- `modules_and_guards.txt`: "Ran" is line 10922 and "OK" line 10924 of 10925.
+- 26 logs are gzipped, byte-exact, because a commit hook would alter them (trailing whitespace
+  or a blank last line); each one's sha256, taken before gzipping, is in
+  `gzipped_logs_sha256.txt`. `console.txt.gz` is the gate script's own output.
+- After the run the source was as committed and the mutation database was dropped.
+- Pattern check of the new files, by program, values never printed: no URL with a password
+  part. Eighteen NAME=value matches, all in tracebacks of two files (the red run and mutant
+  T1): the names are `token_count`, `node_tokens`, `single_pass_mode` and a token-budget
+  constant, and each "value" is code text (letters, dots, brackets, one number). None is a
+  credential.
+
+How each mutant was judged: KILLED needs a non-zero exit, the inner run's own "Ran" line, no
+test module that failed to load, and the expected test among the failing ones. All 23 inner runs
+exited 1 with "Ran 73 tests"; none of the 23 logs holds a load failure. The expected names were
+in the runner since 2401d461, before any run.
+
+| Mutant | What is broken | Result | Expected test, found among the failing |
+|---|---|---|---|
+| K1 | the teacher's extra instructions are left out of the key | KILLED, Ran 73 tests | `test_edited_teacher_instructions_are_a_fresh_grade` |
+| K2 | the assignment's title is left out of the key | KILLED, Ran 73 tests | `test_an_edited_assignment_title_is_a_fresh_grade` |
+| K3 | the assignment's instructions are left out of the key | KILLED, Ran 73 tests | `test_edited_assignment_instructions_are_a_fresh_grade` |
+| K4 | only the question's text is in the key, not the whole question | KILLED, Ran 73 tests | `test_a_changed_additional_note_on_the_question_is_a_fresh_grade` |
+| K5 | the prompt version is left out of the key | KILLED, Ran 73 tests | `test_a_changed_grading_prompt_is_a_fresh_grade` |
+| K6 | the settings version is left out of the key | KILLED, Ran 73 tests | `test_a_changed_grading_setting_is_a_fresh_grade` |
+| K7 | the assignment is left out of the key | KILLED, Ran 73 tests | `test_another_assignment_with_the_same_question_is_a_fresh_grade` |
+| K8 | the answer is left out of the key | KILLED, Ran 73 tests | `test_miss_on_different_answer` |
+| K9 | the release is put into the key | KILLED, Ran 73 tests | `test_a_new_release_still_reuses_the_saved_answer` |
+| K10 | the key takes the teacher's raw text, not the text as spliced | KILLED, Ran 73 tests | `test_teacher_instructions_that_are_switched_off_do_not_count` |
+| K11 | the keys stay at version one | KILLED, Ran 73 tests | `test_the_keys_are_version_two` |
+| R1 | the store takes a fresh reading of the settings | KILLED, Ran 73 tests | `test_a_setting_changed_during_the_call_does_not_split_lookup_and_store` |
+| R2 | each attempt of the retry loop takes its own reading | KILLED, Ran 73 tests | `test_a_retried_run_still_reads_them_once` |
+| R3 | the pipeline ignores the reading it is given | KILLED, Ran 73 tests | `test_the_settings_are_read_exactly_once_for_a_run` |
+| S1 | the splice reads the live switch, not the run's reading | KILLED, Ran 73 tests | `test_a_switch_flipped_after_the_run_started_is_not_seen` |
+| E1 | anything that is a dictionary is taken for an envelope | KILLED, Ran 73 tests | `test_an_entry_that_is_not_an_envelope_is_a_miss` |
+| E2 | a reused answer keeps the marker inside its evaluation | KILLED, Ran 73 tests | `test_a_reused_answer_is_marked_by_our_code_not_by_its_content` |
+| E3 | the envelope names the intended model, not the one that answered | KILLED, Ran 73 tests | `test_the_model_that_answered_is_stored_beside_the_evaluation` |
+| E4 | a reply that names no model is stored as "llm" | KILLED, Ran 73 tests | `test_a_reply_that_names_no_model_is_stored_with_none` |
+| B1 | a graded_by in the AI's own reply is kept | KILLED, Ran 73 tests | `test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered` |
+| B2 | a from_cache in the AI's own reply is kept | KILLED, Ran 73 tests | `test_a_from_cache_in_the_reply_is_dropped_and_the_answer_is_stored` |
+| T1 | the provider call uses a literal temperature again | KILLED, Ran 73 tests | `test_the_call_that_leaves_the_app_uses_the_constant` |
+| T2 | the temperature is left out of the settings version | KILLED, Ran 73 tests | `test_it_is_in_the_settings_version` |
+
+### Still owed
+
+The regression: one full run by 0b on the frozen tip (SM ruling). By the same ruling it stands as
+Gate 10 for release 1 (slices A and B) if the merged epic tree equals this slice's tree. Its
+result is added here by a later, evidence-only commit.
