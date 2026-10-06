@@ -1,18 +1,19 @@
 # H-124: the no-Playwright-at-import rule follows other names, methods and getattr
 
-**Author:** d5. **Branch:** `task/h124-no-playwright-rule-misses`, off
-`task/beta-batch-8` `5fc8a456`. **Verifier:** v2. Test-only: one guard
+**Author:** d5. **Branch:** `task/h124-no-playwright-rule-misses`, begun on
+`task/beta-batch-8` `5fc8a456`, now on `task/beta-batch-9` `9fb6d4fe`
+(H-110 and H-123 merged). For batch 9. **Verifier:** v2. Test-only: one guard
 module, `AutoGrader/tests_no_playwright_at_import.py`, and a mutation
 runner. No production code, no migration, no settings change.
 
 Source: v2's record for H-118, note 1 (the rule's four misses), my
 reading for this row, and v2's two pre-reads of this branch.
 
-**State of the gates at this commit:** (r), (a) and (b) have run on the
-code tip `7134815d`, all as predicted. **(c), the owning-app run, has NOT
-run.** It is held, by agreement with 0b and the SM's ruling of
-2026-10-06, until this branch is base-updated onto the batch 9 tip that
-holds H-110 and H-123; it then runs once.
+**State of the gates at this commit:** all have run. (r), (a) and (b) ran
+on the code tip `7134815d`, all as predicted. The branch was then
+base-updated onto the batch 9 tip (`b03f0569`; the guard module is the
+same blob, `1b466b7c`, before and after), and **(c), the owning-app run,
+ran once there: green.**
 
 **Two rounds.** The gates first ran on `860541a4` (evidence commit
 `c9ae46b3`). v2 then read that tip before any hand-over and found that
@@ -138,6 +139,8 @@ is stale for this tip** (rule 17 addendum) and is not relied on.
 | `4e22fda5` | Red tests for v2's pre-read points, and the pinned limits and false alarms |
 | `0dffc395` | The rule: points 6 and 7 |
 | `7134815d` | The runner gains N15 to N19. The second round of gates ran on this tip |
+| `b41de114` | Evidence of the second round (docs only) |
+| `b03f0569` | Base update onto `task/beta-batch-9` `9fb6d4fe` (H-110, H-123; no conflict; the guard module untouched). (c) ran on this tip |
 
 ## Gates, second round (0b's GRANT 11:33:01 WAT on 2026-10-06, RELEASE 11:47)
 One chain, `chain2.sh 7134815d 4e22fda5`, serial, 6G cap, every run's
@@ -150,8 +153,19 @@ recorded, and no test failed on time.
 | (r) the second red commit `4e22fda5`, the guard module, in a disposable worktree | Ran 22 tests in 16.493s, FAILED (failures=8), exit=1 | 10.27 / 11.67 |
 | (a) the guard module and the repo-wide guard list, 22 labels | Ran 272 tests in 311.842s, OK, exit=0 | 11.67 / 9.84 |
 | (b) 22 mutants, each against the guard module | baseline Ran 22 tests in 8.771s, OK; 22 of 22 KILLED; runner exit=0 | 9.84 / 6.03 |
-| (c) the owning app, `AutoGrader`, `--parallel 2` | **not run: held for the batch 9 base** | |
+| (c) the owning app, `AutoGrader`, `--parallel 2`, watchdog, on `b03f0569` | Ran 573 tests in 327.581s, OK (skipped=2), exit=0; stalled=0 | 3.89 / 2.81 |
 
+- **(c):** 0b's GRANT 13:03:53, on the batch 9 base so that it runs once.
+  A waiter read the load every 20 s (`c_wait.log`) and started the run at
+  13:10:36, the first reading at 4.00 or under; it ended at 13:16:48. No
+  test skipped for want of Chromium. The guard's two tree-wide tests pass
+  in it: the scan now reads 386 test modules (H-110's two joined).
+- **The laptop was suspended from 13:26:28 to 13:59:07** (0b, from the
+  journal). (c) had ended ten minutes before, so the run is not touched
+  by it; this evidence was committed after the wake.
+- **The battery is not repeated after the base update:** the merge did
+  not touch the guard module (blob `1b466b7c` at `7134815d`, `b41de114`
+  and `b03f0569`), and every anchor is still found exactly once.
 - **(r):** the 8 failures are the predicted red set, by test and sample
   (`expected_repro_4e22fda5.txt`): both samples of each of the four new
   "follows" tests, and nothing else.
@@ -230,9 +244,9 @@ first set of tests. Its (a) and (b) are superseded by the second round.
   first look let each through.
 - **Anchors:** each of the 17 anchors occurs once in the module and each
   mutant still parses.
-- **The tree:** the scan at the tip reads 384 test modules and names
-  none (on this branch's base, `5fc8a456`; H-110's two new test modules
-  join on the batch 9 base, and (c) will run the scan there).
+- **The tree:** the scan read 384 test modules on the first base and
+  reads 386 on the batch 9 base (H-110's two joined); it names none on
+  either. (c) ran it as a test on the batch 9 base.
 - **v2's samples:** v2 called the rule from the git blobs on 20 and then
   32 samples of its own, predictions written first; all as predicted.
 
@@ -252,4 +266,9 @@ names contain "pass" or "key"; all are code (`prefilter_passes=`,
 - `chain.status`: times and load of both rounds.
 - Scripts as run: `chain2.sh.txt` and `expected_kills_2.py.txt` (second
   round), `chain.sh.txt` and `expected_kills.py.txt` (first round);
-  `c_h124.sh.txt` is the held (c).
+  `c_h124.sh.txt` is (c), with `iso_file.sh.txt` and its starter
+  `wait_c.sh.txt`.
+- (c): `c_autograder_p2_b03f0569.raw.log.gz` (the evidence) with its
+  stamped copy `c_autograder_p2_b03f0569.log.gz` (a convenience),
+  `c_autograder_p2_b03f0569.load.txt`, `iso.status` (its result line) and
+  `c_wait.log` (the load readings before the start).
