@@ -26,7 +26,7 @@ from rest_framework import status
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.final_grade import final_grade_from
-from classrooms.models import Course, StudentCourse
+from classrooms.models import Course, EnrollmentStatusType, StudentCourse
 from classrooms.serializers import StudentCourseSerializer
 from classrooms.services import enroll_student_by_email
 from classrooms.signals import compute_final_grade
@@ -37,6 +37,12 @@ from students.models import StudentSubmission
 class StudentFinalGradeBase(FinalGradeZeroScoreBase):
     def setUp(self):
         super().setUp()
+        # The base enrols by e-mail, which leaves the student PENDING. The
+        # enrolment routes serve a pending student too, but the usual
+        # reader is an enrolled one.
+        StudentCourse.objects.filter(student=self.student, course=self.course).update(
+            enrollment_status=EnrollmentStatusType.ENROLLED
+        )
         self.first, self.second, self.third = (
             self.submission,
             self.ungraded[0],
