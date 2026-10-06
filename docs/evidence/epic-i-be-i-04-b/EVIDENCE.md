@@ -1,7 +1,9 @@
 # BE-I-04 slice B: when a saved AI answer may be reused
 
-Author: the Next-stage Builder, 2026-10-06. Branch `task/epic-i-be-i-04-b`, off slice A's frozen
-tip 58326e45 (itself off `phase2/epic-a` 9a581258); a base update onto A's merge follows.
+Author: the Next-stage Builder, 2026-10-06. Branch `task/epic-i-be-i-04-b`, first off slice A's
+frozen tip 58326e45, then on `phase2/epic-a` cfe55a0f, which holds slice A as merged (base update
+9827f87a, a clean merge; against cfe55a0f the branch differs outside this folder in seven files,
+all under `ai_processor/`).
 Phase 2 line only. Verifier: the Next Stage Checker, independent.
 Design: `~/Documents/Projects/GAP-planning/BE-I-04-design-note.md`, with the SM's rulings.
 
@@ -135,12 +137,18 @@ module), so the red run should show **25** failing: the 24 named above and this 
 - Step 0, the red run (the test module against the code as at 17890114): non-zero exit, a "Ran"
   line, 32 tests, the 25 failing as above and the 7 passing as above.
 - Step 1a: no model or migration is changed; makemigrations clean.
-- Step 1: three changed test modules, twelve near modules, 26 guard modules: OK.
+- Step 1: three changed test modules, thirteen near modules, 26 guard modules: OK.
 - Step 2: 23 mutants; the failing test expected for each is `EXPECTED` in `mutate.py`.
 - Step 3, its own grant: `ai_processor` and `students`, the two apps that call this code.
 
-By the SM's ruling no gate run for this slice is asked for before the Checker's verdict on
-slice A.
+By the SM's ruling no gate run for this slice was asked for before the Checker's verdict on
+slice A; that verdict came on 2026-10-06 and slice A was merged at 17:00.
+
+The gate script is committed here as `run_be_i_04_b_gate.sh.txt`, a copy of
+`~/Documents/Projects/GAP-builder-scripts/run_be_i_04_b_gate.sh` as it stands for the run.
+
+This slice changes no model field, no migration and no line of `AutoGrader/settings.py`. It adds
+one code constant (`AI_TEMPERATURE`) to the settings version.
 
 ## Runs
 

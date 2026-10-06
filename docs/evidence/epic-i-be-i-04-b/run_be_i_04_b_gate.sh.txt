@@ -1,0 +1,72 @@
+#!/bin/bash
+# BE-I-04 slice B gate. Usage: run_be_i_04_b_gate.sh <tip> <step>
+# STEP=1 (6G, one grant): 0 the red run (the slice's tests against the code as at the red-test commit $RED; own DB),
+#   1a makemigrations --check, 1 changed modules + every test module that reaches the saved-answer code + guards,
+#   2 the 23 mutants (rule 17; own DB).
+# STEP=3 (12G, own grant): ONE owning-app regression, ai_processor and students, serial, under the machine lock.
+# A trap on EXIT restores the tree. Rules 12/13/16. RULE 18: every run writes stdout+stderr straight to a file,
+# stdin from /dev/null; nothing is piped.
+set -u
+TIP=$1; STEP=${2:-1}; RED=17890114
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-i-be-i-04-b || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/epic-i-be-i-04-b
+HOLD=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/be-i-04-b/held_grading_run.py
+NEWFILE=ai_processor/grading_run.py
+INH='systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block'
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+# The code files the slice changes after the red commit; step 0 takes them back to $RED, the mutants rewrite three.
+CODE="ai_processor/services.py ai_processor/grading_cache.py ai_processor/grading_config.py ai_processor/tests_grading_cache.py ai_processor/tests_grading_config.py"
+restore_tree() { [ -f "$HOLD" ] && mv "$HOLD" "$NEWFILE"; git checkout HEAD -- $CODE $NEWFILE 2>/dev/null; find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+V2=ai_processor.tests_grading_cache_key_v2
+
+if [ "$STEP" = 3 ]; then
+  for v in $(env | grep -oE '^(RACE_COST|AUDIT_BENCH)[A-Z_]*'); do unset "$v"; done
+  unset ENABLE_GRADING_BENCHMARK
+  CAP="$INH systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0"
+  echo "=== 3. regression: ai_processor students at $(git rev-parse --short=8 HEAD) $(date +%T)"; echo "load at start: $(cat /proc/loadavg)"
+  eval "$CAP nice -n 10 flock $HOME/.machine-fullsuite.lock timeout -k 60 3600 python manage.py test --noinput --verbosity 2 --settings=settings_worktree ai_processor students" < /dev/null > $E/regression.txt 2>&1
+  echo "exit=$? $(date +%T)"; echo "load at end: $(cat /proc/loadavg)"; summary $E/regression.txt 15
+  exit 0
+fi
+[ "$STEP" = 1 ] || { echo "steps are 1 and 3"; exit 1; }
+CAP="$INH systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0"
+NEW="$V2 ai_processor.tests_grading_cache ai_processor.tests_grading_config"
+NEAR="ai_processor.tests_second_opinion_pipeline ai_processor.tests_second_opinion_selection ai_processor.tests_grading_pipeline ai_processor.tests_grading_completeness ai_processor.tests_grading_arithmetic ai_processor.tests_ai_call_trace ai_processor.tests_rubric_snapping ai_processor.tests_reason_before_score ai_processor.tests_objective_pipeline ai_processor.tests_grading_benchmark students.tests_grading_label_fields students.tests_grading_label_migration students.tests_s6d_provider_failure"
+GUARDS="AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_reason_codes AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_codederror_serialization billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension audit.tests_history_guard audit.tests_route_coverage audit.tests_sweep_beat_lock"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: $V2 against the code as at $RED (own DB) $(date +%T)"
+for f in $CODE; do git show ${RED}:$f > $f; done
+mv $NEWFILE $HOLD
+find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $V2" < /dev/null > $E/red_run_code_as_at_red_commit.txt 2>&1
+echo "red run exit=$? (non-zero expected)"
+mv $HOLD $NEWFILE; git checkout HEAD -- $CODE
+find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+summary $E/red_run_code_as_at_red_commit.txt 60
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1. changed modules + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEW $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 23 (own DB, rules 17 and 18) $(date +%T)"
+eval "MUT_SETTINGS=settings_worktree_mut $CAP nice -n 10 timeout -k 60 3000 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
