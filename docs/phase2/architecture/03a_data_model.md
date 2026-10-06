@@ -727,6 +727,28 @@ winner is recorded on `SubmissionGrading.strictness_source`.
 > existed, or not graded. As of slice A the columns exist and nothing writes
 > them; the label is written with the grade in a later slice of this stage.
 
+> **When a saved AI answer is reused (note added 2026-10-06, BE-I-04
+> slice B).** Not a table: the store is the cache
+> (`ai_processor/grading_cache.py`). A saved answer is reused only when
+> everything sent to the AI for that question matches: the whole question as
+> serialised into the prompt; the answer's text, its `answer_status` and its
+> `transcription_notes`; the assignment's title and instructions; the
+> teacher's extra instructions as spliced; the grading prompt's version and
+> the grading settings' version; and the intended model. **Stated limits.**
+> The match does not look at the other questions of the paper, the other
+> answers or the answer's place in a batch, which the AI also sees in the
+> same call. Nor does it look at the answer's `source_page`, its
+> `confidence` or its own copy of `question_text`, which are sent too: they
+> differ from student to student for the same text, so matching on them
+> would end all reuse. A question's image is matched by its address, not its
+> content: a new picture put at the same address is not seen. The release is
+> not part of the match, so a deploy
+> does not empty the store. Each stored value names the model that answered.
+> **A stated choice** (accepted by the SM 2026-10-06): for `answer_status`
+> and `transcription_notes`, a field that is missing, null, empty or only
+> whitespace counts as "nothing said" and matches as one; outer whitespace is
+> not compared.
+
 ### 4.5 `students.BackgroundProcessingTask`
 
 Becomes the per-item row of an `AIJob`.
