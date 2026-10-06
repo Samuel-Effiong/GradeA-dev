@@ -9,6 +9,9 @@ second opinion. Every route that shows a student their graded work goes
 through `student_safe_feedback`, and none returns the column itself;
 AutoGrader/tests_student_feedback_guard.py holds the repository to that.
 
+`grading_result_for_formatter` is what the feedback formatter (an AI call
+whose wording the student reads) is sent of the same result.
+
 No Django imports, so any app can use it without an import cycle.
 """
 
@@ -79,3 +82,18 @@ def student_safe_feedback(feedback):
             safe["recommendations"] = {"for_student": for_student}
 
     return safe
+
+
+def grading_result_for_formatter(grading):
+    """The saved grading result as the feedback formatter is sent it:
+    everything except the second-opinion block.
+
+    The formatter is an AI call that words the result for the student. The
+    second opinion is the second grader's marks and reasons and, when it
+    failed, the text of the failure; it is for the teacher's review queue,
+    and what the formatter is sent it can restate. A new dictionary: the
+    saved result is not changed. A value that is not a dictionary is
+    passed on as it is, as before."""
+    if not isinstance(grading, dict):
+        return grading
+    return {key: value for key, value in grading.items() if key != "second_opinion"}
