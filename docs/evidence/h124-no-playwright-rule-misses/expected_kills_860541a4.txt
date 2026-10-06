@@ -1,0 +1,18 @@
+N1: 2 failing, as expected
+N2: 5 failing, as expected
+N3: 2 failing, as expected
+N4: 6 failing, as expected
+N5: 1 failing, as expected
+N6: 1 failing, as expected
+N7: 1 failing, as expected
+N8: 3 failing, as expected
+N9: 1 failing, as expected
+N10: 1 failing, as expected
+N11: 1 failing, as expected
+N12: 4 failing, as expected
+N13: 1 failing, as expected
+N14: 1 failing, as expected
+G1: 8 failing, as expected
+G2: 6 failing, as expected
+G3: 2 failing, as expected
+every mutant's failing set is the expected one
