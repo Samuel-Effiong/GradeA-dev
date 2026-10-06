@@ -188,6 +188,17 @@ class WhatIsGivenUp(AnswerDocumentBase):
         self.assertNotEqual(renamed, submitted)
         self.assertEqual(graded, renamed)
 
+    def test_the_same_on_the_students_view_of_the_assignment(self):
+        submitted = self.on_the_assignment(self.student)
+
+        Assignment.objects.filter(pk=self.assignment.pk).update(title="Essay, revised")
+        renamed = self.on_the_assignment(self.student)
+        self.grade_by_ai(self.submission, 7)
+        graded = self.on_the_assignment(self.student)
+
+        self.assertNotEqual(renamed, submitted)
+        self.assertEqual(graded, renamed)
+
 
 class NothingElseChanges(AnswerDocumentBase):
     def setUp(self):
