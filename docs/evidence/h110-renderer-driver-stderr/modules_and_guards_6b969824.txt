@@ -1,0 +1,1588 @@
+Creating test database for alias 'default' ('test_h110_renderer_driver_stderr')...
+Found 437 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_downloaded_pdf_has_no_duplicated_letters_and_typeset_math (assignments.tests_download_pdf.DownloadPdfRealRenderTest.test_downloaded_pdf_has_no_duplicated_letters_and_typeset_math) ... Free trial plan not found: no trial activated for user a55faa6a-7056-464b-b462-749dcabfae06.
+Cannot activate automatic trial for user a55faa6a-7056-464b-b462-749dcabfae06 (validation): ValueError
+ok
+test_a_non_latin_title_still_produces_a_usable_filename (assignments.tests_download_pdf.DownloadPdfViewTest.test_a_non_latin_title_still_produces_a_usable_filename)
+`\w` is Unicode-aware, so a non-Latin title survives the ... Free trial plan not found: no trial activated for user 04514370-a9ce-410a-8235-1488cc13a35d.
+Cannot activate automatic trial for user 04514370-a9ce-410a-8235-1488cc13a35d (validation): ValueError
+ok
+test_a_title_of_only_punctuation_does_not_yield_a_bare_extension (assignments.tests_download_pdf.DownloadPdfViewTest.test_a_title_of_only_punctuation_does_not_yield_a_bare_extension) ... Free trial plan not found: no trial activated for user ba37565a-53d7-4627-82c7-c8158acee822.
+Cannot activate automatic trial for user ba37565a-53d7-4627-82c7-c8158acee822 (validation): ValueError
+ok
+test_an_ordinary_render_failure_is_still_a_500 (assignments.tests_download_pdf.DownloadPdfViewTest.test_an_ordinary_render_failure_is_still_a_500) ... Free trial plan not found: no trial activated for user 32b5632e-69b0-46f1-a20c-27e4c6546aee.
+Cannot activate automatic trial for user 32b5632e-69b0-46f1-a20c-27e4c6546aee (validation): ValueError
+PDF generation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1829, in download_pdf
+    pdf_bytes = get_or_render(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1832, in <lambda>
+    lambda: render_assignment_pdf(assignment, include_rubric),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+
+
+django.request ERROR 2026-10-05 23:10:27,686 log 1090295 130528963472320 [request_id=-] Internal Server Error: /api/v1/assignments/021856a2-2fa5-4af4-9220-6e420db4498c/download-pdf
+
+
+ok
+test_assignment_with_no_questions_returns_400_without_rendering (assignments.tests_download_pdf.DownloadPdfViewTest.test_assignment_with_no_questions_returns_400_without_rendering) ... Free trial plan not found: no trial activated for user afe736cc-e235-4e6c-a4c0-894e13a59354.
+Cannot activate automatic trial for user afe736cc-e235-4e6c-a4c0-894e13a59354 (validation): ValueError
+ok
+test_load_shedding_returns_503_with_retry_after (assignments.tests_download_pdf.DownloadPdfViewTest.test_load_shedding_returns_503_with_retry_after)
+Being shed means nothing was attempted because the process is at ... Free trial plan not found: no trial activated for user a2a509b4-cfb3-48b6-8247-feae2cc4b643.
+Cannot activate automatic trial for user a2a509b4-cfb3-48b6-8247-feae2cc4b643 (validation): ValueError
+PDF generation shed under load: at capacity
+
+
+django.request ERROR 2026-10-05 23:10:27,915 log 1090295 130528963472320 [request_id=-] Service Unavailable: /api/v1/assignments/4238e87c-8216-4ee2-82be-5ee91687f97f/download-pdf
+
+
+ok
+test_other_teacher_cannot_download_teacher_view (assignments.tests_download_pdf.DownloadPdfViewTest.test_other_teacher_cannot_download_teacher_view) ... Free trial plan not found: no trial activated for user 9307937f-67c5-4ba3-9f3a-5f69d41d66a3.
+Cannot activate automatic trial for user 9307937f-67c5-4ba3-9f3a-5f69d41d66a3 (validation): ValueError
+Free trial plan not found: no trial activated for user 256019ea-5a75-4869-9bc8-23b13afa3a2a.
+Cannot activate automatic trial for user 256019ea-5a75-4869-9bc8-23b13afa3a2a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+assignments.models.Assignment.DoesNotExist: Assignment matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1798, in download_pdf
+    assignment = self.get_object()
+                 ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Assignment matches the given query.
+ok
+test_renderer_failure_returns_500_with_friendly_message (assignments.tests_download_pdf.DownloadPdfViewTest.test_renderer_failure_returns_500_with_friendly_message) ... Free trial plan not found: no trial activated for user dc9f300a-a478-41d5-b8a3-a06f040c6dcb.
+Cannot activate automatic trial for user dc9f300a-a478-41d5-b8a3-a06f040c6dcb (validation): ValueError
+PDF generation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1829, in download_pdf
+    pdf_bytes = get_or_render(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1832, in <lambda>
+    lambda: render_assignment_pdf(assignment, include_rubric),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: PDF rendering failed: boom
+
+
+django.request ERROR 2026-10-05 23:10:28,156 log 1090295 130528963472320 [request_id=-] Internal Server Error: /api/v1/assignments/66c6f375-28da-454d-a7d0-37d86941d521/download-pdf
+
+
+ok
+test_response_filename_is_sanitised_from_title (assignments.tests_download_pdf.DownloadPdfViewTest.test_response_filename_is_sanitised_from_title) ... Free trial plan not found: no trial activated for user 2edc3f6a-c114-495a-8181-5751c31ad6b7.
+Cannot activate automatic trial for user 2edc3f6a-c114-495a-8181-5751c31ad6b7 (validation): ValueError
+ok
+test_student_can_download_published_student_view (assignments.tests_download_pdf.DownloadPdfViewTest.test_student_can_download_published_student_view) ... Free trial plan not found: no trial activated for user e83f835c-f495-4103-ab1b-6271415fdd4b.
+Cannot activate automatic trial for user e83f835c-f495-4103-ab1b-6271415fdd4b (validation): ValueError
+ok
+test_student_cannot_download_draft_assignment (assignments.tests_download_pdf.DownloadPdfViewTest.test_student_cannot_download_draft_assignment) ... Free trial plan not found: no trial activated for user 64f1f0fc-0ada-4e84-9b0a-216069db889d.
+Cannot activate automatic trial for user 64f1f0fc-0ada-4e84-9b0a-216069db889d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+assignments.models.Assignment.DoesNotExist: Assignment matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1798, in download_pdf
+    assignment = self.get_object()
+                 ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Assignment matches the given query.
+ok
+test_student_view_asks_for_the_rubric_free_document (assignments.tests_download_pdf.DownloadPdfViewTest.test_student_view_asks_for_the_rubric_free_document) ... Free trial plan not found: no trial activated for user 94f5f8c2-ed35-43b4-983a-f794761ee11e.
+Cannot activate automatic trial for user 94f5f8c2-ed35-43b4-983a-f794761ee11e (validation): ValueError
+ok
+test_teacher_can_download_teacher_view_of_own_assignment (assignments.tests_download_pdf.DownloadPdfViewTest.test_teacher_can_download_teacher_view_of_own_assignment) ... Free trial plan not found: no trial activated for user a066e2ac-5d16-4e7f-a8c5-920792ff2e14.
+Cannot activate automatic trial for user a066e2ac-5d16-4e7f-a8c5-920792ff2e14 (validation): ValueError
+ok
+test_the_filename_is_double_quoted_per_rfc_6266 (assignments.tests_download_pdf.DownloadPdfViewTest.test_the_filename_is_double_quoted_per_rfc_6266)
+The header used to interpolate Python's repr, which emits SINGLE ... Free trial plan not found: no trial activated for user 9faaf115-a800-4c66-8c1f-b03553c30e4e.
+Cannot activate automatic trial for user 9faaf115-a800-4c66-8c1f-b03553c30e4e (validation): ValueError
+ok
+test_the_view_asks_for_the_right_document (assignments.tests_download_pdf.DownloadPdfViewTest.test_the_view_asks_for_the_right_document)
+The view's job is only to decide *which* document to build; how it ... Free trial plan not found: no trial activated for user 6d449886-2b5a-46e1-9a5e-ab57fa0a4d14.
+Cannot activate automatic trial for user 6d449886-2b5a-46e1-9a5e-ab57fa0a4d14 (validation): ValueError
+ok
+test_title_course_teacher_and_instructions_are_escaped_in_the_rendered_html (assignments.tests_download_pdf.DownloadPdfViewTest.test_title_course_teacher_and_instructions_are_escaped_in_the_rendered_html)
+Regression guard for a real script-injection path that switching ... Free trial plan not found: no trial activated for user 65704f6a-a5b6-42a2-a1cf-b513b1db1b49.
+Cannot activate automatic trial for user 65704f6a-a5b6-42a2-a1cf-b513b1db1b49 (validation): ValueError
+ok
+test_only_the_teacher_document_carries_the_model_answer (assignments.tests_download_pdf.RenderAssignmentPdfDocumentTest.test_only_the_teacher_document_carries_the_model_answer) ... Free trial plan not found: no trial activated for user 54d43873-d9c3-40fa-9c05-4c0bf69367f3.
+Cannot activate automatic trial for user 54d43873-d9c3-40fa-9c05-4c0bf69367f3 (validation): ValueError
+ok
+test_passes_header_footer_templates_and_margins (assignments.tests_download_pdf.RenderAssignmentPdfDocumentTest.test_passes_header_footer_templates_and_margins) ... Free trial plan not found: no trial activated for user b0d4dfd5-6838-4931-9c9d-2cd37ce11990.
+Cannot activate automatic trial for user b0d4dfd5-6838-4931-9c9d-2cd37ce11990 (validation): ValueError
+ok
+test_refuses_before_building_anything_when_at_capacity (assignments.tests_download_pdf.RenderAssignmentPdfDocumentTest.test_refuses_before_building_anything_when_at_capacity)
+The capacity pre-check must happen before the document is ... Free trial plan not found: no trial activated for user 7d658fb2-252b-456a-bbba-3f7fd17bf183.
+Cannot activate automatic trial for user 7d658fb2-252b-456a-bbba-3f7fd17bf183 (validation): ValueError
+ok
+test_key_changes_when_the_assignment_is_edited (assignments.tests_pdf_cache.BuildCacheKeyTest.test_key_changes_when_the_assignment_is_edited) ... Free trial plan not found: no trial activated for user 70b1d841-6742-48b0-a7bf-f646fab38289.
+Cannot activate automatic trial for user 70b1d841-6742-48b0-a7bf-f646fab38289 (validation): ValueError
+ok
+test_key_includes_id_view_type_and_timestamp (assignments.tests_pdf_cache.BuildCacheKeyTest.test_key_includes_id_view_type_and_timestamp) ... Free trial plan not found: no trial activated for user 02bf45ab-9ebc-4203-ade5-0fb76a854c29.
+Cannot activate automatic trial for user 02bf45ab-9ebc-4203-ade5-0fb76a854c29 (validation): ValueError
+ok
+test_key_is_outside_every_wildcard_sweep_in_the_project (assignments.tests_pdf_cache.BuildCacheKeyTest.test_key_is_outside_every_wildcard_sweep_in_the_project)
+A rendered PDF must not be collateral damage of somebody else's ... Free trial plan not found: no trial activated for user 50deb490-9bf7-4242-9097-2c158ac9b0e3.
+Cannot activate automatic trial for user 50deb490-9bf7-4242-9097-2c158ac9b0e3 (validation): ValueError
+ok
+test_student_and_teacher_views_get_different_keys (assignments.tests_pdf_cache.BuildCacheKeyTest.test_student_and_teacher_views_get_different_keys)
+The teacher's PDF embeds rubrics the student's must never show - ... Free trial plan not found: no trial activated for user 246989b7-4ad5-4f1c-80d2-4ea1d74ee71e.
+Cannot activate automatic trial for user 246989b7-4ad5-4f1c-80d2-4ea1d74ee71e (validation): ValueError
+ok
+test_unsaved_assignment_gets_a_never_matching_key (assignments.tests_pdf_cache.BuildCacheKeyTest.test_unsaved_assignment_gets_a_never_matching_key) ... Free trial plan not found: no trial activated for user edb28bad-ab2f-4173-aeea-2a295640b8b5.
+Cannot activate automatic trial for user edb28bad-ab2f-4173-aeea-2a295640b8b5 (validation): ValueError
+ok
+test_repairing_option_letters_moves_the_cache_key (assignments.tests_pdf_cache.BulkWriteInvalidationTest.test_repairing_option_letters_moves_the_cache_key) ... Free trial plan not found: no trial activated for user 5d5f3835-dff2-4226-9ad7-0e5d178663aa.
+Cannot activate automatic trial for user 5d5f3835-dff2-4226-9ad7-0e5d178663aa (validation): ValueError
+ok
+test_repairing_titles_moves_the_cache_key (assignments.tests_pdf_cache.BulkWriteInvalidationTest.test_repairing_titles_moves_the_cache_key) ... Free trial plan not found: no trial activated for user fb17240a-9d68-4648-9fd2-12bbb1fb4753.
+Cannot activate automatic trial for user fb17240a-9d68-4648-9fd2-12bbb1fb4753 (validation): ValueError
+ok
+test_a_cache_hit_is_served_even_while_the_renderer_is_shedding (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_a_cache_hit_is_served_even_while_the_renderer_is_shedding)
+Load shedding must only refuse work the process would actually have ... Free trial plan not found: no trial activated for user 2dedda94-c143-42ea-9c4a-fdcc2eec5d3b.
+Cannot activate automatic trial for user 2dedda94-c143-42ea-9c4a-fdcc2eec5d3b (validation): ValueError
+ok
+test_a_cache_hit_still_enforces_permissions (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_a_cache_hit_still_enforces_permissions)
+The cache lookup sits after the permission checks, so warming an ... Free trial plan not found: no trial activated for user 3a04b891-8034-4c60-a6fc-b5d7621557cf.
+Cannot activate automatic trial for user 3a04b891-8034-4c60-a6fc-b5d7621557cf (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1814, in download_pdf
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only the course teacher can download the teacher version.
+ok
+test_a_failed_render_is_never_cached (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_a_failed_render_is_never_cached) ... Free trial plan not found: no trial activated for user dccbc431-723b-4111-a2ab-63beaf2a8957.
+Cannot activate automatic trial for user dccbc431-723b-4111-a2ab-63beaf2a8957 (validation): ValueError
+PDF generation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1829, in download_pdf
+    pdf_bytes = get_or_render(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/views.py", line 1832, in <lambda>
+    lambda: render_assignment_pdf(assignment, include_rubric),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+
+
+django.request ERROR 2026-10-05 23:10:30,227 log 1090295 130528963472320 [request_id=-] Internal Server Error: /api/v1/assignments/eb20cae3-fa11-48e9-b051-58a406afb37d/download-pdf
+
+
+ok
+test_an_uncached_download_is_shed_with_503_and_retry_after (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_an_uncached_download_is_shed_with_503_and_retry_after)
+The other half of the same rule, through the real view: a cold ... Free trial plan not found: no trial activated for user ebe391c0-39a1-4378-94d0-fb75ce66a3de.
+Cannot activate automatic trial for user ebe391c0-39a1-4378-94d0-fb75ce66a3de (validation): ValueError
+PDF generation shed under load: at capacity
+
+
+django.request ERROR 2026-10-05 23:10:30,345 log 1090295 130528963472320 [request_id=-] Service Unavailable: /api/v1/assignments/d006db0e-c126-424b-86cc-9347c948e0a4/download-pdf
+
+
+ok
+test_cache_backend_failure_still_serves_a_pdf (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_cache_backend_failure_still_serves_a_pdf) ... Free trial plan not found: no trial activated for user 8f67e457-3d35-4181-822d-a560684b3990.
+Cannot activate automatic trial for user 8f67e457-3d35-4181-822d-a560684b3990 (validation): ValueError
+[PDF] cache read failed - rendering this assignment fresh.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 114, in get_cached_pdf
+    return cache.get(build_cache_key(assignment, view_type))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+[PDF] cache write failed - continuing without caching this render.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 138, in store_pdf
+    cache.set(build_cache_key(assignment, view_type), pdf_bytes, timeout=_ttl())
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_editing_the_assignment_forces_a_fresh_render (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_editing_the_assignment_forces_a_fresh_render) ... Free trial plan not found: no trial activated for user 6598afeb-a37e-4b10-8b4e-4f4ea16a172f.
+Cannot activate automatic trial for user 6598afeb-a37e-4b10-8b4e-4f4ea16a172f (validation): ValueError
+ok
+test_second_download_is_served_from_cache_without_rendering (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_second_download_is_served_from_cache_without_rendering) ... Free trial plan not found: no trial activated for user 2880c352-5341-4849-9fbb-443475d30ff7.
+Cannot activate automatic trial for user 2880c352-5341-4849-9fbb-443475d30ff7 (validation): ValueError
+ok
+test_student_and_teacher_views_are_cached_independently (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_student_and_teacher_views_are_cached_independently) ... Free trial plan not found: no trial activated for user 4418c529-06e7-43c8-a4e5-40f285d71bea.
+Cannot activate automatic trial for user 4418c529-06e7-43c8-a4e5-40f285d71bea (validation): ValueError
+ok
+test_a_cache_backend_failure_does_not_block_deleting_an_assignment (assignments.tests_pdf_cache.InvalidationScopeTest.test_a_cache_backend_failure_does_not_block_deleting_an_assignment) ... Free trial plan not found: no trial activated for user 78f1a97a-1b03-432a-84dc-5108155e5011.
+Cannot activate automatic trial for user 78f1a97a-1b03-432a-84dc-5108155e5011 (validation): ValueError
+[PDF] failed to invalidate cached PDFs for assignment e5ee97a4-3bb0-4628-9224-b5c05e2d39f6; they are unreachable under the new key anyway and will age out.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 175, in invalidate_assignment_pdfs
+    cache.delete_pattern(f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment_id}:*")
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_a_cache_backend_failure_during_invalidation_is_swallowed (assignments.tests_pdf_cache.InvalidationScopeTest.test_a_cache_backend_failure_during_invalidation_is_swallowed)
+Invalidation is an optimisation, not a correctness requirement - ... Free trial plan not found: no trial activated for user f3b3f188-231d-45a2-8c9f-910148d32b22.
+Cannot activate automatic trial for user f3b3f188-231d-45a2-8c9f-910148d32b22 (validation): ValueError
+[PDF] failed to invalidate cached PDFs for assignment 30d793b9-ed47-45aa-9d7c-c2c8fd61e3b1; they are unreachable under the new key anyway and will age out.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 175, in invalidate_assignment_pdfs
+    cache.delete_pattern(f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment_id}:*")
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_a_whole_course_of_saves_does_not_cool_one_warm_assignment (assignments.tests_pdf_cache.InvalidationScopeTest.test_a_whole_course_of_saves_does_not_cool_one_warm_assignment)
+The shape that made the old sweep so costly: a teacher working ... Free trial plan not found: no trial activated for user 9b9414f6-8c21-454d-9375-633fd22529a4.
+Cannot activate automatic trial for user 9b9414f6-8c21-454d-9375-633fd22529a4 (validation): ValueError
+ok
+test_deleting_an_assignment_removes_its_cached_teacher_pdf (assignments.tests_pdf_cache.InvalidationScopeTest.test_deleting_an_assignment_removes_its_cached_teacher_pdf)
+The teacher view embeds rubrics and model answers. Those must not ... Free trial plan not found: no trial activated for user 9f531f24-dd64-48a1-9b75-2a78cef67b72.
+Cannot activate automatic trial for user 9f531f24-dd64-48a1-9b75-2a78cef67b72 (validation): ValueError
+ok
+test_invalidating_one_assignment_never_touches_another (assignments.tests_pdf_cache.InvalidationScopeTest.test_invalidating_one_assignment_never_touches_another) ... Free trial plan not found: no trial activated for user 2cfd734d-5bfd-4652-be62-e52317653c60.
+Cannot activate automatic trial for user 2cfd734d-5bfd-4652-be62-e52317653c60 (validation): ValueError
+ok
+test_saving_an_unrelated_assignment_leaves_this_ones_pdf_cached (assignments.tests_pdf_cache.InvalidationScopeTest.test_saving_an_unrelated_assignment_leaves_this_ones_pdf_cached) ... Free trial plan not found: no trial activated for user 7aa830f5-4bad-4ec2-b5e7-630078587020.
+Cannot activate automatic trial for user 7aa830f5-4bad-4ec2-b5e7-630078587020 (validation): ValueError
+ok
+test_saving_this_assignment_drops_its_own_superseded_renders (assignments.tests_pdf_cache.InvalidationScopeTest.test_saving_this_assignment_drops_its_own_superseded_renders)
+The key already carries updated_at, so a superseded render is ... Free trial plan not found: no trial activated for user f1d13dd6-fd76-4d7f-8eef-109dd63eb127.
+Cannot activate automatic trial for user f1d13dd6-fd76-4d7f-8eef-109dd63eb127 (validation): ValueError
+ok
+test_disabled_cache_never_stores_or_returns (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_disabled_cache_never_stores_or_returns) ... Free trial plan not found: no trial activated for user 2e9a4094-cfae-46ad-b540-3c96cb8ec424.
+Cannot activate automatic trial for user 2e9a4094-cfae-46ad-b540-3c96cb8ec424 (validation): ValueError
+ok
+test_get_returns_none_on_a_miss (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_get_returns_none_on_a_miss) ... Free trial plan not found: no trial activated for user 5a23f5fb-39cb-4573-b62e-96d156b37ac4.
+Cannot activate automatic trial for user 5a23f5fb-39cb-4573-b62e-96d156b37ac4 (validation): ValueError
+ok
+test_oversized_pdf_is_not_cached (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_oversized_pdf_is_not_cached)
+An image-heavy assignment can render to megabytes; caching those ... Free trial plan not found: no trial activated for user 7f2f792a-8d21-4d66-90ec-a955740b727d.
+Cannot activate automatic trial for user 7f2f792a-8d21-4d66-90ec-a955740b727d (validation): ValueError
+ok
+test_pdf_at_exactly_the_cap_is_still_cached (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_pdf_at_exactly_the_cap_is_still_cached) ... Free trial plan not found: no trial activated for user b1ecb930-2f3c-48c8-bced-59262a9c1c29.
+Cannot activate automatic trial for user b1ecb930-2f3c-48c8-bced-59262a9c1c29 (validation): ValueError
+ok
+test_read_failure_degrades_to_a_miss_rather_than_raising (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_read_failure_degrades_to_a_miss_rather_than_raising) ... Free trial plan not found: no trial activated for user c21f0e06-0c97-49ba-a3ac-6247cc4bc3c5.
+Cannot activate automatic trial for user c21f0e06-0c97-49ba-a3ac-6247cc4bc3c5 (validation): ValueError
+[PDF] cache read failed - rendering this assignment fresh.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 114, in get_cached_pdf
+    return cache.get(build_cache_key(assignment, view_type))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_store_then_get_round_trips_the_bytes (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_store_then_get_round_trips_the_bytes) ... Free trial plan not found: no trial activated for user db655bfa-6ec1-4f85-ac78-df603d5059c4.
+Cannot activate automatic trial for user db655bfa-6ec1-4f85-ac78-df603d5059c4 (validation): ValueError
+ok
+test_write_failure_is_swallowed_rather_than_raising (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_write_failure_is_swallowed_rather_than_raising) ... Free trial plan not found: no trial activated for user fab4bfb9-b1e4-4ca3-9a88-9d688e792602.
+Cannot activate automatic trial for user fab4bfb9-b1e4-4ca3-9a88-9d688e792602 (validation): ValueError
+[PDF] cache write failed - continuing without caching this render.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 138, in store_pdf
+    cache.set(build_cache_key(assignment, view_type), pdf_bytes, timeout=_ttl())
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_zero_disables_the_size_cap (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_zero_disables_the_size_cap) ... Free trial plan not found: no trial activated for user efe945d9-bcc5-4e90-b637-a5c2f9c27ea7.
+Cannot activate automatic trial for user efe945d9-bcc5-4e90-b637-a5c2f9c27ea7 (validation): ValueError
+ok
+test_a_failed_flight_is_cleaned_up_so_the_next_caller_can_retry (assignments.tests_pdf_cache.SingleFlightTest.test_a_failed_flight_is_cleaned_up_so_the_next_caller_can_retry) ... Free trial plan not found: no trial activated for user 559739d2-d2ac-4369-9dda-a4246a47e56f.
+Cannot activate automatic trial for user 559739d2-d2ac-4369-9dda-a4246a47e56f (validation): ValueError
+ok
+test_a_failing_render_propagates_to_waiters_and_is_not_cached (assignments.tests_pdf_cache.SingleFlightTest.test_a_failing_render_propagates_to_waiters_and_is_not_cached)
+Waiters get the leader's error rather than each retrying: the ... Free trial plan not found: no trial activated for user 7b969672-26c5-4545-97a7-f5233f27cbb0.
+Cannot activate automatic trial for user 7b969672-26c5-4545-97a7-f5233f27cbb0 (validation): ValueError
+ok
+test_concurrent_callers_share_a_single_render (assignments.tests_pdf_cache.SingleFlightTest.test_concurrent_callers_share_a_single_render) ... Free trial plan not found: no trial activated for user a4eedec0-4b96-4a57-b4ee-ff6086816092.
+Cannot activate automatic trial for user a4eedec0-4b96-4a57-b4ee-ff6086816092 (validation): ValueError
+ok
+test_different_views_do_not_share_a_flight (assignments.tests_pdf_cache.SingleFlightTest.test_different_views_do_not_share_a_flight)
+The teacher's PDF contains rubrics the student's must not - they ... Free trial plan not found: no trial activated for user 92f29832-1ba4-49f1-9af6-9fa61a006062.
+Cannot activate automatic trial for user 92f29832-1ba4-49f1-9af6-9fa61a006062 (validation): ValueError
+ok
+test_the_shared_render_is_cached_for_later_callers (assignments.tests_pdf_cache.SingleFlightTest.test_the_shared_render_is_cached_for_later_callers) ... Free trial plan not found: no trial activated for user 6c354c71-75d3-4b2a-bb72-92c799f232fd.
+Cannot activate automatic trial for user 6c354c71-75d3-4b2a-bb72-92c799f232fd (validation): ValueError
+ok
+test_waiter_renders_for_itself_if_the_leader_never_finishes (assignments.tests_pdf_cache.SingleFlightTest.test_waiter_renders_for_itself_if_the_leader_never_finishes)
+A leader that hangs must not pin every waiter forever - after the ... Free trial plan not found: no trial activated for user 6b28ef5a-6aea-449d-a5c4-692f6b903d3e.
+Cannot activate automatic trial for user 6b28ef5a-6aea-449d-a5c4-692f6b903d3e (validation): ValueError
+[PDF] timed out waiting for an in-progress render of assignment 2acfd2ae-f1f2-49cb-bcc0-e9e530dc2564 (student view); rendering separately.
+ok
+test_running_the_task_twice_renders_each_view_only_once (assignments.tests_prerender.PrerenderIdempotencyTest.test_running_the_task_twice_renders_each_view_only_once) ... Free trial plan not found: no trial activated for user a0a18a18-7c80-46f4-9795-e6d87d0d063b.
+Cannot activate automatic trial for user a0a18a18-7c80-46f4-9795-e6d87d0d063b (validation): ValueError
+ok
+test_the_second_run_leaves_the_cached_bytes_identical (assignments.tests_prerender.PrerenderIdempotencyTest.test_the_second_run_leaves_the_cached_bytes_identical) ... Free trial plan not found: no trial activated for user 47da2e07-5e56-4da2-981e-1b66c2de1be1.
+Cannot activate automatic trial for user 47da2e07-5e56-4da2-981e-1b66c2de1be1 (validation): ValueError
+ok
+test_a_deleted_assignment_does_not_raise (assignments.tests_prerender.PrerenderTaskTest.test_a_deleted_assignment_does_not_raise)
+The task is dispatched on commit, so the assignment can be gone by ... Free trial plan not found: no trial activated for user cea4bc43-600f-4247-a490-84ad58a8f01b.
+Cannot activate automatic trial for user cea4bc43-600f-4247-a490-84ad58a8f01b (validation): ValueError
+ok
+test_a_render_failure_is_swallowed_rather_than_retried (assignments.tests_prerender.PrerenderTaskTest.test_a_render_failure_is_swallowed_rather_than_retried)
+Pre-rendering only warms a cache, so a broken document must not ... Free trial plan not found: no trial activated for user cc80ad1a-56ba-401c-9b2f-692fc3669807.
+Cannot activate automatic trial for user cc80ad1a-56ba-401c-9b2f-692fc3669807 (validation): ValueError
+[PDF] pre-render failed for assignment 8fa470fc-82a5-4cc6-a5d6-b5b164674a7f (student view)
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tasks.py", line 1405, in prerender_assignment_pdfs
+    get_or_render(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tasks.py", line 1408, in <lambda>
+    lambda inc=include_rubric: render_assignment_pdf(assignment, inc),
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: bad document
+[PDF] pre-render failed for assignment 8fa470fc-82a5-4cc6-a5d6-b5b164674a7f (teacher view)
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tasks.py", line 1405, in prerender_assignment_pdfs
+    get_or_render(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tasks.py", line 1408, in <lambda>
+    lambda inc=include_rubric: render_assignment_pdf(assignment, inc),
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tasks.py", line 1405, in prerender_assignment_pdfs
+    get_or_render(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tasks.py", line 1408, in <lambda>
+    lambda inc=include_rubric: render_assignment_pdf(assignment, inc),
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: bad document
+ok
+test_does_nothing_for_an_assignment_with_no_questions (assignments.tests_prerender.PrerenderTaskTest.test_does_nothing_for_an_assignment_with_no_questions) ... Free trial plan not found: no trial activated for user 3fac3b19-2f87-4f28-8461-07d7874bdcc8.
+Cannot activate automatic trial for user 3fac3b19-2f87-4f28-8461-07d7874bdcc8 (validation): ValueError
+ok
+test_does_nothing_for_an_unpublished_assignment (assignments.tests_prerender.PrerenderTaskTest.test_does_nothing_for_an_unpublished_assignment) ... Free trial plan not found: no trial activated for user b874950f-ff91-4d8f-91bd-44ade9837729.
+Cannot activate automatic trial for user b874950f-ff91-4d8f-91bd-44ade9837729 (validation): ValueError
+ok
+test_load_shedding_defers_the_work_instead_of_dropping_it (assignments.tests_prerender.PrerenderTaskTest.test_load_shedding_defers_the_work_instead_of_dropping_it)
+Being shed means the renderer is busy with real users. Pre-warming ... Free trial plan not found: no trial activated for user 90825915-544f-49cf-885e-0203aa34a5ec.
+Cannot activate automatic trial for user 90825915-544f-49cf-885e-0203aa34a5ec (validation): ValueError
+ok
+test_skips_views_that_are_already_cached (assignments.tests_prerender.PrerenderTaskTest.test_skips_views_that_are_already_cached) ... Free trial plan not found: no trial activated for user 9548c687-5da4-47ce-9d96-eecb085a3b40.
+Cannot activate automatic trial for user 9548c687-5da4-47ce-9d96-eecb085a3b40 (validation): ValueError
+ok
+test_warms_both_views (assignments.tests_prerender.PrerenderTaskTest.test_warms_both_views) ... Free trial plan not found: no trial activated for user 975208e7-9127-419b-bb1a-83ff3adae955.
+Cannot activate automatic trial for user 975208e7-9127-419b-bb1a-83ff3adae955 (validation): ValueError
+ok
+test_a_draft_later_published_dispatches_then (assignments.tests_prerender.PublishHookTest.test_a_draft_later_published_dispatches_then) ... Free trial plan not found: no trial activated for user c6466dc7-0f25-45c9-9fcc-82874014d466.
+Cannot activate automatic trial for user c6466dc7-0f25-45c9-9fcc-82874014d466 (validation): ValueError
+ok
+test_creating_a_draft_does_not_dispatch_a_prerender (assignments.tests_prerender.PublishHookTest.test_creating_a_draft_does_not_dispatch_a_prerender) ... Free trial plan not found: no trial activated for user bcc1f38c-4c3a-4959-a838-e329e53718a1.
+Cannot activate automatic trial for user bcc1f38c-4c3a-4959-a838-e329e53718a1 (validation): ValueError
+ok
+test_publishing_dispatches_a_prerender (assignments.tests_prerender.PublishHookTest.test_publishing_dispatches_a_prerender) ... Free trial plan not found: no trial activated for user 7d6dea43-67dd-4fc4-97c8-b00d1b1a1ab8.
+Cannot activate automatic trial for user 7d6dea43-67dd-4fc4-97c8-b00d1b1a1ab8 (validation): ValueError
+ok
+test_saving_an_already_published_assignment_does_not_re_dispatch (assignments.tests_prerender.PublishHookTest.test_saving_an_already_published_assignment_does_not_re_dispatch)
+The hook keys off the transition into PUBLISHED, so routine saves ... Free trial plan not found: no trial activated for user d50ac201-3053-4238-a932-81cbe560aebf.
+Cannot activate automatic trial for user d50ac201-3053-4238-a932-81cbe560aebf (validation): ValueError
+ok
+test_a_programming_error_in_the_dispatch_still_propagates (assignments.tests_prerender.PublishSurvivesABrokerOutageTest.test_a_programming_error_in_the_dispatch_still_propagates)
+safe_delay swallows OUTAGES, not bugs. A TypeError from calling the ... Free trial plan not found: no trial activated for user dedc7a6e-b627-4313-8580-f10d20f423d9.
+Cannot activate automatic trial for user dedc7a6e-b627-4313-8580-f10d20f423d9 (validation): ValueError
+ok
+test_a_redis_outage_does_not_fail_the_publish (assignments.tests_prerender.PublishSurvivesABrokerOutageTest.test_a_redis_outage_does_not_fail_the_publish) ... Free trial plan not found: no trial activated for user 0eca4403-659f-4037-9cae-82fca83c80dd.
+Cannot activate automatic trial for user 0eca4403-659f-4037-9cae-82fca83c80dd (validation): ValueError
+Could not dispatch task assignments.tasks.send_new_assignment_posted_notification - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: broker unreachable
+Could not dispatch task assignments.tasks.prerender_assignment_pdfs - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: broker unreachable
+ok
+test_a_socket_timeout_does_not_fail_the_publish (assignments.tests_prerender.PublishSurvivesABrokerOutageTest.test_a_socket_timeout_does_not_fail_the_publish) ... Free trial plan not found: no trial activated for user 839795de-b081-44c1-9973-a62d626b25c4.
+Cannot activate automatic trial for user 839795de-b081-44c1-9973-a62d626b25c4 (validation): ValueError
+Could not dispatch task assignments.tasks.send_new_assignment_posted_notification - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+TimeoutError: timed out
+Could not dispatch task assignments.tasks.prerender_assignment_pdfs - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+TimeoutError: timed out
+ok
+test_an_operational_error_from_the_broker_does_not_fail_the_publish (assignments.tests_prerender.PublishSurvivesABrokerOutageTest.test_an_operational_error_from_the_broker_does_not_fail_the_publish) ... Free trial plan not found: no trial activated for user 6180ced7-d621-4c8f-8faa-ea126672c1f6.
+Cannot activate automatic trial for user 6180ced7-d621-4c8f-8faa-ea126672c1f6 (validation): ValueError
+Could not dispatch task assignments.tasks.send_new_assignment_posted_notification - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+kombu.exceptions.OperationalError: cannot connect
+Could not dispatch task assignments.tasks.prerender_assignment_pdfs - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+kombu.exceptions.OperationalError: cannot connect
+ok
+test_the_assignment_is_still_downloadable_after_a_failed_prerender (assignments.tests_prerender.PublishSurvivesABrokerOutageTest.test_the_assignment_is_still_downloadable_after_a_failed_prerender)
+Pre-rendering only warms a cache. If it never ran, the download ... Free trial plan not found: no trial activated for user 87eeb988-5846-4692-b7ac-c4b16316fa35.
+Cannot activate automatic trial for user 87eeb988-5846-4692-b7ac-c4b16316fa35 (validation): ValueError
+Could not dispatch task assignments.tasks.send_new_assignment_posted_notification - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: broker unreachable
+Could not dispatch task assignments.tasks.prerender_assignment_pdfs - broker unavailable
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: broker unreachable
+ok
+test_logs_error_and_names_the_overdue_task (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_logs_error_and_names_the_overdue_task) ... ok
+test_returns_all_clear_message_when_nothing_overdue (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_returns_all_clear_message_when_nothing_overdue) ... ok
+test_disabled_task_is_never_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_disabled_task_is_never_reported) ... ok
+test_missing_periodic_task_row_is_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_missing_periodic_task_row_is_reported) ... ok
+test_multiple_overdue_tasks_are_all_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_multiple_overdue_tasks_are_all_reported) ... ok
+test_never_run_task_uses_date_changed_as_reference (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_never_run_task_uses_date_changed_as_reference) ... ok
+test_no_expectations_configured_returns_empty (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_no_expectations_configured_returns_empty) ... ok
+test_on_schedule_task_is_not_overdue (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_on_schedule_task_is_not_overdue) ... ok
+test_overdue_task_is_reported_with_actionable_message (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_overdue_task_is_reported_with_actionable_message) ... ok
+test_days_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_days_hours_and_minutes) ... ok
+test_exact_hour_omits_zero_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_exact_hour_omits_zero_minutes) ... ok
+test_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_hours_and_minutes) ... ok
+test_minutes_only (AutoGrader.tests_beat_health.HumanizeTests.test_minutes_only) ... ok
+test_negative_delta_clamped_to_zero (AutoGrader.tests_beat_health.HumanizeTests.test_negative_delta_clamped_to_zero) ... ok
+test_singular_minute (AutoGrader.tests_beat_health.HumanizeTests.test_singular_minute) ... ok
+test_zero_renders_as_zero_minutes_not_empty (AutoGrader.tests_beat_health.HumanizeTests.test_zero_renders_as_zero_minutes_not_empty) ... ok
+test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+test_a_missing_trial_plan_is_logged_as_an_error (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_missing_trial_plan_is_logged_as_an_error)
+A configuration fault: without it every new teacher is silently ... Free trial plan not found: no trial activated for user e0236dc5-7105-48e0-90b1-b1bd65d02075.
+Cannot activate automatic trial for user e0236dc5-7105-48e0-90b1-b1bd65d02075 (validation): ValueError
+ok
+test_a_used_trial_is_logged_as_a_warning (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_used_trial_is_logged_as_a_warning) ... Free trial plan not found: no trial activated for user 278acf89-ac34-4cdd-a37d-f85e0ab0ee74.
+Cannot activate automatic trial for user 278acf89-ac34-4cdd-a37d-f85e0ab0ee74 (validation): ValueError
+ok
+test_a_failed_licence_creation_summary_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_failed_licence_creation_summary_logs_no_address)
+create_license_subscription logged the failed_results dicts. ... ok
+test_a_seat_limit_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_seat_limit_refusal_logs_its_reason_with_ids)
+H-86 (1a's R3): the operator learns why, by ids. ... School b0bd3b60-6417-4740-b8f8-92b2c30935e5 already has active license subscription e20d09cc-02ae-4055-9fe5-cf71c6a97843. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user b769546c-0fd4-4132-8ea0-0ebf35dbe399.
+Cannot activate automatic trial for user b769546c-0fd4-4132-8ea0-0ebf35dbe399 (validation): ValueError
+Free trial plan not found: no trial activated for user e90287b2-787e-43c8-81b7-1fbcd799c8c9.
+Cannot activate automatic trial for user e90287b2-787e-43c8-81b7-1fbcd799c8c9 (validation): ValueError
+ok
+test_an_other_school_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_an_other_school_refusal_logs_its_reason_with_ids)
+H-86: the enrolment's own school check says why, by ids. ... Free trial plan not found: no trial activated for user 8b833e22-4fef-4e6a-98d9-71baff76b488.
+Cannot activate automatic trial for user 8b833e22-4fef-4e6a-98d9-71baff76b488 (validation): ValueError
+ok
+test_carrying_teachers_to_a_new_licence_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_carrying_teachers_to_a_new_licence_logs_no_address)
+1a's R2: a carried-forward teacher now has an individual plan. ... Free trial plan not found: no trial activated for user 380a214c-f855-4c27-929b-343a72952e44.
+Cannot activate automatic trial for user 380a214c-f855-4c27-929b-343a72952e44 (validation): ValueError
+ok
+test_enrolling_and_inviting_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_enrolling_and_inviting_logs_no_address)
+The success path: invitation queued, wallet, enrolment, bucket. ... ok
+test_creating_a_user_logs_no_address (billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest.test_creating_a_user_logs_no_address) ... ok
+test_adding_a_teacher_logs_as_before_with_no_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_adding_a_teacher_logs_as_before_with_no_address) ... ok
+test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address)
+The known limit H-80 recorded: the traceback prints the ... ok
+test_control_with_the_scrubber_off_the_traceback_has_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_control_with_the_scrubber_off_the_traceback_has_the_address)
+What these tests would see without it: the reason for H-89. ... ok
+test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Free trial plan not found: no trial activated for user 1975ce90-d6cc-4348-abee-7592208682bf.
+Cannot activate automatic trial for user 1975ce90-d6cc-4348-abee-7592208682bf (validation): ValueError
+Free trial plan not found: no trial activated for user e607f230-82b2-459e-a828-1ff6f77d10bc.
+Cannot activate automatic trial for user e607f230-82b2-459e-a828-1ff6f77d10bc (validation): ValueError
+ok
+test_both_mapped_serializers_still_exist (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_both_mapped_serializers_still_exist) ... ok
+test_it_targets_the_assignment_list_serializer (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_it_targets_the_assignment_list_serializer) ... ok
+test_the_discriminator_property_is_declared_and_required (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_discriminator_property_is_declared_and_required)
+A discriminator absent from `properties`/`required` is invalid ... ok
+test_the_mapping_declares_both_teacher_and_student_shapes (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_mapping_declares_both_teacher_and_student_shapes)
+The whole point: one endpoint returns two shapes depending on who ... ok
+test_the_target_serializer_still_exists (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_target_serializer_still_exists)
+target_class is a hand-written import path. A renamed serializer ... ok
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_course_description". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+test_extensions_is_not_a_real_drf_spectacular_setting (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_extensions_is_not_a_real_drf_spectacular_setting)
+The root cause, asserted directly so an upgrade that ADDS an ... ok
+test_no_production_module_imports_the_extension (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_no_production_module_imports_the_extension)
+The root cause, checked statically. ... ok
+test_the_components_the_mapping_points_at_do_not_exist (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_components_the_mapping_points_at_do_not_exist)
+Even if the extension were registered as-is, its refs would dangle: ... ok
+test_the_settings_entry_that_was_meant_to_register_it_is_inert (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_settings_entry_that_was_meant_to_register_it_is_inert) ... ok
+test_extension_is_registered_for_the_wrapper_authenticator (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_is_registered_for_the_wrapper_authenticator) ... ok
+test_extension_targets_the_wrapper_class_exactly (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_targets_the_wrapper_class_exactly) ... ok
+test_the_driver_is_started_with_what_the_hook_returns (assignments.tests_pdf_renderer_driver_stderr.PlaywrightStderrHookPinTest.test_the_driver_is_started_with_what_the_hook_returns) ... ok
+test_the_hook_exists (assignments.tests_pdf_renderer_driver_stderr.PlaywrightStderrHookPinTest.test_the_hook_exists) ... ok
+test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking)
+Before the fix a SIGKILLed driver left the pipe non-blocking for ... ok
+test_playwright_took_our_pipe_and_its_hook_is_put_back (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_playwright_took_our_pipe_and_its_hook_is_put_back) ... ok
+test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking) ... ok
+test_close_ends_the_reader_and_closes_both_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_ends_the_reader_and_closes_both_ends) ... ok
+test_close_twice_is_harmless (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_twice_is_harmless) ... ok
+test_repeated_starts_leak_no_descriptor (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_repeated_starts_leak_no_descriptor) ... ok
+test_the_reader_outlives_our_write_end_while_the_driver_has_one (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_the_reader_outlives_our_write_end_while_the_driver_has_one)
+close_write_end() is what the renderer calls right after the ... ok
+test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger)
+The reader is on the render path: while the log is slow the ... ok
+test_a_last_line_with_no_newline_is_not_lost (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_last_line_with_no_newline_is_not_lost) ... ok
+test_a_line_is_scrubbed_like_any_log_line (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_is_scrubbed_like_any_log_line)
+The driver can print URLs and page text. Its lines go through ... ok
+test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped) ... ok
+test_a_line_split_across_writes_is_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_split_across_writes_is_one_warning) ... ok
+test_a_line_that_never_ends_is_logged_before_it_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_that_never_ends_is_logged_before_it_ends)
+What is held of an unfinished line is bounded: after one pipe's ... ok
+test_a_logger_that_raises_does_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_logger_that_raises_does_not_stop_the_reader) ... ok
+test_a_long_line_is_cut (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_long_line_is_cut) ... ok
+test_blank_lines_are_not_logged (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_blank_lines_are_not_logged) ... ok
+test_bytes_that_are_not_utf8_do_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_bytes_that_are_not_utf8_do_not_stop_the_reader) ... ok
+test_control_characters_are_replaced (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_control_characters_are_replaced) ... ok
+test_each_line_becomes_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_each_line_becomes_one_warning) ... ok
+test_a_second_start_waits_and_restores_the_real_hook (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_a_second_start_waits_and_restores_the_real_hook)
+Two starts must not overlap: the second would save the first's ... ok
+test_inside_playwright_is_given_our_write_end (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_inside_playwright_is_given_our_write_end) ... ok
+test_the_hook_is_put_back_when_the_start_fails (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_the_hook_is_put_back_when_the_start_fails) ... ok
+test_without_the_hook_the_start_still_goes_ahead (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_without_the_hook_the_start_still_goes_ahead) ... ok
+test_nothing_is_said_when_playwright_takes_the_pipe (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_nothing_is_said_when_playwright_takes_the_pipe) ... ok
+test_the_renderer_starts_and_says_so_once_per_process (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_the_renderer_starts_and_says_so_once_per_process) ... ok
+test_a_dead_browser_is_discarded_and_the_next_render_recovers (assignments.tests_pdf_renderer.BrowserRecyclingTest.test_a_dead_browser_is_discarded_and_the_next_render_recovers)
+Chromium can die outright - OOM killer, crash, container kill. ... [PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_a_failed_relaunch_costs_one_render_then_recovers (assignments.tests_pdf_renderer.BrowserRecyclingTest.test_a_failed_relaunch_costs_one_render_then_recovers)
+A transient relaunch failure must cost exactly one render, not ... ok
+test_recycle_actually_replaces_the_browser_instance (assignments.tests_pdf_renderer.BrowserRecyclingTest.test_recycle_actually_replaces_the_browser_instance)
+Guards against the bound silently never firing (e.g. a counter ... ok
+test_renders_keep_working_across_a_recycle (assignments.tests_pdf_renderer.BrowserRecyclingTest.test_renders_keep_working_across_a_recycle)
+The point of the feature is that recycling is invisible to ... ok
+test_zero_disables_recycling (assignments.tests_pdf_renderer.BrowserRecyclingTest.test_zero_disables_recycling) ... ok
+test_footer_template_page_numbers_are_filled_in (assignments.tests_pdf_renderer.ChromiumRendererTest.test_footer_template_page_numbers_are_filled_in) ... ok
+test_header_template_title_is_filled_in (assignments.tests_pdf_renderer.ChromiumRendererTest.test_header_template_title_is_filled_in) ... ok
+test_katex_fonts_load_through_the_intercepted_origin (assignments.tests_pdf_renderer.ChromiumRendererTest.test_katex_fonts_load_through_the_intercepted_origin)
+katex.min.css requests its fonts via relative url(fonts/*.woff2), ... ok
+test_math_free_document_renders_without_loading_katex (assignments.tests_pdf_renderer.ChromiumRendererTest.test_math_free_document_renders_without_loading_katex)
+End-to-end proof of the no-math fast path: a document with no "$" ... ok
+test_math_is_typeset_not_left_as_literal_latex (assignments.tests_pdf_renderer.ChromiumRendererTest.test_math_is_typeset_not_left_as_literal_latex) ... ok
+test_matrix_environment_renders_as_extractable_text (assignments.tests_pdf_renderer.ChromiumRendererTest.test_matrix_environment_renders_as_extractable_text)
+Regression target: this is the exact case (a bmatrix) that started ... ok
+test_missing_closing_tags_raise_before_touching_the_browser (assignments.tests_pdf_renderer.ChromiumRendererTest.test_missing_closing_tags_raise_before_touching_the_browser) ... ok
+test_render_is_thread_safe_under_concurrent_use (assignments.tests_pdf_renderer.ChromiumRendererTest.test_render_is_thread_safe_under_concurrent_use)
+Django serves requests with gthread workers (multiple threads per ... ok
+test_returns_valid_pdf_bytes (assignments.tests_pdf_renderer.ChromiumRendererTest.test_returns_valid_pdf_bytes) ... ok
+test_a_render_killed_by_a_dying_browser_is_retried_once (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_a_render_killed_by_a_dying_browser_is_retried_once)
+Every render in flight when Chromium dies fails together, for a ... [PDF] render failed because Chromium went away - retrying once on a fresh browser.
+[PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_an_ordinary_failure_is_not_retried (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_an_ordinary_failure_is_not_retried)
+The retry must stay narrow: a failure with a healthy browser (a ... ok
+test_concurrency_of_one_still_renders_everything_correctly (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_concurrency_of_one_still_renders_everything_correctly)
+A concurrency bound of 1 restores fully serialized rendering. ... ok
+test_concurrent_renders_do_not_contaminate_each_other (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_concurrent_renders_do_not_contaminate_each_other)
+Several pages are open in one browser at once. Each render must ... ok
+test_one_slow_render_does_not_stall_the_others (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others)
+Regression guard for a real stall this stress-testing found: an ... ok
+test_recycling_while_renders_are_in_flight_loses_nothing (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_recycling_while_renders_are_in_flight_loses_nothing)
+The nastiest interaction in this module: the browser is swapped ... ok
+test_renders_actually_overlap (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_renders_actually_overlap)
+The point of the async model: 8 renders across 4 slots must take ... ok
+test_semaphore_bounds_how_many_pages_are_open_at_once (assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_semaphore_bounds_how_many_pages_are_open_at_once)
+The semaphore is what keeps peak memory predictable, so assert it ... ok
+test_detects_inline_and_display_math (assignments.tests_pdf_renderer.HasMathTest.test_detects_inline_and_display_math) ... ok
+test_incidental_dollar_sign_is_treated_as_math (assignments.tests_pdf_renderer.HasMathTest.test_incidental_dollar_sign_is_treated_as_math)
+Deliberate false-positive: a word problem mentioning "$5" loads ... ok
+test_no_dollar_sign_means_no_math (assignments.tests_pdf_renderer.HasMathTest.test_no_dollar_sign_means_no_math) ... ok
+test_double_dollar_delimiter_is_checked_before_single_dollar (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_double_dollar_delimiter_is_checked_before_single_dollar)
+auto-render tries delimiters in array order at each scan position - ... ok
+test_inserts_katex_and_autorender_scripts_before_body_close (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_inserts_katex_and_autorender_scripts_before_body_close) ... ok
+test_inserts_katex_stylesheet_before_head_close (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_inserts_katex_stylesheet_before_head_close) ... ok
+test_katex_assets_are_same_origin_not_file_urls (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_katex_assets_are_same_origin_not_file_urls)
+Chromium refuses to load a file:// subresource from an http(s) ... ok
+test_only_replaces_first_occurrence_of_each_closing_tag (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_only_replaces_first_occurrence_of_each_closing_tag)
+A document that happens to contain the literal string "</head>" or ... ok
+test_preserves_original_body_content (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_preserves_original_body_content) ... ok
+test_raises_without_closing_body_tag (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_raises_without_closing_body_tag) ... ok
+test_raises_without_closing_head_tag (assignments.tests_pdf_renderer.KaTeXInjectionTest.test_raises_without_closing_head_tag) ... ok
+test_a_shed_render_does_not_leak_a_queue_slot (assignments.tests_pdf_renderer.LoadSheddingTest.test_a_shed_render_does_not_leak_a_queue_slot) ... ok
+test_busy_is_a_pdfrendererror_so_existing_handlers_still_catch_it (assignments.tests_pdf_renderer.LoadSheddingTest.test_busy_is_a_pdfrendererror_so_existing_handlers_still_catch_it) ... ok
+test_default_limit_is_four_times_the_concurrency (assignments.tests_pdf_renderer.LoadSheddingTest.test_default_limit_is_four_times_the_concurrency) ... ok
+test_ensure_capacity_is_a_no_op_with_no_renderer_running (assignments.tests_pdf_renderer.LoadSheddingTest.test_ensure_capacity_is_a_no_op_with_no_renderer_running) ... ok
+test_ensure_capacity_raises_once_at_the_limit (assignments.tests_pdf_renderer.LoadSheddingTest.test_ensure_capacity_raises_once_at_the_limit) ... ok
+test_explicit_limit_overrides_the_derived_default (assignments.tests_pdf_renderer.LoadSheddingTest.test_explicit_limit_overrides_the_derived_default) ... ok
+test_render_refuses_immediately_when_over_capacity (assignments.tests_pdf_renderer.LoadSheddingTest.test_render_refuses_immediately_when_over_capacity)
+The authoritative check lives in render() itself, so a caller that ... ok
+test_the_queue_slot_is_released_after_a_failed_render (assignments.tests_pdf_renderer.LoadSheddingTest.test_the_queue_slot_is_released_after_a_failed_render) ... ok
+test_the_queue_slot_is_released_after_a_successful_render (assignments.tests_pdf_renderer.LoadSheddingTest.test_the_queue_slot_is_released_after_a_successful_render) ... ok
+test_zero_disables_shedding (assignments.tests_pdf_renderer.LoadSheddingTest.test_zero_disables_shedding) ... ok
+test_capacity_is_fully_reclaimed_so_shedding_is_not_permanent (assignments.tests_pdf_renderer.LoadSheddingUnderRealContentionTest.test_capacity_is_fully_reclaimed_so_shedding_is_not_permanent)
+A burst that sheds must not leave the process refusing work ... ok
+test_exactly_the_limit_is_admitted_and_the_rest_are_shed (assignments.tests_pdf_renderer.LoadSheddingUnderRealContentionTest.test_exactly_the_limit_is_admitted_and_the_rest_are_shed)
+20 threads against a limit of 4: precisely 4 get in, 16 are refused. ... ok
+test_shed_callers_are_refused_far_faster_than_admitted_ones_render (assignments.tests_pdf_renderer.LoadSheddingUnderRealContentionTest.test_shed_callers_are_refused_far_faster_than_admitted_ones_render)
+The whole point of shedding is not to park a request thread. A ... ok
+test_preserves_original_body_content (assignments.tests_pdf_renderer.MarkNoMathDoneTest.test_preserves_original_body_content) ... ok
+test_sets_katex_done_without_loading_any_katex_asset (assignments.tests_pdf_renderer.MarkNoMathDoneTest.test_sets_katex_done_without_loading_any_katex_asset)
+The whole point of the no-math path: skip the KaTeX CSS/JS ... ok
+test_validates_the_document_like_inject_katex_does (assignments.tests_pdf_renderer.MarkNoMathDoneTest.test_validates_the_document_like_inject_katex_does) ... ok
+test_get_worker_raises_a_clear_error_when_chromium_cannot_launch (assignments.tests_pdf_renderer.WorkerSingletonTest.test_get_worker_raises_a_clear_error_when_chromium_cannot_launch) ... ok
+test_get_worker_returns_the_same_instance_across_calls (assignments.tests_pdf_renderer.WorkerSingletonTest.test_get_worker_returns_the_same_instance_across_calls) ... ok
+test_reset_allows_a_fresh_instance_afterward (assignments.tests_pdf_renderer.WorkerSingletonTest.test_reset_allows_a_fresh_instance_afterward) ... ok
+test_reports_unpatched_in_a_normal_process (assignments.tests_pdf_renderer_gevent.GeventDetectionTest.test_reports_unpatched_in_a_normal_process) ... ok
+test_unavailable_is_a_render_error_but_not_busy (assignments.tests_pdf_renderer_gevent.GeventDetectionTest.test_unavailable_is_a_render_error_but_not_busy)
+Distinct from PDFRendererBusy on purpose: Busy means "try again ... ok
+test_no_event_loop_leaks_after_the_refusal (assignments.tests_pdf_renderer_gevent.GeventGuardSubprocessTest.test_no_event_loop_leaks_after_the_refusal)
+The actual production symptom: a loop visible from other ... ok
+test_orm_still_works_after_the_refusal (assignments.tests_pdf_renderer_gevent.GeventGuardSubprocessTest.test_orm_still_works_after_the_refusal)
+End to end, in the shape the outage actually took: an unrelated ... ok
+test_the_renderer_refuses_to_start_under_gevent (assignments.tests_pdf_renderer_gevent.GeventGuardSubprocessTest.test_the_renderer_refuses_to_start_under_gevent) ... ok
+test_the_singleton_is_not_left_half_initialised (assignments.tests_pdf_renderer_gevent.GeventGuardSubprocessTest.test_the_singleton_is_not_left_half_initialised) ... ok
+test_threading_really_is_patched_in_the_subprocess (assignments.tests_pdf_renderer_gevent.GeventGuardSubprocessTest.test_threading_really_is_patched_in_the_subprocess) ... ok
+test_a_crash_inside_the_render_is_RECOVERED_not_merely_reported (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_a_crash_inside_the_render_is_RECOVERED_not_merely_reported)
+Pins the one-shot retry in `_render` specifically. ... [PDF] render failed because Chromium went away - retrying once on a fresh browser.
+[PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_a_crash_leaks_no_threads_or_database_connections (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_a_crash_leaks_no_threads_or_database_connections)
+Property 8. The renderer owns a loop thread and Django owns the ... [PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+[PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+[PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_a_crash_mid_render_is_retried_and_still_yields_a_valid_pdf (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_a_crash_mid_render_is_retried_and_still_yields_a_valid_pdf)
+The real thing: the browser dies while a render is genuinely in ... ok
+test_a_killed_browser_is_detected_promptly_without_being_used (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_a_killed_browser_is_detected_promptly_without_being_used)
+The precondition the whole retry rests on: the renderer can tell a ... ok
+test_a_render_after_a_crash_returns_a_valid_pdf (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_a_render_after_a_crash_returns_a_valid_pdf)
+Properties 1, 4, 5 and 6: the browser is dead before the call, and ... [PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_no_chromium_processes_are_orphaned_by_a_crash (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_no_chromium_processes_are_orphaned_by_a_crash)
+Property 2. An orphan per crash would accumulate until the box ran ... [PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_the_retry_is_bounded_when_the_browser_keeps_dying (assignments.tests_renderer_crash.ChromiumCrashRecoveryTest.test_the_retry_is_bounded_when_the_browser_keeps_dying)
+Property 4, the other direction: a browser that dies every time ... [PDF] render failed because Chromium went away - retrying once on a fresh browser.
+[PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+ok
+test_every_concurrent_caller_returns_after_the_browser_is_killed (assignments.tests_renderer_crash.ConcurrentRendersSurviveACrashTest.test_every_concurrent_caller_returns_after_the_browser_is_killed) ... [PDF] render failed because Chromium went away - retrying once on a fresh browser.
+[PDF] Chromium is no longer connected (crashed or was killed) - discarding it and relaunching.
+[PDF] render failed because Chromium went away - retrying once on a fresh browser.
+[PDF] render failed because Chromium went away - retrying once on a fresh browser.
+[PDF] render failed because Chromium went away - retrying once on a fresh browser.
+ok
+test_two_concurrent_dispatches_still_render_once_per_view (assignments.tests_prerender.PrerenderConcurrentDispatchTest.test_two_concurrent_dispatches_still_render_once_per_view) ... Free trial plan not found: no trial activated for user 5ebe8a15-837b-454c-8bb7-027fa608c749.
+Cannot activate automatic trial for user 5ebe8a15-837b-454c-8bb7-027fa608c749 (validation): ValueError
+ok
+test_a_class_opening_one_assignment_together_stays_healthy (assignments.tests_load.AssignmentReadPathLoadTest.test_a_class_opening_one_assignment_together_stays_healthy)
+The publish stampede: 30 students hit the same uncached PDF at the ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_cache_survives_writes_to_other_assignments_under_load (assignments.tests_load.AssignmentReadPathLoadTest.test_cache_survives_writes_to_other_assignments_under_load)
+The invalidation-scope fix, under the traffic that made it matter: ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_list_query_count_does_not_scale_with_page_size (assignments.tests_load.AssignmentReadPathLoadTest.test_list_query_count_does_not_scale_with_page_size)
+The N+1 guard, measured rather than reasoned about: a page of 25 ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_paging_the_whole_list_returns_every_row_exactly_once (assignments.tests_load.AssignmentReadPathLoadTest.test_paging_the_whole_list_returns_every_row_exactly_once)
+Pagination stability, checked by walking the entire list. ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_sustained_mixed_traffic_does_not_degrade (assignments.tests_load.AssignmentReadPathLoadTest.test_sustained_mixed_traffic_does_not_degrade)
+Thirty seconds of everything at once: downloads, lists, details, ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_the_list_queryset_reports_itself_as_ordered (assignments.tests_load.AssignmentReadPathLoadTest.test_the_list_queryset_reports_itself_as_ordered)
+The direct form of the check above. DRF's paginator warns rather ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_a_slow_renderer_sheds_through_the_endpoint_and_then_recovers (assignments.tests_load.RealRendererOverloadTest.test_a_slow_renderer_sheds_through_the_endpoint_and_then_recovers)
+The shedding contract end to end, with the overload forced. ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_real_renders_at_production_settings_are_all_served (assignments.tests_load.RealRendererOverloadTest.test_real_renders_at_production_settings_are_all_served)
+24 concurrent uncached downloads through real Chromium, at the ... skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
+test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+The path exclusion above is only honest if production never ... ok
+test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+The exception is only safe while it is one assignment's prefix: ... ok
+test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+Guard on the guard: each form is found in a synthetic module, and ... ok
+test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+The over-invalidation half, stated as a property. Under the ... ok
+test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+Not response caches in the generation scheme, deliberately. ... ok
+test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+H-1 step 4: the one family that was still raw is on generations. ... ok
+test_a_factory_imported_from_another_module_is_found_across_modules (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_factory_imported_from_another_module_is_found_across_modules)
+raw_client_uses resolves a factory imported from another module: ... ok
+test_a_listed_module_gaining_raw_writes_changes_its_count (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_listed_module_gaining_raw_writes_changes_its_count)
+v2's F1 on the real beat_locks: two new writes, two more. ... ok
+test_a_write_name_counts_whatever_it_is_called_on (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_write_name_counts_whatever_it_is_called_on)
+Rule 1 (v2 F1): in a module that obtains a raw client, a write ... ok
+test_an_imported_factory_counts_in_the_importing_module (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_an_imported_factory_counts_in_the_importing_module) ... ok
+test_any_non_read_call_on_a_client_is_a_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_any_non_read_call_on_a_client_is_a_write)
+Rule 2 (v2 F1): the read allow-list. `vf_cmd` is in no list, so ... ok
+test_every_entry_gives_a_reason (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_entry_gives_a_reason) ... ok
+test_every_raw_client_user_is_listed (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_raw_client_user_is_listed) ... ok
+test_the_live_modules_are_found_by_the_scan (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_live_modules_are_found_by_the_scan)
+The table is not vacuous: each listed module really is found. ... ok
+test_the_scanner_finds_every_shape_it_exists_to_catch (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_finds_every_shape_it_exists_to_catch) ... ok
+test_the_scanner_ignores_what_is_not_a_raw_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_ignores_what_is_not_a_raw_write) ... ok
+test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Free trial plan not found: no trial activated for user 9b143f6e-93cf-4666-b60f-0b0b58dfb0bf.
+Cannot activate automatic trial for user 9b143f6e-93cf-4666-b60f-0b0b58dfb0bf (validation): ValueError
+Free trial plan not found: no trial activated for user b407baef-51aa-4f50-a7e0-f750ad67633e.
+Cannot activate automatic trial for user b407baef-51aa-4f50-a7e0-f750ad67633e (validation): ValueError
+Free trial plan not found: no trial activated for user 256b72d7-21e0-4299-8b35-bbf81eae240a.
+Cannot activate automatic trial for user 256b72d7-21e0-4299-8b35-bbf81eae240a (validation): ValueError
+Free trial plan not found: no trial activated for user 6f34ca67-162e-4d72-a4e8-79b6167230c9.
+Cannot activate automatic trial for user 6f34ca67-162e-4d72-a4e8-79b6167230c9 (validation): ValueError
+ok
+test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+The eight AlterFields since production that change choices, ... ok
+test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+The production wiring (the Verification Engineer's H6 on ... ok
+test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+Rule (a) on the real graph with a synthetic final state: drop ... ok
+test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+Guard on the guard: the fields H-56 found are rule (a) ... ok
+test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+THE ACCEPTANCE TEST for broker isolation. ... ok
+test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+A raw Redis client built from the broker URL bypasses the prefix. ... ok
+test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+scanned            : 1
+repaired           : 1 assignment(s)
+questions cleaned  : 1
+done
+scanned  : 1
+repaired : 1 assignment(s)
+done
+ok
+test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+Same requirement, for the H-1 invariant specifically. ... ok
+test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+The blast radius is wider than the Django cache. ... ok
+test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+The mechanism, demonstrated deterministically in-process. ... ok
+test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+THE ACCEPTANCE TEST for the regression. ... ok
+test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+Server-wide Redis statistics are shared by every concurrent run. ... ok
+test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+So a hung run can never swallow the next scheduled one. ... ok
+test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+The worst-case lifetime the schedule guard relies on. ... ok
+test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t1090295:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:b0eb82263424).
+ok
+test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t1090295:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:bd9abb397ac8; this run direct:70964bc5ed29).
+ok
+test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command) ... ok
+test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class) ... ok
+test_the_moved_script_cannot_be_imported_as_a_module (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_moved_script_cannot_be_imported_as_a_module) ... ok
+test_the_sweep_sees_the_projects_commands (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_sweep_sees_the_projects_commands)
+Guards the guard: an empty sweep would pass everything. ... ok
+test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name) ... ok
+test_tests_and_migrations_are_not_scanned (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_tests_and_migrations_are_not_scanned) ... ok
+test_the_rule_allows_what_the_hook_allows (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_allows_what_the_hook_allows)
+Ids, exception text and built messages are outside this rule. ... ok
+test_the_rule_sees_each_shape_the_hook_does (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_sees_each_shape_the_hook_does) ... ok
+test_a_record_made_while_settings_are_loading_is_scrubbed (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_a_record_made_while_settings_are_loading_is_scrubbed) ... ok
+test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs) ... ok
+test_a_celery_task_loggers_own_formatter (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_a_celery_task_loggers_own_formatter) ... ok
+test_an_object_argument_whose_text_is_an_address (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_an_object_argument_whose_text_is_an_address) ... ok
+test_pythons_last_resort_handler (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_pythons_last_resort_handler)
+What prints a billing.* or users.* line when the process has ... ok
+test_the_console_handler_from_settings (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_the_console_handler_from_settings) ... ok
+test_a_chained_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_chained_exception) ... ok
+test_a_constraint_error_naming_the_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_constraint_error_naming_the_address) ... ok
+test_an_error_built_with_an_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_an_error_built_with_an_address) ... ok
+test_logger_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_logger_exception) ... ok
+test_a_record_whose_class_cannot_be_replaced_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_a_record_whose_class_cannot_be_replaced_fails_closed) ... ok
+test_a_second_install_does_not_wrap_again (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_does_not_wrap_again) ... ok
+test_a_second_install_still_sets_the_switch (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_still_sets_the_switch) ... ok
+test_another_factorys_records_keep_their_class_and_are_scrubbed (AutoGrader.tests_log_scrubbing.InstallTests.test_another_factorys_records_keep_their_class_and_are_scrubbed)
+Celery or Sentry may have set their own factory first. ... ok
+test_exception_text_that_cannot_be_rendered_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_exception_text_that_cannot_be_rendered_fails_closed) ... ok
+test_it_is_on_and_scrubs_from_the_first_record (AutoGrader.tests_log_scrubbing.OutsideTheTestRunnerTests.test_it_is_on_and_scrubs_from_the_first_record) ... ok
+test_a_key_before_an_address_stays_readable (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_key_before_an_address_stays_readable) ... ok
+test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it)
+They are characters an address may start with, so the scrubber ... ok
+test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) ... ok
+test_text_without_an_at_sign_is_returned_as_it_is (AutoGrader.tests_log_scrubbing.ScrubTests.test_text_without_an_at_sign_is_returned_as_it_is) ... ok
+test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through)
+A KNOWN LIMIT (SM, 2026-10-05). "/", "=", "?" and "&" are legal ... ok
+test_settings_import_nothing_from_the_project_at_the_top_level (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_settings_import_nothing_from_the_project_at_the_top_level) ... ok
+test_the_package_installs_the_factory (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_the_package_installs_the_factory) ... ok
+test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_message_that_cannot_be_formatted_fails_closed)
+The template and a marker; never the arguments, and no error ... ok
+test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles) ... ok
+test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
+Only getMessage() and the rendered exception text are scrubbed; ... ok
+test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+So H-80's and H-91's tests read what the code really logged. ... ok
+test_no_environment_or_variable_can_switch_it_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_no_environment_or_variable_can_switch_it_off)
+In settings.py the switch is computed from "are tests running" ... ok
+test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off) ... ok
+test_the_factory_is_installed (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_the_factory_is_installed) ... ok
+test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) ... ok
+test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it)
+The userinfo ends at the LAST "@" before the host, not the ... ok
+test_a_url_without_credentials_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_url_without_credentials_is_left_alone) ... ok
+test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string) ... ok
+test_text_that_only_looks_like_an_address_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_text_that_only_looks_like_an_address_is_left_alone) ... ok
+test_a_dsn_in_an_exception_never_shows_its_password (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_dsn_in_an_exception_never_shows_its_password) ... ok
+test_a_plain_message_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_plain_message_event) ... ok
+test_an_argument_that_is_not_text_yet (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_argument_that_is_not_text_yet)
+An object among the params whose text is an address. ... ok
+test_an_event_with_none_of_these_parts_passes_through (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_event_with_none_of_these_parts_passes_through) ... ok
+test_frame_variables_that_hold_no_address_are_unchanged (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_frame_variables_that_hold_no_address_are_unchanged)
+The debugging value of locals is kept: ids, UUIDs, numbers, ... ok
+test_it_fails_closed_and_never_raises (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_it_fails_closed_and_never_raises)
+A part that cannot be scrubbed is replaced by a marker; the event ... ok
+test_no_address_is_left_in_the_events_text (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_no_address_is_left_in_the_events_text) ... ok
+test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+A sampled transaction is an event of its own: it does not pass ... ok
+test_the_threads_of_an_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_threads_of_an_event)
+An event can carry a stack per thread, with frame variables, ... ok
+test_user_context_tags_and_request_are_left_alone (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_left_alone)
+The SM's ruling: this is about addresses inside text. ... ok
+test_what_makes_the_report_useful_is_kept (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_what_makes_the_report_useful_is_kept) ... ok
+test_a_breadcrumbs_message_and_data (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_breadcrumbs_message_and_data) ... ok
+test_a_log_items_body_and_attributes (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_log_items_body_and_attributes) ... ok
+test_the_small_hooks_never_raise_either (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_the_small_hooks_never_raise_either) ... ok
+test_a_failure_to_import_the_hooks_is_not_swallowed (AutoGrader.tests_sentry_scrubbing.WiringTests.test_a_failure_to_import_the_hooks_is_not_swallowed)
+settings.py has a try/except ImportError for a missing sentry-sdk ... ok
+test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry) ... ok
+test_a_dead_pids_key_in_another_database_is_swept (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_dead_pids_key_in_another_database_is_swept) ... ok
+test_a_key_put_through_one_client_is_not_seen_through_another (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_key_put_through_one_client_is_not_seen_through_another) ... ok
+test_a_live_pids_key_in_another_database_is_left_alone (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_live_pids_key_in_another_database_is_left_alone) ... ok
+test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases)
+A whole other run (its start-of-run sweep, its teardown and its ... ok
+test_delete_own_keys_reaches_another_database (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_delete_own_keys_reaches_another_database) ... ok
+test_each_client_is_on_its_own_database (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_each_client_is_on_its_own_database) ... ok
+test_other_key_families_in_another_database_survive (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_other_key_families_in_another_database_survive)
+The sweep and delete_own_keys match `gaplus-t<digits>:` and ... ok
+test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says)
+Only the database changes: the host, port, TLS, socket path, ... ok
+test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused)
+A process that is later given a dead run's pid has that run's ... ok
+test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+Two concurrent runs: the second one's start-of-run sweep and its ... ok
+test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile)
+H-94: the same race as SweepTests', on the killed child's keys. ... ok
+test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+test_delete_own_keys_is_unmoved_by_another_runs_sweep (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_is_unmoved_by_another_runs_sweep)
+H-94: under --parallel another worker's sweep can run between ... ok
+test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+An expired counter reads as generation 1 and revives every stale ... ok
+test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+test_a_reader_that_has_gone_is_an_error_at_once (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_has_gone_is_an_error_at_once) ... ok
+test_a_reader_that_is_slow_but_reading_is_waited_for (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_is_slow_but_reading_is_waited_for)
+The patience is per wait, not for the whole write: a reader ... ok
+test_it_gives_up_loudly_after_its_patience_not_never (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_it_gives_up_loudly_after_its_patience_not_never) ... ok
+test_the_default_patience (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_the_default_patience)
+Longer than any pause of a live reader; shorter than the five ... ok
+test_everything_arrives_once_and_in_order (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_everything_arrives_once_and_in_order) ... ok
+test_one_write_larger_than_the_pipe_arrives_whole (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_one_write_larger_than_the_pipe_arrives_whole) ... ok
+test_text_that_cannot_be_encoded_is_written_as_the_stream_would (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_text_that_cannot_be_encoded_is_written_as_the_stream_would) ... ok
+test_the_condition_is_real_a_plain_stream_raises (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_the_condition_is_real_a_plain_stream_raises)
+The control: without the wrapper, the same writes to the same ... ok
+test_what_the_stream_itself_still_holds_goes_out_first (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_what_the_stream_itself_still_holds_goes_out_first)
+Something written through the underlying stream and still in ... ok
+test_a_stream_with_no_file_descriptor_is_written_to_as_it_is (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_a_stream_with_no_file_descriptor_is_written_to_as_it_is) ... ok
+test_everything_else_is_the_streams_own (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_everything_else_is_the_streams_own) ... ok
+test_the_runner_reports_on_a_patient_stream_over_stderr (AutoGrader.tests_patient_test_stream.WiringTests.test_the_runner_reports_on_a_patient_stream_over_stderr) ... ok
+test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up (AutoGrader.tests_patient_test_stream.WiringTests.test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up)
+Not the interpreter's original stderr. A run whose sys.stderr ... ok
+test_unittests_runner_writes_through_it (AutoGrader.tests_patient_test_stream.WiringTests.test_unittests_runner_writes_through_it) ... ok
+test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies) ... ok
+test_the_setup_of_a_spawned_worker_restores_the_default_action_too (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too) ... ok
+test_django_still_starts_each_worker_through_init_worker (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_django_still_starts_each_worker_through_init_worker) ... ok
+test_our_suite_starts_each_worker_through_our_own (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_our_suite_starts_each_worker_through_our_own) ... ok
+test_no_driver_is_started_in_the_importing_process (AutoGrader.tests_no_playwright_at_import.ImportingTheRendererTestsStartsNoDriverHereTests.test_no_driver_is_started_in_the_importing_process) ... ok
+test_no_test_module_reaches_a_starter_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_no_test_module_reaches_a_starter_at_import) ... ok
+test_the_rule_allows_what_does_not_run_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_allows_what_does_not_run_at_import) ... ok
+test_the_rule_sees_each_shape (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_sees_each_shape) ... ok
+test_the_scan_reads_the_renderer_tests (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_scan_reads_the_renderer_tests) ... ok
+test_a_child_that_cannot_be_run_or_does_not_end_means_not_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_a_child_that_cannot_be_run_or_does_not_end_means_not_available) ... ok
+test_any_other_exit_code_means_not_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_any_other_exit_code_means_not_available) ... ok
+test_exit_code_zero_means_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_exit_code_zero_means_available) ... ok
+test_the_child_gets_nothing_of_the_runs_output (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_gets_nothing_of_the_runs_output) ... ok
+test_the_child_is_given_a_time_limit (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_is_given_a_time_limit) ... ok
+test_the_child_is_this_interpreter_running_the_launch (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_is_this_interpreter_running_the_launch) ... ok
+test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address) ... ok
+test_the_guard_sees_each_kind_of_leak (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_the_guard_sees_each_kind_of_leak)
+Not vacuous: each shape the guard rejects, in a sample call. ... ok
+test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+Guard on the guard, on synthetic source. ... ok
+test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+
+----------------------------------------------------------------------
+Ran 437 tests in 259.048s
+
+OK (skipped=8)
+Destroying test database for alias 'default' ('test_h110_renderer_driver_stderr')...

@@ -1,0 +1,15 @@
+"""1a's mutant Y12 for H-110: the reader thread is not a daemon thread.
+Python joins non-daemon threads at exit BEFORE the atexit step that stops
+the driver, and the reader ends only when the driver is gone: a process
+that has rendered would then never end by itself (a gunicorn worker being
+recycled, a Celery child at its task limit). Not in the author's battery.
+Expected: see h110_expected_kills.txt. Applied in place in the current
+directory; restore with git checkout. Run with python -B (rule 17)."""
+
+P = "assignments/pdf_renderer.py"
+s = open(P, encoding="utf-8").read()
+old = '            target=self._forward, name="pdf-driver-stderr", daemon=True\n'
+new = '            target=self._forward, name="pdf-driver-stderr", daemon=False\n'
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y12")

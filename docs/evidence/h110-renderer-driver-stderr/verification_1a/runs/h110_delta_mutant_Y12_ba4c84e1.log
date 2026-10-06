@@ -1,0 +1,77 @@
+# 1a H-110 delta mutant Y12 at ba4c84e14338282bf2af602d09592003d6f56984, the author's two modules, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 3.09 4.23 3.97 2/2689 1295753
+pycache dirs under AutoGrader and assignments after clear: 0
+applied Y12
+mutated sha differs: True
+ assignments/pdf_renderer.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+test_the_driver_is_started_with_what_the_hook_returns (assignments.tests_pdf_renderer_driver_stderr.PlaywrightStderrHookPinTest.test_the_driver_is_started_with_what_the_hook_returns) ... ok
+test_the_hook_exists (assignments.tests_pdf_renderer_driver_stderr.PlaywrightStderrHookPinTest.test_the_hook_exists) ... ok
+test_a_process_that_has_rendered_still_ends_by_itself (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_a_process_that_has_rendered_still_ends_by_itself)
+The reader ends only when the driver is gone, and the driver is ... FAIL
+test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking)
+Before the fix a SIGKILLed driver left the pipe non-blocking for ... ok
+test_playwright_took_our_pipe_and_its_hook_is_put_back (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_playwright_took_our_pipe_and_its_hook_is_put_back) ... ok
+test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking) ... ok
+test_close_ends_the_reader_and_closes_both_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_ends_the_reader_and_closes_both_ends) ... ok
+test_close_twice_is_harmless (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_twice_is_harmless) ... ok
+test_repeated_starts_leak_no_descriptor (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_repeated_starts_leak_no_descriptor) ... ok
+test_the_reader_outlives_our_write_end_while_the_driver_has_one (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_the_reader_outlives_our_write_end_while_the_driver_has_one)
+close_write_end() is what the renderer calls right after the ... ok
+test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger)
+The reader is on the render path: while the log is slow the ... ok
+test_a_last_line_with_no_newline_is_not_lost (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_last_line_with_no_newline_is_not_lost) ... ok
+test_a_line_is_scrubbed_like_any_log_line (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_is_scrubbed_like_any_log_line)
+The driver can print URLs and page text. Its lines go through ... ok
+test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped) ... ok
+test_a_line_split_across_writes_is_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_split_across_writes_is_one_warning) ... ok
+test_a_line_that_never_ends_is_logged_before_it_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_that_never_ends_is_logged_before_it_ends)
+What is held of an unfinished line is bounded: after one pipe's ... ok
+test_a_logger_that_raises_does_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_logger_that_raises_does_not_stop_the_reader) ... ok
+test_a_long_line_is_cut (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_long_line_is_cut) ... ok
+test_blank_lines_are_not_logged (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_blank_lines_are_not_logged) ... ok
+test_bytes_that_are_not_utf8_do_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_bytes_that_are_not_utf8_do_not_stop_the_reader) ... ok
+test_control_characters_are_replaced (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_control_characters_are_replaced) ... ok
+test_each_line_becomes_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_each_line_becomes_one_warning) ... ok
+test_a_second_start_waits_and_restores_the_real_hook (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_a_second_start_waits_and_restores_the_real_hook)
+Two starts must not overlap: the second would save the first's ... ok
+test_inside_playwright_is_given_our_write_end (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_inside_playwright_is_given_our_write_end) ... ok
+test_the_hook_is_put_back_when_the_start_fails (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_the_hook_is_put_back_when_the_start_fails) ... ok
+test_without_the_hook_the_start_still_goes_ahead (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_without_the_hook_the_start_still_goes_ahead) ... ok
+test_nothing_is_said_when_playwright_takes_the_pipe (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_nothing_is_said_when_playwright_takes_the_pipe) ... ok
+test_the_renderer_starts_and_says_so_once_per_process (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_the_renderer_starts_and_says_so_once_per_process) ... ok
+
+======================================================================
+FAIL: test_a_process_that_has_rendered_still_ends_by_itself (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_a_process_that_has_rendered_still_ends_by_itself)
+The reader ends only when the driver is gone, and the driver is
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h110d/assignments/tests_pdf_renderer_driver_stderr.py", line 162, in test_a_process_that_has_rendered_still_ends_by_itself
+    status = self.child.wait(timeout=30)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python', '-c', '\nimport json, os, sys\nfrom django.conf import settings\nsettings.configure(DEBUG=False)\nfrom playwright._impl import _transport\noriginal = _transport._get_stderr_fileno\nfrom assignments import pdf_renderer\npdf = pdf_renderer.render_html_to_pdf(\n    "<html><head><title>h110</title></head><body><p>one page</p></body></html>"\n)\nworker = pdf_renderer._get_worker()\ndriver = worker._playwright._impl_obj._connection._transport._proc\nstderr_pipe = getattr(worker, "_driver_stderr", None)\nprint(json.dumps({\n    "pdf_magic": pdf[:5].decode("latin1"),\n    "driver_pid": driver.pid,\n    "hook_is_the_original_again": _transport._get_stderr_fileno is original,\n    "handed_over": getattr(stderr_pipe, "handed_over", None),\n    "fd2_blocking_seen_inside": os.get_blocking(2),\n}), flush=True)\nfor _ in sys.stdin:\n    reading = stderr_pipe.is_reading() if stderr_pipe is not None else None\n    print(json.dumps({"reader_is_reading": reading}), flush=True)\n']' timed out after 30 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h110d/assignments/tests_pdf_renderer_driver_stderr.py", line 164, in test_a_process_that_has_rendered_still_ends_by_itself
+    self.fail(
+AssertionError: the interpreter did not end within 30 s of the end of its work: a thread keeps it alive at exit (is the driver's stderr reader still a daemon thread?)
+
+----------------------------------------------------------------------
+Ran 28 tests in 132.293s
+
+FAILED (failures=1)
+Found 28 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=141 loadavg after: 5.54 4.78 4.21 11/2768 1298325
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader and assignments after clear: 0
+tracked changes after restore: 0
