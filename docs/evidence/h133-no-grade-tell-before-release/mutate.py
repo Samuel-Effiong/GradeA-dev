@@ -68,6 +68,20 @@ GRADED_LIKE_SUBMITTED = (
     L + "test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts"
 )
 RULE_3 = G + "test_rule_3_a_student_is_refused_every_review_queue_filter"
+P = T + "StudentPollsARefusedTaskTest."
+POLL_UPLOAD = [
+    P + "test_upload_refused_before_the_extraction",
+    P + "test_upload_when_a_grade_lands_during_the_extraction",
+    P + "test_upload_when_only_the_check_under_the_row_lock_can_catch_it",
+    P + "test_upload_when_a_grading_claim_lands_during_the_extraction",
+    P + "test_upload_claim_caught_only_by_the_check_under_the_row_lock",
+]
+POLL_EDIT = [
+    P + "test_edit_refused_before_the_extraction",
+    P + "test_edit_when_a_grade_lands_during_the_extraction",
+    P + "test_edit_when_a_grading_claim_lands_during_the_extraction",
+    P + "test_edit_refused_while_the_paper_is_being_graded",
+]
 RULE_H133 = G + "test_h133_the_list_serializer_hides_the_grading_state_and_schedule"
 
 # name: (file, text as it is, text of the mutant, tests that must fail)
@@ -150,6 +164,58 @@ MUTANTS = {
             B + "test_the_two_busy_cases_get_one_and_the_same_answer",
             T
             + "TheRefusalCodesAreAClosedListTest.test_each_closing_refusal_has_its_code",
+        ],
+    ),
+    # ---- the queued tasks, as a student who polls reads them (the delta
+    # after Verifier 1's pre-read): the code on the tracked row, and one
+    # mutant for each check that decides whose sentence the task carries.
+    "P1_the_upload_task_does_not_put_the_code_on_the_tracked_row": (
+        "assignments/tasks.py",
+        '                "step": "Submission refused",\n'
+        '                "assignment_id": assignment_id,\n'
+        "                **_refusal_code(exc),\n",
+        '                "step": "Submission refused",\n'
+        '                "assignment_id": assignment_id,\n',
+        POLL_UPLOAD,
+    ),
+    "P2_the_edit_task_does_not_put_the_code_on_the_tracked_row": (
+        "assignments/tasks.py",
+        '                "step": "Submission edit refused",\n'
+        '                "submission_id": submission_id,\n'
+        "                **_refusal_code(exc),\n",
+        '                "step": "Submission edit refused",\n'
+        '                "submission_id": submission_id,\n',
+        POLL_EDIT,
+    ),
+    "P3_the_uploads_checks_before_the_lock_speak_as_to_a_teacher": (
+        "students/services.py",
+        "        _check_submission_open(existing, student_upload=True, told_to_student=True)\n",
+        "        _check_submission_open(existing, student_upload=True, told_to_student=False)\n",
+        [
+            P + "test_upload_refused_before_the_extraction",
+            P + "test_upload_when_a_grade_lands_during_the_extraction",
+            P + "test_upload_when_a_grading_claim_lands_during_the_extraction",
+        ]
+        + CLOSED_SYNC[:2],
+    ),
+    "P4_the_uploads_check_under_the_lock_speaks_as_to_a_teacher": (
+        "students/services.py",
+        "                    student_upload=is_student_self_upload,\n"
+        "                    told_to_student=is_student_self_upload,\n",
+        "                    student_upload=is_student_self_upload,\n"
+        "                    told_to_student=False,\n",
+        [
+            P + "test_upload_when_only_the_check_under_the_row_lock_can_catch_it",
+            P + "test_upload_claim_caught_only_by_the_check_under_the_row_lock",
+        ],
+    ),
+    "P5_the_edits_check_under_the_lock_speaks_as_to_a_teacher": (
+        "students/services.py",
+        "                locked, student_upload=False, told_to_student=told_to_student\n",
+        "                locked, student_upload=False, told_to_student=False\n",
+        [
+            P + "test_edit_when_a_grade_lands_during_the_extraction",
+            P + "test_edit_when_a_grading_claim_lands_during_the_extraction",
         ],
     ),
     # ---- the student's list

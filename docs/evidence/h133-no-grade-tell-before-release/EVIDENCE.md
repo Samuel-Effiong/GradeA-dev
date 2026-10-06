@@ -45,7 +45,10 @@ and the student is not told why in words that name grading.
   `submission_closed` (graded), `submission_busy` (being graded, and an earlier upload still
   being processed), `submission_attempts_used` (the limit). The 409 body is
   `{"error": "<sentence>", "code": "<code>"}`; the queued task's result gains the same `code`
-  key. The codes are attributes of the four exception classes, which keep their names and their
+  key. **Added after the first gate (Verifier 1's pre-read; SM ruling about 17:55):** the code is
+  also put on the tracked task row (`meta["code"]`), because a client that POLLS a queued task is
+  served that row by the task-status route and never the task's return value; as first built, a
+  polling student read the neutral sentence and no code. The codes are attributes of the four exception classes, which keep their names and their
   place in every handler. The names say what the caller can do, never why.
 - **The student's list** (`StudentSubmissionListSerializer`, a student caller only):
   `grading_state` is `DONE` once the grade is released and `IDLE` until then, never `RUNNING` or
@@ -77,8 +80,9 @@ Production files: `students/exceptions.py`, `students/services.py`, `students/vi
 
 - A student's refusal sentences change (the two above). Do not match on sentences: every such
   refusal now carries `code`: `submission_closed`, `submission_busy`, `submission_attempts_used`.
-  The key is added beside `error` (HTTP 409 as before) and to the queued task's result beside
-  `message`.
+  **Where each client finds it:** on an immediate refusal, in the 409 body beside `error`; on a
+  queued upload or edit that is refused, in the task-status answer, inside `meta` (which that
+  route sends as text: it holds `'code': '<code>'` and `'error': '<sentence>'`).
 - On the student's submission list: `grading_state` is `IDLE` until the grade is released, then
   `DONE`; the three scheduling fields are null, null and false.
 - `?grading_state=` answers 403 for a student.
@@ -150,3 +154,60 @@ KILLED.
 ## Not done
 
 Nothing run. No database, staging or live service contacted. The frontend not read.
+
+## Results
+
+Everything above this heading was written before the runs and is left as written, except the two
+places marked "added after the first gate".
+
+### The gate, at 6fc161e2 (0b's GRANT, 2026-10-06 17:49:09 WAT)
+
+One run of `run_h133_gate.sh 6fc161e2 1 7944259e` (script sha256 a599fabeb3b21dfb), 17:49:26 to
+17:57:42, script exit 0, serial, 6G scope, rules 12, 13, 16, 17 and 18. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0, the new module and the guard on the five production files as at 7944259e | red, 17 named tests, no others | exit 1: Ran 35 tests in 3.458s, FAILED (failures=19, errors=3). **Exactly the 17 named tests.** 22 result lines, because two of the 17 have sub-cases (four and three). | `prefix_base_production_failing_6fc161e2.txt.gz` |
+| makemigrations --check | no changes | no changes | `makemigrations_check_6fc161e2.txt` |
+| 1, the new module, the guard, 12 related modules, 22 guard modules, at the tip | exit 0, OK | exit 0: **Ran 527 tests in 176.055s, OK (skipped=1)** | `modules_and_guards_6fc161e2.txt.gz` |
+| 2, mutants | 17 KILLED | **17 of 17 KILLED**; SURVIVED 0, KILLED_NOT_AS_EXPECTED 0, BROKEN 0 | `mutation_log_6fc161e2.txt`, `mutation_results_6fc161e2.json`, `mutant_logs_6fc161e2/` |
+
+- The one skip is the opt-in real, billed AI call in `students.tests_async_edit_path`
+  (`RUN_REAL_AI`). The H-130 test changed in 2233be8a is among the passing.
+- Every mutant's inner run shows its own "Ran 66 tests" line, exit 1, every named test among the
+  failures, and 0 `__pycache__` directories left. Files restored after step 0 and after every
+  mutant; the mutants' database dropped.
+- Load average: 4.50 4.69 5.82 at the start; step 1 from 5.01 to 7.05; 13.84 9.15 7.25 at the end
+  of the battery (another project's work beside it). Nothing in this gate has a wall-clock limit.
+- The logs are as the runs wrote them, gzipped. Before gzip: step 1's log 259,383 bytes, 2,687
+  lines, sha256 starts 5d7d39d75c58b274, "Ran" at line 2684, "OK" at 2686; step 0's log 55,435
+  bytes, 676 lines, sha256 starts c701dc63c43062b3, "Ran" at line 671, "FAILED" at 673.
+
+### After the gate: one delta, from Verifier 1's pre-read of 6fc161e2
+
+Verifier 1 read the code before running anything and found that the stable code did not reach a
+student who polls (see "What changes"). The SM ruled a fold. Tests first, then the code:
+- nine tests, `StudentPollsARefusedTaskTest`: the real upload task and the real edit task run for
+  a student, and the task-status route read as that student. Refused before the extraction; a
+  grade, and a grading claim, landing during the extraction (for the upload both the check after
+  the AI call and, with the earlier checks taken out, the one under the row lock; for the edit the
+  check under the lock); the paper being graded when the edit runs. Each expects the neutral
+  sentence, the code on the tracked row and in the polled answer, and no form of the word "grade"
+  anywhere in the answer. These are also the paths Verifier 1 named as read by no test of mine.
+- the code: `assignments/tasks.py`, the two refusal handlers put the code into the tracked row's
+  meta. No other production file changes.
+- five more mutants (P1 to P5): the code left off the tracked row in each task; and, for each
+  check that decides whose sentence a task carries (the upload's checks before the lock, its
+  check under the lock, the edit's check under the lock), the teacher's sentence given to a
+  student.
+
+So the gate's results stand for everything the delta does not touch, and these are owed on the
+final tip and NOT yet run as I write this: the modules and guards once more; the mutants on the
+two production files the delta's tests and code bear on, `assignments/tasks.py` (C2, P1, P2) and
+`students/services.py` (S1 to S6, P3 to P5), twelve in all; then the regression. The other ten
+mutants (C1, C3, L1 to L6, F1, F2) are on `students/views.py`, `students/exceptions.py` and
+`students/serializers.py`, which the delta does not change; the new test module only gained
+tests.
+
+**Written before the second run:** the 1b step: exit 0, OK, 536 tests (the 527 and the nine new),
+skipped=1. The twelve mutants: 12 KILLED, each with every test named for it.
