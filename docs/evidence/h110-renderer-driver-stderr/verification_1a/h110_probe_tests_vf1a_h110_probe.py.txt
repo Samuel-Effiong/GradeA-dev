@@ -1,0 +1,479 @@
+"""1a's verification probes for H-110. Not committed.
+
+The author's tests show the pipe's mode with a real driver, and the reader
+on bytes the tests write themselves. In all of the author's runs the real
+driver wrote nothing to its stderr. These add:
+
+A1: a real driver that DOES write (Playwright's own debug output, switched
+    on by the DEBUG environment variable): its lines arrive in the log
+    through the reader, none of them reaches the process's own stderr, the
+    render still succeeds and the process's stderr pipe stays blocking.
+A2: the control for A1: the same run with the hand-over switched off. The
+    debug text is then on the process's own stderr and the pipe is
+    non-blocking, so A1 can see the defect.
+A3: a normal exit. After one render the fresh interpreter ends by itself
+    (no kill) in good time with status 0, and the driver and everything
+    under it are gone. The reader thread must not keep the process alive:
+    Python joins non-daemon threads BEFORE the atexit step that stops the
+    driver.
+B1: a start that fails after the real driver is up (Chromium does not
+    launch), ten times: no descriptor, thread or child process is left.
+B2: a start that fails before any driver (Playwright's start raises), ten
+    times: the same.
+C:  the reader on input the author's tests do not give it: a character
+    split across two writes, carriage returns and Unicode line separators
+    (one driver line must stay one log line), NUL bytes, and a line long
+    enough to pass the bound on an unfinished line three times.
+"""
+
+import json
+import os
+import select
+import subprocess
+import sys
+import threading
+import time
+import unittest
+
+from django.conf import settings
+from django.test import SimpleTestCase
+
+from assignments import pdf_renderer
+from assignments.pdf_renderer import _DriverStderr
+from assignments.tests_pdf_renderer import _CHROMIUM_AVAILABLE
+
+LOGGER = "assignments.pdf_renderer"
+PREFIX = "[PDF] Playwright driver stderr: "
+
+CHILD = r"""
+import contextlib, json, logging, os, sys, threading, time
+from django.conf import settings
+settings.configure(DEBUG=False)
+from playwright._impl import _transport
+original = _transport._get_stderr_fileno
+from assignments import pdf_renderer
+
+PREFIX = "[PDF] Playwright driver stderr: "
+
+
+class Keep(logging.Handler):
+    def __init__(self):
+        super().__init__(level=logging.DEBUG)
+        self.kept = []
+
+    def emit(self, record):
+        self.kept.append((record.levelname, record.getMessage()))
+
+
+keep = Keep()
+pdf_renderer.logger.addHandler(keep)
+pdf_renderer.logger.propagate = False  # the log writes nothing to stderr here
+mode = os.environ["VF1A_MODE"]
+
+
+def fds():
+    return len(os.listdir("/proc/self/fd"))
+
+
+def live_children():
+    mine = []
+    for name in os.listdir("/proc"):
+        if not name.isdigit():
+            continue
+        try:
+            with open(f"/proc/{name}/stat") as f:
+                state, ppid = f.read().rsplit(")", 1)[1].split()[:2]
+        except OSError:
+            continue
+        if int(ppid) == os.getpid() and state != "Z":
+            mine.append(int(name))
+    return mine
+
+
+def renderer_threads():
+    return sorted(
+        t.name
+        for t in threading.enumerate()
+        if t.name in ("chromium-pdf-renderer", "pdf-driver-stderr")
+    )
+
+
+def wait_until(condition, seconds):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if condition():
+            return True
+        time.sleep(0.05)
+    return bool(condition())
+
+
+def driver_lines():
+    return [m[len(PREFIX):] for _level, m in list(keep.kept) if m.startswith(PREFIX)]
+
+
+if mode in ("render", "render_no_handover"):
+    if mode == "render_no_handover":
+        @contextlib.contextmanager
+        def nothing(self):
+            yield
+        pdf_renderer._DriverStderr.handed_to_playwright = nothing
+    pdf = pdf_renderer.render_html_to_pdf(
+        "<html><head><title>vf1a h110</title></head><body><p>one page</p></body></html>"
+    )
+    worker = pdf_renderer._get_worker()
+    driver = worker._playwright._impl_obj._connection._transport._proc
+    if "DEBUG" in os.environ and mode == "render":
+        wait_until(lambda: len(driver_lines()) > 0, 10)
+        time.sleep(1.0)
+    lines = driver_lines()
+    print(json.dumps({
+        "pdf_magic": pdf[:5].decode("latin1"),
+        "driver_pid": driver.pid,
+        "handed_over": worker._driver_stderr.handed_over,
+        "hook_is_the_original_again": _transport._get_stderr_fileno is original,
+        "fd2_blocking_seen_inside": os.get_blocking(2),
+        "reader_is_reading": worker._driver_stderr.is_reading(),
+        "driver_lines": len(lines),
+        "lines_naming_the_browser_channel": sum("pw:browser" in l for l in lines),
+        "lines_naming_the_protocol_channel": sum("pw:protocol" in l for l in lines),
+        "lines_cut": sum(l.endswith(" [cut]") for l in lines),
+        "longest_line": max((len(l) for l in lines), default=0),
+        "lines_with_a_control_character": sum(not l.isprintable() for l in lines),
+        "error_lines": [m[:60] for level, m in keep.kept if level == "ERROR"],
+    }), flush=True)
+    for _ in sys.stdin:
+        pass
+    # A normal end of the interpreter from here on: no os._exit, no kill.
+else:
+    if mode == "launch_fails":
+        async def no_chromium(self, playwright):
+            raise RuntimeError("vf1a: Chromium does not launch here")
+        pdf_renderer._ChromiumRenderWorker._launch = no_chromium
+    elif mode == "start_fails":
+        class _Fails:
+            async def start(self):
+                raise RuntimeError("vf1a: the driver does not start here")
+        pdf_renderer.async_playwright = _Fails
+    else:
+        raise SystemExit(f"unknown mode {mode}")
+
+    def attempt():
+        try:
+            pdf_renderer._get_worker()
+            return "started"
+        except pdf_renderer.PDFRenderError:
+            return "refused"
+
+    def quiet():
+        return wait_until(lambda: not renderer_threads() and not live_children(), 30)
+
+    warm_up = [attempt(), quiet(), attempt(), quiet()]
+    before = fds()
+    results, quiets = [], []
+    for _ in range(10):
+        results.append(attempt())
+        quiets.append(quiet())
+    print(json.dumps({
+        "warm_up": warm_up,
+        "results": results,
+        "quiet_after_each": quiets,
+        "descriptors_before": before,
+        "descriptors_after": fds(),
+        "renderer_threads_left": renderer_threads(),
+        "live_children_left": len(live_children()),
+        "hook_is_the_original_again": _transport._get_stderr_fileno is original,
+        "worker_is_none": pdf_renderer._worker is None,
+        "driver_lines": len(driver_lines()),
+        "error_lines": [m[:60] for level, m in keep.kept if level == "ERROR"],
+    }), flush=True)
+"""
+
+
+def _stat(pid):
+    """(state, parent pid, start time) of a process, or None if it is gone."""
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            fields = f.read().rsplit(")", 1)[1].split()
+    except OSError:
+        return None
+    return fields[0], int(fields[1]), fields[19]
+
+
+def _tree(root):
+    """{pid: start time} of a process and everything under it."""
+    parents = {}
+    for name in os.listdir("/proc"):
+        if name.isdigit():
+            stat = _stat(int(name))
+            if stat:
+                parents[int(name)] = stat
+    found = {root: parents[root][2]} if root in parents else {}
+    grew = True
+    while grew:
+        grew = False
+        for pid, (_state, ppid, started) in parents.items():
+            if ppid in found and pid not in found:
+                found[pid] = started
+                grew = True
+    return found
+
+
+def _still_there(tree):
+    """The pids of `tree` that are still the same live processes."""
+    alive = []
+    for pid, started in tree.items():
+        stat = _stat(pid)
+        if stat and stat[2] == started and stat[0] != "Z":
+            alive.append(pid)
+    return alive
+
+
+class Drain(threading.Thread):
+    """Keeps the test's stderr pipe read, as a log collector would."""
+
+    def __init__(self, read_fd):
+        super().__init__(daemon=True)
+        self.read_fd = os.dup(read_fd)
+        self.data = b""
+
+    def run(self):
+        try:
+            while True:
+                piece = os.read(self.read_fd, 65536)
+                if not piece:
+                    return
+                self.data += piece
+        finally:
+            os.close(self.read_fd)
+
+
+@unittest.skipUnless(_CHROMIUM_AVAILABLE, "needs headless Chromium")
+class H110RealDriverProbe(SimpleTestCase):
+    def start_child(self, mode, **extra_env):
+        self.read_end, self.write_end = os.pipe()
+        self.open_fds = {self.read_end, self.write_end}
+        self.addCleanup(self._close, self.read_end)
+        self.addCleanup(self._close, self.write_end)
+        self.drain = Drain(self.read_end)
+        self.drain.start()
+        env = {k: v for k, v in os.environ.items() if k not in ("DEBUG", "DEBUG_FILE")}
+        env.update(PYTHONDONTWRITEBYTECODE="1", VF1A_MODE=mode, **extra_env)
+        self.child = subprocess.Popen(
+            [sys.executable, "-B", "-c", CHILD],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=self.write_end,
+            cwd=str(settings.BASE_DIR),
+            env=env,
+            text=True,
+        )
+        self.tree = {}
+        self.addCleanup(self.end_child)
+        ready, _, _ = select.select([self.child.stdout], [], [], 120)
+        self.assertTrue(ready, "the fresh interpreter never reported its render")
+        line = self.child.stdout.readline()
+        self.assertTrue(line, "the fresh interpreter ended before reporting")
+        facts = json.loads(line)
+        self.assertEqual(_stat(facts["driver_pid"])[1], self.child.pid)
+        self.tree = _tree(facts["driver_pid"])
+        return facts
+
+    def _close(self, fd):
+        # Once only: a closed descriptor's number can be reused.
+        if fd in self.open_fds:
+            self.open_fds.discard(fd)
+            os.close(fd)
+
+    def end_child(self):
+        """Never leaves a process of this test behind. Only the child by
+        its Popen handle, and the driver's tree by pid AND start time."""
+        try:
+            self.child.stdin.close()
+        except (OSError, ValueError):
+            pass
+        try:
+            self.child.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            self.child.kill()
+            self.child.wait()
+        self.child.stdout.close()
+        deadline = time.monotonic() + 15
+        while _still_there(self.tree) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        for pid in _still_there(self.tree):
+            os.kill(pid, 9)
+
+    def stderr_text(self):
+        """What reached the process's own stderr, once every writer is gone."""
+        self._close(self.write_end)
+        self.drain.join(timeout=20)
+        self.assertFalse(self.drain.is_alive(), "a writer still holds the stderr pipe")
+        return self.drain.data.decode("utf-8", "replace")
+
+    def test_a1_what_a_real_driver_writes_arrives_in_the_log(self):
+        facts = self.start_child("render", DEBUG="pw:browser,pw:protocol")
+
+        self.assertEqual(facts["pdf_magic"], "%PDF-")
+        self.assertIs(facts["handed_over"], True)
+        self.assertIs(facts["hook_is_the_original_again"], True)
+        self.assertEqual(facts["error_lines"], [])
+        self.assertGreater(facts["driver_lines"], 0, "no driver line reached the log")
+        self.assertGreater(facts["lines_naming_the_browser_channel"], 0)
+        self.assertEqual(facts["lines_with_a_control_character"], 0)
+        self.assertLessEqual(
+            facts["longest_line"], pdf_renderer.DRIVER_STDERR_MAX_LINE + len(" [cut]")
+        )
+        self.assertTrue(os.get_blocking(self.write_end))
+        self.assertIs(facts["fd2_blocking_seen_inside"], True)
+        self.assertIs(facts["reader_is_reading"], True)
+
+        self.end_child()
+        own = self.stderr_text()
+        self.assertNotIn("pw:", own, "driver output reached the process's own stderr")
+        shown = {k: v for k, v in facts.items() if k.startswith(("driver_l", "lines_", "longest"))}
+        print(
+            f"\nVF1A_H110_A1 a real driver with its debug output on: {shown}; "
+            f"bytes on the process's own stderr: {len(own.encode())}"
+        )
+
+    def test_a2_control_without_the_hand_over_the_defect_is_seen(self):
+        facts = self.start_child("render_no_handover", DEBUG="pw:browser")
+
+        self.assertEqual(facts["pdf_magic"], "%PDF-")
+        self.assertIs(facts["handed_over"], False)
+        self.assertEqual(len(facts["error_lines"]), 1, facts["error_lines"])
+        self.assertIn("did not take the renderer's stderr pipe", facts["error_lines"][0])
+        self.assertEqual(facts["driver_lines"], 0)
+        self.assertFalse(
+            os.get_blocking(self.write_end), "the control did not show the defect"
+        )
+
+        self.end_child()
+        own = self.stderr_text()
+        self.assertIn("pw:browser", own)
+        print(
+            "\nVF1A_H110_A2 control, hand-over off: the pipe was non-blocking, "
+            f"{own.count('pw:browser')} debug lines on the process's own stderr, "
+            "the ERROR logged once"
+        )
+
+    def test_a3_a_normal_exit_ends_the_process_and_the_driver(self):
+        facts = self.start_child("render")
+        self.assertEqual(facts["pdf_magic"], "%PDF-")
+        self.assertIs(facts["reader_is_reading"], True)
+        self.assertGreaterEqual(len(self.tree), 2, "no browser under the driver?")
+
+        started = time.monotonic()
+        self.child.stdin.close()
+        try:
+            status = self.child.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            self.fail(
+                "the interpreter did not end within 20 s of the end of its work: "
+                "something keeps it alive at exit"
+            )
+        took = time.monotonic() - started
+
+        self.assertEqual(status, 0)
+        deadline = time.monotonic() + 10
+        while _still_there(self.tree) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        self.assertEqual(_still_there(self.tree), [], "the driver's tree outlived the process")
+        self.assertTrue(os.get_blocking(self.write_end))
+        own = self.stderr_text()
+        print(
+            f"\nVF1A_H110_A3 normal exit after one render: status 0 in {took:.1f} s, "
+            f"{len(self.tree)} processes of the driver's tree gone; "
+            f"{len(own.encode())} bytes on stderr at exit: {own[:300]!r}"
+        )
+
+
+class H110FailedStartProbe(SimpleTestCase):
+    def run_child(self, mode):
+        env = {k: v for k, v in os.environ.items() if k not in ("DEBUG", "DEBUG_FILE")}
+        env.update(PYTHONDONTWRITEBYTECODE="1", VF1A_MODE=mode)
+        done = subprocess.run(
+            [sys.executable, "-B", "-c", CHILD],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            cwd=str(settings.BASE_DIR),
+            env=env,
+            text=True,
+            timeout=300,
+        )
+        shown = f"stdout:\n{done.stdout}\nstderr:\n{done.stderr[-3000:]}"
+        self.assertEqual(done.returncode, 0, shown)
+        return json.loads(done.stdout.strip().splitlines()[-1]), done.stderr
+
+    def assertNothingLeft(self, facts):
+        self.assertEqual(facts["warm_up"], ["refused", True, "refused", True])
+        self.assertEqual(facts["results"], ["refused"] * 10)
+        self.assertEqual(facts["quiet_after_each"], [True] * 10)
+        self.assertEqual(facts["descriptors_after"], facts["descriptors_before"])
+        self.assertEqual(facts["renderer_threads_left"], [])
+        self.assertEqual(facts["live_children_left"], 0)
+        self.assertIs(facts["hook_is_the_original_again"], True)
+        self.assertIs(facts["worker_is_none"], True)
+        self.assertEqual(
+            [e for e in facts["error_lines"] if "did not take" in e], []
+        )
+
+    def test_b1_chromium_does_not_launch_ten_times(self):
+        facts, _stderr = self.run_child("launch_fails")
+        self.assertNothingLeft(facts)
+        print(
+            "\nVF1A_H110_B1 the real driver starts, Chromium does not, 10 times: "
+            f"descriptors {facts['descriptors_before']} -> {facts['descriptors_after']}, "
+            "no renderer thread, no child process, the hook the original"
+        )
+
+    def test_b2_the_driver_does_not_start_ten_times(self):
+        facts, _stderr = self.run_child("start_fails")
+        self.assertNothingLeft(facts)
+        print(
+            "\nVF1A_H110_B2 Playwright's start raises, 10 times: "
+            f"descriptors {facts['descriptors_before']} -> {facts['descriptors_after']}, "
+            "no renderer thread"
+        )
+
+
+class H110ReaderProbe(SimpleTestCase):
+    def read(self, *chunks):
+        pipe = _DriverStderr()
+        with self.assertLogs(LOGGER, level="WARNING") as caught:
+            pdf_renderer.logger.warning("sentinel")
+            for chunk in chunks:
+                os.write(pipe.write_fd, chunk)
+                time.sleep(0.05)  # so that each write is read on its own
+            pipe.close(timeout=10)
+        self.assertFalse(pipe.is_reading())
+        return [record.getMessage() for record in caught.records[1:]]
+
+    def test_c1_a_character_split_across_two_writes_arrives_whole(self):
+        whole = "café 测试 \U0001f393 ok\n".encode()
+        for at in (4, 8, 9, 13, 14, 15):
+            with self.subTest(split_at=at):
+                self.assertEqual(
+                    self.read(whole[:at], whole[at:]), [PREFIX + "café 测试 \U0001f393 ok"]
+                )
+        print("\nVF1A_H110_C1 a 2-, 3- and 4-byte character split across two writes: whole")
+
+    def test_c2_one_driver_line_stays_one_log_line(self):
+        raw = (
+            "real\r2026-10-06 ERROR forged\x0b\x0c\x1c\x1d\x1e\x85   end\x00\n"
+        ).encode()
+        [message] = self.read(raw)
+        self.assertEqual(message.splitlines(), [message])
+        self.assertEqual(
+            message, PREFIX + "real?2026-10-06 ERROR forged" + "?" * 8 + " end?"
+        )
+        print("\nVF1A_H110_C2 CR, VT, FF, FS, GS, RS, NEL, LS, PS and NUL: one line, replaced")
+
+    def test_c3_a_line_of_400_000_bytes_is_logged_once(self):
+        """However the reader's reads fall, 400,000 bytes pass the bound on
+        an unfinished line at least three times: one cut line, not three."""
+        self.assertEqual(
+            self.read(b"v" * 400_000 + b"\nnext\n"),
+            [PREFIX + "v" * pdf_renderer.DRIVER_STDERR_MAX_LINE + " [cut]", PREFIX + "next"],
+        )
+        print("\nVF1A_H110_C3 a 400,000-byte line: one cut line, then the next line")
