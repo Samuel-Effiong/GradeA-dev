@@ -51,6 +51,7 @@ DOC_07 = "docs/phase2/architecture/07_epic_i1_implementation_plan.md"
 
 CONFIG_TESTS = ["ai_processor.tests_grading_config"]
 LABEL_TESTS = ["students.tests_grading_label_fields"]
+ROW_TESTS = ["students.tests_grading_label_migration"]
 MIGRATION_TESTS = [
     "students.tests_grading_label_fields",
     "AutoGrader.tests_migration_rollback_defaults",
@@ -322,6 +323,19 @@ MUTANTS = [
         MIGRATION_TESTS,
         "fresh",
     ),
+    (
+        "M4",
+        "the migration gives one column another word as its database default",
+        MIGRATION,
+        '            name="grading_model",\n'
+        "            field=models.CharField(\n"
+        '                db_default="unlabelled",\n',
+        '            name="grading_model",\n'
+        "            field=models.CharField(\n"
+        '                db_default="legacy",\n',
+        ROW_TESTS,
+        "fresh",
+    ),
 ]
 
 #: The failing test each mutant must produce. Written before any run.
@@ -353,6 +367,7 @@ EXPECTED = {
     "M1": "test_each_column_is_not_null_with_the_placeholder_as_its_default",
     "M2": "test_no_index_was_added_for_them",
     "M3": "test_each_column_is_not_null_with_the_placeholder_as_its_default",
+    "M4": "test_a_row_made_before_0031_reads_the_placeholder_after_it",
 }
 
 #: A test module that could not be loaded.
@@ -398,7 +413,14 @@ def main():
     LOGS.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     results = {}
+    # MUT_ONLY="M4" runs the named mutants alone (a delta after a battery
+    # that already ran). Give MUT_RESULTS another file then, so the first
+    # battery's results are not overwritten.
+    only = set(os.environ.get("MUT_ONLY", "").split())
+    assert only <= set(EXPECTED), f"unknown mutants in MUT_ONLY: {only}"
     for mid, what, path, old, new, tests, kind in MUTANTS:
+        if only and mid not in only:
+            continue
         original = originals[path]
         database = ["--keepdb"] if kind == "keepdb" else []
         try:

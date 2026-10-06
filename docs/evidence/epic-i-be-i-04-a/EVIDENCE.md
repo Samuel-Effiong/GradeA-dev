@@ -61,6 +61,11 @@ hold each of those places.
    slice A only; for slices B and C the red tests are their own commit first, with its red run
    logged.
 
+3. **The founder's sentence in the docstring of `_populate_and_save_grade` is OWED IN SLICE C.**
+   The note put it there as one of the places for slice A. That function does not write the
+   label until slice C, and this slice does not touch it. It is in the help text of the six
+   columns, the comment at the fields, both new modules and the three documents now.
+
 ## Limits
 
 - No grade is labelled by this slice.
@@ -245,8 +250,114 @@ G1 to G15 ran `ai_processor.tests_grading_config` (25 tests). L1 to L9 ran
 `AutoGrader.tests_migration_rollback_defaults` (29 together), each on a database built from the
 mutated migration.
 
-### Still owed
+### The regression: one full run by 0b at 58326e45: GREEN
 
-The regression. `StudentSubmission` is read by every app, so it is the full suite. By the SM's
-ruling 0b makes one full run on the frozen tip with its own script; the author writes no
-parallel script. Its result is added here by a later, evidence-only commit.
+`StudentSubmission` is read by every app, so the regression for this model change is the full
+suite. By the SM's ruling 0b made it, once, with its own script; the author wrote no parallel
+script and did not touch the worktree while it ran.
+
+| What | Result |
+|---|---|
+| Whole-repository mypy | Passed |
+| `makemigrations --check` | No changes detected |
+| Full suite, `--parallel 4` | exit 0: Ran 6442 tests in 471.359s, OK (skipped=30). No FAIL or ERROR header |
+
+- Run by 0b (the Release Engineer): `gate10_slice_a.sh 58326e45 a1`, the Phase 2 Gate 10 script
+  pointed at this worktree and branch (script sha256 prefix 26686784a172115f, kept in
+  `~/Documents/Projects/GAP-0b-runs/`). 12G cap, the shared machine lock, the sleep inhibitor, a
+  300 s silence watchdog that never fired, output straight to a file.
+- Times, 2026-10-06: script start 15:27:01 (load 1.80); suite 15:27:33 (load 2.20 2.64 5.24) to
+  15:35:51 (load 7.03 5.58 5.57), 498 s on the wall. No suspend. Nothing else ran beside it.
+- Per app: ai_processor 855, assignments 663, audit 367, AutoGrader 613, billing 2139, classrooms
+  434, dashboard 270, students 403, users 698; sum 6442.
+- The 30 skips, by 0b's count of their printed reasons: 12 real AI, 9 load tests, 4 network,
+  1 Redis, 2 audit benchmarks, 2 that cannot fork inside a parallel worker. None for want of
+  Chromium.
+- The log is committed whole and byte-exact as `full_run_0b_58326e45.log.xz` (xz, because gzip
+  left it above the hook's 500 KB limit): 8,553,294 bytes unpacked, sha256
+  `b16ab45546617954b6f16d6a332e8bd16e59b5b8359bef508378f0bc96705733`, which is the figure 0b gave
+  and the one I computed from 0b's file. "Ran" is line 112058 and "OK" line 112060. 0b's own
+  summary is `full_run_0b_58326e45.summary.txt`.
+- The run was at 58326e45. This commit adds only files in this evidence folder on top of it, so
+  the run stands for the new tip.
+
+- **The pattern check of that log,** by program, values never printed. No URL with a password
+  part. Nine NAME=value matches on names containing "token" (lines 40440 to 55821): each value
+  is made only of lowercase letters, underscores, dots and brackets, the shape of code text in
+  test output. Two lines (80444 and 80449) are a test's "blocked unsafe fetch" warning for a
+  made-up host, whose address carries the word "secret"; my first report did not list them, the
+  SM's message named them and accepted them as a test stand-in.
+
+## The Checker's verdict and the delta it requires
+
+Verdict at 58326e45: **VERIFIED-WITH-NOTES**, with five items required before the merge; none is
+a fault in the code the slice ships. The record is committed byte-identical as
+`VERIFICATION_be_i_04_slice_a.md` (sha256
+`e47b32fca3a3bf669913b59678c4860fba754a26cd14d1be5bf817d3c3494163`, compared with the Checker's
+file before the commit and with the committed blob after it).
+
+| # | Item | Done by |
+|---|---|---|
+| 1 | A committed test that a row made at `students` 0030 reads `unlabelled` in all six columns after 0031, and that the migration reverses; with a mutant as its red proof | `students/tests_grading_label_migration.py`; mutant M4 |
+| 2 | The evidence says the founder's sentence in `_populate_and_save_grade` is owed in slice C | "Differences from the accepted design note", point 3 |
+| 3 | The gate script committed | `run_be_i_04_a_gate.sh.txt`, a copy of `~/Documents/Projects/GAP-builder-scripts/run_be_i_04_a_gate.sh` as it stands for the delta run |
+| 4 | `GRADING_RELEASE_ID` named in the example environment file, empty, one comment line | `.example.env` |
+| 5 | 0b's full-suite log committed and its result written here | de05d7c6, the section above |
+
+- **Item 1's test is the Checker's.** By the SM's ruling the Checker handed over one probe class
+  with its helpers (it passed at 58326e45 in the Checker's own run). It is adopted as written;
+  the class name and the two docstrings are mine, and one expression was changed for the type
+  checker: `float(fresh.score)` became `float(fresh.score or 0)`. A missing score still fails
+  that assertion (0.0 is not 7.0). I changed an assertion for the type checker once before in
+  this slice and it was wrong; this one I checked by reading: `score` is a nullable decimal, and
+  the row is created with 7. I read nothing else of the Checker's but the
+  record I was asked to commit.
+- **Mutant M4, written before any run of it:** the migration gives `grading_model` the word
+  `legacy` as its database default. Expected failing test:
+  `test_a_row_made_before_0031_reads_the_placeholder_after_it`. It runs on a database built
+  fresh and destroyed afterwards, because the test moves the schema back and forth through the
+  mutated migration.
+- **The gate script has a new mode, `1d`,** for this delta: part 1 (the modules, now with the
+  new one, and the 26 guards) and M4 alone. Step 0 and the other 27 mutants are not repeated:
+  the delta changes no file they act on. `mutate.py` gained a `MUT_ONLY` switch for that; its
+  other 27 entries and their expected names are unchanged.
+- **Not re-run:** the full suite. The delta adds one test module and one line of an example
+  environment file; whether that needs a new full run is 0b's to say.
+
+### Expected for the delta run, written before it
+
+- Part 1: OK. One test more than run 2's 400, so 401, if the new module's one test is the only
+  change in count.
+- M4: KILLED, with its own "Ran" line (Ran 1 test) and the expected test failing.
+
+### Delta run at 670a7f65: GREEN
+
+One grant from 0b, 2026-10-06 15:42:43 to 15:45:59, mode `1d` of the committed gate script. One
+run, serial, 6G scope, rules 12, 13, 16, 17 and 18. Not stopped, not repeated. One other serial
+run of the team's went on beside it, within 0b's limit; no test here asserts on the wall clock.
+
+| Part | Result | Log |
+|---|---|---|
+| 1: three new modules, one near module, 26 guards | exit 0: Ran 401 tests in 153.426s, OK. No skips. 401 as predicted | `modules_and_guards_670a7f65.txt` |
+| M4, on a database built fresh | KILLED: exit 1, its own "Ran 1 test in 2.306s", FAILED (failures=1), no load failure, and the one failing test is the expected `test_a_row_made_before_0031_reads_the_placeholder_after_it` | `mutation_log_delta.txt`, `mutation_results_delta.json`, `mutant_logs/M4.txt` |
+
+- Load average 4.02 4.24 4.86 at the start, 4.44 4.49 4.85 at the end.
+- The new test passed in part 1, and the 26 guard modules ran after it in the same process on
+  the same database, which the migration test had left at the latest state.
+- "source clean after the mutant"; the mutation database was dropped. `console_delta_670a7f65.txt`
+  is the script's own output. All five files are as written (none has trailing whitespace).
+- **My release message for this run went out late,** at 16:32, though the run ended at 15:46.
+  Nothing ran or was re-run in between; 0b had to ask. The run's times above are from the
+  console, whose file time is 15:46:01.
+
+### Why no second full run (0b's ruling)
+
+The full suite passed at 58326e45. After it, outside this evidence folder, exactly two files
+changed: `students/tests_grading_label_migration.py` (new, one test) and `.example.env` (two
+lines, an example file no code reads). No code under test, no model and no migration changed.
+The new test module was run here, once, with the guards (rule 15.4). The staging refresh's own
+full run comes again after slice B in any case.
+
+### Mutants in all
+
+28, all KILLED: 27 in run 2 at b0da8237 and M4 in the delta run at 670a7f65.
