@@ -214,6 +214,52 @@ in the runner since 2401d461, before any run.
 | T1 | the provider call uses a literal temperature again | KILLED, Ran 73 tests | `test_the_call_that_leaves_the_app_uses_the_constant` |
 | T2 | the temperature is left out of the settings version | KILLED, Ran 73 tests | `test_it_is_in_the_settings_version` |
 
+## The delta after the Checker's reading (SM ruling, 2026-10-06 17:28)
+
+**The Checker found this by reading, before any verdict.** The whole answer object is sent to
+the AI (`json.dumps` of each answer: `ai_processor/services.py:2665`, `:2684`, `:3907-3917`), but
+the key held only the answer's text. Two answers with the same text and a different
+`answer_status` (blank against "not found in the document") or different `transcription_notes`
+("partly illegible") shared a key, so the second student would get the first one's saved grade
+although the AI would have been told something different. My own "the answer" in the key was the
+text alone; the ruling that named "the whole question as sent and the answer" was only half
+followed.
+
+**Ruling:** the key also takes `answer_status` and `transcription_notes`. It does NOT take
+`source_page`, `confidence` or the answer's own copy of `question_text`: they differ from student
+to student for the same text, and matching on them would end all reuse. Those three are a stated
+limit. What is sent to the AI does not change.
+
+**Order of work, as for the slice:** the red tests are this commit, alone; then the code; then
+mutants with their expected failing tests named first.
+
+### The delta's red tests, and what is expected of them (written before any run)
+
+`TheAnswerAsSentTest` in `ai_processor/tests_grading_cache_key_v2.py`, 12 tests. Against the code
+as at 59990797:
+
+Expected to FAIL (5):
+- `test_the_same_text_with_a_different_status_is_a_fresh_grade`
+- `test_the_same_text_with_different_notes_is_a_fresh_grade`
+- `test_a_status_against_no_status_is_a_fresh_grade`
+- `test_notes_against_no_notes_is_a_fresh_grade`
+- `test_an_inner_difference_in_the_notes_is_a_fresh_grade`
+
+Expected to PASS today (7), each needing a mutant later:
+- `test_the_same_status_and_notes_are_reused`
+- `test_a_different_page_and_confidence_do_not_break_the_match` (stated limit)
+- `test_the_answers_own_copy_of_the_question_text_does_not_break_the_match` (stated limit)
+- `test_no_status_is_one_thing_however_it_is_written`
+- `test_no_notes_is_one_thing_however_it_is_written`
+- `test_outer_whitespace_of_the_notes_is_not_compared`
+- `test_a_status_that_is_not_text_does_not_crash_the_grading`
+
+**How "nothing said" is handled, a decision of mine stated for the verifier:** a field that is
+missing, `None`, empty or only whitespace is one and the same thing for the match. The text sent
+to the AI does differ between those forms (a missing key, `null`, `""`), and I judge that none of
+them tells the AI anything. Outer whitespace of the notes is not compared, as for the answer's
+text; an inner difference is.
+
 ### Still owed
 
 The regression: one full run by 0b on the frozen tip (SM ruling). By the same ruling it stands as

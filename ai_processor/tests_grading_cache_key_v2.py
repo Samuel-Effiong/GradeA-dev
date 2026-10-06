@@ -480,6 +480,145 @@ class AMarkerInsideTheReplyIsNeverKeptTest(_PipelineCase):
         self.assertNotIn('setdefault("graded_by"', source)
 
 
+def _full_answer(text="<p>Essay 1 photosynthesis answer.</p>", **fields):
+    answer = {"question_number": 1, "answer_html": text}
+    answer.update(fields)
+    return [answer]
+
+
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@patch.object(AIProcessor, "execute_graded_task")
+class TheAnswerAsSentTest(_PipelineCase):
+    """Delta after the Checker's reading (SM ruling, 2026-10-06). The whole
+    answer object is sent to the AI, not only its text. Two answers with the
+    same text and a different `answer_status` (blank against "not found in
+    the document") or different `transcription_notes` ("partly illegible")
+    tell the AI different things, so they must not share a saved answer.
+
+    STATED LIMIT, pinned here: `source_page`, `confidence` and the answer's
+    own copy of `question_text` are also sent and are NOT part of the
+    match. They differ from student to student for the same text, so
+    matching on them would end all reuse.
+
+    "Nothing said" is one thing however it is written: a field that is
+    missing, None, empty or only whitespace matches itself in any of those
+    forms. Outer whitespace of the notes is not compared, as for the
+    answer's text."""
+
+    def gradings(self, mock_execute, *answers):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        for answer in answers:
+            self.grade(answer=answer)
+        return mock_execute.call_count
+
+    def test_the_same_text_with_a_different_status_is_a_fresh_grade(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(answer_status="ANSWERED"),
+            _full_answer(answer_status="ILLEGIBLE"),
+        )
+        self.assertEqual(calls, 2)
+
+    def test_the_same_text_with_different_notes_is_a_fresh_grade(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(transcription_notes="Clear handwriting."),
+            _full_answer(transcription_notes="Second line partly illegible."),
+        )
+        self.assertEqual(calls, 2)
+
+    def test_a_status_against_no_status_is_a_fresh_grade(self, mock_execute):
+        calls = self.gradings(
+            mock_execute, _full_answer(), _full_answer(answer_status="ILLEGIBLE")
+        )
+        self.assertEqual(calls, 2)
+
+    def test_notes_against_no_notes_is_a_fresh_grade(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(),
+            _full_answer(transcription_notes="Second line partly illegible."),
+        )
+        self.assertEqual(calls, 2)
+
+    def test_the_same_status_and_notes_are_reused(self, mock_execute):
+        same = {
+            "answer_status": "ANSWERED",
+            "transcription_notes": "Clear handwriting.",
+        }
+        calls = self.gradings(mock_execute, _full_answer(**same), _full_answer(**same))
+        self.assertEqual(calls, 1)
+
+    def test_a_different_page_and_confidence_do_not_break_the_match(self, mock_execute):
+        """STATED LIMIT."""
+        same = {
+            "answer_status": "ANSWERED",
+            "transcription_notes": "Clear handwriting.",
+        }
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(source_page=1, confidence=0.99, **same),
+            _full_answer(source_page=7, confidence=0.41, **same),
+        )
+        self.assertEqual(calls, 1)
+
+    def test_the_answers_own_copy_of_the_question_text_does_not_break_the_match(
+        self, mock_execute
+    ):
+        """STATED LIMIT."""
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(question_text="Essay question 1?"),
+            _full_answer(question_text="Essay question 1 ?  (as transcribed)"),
+        )
+        self.assertEqual(calls, 1)
+
+    def test_no_status_is_one_thing_however_it_is_written(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(),
+            _full_answer(answer_status=None),
+            _full_answer(answer_status=""),
+            _full_answer(answer_status="   "),
+        )
+        self.assertEqual(calls, 1)
+
+    def test_no_notes_is_one_thing_however_it_is_written(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(),
+            _full_answer(transcription_notes=None),
+            _full_answer(transcription_notes=""),
+            _full_answer(transcription_notes="  \n "),
+        )
+        self.assertEqual(calls, 1)
+
+    def test_outer_whitespace_of_the_notes_is_not_compared(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(transcription_notes="Second line partly illegible."),
+            _full_answer(transcription_notes="  Second line partly illegible.\n"),
+        )
+        self.assertEqual(calls, 1)
+
+    def test_an_inner_difference_in_the_notes_is_a_fresh_grade(self, mock_execute):
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(transcription_notes="Second line partly illegible."),
+            _full_answer(transcription_notes="Second  line partly illegible."),
+        )
+        self.assertEqual(calls, 2)
+
+    def test_a_status_that_is_not_text_does_not_crash_the_grading(self, mock_execute):
+        """Whatever sits in the field, a grading never fails over the key."""
+        calls = self.gradings(
+            mock_execute,
+            _full_answer(answer_status=["ANSWERED"], transcription_notes={"a": 1}),
+            _full_answer(answer_status=["ANSWERED"], transcription_notes={"a": 1}),
+        )
+        self.assertEqual(calls, 1)
+
+
 class TheTemperatureIsPartOfTheSettingsVersionTest(SimpleTestCase):
     """SM ruling, 2026-10-06: the release cannot stand in for the
     temperature, because it changes on every deploy."""
