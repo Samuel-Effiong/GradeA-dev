@@ -401,3 +401,34 @@ declare their audience) are where that is to be pinned.
 
 **Expected, replacing the counts above:** M1 must fail six tests (the four and these two). The
 rest as written.
+
+### Results of the max_points delta, at a9ca796b (0b's GRANT, 2026-10-06 19:26:30 WAT)
+
+One run, not repeated, under the grant as written (6G, rules 12, 13, 16, 17, 18; output to
+files). The other project's full run was going beside it for the first part.
+
+| Part | When | Result |
+|---|---|---|
+| Modules and guards, with `students.tests_grading_hardening` added | 19:27:03 to 19:36:20; load 16.7 at the start, 13.4 at the end | exit 0; **Ran 555 tests in 478.941s, OK (skipped=1)** |
+| Nine mutants on the final `students/serializers.py` | 19:36:20 to 19:40:31; load 4.6 at the end | **9 of 9 KILLED**, each with its named tests; none survived, none killed otherwise, none broken |
+
+Each mutant's inner run has its own line "Ran 83 tests" and ended non-zero; no `__pycache__` was
+left; the source was clean afterwards and the mutation database was dropped (the script's own
+lines say so; I did not look at the database server myself).
+
+- M1 (the student is shown the grader's maximum before release): failed exactly the six tests
+  named, the four whole-answer tests and the two manual-grade tests, and no other.
+- M2 and M3: each failed its one named test (its log counts 2 failures: the two readings, list
+  and page, of that one test).
+- L1 to L6, again on the final file: each failed its named tests. L1, L3, L4 and L5 also failed
+  new whole-answer tests, as written beforehand.
+
+Nothing differed from what was written before the run.
+
+Rule 19 for this delta, from this run's records: the eight new tests have all been seen red, six
+under M1, one under M2, one under M3. With them the module has 37 tests, of which 36 have been
+seen red in some run; `test_a_submitted_paper` remains the one that never has.
+
+Logs: `modules_and_guards_a9ca796b.txt.gz`, `mutation_log_a9ca796b.txt`,
+`mutation_results_a9ca796b.json`, `mutant_logs_a9ca796b/`. Still owed as this is committed: the
+regression (students and assignments) once more, by the Senior Manager's ruling, on 0b's grant.
