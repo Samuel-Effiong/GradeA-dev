@@ -1,6 +1,20 @@
 # 07 — Epic I-1 Implementation Plan (BE-I-04 provenance + `SubmissionGrading` expand step)
 
 **Status:** plan for review. Nothing here is implemented.
+
+> **Superseded for I-1 (note added 2026-10-06, BE-I-04).** This plan was not
+> built. On 2026-10-06 the founder's representative chose the small version
+> of BE-I-04: six label columns on `StudentSubmission`, written in the same
+> `UPDATE` as the score, with no second table, copy job, parity checker or
+> feature flag. **That is the first form of the grading record. A later
+> stage improves on it: the table of grading runs this plan describes, built
+> beside re-grading or feedback editing and filled from those columns.** See
+> [03a_data_model.md](03a_data_model.md) §2.12 and §4.4 and
+> [05_epics_b_to_i_roadmap.md](05_epics_b_to_i_roadmap.md) §3.8. This
+> document is kept as the starting draft for that later table; its code
+> facts are from 2026-09-26 and most have moved. Its version format with
+> "@" must not be used: audit metadata drops anything shaped like an email
+> address.
 **Companion to:** [05_epics_b_to_i_roadmap.md](05_epics_b_to_i_roadmap.md) (§2.2 option (a), §3.8, §7),
 [01a_requirements_specification.md](01a_requirements_specification.md) (FR-I-04, FR-I-05, NFR-MDL-03, NFR-OBS-04, NFR-TST-01),
 [03a_data_model.md](03a_data_model.md) (§2.12 `SubmissionGrading`, §2.13, §4.4),

@@ -450,6 +450,16 @@ three-deploy expand → migrate readers → contract. Columns added to
 is still unverified, 03a §8 item 6). Configuration content lives in code;
 only a version string is stored (X-1).
 
+> **As decided (note added 2026-10-06, BE-I-04).** The slicing below was
+> changed by the founder's representative on 2026-10-06. BE-I-04 is built now
+> in its small version: six label columns on `StudentSubmission`, written
+> with the grade (03a §4.4). **That is the first form of the grading record.
+> A later stage improves on it: the table of grading runs**
+> (`SubmissionGrading`). Its expand step is moved to just before re-grading
+> (I-2) or feedback editing (E3), whichever comes first, and the table is
+> then filled from those columns. §2.2
+> option (a), which pulled the expand step into Stage 1, no longer applies.
+
 **Slicing.** **I-1** = BE-I-04 + `SubmissionGrading` expand step
 (Stage 1, §2.2 option (a)). **I-2** = strictness, regrade, migrating the four
 readers via E1's service, contract step (~2 wk, after E1).
