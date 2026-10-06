@@ -107,7 +107,10 @@ class SecondOpinionSerializer(serializers.Serializer):
     (ai_processor/second_opinion.py's REASON_* constants) that picked it
     for a second opinion. The skip-path fields (skipped/skipped_reason/
     error) are only present when no second opinion ran at all — e.g. no
-    independent model was available, or the pass failed after retries."""
+    independent model was available, or the pass failed after retries.
+    `error` is one of ai_processor.services.SECOND_OPINION_ERROR_CODES
+    (H-128); a row saved before that change can still hold an error's own
+    text."""
 
     selected = serializers.DictField(
         child=serializers.ListField(child=serializers.CharField()),

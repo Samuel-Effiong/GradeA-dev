@@ -24,7 +24,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, ParseError
+from rest_framework.exceptions import NotAcceptable, ParseError, PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -69,6 +69,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .feedback_projection import grading_result_for_formatter
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -262,7 +263,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     ordering_fields = ["student__first_name", "student__last_name", "review_severity"]
     ordering = ["student__first_name"]
 
+    #: H-127: the review queue is the teacher's. A student who could filter
+    #: or order their own list by it would learn, from which rows come
+    #: back, that the two graders disagreed and how badly - the very thing
+    #: the list serializer hides from them.
+    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier")
+    TEACHER_ONLY_ORDERINGS = ("review_severity",)
+
+    def _refuse_review_queue_query_from_a_student(self):
+        if self.request.user.user_type != UserTypes.STUDENT:
+            return
+        params = self.request.query_params
+        ordering = params.get(api_settings.ORDERING_PARAM) or ""
+        ordered_by = {term.strip().lstrip("-") for term in ordering.split(",")}
+        if any(name in params for name in self.TEACHER_ONLY_FILTERS) or (
+            ordered_by & set(self.TEACHER_ONLY_ORDERINGS)
+        ):
+            raise PermissionDenied(
+                "This filter or ordering is not available for your account."
+            )
+
     def filter_queryset(self, queryset):
+        self._refuse_review_queue_query_from_a_student()
         queryset = super().filter_queryset(queryset)
         # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
         # ?ordering=-review_severity returned every un-flagged submission
@@ -295,13 +317,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission = self.get_object()
         # `usr` ALONE, and this was corrected by a test rather than
         # reasoned: `global` was added here first, on the assumption that
-        # the payload renders the teacher-owned assignment live. It does
-        # not. `assignment` is serialised as a bare UUID and `raw_input` is
-        # a snapshot materialised ONCE and persisted on the submission row,
-        # so a teacher retitling the assignment provably does not change
-        # this response. Everything this payload does reflect - score,
-        # feedback, grade status, raw_input - belongs to the submission,
-        # whose save bumps its student's generation.
+        # the payload renders the teacher-owned assignment live. For staff
+        # it does not: `assignment` is serialised as a bare UUID and
+        # `raw_input` is a snapshot materialised ONCE and persisted on the
+        # submission row, so a teacher retitling the assignment does not
+        # change a staff response. Everything that payload reflects -
+        # score, feedback, grade status, raw_input - belongs to the
+        # submission, whose save bumps its student's generation.
+        #
+        # Since H-130 a STUDENT's response before release does follow the
+        # assignment: the document is rebuilt from the row at read time
+        # (students.services.answer_document_for_student), with the
+        # assignment's current title and due date. `usr` is still enough,
+        # because an assignment's save bumps every enrolled student's
+        # generation (assignments/signals.py); the test
+        # test_a_rename_the_teacher_saves_refreshes_the_students_cached_document
+        # holds that link.
         cache_key = versioned_key(
             f"studentsubmissions:user_id__{request.user.id}"
             f":instance_id__{submission.id}",
@@ -674,7 +705,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 e, "We couldn't save your update. Please try again."
             )
 
-        serializer = StudentSubmissionListSerializer(submission)
+        # With the request, so the serializer knows a student is asking
+        # (H-127: it hides the unreleased score and the review fields).
+        serializer = StudentSubmissionListSerializer(
+            submission, context=self.get_serializer_context()
+        )
         return Response(serializer.data, status=HTTP_201_CREATED)
 
     @extend_schema(
@@ -928,7 +963,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 Grading Result:
 
-                {grading}
+                {grading_result_for_formatter(grading)}
 
                 Return a formatted response
                 """
@@ -1100,7 +1135,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         Grading Result:
 
-        {submission.feedback}
+        {grading_result_for_formatter(submission.feedback)}
 
         Return a formatted response
         """

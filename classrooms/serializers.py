@@ -23,6 +23,7 @@ from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 
+from .final_grade import released_final_grade
 from .models import (
     Course,
     CourseCategory,
@@ -359,6 +360,38 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     def get_teacher(self, obj):
         return obj.course.teacher.get_full_name()
 
+    # H-130. The stored `final_grade` counts every graded submission,
+    # released or not: it is the staff figure. A student must not learn
+    # that a grade exists before the teacher releases it, so anyone who is
+    # not staff gets the figure that released work alone implies, by the
+    # same arithmetic. "Not staff" rather than "a student": a reader this
+    # cannot identify is treated as one. Staff here means a teacher: the
+    # viewset serves enrollments to teachers and students and to nobody
+    # else (StudentCourseViewSet.get_queryset).
+
+    def _reader_is_staff(self):
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        return getattr(user, "user_type", None) == UserTypes.TEACHER
+
+    def _final_grade_for_reader(self, obj):
+        if self._reader_is_staff():
+            return obj.final_grade
+        # The viewset's own prefetch (student__submissions, each with its
+        # assignment): no query per enrollment.
+        return released_final_grade(obj.student.submissions.all(), obj.course_id)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self._reader_is_staff():
+            grade = self._final_grade_for_reader(instance)
+            data["final_grade"] = (
+                None
+                if grade is None
+                else self.fields["final_grade"].to_representation(grade)
+            )
+        return data
+
     def validate_final_grade(self, value):
         """Validate that final_grade is between 0 and 100."""
         if value is not None and (value < 0 or value > 100):
@@ -418,9 +451,10 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     def get_grade_letter(self, obj):
         # `is not None`, not truthiness: a genuine 0.00 is a grade (an F),
         # not the absence of one.
-        if obj.final_grade is None:
+        grade = self._final_grade_for_reader(obj)
+        if grade is None:
             return None
-        return get_grade_details(obj.final_grade)
+        return get_grade_details(grade)
 
 
 class StudentCourseDetailSerializer(StudentCourseSerializer):

@@ -186,6 +186,14 @@ class TheApiReportsAZeroFinalGradeAsAGrade(FinalGradeZeroScoreBase):
 
     def test_student_sees_zero_and_an_f(self):
         self.grade_by_ai(self.submission, 0)
+        # A student reads released work only (H-130), so release it first.
+        self.client.force_authenticate(self.teacher)
+        released = self.client.post(
+            reverse(
+                "student-submission-publish-grade", kwargs={"pk": self.submission.pk}
+            )
+        )
+        self.assertEqual(released.status_code, status.HTTP_200_OK, released.data)
         data = self.fetch(self.student)
         self.assertEqual(Decimal(data["final_grade"]), Decimal("0.00"))
         self.assertIsNotNone(

@@ -1,0 +1,3 @@
+17:27:47 mutants start: loadavg 3.39 4.65 4.67 7/2885 1862185
+17:29:07 mutants end exit=0: loadavg 9.19 6.37 5.28 4/2918 1867489
+17:29:07 probe removed; tree is the frozen tip again

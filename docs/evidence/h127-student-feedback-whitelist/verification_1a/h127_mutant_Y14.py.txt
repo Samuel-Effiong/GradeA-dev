@@ -1,0 +1,15 @@
+"""1a's mutant Y14 for H-127: the formatted-grade reader treats only syntax
+and value errors as "nothing". Any other failure of the reader (too deep,
+out of memory) then leaves the function, and the student's page answers
+with a server error for that row instead of showing nothing. The SM's
+ruling: every failure reads as nothing. Not in the author's battery.
+Expected: see h127_expected_kills.txt. Applied in place in the current
+directory; restore with git checkout. Run with python -B (rule 17)."""
+
+P = "students/feedback_projection.py"
+s = open(P, encoding="utf-8").read()
+old = '        except Exception:  # noqa: BLE001 - every failure to read is "nothing"\n'
+new = "        except (ValueError, SyntaxError):\n"
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y14")

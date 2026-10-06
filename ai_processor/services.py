@@ -17,7 +17,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from environ import Env
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 from pdf2image import convert_from_bytes, convert_from_path
 from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
@@ -154,6 +154,44 @@ class GradingCompletenessError(ValueError):
     (H2). Same rationale as GradingEvidenceError: a ValueError subclass so
     retry behaviour is unchanged, distinct so it can be counted.
     """
+
+
+#: H-128: what is saved as `second_opinion["error"]` when a second opinion
+#: fails. The grading result is saved whole as the submission's feedback, so
+#: the error's own text must not be in it: that text can be the teacher's
+#: credit balance, the reason their plan was refused, or the AI provider's
+#: whole error body (the provider library's message is "Error code: <status>
+#: - <the response body>"). The text goes to the log, which is scrubbed.
+#: A closed list; ai_processor/tests_second_opinion_error_code.py names it.
+SECOND_OPINION_ERROR_CODES = (
+    "out_of_credits",
+    "access_refused",
+    "provider_error",
+    "evidence_rejected",
+    "incomplete_response",
+    "other",
+)
+
+
+def _second_opinion_error_code(exc) -> str:
+    """The code for a failed second opinion: the first failure of a known
+    kind in the exception's chain of causes, else "other". Never any of
+    the exception's text."""
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, InsufficientCreditsError):
+            return "out_of_credits"
+        if isinstance(exc, AIFeatureNotAvailableError):
+            return "access_refused"
+        if isinstance(exc, GradingEvidenceError):
+            return "evidence_rejected"
+        if isinstance(exc, GradingCompletenessError):
+            return "incomplete_response"
+        if isinstance(exc, OpenAIError):
+            return "provider_error"
+        exc = exc.__cause__
+    return "other"
 
 
 CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
@@ -2772,10 +2810,12 @@ Do not include any explanatory text before or after the JSON
                     f"[Grading] Batch {batch_number}, attempt {attempt + 1}: "
                     f"AI call failed — {str(e)}"
                 )
+        # `from last_error`: the caller of a second opinion saves a code for
+        # the KIND of failure (H-128), and reads it from this chain.
         raise Exception(
             f"[Grading] Batch {batch_number}/{total_batches} failed after 3 attempts. "
             f"Last error: {last_error}"
-        )
+        ) from last_error
 
     def _build_overall_grading_summary(
         self,
@@ -3492,17 +3532,20 @@ Do not include any explanatory text before or after the JSON
             # subsequent submission with nothing to tell them. Flag it for
             # review instead: grader A's grade still stands (as always),
             # but it now surfaces in the queue as unverified.
+            # The refusal's text names the teacher's balance. It goes to
+            # the log; what is saved is a code (H-128).
             logger.warning(
                 "[Grading] Second opinion skipped: out of credits. "
                 "Grader A's result stands, flagged for review. "
-                "processing_task_id=%s",
+                "processing_task_id=%s - %s",
                 processing_task_id,
+                e,
             )
             result["second_opinion"] = {
                 "skipped": "insufficient credits",
                 "skipped_reason": "insufficient_credits",
                 "selected": selected_readable,
-                "error": str(e),
+                "error": _second_opinion_error_code(e),
                 "needs_review": True,
                 "review_reason": "second_opinion_unavailable",
             }
@@ -3511,7 +3554,9 @@ Do not include any explanatory text before or after the JSON
                 "[Grading] Second-opinion pass failed — grader A's result "
                 "stands unflagged."
             )
-            result["second_opinion"] = {"error": str(e)}
+            # logger.exception above has the text; the saved result gets a
+            # code only (H-128).
+            result["second_opinion"] = {"error": _second_opinion_error_code(e)}
         return result
 
     def grade_student_submission(
