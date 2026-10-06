@@ -260,6 +260,32 @@ to the AI does differ between those forms (a missing key, `null`, `""`), and I j
 them tells the AI anything. Outer whitespace of the notes is not compared, as for the answer's
 text; an inner difference is.
 
+### Three more items in the same delta (SM, from the Checker's reading)
+
+A second tests-only commit, before any code of the delta: `TheChunkedPathTest` (4 tests) and
+`ThePartsOfTheKeyCannotRunTogetherTest` (5 tests) in the same module. I wrote these tests; the
+Checker probes on its own. Expected against the code as at 59990797, written before any run:
+
+Expected to FAIL (2), where the behaviour is new:
+- `test_a_separator_inside_a_part_cannot_pass_for_a_boundary`: today each part is followed by a
+  NUL byte, so a part ending in NUL beside an empty part gives the same bytes as the part beside
+  a part that is one NUL.
+- `test_the_last_part_of_the_context_and_the_answer_cannot_run_together`: the same weakness
+  between the teacher's instructions and the answer.
+
+Expected to PASS today (7); the code already does it, and a mutant with its expected failing
+test named first is the proof:
+- `test_the_first_long_paper_is_marked_in_parts` (a guard on the fixture)
+- `test_an_identical_second_long_paper_makes_no_provider_call`
+- `test_a_graded_by_in_a_chunks_reply_is_replaced`
+- `test_a_from_cache_in_a_chunks_reply_is_dropped_and_all_are_stored`
+- `test_a_character_moved_across_a_boundary_changes_the_key`
+- `test_the_model_and_the_assignment_cannot_run_together`
+- `test_the_same_parts_give_the_same_key`
+
+A NUL cannot be stored in a text column of this database, so the weakness the two red tests show
+is not one a teacher could reach today; the key is made unambiguous all the same.
+
 ### Still owed
 
 The regression: one full run by 0b on the frozen tip (SM ruling). By the same ruling it stands as

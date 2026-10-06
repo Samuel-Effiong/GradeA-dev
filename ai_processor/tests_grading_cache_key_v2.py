@@ -619,6 +619,165 @@ class TheAnswerAsSentTest(_PipelineCase):
         self.assertEqual(calls, 1)
 
 
+LONG_PAPER = 12
+assert LONG_PAPER > services.GRADING_QUESTIONS_PER_CHUNK  # the chunked path
+
+SUMMARY_REPLY = {
+    "overall_performance_analysis": "Solid work overall.",
+    "grader_meta_analysis": "Consistent scoring across batches.",
+    "grading_confidence": 90,
+    "recommendations": ["Review question 3."],
+}
+
+
+def _long_paper():
+    questions = [_essay(n) for n in range(1, LONG_PAPER + 1)]
+    answers = [
+        _answer(n, f"<p>Essay {n} answer.</p>") for n in range(1, LONG_PAPER + 1)
+    ]
+    return questions, answers
+
+
+def _chunked_replies(model=MAIN, **marker):
+    """A provider for the chunked path: a batch call gets an evaluation for
+    every question of the paper (the pipeline keeps the ones of its batch),
+    the summary call gets the summary. `marker` is put into every
+    evaluation, to play a reply that carries its own markers."""
+
+    def reply(**kwargs):
+        if kwargs.get("response_schema") is services.GRADING_BATCH_RESPONSE_SCHEMA:
+            evaluations = [
+                dict(
+                    _evaluation(n, score=8),
+                    evidence_quotes=[f"Essay {n} answer"],
+                    **marker,
+                )
+                for n in range(1, LONG_PAPER + 1)
+            ]
+            return _ai_response(_payload(evaluations), model)
+        return _ai_response(SUMMARY_REPLY, model)
+
+    return reply
+
+
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@patch.object(AIProcessor, "execute_graded_task")
+class TheChunkedPathTest(_PipelineCase):
+    """A long paper is marked in parts. The saved-answer store and the
+    rule on a reply's own markers must hold there as on the single pass."""
+
+    def grade_long(self):
+        questions, answers = _long_paper()
+        return self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=questions,
+            answer_json=answers,
+            assignment_model=_assignment(),
+        )
+
+    def test_the_first_long_paper_is_marked_in_parts(self, mock_execute):
+        """Guard on the fixture: more than one batch call and a summary."""
+        mock_execute.side_effect = _chunked_replies()
+        result = self.grade_long()
+        self.assertEqual(mock_execute.call_count, 3)
+        self.assertEqual(len(result["question_evaluations"]), LONG_PAPER)
+
+    def test_an_identical_second_long_paper_makes_no_provider_call(self, mock_execute):
+        mock_execute.side_effect = _chunked_replies()
+        self.grade_long()
+        mock_execute.reset_mock()
+        second = self.grade_long()
+        self.assertEqual(mock_execute.call_count, 0)
+        self.assertEqual(len(second["question_evaluations"]), LONG_PAPER)
+        for evaluation in second["question_evaluations"]:
+            self.assertIs(evaluation.get("from_cache"), True)
+
+    def test_a_graded_by_in_a_chunks_reply_is_replaced(self, mock_execute):
+        mock_execute.side_effect = _chunked_replies(
+            "backup/model-x", graded_by="deterministic"
+        )
+        result = self.grade_long()
+        graders = {e.get("graded_by") for e in result["question_evaluations"]}
+        self.assertEqual(graders, {"backup/model-x"})
+
+    def test_a_from_cache_in_a_chunks_reply_is_dropped_and_all_are_stored(
+        self, mock_execute
+    ):
+        mock_execute.side_effect = _chunked_replies(from_cache=True)
+        with patch.object(grading_cache, "cache") as store:
+            store.get.return_value = None
+            result = self.grade_long()
+        for evaluation in result["question_evaluations"]:
+            self.assertNotIn("from_cache", evaluation)
+        self.assertEqual(store.set.call_count, LONG_PAPER)
+        served = {call.args[1]["served_model"] for call in store.set.call_args_list}
+        self.assertEqual(served, {MAIN})
+
+
+def _context(**changes):
+    values = {
+        "assignment_id": "assignment-1",
+        "assignment_title": "title",
+        "assignment_instructions": "instructions",
+        "custom_instructions": "custom",
+        "prompt_version": "PROMPT:00000000",
+        "config_version": "cfg:000000000000",
+    }
+    values.update(changes)
+    return grading_cache.MatchContext(**values)
+
+
+class ThePartsOfTheKeyCannotRunTogetherTest(SimpleTestCase):
+    """Instructions "ab" with a title "c" must not match instructions "a"
+    with a title "bc", for any two neighbouring parts; and nothing inside
+    a part can pass for the boundary between two."""
+
+    #: The text parts of the context, in the order the key takes them.
+    NEIGHBOURS = (
+        ("assignment_id", "prompt_version"),
+        ("prompt_version", "config_version"),
+        ("config_version", "assignment_title"),
+        ("assignment_title", "assignment_instructions"),
+        ("assignment_instructions", "custom_instructions"),
+    )
+
+    def key(self, context, model_name="model", answer="<p>answer</p>"):
+        return grading_cache.build_cache_key(
+            _essay(1), answer, model_name=model_name, context=context
+        )
+
+    def test_a_character_moved_across_a_boundary_changes_the_key(self):
+        for left, right in self.NEIGHBOURS:
+            with self.subTest(left=left, right=right):
+                one = _context(**{left: "ab", right: "c"})
+                other = _context(**{left: "a", right: "bc"})
+                self.assertNotEqual(self.key(one), self.key(other))
+
+    def test_the_model_and_the_assignment_cannot_run_together(self):
+        self.assertNotEqual(
+            self.key(_context(assignment_id="b-1"), model_name="model-a"),
+            self.key(_context(assignment_id="-1"), model_name="model-ab"),
+        )
+
+    def test_a_separator_inside_a_part_cannot_pass_for_a_boundary(self):
+        """Whatever the key puts between two parts, a part that holds the
+        same character must not look like two parts."""
+        for separator in ("\x00", "\x1f", "\n", "|", '","', "\\"):
+            for left, right in self.NEIGHBOURS:
+                with self.subTest(separator=repr(separator), left=left):
+                    one = _context(**{left: "a" + separator, right: ""})
+                    other = _context(**{left: "a", right: separator})
+                    self.assertNotEqual(self.key(one), self.key(other))
+
+    def test_the_last_part_of_the_context_and_the_answer_cannot_run_together(self):
+        one = self.key(_context(custom_instructions="custom\x00"), answer="x")
+        other = self.key(_context(custom_instructions="custom"), answer="\x00x")
+        self.assertNotEqual(one, other)
+
+    def test_the_same_parts_give_the_same_key(self):
+        self.assertEqual(self.key(_context()), self.key(_context()))
+
+
 class TheTemperatureIsPartOfTheSettingsVersionTest(SimpleTestCase):
     """SM ruling, 2026-10-06: the release cannot stand in for the
     temperature, because it changes on every deploy."""
