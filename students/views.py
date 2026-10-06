@@ -69,6 +69,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .feedback_projection import grading_result_for_formatter
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -953,7 +954,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 Grading Result:
 
-                {grading}
+                {grading_result_for_formatter(grading)}
 
                 Return a formatted response
                 """
@@ -1125,7 +1126,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         Grading Result:
 
-        {submission.feedback}
+        {grading_result_for_formatter(submission.feedback)}
 
         Return a formatted response
         """
