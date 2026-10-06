@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from decimal import Decimal
 from html import escape
 
 from django.conf import settings
@@ -80,6 +81,13 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
     student_name = submission.student.get_full_name()
     if show_grade:
         graded_at, score = submission.graded_at, submission.score
+        if graded_at and score is not None:
+            # A graded row prints its score with two decimals whichever
+            # path builds the document. Grading and the manual grade hold
+            # the score as a float ("7.0"), a row read back holds a decimal
+            # ("7.00"), and a genuine zero is falsy, which `safe()` prints
+            # as nothing. A row with no grading time is left as it was.
+            score = format(Decimal(str(score)), ".2f")
     else:
         # Not `None`: a new row's score is the column's default (zero), and
         # the document of a submitted row is printed from that.

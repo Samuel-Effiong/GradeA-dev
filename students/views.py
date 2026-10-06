@@ -1109,6 +1109,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             ]
         submission.needs_review = False
 
+        # The stored answer document prints the score in its header, and a
+        # released student reads the stored document: rebuild it from the
+        # row as it now is, as grading does, or the paper keeps the old
+        # score beside the new one.
+        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+            student_submission_to_html(submission)
+        )
+
         # Update the formatted grade since the score/feedback changed
 
         submission.save(
@@ -1121,6 +1129,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "regraded_at",
                 "needs_review",
                 "review_reasons",
+                "raw_input",
             ]
         )
 
