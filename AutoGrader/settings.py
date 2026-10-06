@@ -765,6 +765,13 @@ GRADING_ANSWER_CACHE_ENABLED = env.bool("GRADING_ANSWER_CACHE_ENABLED", default=
 GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
     "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
 )
+# BE-I-04: the release that is running, recorded on every grade beside the
+# settings version (ai_processor/grading_config.py). It covers what the
+# settings version cannot: instruction text and rules written directly in
+# the code. Empty means the host does not say, and each grade then records
+# the word "none". Never part of the settings version or of the
+# saved-answer matching, so a deploy changes neither.
+GRADING_RELEASE_ID = env.str("GRADING_RELEASE_ID", default="")
 
 # Rendered-PDF cache (assignments/pdf_cache.py): a downloaded assignment
 # PDF costs a full headless-Chromium render to produce and is identical
