@@ -514,18 +514,57 @@ class StudentFormattedGradeTest(StudentFeedbackRoutesBase):
     def test_a_released_grade_stored_in_python_text_form(self):
         self.set_grade(is_published=True, formatted_grade=str(FULL_FORMATTED_GRADE))
         response, shown = self.get_formatted_grade()
-        self.assertIsInstance(shown, str)
+        # The same Python text form the page has always received.
+        self.assertEqual(shown, str(STUDENT_FORMATTED_GRADE))
         self.assertEqual(ast.literal_eval(shown), STUDENT_FORMATTED_GRADE)
         self.assert_nothing_for_the_teacher(response)
 
-    def test_a_released_grade_stored_as_json_text(self):
+    def test_json_text_that_is_also_python_text_is_projected_the_same_way(self):
+        """The text is read as a Python literal and nothing else (SM ruling).
+        JSON of strings and numbers is one, and comes back in Python form."""
         self.set_grade(
             is_published=True, formatted_grade=json.dumps(FULL_FORMATTED_GRADE)
         )
         response, shown = self.get_formatted_grade()
-        self.assertIsInstance(shown, str)
-        self.assertEqual(json.loads(shown), STUDENT_FORMATTED_GRADE)
+        self.assertEqual(shown, str(STUDENT_FORMATTED_GRADE))
         self.assert_nothing_for_the_teacher(response)
+
+    def test_json_text_that_is_not_python_text_is_shown_as_nothing(self):
+        stored = json.dumps({**FULL_FORMATTED_GRADE, "strengths": None})
+        self.assertIn("null", stored)
+        self.set_grade(is_published=True, formatted_grade=stored)
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_a_very_long_value_is_shown_as_nothing(self):
+        """Refused by its length, before any attempt to read it."""
+        padded = dict(FULL_FORMATTED_GRADE, strengths=["x" * 600_000])
+        self.set_grade(is_published=True, formatted_grade=str(padded))
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_a_deeply_nested_value_is_shown_as_nothing(self):
+        """Reading it fails; the failure is an answer of nothing, not a 500."""
+        nested = "[" * 10_000 + "'FLAG FOR THE TEACHER'" + "]" * 10_000
+        self.set_grade(is_published=True, formatted_grade=nested)
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_text_that_would_run_code_is_only_ever_read_never_run(self):
+        self.set_grade(
+            is_published=True,
+            formatted_grade="__import__('os').getcwd() or {'strengths': ['x']}",
+        )
+        _, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+
+    def test_an_empty_value_is_shown_as_nothing(self):
+        self.set_grade(is_published=True, formatted_grade="")
+        _, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
 
     def test_text_that_is_not_a_dictionary_is_shown_as_nothing(self):
         self.set_grade(
