@@ -7,8 +7,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
 from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
+from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
-from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import (  # Rubric
@@ -544,7 +544,9 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     def get_performance_summary(self, obj):
         submission = self._get_submission(obj)
         if submission and submission.is_published:
-            return submission.feedback or submission.ai_feedback
+            # H-127: the student projection, never the saved column. The
+            # saved result also holds what is written for the teacher.
+            return student_safe_feedback(submission.feedback or submission.ai_feedback)
         return None
 
     def get_student_submission_id(self, obj):
@@ -556,10 +558,6 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         if submission:
             return submission.raw_input
         return None
-
-    def get_submission(self, obj):
-        submission = self._get_submission(obj)
-        return StudentSubmissionSerializer(submission).data
 
     def get_assignment_raw_input(self, obj):
         """

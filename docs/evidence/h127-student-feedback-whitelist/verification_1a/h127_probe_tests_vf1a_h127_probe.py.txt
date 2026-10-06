@@ -1,0 +1,395 @@
+"""1a's verification probes for H-127. Not committed.
+
+The author's tests set a row by hand (a queryset update with str() of a
+dictionary) and ask one route. These add:
+
+W1: the REAL writer. The real formatting task saves what the formatter
+    returned (the AI call replaced by a dictionary with awkward text and
+    with teacher content in every place the prompt allows and some it does
+    not). The row is read back: it holds Python's text form. The student's
+    page then shows the projection, exactly; the teacher's page the whole.
+W2: an observation, not a requirement: what happens to a dictionary that
+    sits UNDER an allowed name (a list section, a question field, the
+    student's recommendations). Printed, and reported in the record.
+W3: an observation: a flag restated inside a sentence written to the
+    student (the per-question narrative) is shown. The stated limit.
+W4: the reader is bounded. Texts under the size limit that are hard to
+    read (a long chain of minus signs, deep brackets, a huge number, a
+    large valid dictionary, a list used as a dictionary's key) are tried in a child process first, so that a
+    crash of the interpreter would be seen and not take the run with it:
+    each ends in None or a projection, in seconds. Then through the route.
+W5: every student route at once, with teacher markers in the saved
+    feedback, the review columns and the formatted grade: released and
+    unreleased, none of the markers is anywhere in any response.
+W6: the ordering refusal in the spellings Django REST framework accepts
+    (spaces around a term, a leading comma, the term in any position).
+"""
+
+import ast
+import json
+import subprocess
+import sys
+import time
+from unittest import mock
+
+from django.conf import settings
+from django.urls import reverse
+from rest_framework import status
+
+from assignments import tasks as assignment_tasks
+from students.feedback_projection import (
+    MAX_FORMATTED_GRADE_CHARACTERS,
+    student_safe_formatted_grade,
+)
+from students.models import StudentSubmission
+from students.tests_student_feedback_routes import (
+    FORMATTED_TEACHER_ONLY_MARKERS,
+    FULL_FEEDBACK,
+    TEACHER_ONLY_MARKERS,
+    StudentFeedbackRoutesBase,
+    as_plain,
+)
+
+MARK = "VF1A-TEACHER-ONLY"
+AWKWARD = (
+    "It's \"quoted\", has a back\\slash, \\frac{a}{b}, a\nnew line, a tab\t, "
+    "<b>HTML</b>, café 测试 \U0001f393, and the words None, True and null."
+)
+
+FROM_THE_FORMATTER = {
+    "overall_performance_summary": {
+        "score_statement": "to be rebuilt from the stored grade",
+        "performance_narrative": AWKWARD,
+        "grade_tier_context": "A good grasp.",
+        "confidence_note": f"{MARK} summary",
+    },
+    "strengths": ["Question 1: clear.", AWKWARD],
+    "areas_for_improvement": ["Question 1: add the detail."],
+    "question_by_question_breakdown": [
+        {
+            "question_number": 1,
+            "question_text": "Q1? $x^2$ <i>it's</i>",
+            "max_score": 99,
+            "score_awarded": 8,
+            "narrative": "The response covered the main point.",
+            "feedback_for_student": AWKWARD,
+            "strengths": ["Clear."],
+            "weaknesses": [],
+            "flag_for_review": f"{MARK} question flag",
+            "attempted": True,
+            "notes": None,
+        }
+    ],
+    "final_recommendations": {
+        "for_student": ["Review the detail.", AWKWARD],
+        "for_teacher": [f"{MARK} for the teacher"],
+        "follow_up_actions": [f"{MARK} follow up"],
+        "flags": [f"{MARK} flags"],
+    },
+    "flags_for_teacher_review": [f"{MARK} top-level flags"],
+    "half": 0.5,
+}
+
+ALL_MARKERS = tuple(TEACHER_ONLY_MARKERS) + tuple(FORMATTED_TEACHER_ONLY_MARKERS) + (MARK,)
+
+
+class H127Probe(StudentFeedbackRoutesBase):
+    def detail(self, user=None):
+        self.client.force_authenticate(user=user or self.student)
+        response = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response
+
+    def body(self, response):
+        return json.dumps(as_plain(response.data), ensure_ascii=False)
+
+    # W1 -----------------------------------------------------------------
+    def test_w1_the_real_formatting_task_then_the_two_pages(self):
+        with mock.patch.object(
+            assignment_tasks.ai_processor,
+            "formatted_grade",
+            return_value=json.loads(json.dumps(FROM_THE_FORMATTER)),
+        ) as formatter:
+            result = assignment_tasks.formatted_grade_async.run(
+                str(self.submission.pk), "the prompt"
+            )
+        self.assertEqual(formatter.call_count, 1)
+        self.assertEqual(result["message"], "Grade formatted successfully")
+
+        stored = StudentSubmission.objects.values_list("formatted_grade", flat=True).get(
+            pk=self.submission.pk
+        )
+        # What the row really holds: text, Python's form, not JSON.
+        self.assertIsInstance(stored, str)
+        whole = ast.literal_eval(stored)
+        self.assertIsInstance(whole, dict)
+        with self.assertRaises(ValueError):
+            json.loads(stored)
+        self.assertIn(MARK, stored)
+        # The reconcile step ran on the dictionary before the save.
+        self.assertEqual(whole["question_by_question_breakdown"][0]["max_score"], 10)
+        self.assertIn(
+            "You scored 8 out of 10", whole["overall_performance_summary"]["score_statement"]
+        )
+
+        expected = {
+            "overall_performance_summary": {
+                k: whole["overall_performance_summary"][k]
+                for k in ("score_statement", "performance_narrative", "grade_tier_context")
+            },
+            "strengths": whole["strengths"],
+            "areas_for_improvement": whole["areas_for_improvement"],
+            "question_by_question_breakdown": [
+                {
+                    k: whole["question_by_question_breakdown"][0][k]
+                    for k in (
+                        "question_number",
+                        "question_text",
+                        "max_score",
+                        "score_awarded",
+                        "narrative",
+                        "feedback_for_student",
+                        "strengths",
+                        "weaknesses",
+                    )
+                }
+            ],
+            "final_recommendations": {"for_student": whole["final_recommendations"]["for_student"]},
+        }
+
+        student = self.detail()
+        shown = student.data["formatted_grade"]
+        self.assertIsInstance(shown, str)
+        self.assertEqual(ast.literal_eval(shown), expected)
+        self.assertEqual(shown, str(expected))
+        self.assertEqual(
+            ast.literal_eval(shown)["overall_performance_summary"]["performance_narrative"],
+            AWKWARD,
+        )
+        for marker in ALL_MARKERS:
+            self.assertNotIn(marker, self.body(student))
+
+        teacher = self.detail(user=self.teacher)
+        self.assertEqual(ast.literal_eval(teacher.data["formatted_grade"]), whole)
+        print(
+            f"\nVF1A_H127_W1 the real task stored {len(stored)} characters of Python-form "
+            f"text (not JSON); the student's page shows {len(shown)} characters, the exact "
+            "projection, awkward text intact, no teacher marker; the teacher's page the whole"
+        )
+
+    # W2 -----------------------------------------------------------------
+    def test_w2_observation_a_dictionary_under_an_allowed_name(self):
+        seen = {}
+        for name, change in (
+            (
+                "a dictionary inside the strengths list",
+                {"strengths": ["ok", {"for_whom": f"{MARK} nested"}]},
+            ),
+            (
+                "a dictionary as the student's recommendations",
+                {"final_recommendations": {"for_student": {"note": f"{MARK} nested"}}},
+            ),
+            (
+                "a dictionary as a question's narrative",
+                {
+                    "question_by_question_breakdown": [
+                        {"question_number": 1, "narrative": {"note": f"{MARK} nested"}}
+                    ]
+                },
+            ),
+            (
+                "a dictionary as the score statement",
+                {"overall_performance_summary": {"score_statement": {"note": f"{MARK} nested"}}},
+            ),
+        ):
+            shown = student_safe_formatted_grade(str({**FROM_THE_FORMATTER, **change}))
+            self.assertIsInstance(shown, str)
+            seen[name] = "COPIED" if f"{MARK} nested" in shown else "dropped"
+        print(f"\nVF1A_H127_W2 observation, a dictionary under an allowed name: {seen}")
+
+    # W3 -----------------------------------------------------------------
+    def test_w3_observation_a_flag_inside_a_sentence_to_the_student(self):
+        formatted = json.loads(json.dumps(FROM_THE_FORMATTER))
+        sentence = "The response was flagged for the teacher as a borderline score."
+        formatted["question_by_question_breakdown"][0]["narrative"] = sentence
+        self.set_grade(is_published=True, formatted_grade=str(formatted))
+        shown = self.detail().data["formatted_grade"]
+        self.assertIn(sentence, shown)
+        print(
+            "\nVF1A_H127_W3 observation: a flag restated inside the per-question "
+            "narrative is shown to the student (the stated limit)"
+        )
+
+    # W4 -----------------------------------------------------------------
+    HARD_TEXTS = """
+import ast, json, sys, time
+from students.feedback_projection import (
+    MAX_FORMATTED_GRADE_CHARACTERS as LIMIT, student_safe_formatted_grade as project,
+)
+texts = {
+    "a chain of 400,000 minus signs": "-" * 400_000 + "1",
+    "a chain of 400,000 nots": "not " * 100_000 + "1",
+    "10,000 nested brackets": "[" * 10_000 + "1" + "]" * 10_000,
+    "150 nested brackets": "[" * 150 + "1" + "]" * 150,
+    "10,000 nested braces": "{'a':" * 10_000 + "1" + "}" * 10_000,
+    "a number of 400,000 digits": "9" * 400_000,
+    "a string of 499,000 characters in a dictionary": str({"strengths": ["x" * 499_000]}),
+    "a dictionary of 30,000 short strings": str({"strengths": ["abcdef"] * 30_000}),
+    "one character over the limit": str({"strengths": ["x" * LIMIT]}),
+    "an unclosed string of 400,000 characters": "'" + "x" * 400_000,
+    "bytes that are not text": "{'strengths': [b'\\\\xff\\\\xfe']}",
+    "a set": "{'strengths', 'x'}",
+    "a complex number": "{'strengths': [1+2j]}",
+    "a dictionary with a list as a key": "{[1, 2]: 'x'}",
+    "a set holding a list": "{[1]}",
+}
+out = {}
+for name, text in texts.items():
+    assert len(text) <= LIMIT or name == "one character over the limit", name
+    started = time.monotonic()
+    try:
+        ast.literal_eval(text)
+        raised = "none"
+    except BaseException as exc:
+        raised = type(exc).__name__
+    read_seconds = time.monotonic() - started
+    started = time.monotonic()
+    shown = project(text)
+    out[name] = {
+        "length": len(text),
+        "reading_alone_raised": raised,
+        "shown": None if shown is None else f"text of {len(shown)}",
+        "seconds": round(max(read_seconds, time.monotonic() - started), 3),
+    }
+print(json.dumps(out), flush=True)
+"""
+
+    def test_w4_the_reader_is_bounded(self):
+        child = subprocess.run(
+            [sys.executable, "-B", "-c", self.HARD_TEXTS],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            cwd=str(settings.BASE_DIR),
+            text=True,
+            timeout=300,
+        )
+        shown = f"stdout:\n{child.stdout[-2000:]}\nstderr:\n{child.stderr[-3000:]}"
+        self.assertEqual(child.returncode, 0, shown)
+        facts = json.loads(child.stdout.strip().splitlines()[-1])
+        self.assertEqual(len(facts), 15)
+        projected = {
+            "150 nested brackets": None,  # a list, not a dictionary
+            "a string of 499,000 characters in a dictionary": "text",
+            "a dictionary of 30,000 short strings": "text",
+            "bytes that are not text": "text",
+            "a complex number": "text",
+        }
+        for name, fact in facts.items():
+            with self.subTest(text=name):
+                self.assertLess(fact["seconds"], 10)
+                if projected.get(name) == "text":
+                    self.assertTrue(str(fact["shown"]).startswith("text of "), fact)
+                else:
+                    self.assertIsNone(fact["shown"], fact)
+        print("\nVF1A_H127_W4 hard texts, in a child process:")
+        for name, fact in facts.items():
+            print(f"  {name}: {fact}")
+
+        # Through the route too, the one that fails deepest in the reader.
+        # One GET only: the route caches its response per caller.
+        self.set_grade(is_published=True, formatted_grade="-" * 400_000 + "1")
+        started = time.monotonic()
+        response = self.detail()
+        self.assertIsNone(response.data["formatted_grade"])
+        self.assertLess(time.monotonic() - started, 10)
+
+    # W5 -----------------------------------------------------------------
+    def student_bodies(self):
+        self.client.force_authenticate(user=self.student)
+        bodies = {}
+        for name, url, query in (
+            ("the submission", reverse("student-submission-detail", kwargs={"pk": self.submission.pk}), {}),
+            ("the list", reverse("student-submission-list"), {}),
+            ("the list by assignment", reverse("student-submission-list"), {"assignment": str(self.assignment.pk)}),
+            ("the list by state", reverse("student-submission-list"), {"grading_state": ""}),
+            ("the assignment", reverse("assignment-detail", kwargs={"pk": self.assignment.pk}), {}),
+            ("the assignment list", reverse("assignment-list"), {}),
+            ("the dashboard list", reverse("student-assignments"), {}),
+        ):
+            response = self.client.get(url, query)
+            self.assertEqual(response.status_code, status.HTTP_200_OK, name)
+            bodies[name] = self.body(response)
+        return bodies
+
+    def w5(self, released):
+        self.set_grade(
+            is_published=released,
+            ai_feedback=FULL_FEEDBACK,
+            formatted_grade=str(FROM_THE_FORMATTER),
+            needs_review=True,
+            review_tier="critical",
+            review_severity=2.2,
+            grading_confidence=37,
+            review_reasons=[{"question_number": 1, "why": f"{MARK} review reason"}],
+        )
+        bodies = self.student_bodies()
+        for name, text in bodies.items():
+            for marker in ALL_MARKERS:
+                with self.subTest(route=name, marker=marker):
+                    self.assertNotIn(marker, text)
+        rows = json.loads(bodies["the list"])["results"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            {k: rows[0][k] for k in ("needs_review", "review_reasons", "review_severity", "review_tier", "grading_confidence")},
+            {"needs_review": False, "review_reasons": None, "review_severity": None, "review_tier": None, "grading_confidence": None},
+        )
+        return {name: len(text) for name, text in bodies.items()}
+
+    def test_w5_every_student_route_a_released_grade(self):
+        sizes = self.w5(released=True)
+        print(f"\nVF1A_H127_W5 released: {len(ALL_MARKERS)} markers absent from 7 student responses {sizes}")
+
+    def test_w5_every_student_route_an_unreleased_grade(self):
+        sizes = self.w5(released=False)
+        print(f"\nVF1A_H127_W5 unreleased: {len(ALL_MARKERS)} markers absent from 7 student responses {sizes}")
+
+    # W6 -----------------------------------------------------------------
+    def test_w6_the_ordering_refusal_in_every_accepted_spelling(self):
+        self.set_grade(is_published=False, needs_review=True, review_tier="critical", review_severity=2.2)
+        url = reverse("student-submission-list")
+        self.client.force_authenticate(user=self.student)
+        refused = (
+            "review_severity",
+            "-review_severity",
+            " review_severity",
+            "review_severity ",
+            " -review_severity ",
+            "student__first_name, review_severity",
+            "student__first_name ,-review_severity",
+            "student__first_name,\t-review_severity",
+            "-review_severity,student__first_name",
+            ",review_severity",
+            "review_severity,",
+            "student__last_name, student__first_name, -review_severity",
+        )
+        for ordering in refused:
+            with self.subTest(refused=ordering):
+                response = self.client.get(url, {"ordering": ordering})
+                self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        for query in ({"needs_review": ""}, {"review_tier": ""}, {"needs_review": "1", "assignment": str(self.assignment.pk)}):
+            with self.subTest(refused=query):
+                self.assertEqual(self.client.get(url, query).status_code, status.HTTP_403_FORBIDDEN)
+        # Not orderings Django REST framework accepts: answered, and not ordered by it.
+        for ordering in ("Review_Severity", "- review_severity", "review_severity__gt", "student__first_name"):
+            with self.subTest(allowed=ordering):
+                self.assertEqual(
+                    self.client.get(url, {"ordering": ordering}).status_code, status.HTTP_200_OK
+                )
+        self.client.force_authenticate(user=self.teacher)
+        self.assertEqual(
+            self.client.get(url, {"ordering": "student__first_name, -review_severity"}).status_code,
+            status.HTTP_200_OK,
+        )
+        print(f"\nVF1A_H127_W6 a student is refused {len(refused)} spellings of the ordering and 3 of the filters; the teacher is not")

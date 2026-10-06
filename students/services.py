@@ -29,6 +29,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .feedback_projection import grading_result_for_formatter
 from .models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -499,7 +500,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
 
     Grading Result:
 
-    {grading}
+    {grading_result_for_formatter(grading)}
 
     Return a formatted response
     """
