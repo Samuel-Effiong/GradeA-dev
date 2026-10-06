@@ -1,0 +1,116 @@
+"""H-120, SECOND VERSION of the expected sets, for the battery's second run
+(the test module gained a second table of real files after v2's reading).
+The first version (sha256 prefix 67af0a43f8d43d0d, 14:41:47) is committed
+unedited; the first battery ran against it and K12 was killed by one test
+more than it named. Changes here, each marked "(second version)":
+  * K12 names the three tests that failed in the first run: the written
+    set is corrected from what that run showed, and says so;
+  * K4 and K13 gain the new real-file test of the second table.
+Written 2026-10-06 before the second run.
+
+For every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-06 BEFORE any granted test run of H-120,
+by reasoning from the script and the tests, helped by plain calls of the
+check's own functions on made-up tables and on the fourteen real files
+(no mutant was applied to anything but a parser). A test is named
+Class.method; subtests are not told apart.
+
+Disclosed: at 14:37 I ran the test module once through unittest's loader
+in a plain interpreter, without a grant. Its output was cut off and is not
+used here or anywhere; I reported it to 0b.
+Usage: python expected_kills.py <battery_dir>   |   python expected_kills.py --repro <log>"""
+import re
+import sys
+from pathlib import Path
+
+J = "AChangedColumnIsJudgedByWhatItWas"
+A = "AnAddedColumn"
+O = "TheOperationsOfOneMigration"
+R = "TheRealMigrationsTheCheckFailsOnToday"
+J_PASS = (J, "test_changes_that_are_additive_pass")
+J_NOT_NULL = (J, "test_a_nullable_column_made_not_null_with_nothing_to_fill_it_is_reported")
+J_TYPE = (J, "test_a_type_change_is_reported_and_named")
+J_SHRINK = (J, "test_a_column_made_shorter_is_reported_with_both_numbers")
+J_EACH = (J, "test_each_thing_wrong_with_one_change_is_reported")
+J_GHOST = (J, "test_a_field_with_no_known_past_cannot_be_called_additive")
+A_PASS = (A, "test_columns_every_existing_row_can_get_a_value_for_pass")
+O_ORDER = (O, "test_each_is_judged_against_what_the_ones_before_it_left")
+O_SEPARATE = (O, "test_what_a_separate_database_and_state_does_to_the_database_is_judged")
+O_RECORD = (O, "test_a_record_only_change_is_still_the_next_operations_past")
+R_EACH = (R, "test_each_one")
+N = "TheRealMigrationsTheNewRuleReportsForTheFirstTime"
+N_EACH = (N, "test_each_one")
+
+EXPECTED = {
+    # the old rule: NOT NULL with no default is reported whatever it was.
+    # Additive changes are reported; "a short text to a long text" and the
+    # shortened text gain a second finding; the help text after a
+    # record-only change is reported; seven real files are reported again.
+    "K1": {J_PASS, J_TYPE, J_SHRINK, O_RECORD, R_EACH},
+    # becoming NOT NULL never reported. No real file relies on it.
+    "K2": {J_NOT_NULL, J_EACH, O_ORDER, O_SEPARATE},
+    # a default no longer excuses it: the two "with a default" cases, and
+    # billing/0013, whose uid becomes NOT NULL with a default
+    "K3": {J_PASS, R_EACH},
+    # no type-change finding: also billing/0011 loses its second finding
+    # (second version) every file of the second table is a type change
+    "K4": {J_TYPE, J_EACH, R_EACH, N_EACH},
+    # no shrink finding
+    "K5": {J_SHRINK},
+    # a growing limit reported too: "made longer", "more digits", and
+    # billing/0025 (20 characters to 100)
+    "K6": {J_PASS, R_EACH},
+    # an unknown past passes
+    "K7": {J_GHOST},
+    # a many-to-many reported again: billing/0016 gains a finding
+    "K8": {A_PASS, R_EACH},
+    # db_default not a default: one altered and one added column
+    "K9": {J_PASS, A_PASS},
+    # the state is never moved forward: the second operation of each
+    # two-step test sees the original table
+    "K10": {O_ORDER, O_RECORD},
+    # SeparateDatabaseAndState not looked into
+    "K11": {O_SEPARATE},
+    # judged by its state operations: both cases of the one test, and the
+    # record-only change is reported
+    # (second version) and billing/0059, whose state-only block removes a
+    # field in Django's record: seen in the first run, not predicted by me
+    "K12": {O_SEPARATE, O_RECORD, R_EACH},
+    # a real file judged against the state AFTER itself: its AlterFields
+    # change nothing, so billing/0011's type change is lost (or the state
+    # refuses an operation it already holds: an error in the same test)
+    # (second version) and all six type changes of the second table
+    "K13": {R_EACH, N_EACH},
+}
+#: the red commit d607ffb6: the old rule behind the seam. Everything that
+#: needs the state before, the new messages, the many-to-many, db_default
+#: and SeparateDatabaseAndState.
+REPRO = {J_PASS, J_NOT_NULL, J_TYPE, J_SHRINK, J_EACH, J_GHOST, A_PASS, O_ORDER, O_SEPARATE, O_RECORD, R_EACH}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), REPRO)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
