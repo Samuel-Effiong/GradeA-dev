@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from users.models import CustomUser
 
-from .feedback_projection import student_safe_feedback
+from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
 from .models import StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
@@ -374,8 +374,11 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
 
     def get_formatted_grade(self, obj):
         request = self.context.get("request")
-        if request and request.user.user_type == "STUDENT" and not obj.is_published:
-            return None
+        if request and request.user.user_type == "STUDENT":
+            # H-127: a student is never sent the column itself.
+            if not obj.is_published:
+                return None
+            return student_safe_formatted_grade(obj.formatted_grade)
         return obj.formatted_grade
 
     def get_submission_status(self, obj):
@@ -480,10 +483,12 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return obj.score_percentage
 
     def get_formatted_grade(self, obj):
-        request = self.context.get("request")
-        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+        # This serializer is the student's. H-127: the formatter's output
+        # also holds advice to the teacher (its prompt asks for it), so the
+        # student is sent a projection of it, and nothing before release.
+        if not obj.is_published:
             return None
-        return obj.formatted_grade
+        return student_safe_formatted_grade(obj.formatted_grade)
 
     def get_submission_status(self, obj):
         return "SUBMITTED"

@@ -9,7 +9,6 @@ from rest_framework.exceptions import ParseError
 from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
 from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
-from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import (  # Rubric
@@ -559,10 +558,6 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         if submission:
             return submission.raw_input
         return None
-
-    def get_submission(self, obj):
-        submission = self._get_submission(obj)
-        return StudentSubmissionSerializer(submission).data
 
     def get_assignment_raw_input(self, obj):
         """
