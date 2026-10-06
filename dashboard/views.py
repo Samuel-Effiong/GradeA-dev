@@ -107,6 +107,7 @@ from dashboard.services import (
     dashboard_context_json,
 )
 from dashboard.throttling import CustomAIPromptThrottle
+from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
 from students.services import get_grade_details, get_letter_grade_from_gpa
 from users.models import CustomUser, UserTypes
@@ -4088,7 +4089,11 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                         released.score_percentage if released else None
                     ),
                     "total_score": a.total_points,
-                    "feedback": released.feedback if released else None,
+                    # H-127: the student projection, never the saved
+                    # column (it also holds what is written for the teacher).
+                    "feedback": (
+                        student_safe_feedback(released.feedback) if released else None
+                    ),
                     "submission_status": submission_status,
                 }
 
