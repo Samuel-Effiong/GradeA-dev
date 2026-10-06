@@ -244,3 +244,17 @@ repeated. e85e2ae0 is f15c8608 (the code tip) and docs.
 0b's base update onto batch 11's current tip with its cross-side guards, then the one owning-app
 regression (students, assignments) on that tip, on a quiet machine. Its result is added in a later
 docs commit.
+
+### The base update onto batch 11 at be05f953, and 0b's guards
+
+0b merged batch 11's then tip be05f953 into this branch at 16d552c4: 73fc315f (18:31, no conflict).
+Outside `docs/` the merge brings two files, `scripts/check_migration_safety.py` and
+`AutoGrader/tests_migration_safety_check.py`; it touches no file of this branch. **Run by 0b, not
+by me** (its own grant; its expectation written at 18:31:23, before the run,
+`crossside_h133_be05f953_expected_written_by_0b.txt`): on 73fc315f the three guards
+`AutoGrader.tests_no_playwright_at_import`, `AutoGrader.tests_student_feedback_guard` and
+`AutoGrader.tests_migration_safety_check`: Ran 56 tests, OK, exit 0, 18:41. Log, byte-identical to
+0b's file: `crossside_guards_on_h133_73fc315f_run_by_0b.log` (two of Django's setup lines print
+after the result line there, because the two streams reach the file late; no test line follows
+the result). The modules-and-guards step and the mutants are not repeated on the merged tip
+(rule 15): the merge changes none of this branch's files.
