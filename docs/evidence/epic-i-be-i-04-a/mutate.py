@@ -18,6 +18,12 @@ Two kinds of run:
   keepdb  the test database is kept between mutants (quick);
   fresh   the three mutants of the MIGRATION need a database built from the
           mutated migration, so each builds its own and destroys it.
+
+An interrupted battery leaves no mutant behind: each mutant is restored in
+a `finally` block, and SIGTERM (what `timeout` sends) is turned into an
+ordinary exit so that block runs. After a SIGKILL nothing in this process
+can run; the gate script's EXIT trap restores the files from the commit,
+and the next start refuses to run unless every anchor is found once.
 """
 
 import ast
@@ -26,6 +32,7 @@ import os
 import pathlib
 import re
 import shutil
+import signal
 import subprocess
 import sys
 
@@ -355,7 +362,12 @@ def judge(mid, returncode, text):
     return status, ran_line, failed
 
 
+def _exit_on_sigterm(signum, _frame):
+    raise SystemExit(128 + signum)
+
+
 def main():
+    signal.signal(signal.SIGTERM, _exit_on_sigterm)
     assert [m[0] for m in MUTANTS] == list(EXPECTED), "EXPECTED names every mutant"
     originals = {}
     for mid, _what, path, old, new, _tests, kind in MUTANTS:

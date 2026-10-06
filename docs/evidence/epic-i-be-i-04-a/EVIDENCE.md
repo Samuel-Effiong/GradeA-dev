@@ -95,7 +95,9 @@ Every other test of the two modules is expected to pass there.
 ### Step 1
 
 `makemigrations --check`: no changes. The two new modules, one near module
-(`students.tests_grading_duration_migration`) and 24 guard modules: OK.
+(`students.tests_grading_duration_migration`) and 26 guard modules: OK. The guard list is 0b's
+for the Epic A line: 0b added `AutoGrader.tests_codederror_serialization` and
+`audit.tests_sweep_beat_lock` to the 24 first proposed.
 
 ### Step 2, the 26 mutants
 
@@ -103,6 +105,17 @@ The failing test expected for each is the `EXPECTED` dictionary in `mutate.py`, 
 any run. G1 to G15 are on the settings version, L1 to L8 on the label's words, model, admin
 screen, serializers and plan 07, M1 to M3 on the migration (each of those three builds its own
 database from the mutated migration).
+
+## If a run is interrupted
+
+Step 0 rewrites three tracked files and moves migration 0031 out of the worktree; the mutants
+rewrite files in place. Three things put the tree back (the second and third at 0b's request):
+- each mutant is restored in a `finally` block of `mutate.py`;
+- `mutate.py` turns SIGTERM, which `timeout` sends, into an ordinary exit, so that block runs;
+- the gate script has a trap on EXIT that moves the migration back from its hold file and
+  checks out, as committed, every tracked file steps 0 and 2 rewrite.
+After a SIGKILL of `mutate.py` itself only the trap acts. The next start of either script
+refuses to run on a tree that is not as committed.
 
 ## Runs
 
