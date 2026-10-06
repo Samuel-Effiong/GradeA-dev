@@ -104,17 +104,12 @@ def field_is_safe_add(field):
     return null or has_default
 
 
-def classify(path_str):
-    """Return a list of human-readable risk descriptions, empty if the
-    migration is additive-only."""
-    mod_name = module_name_for(path_str)
-    module = importlib.import_module(mod_name)
-    migration = getattr(module, "Migration", None)
-    if migration is None:
-        raise ImportError(f"{mod_name} has no Migration class")
-
+def findings_for(operations, state, app_label):
+    """Human-readable risk descriptions for a migration's operations, empty
+    if they are additive only. `state` is the project state just before the
+    migration and `app_label` the migration's app."""
     findings = []
-    for op in migration.operations:
+    for op in operations:
         op_name = type(op).__name__
 
         if op_name in UNCONDITIONALLY_RISKY_OPS:
@@ -141,6 +136,19 @@ def classify(path_str):
                 )
 
     return findings
+
+
+def classify(path_str):
+    """Return a list of human-readable risk descriptions, empty if the
+    migration is additive-only."""
+    mod_name = module_name_for(path_str)
+    module = importlib.import_module(mod_name)
+    migration = getattr(module, "Migration", None)
+    if migration is None:
+        raise ImportError(f"{mod_name} has no Migration class")
+
+    app_label = mod_name.split(".")[0]
+    return findings_for(migration.operations, None, app_label)
 
 
 def main():
