@@ -568,6 +568,28 @@ class StudentFormattedGradeTest(StudentFeedbackRoutesBase):
         _, shown = self.get_formatted_grade()
         self.assertIsNone(shown)
 
+    def test_text_whose_reading_fails_with_a_type_error_is_shown_as_nothing(self):
+        """Not every failure to read is a syntax or a value error: a list
+        used as a dictionary key is a TypeError inside the reader. EVERY
+        failure is an answer of nothing with a 200, never a 500 (found by
+        Verifier 1's mutant Y14, which narrowed the except and survived
+        the tests above)."""
+        self.set_grade(
+            is_published=True,
+            formatted_grade="{['FLAG FOR THE TEACHER', 2]: 'x'}",
+        )
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
+    def test_text_whose_reading_runs_out_of_memory_is_shown_as_nothing(self):
+        """400,000 minus signs before a number: within the size limit, and
+        the reader gives up on it with a MemoryError."""
+        self.set_grade(is_published=True, formatted_grade="-" * 400_000 + "1")
+        response, shown = self.get_formatted_grade()
+        self.assertIsNone(shown)
+        self.assert_nothing_for_the_teacher(response)
+
     def test_text_that_is_not_a_dictionary_is_shown_as_nothing(self):
         self.set_grade(
             is_published=True,
