@@ -280,6 +280,20 @@ MUTANTS = [
         "keepdb",
     ),
     (
+        "L9",
+        "one column's database default is dropped from the model",
+        MODELS,
+        "    grading_model = models.CharField(\n"
+        "        max_length=255,\n"
+        "        default=UNLABELLED,\n"
+        "        db_default=UNLABELLED,\n",
+        "    grading_model = models.CharField(\n"
+        "        max_length=255,\n"
+        "        default=UNLABELLED,\n",
+        LABEL_TESTS,
+        "keepdb",
+    ),
+    (
         "M1",
         "the migration adds one column with no database default",
         MIGRATION,
@@ -335,6 +349,7 @@ EXPECTED = {
     "L6": "test_the_sentence_says_first_form_and_names_the_later_table",
     "L7": "test_no_serializer_file_names_a_label_column",
     "L8": "test_each_document_says_first_form_and_names_the_later_table",
+    "L9": "test_each_has_the_placeholder_as_both_defaults",
     "M1": "test_each_column_is_not_null_with_the_placeholder_as_its_default",
     "M2": "test_no_index_was_added_for_them",
     "M3": "test_each_column_is_not_null_with_the_placeholder_as_its_default",

@@ -48,19 +48,25 @@ hold each of those places.
 
 ## Differences from the accepted design note
 
-1. **The temperature is not in the settings version.** The note listed it. It is a literal
-   inside a shared request builder (`ai_processor/services.py:790`), not a named constant, and
-   this slice does not change the grading service. It is covered by the release, as the plan's
-   step 1 says for things written directly in the code. The four named constants are in.
-2. **Code and tests were written together, not tests first.** The red run below is the new
-   tests against the base's model, admin and settings without the migration.
+1. **Temperature: to be added in slice B (SM ruling, 2026-10-06).** The note listed it and this
+   slice does not have it. It is a literal inside a shared request builder
+   (`ai_processor/services.py:790`), not a named constant, and this slice does not change the
+   grading service. I first wrote that the release covers it; the SM did not accept that: a
+   release changes on every deploy, so it cannot say that a grade moved because the temperature
+   moved. In slice B it becomes a named constant that both the grading call and `GradingConfig`
+   read. Until then a change of temperature does not move the settings version. The four named
+   constants are in.
+2. **Code and tests were written together, not tests first.** The red run is the new tests
+   against the base's model, admin and settings without the migration. Accepted by the SM for
+   slice A only; for slices B and C the red tests are their own commit first, with its red run
+   logged.
 
 ## Limits
 
 - No grade is labelled by this slice.
-- The version covers a named list. Instruction text outside the prompt file, the reply schemas,
-  the temperature and retry counts are not in it; only the release covers them, and the release
-  is `none` until the host variable is known.
+- The version covers a named list. The temperature is not in it until slice B. Instruction text
+  outside the prompt file, the reply schemas and retry counts are not in it at all; only the
+  release covers those, and the release is `none` until the host variable is known.
 - Whether adding six defaulted columns is instant on the live database depends on its
   PostgreSQL version (the founder's fact 1). Not measured here.
 - The pinned version (`cfg:c039947043de`) pins how a version is computed from a fixed reading.
@@ -99,11 +105,12 @@ Every other test of the two modules is expected to pass there.
 for the Epic A line: 0b added `AutoGrader.tests_codederror_serialization` and
 `audit.tests_sweep_beat_lock` to the 24 first proposed.
 
-### Step 2, the 26 mutants
+### Step 2, the 27 mutants
 
 The failing test expected for each is the `EXPECTED` dictionary in `mutate.py`, written before
-any run. G1 to G15 are on the settings version, L1 to L8 on the label's words, model, admin
-screen, serializers and plan 07, M1 to M3 on the migration (each of those three builds its own
+any run of a mutant. G1 to G15 are on the settings version, L1 to L9 on the label's words, model,
+admin screen, serializers and plan 07 (L9 was added after run 1, for the assertion that run
+showed to be wrong), M1 to M3 on the migration (each of those three builds its own
 database from the mutated migration).
 
 ## If a run is interrupted
@@ -118,5 +125,59 @@ After a SIGKILL of `mutate.py` itself only the trap acts. The next start of eith
 refuses to run on a tree that is not as committed.
 
 ## Runs
+
+### Run 1 at 80adc937: RED, stopped at step 1 (a failed run, disclosed)
+
+One grant from 0b, 2026-10-06 12:06:21 to 12:14:57. The script stopped itself at "not green".
+The mutants did not run. Nothing was re-run. Logs in `run1_red_80adc937/`, whole. Three are
+gzipped, byte-exact, because they have trailing whitespace that a commit hook would otherwise
+strip (it did so once in the working tree; the files were restored from the index and compared
+with the original before gzipping). sha256 of each, unpacked:
+- `console.txt.gz` (the script's own output): `d6d4315d2ffbbfc4b7bb368248f43819f4abbe5db61179dece1b98ad155f99f4`
+- `modules_and_guards.txt.gz`: `e08bdbb877953e32b319f5fc71389ecee698e0577f27e64ff9dc79786ec539c4`
+- `prefix_base_code_failing.txt.gz`: `a2b56577a3495a23c32f87d54f2366f6eb228383435f4a069ba2f3e60326199b`
+
+| Step | Result |
+|---|---|
+| 0 reproduce-first | exit 1: Ran 42 tests in 0.686s, FAILED (failures=12, errors=26). **Thirteen** tests failing, not the twelve named beforehand |
+| 1a makemigrations --check | exit 0, No changes detected |
+| 1 two new modules, one near module, 26 guards | exit 1: Ran 400 tests in 343.739s, FAILED (failures=7). Two tests, both mine; every guard module passed. No skips |
+| 2 mutants | not run |
+
+Load average 6.61 6.52 6.72 at the start; the script stopped before its end-of-run reading, and
+5.11 9.38 8.97 was read by hand at 12:16:46.
+
+What failed and why. Both faults were mine, in a test and a document, not in the code the slice
+ships:
+
+1. `test_each_document_says_first_form_and_names_the_later_table`. My dated note in
+   `05_epics_b_to_i_roadmap.md` did not contain the words "table of grading runs"; it said "the
+   table is then filled". The test was right and the document was short of the founder's
+   wording. **This is also the thirteenth failure of step 0, which my list missed:** the test
+   reads documents, which step 0 does not take back to the base, so it failed there for the same
+   reason. Fixed in the note's text. With the note fixed the test passes in step 0 as well, so
+   the list of twelve stands as first written.
+2. `test_each_has_the_placeholder_as_both_defaults`, six failures, one per column. The test read
+   `field.db_default.value` and got `None`: in this Django a field's `db_default` is the plain
+   value that was given (`django/db/models/fields/__init__.py:222`), not an expression. I wrote
+   that line while clearing a type-check finding, with no run behind it. The database's own
+   default was right all along: `test_each_column_is_not_null_with_the_placeholder_as_its_default`
+   reads it from the database and passed, and `makemigrations --check` was clean. Fixed in that
+   one line: `assertEqual(field.db_default, UNLABELLED)`.
+
+What I re-read before asking for the next run (SM's condition):
+- `students/tests_grading_label_fields.py`, the changed line (73 at 80adc937), against Django's
+  source as above.
+- Every other assertion of the two new modules ran in run 1 at the tip and passed: step 1's
+  only failures are the two tests above. In step 0 each of the twelve named tests failed and the
+  others passed, the thirteenth apart. So no other assertion of mine is now without a run.
+- The 27 mutants' expected tests have had no run. I re-read each against what run 1 showed the
+  tests do; none changed. A replay of the phrase checks in plain Python (not a test run) shows
+  all three documents and all three code files now hold the phrases, and plan 07 loses the
+  phrase under mutant L8.
+- L9 is new: the model loses one column's database default. It gives the corrected assertion a
+  mutant of its own.
+
+### Run 2
 
 None yet at this commit.

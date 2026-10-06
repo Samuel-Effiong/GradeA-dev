@@ -70,7 +70,7 @@ class TheSixColumnsTest(SimpleTestCase):
                 field = _column(name)
                 self.assertEqual(field.default, UNLABELLED)
                 self.assertTrue(field.has_db_default())  # type: ignore[attr-defined]
-                self.assertEqual(getattr(field.db_default, "value", None), UNLABELLED)
+                self.assertEqual(field.db_default, UNLABELLED)
 
     def test_a_new_unsaved_submission_reads_the_placeholder(self):
         submission = StudentSubmission()
