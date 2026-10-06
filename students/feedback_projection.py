@@ -72,6 +72,34 @@ MAX_FORMATTED_GRADE_CHARACTERS = 500_000
 STUDENT_SUMMARY_FIELDS = ("total_score", "max_total_points", "percentage")
 
 
+def _is_plain(value):
+    """Text, a number, true or false, or nothing."""
+    return value is None or isinstance(value, (str, int, float, bool))
+
+
+def _is_plain_or_a_list_of_plain(value):
+    return _is_plain(value) or (
+        isinstance(value, list) and all(_is_plain(item) for item in value)
+    )
+
+
+def _copy_plain(source, names):
+    """The named entries of `source` whose value is plain or a list of
+    plain values. A name whose value is anything else (a dictionary, a
+    list holding a dictionary or a list) is LEFT OUT.
+
+    Copying by name alone is not enough: the value under an allowed name
+    comes from an AI's reply, and a dictionary nested where a sentence was
+    asked for would be copied with every key in it. So "what is not named
+    is not shown" holds at every depth (SM ruling, 2026-10-06, from
+    Verifier 1's read)."""
+    return {
+        name: source[name]
+        for name in names
+        if name in source and _is_plain_or_a_list_of_plain(source[name])
+    }
+
+
 def student_safe_feedback(feedback):
     """The whitelist projection of a saved grading result for a student.
 
@@ -82,7 +110,12 @@ def student_safe_feedback(feedback):
     and rationale, meant for the teacher's review queue.
 
     A value that is not a dictionary cannot be projected and is shown as
-    nothing (None); the stored value is never returned as it is."""
+    nothing (None); the stored value is never returned as it is.
+
+    Under a copied name only plain values pass (`_copy_plain`). The one
+    exception is `overall_performance_analysis`, copied whole: it is nested
+    by design, students are shown it today, and its real keys are not
+    known without reading real rows. A stated limit."""
     if not isinstance(feedback, dict):
         return None
 
@@ -90,18 +123,12 @@ def student_safe_feedback(feedback):
 
     summary = feedback.get("grading_summary")
     if isinstance(summary, dict):
-        safe["grading_summary"] = {
-            key: summary.get(key) for key in STUDENT_SUMMARY_FIELDS if key in summary
-        }
+        safe["grading_summary"] = _copy_plain(summary, STUDENT_SUMMARY_FIELDS)
 
     evaluations = feedback.get("question_evaluations")
     if isinstance(evaluations, list):
         safe["question_evaluations"] = [
-            {
-                key: evaluation.get(key)
-                for key in STUDENT_EVALUATION_FIELDS
-                if key in evaluation
-            }
+            _copy_plain(evaluation, STUDENT_EVALUATION_FIELDS)
             for evaluation in evaluations
             if isinstance(evaluation, dict)
         ]
@@ -112,9 +139,9 @@ def student_safe_feedback(feedback):
 
     recommendations = feedback.get("recommendations")
     if isinstance(recommendations, dict):
-        for_student = recommendations.get("for_student")
-        if for_student is not None:
-            safe["recommendations"] = {"for_student": for_student}
+        for_student = _copy_plain(recommendations, ("for_student",))
+        if for_student.get("for_student") is not None:
+            safe["recommendations"] = for_student
 
     return safe
 
@@ -143,7 +170,8 @@ def student_safe_formatted_grade(stored):
     as a Python literal (`ast.literal_eval`: read, never run), copies the
     student's sections by name, and returns the result in the same text
     form. Nothing is copied that is not named here: not `for_teacher`, not
-    `follow_up_actions`, not a section added later.
+    `follow_up_actions`, not a section added later; and under a copied name
+    only plain values pass (`_copy_plain`).
 
     Anything that cannot be taken apart is shown as NOTHING (None): text
     that is not a Python literal (plain words, JSON with null or true),
@@ -173,34 +201,26 @@ def student_safe_formatted_grade(stored):
 
     summary = formatted.get("overall_performance_summary")
     if isinstance(summary, dict):
-        safe["overall_performance_summary"] = {
-            key: summary.get(key)
-            for key in STUDENT_FORMATTED_SUMMARY_FIELDS
-            if key in summary
-        }
+        safe["overall_performance_summary"] = _copy_plain(
+            summary, STUDENT_FORMATTED_SUMMARY_FIELDS
+        )
 
     for section in STUDENT_FORMATTED_LIST_SECTIONS:
         if isinstance(formatted.get(section), list):
-            safe[section] = formatted[section]
+            safe.update(_copy_plain(formatted, (section,)))
 
     breakdown = formatted.get("question_by_question_breakdown")
     if isinstance(breakdown, list):
         safe["question_by_question_breakdown"] = [
-            {
-                key: item.get(key)
-                for key in STUDENT_FORMATTED_QUESTION_FIELDS
-                if key in item
-            }
+            _copy_plain(item, STUDENT_FORMATTED_QUESTION_FIELDS)
             for item in breakdown
             if isinstance(item, dict)
         ]
 
     recommendations = formatted.get("final_recommendations")
     if isinstance(recommendations, dict):
-        safe["final_recommendations"] = {
-            key: recommendations.get(key)
-            for key in STUDENT_FORMATTED_RECOMMENDATION_FIELDS
-            if key in recommendations
-        }
+        safe["final_recommendations"] = _copy_plain(
+            recommendations, STUDENT_FORMATTED_RECOMMENDATION_FIELDS
+        )
 
     return str(safe)
