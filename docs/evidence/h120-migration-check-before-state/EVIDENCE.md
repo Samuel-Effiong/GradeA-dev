@@ -16,6 +16,10 @@ beforehand; the SM accepted it as recorded (see "Mutants"). There is no
 owning-app run: no application code changes (SM's approval of the
 proposal).
 
+**Since then (v2's reading, SM's ruling):** the test module gained a
+second table of real files and its tests; the check itself is unchanged.
+SECOND_RUN_PLACEHOLDER
+
 ## What the check is, and what was wrong
 The "Migration safety" workflow runs this script on pull requests. A new
 migration that is not additive must carry an acknowledgement comment, or
@@ -77,10 +81,51 @@ house rule makes of the file, not that something is broken today.
 | billing/0022 | Two new columns that are safe to add, and one column altered with nothing about it changed. | Passes |
 | billing/0023 | `SubscriptionPlan.name`: five choices become eight. NOT NULL already. | Passes |
 | billing/0025 | `SubscriptionPlan.name`: more choices, and 20 characters become 100. | Passes |
-| billing/0059 | Drops the database's foreign-key constraints on six relations of the two financial audit tables and lets one of them be NULL; turns `CreditLedger.user` from a relation into a plain id column in Django's own record only (same column, no data touched); adds four nullable columns. Nothing is removed, renamed or narrowed. | Passes. **A person should still look at this file:** the check has no rule about a dropped foreign-key constraint. |
+| billing/0059 | Drops the database's foreign-key constraints on six relations of the two financial audit tables and lets one of them be NULL; turns `CreditLedger.user` from a relation into a plain id column in Django's own record only (same column, no data touched); adds three nullable columns to the database (a fourth declaration, inside the record-only part, is the existing column under its new description). Nothing is removed, renamed or narrowed. | Passes. **A person should still look at this file:** the check has no rule about a dropped foreign-key constraint. |
 | students/0026 | One more choice on a column that was NOT NULL already. | Passes on its own. Its marker (H-119) stays. |
 
 **So of the 13: seven pass, six need a decision.**
+
+### The second table: files the new rule reports for the first time
+**The first table is not the whole answer for pull request 2.** It lists
+the files that fail today. The pull request adds 107 migration files, and
+the rule this row adds for a changed type reports six of them that the
+old check passed. v2 found this by reading, before its run; my summary
+until then, "13 red files become 6", was wrong. On the SM's order I then
+read each of the six to its last operation (`read_6.py.txt`,
+`read_6.out.txt`) and swept the whole range of the pull request with the
+check's own functions, old rule and new (`sweep_range.py.txt`,
+`sweep_range.out.txt`). A second test class holds this table.
+
+What each change does is said from the two types alone. I looked at no
+data. None of the six carries an acknowledgement.
+
+| File | What it does | Now |
+|---|---|---|
+| billing/0010 | Changes `BetaProfile.id`, the primary key, from an automatic number to text of up to 100 characters. The table is rewritten, and whatever points at that key has to change with it. 0011 changes it back. | **Needs a decision** (a type change) |
+| billing/0031 | Widens `LicenseSubscription.custom_price_cents` and `max_seats` from a small whole number to a whole number. No value can be lost; the database rewrites the table and locks it while it does. | **Needs a decision** (two type changes) |
+| billing/0034 | Changes `custom_price_cents` from a whole number to a decimal with two places. No value can be lost; the table is rewritten. | **Needs a decision** (a type change) |
+| billing/0036 | Changes `custom_price_cents` back from a decimal to a whole number: a value with a fractional part would be rounded. Also drops the choices on `contract_months`, which changes nothing in the database. | **Needs a decision** (a type change) |
+| billing/0039 | Changes `SubscriptionPlan.overage_block_price` from a decimal to a whole number: a value with a fractional part would be rounded. | **Needs a decision** (a type change) |
+| students/0027 | Changes `StudentSubmission.ai_grading_completed_at` from a date to a date and time. Existing dates become midnight of that day; the table is rewritten. Its own header says why it was needed. | **Needs a decision** (a type change) |
+
+**For the founder, the whole pull request (107 new migration files), by
+the sweep:**
+
+| | Old check | New check |
+|---|---|---|
+| Passes, additive | 83 | 92 |
+| Passes, acknowledged in the file | 11 | 3 |
+| **Fails (needs a decision)** | **13** | **12** |
+
+- **13 red files become 12:** 7 of the 13 clear, 6 remain, and 6 are
+  reported for the first time.
+- **Eight files carry an acknowledgement they would no longer need**
+  (students/0026 and billing/0030, 0048, 0054, 0058, 0063, 0064, 0069):
+  under the new rule they are additive. Their markers stay.
+- billing/0032 also changes a type; it carries a marker, and it is
+  reported under both rules for its dropped column.
+- The sweep found no other file whose verdict changes.
 
 **How this table was checked, and what that corrected.** After the run I
 read all 14 files to their last operation (`read_14.py.txt`, output
@@ -110,6 +155,16 @@ its end. The verdicts did not change. Seven lines did:
   person should look at such a file.
 - **A foreign key pointed at a different table** is not seen as a type
   change: both are a foreign key by name.
+- **Four more limits from v2's reading,** none met in today's files: a
+  decimal whose whole part shrinks because only `decimal_places` grows;
+  `unique` or `primary_key` added to an existing column (billing/0013
+  does the second); a rename through `db_column`; and a default that
+  fills nothing useful (a default of None, or one computed value on a
+  unique column).
+- **The rule about a default relies on Django's behaviour:** when a
+  nullable column becomes NOT NULL and the new field has a default or a
+  database default, Django's schema editor writes it into the NULL rows.
+  v2 read that in Django 5.2.6's schema editor.
 - **A widening is still a type change** when the type's name changes
   (text to long text, a number to a bigger number): reported, on purpose;
   the table may be rewritten.

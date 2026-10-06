@@ -393,7 +393,7 @@ THE_REAL_MIGRATIONS = {
         "the two financial audit tables and lets one of them be NULL; "
         "turns CreditLedger.user from a relation into a plain id column in "
         "Django's own record only (same column, no data touched); adds "
-        "four nullable columns. Nothing is removed, renamed or narrowed. "
+        "three nullable columns. Nothing is removed, renamed or narrowed. "
         "The check has no rule about a dropped foreign-key constraint, so "
         "a person should still look at this file although it passes.",
         PASSES,
@@ -403,6 +403,60 @@ THE_REAL_MIGRATIONS = {
         "an acknowledgement (H-119) that it would no longer need; the "
         "marker stays.",
         PASSES,
+    ),
+}
+
+
+# The second table: files of the same pull request that PASSED the old
+# check and that the new rule reports for the first time. Every one is a
+# change of a column's type, which the old check did not look for. None
+# carries an acknowledgement. Found by v2's reading (2026-10-06); my first
+# table covered only the files that failed already, so its summary "13
+# red files become 6" was wrong: 7 clear, 6 remain, these 6 are new, and
+# the pull request goes from 13 red files to 12.
+#
+# What each type change does is said from the two types alone. I looked
+# at no data.
+NEWLY_REPORTED = {
+    "billing/migrations/0010_alter_betaprofile_id.py": (
+        "Changes BetaProfile.id, the primary key, from an automatic number "
+        "to text of up to 100 characters. The table is rewritten, and "
+        "whatever points at that key has to change with it. 0011 changes "
+        "it back to an automatic number.",
+        [type_change("BigAutoField", "CharField")],
+    ),
+    "billing/migrations/0031_alter_licensesubscription_custom_price_cents_and_more.py": (
+        "Widens LicenseSubscription.custom_price_cents and max_seats from "
+        "a small whole number to a whole number. No value can be lost; "
+        "the database rewrites the table, and locks it while it does.",
+        [
+            type_change("PositiveSmallIntegerField", "PositiveIntegerField"),
+            type_change("PositiveSmallIntegerField", "PositiveIntegerField"),
+        ],
+    ),
+    "billing/migrations/0034_alter_licensesubscription_custom_price_cents.py": (
+        "Changes custom_price_cents from a whole number to a decimal with "
+        "two places. No value can be lost; the table is rewritten.",
+        [type_change("PositiveIntegerField", "DecimalField")],
+    ),
+    "billing/migrations/0036_alter_licensesubscription_contract_months_and_more.py": (
+        "Changes custom_price_cents back from a decimal to a whole number: "
+        "a value with a fractional part would be rounded. It also drops "
+        "the choices on contract_months, which changes nothing in the "
+        "database.",
+        [type_change("DecimalField", "IntegerField")],
+    ),
+    "billing/migrations/0039_alter_subscriptionplan_overage_block_price.py": (
+        "Changes SubscriptionPlan.overage_block_price from a decimal to a "
+        "whole number: a value with a fractional part would be rounded.",
+        [type_change("DecimalField", "IntegerField")],
+    ),
+    "students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py": (
+        "Changes StudentSubmission.ai_grading_completed_at from a date to "
+        "a date and time. Existing dates become midnight of that day; the "
+        "table is rewritten. Its own header says why it was needed: the "
+        "column was being given a time and losing it.",
+        [type_change("DateField", "DateTimeField")],
     ),
 }
 
@@ -432,3 +486,27 @@ class TheRealMigrationsTheCheckFailsOnToday(SimpleTestCase):
         self.assertFalse(
             check.has_ack("billing/migrations/0023_alter_subscriptionplan_name.py")
         )
+
+
+class TheRealMigrationsTheNewRuleReportsForTheFirstTime(SimpleTestCase):
+    def test_each_one(self):
+        for path, (_what_it_does, expected) in NEWLY_REPORTED.items():
+            with self.subTest(migration=path):
+                self.assertEqual(kinds(check.classify(path)), expected)
+
+    def test_none_of_them_is_acknowledged(self):
+        for path in NEWLY_REPORTED:
+            with self.subTest(migration=path):
+                self.assertFalse(check.has_ack(path))
+
+    def test_the_pull_request_goes_from_thirteen_red_files_to_twelve(self):
+        """Seven of the thirteen clear, six remain, and these six are new."""
+        still_red = [
+            path
+            for path, (_what, expected) in THE_REAL_MIGRATIONS.items()
+            if expected and not path.startswith("students/")
+        ]
+        self.assertEqual(len(still_red), 6)
+        self.assertEqual(len(NEWLY_REPORTED), 6)
+        self.assertEqual(len(still_red) + len(NEWLY_REPORTED), 12)
+        self.assertFalse(set(still_red) & set(NEWLY_REPORTED))
