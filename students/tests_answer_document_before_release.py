@@ -22,10 +22,13 @@ zero, and what a submitted document's header says follows from that.
 
 import ast
 import inspect
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import serializers, status
 
 import assignments.serializers
@@ -61,7 +64,13 @@ class AnswerDocumentBase(FinalGradeZeroScoreBase):
         StudentCourse.objects.filter(student=self.student, course=self.course).update(
             enrollment_status=EnrollmentStatusType.ENROLLED
         )
-        self.assignment = self.assignments[0]
+        # A due date, so that the header's "Due Date" line is printed from a
+        # real value in every document these tests compare; read back from
+        # the database, as the routes read it.
+        Assignment.objects.filter(pk=self.assignments[0].pk).update(
+            due_date=timezone.now() + timedelta(days=7)
+        )
+        self.assignment = Assignment.objects.get(pk=self.assignments[0].pk)
         # The base's row for this assignment came from a bare create().
         # Replace it with one the upload engine makes.
         self.submission.delete()
@@ -230,6 +239,19 @@ class WhatIsGivenUp(AnswerDocumentBase):
         self.assertNotEqual(renamed, submitted)
         self.assertEqual(graded, renamed)
 
+    def test_a_rename_the_teacher_saves_refreshes_the_students_cached_document(self):
+        """The two tests around this one rename by a queryset update and
+        clear the cache themselves. A real rename is a save, and what
+        refreshes the student's cached response then is the assignment's
+        own save signal, which bumps every enrolled student. No cache
+        clear here."""
+        before = self.on_the_submission(self.student)
+
+        self.assignment.title = "Essay, revised"
+        self.assignment.save()
+
+        self.assertNotEqual(self.on_the_submission(self.student, fresh=False), before)
+
     def test_the_same_on_the_students_view_of_the_assignment(self):
         submitted = self.on_the_assignment(self.student)
 
@@ -320,19 +342,88 @@ class TheCachedResponse(AnswerDocumentBase):
         self.assertNotEqual(self.stored(), self.submitted)
 
 
-#: Every serializer of a submission that carries the document, and who it
-#: is for. A new one must be added here, which is the point: whoever adds
-#: it has to say whether a student can receive it.
-STAFF = "staff only: the teacher's document"
+class TheUploadRoutesOwnAnswer(AnswerDocumentBase):
+    """The student's own upload route answers with the STAFF serializer,
+    stored document and all (students/views.py, upload_answers). That is
+    safe only because the upload refuses a row that is graded or being
+    graded before any answer is built. These two tests hold that."""
+
+    def upload(self, assignment):
+        self.client.force_authenticate(self.student)
+        with (
+            patch(
+                "students.views.AssignmentProcessingService.prepare_ai_content",
+                return_value="content",
+            ),
+            patch(
+                "students.services.ai_processor.extract_answer_with_retry",
+                return_value=EXTRACTED,
+            ),
+            patch("students.services.send_email_task.delay"),
+        ):
+            return self.client.post(
+                reverse(
+                    "student-submission-upload-answers",
+                    kwargs={"assignment_id": assignment.pk},
+                ),
+                {
+                    "answer": SimpleUploadedFile(
+                        "answers.pdf",
+                        b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n",
+                        content_type="application/pdf",
+                    )
+                },
+                format="multipart",
+            )
+
+    def test_a_first_upload_answers_with_the_submitted_document(self):
+        second = self.assignments[1]
+        self.ungraded[0].delete()  # the base's bare row for that assignment
+
+        response = self.upload(second)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        made = StudentSubmission.objects.get(student=self.student, assignment=second)
+        self.assertIsNone(made.graded_at)
+        self.assertTrue(made.raw_input)
+        self.assertEqual(response.data["raw_input"], made.raw_input)
+        # ...and it is the form the student reads afterwards
+        cache.clear()
+        read = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": made.pk})
+        )
+        self.assertEqual(read.status_code, status.HTTP_200_OK)
+        self.assertEqual(read.data["raw_input"], made.raw_input)
+
+    def test_an_upload_on_a_graded_unreleased_row_is_refused_with_no_document(self):
+        self.grade_by_ai(self.submission, 7)
+        graded = self.stored()
+
+        response = self.upload(self.assignment)
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(list(response.data), ["error"])
+        self.assertEqual(self.stored(), graded)
+
+
+#: Every serializer of a submission that carries the document, and who can
+#: receive it. A new one must be added here, which is the point: whoever
+#: adds it has to say whether a student can receive it. Each line was read
+#: from the routes in students/views.py (2026-10-06), not assumed.
+STAFF_AND_THE_UPLOAD_ANSWER = (
+    "staff (retrieve, grade, feedback, release); AND the student's own "
+    "upload route answers with it, for a row the upload has just refused "
+    "to accept if it is graded or being graded (TheUploadRoutesOwnAnswer)"
+)
 STUDENT = "a student reads it: the document comes from answer_document_for_student"
-WRITE_RESPONSE = (
-    "returned to a student only from a write route (upload, edit), and a "
-    "graded row refuses those writes before any response is built"
+BUILT_BY_NO_ROUTE = (
+    "no route builds a response from it today: it is named in schema "
+    "annotations and as the viewset's fallback serializer class"
 )
 READERS_OF_THE_DOCUMENT = {
-    "StudentSubmissionSerializer": WRITE_RESPONSE,
-    "StudentSubmissionUpdateSerializer": WRITE_RESPONSE,
-    "StudentSubmissionDetailSerializer": STAFF,
+    "StudentSubmissionSerializer": BUILT_BY_NO_ROUTE,
+    "StudentSubmissionUpdateSerializer": BUILT_BY_NO_ROUTE,
+    "StudentSubmissionDetailSerializer": STAFF_AND_THE_UPLOAD_ANSWER,
     "StudentSubmissionDetailStudentVersionSerializer": STUDENT,
 }
 
