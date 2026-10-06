@@ -24,13 +24,10 @@ could put an old score back. It is narrowed to save its text alone; it
 is not removed here.
 """
 
-import ast
 from decimal import Decimal
-from pathlib import Path
 from unittest.mock import patch
 
-from django.conf import settings
-from django.test import TransactionTestCase, override_settings
+from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework import status
 
@@ -54,13 +51,8 @@ from students.tests_manual_grade_formatted_grade import (
 FORMATTER = "assignments.tasks.ai_processor.formatted_grade"
 
 
-SENDING = override_settings(FORMATTED_GRADE_SEND_RESULT_STAMP=True)
-
-
-@SENDING
 class SupersededBase(ManualGradeBase):
-    """A released paper graded 7, with the wording of that result stored.
-    The queuers send the stamp, as they do once the setting is on."""
+    """A released paper graded 7, with the wording of that result stored."""
 
     def row(self):
         return StudentSubmission.objects.get(pk=self.submission.pk)
@@ -189,7 +181,6 @@ class TheTeacherFeedbackRoutePassesTheStamp(SupersededBase):
         self.assertEqual(task.delay.call_args.kwargs["result_stamp"], self.stamp_now())
 
 
-@SENDING
 class GradingPassesTheStamp(TransactionTestCase):
     """TransactionTestCase, because the follow-up waits for the grade's
     commit (see students/tests_grading_followup_dispatch.py)."""
@@ -212,82 +203,6 @@ class GradingPassesTheStamp(TransactionTestCase):
         self.assertEqual(
             mock_formatted.return_value.delay.call_args.kwargs["result_stamp"],
             grading_result_stamp(saved),
-        )
-
-
-@override_settings(FORMATTED_GRADE_SEND_RESULT_STAMP=False)
-class WhileTheSettingIsOffNoQueuerSendsTheStamp(SupersededBase):
-    """The first of two steps. A worker older than this change fails a
-    task queued with an argument it does not know, so the queuers send
-    none until the setting is switched on."""
-
-    def test_the_setting_is_off_unless_switched_on(self):
-        """The default, read from the settings file itself: the tests'
-        environment could switch it either way."""
-        source = Path(settings.BASE_DIR, "AutoGrader", "settings.py").read_text()
-        (assignment,) = [
-            node
-            for node in ast.parse(source).body
-            if isinstance(node, ast.Assign)
-            and getattr(node.targets[0], "id", "")
-            == "FORMATTED_GRADE_SEND_RESULT_STAMP"
-        ]
-        call = assignment.value
-        assert isinstance(call, ast.Call)
-        (default,) = [
-            keyword.value for keyword in call.keywords if keyword.arg == "default"
-        ]
-        self.assertIs(ast.literal_eval(default), False)
-
-    def test_the_manual_grade_route(self):
-        _, queued = self.override()
-
-        self.assertNotIn("result_stamp", queued.kwargs)
-        self.assertEqual(set(queued.kwargs), {"processing_task_id"})
-
-    def test_the_teacher_feedback_route(self):
-        self.override()
-        self.client.force_authenticate(self.teacher)
-        with patch("students.views.formatted_grade_async") as task:
-            task.delay.return_value.id = "fake-task-id"
-            response = self.client.get(
-                reverse(
-                    "student-submission-teacher-feedback",
-                    kwargs={"pk": self.submission.pk},
-                )
-            )
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-
-        task.delay.assert_called_once()
-        self.assertEqual(set(task.delay.call_args.kwargs), {"processing_task_id"})
-
-    def test_a_task_queued_so_writes_as_before(self):
-        """What step one leaves open: with no stamp nothing is overtaken."""
-        _, queued = self.override()
-
-        self.run_the_task(queued, return_value=dict(FROM_THE_FORMATTER))
-
-        self.assertIn("You scored 9 out of 10 points", self.stored_formatted())
-
-
-@override_settings(FORMATTED_GRADE_SEND_RESULT_STAMP=False)
-class WhileTheSettingIsOffGradingSendsNoStamp(TransactionTestCase):
-    @patch("students.services._formatted_grade_task")
-    @patch("students.services.student_summary_async")
-    @patch("students.services.ai_processor")
-    def test_the_follow_up_is_queued_without_it(
-        self, mock_ai, mock_summary, mock_formatted
-    ):
-        teacher, submission = make_people_and_submission()
-        mock_ai.extract_grade_with_retry.return_value = a_grading_result()
-        mock_formatted.return_value.delay.return_value.id = "fake-task-id"
-
-        grade_engine(teacher, submission)
-
-        mock_formatted.return_value.delay.assert_called_once()
-        self.assertEqual(
-            set(mock_formatted.return_value.delay.call_args.kwargs),
-            {"processing_task_id"},
         )
 
 

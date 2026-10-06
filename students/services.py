@@ -520,16 +520,6 @@ def grading_result_stamp(submission) -> str:
     )
 
 
-def result_stamp_argument(submission) -> dict[str, str]:
-    """The stamp as the keyword argument a queuer passes to the formatting
-    task, or NO argument while FORMATTED_GRADE_SEND_RESULT_STAMP is off.
-    Not `result_stamp=None`: a worker older than H-145 fails on the
-    argument's name, whatever its value."""
-    if not settings.FORMATTED_GRADE_SEND_RESULT_STAMP:
-        return {}
-    return {"result_stamp": grading_result_stamp(submission)}
-
-
 def _formatted_grade_task():
     return celery_app.signature(FORMATTED_GRADE_TASK_NAME)
 
@@ -583,7 +573,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
 
     # Of the result just saved, taken now: by the time the follow-up runs
     # the row may hold a newer one.
-    result_stamp = result_stamp_argument(submission)
+    result_stamp = grading_result_stamp(submission)
 
     def _dispatch_followups():
         try:
@@ -599,7 +589,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 formatted_processing_task,
                 str(submission.id),
                 user_prompt,
-                **result_stamp,
+                result_stamp=result_stamp,
             )
             # Invalidate ai_summary
             student_summary_async.delay(
