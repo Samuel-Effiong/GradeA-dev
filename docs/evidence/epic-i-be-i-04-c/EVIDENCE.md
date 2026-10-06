@@ -93,6 +93,35 @@ By module: `tests_grading_run_label` 42, all fail; `tests_grading_run_pipeline` 
 `tests_grading_label_written` 30, 27 fail; `tests_grading_label_routes` 10, all fail;
 `tests_grading_label_not_exposed` 4, none fail.
 
+### A fourth audit key (SM ruling): a fourth tests-only commit, before any code
+
+I had proposed that the backup measurement compare names cut to 64 characters, since it read the
+audit lists. The SM ruled otherwise: classified before any cut. So the audit entry gets ONE more
+permitted key, **`fresh_backup_used`**, holding the classification of the run's FRESH calls only
+(`yes`, `no`, `unknown`, or `no_fresh_call`), worked out on the exact names by the same rule as
+the label's flag. The rate reads that key; `unknown` is counted apart. The three lists stay, cut
+to 64 for a person to read, and are no longer what the rate is computed from. Two names sharing
+their first 64 characters cannot be confused anywhere, so there is no limit to state.
+
+Tests changed or added, tests only:
+- `tests_grading_run_label.TheFreshCallsClassificationTest` (11, new): the new method
+  `GradingRun.fresh_backup_used()`.
+- `tests_grading_label_written.TheBackupMeasurementTest` rewritten (9): the rate from the key;
+  not from the lists; an entry from before the key still measured by its one `model`.
+- The audit-entry tests and the two route tests also check the key.
+
+### Expected at this commit, re-written before any run
+
+**119 tests in five modules; 108 expected to fail or be in error, 11 to pass.** Two more pass
+today than before, both in the rewritten measurement class, because they describe what the old
+code already does: `test_lists_without_the_key_give_no_sample_from_the_lists` and
+`test_an_entry_from_before_the_key_is_still_measured_by_its_one_model`. The other nine are the
+nine named above (`test_no_fresh_call_gives_no_sample` now passes the key's fixed word).
+
+By module: `tests_grading_run_label` 53, all fail; `tests_grading_run_pipeline` 22, 20 fail;
+`tests_grading_label_written` 30, 25 fail; `tests_grading_label_routes` 10, all fail;
+`tests_grading_label_not_exposed` 4, none fail.
+
 ## Runs
 
 None yet.

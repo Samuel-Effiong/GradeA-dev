@@ -378,3 +378,86 @@ class ALongModelNameTest(SimpleTestCase):
         self.assertEqual(
             run.label()["grading_fallback_used"], grading_label.FALLBACK_UNKNOWN
         )
+
+
+class TheFreshCallsClassificationTest(_RunCase):
+    """One word for the run's FRESH calls only, worked out on the exact
+    names by the same rule as the label's flag: yes, no, unknown, or
+    no_fresh_call. The backup measurement reads this and nothing else
+    (SM ruling, 2026-10-06). Reused answers and second opinions are not
+    fresh calls."""
+
+    def assert_fresh(self, expected):
+        self.assertEqual(self.run_.fresh_backup_used(), expected)
+
+    def test_no_call_at_all(self):
+        self.assert_fresh("no_fresh_call")
+
+    def test_a_wholly_reused_run_made_no_fresh_call(self):
+        self.run_.keep_reused(BACKUP)
+        self.assert_fresh("no_fresh_call")
+
+    def test_the_main_model_only(self):
+        self.run_.keep_answers(MAIN, 2)
+        self.run_.keep_call(MAIN)
+        self.assert_fresh("no")
+
+    def test_a_backup_answer(self):
+        self.run_.keep_answers(MAIN, 9)
+        self.run_.keep_answers(BACKUP, 1)
+        self.assert_fresh("yes")
+
+    def test_a_backup_summary_call(self):
+        self.run_.keep_answers(MAIN, 9)
+        self.run_.keep_call(BACKUP)
+        self.assert_fresh("yes")
+
+    def test_main_with_an_unnamed_model(self):
+        self.run_.keep_answers(MAIN, 1)
+        self.run_.keep_answers(None, 1)
+        self.assert_fresh("unknown")
+
+    def test_backup_with_an_unnamed_model(self):
+        self.run_.keep_answers(BACKUP, 1)
+        self.run_.keep_call(None)
+        self.assert_fresh("yes")
+
+    def test_a_reused_backup_answer_does_not_make_the_fresh_calls_yes(self):
+        """The label's flag is "yes" here; the fresh calls had no backup."""
+        self.run_.keep_answers(MAIN, 1)
+        self.run_.keep_reused(BACKUP)
+        self.assert_fresh("no")
+        self.assertEqual(
+            self.label()["grading_fallback_used"], grading_label.FALLBACK_YES
+        )
+
+    def test_a_second_opinion_is_not_a_fresh_call_of_the_grader(self):
+        self.run_.keep_answers(MAIN, 1)
+        self.run_.keep_second_opinion(BACKUP)
+        self.assert_fresh("no")
+
+    def test_two_names_with_the_same_first_64_characters_are_not_confused(self):
+        prefix = "vendor/" + "x" * 57  # 64 characters
+        backup, other = prefix + "-backup", prefix + "-other"
+        with patch.object(services, "GRADING_FALLBACK_MODELS", [backup]):
+            fresh_backup = GradingRun.start()
+            fresh_other = GradingRun.start()
+        fresh_backup.keep_answers(backup, 1)
+        fresh_other.keep_answers(other, 1)
+        self.assertEqual(fresh_backup.fresh_backup_used(), "yes")
+        self.assertEqual(fresh_other.fresh_backup_used(), "unknown")
+
+    def test_it_is_one_short_word_the_audit_entry_can_hold(self):
+        from audit import metadata
+
+        for prepare in (
+            lambda run: None,
+            lambda run: run.keep_answers(MAIN, 1),
+            lambda run: run.keep_answers(BACKUP, 1),
+            lambda run: run.keep_answers(None, 1),
+        ):
+            run = GradingRun.start()
+            prepare(run)
+            word = run.fresh_backup_used()
+            self.assertIn(word, ("yes", "no", "unknown", "no_fresh_call"))
+            self.assertLessEqual(len(word), metadata.MAX_STRING)

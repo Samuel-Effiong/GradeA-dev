@@ -374,6 +374,7 @@ class TheAuditEntryTest(_GradingCase):
         self.assertEqual(metadata["models_served"], sorted([BACKUP, MAIN]))
         self.assertEqual(metadata["models_reused"], [MAIN])
         self.assertEqual(metadata["models_second_opinion"], ["second/model"])
+        self.assertEqual(metadata["fresh_backup_used"], "yes")
 
     def test_its_model_is_the_labels_model(self):
         metadata = self.emitted_metadata(
@@ -383,7 +384,12 @@ class TheAuditEntryTest(_GradingCase):
 
     def test_the_three_lists_are_permitted_for_this_entry_and_pass_validation(self):
         allowed = audit_metadata.METADATA_ALLOWLIST[AuditAction.GRADING_COMPLETED]
-        for key in ("models_served", "models_reused", "models_second_opinion"):
+        for key in (
+            "models_served",
+            "models_reused",
+            "models_second_opinion",
+            "fresh_backup_used",
+        ):
             with self.subTest(key=key):
                 self.assertIn(key, allowed)
                 self.assertIn(key, audit_metadata.ALLOWED_KEYS)
@@ -402,23 +408,27 @@ class TheAuditEntryTest(_GradingCase):
         self.assertEqual(event.metadata["models_served"], [MAIN])
         self.assertEqual(event.metadata["models_reused"], [BACKUP])
         self.assertEqual(event.metadata["models_second_opinion"], [])
+        # The fresh calls were the main model's; the backup's answer was
+        # reused, so the label says "yes" and this key says "no".
+        self.assertEqual(event.metadata["fresh_backup_used"], "no")
+        self.assertEqual(
+            _label_in_the_database(self.submission)["grading_fallback_used"],
+            grading_label.FALLBACK_YES,
+        )
         self.assertEqual(
             event.metadata["strictness"], grading_label.STRICTNESS_NOT_YET_SET
         )
 
 
 class TheBackupMeasurementTest(SimpleTestCase):
-    """The rate counts only gradings that made at least one fresh AI call.
-    Fixed-rule and wholly reused gradings are left out. A grading with an
-    unnamed model and no backup is counted apart, not in the rate."""
+    """The rate counts only gradings that made at least one fresh AI call,
+    and it is read from ONE key of the audit entry, `fresh_backup_used`,
+    which the run works out on the exact model names before anything is
+    cut (SM ruling, 2026-10-06). The three lists are for a person to read
+    and are not what the rate is computed from. "unknown" is counted
+    apart, not in the rate."""
 
-    def samples(self, **models):
-        metadata = {
-            "models_served": [],
-            "models_reused": [],
-            "models_second_opinion": [],
-        }
-        metadata.update(models)
+    def samples(self, **metadata):
         with patch.object(audit_emitter, "audit_metrics") as metrics:
             audit_emitter._emit_alertable_metrics(
                 AuditAction.GRADING_COMPLETED,
@@ -431,60 +441,57 @@ class TheBackupMeasurementTest(SimpleTestCase):
             if call.args[0] in ("model_fallback_rate", "model_unknown_rate")
         }
 
-    def test_the_main_model_only_is_a_zero(self):
+    def test_no_backup_among_the_fresh_calls_is_a_zero(self):
         self.assertEqual(
-            self.samples(models_served=[MAIN]),
+            self.samples(fresh_backup_used="no"),
             {"model_fallback_rate": 0.0, "model_unknown_rate": 0.0},
         )
 
     def test_a_backup_among_the_fresh_calls_is_a_one(self):
         self.assertEqual(
-            self.samples(models_served=sorted([BACKUP, MAIN]))["model_fallback_rate"],
-            1.0,
+            self.samples(fresh_backup_used="yes")["model_fallback_rate"], 1.0
         )
-
-    def test_a_backup_summary_call_is_seen(self):
-        """The list holds every fresh call, the summary call included; the
-        old measurement saw only the entry's one `model`."""
-        samples = self.samples(models_served=sorted([BACKUP, MAIN]), model=MAIN)
-        self.assertEqual(samples["model_fallback_rate"], 1.0)
 
     def test_no_fresh_call_gives_no_sample(self):
-        self.assertEqual(self.samples(), {})
-        self.assertEqual(self.samples(models_reused=[BACKUP]), {})
+        self.assertEqual(self.samples(fresh_backup_used="no_fresh_call"), {})
 
-    def test_a_reused_backup_answer_is_not_in_the_rate(self):
+    def test_unknown_is_counted_apart_and_not_in_the_rate(self):
         self.assertEqual(
-            self.samples(models_served=[MAIN], models_reused=[BACKUP]),
-            {"model_fallback_rate": 0.0, "model_unknown_rate": 0.0},
+            self.samples(fresh_backup_used="unknown"), {"model_unknown_rate": 1.0}
         )
 
-    def test_a_second_opinion_is_not_in_the_rate(self):
+    def test_the_rate_is_not_read_from_the_lists(self):
+        """The lists name a backup; the key says the fresh calls had none
+        (the backup's answer was reused, or it gave a second opinion)."""
+        samples = self.samples(
+            fresh_backup_used="no",
+            models_served=[MAIN],
+            models_reused=[BACKUP],
+            models_second_opinion=[BACKUP],
+        )
         self.assertEqual(
-            self.samples(models_served=[MAIN], models_second_opinion=[BACKUP]),
-            {"model_fallback_rate": 0.0, "model_unknown_rate": 0.0},
+            samples, {"model_fallback_rate": 0.0, "model_unknown_rate": 0.0}
         )
 
-    def test_an_unnamed_model_without_a_backup_is_counted_apart(self):
-        self.assertEqual(
-            self.samples(models_served=sorted([MAIN, grading_label.MODEL_UNKNOWN])),
-            {"model_unknown_rate": 1.0},
-        )
+    def test_the_old_single_model_does_not_override_the_key(self):
+        samples = self.samples(fresh_backup_used="yes", model=MAIN)
+        self.assertEqual(samples["model_fallback_rate"], 1.0)
+
+    def test_lists_without_the_key_give_no_sample_from_the_lists(self):
+        self.assertEqual(self.samples(models_served=[BACKUP]), {})
+
+    def test_an_entry_from_before_the_key_is_still_measured_by_its_one_model(self):
+        """Entries written by code older than this slice carry only
+        `model`; the measurement keeps its old reading for those."""
+        self.assertEqual(self.samples(model=BACKUP).get("model_fallback_rate"), 1.0)
+        self.assertEqual(self.samples(model=MAIN).get("model_fallback_rate"), 0.0)
 
     def test_a_long_backup_name_is_still_a_one_in_the_rate(self):
-        """The audit lists cut a name to 64 characters. The measurement
-        must still know a backup when it sees one: a long backup name must
-        not fall out of the rate as a quiet zero."""
+        """Classified on the exact name, before any cut: a backup whose
+        name is longer than an audit item must not fall out of the rate."""
         backup = "backup/" + "b" * 143
         with patch.object(ai_services, "GRADING_FALLBACK_MODELS", [backup]):
             run = GradingRun.start()
             run.keep_answers(backup, 1)
-            served = run.audit_models()["models_served"]
-            samples = self.samples(models_served=served)
+            samples = self.samples(fresh_backup_used=run.fresh_backup_used())
         self.assertEqual(samples.get("model_fallback_rate"), 1.0)
-
-    def test_an_unnamed_model_with_a_backup_is_a_one_in_the_rate(self):
-        samples = self.samples(
-            models_served=sorted([BACKUP, grading_label.MODEL_UNKNOWN])
-        )
-        self.assertEqual(samples["model_fallback_rate"], 1.0)

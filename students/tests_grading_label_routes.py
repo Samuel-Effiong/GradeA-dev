@@ -91,7 +91,7 @@ class _Stubs(TestCase):
     def keeping(self, *kept):
         self.ai.extract_grade_with_retry.side_effect = _a_grading_that_kept(*kept)
 
-    def assert_entry_agrees_with_the_row(self, submission, served, reused=()):
+    def assert_entry_agrees_with_the_row(self, submission, served, fresh, reused=()):
         events = AuditEvent.objects.filter(
             action=AuditAction.GRADING_COMPLETED, target_id=submission.id
         )
@@ -102,6 +102,7 @@ class _Stubs(TestCase):
         self.assertEqual(metadata["models_served"], sorted(served))
         self.assertEqual(metadata["models_reused"], sorted(reused))
         self.assertEqual(metadata["models_second_opinion"], [])
+        self.assertEqual(metadata["fresh_backup_used"], fresh)
         self.assertEqual(
             metadata["grading_config_version"], label["grading_config_version"]
         )
@@ -141,7 +142,7 @@ class TheBackgroundTaskTest(_Stubs, TestCase):
         outcome = self.run_task()
         self.assertTrue(outcome.successful(), outcome.result)
         label = self.assert_entry_agrees_with_the_row(
-            self.submission, served=[BACKUP, MAIN], reused=[MAIN]
+            self.submission, served=[BACKUP, MAIN], fresh="yes", reused=[MAIN]
         )
         self.assertEqual(label["grading_model"], MAIN)
         self.assertEqual(label["grading_fallback_used"], grading_label.FALLBACK_YES)
@@ -181,7 +182,9 @@ class TheImmediateRouteTest(_Stubs, APITestCase):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200, response.content)
-        label = self.assert_entry_agrees_with_the_row(self.submission, served=[BACKUP])
+        label = self.assert_entry_agrees_with_the_row(
+            self.submission, served=[BACKUP], fresh="yes"
+        )
         self.assertEqual(label["grading_model"], BACKUP)
         self.assertEqual(label["grading_fallback_used"], grading_label.FALLBACK_YES)
 
