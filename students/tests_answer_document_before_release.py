@@ -34,6 +34,7 @@ import dashboard.serializers
 import students.serializers
 from assignments.models import Assignment
 from assignments.serializers import AssignmentDetailStudentSerializer
+from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.tests_final_grade_zero_score import FinalGradeZeroScoreBase
 from students.models import StudentSubmission
 from students.services import upload_answers_engine
@@ -52,6 +53,14 @@ EXTRACTED = {
 class AnswerDocumentBase(FinalGradeZeroScoreBase):
     def setUp(self):
         super().setUp()
+        # The base enrols by e-mail, which leaves the student PENDING, and a
+        # pending student may not read a course's assignments at all: the
+        # assignment route would answer 404 and test nothing. (It did, in
+        # the first run of this module.) A student who can read their
+        # assignment is ENROLLED.
+        StudentCourse.objects.filter(student=self.student, course=self.course).update(
+            enrollment_status=EnrollmentStatusType.ENROLLED
+        )
         self.assignment = self.assignments[0]
         # The base's row for this assignment came from a bare create().
         # Replace it with one the upload engine makes.
@@ -340,9 +349,7 @@ class EveryReaderOfTheDocumentIsNamed(AnswerDocumentBase):
 
     def test_the_students_assignment_serializer_does_not_read_the_stored_column(self):
         """It carries the document under another name, through a method."""
-        tree = ast.parse(
-            inspect.cleandoc(inspect.getsource(AssignmentDetailStudentSerializer))
-        )
+        tree = ast.parse(inspect.getsource(AssignmentDetailStudentSerializer))
         reads = [
             node.lineno
             for node in ast.walk(tree)
