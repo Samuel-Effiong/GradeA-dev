@@ -17,6 +17,9 @@ resubmission stays; what changes is what the student is told and shown.
   * On the student's list of their submissions, `grading_state` is IDLE
     until release and DONE after, never RUNNING or FAILED; the three
     scheduled-grading fields are empty; `?grading_state=` is refused.
+  * `max_points`, on the list and on the submission page, is the
+    assignment's total until release, as on a submitted paper, and not the
+    maximum the grader stored on the row when it saved the grade.
 
 What this does NOT hide, by the founder's choice: `remaining_attempts`
 still drops to 0 when a paper is graded, and a change is still refused.
@@ -27,6 +30,7 @@ Run with:
     python manage.py test students.tests_no_grade_tell_before_release
 """
 
+import copy
 import json
 import uuid
 from datetime import timedelta
@@ -51,9 +55,10 @@ from students.models import (
     GradingState,
     StudentSubmission,
 )
-from students.services import MAX_STUDENT_SUBMISSION_ATTEMPTS
+from students.services import MAX_STUDENT_SUBMISSION_ATTEMPTS, _populate_and_save_grade
 from students.tests_post_grading_submission_lock import (
     PDF_BYTES,
+    VALID_GRADE,
     _classroom,
     _submission,
 )
@@ -616,3 +621,110 @@ class TheRefusalCodesAreAClosedListTest(TestCase):
                 )
             },
         )
+
+
+class GradedTheWayTheGraderSavesItTest(APITestCase):
+    """The whole of what a student reads of a paper, before and after the
+    REAL grade save (`_populate_and_save_grade`, which every AI grading
+    ends in), on the two student routes that can answer for a graded,
+    unreleased paper: the list and the submission page. An upload or an
+    edit of such a paper is refused, so those routes never answer for one.
+
+    A graded row made by hand can lack something the real save writes; the
+    stored maximum was such a thing (Verifier 1's finding). The grader's
+    maximum is 10 here; the assignment's total is absent in one case and
+    20 in the other."""
+
+    def setUp(self):
+        self.teacher, self.student, self.course, self.assignment = _classroom("h133m")
+        self.submission = _submission(self.assignment, self.student, graded=False)
+        self.client.force_authenticate(user=self.student)
+
+    def set_total(self, total):
+        Assignment.objects.filter(pk=self.assignment.pk).update(total_points=total)
+
+    def read(self, reading, user=None):
+        cache.clear()
+        self.client.force_authenticate(user=user or self.student)
+        if reading == "page":
+            response = self.client.get(
+                reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            return plain(response.data)
+        response = self.client.get(reverse("student-submission-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        rows = [
+            row
+            for row in response.data["results"]
+            if str(row["id"]) == str(self.submission.pk)
+        ]
+        self.assertEqual(len(rows), 1)
+        return plain(rows[0])
+
+    def grade(self):
+        """The real save, with a question the grader could not find an
+        answer to, so the review fields are written as well."""
+        grading = copy.deepcopy(VALID_GRADE)
+        grading["answers_not_found"] = [
+            {
+                "question_number": 1,
+                "answer_status": "not_found",
+                "score_awarded": 0,
+                "max_points": 10,
+            }
+        ]
+        _populate_and_save_grade(
+            StudentSubmission.objects.get(pk=self.submission.pk), grading, None
+        )
+        row = StudentSubmission.objects.get(pk=self.submission.pk)
+        # The paper really is graded, and not released.
+        self.assertEqual(row.max_points, 10)
+        self.assertEqual(row.score, 8)
+        self.assertIsNotNone(row.graded_at)
+        self.assertEqual(row.grading_state, GradingState.DONE)
+        self.assertTrue(row.needs_review)
+        self.assertTrue(row.raw_input)
+        self.assertFalse(row.is_published)
+
+    def assert_only_the_attempts_differ(self, reading, total):
+        self.set_total(total)
+        submitted = self.read(reading)
+        self.assertEqual(submitted["max_points"], total)
+        self.grade()
+        graded = self.read(reading)
+
+        self.assertGreater(submitted.pop("remaining_attempts"), 0)
+        self.assertEqual(graded.pop("remaining_attempts"), 0)
+        self.assertEqual(graded, submitted)
+
+    def test_the_list_when_the_assignment_has_no_total(self):
+        self.assert_only_the_attempts_differ("list", None)
+
+    def test_the_list_when_the_assignment_total_differs(self):
+        self.assert_only_the_attempts_differ("list", 20)
+
+    def test_the_page_when_the_assignment_has_no_total(self):
+        self.assert_only_the_attempts_differ("page", None)
+
+    def test_the_page_when_the_assignment_total_differs(self):
+        self.assert_only_the_attempts_differ("page", 20)
+
+    def test_once_released_the_student_reads_the_graders_maximum(self):
+        self.set_total(20)
+        self.grade()
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            is_published=True
+        )
+        for reading in ("list", "page"):
+            with self.subTest(reading=reading):
+                self.assertEqual(self.read(reading)["max_points"], 10)
+
+    def test_the_teacher_reads_the_graders_maximum_before_release(self):
+        self.set_total(20)
+        self.grade()
+        for reading in ("list", "page"):
+            with self.subTest(reading=reading):
+                self.assertEqual(
+                    self.read(reading, user=self.teacher)["max_points"], 10
+                )
