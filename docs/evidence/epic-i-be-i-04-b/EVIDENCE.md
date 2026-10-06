@@ -396,6 +396,11 @@ run. The author did not touch the worktree while it ran.
 - For the record, as 0b asked: two commit-hook runs by other sessions ended at 17:58:40 and
   17:59:31, both before the script's start. One of them was mine (slice C's commit df648e6c,
   17:58).
+  **Correction (2026-10-06, from 0b):** the last sentence is wrong; I had guessed. The two hook
+  runs 0b named were the Security Engineer's (about 17:58:20 to 17:58:40, stopped at a lint
+  check, nothing committed) and the Hardening Engineer's (ended 17:59:31, failed on a type
+  error, nothing committed). My commit df648e6c at 17:58:23 was a third. So: three hook runs by
+  three sessions, all ended by 17:59:31, before the script's start at 18:01:00.
 - The log is committed whole and byte-exact as `full_run_0b_6ca94c09.log.xz`: 8,677,854 bytes
   unpacked, sha256 `fdcc7d6dc898d1736f505d06815f4dfb5d02f6385e66be455337a3d9b4e60993`, the figure
   0b gave and the one I computed from 0b's file. "Ran" is line 113930 and "OK" line 113932. 0b's
@@ -440,3 +445,24 @@ before the run:
 - P4, text and status joined into one part: `test_text_and_status_cannot_run_together`.
 
 Test count of the slice's own module after the removal: 52; the new module: 3.
+
+### The rest of the delta (the commit after the tests-only one)
+
+- Four mutants added to `mutate.py` (P1 to P4), 38 in all; the Checker's module joins the test
+  modules every mutant is judged by.
+- **Document lines, no code line:** in the docstring of `build_cache_key` and in 03a, a new
+  stated limit (a question's image is matched by its address, not its content) and the "nothing
+  said" choice among the stated limits, accepted by the SM on 2026-10-06. `ai_processor/grading_cache.py`
+  changes by docstring lines only; whether that needs anything beyond this delta's run is 0b's
+  to say.
+- The correction about the three commit-hook runs, above.
+- The Checker's record at 728491a2 is committed byte-identical as
+  `VERIFICATION_be_i_04_slice_b.md` (sha256
+  `b49ba92c74eee1ce5ff1e05e33bab9b6fd9118017a53833bc7059891e59f8a4b`).
+- **All 38 mutants are run again** in the delta's run, with the modules and the guards; no red
+  run, since the delta's tests pass on the code as it stands. Expected: OK (627 before; one test
+  removed and three added, so 629 if nothing else moved); 38 KILLED.
+
+### Delta 2's run
+
+None yet at this commit.

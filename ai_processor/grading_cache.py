@@ -175,6 +175,14 @@ def build_cache_key(
     * the answer's `source_page`, its `confidence`, or its own copy of
       `question_text`, which are sent too. They differ from student to
       student for the same text, so matching on them would end all reuse.
+    * what an image shows. A question's image is matched by its address,
+      not its content: a new picture put at the same address is not seen.
+
+    A STATED CHOICE (accepted by the SM 2026-10-06): for `answer_status`
+    and `transcription_notes`, a field that is missing, None, empty or
+    only whitespace counts as "nothing said" and matches as one, and outer
+    whitespace is not compared (see `_said`). The AI is told nothing in
+    each of those forms.
 
     The release is deliberately absent (it is recorded beside the settings
     version, never inside it), so a deploy does not empty the store.

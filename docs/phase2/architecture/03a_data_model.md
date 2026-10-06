@@ -740,8 +740,14 @@ winner is recorded on `SubmissionGrading.strictness_source`.
 > same call. Nor does it look at the answer's `source_page`, its
 > `confidence` or its own copy of `question_text`, which are sent too: they
 > differ from student to student for the same text, so matching on them
-> would end all reuse. The release is not part of the match, so a deploy
+> would end all reuse. A question's image is matched by its address, not its
+> content: a new picture put at the same address is not seen. The release is
+> not part of the match, so a deploy
 > does not empty the store. Each stored value names the model that answered.
+> **A stated choice** (accepted by the SM 2026-10-06): for `answer_status`
+> and `transcription_notes`, a field that is missing, null, empty or only
+> whitespace counts as "nothing said" and matches as one; outer whitespace is
+> not compared.
 
 ### 4.5 `students.BackgroundProcessingTask`
 
