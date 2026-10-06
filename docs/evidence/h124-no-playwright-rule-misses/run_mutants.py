@@ -3,10 +3,12 @@ Mutation battery for H-124 (rule 15): the source rule that no test module
 starts Playwright at import follows other names, methods and getattr, and
 the scan's first look no longer hides a file from the rule.
 
-N1 to N14 are one per branch added by this row. G1 to G3 are H-118's three
-mutants of the same rule, carried over because this row rewrites the
-function they mutated (rule 17 addendum): G1 has a new anchor, G2 and G3
-the old ones.
+N1 to N14 are one per branch added by this row; N15 to N19 came with the
+answer to v2's pre-read (staticmethod and classmethod, a class made at
+import, a decorator without brackets, a lambda bound to a name). G1 to G3
+are H-118's three mutants of the same rule, carried over because this row
+rewrites the function they mutated (rule 17 addendum): G1 has a new
+anchor, G2 and G3 the old ones.
 
 One disposable detached worktree at the commit under test. A baseline run
 on the unmutated tree must pass first; then each mutant, with the file
@@ -174,6 +176,51 @@ MUTANTS = [
         GD,
         "                        asked.add(target.id)\n",
         "                        pass\n",
+        1,
+        TESTS,
+    ),
+    (
+        "N15",
+        "staticmethod(thing) and classmethod(thing) stand for the thing",
+        GD,
+        "        return node.args[0]\n",
+        "        return node\n",
+        1,
+        TESTS,
+    ),
+    (
+        "N16",
+        "a class whose __init__ or __new__ reaches a starter is followed",
+        GD,
+        "                    bare.add(owner.name)\n",
+        "                    pass\n",
+        1,
+        TESTS,
+    ),
+    (
+        "N17",
+        "a decorator applied without brackets is a call",
+        GD,
+        "        elif isinstance(node, DECORATED):\n",
+        "        elif False:\n",
+        1,
+        TESTS,
+    ),
+    (
+        "N18",
+        "a lambda that reaches a starter binds a name",
+        GD,
+        "            return reaches(node.body)\n",
+        "            return False\n",
+        1,
+        TESTS,
+    ),
+    (
+        "N19",
+        "only __init__ and __new__ make a class count, not any method",
+        GD,
+        '                if method.name in ("__init__", "__new__"):\n',
+        "                if True:\n",
         1,
         TESTS,
     ),
