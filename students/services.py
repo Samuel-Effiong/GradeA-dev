@@ -507,6 +507,19 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
 FORMATTED_GRADE_TASK_NAME = "assignments.tasks.formatted_grade_async"
 
 
+def grading_result_stamp(submission) -> str:
+    """Which grading result a row holds: its grading time and its regrade
+    time. Grading sets the first and a teacher's manual grade the second,
+    so the stamp changes whenever the result does. It holds no score.
+
+    The formatting task is queued with the stamp of the result it is asked
+    to word and writes only if the row still has that stamp (H-145)."""
+    return "|".join(
+        moment.isoformat() if moment else ""
+        for moment in (submission.graded_at, submission.regraded_at)
+    )
+
+
 def _formatted_grade_task():
     return celery_app.signature(FORMATTED_GRADE_TASK_NAME)
 

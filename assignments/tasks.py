@@ -907,7 +907,9 @@ def upload_answers_engine_async(
 
 
 @shared_task()
-def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
+def formatted_grade_async(
+    submission_id, user_prompt, processing_task_id=None, result_stamp=None
+):
     try:
         ensure_task_not_cancelled(processing_task_id)
         mark_processing_task_started(
