@@ -1,0 +1,8 @@
+17:48:29 baseline start: loadavg 4.15 4.64 5.88 10/2973 1899299
+17:48:35 baseline end exit=0: loadavg 4.14 4.63 5.87 6/2948 1899811
+17:48:35 end-to-end start: loadavg 4.14 4.63 5.87 7/2949 1899814
+17:48:42 end-to-end end exit=1 (1 is the expected one): loadavg 4.27 4.64 5.86 10/2938 1900807
+17:48:42 end-to-end: the FAIL set is exactly the expected one
+17:48:42 mutants start: loadavg 4.27 4.64 5.86 6/2936 1900886
+17:48:51 mutants end exit=0: loadavg 4.52 4.68 5.86 16/2942 1901188
+17:48:51 probe removed; tree is the frozen tip again
