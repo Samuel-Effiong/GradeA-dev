@@ -484,6 +484,59 @@ class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
             with self.subTest(shape=shape):
                 self.assertTrue(playwright_started_at_import(source))
 
+    def test_the_rule_reads_through_staticmethod_and_classmethod(self):
+        shapes = {
+            "a helper made a static method under its own name": "def available():\n"
+            "    return sync_playwright()\n"
+            "class T:\n    available = staticmethod(available)\n"
+            "X = T.available()\n",
+            "a helper made a class method under another name": "def available(cls):\n"
+            "    return sync_playwright()\n"
+            "class T:\n    check = classmethod(available)\n"
+            "X = T.check()\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_the_rule_follows_a_class_made_at_import(self):
+        shapes = {
+            "its __init__ starts one": "class B:\n    def __init__(self):\n"
+            "        self.p = sync_playwright().start()\n"
+            "BROWSER = B()\n",
+            "its __new__ starts one": "class B:\n    def __new__(cls):\n"
+            "        sync_playwright().start()\n"
+            "        return super().__new__(cls)\n"
+            "BROWSER = B()\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_the_rule_follows_a_decorator_applied_without_brackets(self):
+        shapes = {
+            "on a function": "def needs(fn):\n    sync_playwright()\n    return fn\n"
+            "@needs\ndef test_it():\n    pass\n",
+            "on a class": "def needs(cls):\n    sync_playwright()\n    return cls\n"
+            "@needs\nclass T:\n    pass\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
+    def test_the_rule_follows_a_lambda_bound_to_a_name(self):
+        shapes = {
+            "the lambda starts one": "available = lambda: bool(sync_playwright())\n"
+            "OK = available()\n",
+            "the lambda calls a helper that starts one": "def inner():\n"
+            "    return sync_playwright()\n"
+            "available = lambda: inner()\n"
+            "OK = available()\n",
+        }
+        for shape, source in shapes.items():
+            with self.subTest(shape=shape):
+                self.assertTrue(playwright_started_at_import(source))
+
     def test_the_wider_rule_still_allows_what_starts_nothing(self):
         allowed = {
             "another name, imported and not called": "from playwright.sync_api import sync_playwright as sp\n",
@@ -505,15 +558,19 @@ class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
             "    def available(self):\n        return sync_playwright()\n"
             "def available():\n    return 1\n"
             "X = available()\n",
+            "a class made at import, with some other method that starts one": "class B:\n"
+            "    def open(self):\n        return sync_playwright()\n"
+            "BROWSER = B()\n",
+            "a lambda that starts one, bound and not called": "available = lambda: bool(sync_playwright())\n",
         }
         for shape, source in allowed.items():
             with self.subTest(shape=shape):
                 self.assertEqual(playwright_started_at_import(source), [])
 
     def test_the_false_alarms_that_are_known_and_kept(self):
-        """Both err on the safe side. The first needs to know which names are
-        local to a function; the second, which class an object belongs to.
-        The rule reads names, not scopes or types."""
+        """All err on the safe side. The first two need to know which names
+        are local to a function; the last two, which class an object belongs
+        to. The rule reads names, not scopes or types."""
         kept = {
             "a helper with a local named like a starter": "def helper():\n"
             "    sync_playwright = None\n    return 1\n"
@@ -522,6 +579,14 @@ class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
             "    def available(self):\n        return sync_playwright()\n"
             "import shutil\n"
             "X = shutil.available()\n",
+            "a starter bound inside one function, and an unrelated function of that name": "def helper():\n"
+            "    start = sync_playwright\n    return 1\n"
+            "def start():\n    return 1\n"
+            "X = start()\n",
+            "a thread started at import beside a method start() that starts one": "import threading\n"
+            "class T:\n    def start(self):\n        return sync_playwright()\n"
+            "t = threading.Thread(target=print)\n"
+            "t.start()\n",
         }
         for shape, source in kept.items():
             with self.subTest(shape=shape):
@@ -529,15 +594,35 @@ class NoTestModuleStartsPlaywrightAtImportTests(SimpleTestCase):
 
     def test_what_the_rule_still_does_not_see(self):
         """The limits, pinned so that nobody takes the rule for more than it
-        is: a starter reached through a container or through a name worked
-        out at run time. (A helper in another module is a third: the rule
-        reads one file at a time.) The fresh-interpreter test above is the
-        net for these, in the one module it imports."""
+        is, and so that a later change shows if one of them flips. Each of
+        these starts a driver at import. (A helper in another module is one
+        more: the rule reads one file at a time.) The fresh-interpreter test
+        above is the net for these, in the one module it imports."""
         unseen = {
             "kept in a list and called by index": "starters = [sync_playwright]\n"
             "X = starters[0]()\n",
             "getattr with a name worked out at run time": "import playwright.sync_api as api\n"
             "NAME = 'sync_' + 'playwright'\nX = getattr(api, NAME)()\n",
+            "passed as an argument": "def call(f):\n    return f()\n"
+            "X = call(sync_playwright)\n",
+            "functools.partial bound to a name and called later": "import functools\n"
+            "start = functools.partial(sync_playwright)\n"
+            "X = start()\n",
+            "bound in a tuple assignment": "start, n = sync_playwright, 1\nX = start()\n",
+            "bound by := on a line of its own": "(start := sync_playwright)\nX = start()\n",
+            "bound through a conditional expression": "import os\n"
+            "start = sync_playwright if os.environ.get('X') else None\n"
+            "X = start()\n",
+            "a property read at import": "class T:\n    @property\n    def ok(self):\n"
+            "        return bool(sync_playwright())\n"
+            "X = T().ok\n",
+            "a parameter's default value": "def f(s=sync_playwright):\n    return s()\n"
+            "X = f()\n",
+            "__enter__ of an object used in a with": "class B:\n    def __enter__(self):\n"
+            "        return sync_playwright().start()\n"
+            "    def __exit__(self, *a):\n        pass\n"
+            "with B() as p:\n    pass\n",
+            "bound by a for loop": "for start in (sync_playwright,):\n    X = start()\n",
         }
         for shape, source in unseen.items():
             with self.subTest(shape=shape):
