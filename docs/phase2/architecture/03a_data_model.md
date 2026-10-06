@@ -742,6 +742,32 @@ winner is recorded on `SubmissionGrading.strictness_source`.
 > differ from student to student for the same text, so matching on them
 > would end all reuse. The release is not part of the match, so a deploy
 > does not empty the store. Each stored value names the model that answered.
+> **A stated choice** (accepted by the SM 2026-10-06): for `answer_status`
+> and `transcription_notes`, a field that is missing, null, empty or only
+> whitespace counts as "nothing said" and matches as one; outer whitespace is
+> not compared.
+
+> **The label is written with the grade, and the audit entry says the same
+> (note added 2026-10-06, BE-I-04 slice C).** The six label columns are set
+> by the same `UPDATE` as the score (`students.services._populate_and_save_grade`).
+> The model is the one that marked the most answers, fresh and reused
+> together; `grading_fallback_used` is `yes` if any kept call or reused
+> answer came from a backup model, `unknown` if none did and one came from a
+> model the provider did not name or that is on neither list, `no` if all
+> came from the main model, `not_applicable` if no AI call was made and
+> nothing was reused. Second-opinion calls are in neither. Only kept replies
+> count: the label says which models produced the grade that was saved, not
+> every model that was called. No document listed the audit entry's keys
+> before; for the `GRADING_COMPLETED` entry they are now: `assignment_id`,
+> `submission_id`, `task_id`, `duration_ms`, `model`, `prompt_version`,
+> `grading_config_version`, `strictness`, and four added by this slice:
+> `models_served` (the models of the fresh calls of the grader that sets the
+> score), `models_reused` (the models that first produced the reused
+> answers), `models_second_opinion`, each a list of names cut to 64
+> characters for a person to read; and `fresh_backup_used`, one word for the
+> fresh calls only (`yes`, `no`, `unknown`, `no_fresh_call`), worked out on
+> the exact names before any cut. The backup measurement reads that one
+> word and nothing else; `unknown` is counted apart.
 
 ### 4.5 `students.BackgroundProcessingTask`
 

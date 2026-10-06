@@ -145,6 +145,49 @@ By module: `tests_grading_run_label` 55, all fail; `tests_grading_run_pipeline` 
 `tests_grading_label_written` 33, 26 fail; `tests_grading_label_routes` 10, all fail;
 `tests_grading_label_not_exposed` 4, none fail.
 
+## The code (the commit after the five tests-only commits)
+
+| Piece | File |
+|---|---|
+| What a run gathers and derives: `keep_answers`, `keep_call`, `keep_reused`, `keep_second_opinion`, `begin_attempt`, `label`, `audit_models`, `fresh_backup_used` | `ai_processor/grading_run.py` |
+| The run's attempt reset; the points where a kept reply is recorded; every grade-shaping setting read through `_grading_setting(run, name)` | `ai_processor/services.py` |
+| The run started above the grading service; the six columns set and saved by the same UPDATE as the score; the audit entry's keys | `students/services.py` |
+| Four keys permitted on the grading entry | `audit/metadata.py` |
+| The backup measurement reads `fresh_backup_used` | `audit/emitter.py` |
+| The formatting job saves only its own field | `assignments/tasks.py` |
+| The "nothing said" choice among the stated limits (carried from slice B, accepted by the SM) | `ai_processor/grading_cache.py` (docstring), `docs/phase2/architecture/03a_data_model.md` |
+| The label, the rules of the flag and the audit entry's keys | `docs/phase2/architecture/03a_data_model.md` |
+| The one changed expression stated exactly (the Checker's note on slice A) | `students/tests_grading_label_migration.py` (docstring only) |
+
+- **Where a reply is "kept".** A fresh reply is recorded at the point where its evaluations are
+  marked with the model our code read from the response, which is after every check that can
+  reject it. A second-opinion reply, which goes through the same batch function, is recorded
+  apart. The summary call is recorded where its result is accepted. A reused answer is recorded
+  when the store returns it, by the model the envelope names. Every attempt starts by emptying
+  what was gathered.
+- **The settings.** Fourteen live reads in the grading service became reads of the run's one
+  reading. A helper called with no run takes a reading then. The two reads in the offline
+  benchmark command stay, allowed by name in the static test with the reason.
+- **The audit entry** says what the label says when the submission carries a label and a run;
+  its `model` is the label's model. An entry from a submission with no run is written as before
+  and measured by its one `model`: for old entries only. Both production callers hand over what
+  `grade_engine` returned.
+- **No model, no migration, no settings line changed.**
+
+## Stated limits
+
+- The label says which models produced the grade that was saved, not every model that was
+  called: a rejected reply and a failed attempt are in the per-call log line only.
+- The rule for dated or suffixed model names waits for the approved live test (SM ruling): a
+  provider name that differs from the configured main or backup name by a suffix reads
+  "unknown" today.
+- A re-grade replaces the label, as it replaces the score. The first form of the record keeps
+  no history.
+- Behaviour of the settings reading is shown for two settings and one mid-run switch; the other
+  twelve rest on the static check.
+- The audit entry's `model` is cut to 128 characters and the lists' names to 64, for reading.
+  The row holds 255. Nothing is classified from a cut name.
+
 ## Runs
 
 None yet.

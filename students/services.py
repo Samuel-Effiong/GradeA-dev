@@ -10,6 +10,7 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from ai_processor.grading_run import GradingRun
 from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
 from assignments.exceptions import SubmissionEmptyError
 from assignments.models import Assignment, AssignmentStatus
@@ -36,6 +37,7 @@ from .exceptions import (
     SubmissionProcessingInProgressError,
 )
 from .grading_gates import ensure_gradable
+from .grading_label import LABEL_FIELDS, UNLABELLED
 from .models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -232,6 +234,9 @@ GRADING_RESULT_FIELDS = (
     "review_severity",
     "review_tier",
     "raw_input",
+    # BE-I-04: the grade's label, written by this same UPDATE, so a grade
+    # and its label cannot disagree and a grade cannot be missing its label.
+    *LABEL_FIELDS,
 )
 
 
@@ -310,6 +315,26 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
         if isinstance(submission.feedback, dict)
         else None
     )
+    # BE-I-04: when the submission carries a label, the entry says what the
+    # label says, and carries the run's lists of models and the
+    # classification of its fresh calls. `_grading_run` is set by
+    # _populate_and_save_grade on the instance it saved.
+    #
+    # The fallback above, and an entry without the keys below, exist for
+    # OLD entries only: a submission graded by code older than this slice,
+    # or one in flight at a deploy. No production caller emits without a
+    # run: both callers pass the instance grade_engine returned
+    # (students/tests_grading_label_written.py pins the call sites).
+    label_metadata = {}
+    run = getattr(submission, "_grading_run", None)
+    if isinstance(run, GradingRun) and submission.grading_model != UNLABELLED:
+        grading_model = submission.grading_model.replace("@", "(at)")[:128]
+        label_metadata = {
+            "grading_config_version": submission.grading_config_version,
+            "strictness": submission.grading_strictness,
+            "fresh_backup_used": run.fresh_backup_used(),
+            **run.audit_models(),
+        }
     changed_before, changed_after = history.grade_change(
         before, history.snapshot(submission)
     )
@@ -328,7 +353,12 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
             "task_id": str(task_id) if task_id else None,
             "model": grading_model,
             # S5 (NFR-OBS-04): the exact grading prompt behind this grade.
-            "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
+            "prompt_version": (
+                run.prompt_version
+                if label_metadata
+                else GRADING_ASSIGNMENT_PROMPT.version
+            ),
+            **label_metadata,
         },
     )
 
@@ -357,9 +387,23 @@ def grade_engine(user, submission, processing_task_id=None):
         raise
 
 
-def _populate_and_save_grade(submission, grading, processing_task_id):
+def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     """
-    Write an AI grading result onto the submission and persist it.
+    Write an AI grading result onto the submission and persist it,
+    together with the grade's label (BE-I-04): what produced this grade.
+
+    FIRST FORM OF THE GRADING RECORD. A later stage improves on it: a table
+    of grading runs, built beside re-grading or feedback editing and filled
+    from these fields. Until that table exists a re-grade overwrites the
+    label with the newer run's, as it overwrites the score.
+
+    The label is derived from `run` (ai_processor/grading_run.py): the
+    run's one reading of the settings, and the models our code read from
+    the provider's kept replies. It is set on the same instance and saved
+    by the same UPDATE as the score. It travels beside `grading`, never
+    inside it: `grading` is saved whole as the feedback and is sent on to
+    another AI call. A caller that hands over no run (nothing in
+    production does) gets the label of a run that made no AI call.
 
     Split out of _run_grading_pipeline so the whole grade-then-persist
     sequence sits inside one billing_refund_scope: everything in here can
@@ -500,6 +544,13 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
 
     # Epic A S4 (SM note 2): AI grading writes no GRADE_CHANGE. Its
     # before/after go onto the one GRADING_COMPLETED event its caller emits.
+    run = run or GradingRun.start()
+    for name, value in run.label().items():
+        setattr(submission, name, value)
+    # For emit_grading_completed, which only sees the returned submission:
+    # the lists of models are on the run, not on the row. Not a field.
+    submission._grading_run = run
+
     with cancellable_final_save(processing_task_id), history.suppressed():
         submission.save(update_fields=GRADING_RESULT_FIELDS)
 
@@ -530,6 +581,11 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     # charged again. billing_refund_scope re-parents: the inner scope
     # hands its committed task_ids up to this one on success (see
     # billing/refunds.py), so a later failure here reclaims them too.
+    # BE-I-04: ONE reading of the grading settings for this run, taken
+    # here, above the grading service's retry loop, and handed down. The
+    # same run then gives the label that is saved with the grade.
+    run = GradingRun.start()
+
     with billing_refund_scope(
         reason="grading run failed before the grade was persisted"
     ):
@@ -539,9 +595,10 @@ def _run_grading_pipeline(user, submission, processing_task_id):
             answer_json,
             assignment_model=submission.assignment,
             processing_task_id=processing_task_id,
+            run=run,
         )
 
-        _populate_and_save_grade(submission, grading, processing_task_id)
+        _populate_and_save_grade(submission, grading, processing_task_id, run)
 
     # H4: follow-up tasks (formatted grade + AI summary refresh) dispatch
     # only after the grade's save has actually COMMITTED - via on_commit,

@@ -426,7 +426,30 @@ def _emit_alertable_metrics(action, outcome, fields):
             0.0 if outcome == AuditOutcome.SUCCESS else 1.0,
         )
         if action == AuditAction.GRADING_COMPLETED:
-            model = (fields.get("metadata") or {}).get("model")
+            metadata = fields.get("metadata") or {}
+            fresh = metadata.get("fresh_backup_used")
+            if fresh is not None:
+                # BE-I-04 slice C: ONE key, worked out by the grading run on
+                # the exact model names of its FRESH calls before anything
+                # was cut. The rate counts only gradings that made a fresh
+                # call; "unknown" is counted apart, not in the rate; the
+                # three lists of models are for a person to read and are
+                # not read here.
+                if fresh == "yes":
+                    audit_metrics.distribution("model_fallback_rate", 1.0)
+                elif fresh == "no":
+                    audit_metrics.distribution("model_fallback_rate", 0.0)
+                    audit_metrics.distribution("model_unknown_rate", 0.0)
+                elif fresh == "unknown":
+                    audit_metrics.distribution("model_unknown_rate", 1.0)
+                # "no_fresh_call": no sample.
+                model = None
+            else:
+                # An entry with no such key: written by code older than
+                # slice C, or in flight at a deploy. Measured by its one
+                # `model`, as before. No production caller emits without
+                # the key any more.
+                model = metadata.get("model")
             if model:
                 # Local import: ai_processor.services pulls in the OpenAI
                 # client and a large module surface this chokepoint has no

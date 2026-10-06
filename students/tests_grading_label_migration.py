@@ -8,8 +8,11 @@ real migration, not read off the column's definition.
 
 Written by the Next-stage Checker as a probe of its own (it passed at
 58326e45 in the checker's run) and handed over for adoption by the Senior
-Manager's ruling of 2026-10-06. The class is as the checker wrote it; only
-its name and this docstring are the builder's.
+Manager's ruling of 2026-10-06. The class is as the checker wrote it, with
+these differences, all of them: its name; this docstring and the class's;
+and one expression, changed for the type checker: the checker's
+`float(fresh.score)` reads `float(fresh.score or 0)` here. A missing score
+still fails that assertion, since 0.0 is not 7.0.
 """
 
 from django.db import connection

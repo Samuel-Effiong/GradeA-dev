@@ -880,8 +880,11 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         submission.formatted_grade = _reconcile_formatted_grade_numbers(
             formatted_grade, submission
         )
+        # Only its own field (BE-I-04): this row was read before a slow AI
+        # call. A whole-row save would write the score and the label it
+        # read back over a grading that landed meanwhile.
         with cancellable_final_save(processing_task_id):
-            submission.save()
+            submission.save(update_fields=["formatted_grade"])
 
         self.update_state(
             state="PROGRESS", meta={"step": "Grade formatted successfully"}

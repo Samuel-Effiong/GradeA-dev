@@ -77,6 +77,11 @@ ALLOWED_KEYS = frozenset(
         "prompt_version",
         "grading_config_version",
         "strictness",
+        # BE-I-04 slice C (GRADING_COMPLETED only; see METADATA_ALLOWLIST)
+        "models_served",
+        "models_reused",
+        "models_second_opinion",
+        "fresh_backup_used",
         "feature",
         "task_type",
         "file_type",
@@ -234,6 +239,14 @@ METADATA_ALLOWLIST = {
             "prompt_version",
             "grading_config_version",
             "strictness",
+            # BE-I-04 slice C. Three lists for a person to read (each name
+            # cut to an item's length), and ONE word for the fresh calls,
+            # classified on the exact names, which the backup measurement
+            # reads: yes, no, unknown, no_fresh_call.
+            "models_served",
+            "models_reused",
+            "models_second_opinion",
+            "fresh_backup_used",
         }
     ),
     AuditAction.GRADING_FAILED: frozenset(
