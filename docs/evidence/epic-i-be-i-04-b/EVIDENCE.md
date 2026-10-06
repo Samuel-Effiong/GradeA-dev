@@ -489,3 +489,31 @@ One grant from 0b, 2026-10-06 18:31:14 to 18:40:10, mode `1d`. One run, serial, 
   under the mutants I had written for it, and spent a slot finding out.
 - Logs a commit hook would alter are gzipped byte-exact; their hashes are in
   `gzipped_logs_sha256_525fdf88.txt`. `console_525fdf88.txt` is the gate script's own output.
+
+### The corrected assertion, and what can fail (written before the next run)
+
+By the SM's word I corrected the one assertion: it now looks at what was sent as the system
+prompt (`kwargs["system_prompt"]`) of every provider call of the run, not at a dump of all the
+keyword arguments. This changes the Checker's class; the module's docstring says so and why.
+Nothing else in the module changed.
+
+Checked by reading, as the SM asked, that each adopted or new assertion of this delta CAN fail,
+with the mutant that fails it:
+
+| Assertion | The mutant that fails it | How I know |
+|---|---|---|
+| `test_status_and_notes_cannot_run_together` (three inequalities) | P3 | killed in the run at 525fdf88 |
+| `test_text_and_status_cannot_run_together` (two inequalities) | P4 | killed in the run at 525fdf88 |
+| `test_the_run_keeps_its_starting_reading`: three provider calls on the first paper | none offered: a guard on the fixture (two chunks and a summary) | by reading |
+| the same test: the teacher's text in the system prompt of every call | P1 for the second chunk's call, P2 for the summary call's | by reading only, no run yet: with P1 the second chunk's prompt is built after the switch flips and reads the live switch, so the text is absent from what is sent; with P2 the same for the summary call. The first chunk's prompt is built before the flip and carries the text either way |
+| the same test: an identical second paper makes no provider call | R1 (the store takes a fresh reading) and S1 (the splice reads the live switch) | both killed in the run at 525fdf88 with this test among the failing ones |
+
+### Expected for the next run, written before it
+
+Mode `1d` again at the new tip: part 1 OK, 629 tests; 38 KILLED, with P1 and P2 killed by
+`test_the_run_keeps_its_starting_reading`. If P2 still survives, the summary call does not carry
+the teacher's instructions in its system prompt at all and that is reported as a finding.
+
+### Delta 2's second run
+
+None yet at this commit.

@@ -16,7 +16,17 @@ that had no test able to fail.
 Both classes were written by the Next-stage Checker as probes of its own
 (both passed at 6ca94c09 in the checker's run) and handed over for adoption
 by the Senior Manager's ruling of 2026-10-06. They are as the checker wrote
-them; this docstring and the two class names are the builder's.
+them, with these differences, all of them: this docstring; the two class
+names; and ONE assertion of the second class, changed by the builder on
+the Senior Manager's word after a run showed it could not fail. As handed
+over it looked for the teacher's text in a dump of ALL the keyword
+arguments of each provider call. Those include the assignment object, and
+the stand-in assignment's text form prints its own instructions, so the
+text was always there, spliced or not; two mutants that make a call's
+splice read the live switch survived (delta 2's run at 525fdf88). It now
+looks at what was sent as the system prompt of every call: the first
+chunk's (built before the switch flips), the second chunk's and the
+summary call's (both built after).
 """
 
 import json
@@ -200,9 +210,13 @@ class OneReadingPerRunOnALongPaperTest(TestCase):
                     changed.disable()
             self.assertEqual(first.call_count, 3)
             for number, kwargs in enumerate(seen, 1):
-                prompt_text = json.dumps(kwargs, default=str)
+                # What was SENT as the system prompt, where the teacher's
+                # instructions are spliced; not the whole of the call's
+                # keyword arguments, which also hold the assignment object
+                # and so its own text. See the module docstring.
+                system_prompt = json.dumps(kwargs.get("system_prompt"), default=str)
                 with self.subTest(call=number):
-                    self.assertIn("Always require units.", prompt_text)
+                    self.assertIn("Always require units.", system_prompt)
             with patch.object(
                 AIProcessor, "execute_graded_task", side_effect=chunked()
             ) as second:
