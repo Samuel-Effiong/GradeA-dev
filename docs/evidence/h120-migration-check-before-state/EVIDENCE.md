@@ -1,7 +1,8 @@
 # H-120: the migration safety check judges a changed column by what it was
 
 **Author:** d5. **Branch:** `task/h120-migration-check-before-state`, on
-`task/beta-batch-9` `dea58a6c`. **Verifier:** v2. One CI script
+`task/beta-batch-9` `dea58a6c`, since updated by merge onto
+`task/beta-batch-11` `7944259e`. **Verifier:** v2. One CI script
 (`scripts/check_migration_safety.py`), one new test module, a mutation
 runner. No application code, no migration, no settings change.
 
@@ -18,7 +19,11 @@ proposal).
 
 **Since then (v2's reading, SM's ruling):** the test module gained a
 second table of real files and its tests; the check itself is unchanged.
-SECOND_RUN_PLACEHOLDER
+A short second chain ran once on that tip, `ea5d45bf` (0b's grant,
+17:46:24 to 17:47:30 WAT): the module is green with 19 tests and 13 of
+13 mutants are killed, every failing set as written beforehand in a
+second expected file (see "The second chain"). 0b ran the guards of the
+other rows in the batch against this tree: 55 tests, OK.
 
 ## What the check is, and what was wrong
 The "Migration safety" workflow runs this script on pull requests. A new
@@ -103,11 +108,11 @@ data. None of the six carries an acknowledgement.
 | File | What it does | Now |
 |---|---|---|
 | billing/0010 | Changes `BetaProfile.id`, the primary key, from an automatic number to text of up to 100 characters. The table is rewritten, and whatever points at that key has to change with it. 0011 changes it back. | **Needs a decision** (a type change) |
-| billing/0031 | Widens `LicenseSubscription.custom_price_cents` and `max_seats` from a small whole number to a whole number. No value can be lost; the database rewrites the table and locks it while it does. | **Needs a decision** (two type changes) |
+| billing/0031 | Widens `LicenseSubscription.custom_price_cents` and `max_seats` from a small whole number to a whole number. No value can be lost; the database rewrites the table and locks it while it does. In the same operation the default of `max_seats` goes from 0 to 1, which changes nothing in the database. | **Needs a decision** (two type changes) |
 | billing/0034 | Changes `custom_price_cents` from a whole number to a decimal with two places. No value can be lost; the table is rewritten. | **Needs a decision** (a type change) |
 | billing/0036 | Changes `custom_price_cents` back from a decimal to a whole number: a value with a fractional part would be rounded. Also drops the choices on `contract_months`, which changes nothing in the database. | **Needs a decision** (a type change) |
 | billing/0039 | Changes `SubscriptionPlan.overage_block_price` from a decimal to a whole number: a value with a fractional part would be rounded. | **Needs a decision** (a type change) |
-| students/0027 | Changes `StudentSubmission.ai_grading_completed_at` from a date to a date and time. Existing dates become midnight of that day; the table is rewritten. Its own header says why it was needed. | **Needs a decision** (a type change) |
+| students/0027 | Changes `StudentSubmission.ai_grading_completed_at` from a date to a date and time. Existing dates become midnight of that day; the table is rewritten. Its own header says why it was needed, and argues that this change meets the house rule as one step (both releases work against the new column). | **Needs a decision** (a type change). The header already makes the case a person would weigh. It also says "scripts/check_migration_safety.py classifies this as additive": true of the old check, no longer true once this row lands. |
 
 **For the founder, the whole pull request (107 new migration files), by
 the sweep:**
@@ -126,6 +131,10 @@ the sweep:**
 - billing/0032 also changes a type; it carries a marker, and it is
   reported under both rules for its dropped column.
 - The sweep found no other file whose verdict changes.
+- **v2 read the six lines against the files as well** and added two
+  details, which are in the table above and not in the test module's
+  shorter strings: the default change in billing/0031, and what
+  students/0027's header argues.
 
 **How this table was checked, and what that corrected.** After the run I
 read all 14 files to their last operation (`read_14.py.txt`, output
@@ -212,6 +221,38 @@ another row went beside it, as 0b allowed.
   connection after the run; none is named for this row. The tests make
   none.
 
+## The second chain
+The branch was first updated by merge onto `task/beta-batch-11`
+`7944259e` (0b, `047da1bd`), then the second table and its test went into
+the test module (`ea5d45bf`). `chain2.sh ea5d45bf` ran on 0b's grant,
+started detached, 6G cap, every run's output to a file.
+
+| Step | Result, from the raw log | Load (1 min) start / end |
+|---|---|---|
+| (m) the check's test module | Ran 19 tests in 0.672s, OK, exit=0 | 2.25 / 2.23 |
+| (b) the 13 mutants again, each against the module | baseline Ran 19, OK; 13 of 13 KILLED with verified restore; runner exit=0, 62 s | 2.23 / 4.11 |
+| 0b's own run: H-124's guard, H-127's guard and this module on this tree | Ran 55 tests in 5.275s, OK, exit=0 | 3.02 after |
+
+- **The expected sets were written again before the run,** as a second
+  file (`expected_kills_2.py.txt`, file clock 17:40:21, sha256 prefix
+  `703f558637de124b`; 0b read it). The first file stays as it was.
+- **Three sets differ from the first file, each for a stated reason:**
+  K12 is written with its three tests (the one the first run showed); K4
+  now has four and K13 two, each gaining the new test of the six real
+  files, which a type change that goes unreported, or a file judged
+  against the state after itself, must fail.
+- **Result (`expected_kills_ea5d45bf.txt`):** every mutant's failing set
+  is the expected one. Every mutant's raw output holds its own "Ran 19
+  tests" line and a FAILED line; no BROKEN, no exit 124 or 137.
+- **No (r) and no (a) again:** nothing here was red first (the check is
+  unchanged), and the guard list ran on the first tip; 0b's run above is
+  the cross-check against the batch's newer guards.
+- **No test database was left:** listed read-only at 17:47:51; none is
+  named for this row.
+- **Still to come at this commit:** v2 runs the script end to end against
+  `origin/dev`, expecting the twelve FAIL lines named in the second
+  table's section.
+
 ## Mutants
 The expected failing tests were written by class and method before the
 granted run (`expected_kills.py.txt`, file clock 14:41:47; 0b read it,
@@ -255,11 +296,18 @@ has not been edited since.** Result: `expected_kills_ab4e6979.txt`.
 
 ## The credential pattern
 This folder, archives opened: 0 URLs with anything in the password
-position, 0 encoded ones. Five files hold assignment-form lines whose
-names contain "pass" or "key"; all are code or prose (`J_PASS=`,
-`A_PASS=`, "passed:", "Passes:", `primary_key=`, `KeyError:`).
+position, 0 encoded ones. Nine files (checked again after the second chain's files
+were added) hold assignment-form lines whose names contain "pass" or
+"key"; all are code or prose (`J_PASS=`, `A_PASS=`, "passed:",
+"passes:", "Passes:", `primary_key=`, `KeyError:`).
 
 ## Files
+- The second chain: `m_module_ea5d45bf.log.gz`,
+  `b_mutation_battery_ea5d45bf.log`, `battery_ea5d45bf.tar.gz`,
+  `chain2.status`, `expected_kills_ea5d45bf.txt`; scripts as run:
+  `chain2.sh.txt`, `expected_kills_2.py.txt`.
+- **Run by 0b, not by me:** `0b_crossside_guards_on_h120_ea5d45bf.log`
+  (sha256 prefix `c4be3a67d9553ca6`), copied as 0b wrote it.
 - Raw logs: `r_repro_d607ffb6.log.gz`, `a_modules_ab4e6979.log.gz`,
   `b_mutation_battery_ab4e6979.log`.
 - `battery_ab4e6979.tar.gz`: `results.tsv`, the short log per mutant, and
