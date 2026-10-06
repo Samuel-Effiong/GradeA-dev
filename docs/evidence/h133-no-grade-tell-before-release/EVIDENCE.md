@@ -258,3 +258,47 @@ by me** (its own grant; its expectation written at 18:31:23, before the run,
 after the result line there, because the two streams reach the file late; no test line follows
 the result). The modules-and-guards step and the mutants are not repeated on the merged tip
 (rule 15): the merge changes none of this branch's files.
+
+### The regression, at bce9c5d4 (0b's GRANT, 2026-10-06 18:50 WAT)
+
+bce9c5d4 is 73fc315f and one docs commit. One run of `run_h133_gate.sh bce9c5d4 3 be05f953`
+(script sha256 a599fabeb3b21dfb): students and assignments, serial, under the full-suite lock, 12G
+scope, on a quiet machine (the other project's work paused for it), 18:49:58 to 18:52:55. Not
+stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | exit 0: **Ran 1022 tests in 162.884s, OK (skipped=14)** | `regression_bce9c5d4.txt.gz` |
+
+- The 14 skips are all opt-in by their own messages: 9 load tests (`RUN_LOAD_TESTS`) and 5 real,
+  billed AI calls (`RUN_REAL_AI`). None for want of Chromium; the real-browser tests ran. No FAIL
+  or ERROR line.
+- Load average: 1.18 6.80 10.04 at the start, 1.82 4.68 8.66 at the end.
+- The log before gzip: 1,330,816 bytes, 15,178 lines, sha256 starts fed7bcad2d31de27. "Ran" is
+  line 15171 and "OK" line 15173. After them: the runner's "Destroying test database" line and two
+  "[scale] ..." lines that two tests print to standard output, which reaches the file at exit.
+- A caller of the closing check that I had missed would have shown here as a TypeError (the check
+  has no default for who is told). None did.
+
+### Summary of the runs
+
+| What | Tip | Result |
+|---|---|---|
+| Reproduce-first on the old production files | 6fc161e2 | red, exactly the 17 named tests |
+| Modules and guards | 6fc161e2, then e85e2ae0 | Ran 527, OK (skipped=1); Ran 536, OK (skipped=1) |
+| Mutants | 10 at 6fc161e2, 12 at e85e2ae0 | 22 of 22 KILLED on the final code |
+| 0b's cross-side run before the H-130 test line was changed | 20e3a3a5 | Ran 62, failures=1: the one predicted test |
+| 0b's three guards on the merged tree | 73fc315f | Ran 56, OK |
+| Regression, students and assignments | bce9c5d4 | Ran 1022, OK (skipped=14) |
+
+Nothing differed from what was written before each run.
+
+**Rule 19 (a test is evidence only if it has been seen red), counted from the run records, not
+from memory:** the new module has 29 tests. 15 were red in the reproduce-first step. 28 have been
+seen red in some run: those 15, and 13 more under at least one mutant (the nine polling tests
+under P1 or P2 among them). **One has never been seen red: `test_a_submitted_paper`.** It pins
+that an ungraded, unscheduled paper's row shows IDLE and empty scheduling fields, which was already
+true before this change; no mutant of mine breaks it, and it is not claimed as evidence of the
+change.
+
+Nothing was observed on a live or staging service, and the frontend was not read.
