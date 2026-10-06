@@ -1,0 +1,56 @@
+"""H-120, reading aid (plain Python, no database, not a test run): every
+operation of the six migration files the new type-change rule reports for
+the first time (and billing/0032, which carries a marker), in order, to the last one; for an
+AlterField the field before and after; inside a SeparateDatabaseAndState
+both halves. Run from the repository root."""
+import os, sys
+sys.path.insert(0, os.getcwd())
+import django; django.setup()
+from django.db.migrations.loader import MigrationLoader
+from django.db.models.fields import NOT_PROVIDED
+FILES = """billing 0010_alter_betaprofile_id
+billing 0031_alter_licensesubscription_custom_price_cents_and_more
+billing 0032_remove_subscriptionplan_price_cents_and_more
+billing 0034_alter_licensesubscription_custom_price_cents
+billing 0036_alter_licensesubscription_contract_months_and_more
+billing 0039_alter_subscriptionplan_overage_block_price
+students 0027_alter_studentsubmission_ai_grading_completed_at""".splitlines()
+def d(f):
+    if f is None: return "-"
+    x=[type(f).__name__, f"null={f.null}", "default" if f.has_default() else "no-default"]
+    if getattr(f,"db_default",NOT_PROVIDED) is not NOT_PROVIDED: x.append("db_default")
+    for a in ("max_length","max_digits","decimal_places","primary_key","unique"):
+        v=getattr(f,a,None)
+        if v: x.append(f"{a}={v}")
+    ch=getattr(f,"choices",None)
+    if ch: x.append(f"choices={len(ch)}")
+    if getattr(f,"many_to_many",False): x.append("M2M")
+    if getattr(f,"db_constraint",True) is False: x.append("db_constraint=False")
+    return " ".join(x)
+def show(op, state, app, ind="  "):
+    k=type(op).__name__
+    if k=="AlterField":
+        try: old=state.models[app, op.model_name_lower].fields.get(op.name)
+        except KeyError: old=None
+        print(f"{ind}AlterField {op.model_name}.{op.name}: {d(old)}  ->  {d(op.field)}")
+    elif k=="AddField": print(f"{ind}AddField {op.model_name}.{op.name}: {d(op.field)}")
+    elif k=="RemoveField": print(f"{ind}RemoveField {op.model_name}.{op.name}")
+    elif k=="RenameField": print(f"{ind}RenameField {op.model_name}.{op.old_name} -> {op.new_name}")
+    elif k=="SeparateDatabaseAndState":
+        print(f"{ind}SeparateDatabaseAndState: database_operations={len(op.database_operations)} state_operations={len(op.state_operations)}")
+        st=state.clone()
+        for o in op.database_operations: show(o, st, app, ind+"    db: "); o.state_forwards(app, st)
+        st=state.clone()
+        for o in op.state_operations: show(o, st, app, ind+"    state: "); o.state_forwards(app, st)
+    elif k=="RunSQL": print(f"{ind}RunSQL: {str(op.sql)[:110]!r}")
+    elif k=="RunPython": print(f"{ind}RunPython: {getattr(op.code,'__name__',op.code)}")
+    elif k=="CreateModel": print(f"{ind}CreateModel {op.name} ({len(op.fields)} fields)")
+    else: print(f"{ind}{k} {getattr(op,'name',getattr(op,'model_name',''))}")
+loader = MigrationLoader(None)
+for line in FILES:
+    app, name = line.split()
+    mig = loader.graph.nodes[(app, name)]
+    state = loader.project_state(nodes=[(app, name)], at_end=False)
+    print(f"\n== {app}/{name}  ({len(mig.operations)} operations)")
+    for op in mig.operations:
+        show(op, state, app); op.state_forwards(app, state)
