@@ -7,6 +7,8 @@ slice that never runs the students app's tests still runs this one).
 
 `StudentSubmission.feedback` (and the older `ai_feedback`) is the grading
 result as the grader produced it; much of it is written for the teacher.
+`formatted_grade` is the feedback formatter's output, whose prompt asks for
+advice to the teacher too.
 `needs_review`, `review_reasons`, `review_severity`, `review_tier` and
 `grading_confidence` are the teacher's review queue; `review_reasons` holds
 both AI graders' marks for each disputed question. Three student routes
@@ -16,10 +18,10 @@ students/tests_student_feedback_routes.py; this guard is for the next one.
 Three rules, each over every production .py file (not test modules, not
 migrations, not docs/ or scripts/):
 
-1. READS. Every read of `.feedback` or `.ai_feedback` (an attribute, or
-   `getattr(x, "feedback")`) is either inside a call to
-   `student_safe_feedback(...)` or `grading_result_for_formatter(...)`, or
-   in a function named in RAW_FEEDBACK_READERS with who it serves.
+1. READS. Every read of `.feedback`, `.ai_feedback` or `.formatted_grade`
+   (an attribute, or `getattr(x, "feedback")`) is either inside a call to
+   one of the three functions of students/feedback_projection.py, or in a
+   function named in RAW_FEEDBACK_READERS with who it serves.
 2. FIELD LISTS. Every class whose `Meta.fields` names one of those columns
    is named in SERIALIZERS, with who it serves; the two a student receives
    are checked for the code that hides the columns.
@@ -29,10 +31,25 @@ migrations, not docs/ or scripts/):
 A new read, serializer or filter fails here until someone decides who it
 serves and writes that down.
 
-What this guard does NOT show: which caller reaches a teacher-shaped
-serializer (the route tests do, for the routes that exist); a column read
-through the ORM by name (`.values("feedback")`, a `feedback__...` lookup);
-a read through a name built at run time.
+What this guard does NOT show (the last four from Verifier 1's pre-read):
+  * which caller reaches a teacher-shaped serializer. The route tests do,
+    for the routes that exist. One student route, the answer upload,
+    answers with the teacher's detail serializer; it is safe only because
+    an upload is refused once the row is graded;
+  * a column read through the ORM by name (`.values("feedback")`, a
+    `feedback__...` lookup), or through a name built at run time;
+  * a review-queue column read as an attribute into a hand-built
+    dictionary or a method field: rule 1 covers the three feedback columns
+    only, rules 2 and 3 cover the review fields in field lists and filters;
+  * the list serializer built WITHOUT the request: its replacement of the
+    review fields needs the caller, and with no request it replaces
+    nothing;
+  * whether a function named like a projection projects: a read inside a
+    call of that name counts as projected, and
+    `grading_result_for_formatter` keeps everything but one key (it is for
+    the formatter, not for a student);
+  * templates: an email template handed the whole submission object can
+    print any column.
 """
 
 import ast
@@ -41,7 +58,9 @@ import os
 from django.conf import settings
 from django.test import SimpleTestCase
 
-FEEDBACK_COLUMNS = {"feedback", "ai_feedback"}
+#: The saved grading result, its older copy, and the formatter's output
+#: (whose prompt fills it with advice to the teacher as well).
+FEEDBACK_COLUMNS = {"feedback", "ai_feedback", "formatted_grade"}
 REVIEW_QUEUE_FIELDS = {
     "needs_review",
     "review_reasons",
@@ -50,9 +69,13 @@ REVIEW_QUEUE_FIELDS = {
     "grading_confidence",
 }
 ALL_GUARDED = FEEDBACK_COLUMNS | REVIEW_QUEUE_FIELDS
-#: The two functions of students/feedback_projection.py. A read inside a
-#: call to one of them never leaves as stored.
-PROJECTIONS = {"student_safe_feedback", "grading_result_for_formatter"}
+#: The functions of students/feedback_projection.py. A read inside a call
+#: to one of them never leaves as stored.
+PROJECTIONS = {
+    "student_safe_feedback",
+    "student_safe_formatted_grade",
+    "grading_result_for_formatter",
+}
 SKIPPED_DIRS = {"migrations", "node_modules", "venv", "docs", "scripts", "__pycache__"}
 
 #: Rule 1. (file, function) -> who the raw read serves. None of these
@@ -71,10 +94,16 @@ RAW_FEEDBACK_READERS = {
         "StudentSubmissionDetailSerializer.get_question_breakdown",
     ): "teacher: the review screen's per-question breakdown",
     (
+        "students/serializers.py",
+        "StudentSubmissionDetailSerializer.get_formatted_grade",
+    ): "teacher branch only; a student caller gets "
+    "student_safe_formatted_grade or nothing",
+    (
         "students/views.py",
         "StudentSubmissionViewSet.teacher_feedback",
-    ): "teacher route (IsTeacher); the value goes to the formatter prompt "
-    "through grading_result_for_formatter",
+    ): "teacher route (IsTeacher): reads formatted_grade to see whether one "
+    "exists; the feedback goes to the formatter prompt through "
+    "grading_result_for_formatter",
     (
         "students/views.py",
         "StudentSubmissionViewSet.update_grade",
@@ -95,11 +124,18 @@ RAW_FEEDBACK_READERS = {
 
 #: Rule 2. (file, class) -> who it serves.
 TEACHER = "teacher"
-STUDENT_PROJECTED = "student: `feedback` through student_safe_feedback"
+STUDENT_PROJECTED = (
+    "student: `feedback` through student_safe_feedback, `formatted_grade` "
+    "through student_safe_formatted_grade"
+)
 STUDENT_REVIEW_HIDDEN = "both: review fields replaced for a student caller"
 SERIALIZERS = {
     ("students/serializers.py", "StudentSubmissionSerializer"): TEACHER,
     ("students/serializers.py", "StudentSubmissionDetailSerializer"): TEACHER,
+    (
+        "students/serializers.py",
+        "StudentSubmissionTeacherFeedbackSerializer",
+    ): TEACHER,
     (
         "students/serializers.py",
         "StudentSubmissionDetailStudentVersionSerializer",
@@ -145,7 +181,7 @@ def raw_feedback_reads(source):
     is not inside a call to one of the projections."""
     found = []
 
-    def visit(node, stack, projected):
+    def visit(node, stack, projected, called=False):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             stack = stack + [node.name]
         if isinstance(node, ast.Call):
@@ -165,10 +201,18 @@ def raw_feedback_reads(source):
             and node.attr in FEEDBACK_COLUMNS
             and isinstance(node.ctx, ast.Load)
             and not projected
+            # `ai_processor.formatted_grade(...)` calls a method of that
+            # name; it reads no column.
+            and not called
         ):
             found.append((".".join(stack) or "<module>", node.lineno))
         for child in ast.iter_child_nodes(node):
-            visit(child, stack, projected)
+            visit(
+                child,
+                stack,
+                projected,
+                called=isinstance(node, ast.Call) and child is node.func,
+            )
 
     visit(ast.parse(source), [], False)
     return found
@@ -229,6 +273,18 @@ class ScannerSelfTest(SimpleTestCase):
     def test_a_read_beside_a_projection_is_still_found(self):
         source = "def f(s):\n    return student_safe_feedback(s.feedback), s.feedback\n"
         self.assertEqual(raw_feedback_reads(source), [("f", 2)])
+
+    def test_a_method_of_the_same_name_being_called_is_not_a_read(self):
+        source = "def f(p, s):\n    return p.formatted_grade(s, 1)\n"
+        self.assertEqual(raw_feedback_reads(source), [])
+
+    def test_the_formatted_grade_column_is_a_guarded_read(self):
+        source = "def f(s):\n    return s.formatted_grade\n"
+        self.assertEqual(raw_feedback_reads(source), [("f", 2)])
+        source = (
+            "def f(s):\n    return student_safe_formatted_grade(s.formatted_grade)\n"
+        )
+        self.assertEqual(raw_feedback_reads(source), [])
 
     def test_a_write_is_not_a_read(self):
         source = "def f(s, g):\n    s.feedback = g\n"
@@ -307,7 +363,7 @@ class StudentFeedbackGuardTest(SimpleTestCase):
             "field. Name it in SERIALIZERS with who it serves.",
         )
 
-    def test_rule_2_the_student_detail_serializer_projects_its_feedback(self):
+    def test_rule_2_the_student_detail_serializer_projects_both_columns(self):
         import inspect
 
         from students.serializers import (
@@ -321,18 +377,26 @@ class StudentFeedbackGuardTest(SimpleTestCase):
                     "StudentSubmissionDetailStudentVersionSerializer",
                 )
             ],
-            {"feedback"},
+            {"feedback", "formatted_grade"},
             "the student's serializer lists a review-queue field",
         )
-        # `feedback` is a method field, not the model column...
-        self.assertEqual(
-            type(Serializer().fields["feedback"]).__name__, "SerializerMethodField"
-        )
-        # ...and the method returns the projection (rule 1 already holds
-        # that it holds no raw read).
-        tree = ast.parse(inspect.getsource(Serializer.get_feedback).lstrip())
-        calls = {call_name(n) for n in ast.walk(tree) if isinstance(n, ast.Call)}
-        self.assertIn("student_safe_feedback", calls)
+        for field, method, projection in (
+            ("feedback", Serializer.get_feedback, "student_safe_feedback"),
+            (
+                "formatted_grade",
+                Serializer.get_formatted_grade,
+                "student_safe_formatted_grade",
+            ),
+        ):
+            # A method field, not the model column...
+            self.assertEqual(
+                type(Serializer().fields[field]).__name__, "SerializerMethodField"
+            )
+            # ...and the method returns the projection (rule 1 already
+            # holds that it holds no raw read).
+            tree = ast.parse(inspect.getsource(method).lstrip())
+            calls = {call_name(n) for n in ast.walk(tree) if isinstance(n, ast.Call)}
+            self.assertIn(projection, calls)
 
     def test_rule_2_the_list_serializer_replaces_every_review_field(self):
         from students.serializers import StudentSubmissionListSerializer as Serializer
