@@ -252,3 +252,24 @@ Credential-pattern check before this commit (the new files, before gzip): no lin
 
 Written 16:08 WAT. Still owed as this is committed: the regression (users and classrooms), on
 its own grant.
+
+### The regression at 9d68c080 (0b's GRANT, 2026-10-07 16:11:39 WAT)
+
+9d68c080 is the gated 5db450d2 plus the docs-only results commit above; no code or test differs.
+One run of `run_h153_gate.sh 9d68c080 3 1a2995f2` (script sha256 starts 5180bd2f47af4516): users
+and classrooms, serial, in 0b's quiet window, alone among this team's runs. 16:12:08 to
+16:15:40, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1150 tests in 190.354s, OK (skipped=4)** | `regression_9d68c080.txt.gz`; console `regression_console_9d68c080.txt` |
+
+The skips, in their own words: one 'CI_REQUIRE_NETWORK not set', one 'CI_REQUIRE_REDIS not set',
+two 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1'. None is for want of a
+browser. One-minute load: I read 3.64 six seconds before the start (0b had asked for 4.0 or
+lower) and the console recorded 4.09 at the start itself; 4.69 at the end.
+
+**This regression will be run once more.** While it ran, the Senior Manager ordered a second
+cure on H-152, the row this branch is stacked on (a change in classrooms, which this
+regression runs). When H-152's tip is final the Release Engineer base-updates this branch onto
+it and the regression is repeated on that tip. Written 16:30 WAT.
