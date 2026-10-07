@@ -1,5 +1,7 @@
 """
 H-89: no email address, and no URL password, in anything this process logs.
+H-167: and no value written as `password=...`, `passwd=...`, `secret=...`
+or `token=...`.
 
 WHY A RECORD FACTORY AND NOT A HANDLER FILTER
 --------------------------------------------
@@ -28,8 +30,15 @@ WHAT IS REPLACED
     last "@" before the host) becomes `[credentials]`, whatever the host
     looks like, so no DSN password is printed, on a dotless host such as
     `redis` or `localhost` either.
-A message with no "@" in it is returned as it is, without running either
-pattern.
+  * (H-167) What follows `password=`, `passwd=`, `secret=` or `token=`
+    (in any case, also at the end of a longer name such as
+    `new_password=`) becomes `[secret]`, TO THE END OF THAT LINE: such a
+    value may hold a comma, a bracket or a space, so nothing shorter is
+    safe, and what follows it on the line is lost with it. This is the
+    form in which redis-py's connection pool prints itself, password
+    included, and a pool is what a frame of a failed dispatch holds.
+The first two patterns are not run on a message with no "@" in it, nor the
+third on one with no "=".
 
 WHAT IS NOT, AND WHAT IS REPLACED WITH IT (KNOWN LIMITS)
 --------------------------------------------------------
@@ -42,8 +51,9 @@ WHAT IS NOT, AND WHAT IS REPLACED WITH IT (KNOWN LIMITS)
   * A URL password with an unencoded "/" in it is not a URL any parser
     reads; nothing is replaced there.
   * An address written percent-encoded (`%40` for "@") is not recognised.
-  * A password in a `key=value` connection string (no "://") is not
-    recognised.
+  * A secret under another name than the four above, or written in
+    another form (`password: x`, a dict's `'password': 'x'`, a bare
+    value), is not recognised.
 
 IT NEVER RAISES, AND IT FAILS CLOSED
 ------------------------------------
@@ -76,6 +86,7 @@ from django.core.signals import setting_changed
 
 EMAIL = "[email]"
 CREDENTIALS = "[credentials]"
+SECRET = "[secret]"
 MESSAGE_WITHHELD = "[log arguments withheld: the message could not be scrubbed]"
 EXCEPTION_WITHHELD = "[exception text withheld: it could not be scrubbed]"
 
@@ -98,6 +109,8 @@ _ADDRESS = re.compile(
 #: The userinfo part of a URL: everything between "://" and the LAST "@"
 #: before the next "/" or whitespace (a password may hold an "@").
 _USERINFO = re.compile(r"(?<=://)[^\s/]+(?=@)")
+#: H-167: one of four names, "=", and the rest of the line.
+_NAMED_VALUE = re.compile(r"(?i)(password|passwd|secret|token)=[^\n]+")
 
 _MARKER = "_scrubs_addresses"
 #: True or False once known; None until Django's settings are configured.
@@ -105,10 +118,17 @@ _enabled = None
 
 
 def scrub(text):
-    """`text` with every email address and URL userinfo replaced."""
+    """`text` with every email address, URL userinfo and named secret
+    value replaced."""
+    if "=" in text:
+        text = _NAMED_VALUE.sub(_name_kept, text)
     if "@" not in text:
         return text
     return _ADDRESS.sub(EMAIL, _USERINFO.sub(CREDENTIALS, text))
+
+
+def _name_kept(match):
+    return f"{match.group(1)}={SECRET}"
 
 
 def is_enabled():
