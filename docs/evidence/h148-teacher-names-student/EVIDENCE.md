@@ -194,3 +194,27 @@ accounts of the test database, which no longer exists.
 
 Written 14:05 WAT. Still owed as this is committed: the regression (classrooms and users), on
 its own grant.
+
+### The regression at 56ce7ec5 (0b's GRANT, 2026-10-07 14:52:59 WAT)
+
+56ce7ec5 is the gated 356bdd34 plus the docs-only results commit above; no code or test differs.
+One run of `run_h148_gate.sh 56ce7ec5 3 787a81fb` (script sha256 starts 43dcc62e68eccb3d):
+classrooms and users, serial, in 0b's quiet window, alone among this team's runs. 14:53:51 to
+14:56:16, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK, with the risk named under "Existing tests changed" | **Ran 1127 tests in 127.952s, OK (skipped=4)** | `regression_56ce7ec5.txt.gz`; console `regression_console_56ce7ec5.txt` |
+
+The skips, in their own words: one 'CI_REQUIRE_NETWORK not set', one 'CI_REQUIRE_REDIS not set',
+two 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1'. None is for want of a
+browser.
+
+**The named risk did not show:** no test of classrooms or users failed for relying on an account
+that used to be nameless. What that does not cover: the 14 changed files' tests outside these
+two apps (three in AutoGrader, one in dashboard) ran in part 1 of the gate, not here.
+
+One-minute load 3.75 at the start, 3.87 at the end.
+
+Written 14:56 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1. H-152
+and H-153 sit on 356bdd34 and do not contain this branch's two docs commits.
