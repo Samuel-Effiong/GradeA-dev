@@ -206,6 +206,27 @@ class TheNumbererTest(SimpleTestCase):
         self.assertEqual(kept["2"], long_label[:KEPT_LENGTH])
         self.assertEqual(len(kept["2"]), KEPT_LENGTH)
 
+    def test_a_string_of_very_many_digits_does_not_break_the_numbering(self):
+        """Python refuses to turn a string of more than 4300 digits into an
+        integer (seen by calling int on one, 2026-10-07: ValueError), and the
+        reply is free text from a model. Such a value is no number at all:
+        the paper is numbered, and what is kept of it is bounded."""
+        huge = "9" * 5000
+        self.assertGreater(len(huge), 4300)
+
+        numbered, kept, changed = number(three([1, huge, 3]))
+
+        self.assertEqual(numbers_and_texts(numbered), IN_ORDER)
+        self.assertEqual(kept, {"1": "1", "2": huge[:KEPT_LENGTH], "3": "3"})
+        self.assertEqual(changed, 1)
+
+    def test_a_nine_digit_string_is_still_a_number(self):
+        numbered, kept, changed = number(three([1, "999999999", 3]))
+
+        self.assertEqual([e["question_number"] for e in numbered], [1, "999999999", 3])
+        self.assertEqual(kept, {"1": "1", "999999999": "999999999", "3": "3"})
+        self.assertEqual(changed, 0)
+
     def test_an_entry_that_is_not_an_object_is_left_where_it_is(self):
         entries = [question(4, FIRST), "not a question", question(4, SECOND)]
 
