@@ -50,6 +50,11 @@ LIMITS, STATED
   * A name or free text in a query string is recognised by no pattern.
   * Nothing here observes Sentry, a server, or an event that was sent.
 
+A made value has three pieces, cut by a comma, a bracket and a space. The
+tests look for each PIECE, not only for the whole value: a pattern that
+stopped early and left a tail in print fails every test in which a made
+value follows a name (Senior Manager, 2026-10-07, before any run).
+
 Run with:
     python manage.py test AutoGrader.tests_sentry_sends_no_variables
 """
@@ -58,6 +63,7 @@ import ast
 import importlib
 import logging
 import os
+import re
 import secrets
 import sys
 from types import SimpleNamespace
@@ -79,7 +85,35 @@ def made_value():
     event's source context quotes) and no log of a failing test holds it
     before the test builds it. It has a comma, a bracket and a space in it:
     the characters a shorter pattern would stop at."""
-    return f"Zq{secrets.token_hex(6)},x) y{secrets.token_hex(3)}"
+    return (
+        f"Zq{secrets.token_hex(4)},Wv{secrets.token_hex(4)}) Yk{secrets.token_hex(4)}"
+    )
+
+
+def pieces_of(value):
+    """A made value cut at its comma, bracket and space. A pattern that
+    stopped at one of them would leave the later pieces in print, and a
+    test that only looked for the WHOLE value would not see them."""
+    return [piece for piece in re.split(r"[,) ]+", value) if piece]
+
+
+def scrubbed_form_of(pool):
+    """What must remain of a pool's printed form: its own text up to and
+    with `password=`, then the mark. Computed from the pool, so that it
+    does not depend on which keywords the library prints, or in what
+    order."""
+    before, name, _value_and_rest = repr(pool).partition("password=")
+    assert name, "the pool's printed form has no password= in it"
+    return before + name + REPLACED
+
+
+def assert_nothing_of(test, value, text):
+    """No piece of `value` is in `text` (and so not the whole of it)."""
+    pieces = pieces_of(value)
+    test.assertTrue(pieces)
+    for piece in pieces:
+        test.assertGreaterEqual(len(piece), 10)
+        test.assertNotIn(piece, text)
 
 
 def queue_url(password):
@@ -244,8 +278,11 @@ class APoolsPrintedFormTests(SimpleTestCase):
         variables = scrubbed["exception"]["values"][0]["stacktrace"]["frames"][0][
             "vars"
         ]
-        self.assertNotIn(self.password, str(scrubbed))
+        assert_nothing_of(self, self.password, str(scrubbed))
         self.assertIn(f"password={REPLACED}", variables["pool"])
+        # Exactly what remains: the pool's own text up to the name, then
+        # the mark; the rest of that line went with the value.
+        self.assertEqual(variables["pool"], scrubbed_form_of(self.pool))
         self.assertIn(f"password={REPLACED}", variables["self"])
         self.assertIn("host=queue.invalid", variables["pool"])
         self.assertEqual(variables["command_name"], "'PING'")
@@ -262,7 +299,7 @@ class APoolsPrintedFormTests(SimpleTestCase):
 
         scrubbed = self.hooks.scrub_event(event, {})
 
-        self.assertNotIn(self.password, str(scrubbed))
+        assert_nothing_of(self, self.password, str(scrubbed))
         self.assertEqual(str(scrubbed).count(f"password={REPLACED}"), 4)
 
     def test_in_a_breadcrumb_and_a_log_item_it_is_replaced(self):
@@ -279,7 +316,7 @@ class APoolsPrintedFormTests(SimpleTestCase):
 
         for item in (crumb, log):
             with self.subTest(item=sorted(item)):
-                self.assertNotIn(self.password, str(item))
+                assert_nothing_of(self, self.password, str(item))
                 self.assertEqual(str(item).count(f"password={REPLACED}"), 2)
 
 
@@ -379,8 +416,10 @@ class WhatALogLinePrintsTests(SimpleTestCase):
     def test_a_message_built_with_a_pool(self):
         record = self.record("Could not use %r", self.pool)
 
-        self.assertNotIn(self.value, record.getMessage())
-        self.assertIn(f"password={REPLACED}", record.getMessage())
+        assert_nothing_of(self, self.value, record.getMessage())
+        self.assertEqual(
+            record.getMessage(), "Could not use " + scrubbed_form_of(self.pool)
+        )
 
     def test_an_exceptions_text(self):
         try:
@@ -388,7 +427,7 @@ class WhatALogLinePrintsTests(SimpleTestCase):
         except RuntimeError:
             record = self.record("dispatch failed", exc_info=True)
 
-        self.assertNotIn(self.value, record.exc_text)
+        assert_nothing_of(self, self.value, record.exc_text)
         self.assertIn(f"password={REPLACED}", record.exc_text)
         self.assertIn("RuntimeError", record.exc_text)
 
@@ -428,9 +467,8 @@ class TheRestOfTheEventTests(SimpleTestCase):
         scrubbed = self.hooks.scrub_event(self.event(), {})
 
         text = str(scrubbed)
-        self.assertNotIn(ADDRESS, text)
-        self.assertNotIn(self.value, text)
-        self.assertNotIn(self.url_password, text)
+        for value in (ADDRESS, self.value, self.url_password):
+            assert_nothing_of(self, value, text)
 
     def test_each_part_by_itself(self):
         """One part at a time, so that each part's own line is needed."""
@@ -448,7 +486,7 @@ class TheRestOfTheEventTests(SimpleTestCase):
                 scrubbed = self.hooks.scrub_event(event, {})
 
                 for value in held:
-                    self.assertNotIn(value, str(scrubbed[part]))
+                    assert_nothing_of(self, value, str(scrubbed[part]))
 
     def test_what_holds_none_of_them_is_kept(self):
         scrubbed = self.hooks.scrub_event(self.event(), {})
