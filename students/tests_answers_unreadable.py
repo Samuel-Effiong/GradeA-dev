@@ -261,16 +261,30 @@ class AnAffectedRowIsReadNotRefused(AffectedRowCase):
 
     def test_a_student_is_not_told_more_than_the_line(self):
         """Nothing of grading, review or an error in what the student is
-        sent for such a paper."""
+        sent for such a paper, also when the row holds a review reason."""
+        reasons = [{"type": "answers_unreadable", "left_out": "all"}]
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            needs_review=True, review_reasons=reasons
+        )
+        self.assertEqual(self.row().review_reasons, reasons)
         self.client.force_authenticate(self.student)
         response = self.client.get(
             reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        # The document is a string and is read by its key: the printed form
+        # of the whole answer writes the line's apostrophe escaped.
+        self.assertIn(NOTHING, response.data["raw_input"])
+        self.assertNotIn("review_reasons", response.data)
+        self.assertNotIn("needs_review", response.data)
+        # The printed form of the whole answer does for the words below:
+        # ASCII letters, digits, "-" and "_" are printed as they are.
         sent = str(response.data)
-        self.assertIn(NOTHING, sent)
-        for word in ("answers_unreadable", "review_reasons", "Traceback", TELLTALE):
+        for word in ("answers_unreadable", "review_reasons", TELLTALE):
+            self.assertTrue(
+                word.isascii() and word.replace("-", "").replace("_", "").isalnum()
+            )
             self.assertNotIn(word, sent)
 
 
