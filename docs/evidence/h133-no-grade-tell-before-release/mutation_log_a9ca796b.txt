@@ -1,0 +1,15 @@
+25 mutants: anchors unique, all parse, expected tests named
+9 of 25 mutants selected
+L1_the_list_shows_the_real_grading_state KILLED exit 1 ran 83 failed 5 expected-but-passed []
+L2_a_released_grade_still_shows_idle KILLED exit 1 ran 83 failed 1 expected-but-passed []
+L3_the_schedule_fields_are_not_replaced KILLED exit 1 ran 83 failed 3 expected-but-passed []
+L4_is_grading_scheduled_is_not_replaced KILLED exit 1 ran 83 failed 3 expected-but-passed []
+L5_scheduled_grading_at_is_not_replaced KILLED exit 1 ran 83 failed 3 expected-but-passed []
+L6_the_teacher_loses_the_state_and_the_schedule_too KILLED exit 1 ran 83 failed 3 expected-but-passed []
+M1_a_student_is_shown_the_graders_maximum_before_release KILLED exit 1 ran 83 failed 6 expected-but-passed []
+M2_a_student_is_shown_the_assignment_total_after_release_too KILLED exit 1 ran 83 failed 1 expected-but-passed []
+M3_the_teacher_is_shown_the_assignment_total_before_release KILLED exit 1 ran 83 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 9 of 9
