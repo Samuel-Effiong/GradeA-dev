@@ -268,6 +268,10 @@ def _import_row_with_email(*, course, row):
             first_name=row.first_name,
             middle_name=row.middle_name,
             last_name=row.last_name,
+            # H-148: the same rule as the single add. An existing account
+            # with no name is given the row's; a stored name stands, and
+            # the row of the answer shows the name that stands.
+            fill_empty_name=True,
         )
     except AccountDisabledError as exc:
         # A deactivated account is left exactly as it is (no reactivation,
