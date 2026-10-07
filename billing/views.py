@@ -1209,6 +1209,16 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                         "its scheduled end date unless you subscribe to a "
                         "paid plan before then."
                     )
+            elif result.scheduled_at_provider:
+                # H-174: Stripe has a cancellation this request does not
+                # undo. Saying "already active and set to renew" would be
+                # false; so would "never scheduled to cancel".
+                message = (
+                    "A cancellation of this subscription is scheduled with "
+                    "our payment provider and could not be undone here. "
+                    "Nothing was changed. Please contact support if you "
+                    "want to keep your subscription."
+                )
             elif not stripe_changed and not local_changed:
                 message = "Your subscription is already active and set to renew — nothing to resume."
             elif not stripe_changed:
@@ -1227,7 +1237,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     "status": (
                         "resumed"
                         if (stripe_changed or local_changed)
-                        else "already_active"
+                        else (
+                            "cancellation_scheduled"
+                            if result.scheduled_at_provider and not sub.is_trial
+                            else "already_active"
+                        )
                     ),
                     "message": message,
                     "warnings": warnings,
