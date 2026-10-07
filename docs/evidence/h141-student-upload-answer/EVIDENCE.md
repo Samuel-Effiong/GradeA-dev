@@ -243,3 +243,19 @@ Rule 19, counted from these records (the part 0 log and `mutation_results_c7ad64
   row's and were not red here; nothing is claimed from them.
 
 Still owed as this is committed: the regression (students and assignments), on its own grant.
+
+### The regression at 2148c8ae (0b's GRANT, 2026-10-07 14:42:38 WAT)
+
+2148c8ae is the gated tip plus the docs-only results commit above it; no code or test differs. One
+run of `run_h141_gate.sh 2148c8ae 3 d7143538` (script sha256 starts f89dd5da0bc5c45e): students and assignments, serial, in 0b's quiet window, alone among
+this team's runs. 14:49:05 to 14:52:56, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1045 tests in 211.986s, OK (skipped=14)** | `regression_2148c8ae.txt.gz`; console `regression_console_2148c8ae.txt` |
+
+The skips, in their own words: eight 'load tests are opt-in: set RUN_LOAD_TESTS=1', one 'set RUN_LOAD_TESTS=1 to build the 6,000-student school', five 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'. None is for want of a browser.
+
+One-minute load 2.10 at the start, 3.87 at the end. It started six minutes after its grant through my fault: my wait on the run before it never returned (it matched its own command line).
+
+Written 14:54 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1.
