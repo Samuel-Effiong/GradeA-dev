@@ -269,6 +269,27 @@ class AShortPaperWhoseReplyRepeatsAQuestion(ReplyCase):
 
                 self.assertEqual(self.scores(result), {1: 8, 2: 8, 3: 8})
 
+    def test_a_reply_cannot_skip_the_snap_to_a_rubric_level_by_a_mark(self):
+        """An evaluation graded against the answer key is exact and is
+        not snapped. A reply's evaluation saying so of itself is snapped
+        like any other: 9 is no level of this rubric (10, 8, 0), and a
+        tie goes down."""
+        result = self.grade(
+            [1, 2, 3],
+            [
+                evaluation(1),
+                dict(evaluation(2, 9), graded_by="deterministic"),
+                evaluation(3),
+            ],
+        )
+
+        self.assertEqual(self.scores(result), {1: 8, 2: 8, 3: 8})
+        second = [
+            ev for ev in result["question_evaluations"] if ev["question_number"] == 2
+        ][0]
+        self.assertEqual(second["snapped_from"], 9)
+        self.assertEqual(second["graded_by"], services.MAIN_MODEL)
+
     def test_one_call_was_made_no_retry(self):
         self.grade(
             [1, 2, 3], [evaluation(1), evaluation(2), evaluation(2), evaluation(3)]

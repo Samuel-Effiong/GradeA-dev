@@ -7,7 +7,8 @@ AIProcessor._finalize_grading_result, says so in the saved note, keeps
 dropped evaluations out of the saved-answer store, flags the paper for
 the teacher and keeps the correction from the feedback formatter.
 
-One mutant per condition the fix adds (seventeen). Each is run against
+One mutant per condition the fix adds (seventeen), and two more for a
+test of older shields. Each is run against
 the three test modules named in TESTS.
 
 One disposable detached worktree at the commit under test. A baseline run
@@ -47,6 +48,7 @@ TEST_DB = "test_h154_mut"
 AI = "ai_processor/services.py"
 SV = "students/services.py"
 FP = "students/feedback_projection.py"
+SS = "students/serializers.py"
 TESTS = [
     "ai_processor.tests_reply_repeated_evaluation",
     "ai_processor.tests_grading_arithmetic",
@@ -216,6 +218,27 @@ MUTANTS = [
         AI,
         "                self._stamp_as_a_models(evaluations, batch_model)\n",
         "                pass\n",
+        1,
+        TESTS,
+    ),
+    # R18 and R19 change code older than this row (H-127's two shields).
+    # They are here to show that the test "no student-facing answer holds
+    # the correction" can fail, each way a student could be sent it.
+    (
+        "R18",
+        "a student is not sent the review reasons",
+        SS,
+        '        "review_reasons": None,\n',
+        "",
+        1,
+        TESTS,
+    ),
+    (
+        "R19",
+        "a student is not sent the saved arithmetic note",
+        FP,
+        "    safe: dict = {}\n",
+        '    safe: dict = {"note": feedback.get("score_calculation_verification")}\n',
         1,
         TESTS,
     ),

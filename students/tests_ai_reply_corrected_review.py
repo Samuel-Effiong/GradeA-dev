@@ -12,9 +12,13 @@ No model change: the reason is one more entry in `review_reasons`, with
 the question numbers and counts and nothing of the answers.
 """
 
+import json
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase, override_settings
+from django.urls import reverse
+from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, Session
@@ -65,7 +69,7 @@ STRAY = {
 
 
 @override_settings(CACHES=LOCMEM)
-class ACorrectedReplyIsPutInTheReviewQueue(TestCase):
+class SavedGradeCase(TestCase):
     def setUp(self):
         cache.clear()
         teacher = User.objects.create_user(email="h154-t@x.test")
@@ -85,6 +89,7 @@ class ACorrectedReplyIsPutInTheReviewQueue(TestCase):
             status=AssignmentStatus.PUBLISHED,
             total_points=30,
         )
+        self.teacher, self.student = teacher, student
         self.submission = StudentSubmission.objects.create(
             student=student, assignment=assignment, answers={}
         )
@@ -94,6 +99,8 @@ class ACorrectedReplyIsPutInTheReviewQueue(TestCase):
         self.submission.refresh_from_db()
         return self.submission
 
+
+class ACorrectedReplyIsPutInTheReviewQueue(SavedGradeCase):
     def test_a_clean_reply_is_not_flagged(self):
         """Control: green with or without the fix."""
         saved = self.save(grading_result())
@@ -236,3 +243,76 @@ class TheFormatterIsNotToldOfTheCorrection(TestCase):
         self.assertNotIn("second_opinion", sent)
         self.assertEqual(sent["grading_summary"]["total_score"], 24)
         self.assertEqual(sent["recommendations"], [])
+
+
+#: What a corrected reply leaves in the saved row: the note's status, its
+#: field names, its sentence, and the review reason's type.
+OF_THE_CORRECTION = (
+    "CORRECTED",
+    "correction_note",
+    "left out of the sum",
+    "repeated_evaluations_dropped",
+    "unmatched_evaluations_dropped",
+    "ai_reply_corrected",
+)
+
+
+class NoStudentFacingAnswerHoldsTheCorrection(SavedGradeCase):
+    """The note and the review reason are for the teacher. A student whose
+    grade is RELEASED reads the saved result through the student
+    projection and the review fields blanked (H-127): this holds that
+    neither lets anything of the correction through."""
+
+    def setUp(self):
+        super().setUp()
+        self.save(
+            grading_result(
+                REPEATED,
+                question_evaluations=[
+                    {"question_number": n, "score_awarded": 8, "max_points": 10}
+                    for n in (1, 2, 3)
+                ],
+            )
+        )
+        self.submission.is_published = True
+        self.submission.save()
+        cache.clear()
+
+    def read(self, user, name, **kwargs):
+        client = APIClient()
+        client.force_authenticate(user)
+        response = client.get(reverse(name, kwargs=kwargs))
+        self.assertEqual(response.status_code, 200, response.data)
+        return json.dumps(response.data, default=str)
+
+    def test_the_saved_row_really_holds_it(self):
+        """Control: without this the two tests below could pass on a row
+        that has nothing to hide."""
+        self.submission.refresh_from_db()
+        saved = self.submission.feedback or {}
+        reasons = self.submission.review_reasons or []
+        self.assertEqual(
+            saved["score_calculation_verification"]["verification_status"],
+            "CORRECTED",
+        )
+        self.assertEqual([reason["type"] for reason in reasons], ["ai_reply_corrected"])
+        self.assertIn(
+            "ai_reply_corrected",
+            self.read(self.teacher, "student-submission-detail", pk=self.submission.pk),
+        )
+
+    def test_the_students_own_submission(self):
+        answer = self.read(
+            self.student, "student-submission-detail", pk=self.submission.pk
+        )
+
+        self.assertIn('"total_score": 24', answer)
+        for word in OF_THE_CORRECTION:
+            self.assertNotIn(word, answer)
+
+    def test_the_students_list_of_submissions(self):
+        answer = self.read(self.student, "student-submission-list")
+
+        self.assertIn(str(self.submission.pk), answer)
+        for word in OF_THE_CORRECTION:
+            self.assertNotIn(word, answer)
