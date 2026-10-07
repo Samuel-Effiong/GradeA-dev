@@ -1240,6 +1240,20 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if user.user_type == UserTypes.STUDENT:
+            # H-147: a student's course answer nests the student's own view
+            # of each assignment, which reads the student's own submission
+            # and never counts anyone's. One query for all of them.
+            submissions = Prefetch(
+                "assignments__submissions",
+                queryset=StudentSubmission.objects.filter(student=user),
+                to_attr="viewer_submissions",
+            )
+        else:
+            submissions = Prefetch(
+                "assignments__submissions",
+                queryset=StudentSubmission.objects.only("id", "assignment_id"),
+            )
         course = (
             Course.objects.select_related("session", "teacher")
             .prefetch_related(
@@ -1253,10 +1267,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # when it doesn't - 80 queries for a 3-course page. Only
                 # the two columns needed to count are loaded, so this
                 # doesn't drag whole submission rows into memory.
-                Prefetch(
-                    "assignments__submissions",
-                    queryset=StudentSubmission.objects.only("id", "assignment_id"),
-                ),
+                submissions,
                 Prefetch(
                     "enrollments",
                     queryset=StudentCourse.objects.exclude(
