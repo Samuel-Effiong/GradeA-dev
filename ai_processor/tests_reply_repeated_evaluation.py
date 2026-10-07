@@ -335,6 +335,18 @@ class ALongPaperWhoseBatchRepeatsAQuestion(ReplyCase):
         )
         self.assertIn("1 repeated evaluation(s)", note["correction_note"])
 
+    def test_the_store_gets_the_repeated_question_once_and_the_kept_one(self):
+        with patch.object(
+            grading_cache, "store_evaluation", wraps=grading_cache.store_evaluation
+        ) as store:
+            self.grade_long(repeated=2, extra_score=10)
+
+        stored = sorted(
+            (call.args[0]["question_number"], call.args[2]["score_awarded"])
+            for call in store.call_args_list
+        )
+        self.assertEqual(stored, [(n, 8) for n in range(1, LONG_PAPER + 1)])
+
 
 class AStoredAnswerTheModelReturnsAsWell(ReplyCase):
     """Questions 1 and 2 are answered from the saved-answer store, so only
