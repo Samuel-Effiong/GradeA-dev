@@ -1,0 +1,43 @@
+Written 2026-10-06 19:24:26 WAT by 1a, before any run of mine on a tip that holds 8e61018a.
+It replaces my note of 18:44:40 (kept as h133_expected_kills_first_attempt.txt), whose only run stopped at
+a red baseline on bce9c5d4 at 19:14 (log runs/h133_first_baseline_red_bce9c5d4.log): eight probes failed
+for a fault of the probe itself (they polled task-status with the wrong id), and P1 showed a real difference
+(max_points), since folded into H-133 by the SM's ruling.
+
+What changed against the first note, and why:
+- The probe is corrected: the tracked rows have a Celery task id and are polled by it. The eight probes that
+  failed for the probe's own reason (the six P2, P3, P4) have never been seen GREEN on correct code. This
+  baseline is their first evidence.
+- The probe gained P5 (the SM's addition), two tests: the paper graded by the real grading engine, every
+  student route compared with the paper before grading. 11 test methods now.
+- A sixth mutant, R6, undoes the max_points fix. R4's set gains the two P5 tests.
+
+Rule 19: each of my eleven probe tests is to be seen red under a mutant of mine. The mutant runs are my probe
+module ALONE (students.tests_vf1a_h133_probe), so each failing set is exact.
+Names: H133EveryStateEveryRouteProbe.test_p1_the_same_paper_in_every_state (P1);
+H133RealGradingProbe.test_p5_real_grading_the_assignment_has_no_total and
+...test_p5_real_grading_the_assignment_total_differs (P5); H133RunningTaskProbe.test_p2_... (six),
+test_p3_the_teacher_is_told_the_reason (P3), test_p4_one_busy_answer_from_a_task (P4).
+
+Baseline (my probe module, students.tests_no_grade_tell_before_release, AutoGrader.tests_student_feedback_guard):
+all OK. In P1 the graded, unreleased state shows remaining_attempts as its only difference; P5 likewise.
+
+R1 (a student is told the teacher's sentence for a graded paper) fails exactly four:
+  test_p2_upload_task_a_grade_lands_during_the_extraction
+  test_p2_upload_task_a_grade_lands_after_the_second_check
+  test_p2_edit_task_a_grade_lands_during_the_extraction
+  test_p2_edit_task_started_on_a_paper_already_graded
+R2 (a student is told the teacher's sentence for a paper being graded) fails exactly three:
+  test_p2_upload_task_a_grading_claim_starts_during_the_extraction
+  test_p2_edit_task_a_grading_claim_starts_during_the_extraction
+  test_p4_one_busy_answer_from_a_task
+R3 (the teacher is given the neutral sentence for a graded paper) fails exactly one:
+  test_p3_the_teacher_is_told_the_reason
+R4 (the student's list shows the real grading state before release) fails exactly three:
+  test_p1_the_same_paper_in_every_state and the two test_p5_... tests
+R5 (the refusal's code is not put on the tracked row) fails exactly seven:
+  the six test_p2_... tests and test_p4_one_busy_answer_from_a_task
+R6 (a student is shown the paper's own stored maximum before release) fails exactly three:
+  test_p1_the_same_paper_in_every_state and the two test_p5_... tests
+So every one of the eleven is red at least once. A probe that stays green under the mutant named for it,
+or a set that differs from the one written here, is reported as it is and is not evidence.

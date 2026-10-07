@@ -68,6 +68,16 @@ REVIEW_QUEUE_FIELDS = {
     "review_tier",
     "grading_confidence",
 }
+#: H-133: before the teacher releases a grade, a student is shown nothing
+#: that tells one exists or is on its way. On the student's list the state
+#: of grading is reduced (IDLE until release, DONE after) and the teacher's
+#: scheduling of a grading run is empty.
+GRADING_STATE_FIELD = "grading_state"
+GRADING_SCHEDULE_FIELDS = {
+    "scheduled_grading_at",
+    "grading_task_name",
+    "is_grading_scheduled",
+}
 ALL_GUARDED = FEEDBACK_COLUMNS | REVIEW_QUEUE_FIELDS
 #: The functions of students/feedback_projection.py. A read inside a call
 #: to one of them never leaves as stored.
@@ -425,13 +435,55 @@ class StudentFeedbackGuardTest(SimpleTestCase):
     def test_rule_3_a_student_is_refused_every_review_queue_filter(self):
         from students.views import StudentSubmissionViewSet as View
 
-        review_filters = set(View.filterset_fields) & REVIEW_QUEUE_FIELDS
-        review_orderings = set(View.ordering_fields) & REVIEW_QUEUE_FIELDS
+        # H-133 adds the state of grading: a filter on its real value would
+        # tell a student what the list no longer shows them.
+        teacher_only = REVIEW_QUEUE_FIELDS | {GRADING_STATE_FIELD}
+        review_filters = set(View.filterset_fields) & teacher_only
+        review_orderings = set(View.ordering_fields) & teacher_only
         self.assertEqual(review_filters, set(View.TEACHER_ONLY_FILTERS))
         self.assertEqual(review_orderings, set(View.TEACHER_ONLY_ORDERINGS))
         # Not an empty agreement: the queue's filters are still there.
-        self.assertEqual(review_filters, {"needs_review", "review_tier"})
+        self.assertEqual(
+            review_filters, {"needs_review", "review_tier", "grading_state"}
+        )
         self.assertEqual(review_orderings, {"review_severity"})
+        # `is_published` stays open to a student by decision: it is false
+        # both before grading and before release, so it tells nothing.
+        self.assertIn("is_published", View.filterset_fields)
+        self.assertNotIn("is_published", View.TEACHER_ONLY_FILTERS)
         self.assertEqual(
             View.search_fields, ["student__first_name", "student__last_name"]
+        )
+
+    def test_h133_the_list_serializer_hides_the_grading_state_and_schedule(self):
+        """What a student is sent in place of the grading state and of the
+        teacher's scheduling fields, on the one serializer that lists them
+        for a student. The behaviour is tested in
+        students/tests_no_grade_tell_before_release.py; this holds the
+        declaration to the field list."""
+        import inspect
+
+        from students.serializers import StudentSubmissionListSerializer as Serializer
+
+        listed = set(Serializer.Meta.fields)
+        self.assertLessEqual(GRADING_SCHEDULE_FIELDS | {GRADING_STATE_FIELD}, listed)
+        self.assertEqual(
+            Serializer.STUDENT_SCHEDULE_FIELD_VALUES,
+            {
+                "scheduled_grading_at": None,
+                "grading_task_name": None,
+                "is_grading_scheduled": False,
+            },
+        )
+        source = inspect.getsource(Serializer.to_representation)
+        self.assertIn("STUDENT_SCHEDULE_FIELD_VALUES", source)
+        self.assertIn('data["grading_state"]', source)
+        # The student's own detail serializer lists none of them.
+        from students.serializers import (
+            StudentSubmissionDetailStudentVersionSerializer as StudentDetail,
+        )
+
+        self.assertFalse(
+            (GRADING_SCHEDULE_FIELDS | {GRADING_STATE_FIELD})
+            & set(StudentDetail.Meta.fields)
         )

@@ -5,7 +5,7 @@ from rest_framework import serializers
 from users.models import CustomUser
 
 from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
-from .models import StudentSubmission
+from .models import GradingState, StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
     SecondOpinionSerializer,
@@ -143,6 +143,24 @@ class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+def max_points_shown(submission, request):
+    """The maximum a reader of a submission is shown.
+
+    The denominator the score was actually graded against, when the row
+    has one - serving assignment.total_points against a score computed
+    from a different max produces an internally inconsistent display.
+    Falls back to the assignment total for ungraded rows.
+
+    H-133: the row's own maximum is written by the grade save, so for a
+    student it would appear, or change, the moment a paper is graded.
+    Until the grade is released a student is shown what a submitted paper
+    shows: the assignment's total, or nothing.
+    """
+    if request and request.user.user_type == "STUDENT" and not submission.is_published:
+        return submission.assignment.total_points
+    return submission.max_points or submission.assignment.total_points
+
+
 class StudentSubmissionListSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
@@ -214,11 +232,28 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         "grading_confidence": None,
     }
 
+    #: H-133: the teacher's scheduling of a grading run, and what a student
+    #: is sent in its place. Before release a student is shown nothing that
+    #: tells a grade exists or is on its way.
+    STUDENT_SCHEDULE_FIELD_VALUES = {
+        "scheduled_grading_at": None,
+        "grading_task_name": None,
+        "is_grading_scheduled": False,
+    }
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
         if request and request.user.user_type == "STUDENT":
             data.update(self.STUDENT_REVIEW_FIELD_VALUES)
+            data.update(self.STUDENT_SCHEDULE_FIELD_VALUES)
+            # H-133: DONE once the grade is released; until then IDLE, what
+            # a submitted paper shows. Never RUNNING or FAILED.
+            data["grading_state"] = (
+                GradingState.DONE.value
+                if instance.is_published
+                else GradingState.IDLE.value
+            )
             # A student may know when a RELEASED grade was made, not that
             # an unreleased one exists.
             if not instance.is_published:
@@ -246,11 +281,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         )
 
     def get_max_points(self, obj) -> int:
-        # The denominator the score was actually graded against, when
-        # available - serving assignment.total_points against a score
-        # computed from a different max produces an internally inconsistent
-        # display. Falls back to the assignment total for ungraded rows.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
@@ -399,8 +430,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_max_points(self, obj) -> int:
-        # See StudentSubmissionListSerializer.get_max_points.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
@@ -516,8 +546,7 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return None
 
     def get_max_points(self, obj) -> int:
-        # See StudentSubmissionListSerializer.get_max_points.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
