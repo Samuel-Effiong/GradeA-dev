@@ -30,6 +30,7 @@ Run with:
     python manage.py test users.tests_teacher_renames_student
 """
 
+import uuid
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -219,6 +220,25 @@ class WhoMayNotRenameTest(RenameBase):
         self.assert_refused(
             self.rename(self.stranger, self.student), status.HTTP_404_NOT_FOUND
         )
+
+    def test_an_outsider_cannot_tell_a_student_from_no_account_at_all(self):
+        """403 is only ever said about an account the caller can already
+        read (their own student, past or present; their school's; their
+        own). For everything else, an account that exists and an id that
+        does not are answered alike, byte for byte: nobody learns from
+        this route that an id is a student of another teacher or school."""
+        missing = CustomUser(pk=uuid.uuid4())
+        for outsider in (
+            self.stranger,
+            self.student_named("o@gmail.com", "O", "", "S"),
+        ):
+            with self.subTest(outsider=outsider.user_type):
+                real = self.rename(outsider, self.student)
+                none = self.rename(outsider, missing)
+                self.assertEqual(real.status_code, status.HTTP_404_NOT_FOUND)
+                self.assertEqual(none.status_code, real.status_code)
+                self.assertEqual(none.content, real.content)
+        self.assertEqual(self.stored(self.student), ("Augusta", "", "Byron"))
 
     def test_a_teacher_whose_student_has_withdrawn_or_completed_may_not(self):
         for ended in (EnrollmentStatusType.WITHDRAWN, EnrollmentStatusType.COMPLETED):
