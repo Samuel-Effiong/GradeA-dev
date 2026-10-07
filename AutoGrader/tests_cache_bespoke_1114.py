@@ -8,14 +8,33 @@ its dependency read off the code rather than inferred from the pattern.
 |---|---|---|---|
 | 11 | `classrooms` my_courses | `usr` + `global` | enrolments bump `usr`; |
 |    |                         |                  | the payload also has TEACHER-owned names, topics, assignments |
-| 12 | `students` submission detail | `usr` | `raw_input` is a persisted snapshot |
+| 12 | `students` submission detail | `usr` | staff: `raw_input` is a persisted snapshot; |
+|    |                              |       | a student before release: the assignment's save bumps them |
 | 13 | `users` profile | `usr` | the user's own row and nothing else |
 | 14 | `users` my_settings | `usr` | a Settings save bumps its owner |
 
 Family 12 was first given `global`, and a test disproved it: a teacher
-retitling the assignment provably does not change the submission payload
+retitling the assignment provably does not change the payload staff read
 (`SubmissionDetailFreshnessTests.
-test_a_teachers_assignment_edit_does_NOT_change_this_payload`).
+test_a_teachers_retitle_does_NOT_change_the_teachers_payload`), nor the
+document a student reads once the grade is released
+(`test_a_teachers_retitle_does_NOT_change_a_released_students_document`).
+
+Since H-130 a student's document BEFORE release is rebuilt from the row
+on every read, so that one does follow the assignment's title and due
+date. `usr` alone is still the right scope for it: an assignment's save
+bumps every student who holds an enrolment row in its course
+(`assignments.signals._bump_assignment_scopes`), which is what
+`test_a_teachers_retitle_reaches_the_students_unreleased_document` holds.
+
+KNOWN LIMIT (H-130, accepted 2026-10-07): that bump goes to students with
+an enrolment row, while a student reads their own submission with no
+enrolment check. A student whose enrolment row has been DELETED (leaving
+a course keeps the row, as withdrawn; no production code deletes one)
+can read the old title or due date in an unreleased document until the
+key's 5-minute TTL runs out. Nothing about a grade is involved. The cure,
+if it is ever wanted: add the course's generation (`crs`) to the
+student's key in `StudentSubmissionViewSet.retrieve`.
 
 The `global` on 11 is a deliberate, measured choice rather than
 laziness. The precise alternative - bumping every enrolled student when a
@@ -268,33 +287,71 @@ class SubmissionDetailFreshnessTests(BespokeBase):
     def url(self):
         return f"/api/v1/submissions/{self.submission.id}"
 
-    def test_a_teachers_assignment_edit_does_NOT_change_this_payload(self):
+    def retitle(self):
+        self.assignment.title = "Retitled By Teacher"
+        self.assignment.save()
+
+    def test_a_teachers_retitle_reaches_the_students_unreleased_document(self):
+        """Since H-130 a student's document before release is rebuilt from
+        the row on every read, with the assignment's current title.
+
+        The key is still scoped to the student alone. What makes the next
+        read fresh is the assignment's own save, which bumps every student
+        holding an enrolment row in the course. No cache clear here.
+        """
+        before = self.get(self.student_client, self.url)
+        self.assertIn("Original Title", before["raw_input"])
+
+        self.retitle()
+
+        after = self.get(self.student_client, self.url)
+        self.assertIn("Retitled By Teacher", after["raw_input"])
+        self.assertNotIn("Original Title", after["raw_input"])
+        # The document is the only thing that follows the assignment.
+        before.pop("raw_input")
+        after.pop("raw_input")
+        self.assertEqual(before, after)
+
+    def test_a_teachers_retitle_does_NOT_change_the_teachers_payload(self):
         """Documents the real contract, which corrected this family's scope.
 
         `global` was added to this key first, assuming the payload rendered
-        the teacher-owned assignment live. This test disproved that and is
-        kept as the reason the scope is now `usr` alone:
+        the teacher-owned assignment live. For staff it does not:
 
           * `assignment` is serialised as a bare UUID;
           * `raw_input` is a snapshot materialised ONCE on first GET and
             persisted on the submission row, not re-rendered per request.
 
-        So a retitle genuinely changes nothing here, and adding `global`
-        would have invalidated every student's submission detail on every
+        So a retitle genuinely changes nothing staff read here, and adding
+        `global` would have invalidated every submission detail on every
         unrelated system mutation for no freshness gain.
         """
-        before = self.get(self.student_client, self.url)
+        before = self.get(self.teacher_client, self.url)
+        self.assertIn("Original Title", before["raw_input"])
 
-        self.assignment.title = "Retitled By Teacher"
-        self.assignment.save()
+        self.retitle()
 
         self.assertEqual(
             before,
-            self.get(self.student_client, self.url),
-            "the payload changed after an assignment retitle - if this is "
-            "now live-rendered, family 12 needs a scope covering the "
-            "assignment again",
+            self.get(self.teacher_client, self.url),
+            "the payload staff read changed after an assignment retitle - "
+            "if this is now live-rendered, family 12 needs a scope covering "
+            "the assignment again",
         )
+
+    def test_a_teachers_retitle_does_NOT_change_a_released_students_document(self):
+        """Once the grade is released the student reads the stored
+        snapshot, as staff do, and it does not follow the assignment."""
+        self.get(self.teacher_client, self.url)  # materialises the snapshot
+        self.submission.refresh_from_db()
+        self.submission.is_published = True
+        self.submission.save()
+        before = self.get(self.student_client, self.url)
+        self.assertIn("Original Title", before["raw_input"])
+
+        self.retitle()
+
+        self.assertEqual(before, self.get(self.student_client, self.url))
 
     def test_a_regrade_is_visible_on_the_next_read(self):
         from django.utils import timezone

@@ -1,0 +1,4 @@
+X1: 1 failing, as expected
+X2: 2 failing, as expected
+X3: 1 failing, as expected
+every mutant's failing set is the expected one
