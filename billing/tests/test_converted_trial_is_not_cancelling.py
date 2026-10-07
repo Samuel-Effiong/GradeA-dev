@@ -89,6 +89,7 @@ NOTHING_PENDING = {
 }
 WILL_NOT_RENEW = "Subscription will not renew at the end of the current billing cycle"
 UNDONE = "undone the scheduled cancellation"
+SCHEDULED_AT_PROVIDER = "scheduled with our payment provider"
 
 
 class StripeAnswer(dict):
@@ -338,6 +339,75 @@ class KeepSubscriptionTests(BoughtDuringTheTrial):
         self.assertIs(sub.auto_renew, False)
         stripe_subscription.modify.assert_not_called()
 
+    def post_with_stripe_saying(self, stripe_subscription, **answer):
+        """A record converted before the fix; Stripe answers `answer`."""
+        sub = self.converted_before_the_fix()
+        stripe_subscription.retrieve.return_value = StripeAnswer(
+            status="active", cancel_at_period_end=False, **answer
+        )
+        response = self.client.post(self.url)
+        sub.refresh_from_db()
+        return sub, response
+
+    def assert_left_alone_and_told_so(self, sub, response, stripe_subscription):
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIs(sub.auto_renew, False)
+        self.assertIsNone(sub.cancelled_at)
+        self.assertEqual(response.data["status"], "cancellation_scheduled")
+        self.assertIn(SCHEDULED_AT_PROVIDER, response.data["message"])
+        self.assertNotIn("nothing to resume", response.data["message"])
+        self.assertNotIn("never scheduled", response.data["message"])
+        self.assertTrue(
+            response.data["subscription"]["cancellation"]["has_pending_cancellation"]
+        )
+        stripe_subscription.modify.assert_not_called()
+
+    @patch("stripe.Subscription")
+    def test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away(
+        self, stripe_subscription
+    ):
+        """Stripe can schedule a cancellation for a DATE (`cancel_at`, for
+        instance from its dashboard); `cancel_at_period_end` is then
+        false. That is not "not cancelling": the record is left as it is
+        and the customer is told a cancellation is scheduled, not that
+        there never was one. (Found by Verifier 1, reading the first
+        version of this row.)"""
+        ends = int((timezone.now() + timedelta(days=10)).timestamp())
+
+        sub, response = self.post_with_stripe_saying(
+            stripe_subscription, cancel_at=ends
+        )
+
+        self.assert_left_alone_and_told_so(sub, response, stripe_subscription)
+
+    @patch("stripe.Subscription")
+    def test_a_cancellation_stripe_has_recorded_is_not_corrected_away(
+        self, stripe_subscription
+    ):
+        """The same for an answer that carries the time a cancellation was
+        asked for (`canceled_at`) though the flag is false."""
+        asked = int((timezone.now() - timedelta(days=1)).timestamp())
+
+        sub, response = self.post_with_stripe_saying(
+            stripe_subscription, canceled_at=asked
+        )
+
+        self.assert_left_alone_and_told_so(sub, response, stripe_subscription)
+
+    @patch("stripe.Subscription")
+    def test_an_answer_whose_two_dates_are_empty_is_still_corrected(
+        self, stripe_subscription
+    ):
+        """Stripe's real answer carries both keys, empty, when nothing is
+        scheduled. That is "not cancelling"."""
+        sub, response = self.post_with_stripe_saying(
+            stripe_subscription, cancel_at=None, canceled_at=None
+        )
+
+        self.assertIs(sub.auto_renew, True)
+        self.assertEqual(response.data["status"], "resumed")
+        self.assertEqual(response.data["subscription"]["cancellation"], NOTHING_PENDING)
+
     @patch("stripe.Subscription")
     def test_a_real_cancellation_is_still_undone_at_stripe(self, stripe_subscription):
         """The road that already worked, on a record made the same way."""
@@ -398,6 +468,27 @@ class TheSharedCoreTests(BoughtDuringTheTrial):
         self.assertTrue(result.local_changed)
         self.assertFalse(result.stripe_changed)
         stripe_subscription.modify.assert_not_called()
+
+    @patch("stripe.Subscription")
+    def test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing(
+        self, stripe_subscription
+    ):
+        sub = self.converted_before_the_fix()
+        stripe_subscription.retrieve.return_value = StripeAnswer(
+            status="active",
+            cancel_at_period_end=False,
+            cancel_at=int((timezone.now() + timedelta(days=10)).timestamp()),
+        )
+
+        result = SubscriptionReactivationService.reactivate_if_cancelling(sub)
+
+        self.assertTrue(result.scheduled_at_provider)
+        self.assertFalse(result.changed)
+        self.assertFalse(result.local_changed)
+        self.assertFalse(result.stripe_changed)
+        stripe_subscription.modify.assert_not_called()
+        sub.refresh_from_db()
+        self.assertIs(sub.auto_renew, False)
 
     @patch("stripe.SubscriptionSchedule")
     @patch("stripe.Subscription")
