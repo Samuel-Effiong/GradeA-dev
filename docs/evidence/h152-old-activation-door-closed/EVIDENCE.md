@@ -157,3 +157,122 @@ Written 15:02 WAT. **This gate does not close the row.** While it ran, the Senio
 a delta on this branch (about 15:00): the conversion command must not convert an account whose
 login email could not be queued. It follows as tests first, then the change, then its own short
 gate; the regression (users and classrooms) runs on the final tip after that.
+
+## The delta: the conversion needs a queued email
+
+**Everything in this section down to "Results of the delta" was written on 2026-10-07 at 15:07
+WAT, before any run of it.** **[R]** = read by me in the code.
+
+### What was wrong
+
+Found while writing the runbook, by reading. The conversion switches a leftover account on, sets
+a new temporary password and queues the email that carries it. The sender
+(`send_student_login_invitation_email`) hands the email to `safe_delay`, which swallows a queue
+that cannot be reached and returns nothing; the sender returned nothing either. **[R]** So when
+the queue was down at that moment the student came out switched on, with a password nobody
+holds and no email; the command printed "convert: student <id>" for them like for anyone; the
+only trace was a line in the service's log with no student id. And "forgot password" refuses an
+account that was never verified ("Email not verified.", `POST /auth/otp`), which a converted
+account never was. **[R]** The conversion is run once, by hand, and cannot be undone.
+
+Senior Manager's ruling (2026-10-07, about 15:00): cure it now, on this row, before anyone runs
+the conversion.
+
+### What changes
+
+- `classrooms/services/notifications.py`: `send_student_login_invitation_email` returns True
+  when the email was handed to the queue and False when the queue could not be reached. It
+  still never raises. Its two other callers, in `enroll_student_by_email` (a new student; a
+  student who never signed in), ignore the answer as before: a teacher's add must not fail, or
+  be undone, on an email. No line of `classrooms/services/enrollment.py` is changed.
+- `classrooms/management/commands/backfill_pending_student_invites.py`: when the answer is
+  False the command raises inside that one account's transaction, which undoes its conversion;
+  it prints `NOT converted (email could not be queued): student <id>` in place of the "convert"
+  line, counts it, and goes on. The summary gains `N NOT converted (email could not be queued;
+  run again when the email queue is up).` The account still matches the selection, so a second
+  run takes up exactly those. A dry run tries no queue and is unchanged but for that count (0).
+- No model, no migration, no route, no serializer. Rule 20 does not apply: no serializer's
+  output and no cached route's answer changes.
+
+### Every caller, and every test that replaces the sender (grep, 2026-10-07)
+
+Callers: the command; `enrollment.py` twice. Tests that replace the SENDER itself with a mock:
+`classrooms/tests.py` (4), `classrooms/tests_backfill_pending_student_invites.py` (9),
+`classrooms/tests_roster_ready_to_use.py` (the whole notifications module). A mock's answer is
+truthy, so the command converts under them as it did. Tests that replace the QUEUE inside the
+notifications module: three AutoGrader cache modules and `classrooms/tests_cache_course_roster_scope.py`
+with a function returning None (the sender then answers False; they only add students, where
+the answer is ignored), and `classrooms/tests_teacher_names_student_on_add.py` and this row's
+`users/tests_old_activation_door_is_closed.py` with a mock (truthy). All of these modules are in
+the delta's gate. I did not find a test that runs the command with a queue returning None.
+
+### What it does NOT do
+
+- It cannot know about an email that was queued and lost later (the mail provider, a spam
+  folder). Such a student still cannot use "forgot password" until they have verified or signed
+  in once; that is today's behaviour for every student added by email, and whether it should
+  change is a product question the Senior Manager has taken to the user.
+- The email is queued inside the account's transaction, before the commit, as it was. If the
+  commit itself failed after a successful queueing, an email would go out for a password that
+  was not saved. Not changed, not tested; I name it.
+- The teacher's ordinary add is deliberately unchanged (two tests hold it).
+
+### Tests
+
+`classrooms/tests_conversion_needs_a_queued_email.py`, 11 tests, committed first, tests only
+(87dc952a). The queue fails the way it really fails: the task's `.delay` raises a connection
+error and the real `safe_delay` handles it; the tests also require the log line the runbook
+tells the operator to look for.
+
+### Written before the run
+
+Gate script: `~/Documents/Projects/GAP-ed-scripts/run_h152_delta_gate.sh <tip> 87dc952a` (sha256
+starts ef2e1943d442905f as this is written). The main script's list of production files gains
+`classrooms/services/notifications.py` for the regression (sha256 now starts 4cde1f03112df21c).
+
+**0. Reproduce-first** (the delta's module on the two production files as at 87dc952a): Ran 11,
+FAILED, **7 red**: both tests of `TheSenderSaysWhetherTheEmailWasQueuedTest`, and five of
+`TheConversionNeedsAQueuedEmailTest`: `test_the_account_is_left_exactly_as_it_was`,
+`test_the_summary_counts_them`, `test_a_second_run_picks_up_exactly_those`,
+`test_the_output_names_nobody_when_an_email_could_not_be_queued`,
+`test_a_run_with_the_queue_up_says_none_was_left`. **Green there, 4**, each read against the old
+code: `test_the_run_goes_on_and_converts_the_others` (the old code converts everyone),
+`test_the_preview_queues_nothing_and_does_not_guess` (a dry run never queued), and the two of
+`AnOrdinaryAddByEmailIsUnchangedTest` (they hold what must not change). The script compares the
+set and halts on a difference.
+
+**1a.** `makemigrations --check`: no changes.
+
+**1. Modules and guards at the tip**: OK. No count written. In the list: the delta's module,
+this row's own module, the related modules of the first gate (H-148's add by email and the
+class-list import among them), the four modules that replace the queue, the guards.
+
+**2. Mutants, 14**, each KILLED with at least the tests `mutate.py` names (`--check` passes, and
+it refuses to load if one of the eleven delta tests is named by no mutant):
+
+| Mutant | Must fail at least |
+|---|---|
+| Q01 the sender always says queued | sender-false; left as it was; summary; second run; names nobody |
+| Q02 the sender never says queued | sender-true; run goes on; summary; second run; none was left |
+| Q03 the command ignores the answer | left as it was; summary; second run; names nobody |
+| Q04 one unqueued email stops the whole run | left as it was; run goes on; summary; second run; names nobody |
+| Q05 the conversion is not undone (no transaction) | left as it was; summary; second run |
+| Q06 the summary does not count them | summary |
+| Q07 the line shows the address | left as it was; names nobody |
+| Q08 the preview converts | preview |
+| Q09 an unconverted account is listed as converted | left as it was; summary |
+| Q10 a new student's add is undone when the queue is down | ordinary add, new student |
+| Q11 a re-invited student's add is undone when the queue is down | ordinary add, never signed in |
+| C1, C2, C3 (the first gate's three on the command file, which the delta changes) | as before: the nameless count twice; ids only |
+
+Each inner run is of both modules: "Ran 22". The six mutants of the first gate on the two views
+files are not run again: those files are untouched.
+
+Rule 19, as it should stand after this run: of the 11 delta tests, 7 red in step 0; the other 4
+each under a mutant (run goes on: Q02, Q04; preview: Q08; the two ordinary adds: Q10, Q11).
+
+**3. Regression** (users, classrooms, serial; own grant; on the final tip): OK.
+
+### Results of the delta
+
+(none yet)
