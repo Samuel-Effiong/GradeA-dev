@@ -237,3 +237,35 @@ seconds of one core, ending 12:02:37) while another row's timed regression was r
 quiet window I had ordered. Reported to the Senior Manager and written into that row's evidence.
 The cost figures for the new code are therefore from that one check and one more made after the
 window: see "Results of the second gate".
+
+## Results of the second gate, at `d6a1396c` (a grant to myself, logged first; 2026-10-07 12:09:52 to 12:15:08 WAT)
+
+One run of `run_h137_gate2.sh d6a1396c`, serial, 6G cap, beside the Next-stage Checker's serial
+run (the Senior Manager's standing form for two targeted runs). Load (1 minute) 7.56 at the
+start, 7.45 at the end. Nothing in these runs is timed.
+
+| Step | Result, from the raw log | Written beforehand |
+|---|---|---|
+| 0 the module against the tool as moved (`840619b4`) | exit 1: Ran 26 tests, FAILED (failures=162) | non-zero, Ran 26, 14 tests failing |
+| 0b the module against the tool of the first fix (`5bff2762`) | exit 1: Ran 26 tests, FAILED (failures=10) | non-zero, Ran 26, exactly two tests failing |
+| 1 the module and 23 guard modules | exit 0: Ran 312 tests in 144.258s, OK | OK, Ran 312 |
+| 2 the 23 mutants | exit 0: 23 KILLED, 0 SURVIVED, 0 BROKEN | 23 KILLED |
+
+- **Read the failure counts with care:** two of the new tests check many distances one by one, and
+  each failing distance is its own entry. Step 0: 162 entries are 14 distinct tests (the eleven of
+  the first red run, and the three new ones with 50, 100 and 1 entries). Step 0b: 10 entries are
+  exactly the two tests named beforehand (9 distances of the bare-value test, 397 to 405; 1 of the
+  long-as-short test). Counted by name from the logs.
+- **Step 2:** every mutant's run has its own "Ran 26 tests" line and exit 1, and its failing tests
+  are EXACTLY the set written beforehand, L9 (the fault itself) included.
+- **Nothing differed from what was written before the run.** All 26 tests have been seen red.
+- **Cost, observations only, from the one check named above** (the tool at an intermediate state,
+  before the "word inside a name already tried" rule): 4 MB of base64 0.25 s; 2 MB of one letter
+  0.12 s; 150,000 separate words 0.29 s; 150,000 short assignments 2.0 s; and 600,000 characters
+  of one word repeated without a break 19.9 s, which is what that rule was then added for. The
+  cost of that last case on the committed code has NOT been measured.
+
+**Files:** `console_d6a1396c.txt`, `red_run_tool_as_moved_d6a1396c.txt.gz`,
+`red_run_tool_of_first_fix_d6a1396c.txt.gz`, `modules_and_guards_d6a1396c.txt.gz`,
+`mutation_log_d6a1396c.txt`, `mutation_results_d6a1396c.json`, `mutant_logs_d6a1396c.tar.gz`,
+`raw_logs_sha256_d6a1396c.txt` (taken before packing).
