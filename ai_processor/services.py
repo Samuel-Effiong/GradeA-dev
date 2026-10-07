@@ -92,6 +92,19 @@ AI_CONFIDENCE_THRESHOLD = 80
 # it. SM ruling, 2026-10-06.
 AI_TEMPERATURE = 0.0
 
+
+def _grading_setting(run, name):
+    """A grade-shaping setting, from the run's ONE reading (BE-I-04).
+
+    Nothing in the grading code reads such a setting from Django settings
+    directly: a setting changed while a run is going would then grade
+    under settings the label does not name. A caller that has no run (a
+    helper called by itself, a test) gets a reading taken now.
+    ai_processor/tests_grading_run_pipeline.py scans for live reads.
+    """
+    return (run or GradingRun.start()).config.get(name)
+
+
 # Prompts live beside this module. Anchored to __file__ rather than the
 # process's working directory: these are read at IMPORT time, so a
 # CWD-relative path makes the whole app unimportable from anywhere but
@@ -2353,20 +2366,20 @@ Do not include any explanatory text before or after the JSON
                 evaluation["graded_by"] = model_name or grading_cache.UNNAMED_MODEL
 
     @staticmethod
-    def _grading_response_schema(schema):
+    def _grading_response_schema(schema, run=None):
         """
         The json_schema contract for a grading call, or None when the
         kill switch is off (None falls back to free-form json_object in
         __ai_model — the pre-schema behavior, kept as a rollback lever in
         case a routed fallback model rejects json_schema).
         """
-        if getattr(settings, "GRADING_RESPONSE_SCHEMA_ENABLED", True):
+        if _grading_setting(run, "GRADING_RESPONSE_SCHEMA_ENABLED"):
             return schema
         return None
 
     @staticmethod
-    def _evidence_mode():
-        return getattr(settings, "GRADING_EVIDENCE_ENFORCEMENT", MODE_STRICT)
+    def _evidence_mode(run=None):
+        return _grading_setting(run, "GRADING_EVIDENCE_ENFORCEMENT")
 
     def _missing_question_numbers(self, evaluations: list, questions: list) -> list:
         """
@@ -2690,7 +2703,7 @@ Do not include any explanatory text before or after the JSON
         """
 
         user_prompts = [{"type": "text", "text": user_prompt}]
-        user_prompts.extend(self._question_image_content_blocks(batch_rubric))
+        user_prompts.extend(self._question_image_content_blocks(batch_rubric, run))
         system_prompts = [{"type": "text", "text": system_prompt}]
 
         last_error: Optional[Exception] = None
@@ -2708,7 +2721,7 @@ Do not include any explanatory text before or after the JSON
                     assignment=assignment_model,
                     processing_task_id=processing_task_id,
                     response_schema=self._grading_response_schema(
-                        GRADING_BATCH_RESPONSE_SCHEMA
+                        GRADING_BATCH_RESPONSE_SCHEMA, run
                     ),
                     override_model=override_model,
                 )
@@ -2797,7 +2810,7 @@ Do not include any explanatory text before or after the JSON
                 is_final_attempt = (
                     attempt == batch_attempts - 1 and override_model is None
                 )
-                effective_mode = self._evidence_mode()
+                effective_mode = self._evidence_mode(run)
                 if is_final_attempt and effective_mode == MODE_STRICT:
                     effective_mode = MODE_LOG
                 violations = enforce_evidence(
@@ -2811,7 +2824,7 @@ Do not include any explanatory text before or after the JSON
                         f"Batch {batch_number} evidence check failed: "
                         f"{'; '.join(violations)}"
                     )
-                if is_final_attempt and self._evidence_mode() == (MODE_STRICT):
+                if is_final_attempt and self._evidence_mode(run) == (MODE_STRICT):
                     logger.warning(
                         "[Grading] evidence_degraded batch=%s/%s — strict "
                         "evidence relaxed to 'log' on the final attempt so "
@@ -2826,7 +2839,16 @@ Do not include any explanatory text before or after the JSON
                     f"[Grading] Batch {batch_number}/{total_batches} complete — "
                     f"{len(evaluations)} question(s) graded."
                 )
-                self._stamp_graded_by(evaluations, self._response_model_name(response))
+                batch_model = self._response_model_name(response)
+                self._stamp_graded_by(evaluations, batch_model)
+                # BE-I-04: this reply is KEPT (it passed every check above;
+                # a rejected reply never gets here). A second opinion is
+                # recorded apart: it does not set the score.
+                if run is not None:
+                    if override_model is not None:
+                        run.keep_second_opinion(batch_model)
+                    else:
+                        run.keep_answers(batch_model, len(evaluations))
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -2976,7 +2998,7 @@ Do not include any explanatory text before or after the JSON
                     assignment=assignment_model,
                     processing_task_id=processing_task_id,
                     response_schema=self._grading_response_schema(
-                        GRADING_SUMMARY_RESPONSE_SCHEMA
+                        GRADING_SUMMARY_RESPONSE_SCHEMA, run
                     ),
                 )
                 raw = response.choices[0].message.content
@@ -3003,6 +3025,11 @@ Do not include any explanatory text before or after the JSON
                 summary["score_calculation_verification"] = verification
 
                 model_name = self._response_model_name(response)
+                # BE-I-04: the summary call is a kept fresh call that
+                # marked no answer. It counts for the backup flag and does
+                # not vote for the grade's model.
+                if run is not None:
+                    run.keep_call(model_name)
                 if model_name:
                     summary["grading_model"] = model_name
 
@@ -3144,7 +3171,8 @@ Do not include any explanatory text before or after the JSON
             for a in (answers or [])
             if isinstance(a, dict)
         }
-        context = self._match_context(assignment_model, run or GradingRun.start())
+        run = run or GradingRun.start()
+        context = self._match_context(assignment_model, run)
 
         cached_evaluations = []
         remaining_questions = []
@@ -3164,6 +3192,12 @@ Do not include any explanatory text before or after the JSON
                 **self._answer_as_said(answer),
             )
             if hit is not None:
+                # BE-I-04: a reused answer counts by the model that first
+                # produced it, as the envelope our code wrote names it.
+                first_model = hit.get("graded_by")
+                run.keep_reused(
+                    None if first_model == grading_cache.UNNAMED_MODEL else first_model
+                )
                 cached_evaluations.append(hit)
                 claimed_keys.add(key)
             else:
@@ -3311,11 +3345,7 @@ Do not include any explanatory text before or after the JSON
         # The run's ONE reading of the settings when there is a run, so the
         # text spliced into the prompt and the text in the saved-answer
         # key cannot disagree (BE-I-04 slice B).
-        if run is not None:
-            enabled = run.config.get("GRADING_CUSTOM_INSTRUCTIONS_ENABLED")
-        else:
-            enabled = getattr(settings, "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", True)
-        if not enabled:
+        if not _grading_setting(run, "GRADING_CUSTOM_INSTRUCTIONS_ENABLED"):
             return ""
         custom_prompt = (
             getattr(assignment_model, "custom_ai_prompt", None) or ""
@@ -3329,7 +3359,7 @@ Do not include any explanatory text before or after the JSON
         )
 
     @staticmethod
-    def _question_image_content_blocks(questions):
+    def _question_image_content_blocks(questions, run=None):
         """
         A question whose content IS a diagram was, until now, graded
         blind: question_image is a real field (assignments/serializers.py)
@@ -3343,7 +3373,7 @@ Do not include any explanatory text before or after the JSON
         call, the same category of caution already applied to fetched web
         content via FETCHED_CONTENT_SECURITY_NOTE.
         """
-        cap = getattr(settings, "GRADING_MAX_IMAGES_PER_CALL", 5)
+        cap = _grading_setting(run, "GRADING_MAX_IMAGES_PER_CALL")
         blocks: list = []
         for question in questions or []:
             if not isinstance(question, dict):
@@ -3475,7 +3505,7 @@ Do not include any explanatory text before or after the JSON
         retries) logs, annotates result["second_opinion"]["error"], and
         lets the run succeed. Only task cancellation propagates.
         """
-        if not getattr(settings, "GRADING_SECOND_OPINION_ENABLED", True):
+        if not _grading_setting(run, "GRADING_SECOND_OPINION_ENABLED"):
             return result
 
         # Bound before the try so the except handlers below can always
@@ -3487,26 +3517,20 @@ Do not include any explanatory text before or after the JSON
                 result,
                 llm_questions,
                 key_fn=self._question_number_key,
-                min_confidence=getattr(
-                    settings,
-                    "GRADING_SECOND_OPINION_MIN_CONFIDENCE",
-                    AI_CONFIDENCE_THRESHOLD,
+                min_confidence=_grading_setting(
+                    run, "GRADING_SECOND_OPINION_MIN_CONFIDENCE"
                 ),
-                high_points_threshold=getattr(
-                    settings, "GRADING_SECOND_OPINION_HIGH_POINTS", 15
+                high_points_threshold=_grading_setting(
+                    run, "GRADING_SECOND_OPINION_HIGH_POINTS"
                 ),
-                sample_rate=getattr(
-                    settings, "GRADING_SECOND_OPINION_SAMPLE_RATE", 0.05
-                ),
-                borderline_enabled=getattr(
-                    settings, "GRADING_SECOND_OPINION_ON_BORDERLINE", True
+                sample_rate=_grading_setting(run, "GRADING_SECOND_OPINION_SAMPLE_RATE"),
+                borderline_enabled=_grading_setting(
+                    run, "GRADING_SECOND_OPINION_ON_BORDERLINE"
                 ),
                 subjective_types=frozenset(
                     str(t).strip().upper()
-                    for t in getattr(
-                        settings,
-                        "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES",
-                        ["ESSAY", "SHORT-ANSWER"],
+                    for t in _grading_setting(
+                        run, "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES"
                     )
                 ),
             )
@@ -3521,7 +3545,7 @@ Do not include any explanatory text before or after the JSON
 
             second_model = pick_second_model(
                 result.get("grading_model"),
-                getattr(settings, "GRADING_SECOND_OPINION_MODELS", []),
+                _grading_setting(run, "GRADING_SECOND_OPINION_MODELS"),
             )
             if second_model is None:
                 # Not a quiet edge case: this is the review queue's safety
@@ -3594,11 +3618,11 @@ Do not include any explanatory text before or after the JSON
                 # it never suppresses one (equality stays the agreement
                 # test on discrete rubric levels).
                 questions=selected_questions,
-                critical_fraction=getattr(
-                    settings, "GRADING_DISAGREEMENT_CRITICAL_FRACTION", 0.5
+                critical_fraction=_grading_setting(
+                    run, "GRADING_DISAGREEMENT_CRITICAL_FRACTION"
                 ),
-                moderate_fraction=getattr(
-                    settings, "GRADING_DISAGREEMENT_MODERATE_FRACTION", 0.25
+                moderate_fraction=_grading_setting(
+                    run, "GRADING_DISAGREEMENT_MODERATE_FRACTION"
                 ),
             )
             result["second_opinion"] = {
@@ -3862,6 +3886,9 @@ Do not include any explanatory text before or after the JSON
         # starts a run (extract_grade_with_retry) passes it, so every
         # attempt shares it; a direct caller gets one for this call.
         run = run or GradingRun.start()
+        # Only kept replies count: whatever an earlier attempt gathered is
+        # thrown away with that attempt.
+        run.begin_attempt()
 
         # Parse answers once — the deterministic partition needs the list
         # form (the LLM prompt builders keep accepting either form).
@@ -3878,7 +3905,7 @@ Do not include any explanatory text before or after the JSON
         deterministic_evaluations = []
         llm_questions = questions
         llm_answers = answers
-        if questions and getattr(settings, "GRADING_DETERMINISTIC_OBJECTIVE", True):
+        if questions and _grading_setting(run, "GRADING_DETERMINISTIC_OBJECTIVE"):
             deterministic_evaluations, llm_questions, llm_answers = (
                 self._partition_deterministic(questions, answers)
             )
@@ -3970,7 +3997,7 @@ Do not include any explanatory text before or after the JSON
     """
 
             user_prompts = [{"type": "text", "text": user_prompt}]
-            user_prompts.extend(self._question_image_content_blocks(llm_questions))
+            user_prompts.extend(self._question_image_content_blocks(llm_questions, run))
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
@@ -3983,7 +4010,7 @@ Do not include any explanatory text before or after the JSON
                 assignment=assignment_model,
                 processing_task_id=processing_task_id,
                 response_schema=self._grading_response_schema(
-                    GRADING_SINGLE_PASS_RESPONSE_SCHEMA
+                    GRADING_SINGLE_PASS_RESPONSE_SCHEMA, run
                 ),
             )
 
@@ -4039,7 +4066,7 @@ Do not include any explanatory text before or after the JSON
             # LAST attempt a strict evidence failure would cost the student
             # their whole grade, which is worse for them than a grade
             # carrying one unverified quote.
-            single_pass_mode = self._evidence_mode()
+            single_pass_mode = self._evidence_mode(run)
             if final_attempt and single_pass_mode == MODE_STRICT:
                 single_pass_mode = MODE_LOG
                 logger.warning(
@@ -4062,6 +4089,8 @@ Do not include any explanatory text before or after the JSON
 
             model_name = self._response_model_name(response)
             self._stamp_graded_by(evaluations, model_name)
+            # BE-I-04: this reply is kept; each answer it marked votes.
+            run.keep_answers(model_name, len(evaluations))
 
             # Captured before the merge below: exactly the questions this
             # call freshly graded (excludes deterministic and cache-hit

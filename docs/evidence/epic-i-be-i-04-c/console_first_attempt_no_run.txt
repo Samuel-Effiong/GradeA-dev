@@ -1,0 +1,2 @@
+/bin/bash: line 1: /home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/run_be_i_04_c_gate.sh: Permission denied
+gate exit=126 11:36:47 WAT
