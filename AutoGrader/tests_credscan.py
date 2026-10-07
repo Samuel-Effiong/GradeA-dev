@@ -328,3 +328,64 @@ class BinaryFileTests(ScanCase):
             "# not read: 0 file(s) with a NUL byte in the first 4096 bytes",
             out.getvalue(),
         )
+
+
+class LongLineSameAsShortTests(ScanCase):
+    """A long line gives what the same text gives on a short line.
+
+    Found by Verifier 2 reading the first version of the long-line scan: the
+    stretch of text looked at around one word could end inside the bare
+    value of an assignment that belongs to a LATER word, and the cut-off
+    value was recorded in its place: one character, taken for a code
+    expression, and nothing in the hit list.
+    """
+
+    PAD = b"lorem ipsum " * 400  # 4800 characters, none of the five words in it
+    BARE = ("DB_" + "PASSWORD" + "=" + WORD).encode()  # the env form: no quotes
+
+    def found(self, line):
+        """What a scan of one line records, without the long-line row."""
+        tool, rows, _values = self.scan("run.log", line + b"\n")
+        kept = sorted(
+            (kind, shape, length, count)
+            for (kind, _n, shape, length), count in rows.items()
+            if kind != "longline"
+        )
+        return kept, [
+            (lineno, length) for _name, lineno, _nm, length, _shape in tool.HITS
+        ]
+
+    def test_a_bare_value_far_after_an_earlier_word_is_found_whole(self):
+        for gap in range(380, 430):
+            with self.subTest(gap=gap):
+                line = self.PAD + b"key " + b"." * gap + b" " + self.BARE + b" tail"
+                self.assertEqual(
+                    self.found(line), ([("assign", "LITERAL", 10, 1)], [(1, 10)])
+                )
+
+    def test_a_long_line_gives_what_the_same_text_gives_on_a_short_line(self):
+        for gap in range(0, 700, 7):
+            with self.subTest(gap=gap):
+                text = (
+                    b"token "
+                    + b"." * gap
+                    + b" "
+                    + self.BARE
+                    + b" then pass "
+                    + PLANTED_ASSIGN
+                    + b" end"
+                )
+                self.assertEqual(self.found(self.PAD + text), self.found(text))
+
+    def test_two_assignments_close_together_are_each_found_once(self):
+        line = (
+            self.PAD
+            + self.BARE
+            + b" "
+            + PLANTED_ASSIGN
+            + b" "
+            + self.BARE.replace(b"DB_", b"MQ_")
+        )
+        kept, hits = self.found(line)
+        self.assertEqual(kept, [("assign", "LITERAL", 10, 3)])
+        self.assertEqual(hits, [(1, 10), (1, 10), (1, 10)])
