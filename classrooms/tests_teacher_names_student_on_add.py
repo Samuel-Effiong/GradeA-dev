@@ -353,3 +353,61 @@ class ARefusalDoesNotDependOnTheNameTest(AddByEmailBase):
         self.assertNotIn("Byron", json.dumps(response.json()))
         self.assertNotIn("exact name", json.dumps(response.json()))
         self.assertEqual(self.name_of(mate.email), ("Augusta", "", "Byron"))
+
+
+class TheClassListImportFillsAnEmptyNameTooTest(AddByEmailBase):
+    """Senior Manager, 2026-10-07: a row of the class-list import that
+    carries an email follows the same rule. It is the same teacher giving
+    the same name, and it names a nameless student at the next import. The
+    row of the answer shows the name that stands."""
+
+    def import_rows(self, raw):
+        cache.clear()
+        self.client.force_authenticate(self.teacher)
+        response = self.client.post(
+            reverse("course-bulk-add-students", kwargs={"pk": self.course.id}),
+            {"raw_data": raw},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        return response.data["results"]
+
+    def test_an_empty_name_is_filled_from_the_row(self):
+        nameless = self.existing()
+
+        (row,) = self.import_rows(f"Ada,Lovelace,{nameless.email}")
+
+        self.assertEqual(self.name_of(nameless.email), ("Ada", "", "Lovelace"))
+        self.assertEqual(row["status"], "enrolled")
+        self.assertEqual(row["name"], "Ada Lovelace")
+        self.assertTrue(self.enrolled(nameless.email, EnrollmentStatusType.ENROLLED))
+
+    def test_a_nameless_student_who_never_signed_in_is_filled_and_invited(self):
+        never = self.existing(signed_in=False)
+
+        (row,) = self.import_rows(f"Ada,Lovelace,{never.email}")
+
+        self.assertEqual(self.name_of(never.email), ("Ada", "", "Lovelace"))
+        self.assertEqual(row["status"], "invited")
+        self.assertEqual(row["name"], "Ada Lovelace")
+        (invitation,) = self.invitations()
+        self.assertEqual(invitation["merge_data"]["name"], "Ada Lovelace")
+
+    def test_a_stored_name_stands_and_the_row_shows_it(self):
+        known = self.existing(first_name="Augusta", last_name="Byron")
+
+        (row,) = self.import_rows(f"Ada,Lovelace,{known.email}")
+
+        self.assertEqual(self.name_of(known.email), ("Augusta", "", "Byron"))
+        self.assertEqual(row["status"], "enrolled")
+        self.assertEqual(row["name"], "Augusta Byron")
+
+    def test_a_filled_name_that_clashes_fails_the_row_and_fills_nothing(self):
+        self.classmate(**ADA)
+        nameless = self.existing()
+
+        (row,) = self.import_rows(f"Ada,Lovelace,{nameless.email}")
+
+        self.assertEqual(row["status"], "failed")
+        self.assertEqual(self.name_of(nameless.email), ("", "", ""))
+        self.assertFalse(self.enrolled(nameless.email))
