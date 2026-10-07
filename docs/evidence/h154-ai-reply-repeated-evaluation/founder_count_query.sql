@@ -1,3 +1,8 @@
+-- NOT NEEDED: the user's word of 7 October 2026, passed on by the Senior
+-- Manager, is that no existing grade is above the maximum and no
+-- assignment has a repeated question number. That is the user's statement;
+-- the team has run no query. This file is kept, not asked to be run.
+--
 -- READ ONLY. For the founder to run, on beta and on production, if they
 -- choose; nobody on the team has run it anywhere. It changes nothing: one
 -- SELECT. It returns COUNTS by month only: no name, no id, no score.

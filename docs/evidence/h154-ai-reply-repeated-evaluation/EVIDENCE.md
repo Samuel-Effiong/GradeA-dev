@@ -218,10 +218,21 @@ Chromium. Load 3.21 at the start, 3.77 at the end. Raw log
   the teacher (`ai_reply_corrected`). Example: question 2 twice, worth 5
   and 10, a student earns 5 and 0. Before: 5 of a counted 10. Now: 0 of
   a counted 10, flagged. True: 5 of 15. Wrong either way; no longer
-  silent. It can be saved: `AssignmentSerializer.validate` does not
-  check that question numbers are unique, and only the two chunked
-  extraction paths renumber. Whether any saved assignment has it is not
-  known. **Not this row:** its own row, H-158, MEDIUM, leading batch 13
+  silent. **Who can cause it** (corrected 2026-10-07 14:52; the
+  sentence here at `3a707780`, "It can be saved:
+  `AssignmentSerializer.validate` does not check ...", read as if a
+  teacher's request could save it, and I had said so to the Senior
+  Manager; that was wrong, and the Senior Manager found it by reading
+  the routes): NOT a teacher's request. Every POST, PUT and PATCH on
+  the assignment routes uses `AssignmentTextSerializer`
+  (`assignments/views.py`, `get_serializer_class`), which has no
+  questions field: a teacher sends text and an AI makes the question
+  list. A repeated number can come from an AI path (the single-pass
+  text extraction returns the model's numbers untouched; the two
+  chunked paths renumber; generation was not read for this row) or from
+  the Django admin, a staff tool. Nothing checks uniqueness on any
+  path. The user's word of 7 October 2026 is that no saved assignment
+  has a repeated number; the team has run no query. **Not this row:** its own row, H-158, MEDIUM, leading batch 13
   (Senior Manager, 2026-10-07): a save with a repeated number refused,
   the single-pass extraction renumbered, a read-only count for the
   founder.
@@ -246,6 +257,11 @@ maximum, percentage above 100, by month, counts only) for the founder to
 run if they choose. **Nobody on the team has run it.** It is a lower
 bound: a repeat that left the total at or under the maximum cannot be
 found afterwards.
+
+**Withdrawn as a request, 2026-10-07:** the user's word, passed on by
+the Senior Manager, is that no existing grade is above the maximum. That
+is the user's statement; the team has run no query. The file is kept and
+its first lines say so.
 
 ## Two wrong predictions of mine, and what changes
 Both stops of this row's chains were my own expectations, not the code:
