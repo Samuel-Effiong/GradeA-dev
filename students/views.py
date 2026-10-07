@@ -96,7 +96,9 @@ from .services import (
     ensure_submission_open,
     grade_engine,
     notify_student_of_graded_submission,
+    printable_answers,
     student_submission_to_html,
+    unreadable_answers_log_line,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -367,6 +369,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             StudentSubmission.objects.filter(pk=submission.pk).update(
                 raw_input=submission.raw_input
             )
+            # H-165: a document was just stored for a row whose answers
+            # were not all readable. Ids and the kind of value only.
+            left_out = printable_answers(submission.answers)[1]
+            if left_out:
+                logger.warning(*unreadable_answers_log_line(submission, left_out))
 
         if request.user.user_type == UserTypes.STUDENT:
             serializer = StudentSubmissionDetailStudentVersionSerializer(

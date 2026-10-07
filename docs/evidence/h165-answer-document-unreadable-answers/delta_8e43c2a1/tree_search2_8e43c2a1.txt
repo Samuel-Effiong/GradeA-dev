@@ -1,0 +1,50 @@
+8e43c2a1:ai_processor/tests_answer_benchmark_grading.py:126:    GRADING_ANSWER_CACHE_ENABLED=False,
+8e43c2a1:ai_processor/tests_answer_extraction_gate.py:243:        pairs = processor._pair_question_with_answers(
+8e43c2a1:ai_processor/tests_answer_extraction_gate.py:258:        pairs = processor._pair_question_with_answers(QUESTIONS, [answer(1)])
+8e43c2a1:ai_processor/tests_grading_arithmetic.py:30:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_arithmetic.py:154:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_benchmark.py:480:    GRADING_ANSWER_CACHE_ENABLED=False,
+8e43c2a1:ai_processor/tests_grading_cache.py:3:and its wiring into AIProcessor._partition_cached / _store_cache_evaluations.
+8e43c2a1:ai_processor/tests_grading_cache.py:13:- The kill switch (GRADING_ANSWER_CACHE_ENABLED=False) restores today's
+8e43c2a1:ai_processor/tests_grading_cache.py:141:    @override_settings(GRADING_ANSWER_CACHE_ENABLED=False)
+8e43c2a1:ai_processor/tests_grading_cache.py:242:    @override_settings(GRADING_ANSWER_CACHE_ENABLED=False)
+8e43c2a1:ai_processor/tests_grading_cache.py:277:@override_settings(GRADING_ANSWER_CACHE_ENABLED=False)
+8e43c2a1:ai_processor/tests_grading_cache.py:280:    Uses GRADING_ANSWER_CACHE_ENABLED=False at the class level and
+8e43c2a1:ai_processor/tests_grading_cache.py:303:            "GRADING_ANSWER_CACHE_ENABLED": True,
+8e43c2a1:ai_processor/tests_grading_completeness.py:50:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_completeness.py:90:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_hardening.py:5:- The answer<->question join in _pair_question_with_answers matches by
+8e43c2a1:ai_processor/tests_grading_hardening.py:41:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_hardening.py:57:        pairs = self.processor._pair_question_with_answers(
+8e43c2a1:ai_processor/tests_grading_hardening.py:70:        pairs = self.processor._pair_question_with_answers(
+8e43c2a1:ai_processor/tests_grading_hardening.py:83:        pairs = self.processor._pair_question_with_answers(
+8e43c2a1:ai_processor/tests_grading_hardening.py:99:        pairs = self.processor._pair_question_with_answers(
+8e43c2a1:ai_processor/tests_grading_hardening.py:111:        pairs = self.processor._pair_question_with_answers(
+8e43c2a1:ai_processor/tests_grading_hardening.py:119:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_hardening.py:132:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_pipeline.py:124:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:108:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:184:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:263:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:357:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:425:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:510:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_grading_structured_output.py:600:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_objective_pipeline.py:14:- With GRADING_DETERMINISTIC_OBJECTIVE = False the pipeline behaves
+8e43c2a1:ai_processor/tests_objective_pipeline.py:113:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_objective_pipeline.py:217:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_objective_pipeline.py:267:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_objective_pipeline.py:307:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_objective_pipeline.py:337:    @override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)
+8e43c2a1:ai_processor/tests_objective_pipeline.py:385:    @override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)
+8e43c2a1:ai_processor/tests_objective_pipeline.py:414:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_objective_pipeline.py:489:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_rubric_snapping.py:32:    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:ai_processor/tests_second_opinion_pipeline.py:62:    "GRADING_ANSWER_CACHE_ENABLED": False,
+8e43c2a1:students/tests_answers_unreadable.py:32:environment switch GRADING_DETERMINISTIC_OBJECTIVE off, the step that
+8e43c2a1:students/tests_answers_unreadable.py:33:reuses saved evaluations (`_partition_cached`) called `.get` on such an
+8e43c2a1:students/tests_answers_unreadable.py:582:OBJECTIVE_STEP_OFF = override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)
+8e43c2a1:students/tests_answers_unreadable.py:584:    GRADING_DETERMINISTIC_OBJECTIVE=False, GRADING_ANSWER_CACHE_ENABLED=False
+8e43c2a1:students/tests_answers_unreadable.py:616:@override_settings(GRADING_ANSWER_CACHE_ENABLED=True)
+8e43c2a1:students/tests_answers_unreadable.py:659:        reused, left_questions, left_answers = self.processor._partition_cached(
+8e43c2a1:students/tests_answers_unreadable.py:715:    GRADING_ANSWER_CACHE_ENABLED=True,
