@@ -563,3 +563,33 @@ matches.
 
 Written 16:37 WAT. Still owed as this is committed: the regression (users and classrooms) AGAIN,
 on this tip, on its own grant.
+
+### The regression at 9e104937 (0b's GRANT, 2026-10-07 16:41:37 WAT)
+
+9e104937 is the second delta's gated 76c82c35 with its results (docs only). The second delta
+changed two production files after the regression at 6cae1ad4, so that regression no longer
+covered the row's final code and was owed again. One run of `run_h152_gate.sh 9e104937 3
+19f5c872` (script sha256 starts 4cde1f03112df21c): users and classrooms, serial, in 0b's quiet
+window, alone among this team's runs. 16:41:56 to 16:44:35, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1132 tests in 143.619s, OK (skipped=4)** | `regression_9e104937.txt.gz`; console `regression_console_9e104937.txt` |
+
+1132 is the 1122 of the regression at 6cae1ad4 and the ten tests of the second delta's module.
+The skips, in their own words, are the same four: one 'CI_REQUIRE_NETWORK not set', one
+'CI_REQUIRE_REDIS not set', two 'live Google contract tests are opt-in: set
+CI_REQUIRE_NETWORK=1'. One-minute load 3.50 at the start, 5.49 at the end. No commit or hook of
+mine ran beside it.
+
+Credential-pattern check before this commit (the log before gzip, values masked): no URL that
+carries a password; nine lines match the name-and-value pattern, the same count as in the
+committed log of the regression at 6cae1ad4. Read masked: seven are a validation error's own
+sentence ("The password cannot be changed through this endpoint...", "This field is required."),
+two are lines of source in a traceback that assign the result of a call. None holds a value.
+
+What stands for this row: the first gate (at 8b396aa9), the delta's gate (at 51cd2773), the
+second delta's gate (at 76c82c35), and this regression on the final code. The regression at
+6cae1ad4 stays in the record; it is no longer the one the row rests on.
+
+Written 16:45 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 2.
