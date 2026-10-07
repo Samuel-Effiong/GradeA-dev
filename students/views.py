@@ -116,7 +116,12 @@ SUBMISSION_CLOSED_ERRORS = (
 
 
 def _submission_closed_response(exc):
-    return Response({"error": str(exc)}, status=HTTP_409_CONFLICT)
+    """409 with the refusal's sentence and its stable code (H-133). The
+    sentence was chosen where the refusal was raised, by who is told."""
+    return Response(
+        {"error": str(exc), "code": getattr(exc, "code", None)},
+        status=HTTP_409_CONFLICT,
+    )
 
 
 def _failure_response(exc, fallback_message):
@@ -267,7 +272,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     #: or order their own list by it would learn, from which rows come
     #: back, that the two graders disagreed and how badly - the very thing
     #: the list serializer hides from them.
-    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier")
+    # H-133: `grading_state` too. Before release a student is shown IDLE
+    # whatever the state is, and a filter on the real value would tell.
+    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier", "grading_state")
     TEACHER_ONLY_ORDERINGS = ("review_severity",)
 
     def _refuse_review_queue_query_from_a_student(self):
@@ -317,13 +324,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission = self.get_object()
         # `usr` ALONE, and this was corrected by a test rather than
         # reasoned: `global` was added here first, on the assumption that
-        # the payload renders the teacher-owned assignment live. It does
-        # not. `assignment` is serialised as a bare UUID and `raw_input` is
-        # a snapshot materialised ONCE and persisted on the submission row,
-        # so a teacher retitling the assignment provably does not change
-        # this response. Everything this payload does reflect - score,
-        # feedback, grade status, raw_input - belongs to the submission,
-        # whose save bumps its student's generation.
+        # the payload renders the teacher-owned assignment live. For staff
+        # it does not: `assignment` is serialised as a bare UUID and
+        # `raw_input` is a snapshot materialised ONCE and persisted on the
+        # submission row, so a teacher retitling the assignment does not
+        # change a staff response. Everything that payload reflects -
+        # score, feedback, grade status, raw_input - belongs to the
+        # submission, whose save bumps its student's generation.
+        #
+        # Since H-130 a STUDENT's response before release does follow the
+        # assignment: the document is rebuilt from the row at read time
+        # (students.services.answer_document_for_student), with the
+        # assignment's current title and due date. `usr` is still enough,
+        # because an assignment's save bumps every enrolled student's
+        # generation (assignments/signals.py); the test
+        # test_a_rename_the_teacher_saves_refreshes_the_students_cached_document
+        # holds that link.
         cache_key = versioned_key(
             f"studentsubmissions:user_id__{request.user.id}"
             f":instance_id__{submission.id}",
@@ -641,7 +657,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 CustomUser.objects.select_for_update().get(pk=request.user.pk)
-                ensure_no_active_extraction(assignment=assignment, student=request.user)
+                ensure_no_active_extraction(
+                    assignment=assignment, student=request.user, told_to_student=True
+                )
                 processing_task = create_processing_task(
                     requested_by=request.user,
                     task_type=BackgroundTaskType.ANSWER_EXTRACTION,
@@ -739,8 +757,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 locked = StudentSubmission.objects.select_for_update().get(
                     pk=submission.pk
                 )
-                ensure_submission_open(locked)
-                ensure_no_active_extraction(submission=locked)
+                told_to_student = request.user.user_type == UserTypes.STUDENT
+                ensure_submission_open(locked, told_to_student=told_to_student)
+                ensure_no_active_extraction(
+                    submission=locked, told_to_student=told_to_student
+                )
                 processing_task = create_processing_task(
                     requested_by=request.user,
                     task_type=BackgroundTaskType.ANSWER_EXTRACTION,

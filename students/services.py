@@ -21,6 +21,8 @@ from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
 from .exceptions import (
+    SUBMISSION_BUSY_FOR_STUDENT,
+    SUBMISSION_CLOSED_FOR_STUDENT,
     AssignmentNotOpenError,
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
@@ -51,10 +53,16 @@ logger = logging.getLogger(__name__)
 MAX_STUDENT_SUBMISSION_ATTEMPTS = 3
 
 
-def student_submission_to_html(submission) -> str:
+def student_submission_to_html(submission, *, show_grade=True) -> str:
     """
     Converts student submission JSON into a globally standard HTML format
     suitable for rich-text editors (ProseMirror, TinyMCE, Quill, CKEditor, etc).
+
+    `show_grade=False` writes the header exactly as a newly submitted row
+    has it, whatever the row holds: no grading time, and the score
+    column's own default, printed by the same lines below. It is the form
+    a student reads until the grade is released (see
+    `answer_document_for_student`).
 
     Two different escapes are used on purpose. `safe()` escapes plain values
     that must never be markup. `rich()` runs the allowlist over the fields that
@@ -72,6 +80,13 @@ def student_submission_to_html(submission) -> str:
         return AssignmentProcessingService.sanitize_ai_html(val) if val else ""
 
     student_name = submission.student.get_full_name()
+    if show_grade:
+        graded_at, score = submission.graded_at, submission.score
+    else:
+        # Not `None`: a new row's score is the column's default (zero), and
+        # the document of a submitted row is printed from that.
+        graded_at = None
+        score = StudentSubmission._meta.get_field("score").get_default()
 
     meta_html = f"""
     <section>
@@ -87,9 +102,9 @@ def student_submission_to_html(submission) -> str:
         <h3>Submission Metadata</h3>
         <p><strong>Submitted At:</strong> {safe(submission.submission_date.strftime("%Y-%m-%d"))}</p>
         <p><strong>Graded At:</strong>
-        {safe(submission.graded_at.strftime("%Y-%m-%d")) if submission.graded_at else "Not graded yet"}</p>
+        {safe(graded_at.strftime("%Y-%m-%d")) if graded_at else "Not graded yet"}</p>
         <p><strong>Score:</strong>
-        {safe(submission.score) if submission.score is not None else "Not graded yet"}</p>
+        {safe(score) if score is not None else "Not graded yet"}</p>
     </section>
     <hr/><br/>
     """
@@ -124,6 +139,38 @@ def student_submission_to_html(submission) -> str:
         {questions_html}
     </article>
     """
+
+
+def answer_document_for_student(submission):
+    """The answer document as a student may read it.
+
+    The one place a student-facing reader gets `raw_input` from (H-130). A
+    student must not learn that a grade exists before the teacher releases
+    it, and the stored document says so in its header ("Graded At",
+    "Score") from the moment grading saves it.
+
+    So until release the student always gets the document rebuilt from the
+    row in its ungraded form, and after release the stored one. Always,
+    not "once it is graded": there is then no reading of the row's grading
+    columns to get wrong (a new row already has a score, the default
+    zero), and since the rebuild happens before grading as well as after,
+    grading changes nothing the student reads.
+
+    Nothing stored is rewritten, and staff read the stored document as
+    before. Rebuilding loses no text: every writer of `raw_input` builds
+    it from the row with `student_submission_to_html` (upload, grading,
+    the raw-text edit, the lazy rebuild on a read). What it gives up:
+    before release the header follows the assignment's current title and
+    due date and the student's current name, not those at upload time.
+
+    A row with no stored document is served as it is: nothing is made up
+    for a submission that is still being processed.
+    """
+    if submission.is_published or not submission.raw_input:
+        return submission.raw_input
+    return AssignmentProcessingService.html_to_prosemirror_text(
+        student_submission_to_html(submission, show_grade=False)
+    )
 
 
 # Celery's hard kill point for one grading run - grade_engine_async sets
@@ -925,7 +972,9 @@ def upload_answers_engine(
                 # race a concurrent upload, a grading claim, or a grade
                 # landing on the row. Applies to proxy uploads too.
                 _check_submission_open(
-                    existing_submission, student_upload=is_student_self_upload
+                    existing_submission,
+                    student_upload=is_student_self_upload,
+                    told_to_student=is_student_self_upload,
                 )
 
             if existing_submission:
@@ -1002,7 +1051,7 @@ def _grading_claim_is_live(submission, now=None):
     )
 
 
-def _check_submission_open(existing_submission, *, student_upload):
+def _check_submission_open(existing_submission, *, student_upload, told_to_student):
     """
     The server-side rules that close a submission row to uploads, checked
     in this order. The first two apply to EVERY upload path - the
@@ -1019,14 +1068,22 @@ def _check_submission_open(existing_submission, *, student_upload):
        answers newer than the grade that closes it.
     3. The attempt limit (MAX_STUDENT_SUBMISSION_ATTEMPTS), students only.
     """
+    # H-133: `told_to_student` says who reads the refusal. A student is
+    # given a sentence that does not name grading; a teacher (a proxy
+    # upload, an edit) the reason in words. It has no default, so every
+    # caller of this one check decides.
     if existing_submission.graded_at is not None:
         raise SubmissionAlreadyGradedError(
-            "This assignment has already been graded, so it can no longer "
+            SUBMISSION_CLOSED_FOR_STUDENT
+            if told_to_student
+            else "This assignment has already been graded, so it can no longer "
             "be submitted again."
         )
     if _grading_claim_is_live(existing_submission):
         raise SubmissionBeingGradedError(
-            "This submission is being graded right now, so it cannot be "
+            SUBMISSION_BUSY_FOR_STUDENT
+            if told_to_student
+            else "This submission is being graded right now, so it cannot be "
             "replaced. Please try again once grading has finished."
         )
     if (
@@ -1065,13 +1122,16 @@ def ensure_student_may_submit(assignment, student):
         .first()
     )
     if existing is not None:
-        _check_submission_open(existing, student_upload=True)
+        _check_submission_open(existing, student_upload=True, told_to_student=True)
 
 
-def ensure_submission_open(submission):
+def ensure_submission_open(submission, *, told_to_student):
     """Refuse-if-closed for an existing row (the raw-text edit path): graded
-    or being graded. The attempt allowance is not consumed by an edit."""
-    _check_submission_open(submission, student_upload=False)
+    or being graded. The attempt allowance is not consumed by an edit.
+    `told_to_student`: whether the one editing is the student (H-133)."""
+    _check_submission_open(
+        submission, student_upload=False, told_to_student=told_to_student
+    )
 
 
 ACTIVE_TASK_STATUSES = (BackgroundTaskStatus.PENDING, BackgroundTaskStatus.STARTED)
@@ -1087,7 +1147,9 @@ Do not include any explanatory text before or after the JSON
 """
 
 
-def ensure_no_active_extraction(*, submission=None, assignment=None, student=None):
+def ensure_no_active_extraction(
+    *, submission=None, assignment=None, student=None, told_to_student
+):
     """
     Refuse a second answer-extraction while one is still running for the
     same target. A client that timed out and retried must not queue a
@@ -1107,8 +1169,12 @@ def ensure_no_active_extraction(*, submission=None, assignment=None, student=Non
     else:
         active = active.filter(assignment=assignment, requested_by=student)
     if active.exists():
+        # H-133: for a student this is the SAME sentence as "being graded",
+        # so the two cannot be told apart.
         raise SubmissionProcessingInProgressError(
-            "This submission is still being processed from an earlier "
+            SUBMISSION_BUSY_FOR_STUDENT
+            if told_to_student
+            else "This submission is still being processed from an earlier "
             "request. Please wait for it to finish before sending it again."
         )
 
@@ -1137,7 +1203,8 @@ def update_submission_from_raw_text(
     if not raw_input or not str(raw_input).strip():
         raise ValueError("There is no text to extract answers from.")
 
-    ensure_submission_open(submission)
+    told_to_student = user.user_type == UserTypes.STUDENT
+    ensure_submission_open(submission, told_to_student=told_to_student)
     ensure_task_not_cancelled(processing_task_id)
 
     assignment_context = f"""
@@ -1169,7 +1236,9 @@ def update_submission_from_raw_text(
 
         with transaction.atomic():
             locked = StudentSubmission.objects.select_for_update().get(pk=submission.pk)
-            _check_submission_open(locked, student_upload=False)
+            _check_submission_open(
+                locked, student_upload=False, told_to_student=told_to_student
+            )
             ensure_task_not_cancelled(processing_task_id)
             locked.answers = answers
             locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
