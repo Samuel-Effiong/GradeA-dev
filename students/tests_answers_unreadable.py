@@ -580,6 +580,12 @@ class TheWritersRefuseWhatTheBuilderRefusedForThem(AnswerDocumentBase):
 
 
 OBJECTIVE_STEP_OFF = override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)
+BOTH_STEPS_OFF = override_settings(
+    GRADING_DETERMINISTIC_OBJECTIVE=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
+#: Stored values that are "no answers at all" to the refusal and to the
+#: builder (as [] and {} are), and that cannot be walked.
+NO_ANSWERS = {"zero": 0, "false": False}
 
 
 def mixed_answers(numbers):
@@ -596,7 +602,8 @@ def marks_every_question_asked(numbers, prompts):
 
     def provider(**kwargs):
         prompts.append(str(kwargs.get("user_prompt")))
-        if paper.is_a_batch_call(kwargs) or len(numbers) <= 3:
+        short = len(numbers) <= paper.services.GRADING_QUESTIONS_PER_CHUNK
+        if short or paper.is_a_batch_call(kwargs):
             asked = [n for n in numbers if f"Essay question {n}?" in prompts[-1]]
             return paper.reply(
                 {"question_evaluations": [paper.evaluation(n) for n in asked]}
@@ -613,18 +620,38 @@ class TheRealGradingCodeMeetsAMixedList(paper.ReplyCase):
     SHORT = (1, 2, 3)
     LONG = tuple(range(1, paper.LONG_PAPER + 1))
 
-    def grade_mixed(self, numbers):
+    def grade(self, numbers, answers):
         self.prompts: list = []
         with patch.object(AIProcessor, "execute_graded_task") as execute:
             execute.side_effect = marks_every_question_asked(numbers, self.prompts)
             result = self.processor.extract_grade_with_retry(
                 MagicMock(),
                 [paper.essay(n) for n in numbers],
-                mixed_answers(numbers),
+                answers,
                 assignment_model=paper.ASSIGNMENT,
             )
         self.assertGreaterEqual(execute.call_count, 1)
         return result
+
+    def grade_mixed(self, numbers):
+        return self.grade(numbers, mixed_answers(numbers))
+
+    def assert_no_answers_means_every_question_not_found(self, numbers):
+        """A stored 0 or false is no answers at all, as [] is: the paper is
+        graded with every question marked "not found" (the same on a short
+        and a long paper; seen by calling the pipeline so, 2026-10-07)."""
+        for name, value in NO_ANSWERS.items():
+            with self.subTest(answers=name):
+                # Each paper by itself: nothing reused from the one before.
+                paper.django_cache.clear()
+
+                result = self.grade(numbers, value)
+
+                self.assertOneEvaluationPerQuestion(result, numbers)
+                self.assertEqual(
+                    {ev["answer_status"] for ev in result["question_evaluations"]},
+                    {"NOT_FOUND_IN_DOCUMENT"},
+                )
 
     def test_the_reuse_step_leaves_out_an_entry_that_is_not_an_object(self):
         questions = [paper.essay(n) for n in self.SHORT]
@@ -660,6 +687,26 @@ class TheRealGradingCodeMeetsAMixedList(paper.ReplyCase):
         result = self.grade_mixed(self.LONG)
 
         self.assertOneEvaluationPerQuestion(result, self.LONG)
+
+    def test_a_short_paper_whose_answers_are_zero_or_false(self):
+        """Control."""
+        self.assert_no_answers_means_every_question_not_found(self.SHORT)
+
+    def test_a_long_paper_whose_answers_are_zero_or_false(self):
+        """Control."""
+        self.assert_no_answers_means_every_question_not_found(self.LONG)
+
+    @BOTH_STEPS_OFF
+    def test_a_short_paper_of_zero_or_false_with_both_steps_off(self):
+        """Control of this row; with both steps off only the pipeline's own
+        "not a list is no answers" line stands before the walks below it."""
+        self.assert_no_answers_means_every_question_not_found(self.SHORT)
+
+    @BOTH_STEPS_OFF
+    def test_a_long_paper_of_zero_or_false_with_both_steps_off(self):
+        """Control of this row, as above: the long paper's pairing walks
+        the answers before any paid call."""
+        self.assert_no_answers_means_every_question_not_found(self.LONG)
 
 
 @override_settings(
