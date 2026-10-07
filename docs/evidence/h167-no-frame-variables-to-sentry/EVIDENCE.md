@@ -221,3 +221,53 @@ Nothing run when this was written (17:19 WAT) but that search and `mutate.py --c
 involved. `origin/main` read through git for the one file only.
 
 ## Results
+
+### The gate at fd5245dd (0b's GRANT, 2026-10-07 17:18:21 WAT)
+
+fd5245dd is 42f97130 (tests only), 27ee0005 (the change), 5f30f780 (tests only: every piece of a
+made value) and the docs commit. One run of `run_h167_gate.sh fd5245dd 1 d7143538` (script sha256
+starts c54a1afc33efccfd; `mutate.py` starts 9c00fabbbe68175f), 17:19:58 to 17:24:49, script exit 0.
+The Release Engineer's full run had ended a minute and a half before: one-minute load 4.55 at the
+start, 4.35 at the start of part 1, 5.16 at its end, 5.12 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's three production files | Ran 39, FAILED, 19 distinct tests red by name | **Ran 39 tests in 0.106s, FAILED (failures=34)**: 34 lines (sub-tests counted singly), 19 distinct tests; the script's own comparison with the 19 written names: "step 0 is as written" | `prefix_base_production_failing_fd5245dd.txt.gz` |
+| 1a. makemigrations --check | no changes | "No changes detected" | `makemigrations_check_fd5245dd.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 393 tests in 129.210s, OK** (no skip) | `modules_and_guards_fd5245dd.txt.gz` |
+| 2. Mutants | 19 KILLED with exactly their named tests | **19 of 19 KILLED**: each exit 1, its own "Ran 74", `expected-but-passed []` nineteen times; SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_fd5245dd.txt`, `mutation_results_fd5245dd.json`, `mutant_logs_fd5245dd/` |
+
+Nothing differed from what was written before the run. The console is `gate_console_fd5245dd.txt.gz`.
+
+**Each failing set is exactly the written one**, compared by program from the results file: for all
+19 mutants the sorted expected list equals the list of failing tests (sizes 2, 2, 2, 2, 2, 13, 12,
+13, 13, 1, 1, 5, 5, 11, 1, 3, 3, 3, 3). G3 and G4, the patterns that stop early, fail all thirteen
+tests, as re-derived before the run.
+
+**Rule 19, counted from these records:** 19 tests red in part 0. Under the mutants 22 distinct tests
+failed: the 21 that must be named and H-89's wiring test (under S5). So "still no default pii" was
+seen red under S5 and "text that only looks alike" under G10. **Never seen red, as said from the
+start: the three controls on the libraries.** They are not evidence of the change.
+
+**What these runs do not show:** an event that was sent; a server; the SDK at another version; that
+a road I did not read is closed.
+
+**Two committed logs are NOT the raw bytes, and I say so.** In part 0 and under H4 the failure texts
+print the tests' made queue address, a URL of the host `queue.invalid` with a 12-character random
+value in the password position (2 lines and 4 lines). It opens nothing, but the team's rule is that
+no committed file holds a URL with a password part, even a made one. In those six lines the value
+is replaced by "[made value masked by ed]" (one substitution, nothing else touched: 2 and 4 lines
+differ from the raw files). The raw files are kept outside the repository, in
+`~/Documents/Projects/GAP-ed-scripts/logs/h167_raw_fd5245dd/` (sha256 start e00b70532b05a722 for part
+0, 7bece1cde8357bb4 for H4), for the verifier to compare. Row H-169 (tests should not print such
+values) is the cure; this module should be changed with it.
+
+Credential-pattern check before this commit (every new file, before gzip, values masked): after
+that substitution no URL with a password part (the pattern used allows an empty user name; the one I
+used earlier today did not, so I re-checked the committed evidence of H-147, H-141, H-148, H-152 and
+H-153 with it: 0 lines in each). Name-and-value lines: 30 in part 0's log and 79 in the mutants'
+logs, every one a failure text of this row's own tests showing a made random value after one of the
+four names (that is what those tests are about); none in the other files.
+
+Written 17:26 WAT. Still owed as this is committed: the regression (the AutoGrader app), on its own
+grant.
