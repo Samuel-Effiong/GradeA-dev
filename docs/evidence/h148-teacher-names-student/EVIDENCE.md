@@ -329,4 +329,36 @@ being green on that test, and by nothing stronger.
 
 ### Results of the follow-up
 
-(none yet)
+**The run at d7be0241 (0b's LIFT and GRANT, 2026-10-07 15:42 WAT).** d7be0241 is 117feddc plus
+1d97842d (the two billing test files) and this section's docs commit. One run of
+`run_h148_followup.sh d7be0241 117feddc` (script sha256 starts fd68b250cd6978fd). 15:42:47 to
+15:44:55. No other run of this team beside it; one-minute load 5.33 at the start, 4.87 at the
+start of B, 3.99 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| A. The two billing modules with their test files as at 117feddc | Ran 81; 80 red by name, 1 green | **Ran 81 tests in 11.242s, FAILED (failures=80)**: exactly the 80 named; the script's own comparison: "A is as written". Test files restored. | `followup_before_d7be0241.txt.gz` |
+| B. As committed: the 17 modules that call the route and the rule 20 cache module | OK | **Ran 393 tests in 80.156s, OK** (no skip) | `followup_after_d7be0241.txt.gz` |
+
+Nothing differed from what was written before the run. The console is
+`followup_console_d7be0241.txt`.
+
+**Why the 80 failed, read from the log:** all 80 carry the same message, from the `assert` in a
+setUp: "First name: This field is required. Last name: This field is required." So the red is
+the missing names and nothing else.
+
+**What A does not show, said plainly:** the removed teacher's test
+(`test_cannot_enrol_more_students_into_the_school_course`) is red in A because its class's setUp
+fails, like the others; its own post was never reached there. That its own post with an email
+alone would have been answered 400 by the form is my reading of the view, not something a run
+showed. What the run shows is B: with a complete form the test is green, so the removed
+teacher is refused with 403 or 404 and no account is made for the address.
+
+This row's gate (at 356bdd34) and its regression (at 56ce7ec5, classrooms and users) stand as
+run and were not repeated: no production file differs from 117feddc (the script refuses to run
+otherwise), and the Senior Manager ruled so on 2026-10-07.
+
+Credential-pattern check before this commit (the three new files, before gzip): no line matches.
+
+Written 15:45 WAT. Nothing is owed on this row by me now but the updated hand-over to
+Verifier 1, who holds its verdict for this final tip.
