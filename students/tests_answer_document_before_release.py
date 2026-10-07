@@ -402,7 +402,19 @@ class TheUploadRoutesOwnAnswer(AnswerDocumentBase):
         response = self.upload(self.assignment)
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(list(response.data), ["error"])
+        # H-133 added "code" beside the sentence. The point of this test: a
+        # refused upload carries no document and no grade. (Agreed with d5,
+        # 2026-10-06.)
+        for absent in (
+            "raw_input",
+            "score",
+            "score_percentage",
+            "feedback",
+            "formatted_grade",
+            "graded_at",
+        ):
+            self.assertNotIn(absent, response.data)
+        self.assertLessEqual(set(response.data), {"error", "code"})
         self.assertEqual(self.stored(), graded)
 
 
