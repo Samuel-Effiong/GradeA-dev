@@ -46,6 +46,7 @@ TEST_DB = "test_h165_mut"
 SV = "students/services.py"
 VW = "students/views.py"
 EM = "AutoGrader/error_messages.py"
+AI = "ai_processor/services.py"
 TESTS = ["students.tests_answers_unreadable"]
 
 BUILDER_LINE = "    if left_out:\n        line = (\n"
@@ -229,6 +230,19 @@ MUTANTS = [
         '        questions_html += f"<p><em>{escape(line, quote=False)}</em></p>"\n',
         '        questions_html += f"<p><em>{escape(line, quote=False)} '
         '{submission.answers}</em></p>"\n',
+        1,
+        TESTS,
+    ),
+    (
+        "U20",
+        "the step that reuses saved evaluations leaves out an entry that is "
+        "not an object",
+        AI,
+        "            if is_readable_answer(a)\n"
+        '            and self._question_number_key(a.get("question_number")) '
+        "not in claimed_keys\n",
+        '            if self._question_number_key(a.get("question_number")) '
+        "not in claimed_keys\n",
         1,
         TESTS,
     ),
