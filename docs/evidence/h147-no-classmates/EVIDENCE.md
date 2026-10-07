@@ -189,3 +189,44 @@ compare a student's answer with itself before and after another tenant's change;
 that expects a student to see a classmate. I read the places a grep for the course, roster and
 session names found, not every line of the eight modules: a red here would be a real finding
 about this row, reported as it is.
+
+## Results
+
+### The gate at 787a81fb (0b's GRANT, 2026-10-07 13:09:26 WAT)
+
+787a81fb is this branch's 085ea0ee and 0b's base update onto the pushed batch 11 (beta
+d7143538); no file was changed by both sides. One run of `run_h147_gate.sh 787a81fb 1 d7143538`
+(script sha256 starts 073865d90e4bca2f: the 0624551e of the section above plus one guard module
+0b named, `AutoGrader.tests_migration_safety_check`). 13:09:59 to 13:22:38. It ran beside the
+Next-stage Builder's battery; load 9.41 at the start, 14.78 at the start of part 1, 10.73 at its
+end, 5.99 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 36; 21 red: 9 + 3 + 9, named above | **Ran 36 tests in 30.084s, FAILED (failures=26, errors=1)**: 27 lines, 21 distinct tests, exactly the 21 named (three of them fail once per course route, hence more lines than tests). Source restored. | `prefix_base_production_failing_787a81fb.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_787a81fb.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 527 tests in 376.095s, OK** (no skip) | `modules_and_guards_787a81fb.txt.gz` |
+| 2. Mutants | 13 KILLED with their named tests | **13 of 13 KILLED**: each exit 1, its own "Ran 36", every expected test among the failed (`expected-but-passed []` thirteen times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after; the mutants' database dropped. | `mutation_log_787a81fb.txt`, `mutation_results_787a81fb.json`, `mutant_logs_787a81fb/` |
+
+Nothing differed from what was written before the run. The run's console is
+`gate_console_787a81fb.txt.gz`.
+
+Rule 20's cache modules were in part 1 and are green: the risk I named in the 11:38 section did
+not show.
+
+Rule 19, counted from these records (the part 0 log and `mutation_results_787a81fb.json`):
+
+- New module, 14 tests: 9 red in part 0 and the other 5 under a mutant. All 14 seen red.
+- Rewritten exposure module, 15 tests: 9 red in part 0, 3 more under a mutant. **Never seen red,
+  and not claimed as evidence: 3**, which hold what was true before this row and is untouched by
+  it: `test_query_counts_stay_flat_as_the_roster_grows`,
+  `test_school_admin_and_superadmin_cannot_reach_course_payloads`,
+  `test_student_keeps_their_own_email`.
+- New guard, 7 tests: 3 red in part 0. **Never seen red, and not claimed as evidence: 4**:
+  the two self-tests of the scanner (`test_rule_1_the_order_check_fails_when_the_roster_comes_first`,
+  `test_rule_1_the_scan_sees_a_site_when_there_is_one`) and the two tests of the actions table
+  (`test_rule_2_each_refusal_is_where_the_table_says`, `test_rule_2_every_action_is_classified`).
+  No mutant of mine changes a view's permissions or adds an action, so nothing here shows those
+  two can fail. I say so and leave it to the verifier whether a probe is wanted.
+
+Still owed as this is committed: the regression (classrooms and assignments), on its own grant.
