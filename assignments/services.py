@@ -364,17 +364,57 @@ QUESTION_NUMBERS_PUT_IN_ORDER = (
 )
 
 
-def number_questions_in_order(questions) -> tuple:
-    """`questions` numbered 1..N in the order given.
+def _positive_integer(value):
+    """The positive integer a question number stands for, or None: an
+    integer (not a bool) of 1 or more, or a string of ASCII digits that
+    reads as one. `2.0`, `"2a"`, `0`, `-2`, true and null are not."""
+    if type(value) is int:
+        return value if value >= 1 else None
+    if isinstance(value, str) and value.isascii() and value.isdecimal():
+        return int(value) if int(value) >= 1 else None
+    return None
 
-    Returns (the numbered list, the model's own numbers by new number, how
-    many numbers changed). The input is not changed: one caller passes a
-    stored draft snapshot. An entry that is not an object is left where it
-    is and takes no number (the serializer refuses it). A value that is
-    not a list is returned as it is.
+
+def number_questions_in_order(questions) -> tuple:
+    """`questions` numbered 1..N in the order given, WHEN THEIR NUMBERS ARE
+    NOT ALREADY DISTINCT POSITIVE INTEGERS (Senior Manager, 2026-10-07,
+    after Verifier 2's question: a paper numbered 5 to 10 keeps its numbers,
+    and answer extraction relabels the model's answers to them, which works
+    today). A repeat anywhere, or a number that is not a positive integer,
+    numbers the whole list.
+
+    Returns (the list, the model's own numbers by the number each question
+    now has, how many numbers changed). The input is not changed: one
+    caller passes a stored draft snapshot. An entry that is not an object
+    is left where it is and takes no number (the serializer refuses it). A
+    value that is not a list is returned as it is.
     """
     if not isinstance(questions, list):
         return questions, {}, 0
+    kept_numbers = [
+        _positive_integer(entry.get("question_number"))
+        for entry in questions
+        if isinstance(entry, dict)
+    ]
+    if (
+        kept_numbers
+        and None not in kept_numbers
+        and len(set(kept_numbers)) == len(kept_numbers)
+    ):
+        return (
+            list(questions),
+            {
+                str(number): str(entry["question_number"])[
+                    :MODEL_QUESTION_NUMBER_MAX_LENGTH
+                ]
+                for number, entry in zip(
+                    kept_numbers,
+                    (e for e in questions if isinstance(e, dict)),
+                    strict=True,
+                )
+            },
+            0,
+        )
     numbered: list = []
     model_numbers: dict = {}
     changed = 0
