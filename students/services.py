@@ -10,7 +10,7 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from ai_processor.services import REPLY_CORRECTED, ai_processor
+from ai_processor.services import REPLY_CORRECTED, ai_processor, is_readable_answer
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from AutoGrader.celery import app as celery_app
@@ -81,7 +81,7 @@ def printable_answers(answers) -> tuple[list, int | str]:
         return [], 0
     if not isinstance(answers, list):
         return [], ALL_LEFT_OUT
-    printable = [entry for entry in answers if isinstance(entry, dict)]
+    printable = [entry for entry in answers if is_readable_answer(entry)]
     if not printable:
         return [], ALL_LEFT_OUT
     return printable, len(answers) - len(printable)
@@ -92,7 +92,7 @@ def is_a_list_of_objects(answers) -> bool:
     anything else was kept out only by the document builder raising inside
     them; the builder no longer raises, so they refuse it themselves."""
     return isinstance(answers, list) and all(
-        isinstance(entry, dict) for entry in answers
+        is_readable_answer(entry) for entry in answers
     )
 
 

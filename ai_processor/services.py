@@ -375,6 +375,16 @@ def _canonical_question_key(value):
     return int(match.group(1)) if match else text
 
 
+def is_readable_answer(entry) -> bool:
+    """One entry of a stored `answers` list that the system can read: an
+    object (H-165). The column takes any JSON, so a list can hold a
+    string, a number or a list. The answer document
+    (students.services.printable_answers), both writers and the grading
+    steps below all ask THIS function, so that what is printed, what is
+    stored and what is graded cannot drift apart."""
+    return isinstance(entry, dict)
+
+
 def _declared_question_labels(questions) -> dict:
     """
     Canonical key -> the label the assignment itself uses for that question.
@@ -3118,7 +3128,7 @@ Do not include any explanatory text before or after the JSON
         no rubric question, preserving the existing pipeline's behavior
         for them.
         """
-        answers = [a for a in (answers or []) if isinstance(a, dict)]
+        answers = [a for a in (answers or []) if is_readable_answer(a)]
         answer_by_key = {
             self._question_number_key(a.get("question_number")): a for a in answers
         }
@@ -3198,7 +3208,7 @@ Do not include any explanatory text before or after the JSON
         answer_by_key = {
             self._question_number_key(a.get("question_number")): a
             for a in (answers or [])
-            if isinstance(a, dict)
+            if is_readable_answer(a)
         }
         assignment_id = getattr(assignment_model, "id", None)
 
@@ -3224,10 +3234,15 @@ Do not include any explanatory text before or after the JSON
             else:
                 remaining_questions.append(question)
 
+        # H-165: an entry that is not an object is left out here, as the
+        # tier-0 step leaves it out. With GRADING_DETERMINISTIC_OBJECTIVE
+        # off that step does not run and this one meets the stored list
+        # as it is; `.get` on such an entry failed the whole grading.
         remaining_answers = [
             a
             for a in (answers or [])
-            if self._question_number_key(a.get("question_number")) not in claimed_keys
+            if is_readable_answer(a)
+            and self._question_number_key(a.get("question_number")) not in claimed_keys
         ]
 
         if cached_evaluations:
