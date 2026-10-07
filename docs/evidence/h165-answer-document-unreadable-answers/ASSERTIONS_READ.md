@@ -90,3 +90,79 @@ evidence of this row.
   fail: U19 added (the line carries the stored value after the fixed
   text), expected `{B1, B2, R1, R2, R4}`, written before any run.
 - No other expected set changed.
+
+## Addendum, 2026-10-07 17:34: the seven tests of commit 21d78678
+Written before any run of them. They answer Verifier 2's finding at
+`bbd01981`: the real grading code had never met a list holding an entry
+that is not an object, because every grading test above replaces the
+whole AI module. In these, only the provider call
+(`AIProcessor.execute_graded_task`) is replaced, by the method of
+Verifier 2's probe. The tests are mine; they say what must be true after
+the cure, the opposite of its Y2 (which stated the limit and was green
+at `bbd01981`).
+
+| What a test inspects | Its real form | Seen how |
+|---|---|---|
+| `_partition_cached`'s return | three lists, compared with `==` | direct call on the test's own inputs after the cure, 17:32: as the test expects |
+| the grading result's `question_evaluations` | a list of objects whose `question_number` is the question's own integer | by reading, and the H-154 tests assert it the same way (green in batch 12); NOT seen for a mixed list before the run |
+| the saved row after `grade_engine` | columns read back; the document is the JSON text, a string | Verifier 2's Y1 asserts the same lines on the same shape of paper and was green at `bbd01981` (max 30, the reason, the "Some..." line, "Essay 1 answer.", the telltale not printed) |
+| the prompt sent to the provider | `str()` of the call's `user_prompt`; the wrapper's tag appears once (the test asserts the count before slicing) | Verifier 2's Y1 found its stray entry in the first prompt; the tag is written in one place only, `_wrap_student_answers_as_untrusted`, and in no prompt file (read) |
+
+| Test | Negative checks: what decides them | Read against the real value | Red under |
+|---|---|---|---|
+| K.test_the_reuse_step_leaves_out_an_entry_that_is_not_an_object | none | yes | U20; red at 21d78678 |
+| K.test_a_short_paper_is_graded_with_the_objective_step_off | none | yes (by reading; see above) | U20; red at 21d78678 |
+| K.test_a_short_paper_is_graded_with_the_settings_as_shipped | none | yes | control |
+| K.test_a_long_paper_is_graded_with_the_objective_step_off | none | yes (by reading) | U20; red at 21d78678 |
+| K.test_a_long_paper_is_graded_with_the_settings_as_shipped | none | yes | control |
+| P.test_it_is_graded_and_flagged_with_the_objective_step_off | the telltale not in the document: U19, after two positive checks on the same string | yes | U2, U3, U5, U9, U19, U20; red at 21d78678 |
+| P.test_it_is_graded_and_flagged_with_the_settings_as_shipped | as above | yes | U2, U3, U5, U9, U19 (a control of the cure: green at 21d78678 and under U20) |
+
+Not tested, said plainly: the same paper with the second opinion left
+as shipped (ON). These tests switch it off, as the H-154 harness and
+Verifier 2's probe do; the second-opinion step's own walk of the answers
+skips an entry that is not an object (read, line 3588 at `e42a8d2e`).
+
+The commit message of 21d78678 says "the same four with the settings as
+shipped are controls"; there are three controls (a short paper, a long
+paper, grade_engine), the reuse step having no "as shipped" twin.
+
+## Second addendum, 2026-10-07 17:38: the four tests of commit b6a29a05, and what direct calls showed
+Before any run. After the cure `48b22236` I called the real pipeline
+directly (plain calls of `AIProcessor.extract_grade_with_retry`, the
+provider call replaced, no test loader, no database; the saved-answer
+store cleared before each call) on a short (3) and a long (12) paper:
+
+| Stored answers | Settings | Outcome, short and long alike |
+|---|---|---|
+| 0, false, [] | as shipped; objective step off; both steps off | graded; one evaluation per question; every question `NOT_FOUND_IN_DOCUMENT`; a paid call IS made (1 short, 3 long) |
+| a list with one entry that is not an object | the same three | graded; one evaluation per question; that question `NOT_FOUND_IN_DOCUMENT`, the others `ANSWERED` |
+
+So the form I had "not seen for a mixed list" in the first addendum is
+now seen. And Verifier 2's reading that the long paper's pairing would
+raise on a stored 0 or false does not hold: the pipeline turns a value
+that is not a list into "no answers" (`ai_processor/services.py`, the
+line after the answers are parsed) before anything walks it. No code is
+changed for it; four tests hold it, two of them with both partition
+steps off, where that line is all that stands before the walks, and
+mutant U21 takes the line out to show those two can fail.
+
+**A fact the calls showed, for the evidence:** the entry that is not
+printed is sent to the model on a paper of up to ten questions when
+nothing was claimed by the earlier steps (the stored list is sent as it
+is, inside the untrusted-text wrapper). On a longer paper it is NOT
+sent: the batch path pairs answers with questions, and the pairing
+leaves such an entry out.
+
+| Test | Negative checks | Read against the real value | Red under |
+|---|---|---|---|
+| K.test_a_short_paper_whose_answers_are_zero_or_false | none | yes: both lines seen by direct call | control, in no set |
+| K.test_a_long_paper_whose_answers_are_zero_or_false | none | yes, as above | control, in no set |
+| K.test_a_short_paper_of_zero_or_false_with_both_steps_off | none | yes, seen by direct call with both off | U21 (by reading: the evidence check walks the answers after the reply) |
+| K.test_a_long_paper_of_zero_or_false_with_both_steps_off | none | yes, as above | U21 (by reading: the pairing walks them before any call) |
+
+A caution about these calls, so nobody reads more into them: my first
+pass did not clear the saved-answer store between papers and its long
+papers "failed"; that was my script (three questions reused from the
+paper before, and my stand-in provider answering the wrong kind of
+call), not the product. The table above is from the second pass.
