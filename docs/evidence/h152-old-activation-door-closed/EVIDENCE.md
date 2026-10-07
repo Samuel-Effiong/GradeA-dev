@@ -275,4 +275,32 @@ each under a mutant (run goes on: Q02, Q04; preview: Q08; the two ordinary adds:
 
 ### Results of the delta
 
-(none yet)
+**The delta's gate at 51cd2773 (0b's GRANT, 2026-10-07 15:11 WAT).** One run of
+`run_h152_delta_gate.sh 51cd2773 87dc952a` (script sha256 starts ef2e1943d442905f). 15:11:33 to
+15:19:02. It ran beside the Hardening Engineer's H-144 chain; one-minute load 6.34 at the start,
+7.16 at the start of part 1, 12.07 at its end, 11.02 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the two production files as at 87dc952a | Ran 11; 7 red, 4 green, named above | **Ran 11 tests in 1.438s, FAILED (failures=7)**: exactly the seven; the script's own comparison: "step 0 is as written" | `prefix_base_production_failing_delta_51cd2773.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_delta_51cd2773.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 553 tests in 241.860s, OK (skipped=3)** | `modules_and_guards_delta_51cd2773.txt.gz` |
+| 2. Mutants, 14 | KILLED with their named tests | **14 of 14 KILLED**: each exit 1, its own "Ran 22", every expected test among the failed (`expected-but-passed []` fourteen times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_delta_51cd2773.txt`, `mutation_results_delta_51cd2773.json`, `mutant_logs_delta_51cd2773/` |
+
+Nothing differed from what was written before the run. The load was high in part 2; no kill is
+a timeout: every inner log has its own Ran line of 22 tests. The run's console is
+`gate_console_delta_51cd2773.txt.gz`.
+
+The three skips are the opt-in live Google tests, as in the first gate. None is for want of a
+browser.
+
+Rule 19, counted from these records: of the 11 delta tests, 7 were red in part 0. The 4 that
+were green there were each seen red by name under a mutant: the run goes on (Q02 and Q04), the
+preview (Q08), a new student's ordinary add (Q10), a re-invited student's ordinary add (Q11).
+None is left unseen red.
+
+Credential-pattern check before this commit (the delta's files only, inside the .gz too): no
+line matches.
+
+Written 15:19 WAT. Still owed as this is committed: the regression (users and classrooms) on
+the final tip, on its own grant.
