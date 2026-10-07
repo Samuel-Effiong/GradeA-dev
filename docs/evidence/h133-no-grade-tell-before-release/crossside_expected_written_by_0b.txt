@@ -1,0 +1,7 @@
+Written by 0b at 2026-10-06 17:19:02 WAT, BEFORE any cross-side run for H-133, from the Security Engineer's reading (its message of about 17:19).
+Tree: task/beta-batch-11 with H-130 merged, then H-133 base-updated onto it, H-133's code as frozen at 7dcdac89 (no test edit yet).
+Modules to run: AutoGrader.tests_no_playwright_at_import (H-124's guard), AutoGrader.tests_student_feedback_guard (H-127's guard, as H-133 extends it), students.tests_answer_document_before_release (d5's part B module for H-130).
+Expected: the two guard modules OK. d5's module fails in exactly ONE test:
+  TheUploadRoutesOwnAnswer.test_an_upload_on_a_graded_unreleased_row_is_refused_with_no_document
+because H-133 adds the key "code" to the 409 body and the test asserts the body's keys are exactly ["error"]. No other test fails.
+Anything beyond that one red stops the plan and is reported to the Security Engineer, the Hardening Engineer and the SM.

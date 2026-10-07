@@ -180,6 +180,10 @@ class TheDoorTest(ClosedDoorBase):
         self.assertNotIn("renew", response.content.decode().lower())
         self.assertNotIn(CODE, response.content.decode())
 
+    # A small budget, so that forty knocks would spend it many times over
+    # if a knock still counted. (At the default of 100 this test could not
+    # have told; the first, tests-only version of it had that weakness.)
+    @override_settings(REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT=5)
     def test_wrong_codes_spend_no_budget_and_never_pause_the_door(self):
         for guess in range(40):
             self.assert_closed(self.knock(token=f"9{guess:05d}"))
@@ -209,6 +213,44 @@ class TheDoorTest(ClosedDoorBase):
         self.assertNotIn("H152 course", text)
         self.assertNotIn("exact name", text)
         self.assertNotIn("Lovelace", text)
+
+
+class ATeachersCodeOpensNothingHereTest(ClosedDoorBase):
+    """H-47's point, kept. A self-registered teacher's pending row holds a
+    6-digit code in the same column, and that code used to complete the
+    teacher's account through this door with a password the caller chose
+    (users/tests_register_student_token_scope.py held the fix; that module
+    went with the door). A door that answers 410 to everything completes
+    nobody: this test says so for the case that mattered."""
+
+    def test_a_pending_teachers_code_completes_nothing(self):
+        teacher = User.objects.create_user(
+            email="pending.teacher@gmail.com",
+            password=None,
+            first_name="Pending",
+            last_name="Row",
+            user_type=UserTypes.TEACHER,
+            is_active=False,
+            activation_token=CODE,
+            activation_expires=timezone.now() + timedelta(minutes=15),
+        )
+        before = self.snapshot(teacher)
+
+        response = self.knock(
+            token=CODE,
+            first_name="Caller",
+            last_name="Chosen",
+            password=CALLER_PASSWORD,
+        )
+
+        self.assert_closed(response)
+        self.assertEqual(self.snapshot(teacher), before)
+        login = self.client.post(
+            reverse("login"),
+            {"email": teacher.email, "password": CALLER_PASSWORD},
+            format="json",
+        )
+        self.assertNotEqual(login.status_code, status.HTTP_200_OK)
 
 
 class TheRenewalTest(ClosedDoorBase):

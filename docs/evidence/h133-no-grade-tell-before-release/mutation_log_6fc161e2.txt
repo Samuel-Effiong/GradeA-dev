@@ -1,0 +1,23 @@
+17 mutants: anchors unique, all parse, expected tests named
+17 of 17 mutants selected
+S1_a_student_is_told_the_paper_is_graded KILLED exit 1 ran 66 failed 5 expected-but-passed []
+S2_a_student_is_told_the_paper_is_being_graded KILLED exit 1 ran 66 failed 3 expected-but-passed []
+S3_a_student_is_told_an_upload_is_still_being_processed KILLED exit 1 ran 66 failed 1 expected-but-passed []
+S4_the_teacher_is_given_the_neutral_sentence_for_graded KILLED exit 1 ran 66 failed 1 expected-but-passed []
+S5_the_teacher_is_given_the_neutral_sentence_for_being_graded KILLED exit 1 ran 66 failed 1 expected-but-passed []
+S6_the_edit_path_treats_every_caller_as_a_teacher KILLED exit 1 ran 66 failed 3 expected-but-passed []
+C1_the_refusal_response_has_no_code KILLED exit 1 ran 66 failed 10 expected-but-passed []
+C2_the_queued_task_result_has_no_code KILLED exit 1 ran 66 failed 1 expected-but-passed []
+C3_the_two_busy_cases_have_different_codes KILLED exit 1 ran 66 failed 2 expected-but-passed []
+L1_the_list_shows_the_real_grading_state KILLED exit 1 ran 66 failed 2 expected-but-passed []
+L2_a_released_grade_still_shows_idle KILLED exit 1 ran 66 failed 1 expected-but-passed []
+L3_the_schedule_fields_are_not_replaced KILLED exit 1 ran 66 failed 3 expected-but-passed []
+L4_is_grading_scheduled_is_not_replaced KILLED exit 1 ran 66 failed 3 expected-but-passed []
+L5_scheduled_grading_at_is_not_replaced KILLED exit 1 ran 66 failed 3 expected-but-passed []
+L6_the_teacher_loses_the_state_and_the_schedule_too KILLED exit 1 ran 66 failed 3 expected-but-passed []
+F1_a_student_may_filter_on_the_grading_state KILLED exit 1 ran 66 failed 2 expected-but-passed []
+F2_a_student_is_refused_is_published_too KILLED exit 1 ran 66 failed 2 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 17 of 17

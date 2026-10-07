@@ -32,6 +32,7 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 from rest_framework.throttling import SimpleRateThrottle
 
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from users.models import CustomUser, UserTypes
 from users.tests_patch_password import LOCMEM, WIDE, make
 from users.tokens import EpochRefreshToken
@@ -53,6 +54,16 @@ class NameBase(APITestCase):
             first_name="Ada", middle_name="King", last_name="Lovelace"
         )
         self.teacher = make("teach.er@gmail.com")
+        # The student is this teacher's: the teacher can READ the account,
+        # so what refuses the teacher's edit below is the edit rule itself
+        # and not the account being out of sight.
+        session = Session.objects.create(name="S", teacher=self.teacher)
+        course = Course.objects.create(name="C", teacher=self.teacher, session=session)
+        StudentCourse.objects.create(
+            student=self.student,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
         self.superadmin = make(
             "root@example.com",
             UserTypes.SUPER_ADMIN,
@@ -146,12 +157,15 @@ class WhoseAccountNotWhoAsksTest(NameBase):
         self.assert_refused(response, "first_name")
         self.assertEqual(self.stored(self.student), ("Ada", "King", "Lovelace"))
 
-    def test_a_teacher_cannot_edit_a_students_account_at_all(self):
+    def test_a_teacher_cannot_edit_their_students_account_at_all(self):
+        response = self.patch_account(self.teacher, self.student, bio="Changed")
+        self.assertEqual(
+            response.status_code, status.HTTP_403_FORBIDDEN, response.content
+        )
+        self.assertNotEqual(CustomUser.objects.get(pk=self.student.pk).bio, "Changed")
         response = self.patch_account(self.teacher, self.student, first_name="Changed")
-        self.assertIn(
-            response.status_code,
-            (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND),
-            response.content,
+        self.assertEqual(
+            response.status_code, status.HTTP_403_FORBIDDEN, response.content
         )
         self.assertEqual(self.stored(self.student), ("Ada", "King", "Lovelace"))
 

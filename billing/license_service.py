@@ -1292,9 +1292,7 @@ class LicenseSubscriptionService:
             "top_content": (
                 f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
                 "Your account is ready - log in below with your email and the "
-                f"temporary password: {generated_password}\n\n"
-                "You'll be asked to choose your own password the first time "
-                "you log in."
+                f"temporary password: {generated_password}"
             ),
             "bottom_content": "",
             # Shared merge key with the school-admin invite email
