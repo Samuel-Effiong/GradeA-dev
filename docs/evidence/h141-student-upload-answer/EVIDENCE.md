@@ -190,4 +190,56 @@ Nothing run. No frontend read. `main` not read for the same route.
 
 ## Results
 
-(none yet)
+### The gate at c7ad6482 (0b's GRANT, 2026-10-07 13:33 WAT)
+
+c7ad6482 is this branch's 09829938 and 0b's base update onto the pushed batch 11 (beta
+d7143538). One run of `run_h141_gate.sh c7ad6482 1 d7143538` (script sha256 starts
+f89dd5da0bc5c45e: the 7aff28f6 of the section above plus one guard module 0b named for every
+gate, `AutoGrader.tests_migration_safety_check`). 13:33:54 to 13:47:03. It ran beside the
+Hardening Engineer's H-154 chain; load 1.57 at the start, 4.33 at the start of part 1, 7.64 at
+its end, 6.79 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 48; 18 red: 10 + 6 + 2, named above | **Ran 48 tests in 3.110s, FAILED (failures=31, errors=1)**: 32 lines (sub-tests counted singly), **17 distinct tests: 10 + 5 + 2. One fewer than written; see below.** | `prefix_base_production_failing_c7ad6482.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_c7ad6482.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 538 tests in 292.155s, OK** (no skip) | `modules_and_guards_c7ad6482.txt.gz` |
+| 2. Mutants | 32 KILLED with their named tests | **32 of 32 KILLED**: each exit 1, its own "Ran 48", every expected test among the failed (`expected-but-passed []` thirty-two times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_c7ad6482.txt`, `mutation_results_c7ad6482.json`, `mutant_logs_c7ad6482/` |
+
+The run's console is `gate_console_c7ad6482.txt.gz`.
+
+**The difference in part 0, and its cause (written 2026-10-07 13:48 WAT; the expectation above
+is left as it was written).** I wrote that six tests of the audience guard would be red on the
+base's production files, "both of rule 3" among them. Five were. The one that was green:
+`test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch`. It only looks at
+serializers that SAY they are for staff, and on the base no serializer says who it is for, so
+there it checked nothing. The prediction was wrong; I had not read the test against the base
+when I wrote it. No test was red that I had not named. I reported the difference to the Release
+Engineer and the Senior Manager at 13:41, while part 2 ran; the script had gone on by itself.
+The Senior Manager ruled the same hour: the run goes on; that test counts as evidence only if a
+mutant's own log shows it failing by name; my gate scripts are to halt at part 0 when the red
+set differs from the written one (owed before the grants of the rows that follow; this run
+had no such halt).
+
+It was then seen red, twice, in this run: under `V1` (the route answers with the teacher's
+serializer again: "Ran 48 tests in 7.849s", "FAILED (failures=20)") and under `A1` (the upload
+serializer says "staff": "Ran 48 tests in 4.017s", "FAILED (failures=2)"), named in the FAIL
+lines of both logs.
+
+Rule 20's cache modules were in part 1 and are green.
+
+Rule 19, counted from these records (the part 0 log and `mutation_results_c7ad6482.json`):
+
+- `students.tests_student_upload_answer`, 15 tests: 10 red in part 0, the other 5 under a mutant.
+  All 15 seen red.
+- `AutoGrader.tests_submission_audience_guard`, 17 tests: 5 red in part 0, 5 more under a mutant
+  (the rule 3 test above among them). **Never seen red, and not claimed as evidence: 7**: the six
+  self-tests of the scanner (`ScannerSelfTest`) and `test_the_census_found_the_serializers`. No
+  mutant of mine breaks the scanner itself or hides a serializer from the census. I say so and
+  leave it to the verifier whether a probe is wanted.
+- `AutoGrader.tests_student_feedback_guard` (H-127's guard, 16 tests, two touched by this row):
+  the new `test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant` and
+  `test_the_scan_covered_the_repository` were red in part 0. Its other 14 tests are not this
+  row's and were not red here; nothing is claimed from them.
+
+Still owed as this is committed: the regression (students and assignments), on its own grant.
