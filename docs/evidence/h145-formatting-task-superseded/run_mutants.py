@@ -160,6 +160,21 @@ MUTANTS = [
         1,
         TESTS,
     ),
+    # S12 was added on 2026-10-07, before any run of this battery: the
+    # control "format_grade still writes its text" could not fail (it
+    # looked for a sentence the fixture already held). It now looks for a
+    # marker of its own, and this mutant shows it red.
+    (
+        "S12",
+        "format_grade writes its text",
+        TK,
+        '            submission.save(update_fields=["formatted_grade"])\n'
+        "\n"
+        "        self.update_state(\n",
+        "            pass\n\n        self.update_state(\n",
+        1,
+        TESTS,
+    ),
 ]
 
 LOAD_FAILURE = "unittest.loader._FailedTest"
