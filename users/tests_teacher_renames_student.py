@@ -398,3 +398,34 @@ class EachRenameIsRecordedTest(RenameBase):
         with self.assertNoLogs(LOGGER, level="INFO"):
             self.rename(self.student, self.student)
             self.rename(self.stranger, self.student)
+
+
+class ACourseWithNoSessionTest(RenameBase):
+    """A course need not sit in a session, and its teacher reaches it all
+    the same. Added after this row's first gate (2026-10-07): the route
+    locked the student's enrolment rows through a join to each course's
+    session, PostgreSQL refuses a lock through a link that may be empty,
+    and every rename that got that far answered 500. The courses of the
+    other tests here all HAVE a session, and they failed too: the join is
+    refused whatever the rows hold. These two say it for the case that
+    makes the link empty in fact."""
+
+    def setUp(self):
+        super().setUp()
+        self.club = Course.objects.create(
+            name="Chess club", teacher=self.teacher, session=None
+        )
+        StudentCourse.objects.filter(student=self.student).delete()
+        self.enrol(self.student, self.club)
+
+    def test_their_teacher_renames_them(self):
+        self.assert_renamed(self.rename(self.teacher, self.student))
+
+    def test_a_clash_there_is_refused_and_quoted(self):
+        mate = self.student_named("club.mate@gmail.com", "Ada", "King", "Lovelace")
+        self.enrol(mate, self.club)
+
+        response = self.rename(self.teacher, self.student)
+
+        self.assert_refused(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(OWN_COURSE_CLASH, response.content.decode())
