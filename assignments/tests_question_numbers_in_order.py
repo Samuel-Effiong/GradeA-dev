@@ -9,7 +9,10 @@ re-index 1..N; the single-call extraction and the generation did not.
 The rule (Senior Manager, 2026-10-07):
 
 - every AI path numbers the questions 1..N, in the order the model gave
-  them, before the document is built and before the serializer: in
+  them, WHEN THE NUMBERS ARE NOT ALREADY DISTINCT POSITIVE INTEGERS (a
+  paper numbered 5 to 10 keeps its numbers: Senior Manager, 19:32, after
+  Verifier 2's question), before the document is built and before the
+  serializer: in
   `extract_assignment_data`, in the generated draft, and at the save of a
   draft stored before this row;
 - on the extraction paths the model's own numbers are kept, as text of
@@ -64,6 +67,8 @@ FIRST = "<p>First of three.</p>"
 SECOND = "<p>Second of three.</p>"
 THIRD = "<p>Third of three.</p>"
 IN_ORDER = [(1, FIRST), (2, SECOND), (3, THIRD)]
+#: A paper whose own numbers are distinct, not 1..N: kept as it is.
+FIVE_TO_EIGHT = [(5, FIRST), (6, SECOND), (8, THIRD)]
 #: The model's numbers in most tests: a repeat. And what is kept of them.
 REPEAT = [1, 1, 2]
 KEPT_OF_REPEAT = {"1": "1", "2": "1", "3": "2"}
@@ -133,18 +138,49 @@ class TheNumbererTest(SimpleTestCase):
         self.assertEqual(kept, KEPT_OF_REPEAT)
         self.assertEqual(changed, 2)
 
-    def test_a_paper_that_starts_at_five_starts_at_one(self):
+    def test_a_paper_that_starts_at_five_keeps_its_numbers(self):
         numbered, kept, changed = number(three([5, 6, 8]))
 
+        self.assertEqual(
+            numbers_and_texts(numbered), [(5, FIRST), (6, SECOND), (8, THIRD)]
+        )
+        self.assertEqual(kept, {"5": "5", "6": "6", "8": "8"})
+        self.assertEqual(changed, 0)
+
+    def test_distinct_numbers_out_of_order_are_left_as_they_are(self):
+        numbered, kept, changed = number(three([3, 1, 2]))
+
+        self.assertEqual(
+            numbers_and_texts(numbered), [(3, FIRST), (1, SECOND), (2, THIRD)]
+        )
+        self.assertEqual(kept, {"3": "3", "1": "1", "2": "2"})
+        self.assertEqual(changed, 0)
+
+    def test_distinct_digit_strings_are_distinct_numbers(self):
+        numbered, kept, changed = number(three([1, "2", "10"]))
+
+        self.assertEqual([e["question_number"] for e in numbered], [1, "2", "10"])
+        self.assertEqual(kept, {"1": "1", "2": "2", "10": "10"})
+        self.assertEqual(changed, 0)
+
+    def test_a_number_and_the_same_number_as_text_are_a_repeat(self):
+        numbered, kept, changed = number(three([1, "1", 2]))
+
         self.assertEqual(numbers_and_texts(numbered), IN_ORDER)
-        self.assertEqual(kept, {"1": "5", "2": "6", "3": "8"})
+        self.assertEqual(kept, {"1": "1", "2": "1", "3": "2"})
+        self.assertEqual(changed, 2)
+
+    def test_a_repeat_in_a_paper_that_starts_at_five_numbers_all_of_it(self):
+        numbered, kept, changed = number(three([5, 5, 6]))
+
+        self.assertEqual(numbers_and_texts(numbered), IN_ORDER)
+        self.assertEqual(kept, {"1": "5", "2": "5", "3": "6"})
         self.assertEqual(changed, 3)
 
     def test_a_number_that_is_not_a_positive_integer_is_replaced_like_any_other(
         self,
     ):
         for name, odd, kept_as in (
-            ("a string of digits", "2", "2"),
             ("a label", "2a", "2a"),
             ("zero", 0, "0"),
             ("a negative", -2, "-2"),
@@ -162,7 +198,7 @@ class TheNumbererTest(SimpleTestCase):
                 self.assertEqual(changed, 1)
 
     def test_a_long_number_from_the_model_is_kept_only_in_part(self):
-        long_label = "9" * 100
+        long_label = "9" * 99 + "a"
         self.assertGreater(len(long_label), KEPT_LENGTH)
 
         _, kept, _ = number(three([1, long_label, 3]))
@@ -181,6 +217,18 @@ class TheNumbererTest(SimpleTestCase):
         )
         self.assertEqual(kept, {"1": "4", "2": "4"})
         self.assertEqual(changed, 2)
+
+    def test_an_entry_that_is_not_an_object_does_not_make_a_paper_a_repeat(self):
+        entries = [question(4, FIRST), "not a question", question(6, SECOND)]
+
+        numbered, kept, changed = number(entries)
+
+        self.assertEqual(numbered[1], "not a question")
+        self.assertEqual(
+            numbers_and_texts([numbered[0], numbered[2]]), [(4, FIRST), (6, SECOND)]
+        )
+        self.assertEqual(kept, {"4": "4", "6": "6"})
+        self.assertEqual(changed, 0)
 
     def test_the_input_is_not_changed(self):
         entries = three(REPEAT)
@@ -247,6 +295,24 @@ class ExtractionNumbersInOrderTest(TestCase):
         self.assertEqual(
             data["ai_raw_payload"][MODEL_NUMBERS], {"1": "1", "2": "2", "3": "3"}
         )
+
+    def test_a_paper_numbered_five_to_eight_is_saved_as_it_is(self):
+        with self.assertLogs("assignments.services", level="INFO") as logs:
+            data = self.extract(extraction_reply([5, 6, 8]), generate_raw_input=True)
+        logged = "\n".join(logs.output)
+
+        expected = [(5, FIRST), (6, SECOND), (8, THIRD)]
+        self.assertEqual(numbers_and_texts(data["questions"]), expected)
+        self.assertEqual(
+            numbers_and_texts(data["ai_raw_payload"]["questions"]), expected
+        )
+        self.assertEqual(
+            data["ai_raw_payload"][MODEL_NUMBERS], {"5": "5", "6": "6", "8": "8"}
+        )
+        self.assertEqual(headings(data["raw_input"], "Question 5 (10 marks)"), 1)
+        self.assertEqual(headings(data["raw_input"], "Question 1 ("), 0)
+        self.assertIn("Extracting assignment content", logged)
+        self.assertNotIn("Question numbers put in order", logged)
 
     def test_the_document_is_built_from_the_numbers_in_order(self):
         data = self.extract(extraction_reply(), generate_raw_input=True)
@@ -410,6 +476,67 @@ class TheExtractionRoutesSaveNumbersInOrderTest(AIOutputAllowListFixture):
         self.assertEqual(headings(assignment.raw_input, "Question 1 (10 marks)"), 1)
 
     @patch(EXTRACT)
+    def test_create_by_text_keeps_a_paper_numbered_five_to_eight(self, mock_ai):
+        mock_ai.return_value = extraction_reply([5, 6, 8])
+
+        response = self.client.post(
+            reverse("assignment-list"),
+            {
+                "course": str(self.course_b.id),
+                "raw_input": "5. First 6. Second 8. Third",
+                "title": "Five To Eight",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        assignment = Assignment.objects.get(course=self.course_b, title="Five To Eight")
+        self.assertEqual(numbers_and_texts(assignment.questions), FIVE_TO_EIGHT)
+        stored_copy = assignment.ai_raw_payload
+        assert stored_copy is not None
+        self.assertEqual(stored_copy[MODEL_NUMBERS], {"5": "5", "6": "6", "8": "8"})
+
+    @patch(EXTRACT)
+    def test_edit_by_text_keeps_a_paper_numbered_five_to_eight(self, mock_ai):
+        mock_ai.return_value = extraction_reply([5, 6, 8])
+        self.assignment_b.status = AssignmentStatus.DRAFT
+        self.assignment_b.save(update_fields=["status"])
+
+        response = self.client.patch(
+            self.detail_url(self.assignment_b),
+            {"raw_input": "5. First 6. Second 8. Third"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assignment_b.refresh_from_db()
+        self.assertEqual(numbers_and_texts(self.assignment_b.questions), FIVE_TO_EIGHT)
+
+    @patch(EXTRACT)
+    def test_upload_keeps_a_paper_numbered_five_to_eight(self, mock_ai):
+        mock_ai.return_value = extraction_reply([5, 6, 8], title="Uploaded Five")
+
+        response = self.client.post(
+            reverse("assignment-upload"),
+            {
+                "course": str(self.course_b.id),
+                "assignments": SimpleUploadedFile(
+                    "q.png", PNG_1X1, content_type="image/png"
+                ),
+            },
+            format="multipart",
+        )
+
+        self.assertIn(
+            response.status_code,
+            (status.HTTP_200_OK, status.HTTP_201_CREATED, status.HTTP_202_ACCEPTED),
+            response.content[:300],
+        )
+        assignment = Assignment.objects.get(course=self.course_b, title="Uploaded Five")
+        self.assertEqual(numbers_and_texts(assignment.questions), FIVE_TO_EIGHT)
+        self.assertEqual(headings(assignment.raw_input, "Question 5 (10 marks)"), 1)
+
+    @patch(EXTRACT)
     def test_a_label_the_serializer_would_refuse_no_longer_costs_the_save(
         self, mock_ai
     ):
@@ -471,6 +598,19 @@ class GenerationNumbersInOrderTest(AIOutputAllowListFixture):
         self.assertIn(f"user={self.teacher_b.id}", logged)
         self.assertIn("changed=2", logged)
         self.assertNotIn("of three", logged)
+
+    def test_a_draft_numbered_five_to_eight_is_kept_and_saved_so(self, mock_generate):
+        mock_generate.return_value = generation_reply([5, 6, 8])
+
+        with self.assertNoLogs("assignments.views", level="WARNING"):
+            message = self.generate()
+        snapshot = message.assignment_snapshot
+        self.assertEqual(numbers_and_texts(snapshot["questions"]), FIVE_TO_EIGHT)
+        self.assertEqual(headings(snapshot["raw_input"], "Question 5 (10 marks)"), 1)
+
+        assignment = self.save_draft(message)
+
+        self.assertEqual(numbers_and_texts(assignment.questions), FIVE_TO_EIGHT)
 
     def test_nothing_of_the_models_numbers_rides_in_the_draft(self, mock_generate):
         """A draft's snapshot is sent to the client."""
