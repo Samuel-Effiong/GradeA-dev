@@ -402,7 +402,7 @@ class PostGradingLockAPITest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn("already been graded", response.data["error"])
+        self.assertIn("can no longer be changed", response.data["error"])
         mock_prepare.assert_not_called()
         self.assertEqual(_snapshot(self.submission), before)
 
@@ -415,7 +415,7 @@ class PostGradingLockAPITest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn("already been graded", response.data["error"])
+        self.assertIn("can no longer be changed", response.data["error"])
         mock_launch.assert_not_called()
         self.assertFalse(BackgroundProcessingTask.objects.exists())
 
@@ -596,7 +596,7 @@ class PostGradingLockAPITest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn("being graded", response.data["error"])
+        self.assertIn("can't be changed right now", response.data["error"])
         mock_prepare.assert_not_called()
 
     def test_detail_reports_zero_remaining_attempts_once_graded(self):
@@ -640,12 +640,12 @@ class PostGradingLockTaskReplayTest(TestCase):
 
         # A refusal is final: reported once, never retried, never billed.
         self.assertEqual(result["status"], "FAILURE")
-        self.assertIn("already been graded", result["message"])
+        self.assertIn("can no longer be changed", result["message"])
         mock_ai.extract_answer_with_retry.assert_not_called()
         self.assertEqual(mock_prepare.call_count, 1)
         tracked.refresh_from_db()
         self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
-        self.assertIn("already been graded", tracked.error)
+        self.assertIn("can no longer be changed", tracked.error)
         self.submission.refresh_from_db()
         self.assertEqual(self.submission.answers[0]["answer_html"], "original")
 
@@ -944,7 +944,9 @@ class PostGradingLockLiveHTTPTest(LiveServerTestCase):
         statuses = sorted(code for code, _ in results)
         self.assertEqual(statuses, [409] * self.WORKERS, results)
         for _, body in results:
-            self.assertIn("already been graded", body.get("message", "") + str(body))
+            self.assertIn(
+                "can no longer be changed", body.get("message", "") + str(body)
+            )
         mock_prepare.assert_not_called()
         self.assertEqual(_snapshot(self.submission), before)
         self.assertEqual(StudentSubmission.objects.count(), 1)
