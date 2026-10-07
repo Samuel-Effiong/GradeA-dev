@@ -2545,8 +2545,12 @@ Do not include any explanatory text before or after the JSON
             verification["verification_status"] = REPLY_CORRECTED
             verification["repeated_evaluations_dropped"] = repeated
             verification["unmatched_evaluations_dropped"] = unmatched_dropped
-            verification["calculation_notes"] = calculation_notes + (
-                " The reply did not hold exactly one evaluation per question: "
+            # Its own field, not a sentence added to calculation_notes:
+            # the arithmetic line is sent on to the feedback formatter,
+            # whose wording a student reads, and this is for the teacher
+            # (students.feedback_projection.grading_result_for_formatter).
+            verification["correction_note"] = (
+                "The reply did not hold exactly one evaluation per question: "
                 f"{sum(repeated_dropped.values())} repeated evaluation(s) and "
                 f"{unmatched_dropped} evaluation(s) matching no question were "
                 "left out of the sum. Of a question's repeats the one the "
@@ -2600,7 +2604,7 @@ Do not include any explanatory text before or after the JSON
             "verification_status",
             "repeated_evaluations_dropped",
             "unmatched_evaluations_dropped",
-            "calculation_notes",
+            "correction_note",
         ):
             verification[field] = earlier[field]
 
