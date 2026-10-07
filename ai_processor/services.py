@@ -2584,6 +2584,27 @@ Do not include any explanatory text before or after the JSON
             or evaluation.get("from_cache")
         )
 
+    @staticmethod
+    def _stamp_as_a_models(evaluations, model_name) -> None:
+        """Mark a REPLY's evaluations as a model's, in place.
+
+        The system knows its own evaluations by two fields
+        (_held_by_the_system), and a reply is free text: it can carry
+        either. So `graded_by` is ASSIGNED here, not defaulted, and
+        `from_cache` is removed. Without this a reply's repeat carrying
+        the mark and a higher score would outrank an honest one, a
+        returned evaluation carrying it could lower a grade the model was
+        never asked about, and the same mark would skip the snap to a
+        rubric level and keep the evaluation out of the saved-answer
+        store (H-154; found by Verifier 2). The response schema refuses
+        extra fields where a provider honours it; this does not lean on
+        that.
+        """
+        for evaluation in evaluations:
+            if isinstance(evaluation, dict):
+                evaluation.pop("from_cache", None)
+                evaluation["graded_by"] = model_name or "llm"
+
     def _outranks(self, candidate, held) -> bool:
         """Whether `candidate` replaces `held` as a question's ONE
         evaluation (both already corrected). See _finalize_grading_result."""
@@ -2883,9 +2904,7 @@ Do not include any explanatory text before or after the JSON
                 )
                 # Provenance marker for the future eval loop.
                 batch_model = self._response_model_name(response)
-                for ev in evaluations:
-                    if isinstance(ev, dict):
-                        ev.setdefault("graded_by", batch_model or "llm")
+                self._stamp_as_a_models(evaluations, batch_model)
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -4069,9 +4088,7 @@ Do not include any explanatory text before or after the JSON
             # Provenance marker for the future eval loop: which grader
             # produced each evaluation.
             model_name = self._response_model_name(response)
-            for ev in evaluations:
-                if isinstance(ev, dict):
-                    ev.setdefault("graded_by", model_name or "llm")
+            self._stamp_as_a_models(evaluations, model_name)
 
             # Captured before the merge below: exactly the questions this
             # call freshly graded (excludes deterministic and cache-hit
