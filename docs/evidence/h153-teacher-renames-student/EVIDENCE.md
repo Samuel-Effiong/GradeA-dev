@@ -273,3 +273,38 @@ lower) and the console recorded 4.09 at the start itself; 4.69 at the end.
 cure on H-152, the row this branch is stacked on (a change in classrooms, which this
 regression runs). When H-152's tip is final the Release Engineer base-updates this branch onto
 it and the regression is repeated on that tip. Written 16:30 WAT.
+
+### The regression at 02ab42c6 (0b's GRANT, 2026-10-07 16:45:34 WAT)
+
+02ab42c6 is the Release Engineer's base update of fbf93591 onto H-152's final tip 8b23502b
+(H-152's second delta and its records). The update changed none of this row's own files (its
+two production files, its test module, this folder: `git diff fbf93591 02ab42c6` over them is
+empty); the row's production diff over the new base is `users/serializers.py` and
+`users/views.py`, as before. `mutate.py --check` passed on 02ab42c6 before the run (25 mutants,
+anchors unique, all parse). No gate was repeated: the gated code is unchanged.
+
+One run of `run_h153_gate.sh 02ab42c6 3 8b23502b` (script sha256 starts 5180bd2f47af4516): users
+and classrooms, serial, in 0b's quiet window, alone among this team's runs. 16:46:02 to
+16:48:12, exit 0. Not stopped, not repeated.
+
+| Written before (to 0b, at the start) | Found | Log |
+|---|---|---|
+| OK, Ran 1160 | **Ran 1160 tests in 113.233s, OK (skipped=4)** | `regression_02ab42c6.txt.gz`; console `regression_console_02ab42c6.txt` |
+
+1160 is the 1150 of the regression at 9d68c080 and the ten tests H-152's second delta brought.
+The skips, in their own words, are the same four: one 'CI_REQUIRE_NETWORK not set', one
+'CI_REQUIRE_REDIS not set', two 'live Google contract tests are opt-in: set
+CI_REQUIRE_NETWORK=1'. One-minute load 2.77 at the start, 2.64 at the end. No commit or hook of
+mine ran beside it.
+
+Credential-pattern check before this commit (the log before gzip, values masked): no URL that
+carries a password; nine lines match the name-and-value pattern. Read masked: seven are a
+validation error's own sentence ("The password cannot be changed through this endpoint...",
+"This field is required."), two are lines of source in a traceback that assign the result of
+a call. None holds a value.
+
+What stands for this row: the fresh gate at 5db450d2 and this regression. The first gate, at
+17febb89, was RED and is kept in this folder (`*_RED_GATE_17febb89*`); the regression at
+9d68c080 stays in the record and is no longer the one the row rests on.
+
+Written 16:48 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1.
