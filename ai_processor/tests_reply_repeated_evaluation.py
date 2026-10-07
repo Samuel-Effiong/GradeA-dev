@@ -222,6 +222,10 @@ class AShortPaperWhoseReplyRepeatsAQuestion(ReplyCase):
         self.assertEqual(note["unmatched_evaluations_dropped"], 0)
         self.assertEqual(note["manual_sum"], 24)
         self.assertEqual(note["individual_scores"], [8, 8, 8])
+        self.assertIn("1 repeated evaluation(s)", note["correction_note"])
+        # The arithmetic line itself says nothing of it: that line is
+        # sent on to the feedback formatter, whose words a student reads.
+        self.assertNotIn("repeated", note["calculation_notes"])
 
     def test_a_warning_is_logged_with_numbers_and_counts_only(self):
         with self.assertLogs("ai_processor.services", level="WARNING") as logs:
@@ -329,6 +333,7 @@ class ALongPaperWhoseBatchRepeatsAQuestion(ReplyCase):
             note["repeated_evaluations_dropped"],
             [{"question_number": 2, "dropped": 1}],
         )
+        self.assertIn("1 repeated evaluation(s)", note["correction_note"])
 
 
 class AStoredAnswerTheModelReturnsAsWell(ReplyCase):

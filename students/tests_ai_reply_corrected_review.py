@@ -19,6 +19,7 @@ from django.test import TestCase, override_settings
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, Session
 from classrooms.services import enroll_student_by_email
+from students.feedback_projection import grading_result_for_formatter
 from students.models import StudentSubmission
 from students.services import _populate_and_save_grade
 from users.models import UserTypes
@@ -53,11 +54,13 @@ REPEATED = {
     "verification_status": "CORRECTED",
     "repeated_evaluations_dropped": [{"question_number": 2, "dropped": 1}],
     "unmatched_evaluations_dropped": 0,
+    "correction_note": "1 repeated evaluation(s) were left out of the sum.",
 }
 STRAY = {
     "verification_status": "CORRECTED",
     "repeated_evaluations_dropped": [],
     "unmatched_evaluations_dropped": 2,
+    "correction_note": "2 evaluation(s) matching no question were left out.",
 }
 
 
@@ -180,3 +183,56 @@ class ACorrectedReplyIsPutInTheReviewQueue(TestCase):
                 saved = self.save(result)
 
                 self.assertFalse(saved.needs_review)
+
+
+class TheFormatterIsNotToldOfTheCorrection(TestCase):
+    """The feedback formatter words the result for the STUDENT, and it can
+    restate whatever it is sent. That a reply was corrected is for the
+    teacher's review queue: the formatter gets the arithmetic and nothing
+    of the correction. No database."""
+
+    def test_a_clean_note_is_sent_whole(self):
+        """Control: green with or without the fix."""
+        result = grading_result()
+
+        self.assertEqual(
+            grading_result_for_formatter(result)["score_calculation_verification"],
+            result["score_calculation_verification"],
+        )
+
+    def test_a_corrected_note_is_sent_as_arithmetic_only(self):
+        for name, note in (("repeat", REPEATED), ("stray", STRAY)):
+            with self.subTest(dropped=name):
+                sent = grading_result_for_formatter(grading_result(note))
+
+                self.assertEqual(
+                    sent["score_calculation_verification"],
+                    {
+                        "individual_scores": [8, 8, 8],
+                        "manual_sum": 24,
+                        "calculation_notes": "8 + 8 + 8 = 24.",
+                    },
+                )
+                self.assertNotIn("CORRECTED", str(sent))
+                self.assertNotIn("left out", str(sent))
+
+    def test_the_saved_result_is_not_changed_by_it(self):
+        result = grading_result(REPEATED)
+
+        grading_result_for_formatter(result)
+
+        self.assertEqual(
+            result["score_calculation_verification"]["verification_status"],
+            "CORRECTED",
+        )
+        self.assertIn("correction_note", result["score_calculation_verification"])
+
+    def test_the_rest_of_the_result_is_sent_as_before(self):
+        """Control: the second opinion is still left out, the rest kept."""
+        sent = grading_result_for_formatter(
+            grading_result(REPEATED, second_opinion={"model": "b"}, recommendations=[])
+        )
+
+        self.assertNotIn("second_opinion", sent)
+        self.assertEqual(sent["grading_summary"]["total_score"], 24)
+        self.assertEqual(sent["recommendations"], [])
