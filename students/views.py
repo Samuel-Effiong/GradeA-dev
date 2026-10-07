@@ -88,6 +88,7 @@ from .serializers import (
     StudentSubmissionUpdateAsyncSerializer,
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
+    StudentUploadAnswerSerializer,
 )
 from .services import (
     ensure_no_active_extraction,
@@ -481,7 +482,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
         responses={
             201: OpenApiResponse(
-                response=StudentSubmissionDetailSerializer,
+                response=StudentUploadAnswerSerializer,
                 description="Answer processed successfully",
             ),
             400: OpenApiResponse(
@@ -568,7 +569,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
 
             submission = upload_answers_engine(assignment, content, request.user)
-            serializer = StudentSubmissionDetailSerializer(submission)
+            # H-141: the student's own serializer, not the teacher's. With
+            # the context, as every serializer a student's route builds;
+            # this one does not need the request to be safe.
+            serializer = StudentUploadAnswerSerializer(
+                submission, context=self.get_serializer_context()
+            )
 
             return Response(serializer.data, status=HTTP_201_CREATED)
         except SUBMISSION_CLOSED_ERRORS as exc:

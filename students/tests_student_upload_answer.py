@@ -290,6 +290,14 @@ class AnUploadOnAPaperNotYetGradedTest(UploadAnswerBase):
         self.assertLessEqual(differing, OWN_TO_THE_UPLOAD)
         self.assertEqual(second["remaining_attempts"], 1)
 
+    def test_every_staff_field_is_the_constant_on_a_later_upload_too(self):
+        """`score` among them: null, not the text "0.00" the teacher's
+        serializer sent for a paper read back from the database."""
+        answer = self.upload()
+        self.assertEqual(answer["id"], str(self.submission.pk))
+        self.assertIsNone(answer["score"])
+        self.assert_constants(answer)
+
 
 class OnlyTheAnswerProtectsTest(UploadAnswerBase):
     """The refusal of an upload on a graded paper is another function's
