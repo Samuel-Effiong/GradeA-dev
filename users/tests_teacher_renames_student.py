@@ -22,7 +22,9 @@ Rules added with it (Senior Manager, 2026-10-07): one exact name per
 course in EVERY course the student is currently in; the refusal that
 quotes the name is only ever sent to a teacher of the course where the
 clash is, and a clash elsewhere is refused without quoting it; each
-rename is recorded as a log line with ids only.
+rename is recorded as a log line with ids only. "Every course the student
+is in" follows the enrolment's own check, which counts every enrolment row
+whatever its status: a withdrawn row is still a row.
 
 Real JWTs, real endpoint.
 
@@ -303,10 +305,34 @@ class TheNameClashRuleTest(RenameBase):
         self.assertNotIn("Biology", text)
         self.assertNotIn("Lovelace", text)
 
-    def test_a_course_the_student_has_left_does_not_count(self):
+    def test_a_withdrawn_classmate_still_holds_the_name(self):
+        """The enrolment's own check (StudentCourse.clean, run on every
+        save) counts every row of a course whatever its status. A rename
+        that ignored a withdrawn classmate would leave two rows of one
+        name in the course, and the next save of either would fail."""
         gone = self.student_named("left.mate@gmail.com", "Ada", "King", "Lovelace")
         self.enrol(gone, self.course, EnrollmentStatusType.WITHDRAWN)
-        self.assert_renamed(self.rename(self.teacher, self.student))
+
+        response = self.rename(self.teacher, self.student)
+
+        self.assert_refused(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(OWN_COURSE_CLASH, response.content.decode())
+
+    def test_a_course_the_student_has_withdrawn_from_still_counts(self):
+        """For the same reason: the student's own withdrawn row is still a
+        row of that course. Biology is not the caller's, so no name is
+        quoted."""
+        StudentCourse.objects.filter(
+            student=self.student, course=self.other_course
+        ).update(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+        other = self.student_named("bio.mate@gmail.com", "Ada", "King", "Lovelace")
+        self.enrol(other, self.other_course)
+
+        response = self.rename(self.teacher, self.student)
+
+        self.assert_refused(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(ELSEWHERE_CLASH, response.content.decode())
+        self.assertNotIn("Lovelace", response.content.decode())
 
     def test_keeping_the_students_own_name_is_no_clash(self):
         response = self.rename(
