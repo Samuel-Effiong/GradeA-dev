@@ -22,6 +22,8 @@ from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
 from .exceptions import (
+    SUBMISSION_BUSY_FOR_STUDENT,
+    SUBMISSION_CLOSED_FOR_STUDENT,
     AssignmentNotOpenError,
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
@@ -1007,7 +1009,9 @@ def upload_answers_engine(
                 # race a concurrent upload, a grading claim, or a grade
                 # landing on the row. Applies to proxy uploads too.
                 _check_submission_open(
-                    existing_submission, student_upload=is_student_self_upload
+                    existing_submission,
+                    student_upload=is_student_self_upload,
+                    told_to_student=is_student_self_upload,
                 )
 
             if existing_submission:
@@ -1084,7 +1088,7 @@ def _grading_claim_is_live(submission, now=None):
     )
 
 
-def _check_submission_open(existing_submission, *, student_upload):
+def _check_submission_open(existing_submission, *, student_upload, told_to_student):
     """
     The server-side rules that close a submission row to uploads, checked
     in this order. The first two apply to EVERY upload path - the
@@ -1101,14 +1105,22 @@ def _check_submission_open(existing_submission, *, student_upload):
        answers newer than the grade that closes it.
     3. The attempt limit (MAX_STUDENT_SUBMISSION_ATTEMPTS), students only.
     """
+    # H-133: `told_to_student` says who reads the refusal. A student is
+    # given a sentence that does not name grading; a teacher (a proxy
+    # upload, an edit) the reason in words. It has no default, so every
+    # caller of this one check decides.
     if existing_submission.graded_at is not None:
         raise SubmissionAlreadyGradedError(
-            "This assignment has already been graded, so it can no longer "
+            SUBMISSION_CLOSED_FOR_STUDENT
+            if told_to_student
+            else "This assignment has already been graded, so it can no longer "
             "be submitted again."
         )
     if _grading_claim_is_live(existing_submission):
         raise SubmissionBeingGradedError(
-            "This submission is being graded right now, so it cannot be "
+            SUBMISSION_BUSY_FOR_STUDENT
+            if told_to_student
+            else "This submission is being graded right now, so it cannot be "
             "replaced. Please try again once grading has finished."
         )
     if (
@@ -1147,13 +1159,16 @@ def ensure_student_may_submit(assignment, student):
         .first()
     )
     if existing is not None:
-        _check_submission_open(existing, student_upload=True)
+        _check_submission_open(existing, student_upload=True, told_to_student=True)
 
 
-def ensure_submission_open(submission):
+def ensure_submission_open(submission, *, told_to_student):
     """Refuse-if-closed for an existing row (the raw-text edit path): graded
-    or being graded. The attempt allowance is not consumed by an edit."""
-    _check_submission_open(submission, student_upload=False)
+    or being graded. The attempt allowance is not consumed by an edit.
+    `told_to_student`: whether the one editing is the student (H-133)."""
+    _check_submission_open(
+        submission, student_upload=False, told_to_student=told_to_student
+    )
 
 
 ACTIVE_TASK_STATUSES = (BackgroundTaskStatus.PENDING, BackgroundTaskStatus.STARTED)
@@ -1169,7 +1184,9 @@ Do not include any explanatory text before or after the JSON
 """
 
 
-def ensure_no_active_extraction(*, submission=None, assignment=None, student=None):
+def ensure_no_active_extraction(
+    *, submission=None, assignment=None, student=None, told_to_student
+):
     """
     Refuse a second answer-extraction while one is still running for the
     same target. A client that timed out and retried must not queue a
@@ -1189,8 +1206,12 @@ def ensure_no_active_extraction(*, submission=None, assignment=None, student=Non
     else:
         active = active.filter(assignment=assignment, requested_by=student)
     if active.exists():
+        # H-133: for a student this is the SAME sentence as "being graded",
+        # so the two cannot be told apart.
         raise SubmissionProcessingInProgressError(
-            "This submission is still being processed from an earlier "
+            SUBMISSION_BUSY_FOR_STUDENT
+            if told_to_student
+            else "This submission is still being processed from an earlier "
             "request. Please wait for it to finish before sending it again."
         )
 
@@ -1219,7 +1240,8 @@ def update_submission_from_raw_text(
     if not raw_input or not str(raw_input).strip():
         raise ValueError("There is no text to extract answers from.")
 
-    ensure_submission_open(submission)
+    told_to_student = user.user_type == UserTypes.STUDENT
+    ensure_submission_open(submission, told_to_student=told_to_student)
     ensure_task_not_cancelled(processing_task_id)
 
     assignment_context = f"""
@@ -1251,7 +1273,9 @@ def update_submission_from_raw_text(
 
         with transaction.atomic():
             locked = StudentSubmission.objects.select_for_update().get(pk=submission.pk)
-            _check_submission_open(locked, student_upload=False)
+            _check_submission_open(
+                locked, student_upload=False, told_to_student=told_to_student
+            )
             ensure_task_not_cancelled(processing_task_id)
             locked.answers = answers
             locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
