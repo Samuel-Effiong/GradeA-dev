@@ -786,8 +786,8 @@ winner is recorded on `SubmissionGrading.strictness_source`.
 > repeated items are not removed, so a reply that holds one answer three
 > times votes three times. The root, a reply that repeats an answer
 > reaching the grading result several times, is older than this slice and
-> is a beta-line row of its own (opened 2026-10-07, owner the Hardening
-> Engineer).
+> is a beta-line row of its own, H-154 (opened 2026-10-07, owner the
+> Hardening Engineer).
 
 ### 4.5 `students.BackgroundProcessingTask`
 

@@ -193,7 +193,8 @@ By module: `tests_grading_run_label` 55, all fail; `tests_grading_run_pipeline` 
   outside `ai_processor/services.py` that calls one of them without a run.
 - The votes for the grade's model are counted over the items of each fresh reply as received;
   repeated items are not removed (SM ruling 2026-10-07; stated in `GradingRun._grading_model`
-  and in 03a). The root is a beta-line row of its own, not this slice's.
+  and in 03a). The root is a beta-line row of its own, H-154 (the Hardening Engineer's), not
+  this slice's.
 - The audit entry's `model` is cut to 128 characters and the lists' names to 64, for reading.
   The row holds 255. Nothing is classified from a cut name.
 
@@ -428,3 +429,37 @@ count and the output file names changed.
 - Step 1a: no changes. Step 1: OK; by count 900 tests (the 891 of the first gate and these 9).
 - Step 2: **58 KILLED**, each with its "Ran" line and its named test.
 - The regression: the Release Engineer's ONE full run on the final tip.
+
+### The delta's gate at 37af761b, 2026-10-07 (the Release Engineer's grant; one run)
+
+Started 13:01:35 WAT, ended 13:29:25, exit 0 (`console_stamp_delta.txt`). Load 4.39 at the start,
+5.47 at the end (another gate ran beside it, on the Release Engineer's grant).
+
+- **Step 0, the red run** (the two adopted modules, code as at 6d28cc0f): exit 1,
+  `Ran 9 tests in 0.993s`, `FAILED (failures=1)`. The one failing test is
+  `test_yes_no_and_unknown_each_give_one_unknown_sample`; 8 pass, **as expected.** Log:
+  `red_run_code_as_at_red_commit_delta.txt.gz`.
+- **Step 1a:** `No changes detected` (`makemigrations_check_delta.txt`).
+- **Step 1:** `Ran 900 tests in 306.028s`, `OK` (`modules_and_guards_delta.txt.gz`).
+- **Step 2:** **58 KILLED, 0 SURVIVED, 0 BROKEN** (`mutation_log_delta.txt`,
+  `mutation_results_delta.json`, one log per mutant in `mutant_logs_delta/`). Checked by program:
+  each entry has its "Ran" line (134 tests; 1 for V1) and its named expected test among the
+  failing tests; none has exit 0 or 124. The six new rows (A5, S14, S15, S16, S17, R21) are now
+  each seen red in a run of mine. The source was clean after the mutants and the mutation
+  database was dropped.
+- **The three older mutants and the adopted tests, read from the results:** under S6,
+  `test_it_sets_neither_the_flag_nor_the_rates_word` (PC4's first test) is among the failing
+  tests; under T2 and under T3, `test_a_backup_answers_then_a_second_student_reuses_it` (PC0) is
+  among the failing tests.
+
+Logs: the console, the two big logs and the 58 mutant logs are gzipped byte for byte before
+staging; `gzipped_logs_delta_sha256.txt` holds the sha256 of each unpacked file. Checked by
+program before the commit, counts only: no line with a password inside an address, none with
+the word "secret"; 9 lines match a NAME=value shape (8 in the log of A1, 1 in the modules log)
+and all are sub-check labels of the form keys=name or key='name', letters and one underscore.
+
+The row for the vote's root is H-154 (beta line, the Hardening Engineer). The number is in this
+file and in 03a; the comment in `GradingRun._grading_model` keeps its words without the number,
+on the Senior Manager's word (the code is as verified).
+
+Next: the Checker verifies this delta; then the Release Engineer's one full run on the final tip.
