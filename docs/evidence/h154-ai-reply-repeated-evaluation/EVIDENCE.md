@@ -207,10 +207,24 @@ Chromium. Load 3.21 at the start, 3.77 at the end. Raw log
 - **When no question of the assignment is known, nothing is dropped as
   unmatched.** Repeats are still reduced to one. Accepted by the Senior
   Manager.
-- **A rubric that itself holds a question number twice** (v2, N1):
-  the two are one question to this code, and one evaluation is kept.
-  `AssignmentSerializer.validate` does not check that question numbers
-  are unique. Not this row; a possible LOW row.
+- **A rubric that itself holds a question number twice** (v2, N1; read
+  further on 2026-10-07 after the gates, by reading only). Grading keys
+  everything by question number, so for such an assignment, before this
+  row as after it: the **maximum is under-counted** (the pair is counted
+  once, at the last one's points) and both questions are graded against
+  one answer. What this row changes there: the two evaluations used to
+  be added together; now they are taken for a repeat, so **keep-lowest
+  can drop a legitimate mark**, and **every such paper is flagged** for
+  the teacher (`ai_reply_corrected`). Example: question 2 twice, worth 5
+  and 10, a student earns 5 and 0. Before: 5 of a counted 10. Now: 0 of
+  a counted 10, flagged. True: 5 of 15. Wrong either way; no longer
+  silent. It can be saved: `AssignmentSerializer.validate` does not
+  check that question numbers are unique, and only the two chunked
+  extraction paths renumber. Whether any saved assignment has it is not
+  known. **Not this row:** its own row, H-158, MEDIUM, leading batch 13
+  (Senior Manager, 2026-10-07): a save with a repeated number refused,
+  the single-pass extraction renumbered, a read-only count for the
+  founder.
 - **Which repeat is right is not known.** The lowest is the cautious
   choice, and the paper goes to the teacher for that reason.
 - **Grades already saved are not recalculated** (below).

@@ -30,7 +30,10 @@ question; the lower mark was kept. Please check this paper."
 One evaluation per question is counted: of the AI's repeats the lowest,
 and an evaluation the system already held (answer key, or reused from an
 identical earlier answer) is kept as it is. The total is never above the
-maximum.
+maximum when the assignment's questions are known. A stated limit: if
+the assignment has no question list at all, there is nothing to match
+against, so nothing is dropped as matching no question and no mark is
+capped; repeats are still reduced to one.
 
 ## Not in this change
 - Grades saved before this change are not recalculated. A saved score
