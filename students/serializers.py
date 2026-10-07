@@ -444,13 +444,20 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
     max_points = serializers.SerializerMethodField()
     grade_status = serializers.SerializerMethodField()
 
-    assignment_title = serializers.CharField(source="assignment__title", read_only=True)
-    assignment_due_date = serializers.CharField(
-        source="assignment__due_date", read_only=True
+    # H-150: these three were declared with sources written with two
+    # underscores ("assignment__title"), which name no attribute; being
+    # read-only they were skipped, and no student was ever sent them.
+    # They are read at the time of the read, released or not. Nothing of
+    # a grade: the assignment's title and due date and the course's name.
+    assignment_title = serializers.CharField(source="assignment.title", read_only=True)
+    # The standard date form, as submission_date beside it; null when the
+    # assignment has no due date.
+    assignment_due_date = serializers.DateTimeField(
+        source="assignment.due_date", read_only=True
     )
-
+    # A course has a name and no title; the key is the one declared.
     course_title = serializers.CharField(
-        source="assignment__course__title", read_only=True
+        source="assignment.course.name", read_only=True
     )
 
     grade_letter = serializers.SerializerMethodField()
