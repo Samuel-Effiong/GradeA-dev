@@ -271,3 +271,40 @@ four names (that is what those tests are about); none in the other files.
 
 Written 17:26 WAT. Still owed as this is committed: the regression (the AutoGrader app), on its own
 grant.
+
+### Exactly which lines of two committed logs were masked, and by what rule (Senior Manager's word)
+
+So that neither file is mistaken for raw bytes:
+
+- `prefix_base_production_failing_fd5245dd.txt.gz` (426 lines): lines **311 and 321**.
+- `mutant_logs_fd5245dd/H4_the_contexts_are_left_alone.txt.gz` (39 lines): lines **11, 21, 29 and 30**.
+
+The rule, one substitution and nothing else: in the text `redis://:<12 hexadecimal characters>@queue.invalid`
+the twelve characters are replaced by `[made value masked by ed]`. Checked by program: applying
+that one substitution to each raw file gives the committed bytes exactly. The raw files are in
+`~/Documents/Projects/GAP-ed-scripts/logs/h167_raw_fd5245dd/` (sha256 starts e00b70532b05a722 and
+7bece1cde8357bb4), outside the repository. Every other committed log of this row is the raw bytes.
+The Release Engineer read the team's credential tool for the form with an empty user name: it
+recognises it (row H-173 pins that with a test). This module's tests join row H-169.
+
+### The regression at 682f192e (0b's GRANT, 2026-10-07 17:28 WAT)
+
+682f192e is the gated fd5245dd plus the docs-only results commit; no code or test differs. One run of
+`run_h167_gate.sh 682f192e 3 d7143538` (script sha256 starts c54a1afc33efccfd): the AutoGrader app,
+serial, in 0b's quiet window. 17:28:34 to 17:37:05, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK (no count written) | **Ran 632 tests in 490.462s, OK** (no skip) | `regression_682f192e.txt.gz`; console `regression_console_682f192e.txt` |
+
+One-minute load 2.85 at the start, 3.13 at the end. No commit or hook of mine ran beside it. **Not
+alone, as the Release Engineer told me afterwards:** the Hardening Engineer made three commits on
+its own branch between 17:31 and 17:33 (the quiet window had been announced to me only). The run
+is green.
+
+Credential-pattern check before this commit (the log before gzip, the wider URL pattern): no URL
+with a password part, no name-and-value line.
+
+What stands for this row: the gate at fd5245dd and this regression on the same code.
+
+Written 17:40 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1.
