@@ -30,7 +30,12 @@ import shutil
 import subprocess
 import sys
 
-TESTS = ["users.tests_old_activation_door_is_closed"]
+# The second module is the delta's (the conversion needs a queued email).
+# The first gate, at 8b396aa9, ran the first module alone ("ran 11").
+TESTS = [
+    "users.tests_old_activation_door_is_closed",
+    "classrooms.tests_conversion_needs_a_queued_email",
+]
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 HERE = pathlib.Path("docs/evidence/h152-old-activation-door-closed")
 OUT = pathlib.Path(os.environ.get("MUT_RESULTS", HERE / "mutation_results.json"))
@@ -41,6 +46,7 @@ USER_VIEWS = "users/views.py"
 COURSE_VIEWS = "classrooms/views.py"
 ENROL = "classrooms/services/enrollment.py"
 COMMAND = "classrooms/management/commands/backfill_pending_student_invites.py"
+NOTIFY = "classrooms/services/notifications.py"
 
 T = "users.tests_old_activation_door_is_closed."
 DOOR = T + "TheDoorTest."
@@ -60,6 +66,38 @@ CMD = T + "TheConversionCommandCountsTheNamelessTest."
 C_DRY = CMD + "test_the_dry_run_counts_the_accounts_with_no_name"
 C_REAL = CMD + "test_the_real_run_reports_the_same_count"
 C_IDS = CMD + "test_the_output_still_carries_ids_only"
+
+# ---- the delta: the conversion needs a queued email
+Q = "classrooms.tests_conversion_needs_a_queued_email."
+Q_SENDER = Q + "TheSenderSaysWhetherTheEmailWasQueuedTest."
+S_TRUE = Q_SENDER + "test_true_when_it_was_queued"
+S_FALSE = Q_SENDER + "test_false_and_no_error_when_the_queue_could_not_be_reached"
+Q_CMD = Q + "TheConversionNeedsAQueuedEmailTest."
+LEFT = Q_CMD + "test_the_account_is_left_exactly_as_it_was"
+GOES_ON = Q_CMD + "test_the_run_goes_on_and_converts_the_others"
+SUMMARY = Q_CMD + "test_the_summary_counts_them"
+SECOND = Q_CMD + "test_a_second_run_picks_up_exactly_those"
+NOBODY = Q_CMD + "test_the_output_names_nobody_when_an_email_could_not_be_queued"
+NONE_LEFT = Q_CMD + "test_a_run_with_the_queue_up_says_none_was_left"
+PREVIEW = Q_CMD + "test_the_preview_queues_nothing_and_does_not_guess"
+Q_ADD = Q + "AnOrdinaryAddByEmailIsUnchangedTest."
+ADD_NEW = Q_ADD + "test_a_new_student_is_still_added_when_the_queue_is_down"
+ADD_NEVER = (
+    Q_ADD + "test_a_student_who_never_signed_in_is_still_added_when_the_queue_is_down"
+)
+DELTA_TESTS = [
+    S_TRUE,
+    S_FALSE,
+    LEFT,
+    GOES_ON,
+    SUMMARY,
+    SECOND,
+    NOBODY,
+    NONE_LEFT,
+    PREVIEW,
+    ADD_NEW,
+    ADD_NEVER,
+]
 
 DOOR_ANSWER = (
     "        return Response(\n"
@@ -137,6 +175,88 @@ MUTANTS = {
         '                f"{prefix}convert: student {student.email} (pending course "\n',
         [C_IDS],
     ),
+    # ---- the delta. Each of the eleven delta tests is named by at least
+    # one of these (asserted in check()).
+    "Q01_the_sender_always_says_queued": (
+        NOTIFY,
+        "    return queued is not None\n",
+        "    return True\n",
+        [S_FALSE, LEFT, SUMMARY, SECOND, NOBODY],
+    ),
+    "Q02_the_sender_never_says_queued": (
+        NOTIFY,
+        "    return queued is not None\n",
+        "    return False\n",
+        [S_TRUE, GOES_ON, SUMMARY, SECOND, NONE_LEFT],
+    ),
+    "Q03_the_command_ignores_the_answer": (
+        COMMAND,
+        "        if not queued:\n            raise EmailNotQueued\n",
+        "        if False:\n            raise EmailNotQueued\n",
+        [LEFT, SUMMARY, SECOND, NOBODY],
+    ),
+    "Q04_one_unqueued_email_stops_the_whole_run": (
+        COMMAND,
+        "                except EmailNotQueued:\n",
+        "                except KeyError:\n",
+        [LEFT, GOES_ON, SUMMARY, SECOND, NOBODY],
+    ),
+    "Q05_the_conversion_is_not_undone": (
+        COMMAND,
+        "    @staticmethod\n    @transaction.atomic\n    def _convert(",
+        "    @staticmethod\n    def _convert(",
+        [LEFT, SUMMARY, SECOND],
+    ),
+    "Q06_the_summary_does_not_count_them": (
+        COMMAND,
+        "                    not_queued += 1\n",
+        "                    not_queued += 0\n",
+        [SUMMARY],
+    ),
+    "Q07_the_line_shows_the_address": (
+        COMMAND,
+        '                        f"student {student.pk}"\n',
+        '                        f"student {student.email}"\n',
+        [LEFT, NOBODY],
+    ),
+    "Q08_the_preview_converts": (
+        COMMAND,
+        "            if not dry_run:\n                try:\n",
+        "            if True:\n                try:\n",
+        [PREVIEW],
+    ),
+    "Q09_an_unconverted_account_is_listed_as_converted": (
+        COMMAND,
+        "                    not_queued += 1\n                    continue\n",
+        "                    not_queued += 1\n                    pass\n",
+        [LEFT, SUMMARY],
+    ),
+    "Q10_a_new_students_add_is_undone_when_the_queue_is_down": (
+        ENROL,
+        "            notifications.send_student_login_invitation_email(\n"
+        "                student, course, generated_password\n"
+        "            )\n"
+        "            return student, True\n",
+        "            if not notifications.send_student_login_invitation_email(\n"
+        "                student, course, generated_password\n"
+        "            ):\n"
+        '                raise EnrollmentError("not queued")\n'
+        "            return student, True\n",
+        [ADD_NEW],
+    ),
+    "Q11_a_reinvited_students_add_is_undone_when_the_queue_is_down": (
+        ENROL,
+        "        notifications.send_student_login_invitation_email(\n"
+        "            student, course, generated_password\n"
+        "        )\n"
+        "        return student, True\n",
+        "        if not notifications.send_student_login_invitation_email(\n"
+        "            student, course, generated_password\n"
+        "        ):\n"
+        '            raise EnrollmentError("not queued")\n'
+        "        return student, True\n",
+        [ADD_NEVER],
+    ),
 }
 
 
@@ -158,6 +278,9 @@ def check():
         assert source.count(old) == 1, f"{name}: anchor found {source.count(old)} times"
         ast.parse(source.replace(old, new, 1))
         assert expected and len(set(expected)) == len(expected), name
+    named = {test for (_, _, _, expected) in MUTANTS.values() for test in expected}
+    unnamed = [test for test in DELTA_TESTS if test not in named]
+    assert not unnamed, f"delta tests no mutant names: {unnamed}"
     print(len(MUTANTS), "mutants: anchors unique, all parse, expected tests named")
 
 

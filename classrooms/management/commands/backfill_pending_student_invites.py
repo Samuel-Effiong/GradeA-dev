@@ -42,6 +42,14 @@ An old-scheme account was created nameless and a student does not name
 themselves, so each of those must then be named by their teacher. Runbook:
 GAP-planning/H-152-conversion-runbook.md (outside the repository).
 
+H-152 (delta): an account whose login email could not be handed to the
+queue is NOT converted. Its conversion is undone (each one is its own
+transaction), the output says "NOT converted (email could not be queued):
+student <id>", the summary counts it, and it still matches the selection,
+so a second run picks up exactly those. Before this, such a student came
+out switched on with a password nobody held and no email, and nothing
+said which account. A queued email lost later is beyond this command.
+
 Usage:
     python manage.py backfill_pending_student_invites --dry-run
     python manage.py backfill_pending_student_invites
@@ -61,6 +69,10 @@ from users.services import generate_temporary_password
 logger = logging.getLogger(__name__)
 
 PLACEHOLDER_DOMAIN = "@student.local"
+
+
+class EmailNotQueued(Exception):
+    """Raised inside one account's transaction to undo its conversion."""
 
 
 def pending_students():
@@ -87,6 +99,7 @@ class Command(BaseCommand):
         prefix = "[dry-run] would " if dry_run else ""
 
         converted = cleared_only = placeholder = deactivated = 0
+        not_queued = 0
         # H-152: an old-scheme account was created without a name (the
         # student typed it at the door, which is now closed), and a student
         # does not name themselves. Each converted account with no name
@@ -133,12 +146,22 @@ class Command(BaseCommand):
                 cleared_only += 1
                 continue
 
+            if not dry_run:
+                try:
+                    self._convert(student, course)
+                except EmailNotQueued:
+                    # Undone by the rollback; the row still matches the
+                    # selection, so the next run takes it up again.
+                    self.stdout.write(
+                        "NOT converted (email could not be queued): "
+                        f"student {student.pk}"
+                    )
+                    not_queued += 1
+                    continue
             self.stdout.write(
                 f"{prefix}convert: student {student.pk} (pending course "
                 f"{course.pk})"
             )
-            if not dry_run:
-                self._convert(student, course)
             converted += 1
             if (
                 not (student.first_name or "").strip()
@@ -155,6 +178,8 @@ class Command(BaseCommand):
                 f"(placeholder address, left inactive, not emailed), "
                 f"{deactivated} code-only cleared (deactivated account, left "
                 f"inactive, not emailed). "
+                f"{not_queued} NOT converted (email could not be queued; "
+                f"run again when the email queue is up). "
                 f"{converted_without_a_name} of the converted have no name "
                 f"(a teacher must name each of them). "
                 f"Inactive students still holding a code: {remaining}."
@@ -191,9 +216,11 @@ class Command(BaseCommand):
                 "activation_expires",
             ]
         )
-        notifications.send_student_login_invitation_email(
+        queued = notifications.send_student_login_invitation_email(
             student, course, generated_password
         )
+        if not queued:
+            raise EmailNotQueued
 
     @staticmethod
     def _clear_code(student):

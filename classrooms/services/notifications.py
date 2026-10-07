@@ -89,6 +89,13 @@ def send_student_login_invitation_email(student, course, generated_password):
     "activation_url" key is the CTA button's merge tag on that shared
     template, so it stays even though it now points at login instead of
     an activation link.
+
+    Returns True when the email was handed to the queue and False when the
+    queue could not be reached (H-152). It still never raises, and a
+    teacher's add ignores the answer: an enrolment must not fail on an
+    email. The one-off conversion command does not ignore it, because an
+    account converted without this email has a password nobody holds.
+    True is not "delivered": a queued email can still be lost later.
     """
     login_url = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/login"
 
@@ -110,7 +117,7 @@ def send_student_login_invitation_email(student, course, generated_password):
         }
     )
 
-    safe_delay(
+    queued = safe_delay(
         send_email_task,
         subject="Your account is ready. Log in and join your class",
         message="",
@@ -120,6 +127,7 @@ def send_student_login_invitation_email(student, course, generated_password):
         template_id=TEMPLATE_ACTIVATION_INVITE,
         merge_data=merge_data,
     )
+    return queued is not None
 
 
 def send_course_invitation_email(student, course, activation_token):
