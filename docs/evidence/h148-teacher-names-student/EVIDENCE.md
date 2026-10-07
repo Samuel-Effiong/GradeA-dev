@@ -149,4 +149,48 @@ Nothing run. No frontend read. `origin/main` not read beyond the account-edit ru
 
 ## Results
 
-(none yet)
+### The gate at 356bdd34 (0b's GRANT, 2026-10-07 13:53 WAT)
+
+356bdd34 is this branch's 466f85e6 and 0b's merge of the base-updated H-147 branch (787a81fb).
+One run of `run_h148_gate.sh 356bdd34 1 787a81fb`. Script sha256 starts 43dcc62e68eccb3d: the
+e22eeb5f of the section above, plus the guard module 0b names for every gate
+(`AutoGrader.tests_migration_safety_check`), an exclusion that keeps `classrooms/test_views.py`
+out of the script's list of production files, and, by the Senior Manager's ruling after H-141's
+gate the same day, a halt at part 0 when the Ran count or the set of distinct red tests differs
+from the list written above (the list is in the script, test by test). 13:53:20 to 14:04:34. It
+ran beside Verifier 2's H-154 run; load 4.61 at the start, 8.00 at the start of part 1, 5.53 at
+its end, 5.26 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 39; 22 red, named above | **Ran 39 tests in 5.000s, FAILED (failures=22, errors=4)**: 26 lines (the two staff-invitation tests fail once per phrase), 22 distinct tests, exactly the 22 named; the script's own comparison: "step 0 is as written" | `prefix_base_production_failing_356bdd34.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_356bdd34.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 865 tests in 342.032s, OK (skipped=3)** | `modules_and_guards_356bdd34.txt.gz` |
+| 2. Mutants | 26 KILLED with their named tests | **26 of 26 KILLED**: each exit 1, its own "Ran 39", every expected test among the failed (`expected-but-passed []` twenty-six times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_356bdd34.txt`, `mutation_results_356bdd34.json`, `mutant_logs_356bdd34/` |
+
+Nothing differed from what was written before the run. The run's console is
+`gate_console_356bdd34.txt.gz`.
+
+The three skips are in `users.tests_google_auth`, in their own words: 'CI_REQUIRE_NETWORK not
+set' (one) and 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1' (two). None is
+for want of a browser.
+
+**The risk named under "Existing tests changed"** (a test of the 14 files relying on an account
+that used to be nameless): it did not show in part 1. The owning apps' regression is still to
+come and is where the rest of those apps' tests run.
+
+Rule 20's cache modules were in part 1 and are green.
+
+Rule 19, counted from these records (the part 0 log and `mutation_results_356bdd34.json`): of
+the 39 new tests, 22 were red in part 0 and each of the other 17 failed under at least one
+mutant. None is left unseen red.
+
+Credential-pattern check before this commit (this folder only, inside the .gz too, values not
+printed): six lines match, three in the part 0 log and three in mutant N17's log. All six are
+the made-up constant `TEMPORARY` of `classrooms/tests_staff_invitations_promise_no_password_change.py`
+(committed at 24a947cf with its allow-list mark), quoted by a failing assertion. Compared by
+program, not by eye. Other failure messages quote temporary passwords the code generated for
+accounts of the test database, which no longer exists.
+
+Written 14:05 WAT. Still owed as this is committed: the regression (classrooms and users), on
+its own grant.
