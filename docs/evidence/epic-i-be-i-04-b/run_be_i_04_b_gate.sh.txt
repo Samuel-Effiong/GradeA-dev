@@ -5,6 +5,10 @@
 #   are taken back; own DB),
 #   1a makemigrations --check, 1 changed modules + every test module that reaches the saved-answer code + guards,
 #   2 the mutants (rule 17; own DB; 34 since the delta).
+# STEP=1d (6G, one grant; the delta after the Checker's verdict): part 1 (the modules, now with the Checker's
+#   module, and the guards) and ALL mutants again (38). No red run: the delta's new tests pass on the code as it
+#   stands; their proofs are the mutants. Logs: modules_and_guards_<tip>.txt, mutation_log_<tip>.txt,
+#   mutation_results_<tip>.json, mutant_logs_<tip>/.
 # STEP=3 (12G, own grant): ONE owning-app regression, ai_processor and students, serial, under the machine lock.
 # A trap on EXIT restores the tree. Rules 12/13/16. RULE 18: every run writes stdout+stderr straight to a file,
 # stdin from /dev/null; nothing is piped.
@@ -43,12 +47,26 @@ if [ "$STEP" = 3 ]; then
   echo "exit=$? $(date +%T)"; echo "load at end: $(cat /proc/loadavg)"; summary $E/regression.txt 15
   exit 0
 fi
-[ "$STEP" = 1 ] || { echo "steps are 1 and 3"; exit 1; }
+[ "$STEP" = 1 ] || [ "$STEP" = 1d ] || { echo "steps are 1, 1d and 3"; exit 1; }
 CAP="$INH systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0"
-NEW="$V2 ai_processor.tests_grading_cache ai_processor.tests_grading_config"
+NEW="$V2 ai_processor.tests_grading_cache_key_v2_checker ai_processor.tests_grading_cache ai_processor.tests_grading_config"
 NEAR="ai_processor.tests_second_opinion_pipeline ai_processor.tests_second_opinion_selection ai_processor.tests_grading_pipeline ai_processor.tests_grading_completeness ai_processor.tests_grading_arithmetic ai_processor.tests_ai_call_trace ai_processor.tests_rubric_snapping ai_processor.tests_reason_before_score ai_processor.tests_objective_pipeline ai_processor.tests_grading_benchmark students.tests_grading_label_fields students.tests_grading_label_migration students.tests_s6d_provider_failure"
 GUARDS="AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_reason_codes AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_codederror_serialization billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension audit.tests_history_guard audit.tests_route_coverage audit.tests_sweep_beat_lock"
 echo "load at start: $(cat /proc/loadavg)"
+if [ "$STEP" = 1d ]; then
+  T=$(git rev-parse --short=8 HEAD); OUT=$E/modules_and_guards_$T.txt
+  echo "=== 1 (delta). changed modules + near modules + guards at $T $(date +%T)"
+  eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEW $NEAR $GUARDS" < /dev/null > $OUT 2>&1
+  echo "exit=$? $(date +%T)"; summary $OUT
+  if grep -qE "^FAILED \\(" $OUT || ! grep -qE "^OK" $OUT; then echo "STOP: not green"; exit 2; fi
+  echo "=== 2 (delta). all 38 mutants (own DB, rules 17 and 18) $(date +%T)"
+  eval "MUT_RESULTS=$E/mutation_results_$T.json MUT_LOGS=$E/mutant_logs_$T MUT_SETTINGS=settings_worktree_mut $CAP nice -n 10 timeout -k 60 3000 python $E/mutate.py" < /dev/null > $E/mutation_log_$T.txt 2>&1
+  echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log_$T.txt
+  git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+  dropmut
+  echo "load at end: $(cat /proc/loadavg)"
+  exit 0
+fi
 echo "=== 0. the red run: $V2 against the code as at $RED (own DB) $(date +%T)"
 REDCODE="ai_processor/services.py ai_processor/grading_cache.py"
 for f in $REDCODE; do git show ${RED}:$f > $f; done

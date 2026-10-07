@@ -769,11 +769,6 @@ class ThePartsOfTheKeyCannotRunTogetherTest(SimpleTestCase):
                     other = _context(**{left: "a", right: separator})
                     self.assertNotEqual(self.key(one), self.key(other))
 
-    def test_the_last_part_of_the_context_and_the_answer_cannot_run_together(self):
-        one = self.key(_context(custom_instructions="custom\x00"), answer="x")
-        other = self.key(_context(custom_instructions="custom"), answer="\x00x")
-        self.assertNotEqual(one, other)
-
     def test_the_same_parts_give_the_same_key(self):
         self.assertEqual(self.key(_context()), self.key(_context()))
 

@@ -42,6 +42,7 @@ CONFIG = "ai_processor/grading_config.py"
 
 TESTS = [
     "ai_processor.tests_grading_cache_key_v2",
+    "ai_processor.tests_grading_cache_key_v2_checker",
     "ai_processor.tests_grading_cache",
     "ai_processor.tests_grading_config",
 ]
@@ -363,6 +364,46 @@ MUTANTS = [
         TESTS,
         K,
     ),
+    (
+        "P1",
+        "the chunk call's splice of the teacher's instructions ignores the run's reading",
+        SERVICES,
+        "            assignment_model, run\n        )\n"
+        "        assignment_context = self._assignment_context_block(",
+        "            assignment_model\n        )\n"
+        "        assignment_context = self._assignment_context_block(",
+        TESTS,
+        K,
+    ),
+    (
+        "P2",
+        "the summary call's splice of the teacher's instructions ignores the run's reading",
+        SERVICES,
+        "            assignment_model, run\n        )\n\n"
+        "        # ── Recalculate score arithmetic in Python",
+        "            assignment_model\n        )\n\n"
+        "        # ── Recalculate score arithmetic in Python",
+        TESTS,
+        K,
+    ),
+    (
+        "P3",
+        "the answer's status and notes are joined into one part of the key",
+        CACHE,
+        "        _said(answer_status),\n        _said(transcription_notes),\n",
+        "        _said(answer_status) + _said(transcription_notes),\n",
+        TESTS,
+        K,
+    ),
+    (
+        "P4",
+        "the answer's text and status are joined into one part of the key",
+        CACHE,
+        "        _normalize_answer(answer_html),\n        _said(answer_status),\n",
+        "        _normalize_answer(answer_html) + _said(answer_status),\n",
+        TESTS,
+        K,
+    ),
 ]
 
 #: The failing test each mutant must produce. Written before any run.
@@ -401,6 +442,10 @@ EXPECTED = {
     "C1": "test_an_identical_second_long_paper_makes_no_provider_call",
     "C2": "test_a_graded_by_in_a_chunks_reply_is_replaced",
     "C3": "test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered",
+    "P1": "test_the_run_keeps_its_starting_reading",
+    "P2": "test_the_run_keeps_its_starting_reading",
+    "P3": "test_status_and_notes_cannot_run_together",
+    "P4": "test_text_and_status_cannot_run_together",
 }
 
 #: A test module that could not be loaded.

@@ -370,8 +370,183 @@ The eleven new mutants:
 | C2 | a chunk's reply keeps its own markers | KILLED, Ran 94 tests | `test_a_graded_by_in_a_chunks_reply_is_replaced` |
 | C3 | the single-pass reply keeps its own markers | KILLED, Ran 94 tests | `test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered` |
 
-### Still owed
+### The regression: one full run by 0b at 6ca94c09: GREEN
 
-The regression: one full run by 0b on the frozen tip (SM ruling). By the same ruling it stands as
-Gate 10 for release 1 (slices A and B) if the merged epic tree equals this slice's tree. Its
-result is added here by a later, evidence-only commit.
+By the SM's ruling the regression for this slice is one full run by 0b (the Release Engineer) on
+the frozen tip, with its own script; step 3 of the author's script was replaced by it and never
+run. The author did not touch the worktree while it ran.
+
+| What | Result |
+|---|---|
+| Whole-repository mypy | Passed |
+| `makemigrations --check` | No changes detected |
+| Full suite, `--parallel 4` | exit 0: Ran 6496 tests in 454.078s, OK (skipped=30). No FAIL or ERROR header |
+
+- Run by 0b: `gate10_slice_b.sh`, the Phase 2 Gate 10 script pointed at this worktree and branch
+  (sha256 prefix e35656ac9ef99d3f; a copy is committed here as `gate10_slice_b.sh.txt`). 12G
+  cap, the shared machine lock, the sleep inhibitor, a silence watchdog that never fired, output
+  straight to a file.
+- Times, 2026-10-06: script start 18:01:00 (load 2.49); suite 18:01:40 (load 2.53) to 18:09:47
+  (load 6.32), 487 s on the wall. No suspend, no blocked outbound call.
+- Per app: ai_processor 908, assignments 663, audit 367, AutoGrader 613, billing 2139, classrooms
+  434, dashboard 270, students 404, users 698; sum 6496. That is 54 more than slice A's full run
+  (6442): 53 in ai_processor (the slice's test module) and 1 in students (slice A's migration
+  test).
+- The 30 skips are the same opt-in kinds as in slice A's run, by 0b's reading.
+- For the record, as 0b asked: two commit-hook runs by other sessions ended at 17:58:40 and
+  17:59:31, both before the script's start. One of them was mine (slice C's commit df648e6c,
+  17:58).
+  **Correction (2026-10-06, from 0b):** the last sentence is wrong; I had guessed. The two hook
+  runs 0b named were the Security Engineer's (about 17:58:20 to 17:58:40, stopped at a lint
+  check, nothing committed) and the Hardening Engineer's (ended 17:59:31, failed on a type
+  error, nothing committed). My commit df648e6c at 17:58:23 was a third. So: three hook runs by
+  three sessions, all ended by 17:59:31, before the script's start at 18:01:00.
+- The log is committed whole and byte-exact as `full_run_0b_6ca94c09.log.xz`: 8,677,854 bytes
+  unpacked, sha256 `fdcc7d6dc898d1736f505d06815f4dfb5d02f6385e66be455337a3d9b4e60993`, the figure
+  0b gave and the one I computed from 0b's file. "Ran" is line 113930 and "OK" line 113932. 0b's
+  summary is `full_run_0b_6ca94c09.summary.txt`.
+- Pattern check of that log, by program, values never printed: no URL with a password part.
+  Nine NAME=value matches on names containing "token", each with code text as its value. Two
+  lines (81995 and 82000) are a test's "blocked unsafe fetch" warning for a made-up host whose
+  address carries the word "secret", the same test stand-in the SM accepted in slice A's log.
+- The run was at 6ca94c09. This commit adds only files in this evidence folder on top of it, so
+  the run stands for the new tip. By the SM's ruling it also stands as Gate 10 for release 1
+  (slices A and B) if the merged epic tree equals this slice's tree at the merge.
+
+## The Checker's verdict and the delta it requires
+
+Verdict at 728491a2: **VERIFIED-WITH-NOTES**, with three items required before the merge. All
+three are tests; none is a fault in the code the slice ships.
+
+| # | Item | Done by |
+|---|---|---|
+| 1 | A test that fails when the chunk call's or the summary call's teacher-instructions splice stops using the run's reading | `ai_processor/tests_grading_cache_key_v2_checker.py`, `OneReadingPerRunOnALongPaperTest`; mutants P1 (the chunk call's site) and P2 (the summary call's site) |
+| 2 | A test that the answer side's parts cannot run together | same module, `TheAnswerSidesPartsCannotRunTogetherTest`; mutants P3 (status and notes joined) and P4 (text and status joined) |
+| 3 | `test_the_last_part_of_the_context_and_the_answer_cannot_run_together` cannot fail | **Removed.** The question lies between those two parts of the key, so the test could not fail whatever the key did. Item 2's tests hold the answer side; the context's parts are held by `test_a_character_moved_across_a_boundary_changes_the_key` and the separator test |
+
+- **Both new classes are the Checker's.** By the SM's ruling the Checker handed over two probe
+  classes with their helpers (both passed at 6ca94c09 in the Checker's own run). They are adopted
+  as written; the module docstring and the two class names are mine. I read only that hand-over
+  file and the record I am asked to commit.
+- **Order kept:** this commit is tests only (the new module, the removal). The mutants and the
+  document lines follow in the next commit.
+
+### Expected of the delta's tests, written before any run
+
+All three new tests are expected to PASS on the code as it stands (the Checker ran them green at
+6ca94c09); the proof that each can fail is its mutant, with the expected failing test named
+before the run:
+- P1, the chunk call's splice reads the live switch: `test_the_run_keeps_its_starting_reading`
+  (the second chunk's prompt is built after the switch flips).
+- P2, the summary call's splice reads the live switch: the same test (the summary call's prompt).
+  If P2 survives, the test does not look at the summary call and an assertion is owed; that
+  would be reported, not explained away.
+- P3, status and notes joined into one part: `test_status_and_notes_cannot_run_together`.
+- P4, text and status joined into one part: `test_text_and_status_cannot_run_together`.
+
+Test count of the slice's own module after the removal: 52; the new module: 3.
+
+### The rest of the delta (the commit after the tests-only one)
+
+- Four mutants added to `mutate.py` (P1 to P4), 38 in all; the Checker's module joins the test
+  modules every mutant is judged by.
+- **Document lines, no code line:** in the docstring of `build_cache_key` and in 03a, a new
+  stated limit (a question's image is matched by its address, not its content) and the "nothing
+  said" choice among the stated limits, accepted by the SM on 2026-10-06. `ai_processor/grading_cache.py`
+  changes by docstring lines only; whether that needs anything beyond this delta's run is 0b's
+  to say.
+- The correction about the three commit-hook runs, above.
+- The Checker's record at 728491a2 is committed byte-identical as
+  `VERIFICATION_be_i_04_slice_b.md` (sha256
+  `b49ba92c74eee1ce5ff1e05e33bab9b6fd9118017a53833bc7059891e59f8a4b`).
+- **All 38 mutants are run again** in the delta's run, with the modules and the guards; no red
+  run, since the delta's tests pass on the code as it stands. Expected: OK (627 before; one test
+  removed and three added, so 629 if nothing else moved); 38 KILLED.
+
+### Delta 2's run at 525fdf88: the modules green, TWO MUTANTS SURVIVED (disclosed)
+
+One grant from 0b, 2026-10-06 18:31:14 to 18:40:10, mode `1d`. One run, serial, 6G scope, rules
+12, 13, 16, 17 and 18. Not stopped, not repeated.
+
+| Part | Result | Log |
+|---|---|---|
+| 1: four changed modules, thirteen near modules, 26 guards | exit 0: Ran 629 tests in 199.954s, OK. No skips. 629 as predicted | `modules_and_guards_525fdf88.txt.gz` |
+| 2: all 38 mutants | **36 KILLED, 2 SURVIVED, 0 BROKEN** | `mutation_log_525fdf88.txt`, `mutation_results_525fdf88.json`, `mutant_logs_525fdf88/` |
+
+- Load average 8.41 12.50 12.19 at the start, 11.34 10.85 11.19 at the end.
+- The 34 earlier mutants were all killed again. P3 and P4 were killed by their named tests: the
+  Checker's item 2 is met.
+- **P1 and P2 SURVIVED** (exit 0, "Ran 96 tests", nothing failing): the chunk call's and the
+  summary call's splice of the teacher's instructions can each read the live switch without any
+  test failing. **The Checker's item 1 was NOT met by this delta.** Nothing was re-run.
+- **Why.** The adopted test asserted that the teacher's text is in
+  `json.dumps(kwargs, default=str)` for every provider call. Those keyword arguments include
+  `assignment=<the assignment object>`, and the test's stand-in assignment is a plain namespace
+  whose text form prints its `custom_ai_prompt`. So the text was in every dump whether or not it
+  was spliced into the prompt: the assertion could not fail. It passed at 6ca94c09 in the
+  Checker's run for the same reason.
+- **My part.** I adopted the class without checking by reading that its assertion could fail
+  under the mutants I had written for it, and spent a slot finding out.
+- Logs a commit hook would alter are gzipped byte-exact; their hashes are in
+  `gzipped_logs_sha256_525fdf88.txt`. `console_525fdf88.txt` is the gate script's own output.
+
+### The corrected assertion, and what can fail (written before the next run)
+
+By the SM's word I corrected the one assertion: it now looks at what was sent as the system
+prompt (`kwargs["system_prompt"]`) of every provider call of the run, not at a dump of all the
+keyword arguments. This changes the Checker's class; the module's docstring says so and why.
+Nothing else in the module changed.
+
+Checked by reading, as the SM asked, that each adopted or new assertion of this delta CAN fail,
+with the mutant that fails it:
+
+| Assertion | The mutant that fails it | How I know |
+|---|---|---|
+| `test_status_and_notes_cannot_run_together` (three inequalities) | P3 | killed in the run at 525fdf88 |
+| `test_text_and_status_cannot_run_together` (two inequalities) | P4 | killed in the run at 525fdf88 |
+| `test_the_run_keeps_its_starting_reading`: three provider calls on the first paper | none offered: a guard on the fixture (two chunks and a summary) | by reading |
+| the same test: the teacher's text in the system prompt of every call | P1 for the second chunk's call, P2 for the summary call's | by reading only, no run yet: with P1 the second chunk's prompt is built after the switch flips and reads the live switch, so the text is absent from what is sent; with P2 the same for the summary call. The first chunk's prompt is built before the flip and carries the text either way |
+| the same test: an identical second paper makes no provider call | R1 (the store takes a fresh reading) and S1 (the splice reads the live switch) | both killed in the run at 525fdf88 with this test among the failing ones |
+
+### Expected for the next run, written before it
+
+Mode `1d` again at the new tip: part 1 OK, 629 tests; 38 KILLED, with P1 and P2 killed by
+`test_the_run_keeps_its_starting_reading`. If P2 still survives, the summary call does not carry
+the teacher's instructions in its system prompt at all and that is reported as a finding.
+
+### Delta 2's second run at c24f057c: GREEN
+
+One grant from 0b, 2026-10-06 18:54:02 to 19:12:26, mode `1d` again. One run, serial, 6G scope,
+rules 12, 13, 16, 17 and 18. Not stopped, not repeated. c24f057c is 525fdf88 plus the first
+run's logs and the corrected assertion; outside this folder it differs from 525fdf88 in one test
+module only.
+
+| Part | Result | Log |
+|---|---|---|
+| 1: four changed modules, thirteen near modules, 26 guards | exit 0: Ran 629 tests in 488.446s, OK. No skips. 629 as predicted | `modules_and_guards_c24f057c.txt.gz` |
+| 2: all 38 mutants | 38 KILLED, 0 SURVIVED, 0 BROKEN | `mutation_log_c24f057c.txt`, `mutation_results_c24f057c.json`, `mutant_logs_c24f057c/` |
+
+- Load average 2.45 4.18 8.19 at the start, 23.15 19.60 15.62 at the end; the run took twice
+  as long as the first for that reason. No test here asserts on the wall clock.
+- **P1 and P2 are now KILLED,** each by `test_the_run_keeps_its_starting_reading` and each at
+  the call it was written for: P1's failing sub-case is `call=2` (the second chunk's call), P2's
+  is `call=3` (the summary call). So the corrected assertion has been seen red under both
+  (rule 19), and the Checker's item 1 is met: a test fails when the chunk call's or the summary
+  call's splice stops using the run's reading.
+- P3 and P4 killed again by their two tests; the 34 earlier mutants killed again. Every inner
+  run exited 1 with its own "Ran 96 tests" line; no log holds a load failure.
+- Logs a commit hook would alter are gzipped byte-exact; their hashes are in
+  `gzipped_logs_sha256_c24f057c.txt`. `console_c24f057c.txt` is the gate script's own output.
+- Pattern check of the new files, by program: no URL with a password part; the word "secret" in
+  none; the NAME=value matches are the same four code names as before, with code text as values.
+
+### Where slice B stands
+
+- The regression: 0b's one full run at 6ca94c09, Ran 6496, OK. By 0b's and the SM's ruling it
+  stands: since then, outside this folder, the changes are one new test module (the Checker's
+  two classes, one assertion corrected), one test removed, docstring lines in
+  `ai_processor/grading_cache.py` (the syntax trees of the two revisions are equal once
+  docstrings are blanked; checked by 0b and by me) and lines of the 03a document.
+- The Checker's three items: 1 met (above); 2 met (P3, P4); 3 done (the test that could not fail
+  is removed).
+- Mutants in all: 38, all KILLED at c24f057c.
