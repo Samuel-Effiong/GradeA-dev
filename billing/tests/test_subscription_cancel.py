@@ -199,7 +199,11 @@ class CancelIdempotencyTests(CancelTestBase):
 
     @patch("stripe.Subscription")
     def test_already_not_renewing_reports_so(self, mock_subscription):
-        self._make_sub(auto_renew=False)
+        # H-174: "already" means a cancellation that was RECORDED. A paid
+        # row with auto_renew False and no date was never cancelled here
+        # (test_converted_trial_is_not_cancelling.py), so this fixture now
+        # carries the date a real cancellation leaves.
+        self._make_sub(auto_renew=False, cancelled_at=timezone.now())
 
         response = self.client.post(self.url)
 
