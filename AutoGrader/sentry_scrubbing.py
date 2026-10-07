@@ -1,6 +1,8 @@
 """
 H-89: no email address, and no URL password, in the text of what is sent
-to Sentry.
+to Sentry. H-167: nor a value written as `password=...` (log_scrubbing's
+third pattern), and the event's request, tags, user and contexts are
+scrubbed like the rest.
 
 Sentry's logging integration is not a logging handler. For each ERROR
 record it builds an event from the record's parts (the message template,
@@ -16,10 +18,13 @@ hooks do; settings pass them to sentry_sdk.init:
   * scrub_breadcrumb (before_breadcrumb): each breadcrumb as it is recorded;
   * scrub_log (before_send_log): each item of the log stream.
 
-They touch text only. The event's user context, its tags and its request
-are left alone: send_default_pii=False already keeps Sentry from adding a
-user's address there, and an address someone sets as a tag on purpose is
-not this module's to remove.
+They touch text only. Since H-167 the event's request (its URL, query
+string, headers and data), tags, user and contexts pass the same scrub, as
+a second defence: settings turn frame variables and request bodies off
+(include_local_variables=False, max_request_body_size="never") and
+send_default_pii=False keeps Sentry from adding a user's address, but
+these hooks do not rely on it. H-89 had left those four parts alone. A
+name or free text in a query string is recognised by no pattern.
 
 A hook never raises and never drops the event. A part whose text cannot be
 scrubbed is replaced by WITHHELD (fail closed).
@@ -38,6 +43,11 @@ _EVENT_TEXT_PARTS = (
     "spans",
     "breadcrumbs",
     "extra",
+    # H-167
+    "request",
+    "tags",
+    "user",
+    "contexts",
 )
 
 
