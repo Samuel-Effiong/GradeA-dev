@@ -109,6 +109,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     OTPSerializer,
     ResetPasswordSerializer,
     SettingsSerializer,
+    StudentNameSerializer,
     TaskCancelSerializer,
     TaskStatusSerializer,
     VerifyCustomUserSerializer,
@@ -133,6 +134,16 @@ from users.throttling import (
 from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
+
+#: H-153: one line per rename of a student, with ids only (who, whom,
+#: through which courses). Never a name and never an address. On this line
+#: it is the record of a rename; the audit event follows on the Phase 2 line.
+student_names_logger = logging.getLogger("users.student_names")
+
+#: H-153: what a caller is told when the new name is already held in a
+#: course the caller does not teach. The refusal that quotes the name is
+#: only ever sent to a teacher of the course where the clash is.
+NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 
 # H-43: the ONE reply /auth/otp gives for every 202 - an unknown address, a
 # sent code, and a locked reset alike - so its text says nothing about
@@ -341,6 +352,116 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise PermissionDenied("You can only modify your own account.")
 
         return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=["Users"],
+        summary="Rename a student (their teacher, or a super admin)",
+        request=StudentNameSerializer,
+        responses={200: StudentNameSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="student-name",
+        url_name="student-name",
+    )
+    def student_name(self, request, pk=None):
+        """H-153: a teacher names or renames a student.
+
+        A student does not name themselves, and the account edit above
+        refuses any change to a student's name whoever asks. This is the
+        one way a student's name changes after the account exists.
+
+        Who may: a teacher who can reach a course the student is CURRENTLY
+        in (enrolled or pending), so either of two teachers who share a
+        student; and a super admin, who is the only one for a student with
+        no current teacher. A school admin may not; nor the student.
+
+        What the answers tell: `get_object` answers 404 for every account
+        the caller cannot already read, existing or not, so 403 is only
+        ever said about an account the caller can see anyway.
+        """
+        student = self.get_object()
+        actor = request.user
+        is_super_admin = actor.is_superuser and actor.user_type == UserTypes.SUPER_ADMIN
+        if not is_super_admin and actor.user_type != UserTypes.TEACHER:
+            raise PermissionDenied(
+                "Only a student's teacher can change the student's name."
+            )
+        if student.user_type != UserTypes.STUDENT:
+            raise ValidationError({"detail": "Only a student can be renamed here."})
+
+        # The courses through which this teacher currently has the student.
+        through = []
+        if not is_super_admin:
+            through = list(
+                StudentCourse.objects.filter(
+                    teacher_course_access_q(actor, prefix="course__"),
+                    student=student,
+                    enrollment_status__in=(
+                        EnrollmentStatusType.ENROLLED,
+                        EnrollmentStatusType.PENDING,
+                    ),
+                ).values_list("course_id", flat=True)
+            )
+            if not through:
+                raise PermissionDenied(
+                    "Only a student's current teacher can change the student's name."
+                )
+
+        serializer = StudentNameSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        names = {
+            "first_name": serializer.validated_data["first_name"],
+            "middle_name": serializer.validated_data.get("middle_name", ""),
+            "last_name": serializer.validated_data["last_name"],
+        }
+
+        with transaction.atomic():
+            # One exact name per course, in EVERY course the student has a
+            # place in, whatever its status: the enrolment's own check
+            # (StudentCourse.clean, run on every save) counts every row, so
+            # anything narrower here would leave rows that can no longer
+            # be saved.
+            enrolments = list(
+                StudentCourse.objects.select_for_update()
+                .filter(student=student)
+                .select_related("course", "course__session")
+            )
+            held_elsewhere = False
+            for enrolment in enrolments:
+                clash = StudentCourse.find_name_conflicts(
+                    course=enrolment.course,
+                    exclude_student_id=student.pk,
+                    **names,
+                ).exists()
+                if not clash:
+                    continue
+                if is_super_admin or enrolment.course_id in through:
+                    full_name = " ".join(part for part in names.values() if part)
+                    raise ValidationError(
+                        {
+                            "detail": (
+                                f"A student with the exact name {full_name!r} "
+                                "is already enrolled in this course."
+                            )
+                        }
+                    )
+                held_elsewhere = True
+            if held_elsewhere:
+                raise ValidationError({"detail": NAME_HELD_ELSEWHERE_MESSAGE})
+
+            for field, value in names.items():
+                setattr(student, field, value)
+            student.save(update_fields=list(names))
+
+        student_names_logger.info(
+            "student_renamed actor=%s student=%s courses=%s",
+            actor.pk,
+            student.pk,
+            ",".join(str(course_id) for course_id in through) or "none",
+        )
+        return Response({"id": str(student.pk), **names}, status=status.HTTP_200_OK)
 
     # @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):

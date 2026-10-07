@@ -202,6 +202,34 @@ class WhoMayNotRenameTest(RenameBase):
 
         self.assert_refused(self.rename(admin, self.student), status.HTTP_403_FORBIDDEN)
 
+    def test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not(self):
+        """An account that taught a course and was then made a school
+        admin is still that course's teacher on paper. The rule is about
+        the role the caller holds now."""
+        school = School.objects.create(name="Riverside")
+        CustomUser.objects.filter(pk=self.teacher.pk).update(
+            school=school, user_type=UserTypes.SCHOOL_ADMIN
+        )
+        now_an_admin = CustomUser.objects.get(pk=self.teacher.pk)
+
+        self.assert_refused(
+            self.rename(now_an_admin, self.student), status.HTTP_403_FORBIDDEN
+        )
+
+    def test_a_former_teacher_may_not_though_the_student_has_another_teacher_now(self):
+        """Withdrawn from Algebra, enrolled in Biology: the student has a
+        current teacher, but it is not this one."""
+        StudentCourse.objects.filter(student=self.student, course=self.course).update(
+            enrollment_status=EnrollmentStatusType.WITHDRAWN
+        )
+        self.enrol(self.student, self.other_course)
+
+        self.assert_refused(
+            self.rename(self.teacher, self.student), status.HTTP_403_FORBIDDEN
+        )
+        # ...and the current one may.
+        self.assert_renamed(self.rename(self.other_teacher, self.student))
+
     def test_the_student_may_not(self):
         self.assert_refused(
             self.rename(self.student, self.student), status.HTTP_403_FORBIDDEN
