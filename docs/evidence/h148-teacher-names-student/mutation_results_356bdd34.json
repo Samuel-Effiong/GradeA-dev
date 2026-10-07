@@ -1,0 +1,402 @@
+{
+  "N01_the_first_name_is_optional": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_an_email_alone_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_each_of_the_two_names_is_required"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_a_blank_name_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_a_name_of_one_letter_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_an_email_alone_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_each_of_the_two_names_is_required"
+    ],
+    "pycache_left": 0
+  },
+  "N02_the_last_name_is_optional": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_an_email_alone_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_each_of_the_two_names_is_required"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_a_name_of_one_letter_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_an_email_alone_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_each_of_the_two_names_is_required"
+    ],
+    "pycache_left": 0
+  },
+  "N03_a_first_name_of_one_letter_is_accepted": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_a_name_of_one_letter_is_refused"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_a_name_of_one_letter_is_refused"
+    ],
+    "pycache_left": 0
+  },
+  "N04_the_typed_name_is_not_passed_on": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_account_carries_the_typed_name",
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_typed_name_is_trimmed",
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_invitation_greets_by_the_typed_name",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_new_address_with_a_classmates_exact_name_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_account_carries_the_typed_name",
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_answer_says_which_name_stands",
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_invitation_greets_by_the_typed_name",
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_typed_name_is_trimmed",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_filled_name_that_clashes_is_refused_and_nothing_is_filled",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_new_address_with_a_classmates_exact_name_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameIsRequiredTest.test_the_middle_name_is_optional"
+    ],
+    "pycache_left": 0
+  },
+  "N05_an_empty_name_is_not_filled": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_filled_name_that_clashes_is_refused_and_nothing_is_filled"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_filled_name_that_clashes_is_refused_and_nothing_is_filled"
+    ],
+    "pycache_left": 0
+  },
+  "N11_the_answer_does_not_say_which_name_stands": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_answer_says_which_name_stands",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_stored_name_stands_and_the_teacher_is_shown_it",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_answer_says_which_name_stands",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_stored_name_stands_and_the_teacher_is_shown_it",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one"
+    ],
+    "pycache_left": 0
+  },
+  "N12_the_answer_always_says_the_typed_name_was_used": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_stored_name_stands_and_the_teacher_is_shown_it",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_half_a_name_is_a_name_and_stands",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_named_student_who_never_signed_in_keeps_the_stored_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_named_student_who_never_signed_in_keeps_the_stored_name",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_stored_name_stands_and_the_teacher_is_shown_it",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_half_a_name_is_a_name_and_stands"
+    ],
+    "pycache_left": 0
+  },
+  "N06_a_stored_name_is_replaced": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_stored_name_stands_and_the_teacher_is_shown_it",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_half_a_name_is_a_name_and_stands",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_named_student_who_never_signed_in_keeps_the_stored_name",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_stored_name_stands_and_the_row_shows_it"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_named_student_who_never_signed_in_keeps_the_stored_name",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_stored_name_stands_and_the_teacher_is_shown_it",
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_half_a_name_is_a_name_and_stands",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_stored_name_stands_and_the_row_shows_it"
+    ],
+    "pycache_left": 0
+  },
+  "N07_half_a_name_counts_as_none": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_half_a_name_is_a_name_and_stands"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_half_a_name_is_a_name_and_stands"
+    ],
+    "pycache_left": 0
+  },
+  "N08_the_fill_is_not_saved_for_a_student_who_has_signed_in": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_an_empty_name_is_filled_with_the_typed_one",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_an_empty_name_is_filled_from_the_row"
+    ],
+    "pycache_left": 0
+  },
+  "N09_the_fill_is_not_saved_for_a_student_who_never_signed_in": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.AnAddressThatAlreadyHasAnAccountTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited"
+    ],
+    "pycache_left": 0
+  },
+  "N15_the_import_does_not_fill_an_empty_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_an_empty_name_is_filled_from_the_row",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_filled_name_that_clashes_fails_the_row_and_fills_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_filled_name_that_clashes_fails_the_row_and_fills_nothing",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_nameless_student_who_never_signed_in_is_filled_and_invited",
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_an_empty_name_is_filled_from_the_row"
+    ],
+    "pycache_left": 0
+  },
+  "N10_the_invitation_promises_a_password_change_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_invitation_does_not_promise_a_password_change"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.ANewAddressTest.test_the_invitation_does_not_promise_a_password_change"
+    ],
+    "pycache_left": 0
+  },
+  "N16_the_school_admins_invitation_promises_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_staff_invitations_promise_no_password_change.StaffInvitationsPromiseNoPasswordChangeTest.test_the_school_admins_invitation"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_staff_invitations_promise_no_password_change.StaffInvitationsPromiseNoPasswordChangeTest.test_the_school_admins_invitation"
+    ],
+    "pycache_left": 0
+  },
+  "N17_the_licensed_teachers_invitation_promises_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_staff_invitations_promise_no_password_change.StaffInvitationsPromiseNoPasswordChangeTest.test_the_licensed_teachers_invitation"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_staff_invitations_promise_no_password_change.StaffInvitationsPromiseNoPasswordChangeTest.test_the_licensed_teachers_invitation"
+    ],
+    "pycache_left": 0
+  },
+  "N13_an_enrolment_does_not_check_the_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_new_address_with_a_classmates_exact_name_is_refused",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_filled_name_that_clashes_is_refused_and_nothing_is_filled"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.TheClassListImportFillsAnEmptyNameTooTest.test_a_filled_name_that_clashes_fails_the_row_and_fills_nothing",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_filled_name_that_clashes_is_refused_and_nothing_is_filled",
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_new_address_with_a_classmates_exact_name_is_refused"
+    ],
+    "pycache_left": 0
+  },
+  "N14_the_clash_ignores_the_middle_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_different_middle_name_is_a_different_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.TheNameClashRuleTest.test_a_different_middle_name_is_a_different_name"
+    ],
+    "pycache_left": 0
+  },
+  "R1_the_staff_refusal_names_the_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.ARefusalDoesNotDependOnTheNameTest.test_a_staff_address"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.ARefusalDoesNotDependOnTheNameTest.test_a_staff_address"
+    ],
+    "pycache_left": 0
+  },
+  "R2_the_switched_off_refusal_names_the_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.ARefusalDoesNotDependOnTheNameTest.test_a_switched_off_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.ARefusalDoesNotDependOnTheNameTest.test_a_switched_off_account"
+    ],
+    "pycache_left": 0
+  },
+  "R3_the_already_enrolled_refusal_names_the_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "classrooms.tests_teacher_names_student_on_add.ARefusalDoesNotDependOnTheNameTest.test_a_student_already_in_the_course"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_teacher_names_student_on_add.ARefusalDoesNotDependOnTheNameTest.test_a_student_already_in_the_course"
+    ],
+    "pycache_left": 0
+  },
+  "S1_a_student_may_change_their_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_each_of_the_three_names_is_refused_and_nothing_changes",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_a_name_cannot_be_emptied_either",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_a_student_with_no_name_cannot_give_themselves_one",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_asking_to_become_a_teacher_in_the_same_request_does_not_help",
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_super_admin_is_refused_on_a_students_account_too"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_a_name_cannot_be_emptied_either",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_a_student_with_no_name_cannot_give_themselves_one",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_asking_to_become_a_teacher_in_the_same_request_does_not_help",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_each_of_the_three_names_is_refused_and_nothing_changes",
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_super_admin_is_refused_on_a_students_account_too"
+    ],
+    "pycache_left": 0
+  },
+  "S2_the_middle_name_is_free": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_each_of_the_three_names_is_refused_and_nothing_changes",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_a_name_cannot_be_emptied_either"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_a_name_cannot_be_emptied_either",
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_each_of_the_three_names_is_refused_and_nothing_changes"
+    ],
+    "pycache_left": 0
+  },
+  "S3_an_unchanged_name_is_refused_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_the_whole_account_sent_back_unchanged_is_accepted"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_student_cannot_name_themselves.AStudentCannotChangeTheirNameTest.test_the_whole_account_sent_back_unchanged_is_accepted"
+    ],
+    "pycache_left": 0
+  },
+  "S4_nobody_may_change_a_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_teacher_still_changes_their_own_name",
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_super_admin_still_changes_their_own_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_super_admin_still_changes_their_own_name",
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_teacher_still_changes_their_own_name"
+    ],
+    "pycache_left": 0
+  },
+  "S5_a_teacher_may_edit_a_students_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_teacher_cannot_edit_their_students_account_at_all"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_student_cannot_name_themselves.WhoseAccountNotWhoAsksTest.test_a_teacher_cannot_edit_their_students_account_at_all"
+    ],
+    "pycache_left": 0
+  },
+  "G1_google_writes_its_name_on_an_account_that_exists": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 39,
+    "expected": [
+      "users.tests_student_cannot_name_themselves.GoogleSignInWritesNoNameTest.test_a_student_with_a_name_keeps_it",
+      "users.tests_student_cannot_name_themselves.GoogleSignInWritesNoNameTest.test_a_student_with_no_name_is_not_named_by_google",
+      "users.tests_student_cannot_name_themselves.GoogleSignInWritesNoNameTest.test_a_student_who_never_activated_is_let_in_and_keeps_the_stored_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_student_cannot_name_themselves.GoogleSignInWritesNoNameTest.test_a_student_who_never_activated_is_let_in_and_keeps_the_stored_name",
+      "users.tests_student_cannot_name_themselves.GoogleSignInWritesNoNameTest.test_a_student_with_a_name_keeps_it",
+      "users.tests_student_cannot_name_themselves.GoogleSignInWritesNoNameTest.test_a_student_with_no_name_is_not_named_by_google"
+    ],
+    "pycache_left": 0
+  }
+}
