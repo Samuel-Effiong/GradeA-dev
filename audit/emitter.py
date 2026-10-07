@@ -431,12 +431,25 @@ def _emit_alertable_metrics(action, outcome, fields):
             if fresh is not None:
                 # BE-I-04 slice C: ONE key, worked out by the grading run on
                 # the exact model names of its FRESH calls before anything
-                # was cut. The rate counts only gradings that made a fresh
-                # call; "unknown" is counted apart, not in the rate; the
-                # three lists of models are for a person to read and are
-                # not read here.
+                # was cut. The three lists of models are for a person to
+                # read and are not read here.
+                #
+                # Two rates, on two bases (SM ruling, 2026-10-07):
+                #   * model_fallback_rate, over the gradings where it is
+                #     KNOWN whether a backup answered: "yes" a 1, "no" a 0,
+                #     "unknown" no sample.
+                #   * model_unknown_rate, over ALL measured gradings (every
+                #     one that made a fresh call): "unknown" a 1, "no" a 0,
+                #     "yes" a 0. It answers "for what share of gradings can
+                #     we not tell whether a backup was used". It does NOT
+                #     mean "a model was not named": a grading with a backup
+                #     AND an unnamed model reads "yes", and is a 0 here.
+                # Third case: a grading that made no fresh call (all
+                # reused, or all by fixed rules) gives neither rate a
+                # sample.
                 if fresh == "yes":
                     audit_metrics.distribution("model_fallback_rate", 1.0)
+                    audit_metrics.distribution("model_unknown_rate", 0.0)
                 elif fresh == "no":
                     audit_metrics.distribution("model_fallback_rate", 0.0)
                     audit_metrics.distribution("model_unknown_rate", 0.0)

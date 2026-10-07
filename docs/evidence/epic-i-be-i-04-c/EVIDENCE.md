@@ -183,8 +183,17 @@ By module: `tests_grading_run_label` 55, all fail; `tests_grading_run_pipeline` 
   "unknown" today.
 - A re-grade replaces the label, as it replaces the score. The first form of the record keeps
   no history.
-- Behaviour of the settings reading is shown for two settings and one mid-run switch; the other
-  twelve rest on the static check.
+- Behaviour of the settings reading is shown for two settings and one mid-run switch. The
+  others rest on TWO static checks, and on no more than these (corrected 2026-10-07 after the
+  Checker's finding 3: the first check alone does not see a call that drops the run, because
+  such a call reads live through the helper): (a) no file outside the settings-version module
+  reads a grade-shaping setting from Django settings; (b) every call inside the grading service
+  to one of thirteen named methods that take the run hands the run on by name. What neither
+  sees: a NEW method that takes the run and is not added to the list in (b); and a caller
+  outside `ai_processor/services.py` that calls one of them without a run.
+- The votes for the grade's model are counted over the items of each fresh reply as received;
+  repeated items are not removed (SM ruling 2026-10-07; stated in `GradingRun._grading_model`
+  and in 03a). The root is a beta-line row of its own, not this slice's.
 - The audit entry's `model` is cut to 128 characters and the lists' names to 64, for reading.
   The row holds 255. Nothing is classified from a cut name.
 
@@ -354,3 +363,68 @@ labels of the form key='models_served'.
 
 The regression is the Release Engineer's one full run on the frozen tip; its log is committed
 here when it is done.
+
+## The delta after verification (2026-10-07)
+
+The Next-stage Checker's verdict at d37f6a7e: VERIFIED-WITH-NOTES, five items required before
+merge. Its record is committed here byte for byte as `VERIFICATION_be_i_04_slice_c.md`
+(sha256 d4b98836...bbbc82). The delta is one set of two commits, tests first.
+
+**Commit 6d28cc0f, tests only.** Two modules adopted from the Checker's hand-over files
+(`handover_slice_c_probes_ai_processor.py` fe6f3a04..., `handover_slice_c_probe_route.py`
+a615c03a...): `ai_processor/tests_grading_run_checker.py` (PC1, PC2, PC3, PC4, PC6: 8 tests) and
+`students/tests_grading_label_end_to_end.py` (PC0: 1 test). Changed from the hand-over only by
+the formatter's line wrapping, one `dict(...)` written as a literal (the lint hook), the module
+docstrings and one docstring line of PC6. PC5 is NOT adopted (the Checker's word: it belongs to
+the other row and went red at another assertion than the one it was written for).
+
+**The second commit, code and words.**
+
+| Item | What was done |
+|---|---|
+| 1. The unknown rate (ruling; behaviour changes) | `audit/emitter.py`: a grading whose fresh calls read "yes" now gives `model_unknown_rate` a 0 as well as `model_fallback_rate` a 1. The comment there and a note in 03a state the two bases, that the unknown rate means "backup use not knowable" and not "a model not named", and the third case (no fresh call: no sample to either). Test: PC6, written before the code. |
+| 2. A rejected reply that holds answers | No code change (the Checker: the code is right). Test: PC1. |
+| 3. A check that sees a dropped run | No code change. Test: PC2 (two tests). The stated limit above is corrected. |
+| 4. One test from a real entry point to the row and the entry | No code change. Test: PC0. |
+| 5. The vote count, stated | No code change (ruling). `GradingRun._grading_model`'s docstring, 03a and the stated limits above say that votes are counted over the reply's items as received, with the pointer to the beta-line row (opened by the Senior Manager on 2026-10-07, owner the Hardening Engineer; I do not have its number yet). |
+
+Offered and adopted though not required: PC3 and PC4 (both tests of each). The five smaller
+points of the record are not taken up in this delta.
+
+### The mutants of the delta, and rule 19
+
+`mutate.py` now holds 58: the 52 of the first gate, unchanged, and six more. It can now apply a
+break that needs two edits of one file (S14, S17); every `old` text must still be found exactly
+once, and a break that changes nothing is refused. Every mutant now also runs the two adopted
+modules. `--check` at this commit: 58 mutants, every anchor found once, all parse.
+
+| Mutant | The break | Expected failing test | Fails because | Seen red |
+|---|---|---|---|---|
+| A5 | "yes" gives the unknown rate no sample (the tip's behaviour before this delta) | test_yes_no_and_unknown_each_give_one_unknown_sample | samples for "yes" lack `model_unknown_rate` 0.0 | by the Checker's run (red at the tip d37f6a7e); mine: the red run of this gate, then the battery |
+| S14 | a part's reply is counted before its evidence check | test_a_backups_reply_rejected_for_its_quote_leaves_nothing | the rejected backup reply's ten answers stay: flag "yes", test wants "no" | by the Checker's run (its P1, the same two edits); mine: by reading until this gate |
+| S15 | one site reads the evidence mode without the run | test_no_call_inside_the_grading_service_drops_the_run | the scan lists `_evidence_mode` at that line, test wants an empty list | by the Checker's run (its P2, the same edit); mine: by reading until this gate |
+| S16 | a reused answer is counted as the main model's | test_a_backup_answers_then_a_second_student_reuses_it | the second student's row names the main model, test wants the backup | by the Checker's run (its P7, the same edit); mine: by reading until this gate |
+| S17 | the second-opinion model is recorded when asked, not when its reply is kept | test_a_second_opinion_that_failed_leaves_no_model | the failed second opinion's model is in its list, test wants an empty list | by the Checker's run (its P5, the same two edits); mine: by reading until this gate |
+| R21 | the rate's word passes over an unnamed model | test_every_mix_of_fresh_calls | one unnamed answer reads "no" for the rate and "unknown" for the flag | by the Checker's run (its P3, the same rule); mine: by reading until this gate |
+
+Each adopted test, and the break that fails it: PC6 by A5; PC1 by S14; PC2's first test by
+S15 (its second test is the guard on that scan and has no mutant); PC3's first test by R21 (its
+second test is the guard that the words are not all one word; no mutant); PC4's first test by
+the existing S6, which is the Checker's P4 in other words (a second opinion kept as the
+grader's answer) and whose named expected test stays my own; PC4's second test by S17; PC0 by
+S16, and by the existing T2 and T3 (the Checker's P8 and P6), whose named expected tests stay
+my own. Whether PC4's first test and PC0 are among the failing tests under S6, T2 and T3 is
+read from the battery's results and written under "Runs".
+
+### Expected for the delta's gate, written before any run
+
+Script `run_be_i_04_c_gate_delta.sh` (committed copy `run_be_i_04_c_gate_delta.sh.txt`): the
+first gate's script with the red commit, the red run's modules, two modules more in step 1, the
+count and the output file names changed.
+
+- Step 0, the red run: the two adopted modules against the seven code files as at 6d28cc0f:
+  non-zero exit, a "Ran" line, **9 tests, 1 failing
+  (`test_yes_no_and_unknown_each_give_one_unknown_sample`), 8 passing.**
+- Step 1a: no changes. Step 1: OK; by count 900 tests (the 891 of the first gate and these 9).
+- Step 2: **58 KILLED**, each with its "Ran" line and its named test.
+- The regression: the Release Engineer's ONE full run on the final tip.

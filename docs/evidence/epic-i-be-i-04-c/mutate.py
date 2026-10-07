@@ -52,6 +52,9 @@ TESTS = [
     "students.tests_grading_label_written",
     "students.tests_grading_label_routes",
     "students.tests_grading_label_not_exposed",
+    # The delta after verification (2026-10-07): the Checker's tests.
+    "ai_processor.tests_grading_run_checker",
+    "students.tests_grading_label_end_to_end",
 ]
 ROW_TESTS = ["students.tests_grading_label_migration"]
 K = "keepdb"
@@ -62,7 +65,27 @@ KEEP_REUSED = (
     "                )\n"
 )
 
-#: (name, what, file, old, new, tests, kind)
+KEEP_BATCH = (
+    "                if run is not None:\n"
+    "                    if override_model is not None:\n"
+    "                        run.keep_second_opinion(batch_model)\n"
+    "                    else:\n"
+    "                        run.keep_answers(batch_model, len(evaluations))\n"
+)
+BEFORE_EVIDENCE = (
+    "                is_final_attempt = (\n"
+    "                    attempt == batch_attempts - 1 and override_model is None\n"
+    "                )\n"
+)
+SECOND_PAIRS = (
+    "            pairs = self._pair_question_with_answers(\n"
+    "                selected_questions, selected_answers\n"
+    "            )\n"
+)
+
+#: (name, what, file, old, new, tests, kind). `old` and `new` are one text
+#: each, or two tuples of the same length for a break that needs more than
+#: one edit of the file (every `old` is found once in the unbroken file).
 MUTANTS = [
     (
         "R1",
@@ -550,6 +573,77 @@ MUTANTS = [
         ROW_TESTS,
         "fresh",
     ),
+    # ---- the delta after verification (2026-10-07) ------------------------
+    (
+        "A5",
+        "a grading where a backup answered gives the unknown rate no sample",
+        EMIT,
+        '                    audit_metrics.distribution("model_fallback_rate", 1.0)\n'
+        '                    audit_metrics.distribution("model_unknown_rate", 0.0)\n'
+        '                elif fresh == "no":\n',
+        '                    audit_metrics.distribution("model_fallback_rate", 1.0)\n'
+        '                elif fresh == "no":\n',
+        TESTS,
+        K,
+    ),
+    (
+        "S14",
+        "a part's reply is counted before its evidence check (a rejected reply stays)",
+        SVC,
+        (BEFORE_EVIDENCE, KEEP_BATCH),
+        (
+            BEFORE_EVIDENCE
+            + "                if run is not None and override_model is None:\n"
+            "                    run.keep_answers(\n"
+            "                        self._response_model_name(response), len(evaluations)\n"
+            "                    )\n",
+            "                if run is not None and override_model is not None:\n"
+            "                    run.keep_second_opinion(batch_model)\n",
+        ),
+        TESTS,
+        K,
+    ),
+    (
+        "S15",
+        "one site reads the evidence mode without the run",
+        SVC,
+        "                effective_mode = self._evidence_mode(run)\n",
+        "                effective_mode = self._evidence_mode()\n",
+        TESTS,
+        K,
+    ),
+    (
+        "S16",
+        "a reused answer is counted as the main model's",
+        SVC,
+        KEEP_REUSED,
+        "                run.keep_reused(MAIN_MODEL)\n",
+        TESTS,
+        K,
+    ),
+    (
+        "S17",
+        "the second-opinion model is recorded when it is asked, not when its reply is kept",
+        SVC,
+        (SECOND_PAIRS, KEEP_BATCH),
+        (
+            SECOND_PAIRS + "            if run is not None:\n"
+            "                run.keep_second_opinion(second_model)\n",
+            "                if run is not None and override_model is None:\n"
+            "                    run.keep_answers(batch_model, len(evaluations))\n",
+        ),
+        TESTS,
+        K,
+    ),
+    (
+        "R21",
+        "the rate's word passes over an unnamed model (a second, differing copy of the rule)",
+        RUN,
+        "        return self._backup_used(fresh)\n",
+        "        return self._backup_used([m for m in fresh if m is not None])\n",
+        TESTS,
+        K,
+    ),
 ]
 
 #: The failing test each mutant must produce. Written before any run.
@@ -606,6 +700,12 @@ EXPECTED = {
     "X1": "test_no_submission_serializer_has_a_label_field",
     "E1": "test_the_entry_is_emitted_in_exactly_the_two_callers",
     "V1": "test_a_row_made_before_0031_reads_the_placeholder_after_it",
+    "A5": "test_yes_no_and_unknown_each_give_one_unknown_sample",
+    "S14": "test_a_backups_reply_rejected_for_its_quote_leaves_nothing",
+    "S15": "test_no_call_inside_the_grading_service_drops_the_run",
+    "S16": "test_a_backup_answers_then_a_second_student_reuses_it",
+    "S17": "test_a_second_opinion_that_failed_leaves_no_model",
+    "R21": "test_every_mix_of_fresh_calls",
 }
 
 #: A test module that could not be loaded.
@@ -630,6 +730,20 @@ def judge(mid, returncode, text):
     return status, ran_line, failed
 
 
+def edits(old, new):
+    """The (old, new) pairs of one mutant: one pair, or several."""
+    if isinstance(old, str):
+        return [(old, new)]
+    assert len(old) == len(new)
+    return list(zip(old, new, strict=True))
+
+
+def broken(source, old, new):
+    for one_old, one_new in edits(old, new):
+        source = source.replace(one_old, one_new, 1)
+    return source
+
+
 def _exit_on_sigterm(signum, _frame):
     raise SystemExit(128 + signum)
 
@@ -640,10 +754,13 @@ def main():
     originals = {}
     for mid, _what, path, old, new, _tests, kind in MUTANTS:
         source = originals.setdefault(path, open(path).read())
-        assert source.count(old) == 1, f"{mid}: anchor found {source.count(old)} times"
+        for one_old, _one_new in edits(old, new):
+            found = source.count(one_old)
+            assert found == 1, f"{mid}: anchor found {found} times"
         assert kind in ("keepdb", "fresh"), mid
+        assert broken(source, old, new) != source, f"{mid}: changes nothing"
         if path.endswith(".py"):
-            ast.parse(source.replace(old, new, 1))
+            ast.parse(broken(source, old, new))
     if "--check" in sys.argv:
         print(len(MUTANTS), "mutants: every anchor found once, all parse")
         print(" ".join(m[0] for m in MUTANTS))
@@ -656,7 +773,7 @@ def main():
         database = ["--keepdb"] if kind == "keepdb" else []
         try:
             clear_pycache(path)
-            open(path, "w").write(original.replace(old, new, 1))
+            open(path, "w").write(broken(original, old, new))
             log = LOGS / f"{mid}.txt"
             with open(log, "w") as out, open(os.devnull) as devnull:
                 p = subprocess.run(

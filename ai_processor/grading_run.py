@@ -155,7 +155,15 @@ class GradingRun:
         together. On a tie: the main model if it is among the leaders,
         else the first by plain alphabetical order of the provider's exact
         text; an unnamed model loses every tie to a named one. Depends
-        only on the counts, never on the order of arrival."""
+        only on the counts, never on the order of arrival.
+
+        STATED LIMIT (SM ruling, 2026-10-07): a fresh reply votes once
+        per item it holds, AS RECEIVED. Repeated items are not removed
+        here, so a reply that holds one answer three times votes three
+        times. The root (such a reply reaches the grading result several
+        times) is older than this slice and is a beta-line row of its
+        own, opened by the Senior Manager on 2026-10-07 for the Hardening
+        Engineer; it is not repaired here."""
         votes = Counter(self.fresh_answers + self.reused_answers)
         if not votes:
             # No answer was marked by an AI. A kept call with no answer
