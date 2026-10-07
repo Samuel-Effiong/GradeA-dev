@@ -222,6 +222,16 @@ MUTANTS = [
         1,
         TESTS,
     ),
+    (
+        "U19",
+        "the line is fixed text: nothing of the stored value is printed",
+        SV,
+        '        questions_html += f"<p><em>{escape(line, quote=False)}</em></p>"\n',
+        '        questions_html += f"<p><em>{escape(line, quote=False)} '
+        '{submission.answers}</em></p>"\n',
+        1,
+        TESTS,
+    ),
 ]
 
 LOAD_FAILURE = "unittest.loader._FailedTest"
