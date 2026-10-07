@@ -127,8 +127,8 @@ MUTANTS = {
     ),
     "C2_the_command_counts_every_converted_account_as_nameless": (
         COMMAND,
-        '            if not (student.first_name or "").strip() and not (\n',
-        '            if True or not (student.first_name or "").strip() and not (\n',
+        '                not (student.first_name or "").strip()\n',
+        '                True\n                or not (student.first_name or "").strip()\n',
         [C_DRY, C_REAL],
     ),
     "C3_the_command_prints_an_address": (
