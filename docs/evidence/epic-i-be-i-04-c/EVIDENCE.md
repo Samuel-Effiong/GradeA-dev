@@ -325,4 +325,32 @@ The gate script is committed here as `run_be_i_04_c_gate.sh.txt`. Slice B is mer
 
 ## Runs
 
-None yet.
+### The gate at 8f192dd5, 2026-10-07 (the Release Engineer's grant; one run)
+
+Started 11:37:40 WAT, ended 11:58:44, exit 0. Load 5.78 at the start, 7.75 at the end (another
+short run went beside the mutants, on the Release Engineer's grant).
+
+- **Step 0, the red run** (code as at 9c0370f1): exit 1, `Ran 125 tests in 7.706s`,
+  `FAILED (failures=29, errors=91)`. The 120 counts entries: two tests report their sub-checks one
+  by one (7 and 4 entries). By distinct test: **111 failing or in error, 14 passing, as
+  expected.** Log: `red_run_code_as_at_red_commit.txt.gz`.
+- **Step 1a:** `No changes detected` (`makemigrations_check.txt`).
+- **Step 1:** `Ran 891 tests in 227.004s`, `OK` (`modules_and_guards.txt.gz`).
+- **Step 2:** **52 KILLED, 0 SURVIVED, 0 BROKEN** (`mutation_log.txt`, `mutation_results.json`,
+  one log per mutant in `mutant_logs/`). Each has its "Ran" line and its named expected test
+  among the failing tests; none timed out. The can-fail table's rows are now each seen red in a
+  run. The source was clean after the mutants and the mutation database was dropped.
+
+A first attempt at 11:36:43 did not run: my command left out `bash` and the script file is not
+executable, so the shell refused it in four seconds (exit 126). No test started. Its two lines are
+kept as `console_first_attempt_no_run.txt`. I did not start it again myself; the run above is on
+a second grant for the corrected command.
+
+Logs: the console, the two big logs and the mutant logs are gzipped byte for byte (before
+staging; the whitespace hook would alter them); `gzipped_logs_sha256.txt` holds the sha256 of each
+unpacked file. Checked by program before the commit, counts only: no line with a password inside
+an address, none with the word "secret"; 16 lines match a NAME=value shape and all are sub-check
+labels of the form key='models_served'.
+
+The regression is the Release Engineer's one full run on the frozen tip; its log is committed
+here when it is done.
