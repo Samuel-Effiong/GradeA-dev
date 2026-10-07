@@ -191,3 +191,101 @@ record agree`) is named by no mutant and will not have been seen red; I do not c
 Nothing run. The frontend not read. No record, database, log or Stripe account looked at.
 
 ## Results
+
+### The gate at e92c7ea1 (0b's GRANT, 2026-10-07 18:13:06 WAT)
+
+e92c7ea1 is eb5719c3 (tests first), b60007c2 (tests only: three older tests reversed), f29bc45f (the
+change) and the docs commit. One run of `run_h174_gate.sh e92c7ea1 1 d7143538` (script sha256 starts
+6a05dcd880251264; `mutate.py` starts 0f053bf17007bd5b), 18:13:36 to 18:18:40, script exit 0.
+One-minute load 3.08 at the start, 4.75 at the start of part 1, 2.58 at its end, 2.38 at the end.
+Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's three production files | Ran 24, FAILED, 14 distinct tests red by name | **Ran 24 tests in 1.720s, FAILED (failures=14)**: 14 lines, 14 distinct tests; the script's own comparison with the 14 written names: "step 0 is as written" | `prefix_base_production_failing_e92c7ea1.txt.gz` |
+| 1a. makemigrations --check | no changes | "No changes detected" | `makemigrations_check_e92c7ea1.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 581 tests in 101.885s, OK** (no skip) | `modules_and_guards_e92c7ea1.txt.gz` |
+| 2. Mutants | 20 KILLED with at least their named tests | **20 of 20 KILLED**: each exit 1, its own "Ran 113", `expected-but-passed []` twenty times; SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_e92c7ea1.txt`, `mutation_results_e92c7ea1.json`, `mutant_logs_e92c7ea1/` |
+
+Nothing differed from what was written before the run. The console is `gate_console_e92c7ea1.txt.gz`.
+
+**Every failing set is EXACTLY the written one**, compared by program from the results file: for all
+20 mutants the sorted expected list equals the list of failing tests (sizes 5, 5, 1, 1, 1, 1, 1, 1,
+6, 1, 1, 6, 1, 1, 1, 2, 1, 1, 4, 1). I had said a mutant might fail more older tests than I named;
+none did.
+
+**What the user saw is now shown by a run, on the old code:** in part 0,
+`test_right_after_the_purchase_the_answer_does_not_contradict_itself` is red: a teacher's automatic
+trial, the Checkout-completed message, then "keep" with Stripe saying "not cancelling" answers
+"already_active" around a subscription that reads as a pending cancellation. And the purchase
+tests are red there: the paid record's mark is false and the page is told a cancellation is pending.
+
+**Rule 19, counted from these records:** 12 of the 16 new tests red in part 0, with the two reversed
+older tests. Under the mutants 23 distinct tests failed, all 16 new ones among them; so the four
+that are green on the old code were seen red (no guess under R2; a real cancellation under V2; a
+trial under R3; a second cancel under V5). **Never seen red:** the older-module test added in
+b60007c2, `test_noop_when_stripe_and_the_local_record_agree`; not counted.
+
+**Beside the run, as told to me by the Hardening Engineer:** one test process of its own (one module
+of assignments, its own test database, 6G cap) ran from 18:16:05 to 18:16:27, against the Release
+Engineer's hold, and was stopped. By this run's console that is inside the mutants step (begun
+18:16:03), two seconds after the modules step had ended. Every mutant is killed as written.
+Verifier 2's one-minute run, granted beside this gate by the Release Engineer, ran 18:13:42 to
+18:14:24 (the Release Engineer's times): during part 0 and the first seconds of part 1.
+
+**What these runs do not show:** anything at Stripe, on a service, in a database or on the web page;
+the order of Stripe's messages; that the production patch works on main (only that it applies to
+copies of main's files).
+
+Credential-pattern check before this commit (every new file, before gzip, the wide URL pattern and
+the name-and-value pattern, masked): no line matches in any of them.
+
+### The three older tests reversed in b60007c2, one by one (Senior Manager's word; written after the gate was requested, describing a commit made before any run)
+
+So that each reversal can be judged on its own. All three are in the tests-only commit b60007c2; the
+lines quoted are that commit's own removed and added lines.
+
+**1. `billing/tests/test_subscription_reactivation.py`, `SubscriptionReactivationServiceTestCase`:
+`test_noop_when_not_cancelling` became `test_local_record_is_corrected_when_stripe_is_not_cancelling`.**
+- Fixture (unchanged): a paid record with `auto_renew=False`, a Stripe id; the stand-in for Stripe
+  answers `status="active", cancel_at_period_end=False`.
+- Old assertions: `assertFalse(result.changed)` and, after a re-read, `assertFalse(self.sub.auto_renew)`.
+- New assertions: `assertTrue(result.changed)`, `assertTrue(result.local_changed)`,
+  `assertFalse(result.stripe_changed)`, and after a re-read `assertTrue(self.sub.auto_renew)`. Kept
+  as they were: no warning, and Stripe's `modify` is not called. Added first: the record's mark IS
+  false before the call (the deciding value).
+- Why: the old test wrote down fault 2 as the intended behaviour: a record that says "not renewing"
+  while Stripe says it is not scheduled to cancel was to be left alone. The ruling is the opposite:
+  Stripe is the source of truth and the record is corrected.
+- What the old test also protected, and where that went: "nothing happens when there is nothing to
+  do". A new test beside it, `test_noop_when_stripe_and_the_local_record_agree` (the same fixture
+  with the mark true), holds that: `assertFalse(result.changed)`, no warning, no `modify`. It is
+  green on the old code and named by no mutant, so it has not been seen red; I do not count it.
+
+**2. The same class, `test_surfaces_past_due_warning` (name unchanged).**
+- Fixture (unchanged): the same record, mark false; Stripe answers `status="past_due",
+  cancel_at_period_end=False`.
+- Old assertion: `assertFalse(result.changed)`. New: `assertFalse(result.stripe_changed)` and
+  `assertTrue(result.local_changed)`. Unchanged: exactly one warning, about the outstanding payment.
+- Why: what the test is about, the past-due warning, is untouched. Its side assertion "nothing
+  changed" was true only because of fault 2; with the same fixture the record is now corrected,
+  and nothing changes at Stripe.
+
+**3. `billing/tests/test_subscription_cancel.py`, `CancelIdempotencyTests`,
+`test_already_not_renewing_reports_so` (name and assertions unchanged; the FIXTURE changed).**
+- Old fixture: `self._make_sub(auto_renew=False)`: a paid record with the mark false and NO date of
+  cancellation. New: `self._make_sub(auto_renew=False, cancelled_at=timezone.now())`.
+- Assertions, unchanged: 200, status "cancelled", and "already set to not renew" in the message.
+- Why: the old fixture is, field for field, a trial converted before this row: mark false, no
+  date, never cancelled by anyone. Item 5 of "What changes" answers such a record "will not renew"
+  and records the date, because for it the request IS the cancellation. A record that really was
+  cancelled through this request carries a date, so the test's meaning ("a second cancel says
+  already") is kept by giving the fixture the date a real cancellation leaves.
+- What this reversal costs, said plainly: a record that was really cancelled BEFORE the date column
+  existed has the old fixture's shape too. For it a repeat cancel now answers "will not renew" and
+  records today's date. That is the side effect the Senior Manager accepted; the same class's
+  `test_already_not_renewing_still_reasserts_on_stripe` (fixture unchanged, mark false and no date)
+  still passes: Stripe is told to cancel in both cases.
+
+Written 18:19 WAT. Still owed as this is committed: the regression (the billing app), on its own
+grant.
