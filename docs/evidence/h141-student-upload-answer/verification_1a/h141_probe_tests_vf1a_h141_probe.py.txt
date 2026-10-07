@@ -1,0 +1,80 @@
+"""Verifier 1's probes for H-141 (a student's upload answer shows nothing of
+grading).
+
+Not the author's tests: each looks at something the author's tests and
+mutants do not reach. Rule 19: each is evidence only once a run has shown
+it red under the mutant named for it in h141_expected_kills.txt.
+
+  pa  one serializer answering twice does not hand out the same list: what
+      a caller does to the first answer's `question_breakdown` is not in
+      the second (the constant field's copy)
+  pb  the student's EDIT route (PATCH), accepted on a paper that is not
+      graded but has a failed grading run and a scheduled one, shows the
+      student neither
+"""
+
+import copy
+import json
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+
+from students.models import GradingState, StudentSubmission
+from students.serializers import StudentUploadAnswerSerializer
+from students.tests_no_grade_tell_before_release import plain
+from students.tests_post_grading_submission_lock import EXTRACTED, _submission
+from students.tests_student_upload_answer import UploadAnswerBase
+
+MARKER = "vf1a-h141-scheduled-grading-task-name"
+
+
+class Vf1aConstantCopyProbe(UploadAnswerBase):
+    def test_pa_two_answers_of_one_serializer_do_not_share_a_list(self):
+        submission = _submission(self.assignment, self.student, graded=False)
+        serializer = StudentUploadAnswerSerializer()
+
+        first = serializer.to_representation(submission)
+        self.assertEqual(first["question_breakdown"], [])
+        first["question_breakdown"].append({"left": "by the first reader"})
+
+        second = serializer.to_representation(submission)
+        self.assertEqual(str(second["id"]), str(submission.pk))
+        self.assertEqual(second["question_breakdown"], [])
+
+
+class Vf1aEditAnswerProbe(UploadAnswerBase):
+    def test_pb_an_accepted_edit_shows_a_student_nothing_of_grading(self):
+        submission = _submission(self.assignment, self.student, graded=False)
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            grading_state=GradingState.FAILED,
+            scheduled_grading_at=timezone.now() + timedelta(days=2),
+            grading_task_name=MARKER,
+        )
+        self.client.force_authenticate(user=self.student)
+        with patch(
+            "students.services.ai_processor.extract_answer_with_retry",
+            return_value=copy.deepcopy(EXTRACTED),
+        ):
+            response = self.client.patch(
+                reverse("student-submission-detail", kwargs={"pk": submission.pk}),
+                {"raw_input": "edited text"},
+                format="json",
+            )
+        # The edit was accepted and answers for this paper...
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        answer = plain(response.data)
+        self.assertEqual(answer["id"], str(submission.pk))
+        # ...the row still holds the failed run and the scheduled one...
+        row = StudentSubmission.objects.get(pk=submission.pk)
+        self.assertEqual(row.grading_state, GradingState.FAILED)
+        self.assertEqual(row.grading_task_name, MARKER)
+        self.assertEqual(row.answers, EXTRACTED["answers"])
+        # ...and the student is shown neither.
+        self.assertEqual(answer["grading_state"], "IDLE")
+        self.assertIsNone(answer["scheduled_grading_at"])
+        self.assertIsNone(answer["grading_task_name"])
+        self.assertIs(answer["is_grading_scheduled"], False)
+        self.assertNotIn(MARKER, json.dumps(answer))
