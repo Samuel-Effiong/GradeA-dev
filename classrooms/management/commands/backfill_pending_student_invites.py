@@ -37,6 +37,11 @@ Output carries internal ids only - never an email address, name or
 credential - so it is safe in Railway's logs. Sends real email and
 mutates real user state: run --dry-run first and read the output.
 
+H-152: the summary also counts the converted accounts that have no name.
+An old-scheme account was created nameless and a student does not name
+themselves, so each of those must then be named by their teacher. Runbook:
+GAP-planning/H-152-conversion-runbook.md (outside the repository).
+
 Usage:
     python manage.py backfill_pending_student_invites --dry-run
     python manage.py backfill_pending_student_invites
@@ -82,6 +87,11 @@ class Command(BaseCommand):
         prefix = "[dry-run] would " if dry_run else ""
 
         converted = cleared_only = placeholder = deactivated = 0
+        # H-152: an old-scheme account was created without a name (the
+        # student typed it at the door, which is now closed), and a student
+        # does not name themselves. Each converted account with no name
+        # must be named by a teacher afterwards, so the run says how many.
+        converted_without_a_name = 0
         for student in pending_students().order_by("date_joined"):
             if student.email.endswith(PLACEHOLDER_DOMAIN):
                 # Founder: @student.local students are intentionally
@@ -130,6 +140,11 @@ class Command(BaseCommand):
             if not dry_run:
                 self._convert(student, course)
             converted += 1
+            if (
+                not (student.first_name or "").strip()
+                and not (student.last_name or "").strip()
+            ):
+                converted_without_a_name += 1
 
         remaining = pending_students().count()
         self.stdout.write(
@@ -140,6 +155,8 @@ class Command(BaseCommand):
                 f"(placeholder address, left inactive, not emailed), "
                 f"{deactivated} code-only cleared (deactivated account, left "
                 f"inactive, not emailed). "
+                f"{converted_without_a_name} of the converted have no name "
+                f"(a teacher must name each of them). "
                 f"Inactive students still holding a code: {remaining}."
             )
         )
