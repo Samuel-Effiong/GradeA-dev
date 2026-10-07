@@ -343,6 +343,59 @@ def ai_assignment_content_only(ai_output):
     }
 
 
+# H-158. Grading pairs a question with the student's answer BY its
+# `question_number`, so the numbers of an assignment must be distinct. The
+# prompts ask the model for 1, 2, 3 ...; both chunked extraction paths
+# re-index their merged questions so; the single-call extraction and the
+# generation took the model's word. Every AI path now numbers the
+# questions in the order the model gave them, before the document is built
+# and before the serializer.
+#
+# The model's own numbers are the only trace of how the paper itself
+# numbers its questions. On the extraction paths they are kept, as text of
+# bounded length, in `ai_raw_payload` under MODEL_QUESTION_NUMBERS (new
+# number -> the model's number). `ai_raw_payload` is write-only: no
+# serializer sends it. Never put the key in a generated draft's snapshot,
+# which IS sent to the client.
+MODEL_QUESTION_NUMBERS = "model_question_numbers"
+MODEL_QUESTION_NUMBER_MAX_LENGTH = 32
+QUESTION_NUMBERS_PUT_IN_ORDER = (
+    "Question numbers put in order: user=%s path=%s questions=%s changed=%s"
+)
+
+
+def number_questions_in_order(questions) -> tuple:
+    """`questions` numbered 1..N in the order given.
+
+    Returns (the numbered list, the model's own numbers by new number, how
+    many numbers changed). The input is not changed: one caller passes a
+    stored draft snapshot. An entry that is not an object is left where it
+    is and takes no number (the serializer refuses it). A value that is
+    not a list is returned as it is.
+    """
+    if not isinstance(questions, list):
+        return questions, {}, 0
+    numbered: list = []
+    model_numbers: dict = {}
+    changed = 0
+    position = 0
+    for entry in questions:
+        if not isinstance(entry, dict):
+            numbered.append(entry)
+            continue
+        position += 1
+        was = entry.get("question_number")
+        model_numbers[str(position)] = (
+            None if was is None else str(was)[:MODEL_QUESTION_NUMBER_MAX_LENGTH]
+        )
+        # `type(...) is int`: True equals 1 and 2.0 equals 2, and neither
+        # is the integer the serializer and grading expect.
+        if not (type(was) is int and was == position):
+            changed += 1
+        numbered.append({**entry, "question_number": position})
+    return numbered, model_numbers, changed
+
+
 class AssignmentProcessingService:
     IMAGE_FORMATS = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     PDF_FORMAT = "application/pdf"
@@ -871,6 +924,23 @@ class AssignmentProcessingService:
         )
         extraction_completed_at = timezone.now()
 
+        # H-158: before the stored AI copy below, the document and the
+        # serializer read the numbers.
+        model_numbers: dict = {}
+        if "questions" in assignment_questions:
+            questions, model_numbers, changed = number_questions_in_order(
+                assignment_questions["questions"]
+            )
+            if changed:
+                logger.warning(
+                    QUESTION_NUMBERS_PUT_IN_ORDER,
+                    getattr(user, "id", None),
+                    "extraction",
+                    len(model_numbers),
+                    changed,
+                )
+            assignment_questions["questions"] = questions
+
         if keep_existing_title and assignment and assignment.title:
             assignment_questions["title"] = assignment.title
 
@@ -879,6 +949,7 @@ class AssignmentProcessingService:
             "title": (assignment_questions["title"]),
             "instructions": assignment_questions["instructions"],
             "questions": assignment_questions["questions"],
+            MODEL_QUESTION_NUMBERS: model_numbers,
         }
         assignment_questions["extraction_started_at"] = extraction_started_at
         assignment_questions["extraction_completed_at"] = extraction_completed_at
