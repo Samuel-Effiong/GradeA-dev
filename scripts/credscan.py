@@ -41,10 +41,13 @@ What it does not read, it says (H-137):
   end of the name it stands in (up to 200 characters each way), where the
   assignment pattern is tried once, reading 420 characters past the name's
   end. So on such a line these are NOT seen, and nothing says so beyond the
-  `longline` row: a password part longer than about 590 characters; a value
-  that ends more than 420 characters after its name (spaces, the sign and
-  quotes included); and a name with more than 200 characters before or
-  after its word. An assignment standing inside another one's value is
+  `longline` row: a password part longer than about 590 characters; a QUOTED
+  value that ends more than 420 characters after its name (spaces, the sign
+  and quotes included); and a name with more than 200 characters before or
+  after its word. A BARE value that begins inside those 420 characters and
+  goes on past them is not recorded as a value: it is listed as
+  VALUE-CUT-AT-WINDOW with the length that was read, in every form of the
+  report and in the hit list (found by Verifier 2). An assignment standing inside another one's value is
   found there by itself, where a short line would give the outer one only.
   Every such line is counted in a `longline` row, in every form of the
   report.
@@ -144,6 +147,8 @@ NAME_BEFORE = 200
 VALUE_AFTER = 420
 NAME_BYTES = frozenset((string.ascii_letters + string.digits + "_").encode())
 ADDRESS_AFTER = 600
+#: What ends a bare value in the assignment pattern.
+VALUE_ENDS = frozenset(b" \t\r\n\x0b\x0c'\"#,;)")
 WORD = re.compile(rb"(?i)PASS|PWD|SECRET|TOKEN|KEY")
 ARCHIVE_SUFFIXES = TAR_SUFFIXES + (".gz", ".xz", ".bz2", ".zip")
 #: A file with a NUL byte this early is taken for binary and not read.
@@ -305,8 +310,30 @@ def scan_long_line(name, lineno, line, rows, values):
         ):
             end += 1
         tried_to = end
-        m = ASSIGN.match(line, start, end + VALUE_AFTER)
-        if m:
+        stop = end + VALUE_AFTER
+        m = ASSIGN.match(line, start, stop)
+        if not m:
+            continue
+        cut = (
+            m.group(4) is not None
+            and m.end() == stop
+            and stop < len(line)
+            and line[stop] not in VALUE_ENDS
+        )
+        if cut:
+            # The bare value goes on past what was read: what was seen is
+            # not the value, so it is not recorded as one.
+            rows[("cut", name, "VALUE-CUT-AT-WINDOW", len(m.group(4)))] += 1
+            HITS.append(
+                (
+                    name,
+                    lineno,
+                    m.group(1).decode("ascii", "replace"),
+                    len(m.group(4)),
+                    "VALUE-CUT-AT-WINDOW",
+                )
+            )
+        else:
             record_assignment(name, lineno, m, rows, values)
 
 
@@ -333,7 +360,7 @@ def report(rev, n, rows, values, show_all, out):
     ):
         if (
             show_all
-            or kind in ("url", "archive", "longline")
+            or kind in ("url", "archive", "longline", "cut")
             or (sh == "LITERAL" and not is_test(name))
         ):
             out.write(f"{kind:6s} | {c:5d} | {ln:6d} | {sh} | {name}\n")
