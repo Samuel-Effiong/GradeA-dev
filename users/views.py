@@ -423,10 +423,16 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # (StudentCourse.clean, run on every save) counts every row, so
             # anything narrower here would leave rows that can no longer
             # be saved.
+            # The lock is on the enrolment rows only (`of`), and nothing
+            # that may be empty is joined: PostgreSQL refuses FOR UPDATE
+            # through a link that can be null, and a course's session can
+            # (docs/evidence/h38_part2/select_for_update_outer_join_regression.md;
+            # this route's first version joined the session and answered
+            # 500 on every rename).
             enrolments = list(
-                StudentCourse.objects.select_for_update()
+                StudentCourse.objects.select_for_update(of=("self",))
                 .filter(student=student)
-                .select_related("course", "course__session")
+                .select_related("course")
             )
             held_elsewhere = False
             for enrolment in enrolments:

@@ -139,4 +139,81 @@ Nothing run. No frontend read. `origin/main` not read.
 
 ## Results
 
+### The first gate, at 17febb89: RED. A fault in the route (2026-10-07)
+
+17febb89 is this branch's 24ef97d8 and the Release Engineer's base update onto H-152's 1a2995f2.
+One run of `run_h153_gate.sh 17febb89 1 1a2995f2` (script sha256 starts 68cd1df73b0a89aa) on
+its GRANT of 15:45, 15:46:22 to 15:49:12. One-minute load 2.60 at the start, 3.06 at the end.
+The script stopped itself after part 1; the mutants never started. Not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 26, all 26 red, as errors (`NoReverseMatch`) | **Ran 26 tests in 1.795s, FAILED (errors=32)**: 32 lines (sub-tests counted singly), 26 distinct tests, every one `NoReverseMatch`; "step 0 is as written" | `prefix_base_production_failing_RED_GATE_17febb89.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_RED_GATE_17febb89.txt` |
+| 1. Modules and guards at the tip | **OK** | **Ran 522 tests in 133.539s, FAILED (failures=15)** | `modules_and_guards_RED_GATE_17febb89.txt.gz` |
+| 2. Mutants | 24 KILLED | not run | |
+
+The console is `gate_console_RED_GATE_17febb89.txt.gz`. The expectation above ("Modules and
+guards at the tip: OK") is left as it was written; it was wrong.
+
+**What failed.** 15 of the 26 tests of `users.tests_teacher_renames_student`, and no test of any
+other module: 11 with "500 != 200" and 4 with "500 != 400". The 11 that passed are refusals
+decided before the line at fault.
+
+**Why.** From the raw log: `NotSupportedError: FOR UPDATE cannot be applied to the nullable side
+of an outer join`. The route locked the student's enrolment rows with `select_for_update()` and,
+in the same query, joined each row's course and the course's session
+(`select_related("course", "course__session")`). A course's session may be empty, so that join
+is an outer join, and PostgreSQL refuses a lock through it. Every rename that passed the
+permission checks answered 500. The session was never used there. The repository has a note on
+this very trap (`docs/evidence/h38_part2/select_for_update_outer_join_regression.md`); I did not
+apply it. It is my fault in the production code, and the committed tests found it the first
+time they ran: nothing had run this route before, as "The first red proved nothing" above says.
+
+**The courses of those 15 tests all have a session** (`RenameBase.course_of` makes one each).
+They failed all the same: PostgreSQL refuses the statement for the kind of join, whatever the
+rows hold.
+
+Reported to the Release Engineer and the Senior Manager at once; nothing re-run. The Senior
+Manager ruled (15:5x): the one-statement fix; the 15 tests red by name in this run are the red
+proof; one more test for a course with no session; a mutant that puts the fault back; a fresh
+gate. And: every other `select_for_update` in the changes of H-148, H-152 and H-153 to be read
+for the same trap.
+
+### The fix of the lock (written 15:53 WAT, before any run of it)
+
+- **Tests first, c2c39b72 (tests only):** class `ACourseWithNoSessionTest`, two tests: the
+  teacher of a course with NO session renames its student; a name clash in that course is still
+  refused and quoted. 28 tests now.
+- **The change:** in `student_name`, the lock is taken on the enrolment rows only and only the
+  course is joined: `StudentCourse.objects.select_for_update(of=("self",)).filter(student=student).select_related("course")`.
+  The link from an enrolment to its course is never empty. Nothing else in the route changes.
+- **Other locks, read in the three rows' own changes** (the added and removed lines of
+  787a81fb..19f5c872, 19f5c872..1a2995f2 and 1a2995f2..17febb89, outside docs): H-148 adds none;
+  H-152 adds none; H-153 adds this one. **None other.**
+- **Mutants: 25.** New, `M25_the_lock_goes_through_the_session_join_again`: the first version's
+  statement put back. Its expected set is not a prediction: the 15 tests that were red in the
+  first gate's own run, by name (compared by program with that log), and the two new tests.
+  `M19` is anchored on the changed line and was re-anchored; what it changes is the same.
+  `mutate.py --check` passes, and it still refuses to load if a test is named by no mutant.
+
+**A mutant I was asked for and do not claim:** "the lock taken without `of`" alone. By reading,
+with only the course joined (a link that is never empty) PostgreSQL accepts the lock without
+`of` as well; it would then also lock the course rows, which no test of mine can see. Such a
+mutant would SURVIVE. So `of=("self",)` is a second defence that these tests do not isolate: it
+keeps the lock off the course rows today, and it is what would keep the statement legal if a
+join that can be empty were added to it again. I say so instead of counting it.
+
+**Written before the fresh gate.** `run_h153_gate.sh <tip> 1 1a2995f2`, script sha256 now starts
+5180bd2f47af4516 (the two new tests in the written red set, Ran 28, 25 mutants; nothing else changed).
+Step 0: Ran 28, all 28 red, as errors (`NoReverseMatch`). 1a: no changes. 1: OK. 2: 25 KILLED
+with their named tests. Rule 19 as it should stand after it: each of the 28 tests failed under
+at least one mutant; in addition 15 of them have been seen red in the first gate.
+
+**What I have NOT done:** run anything of this. The 24 earlier mutants' expected sets were
+written by reading and have never been run either; a survivor or a set that differs is possible
+and will be reported as it is.
+
+### The fresh gate
+
 (none yet)

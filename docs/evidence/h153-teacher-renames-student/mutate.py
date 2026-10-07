@@ -82,12 +82,17 @@ OWN_NAME = C + "test_keeping_the_students_own_name_is_no_clash"
 LOG_LINE = L + "test_a_rename_writes_one_line_with_ids_and_no_name_or_address"
 LOG_SUPER = L + "test_a_super_admins_rename_is_recorded_with_no_course"
 LOG_REFUSED = L + "test_a_refused_rename_writes_no_such_line"
+# Added with the fix of the lock, after the first gate (17febb89) was red.
+S = T + "ACourseWithNoSessionTest."
+NO_SESSION = S + "test_their_teacher_renames_them"
+NO_SESSION_CLASH = S + "test_a_clash_there_is_refused_and_quoted"
 
 ALL_TESTS = [
     CARRIES, TRIMMED, NAMELESS, PENDING, EITHER, TWO_LETTERS, ONLY_NAME,
     ADMIN, ADMIN_TEACHER, FORMER_ELSEWHERE, STUDENT, CLASSMATE, STRANGER,
     OUTSIDER, WITHDRAWN, NOT_A_STUDENT, FORMER, SUPER, OWN_CLASH, ELSEWHERE,
     GONE_MATE, LEFT_COURSE, OWN_NAME, LOG_LINE, LOG_SUPER, LOG_REFUSED,
+    NO_SESSION, NO_SESSION_CLASH,
 ]  # fmt: skip
 
 WHO = (
@@ -244,10 +249,10 @@ MUTANTS = {
     "M19_a_course_the_student_has_withdrawn_from_is_not_checked": (
         VIEWS,
         "                .filter(student=student)\n"
-        '                .select_related("course", "course__session")\n',
+        '                .select_related("course")\n',
         "                .filter(student=student)\n"
         "                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)\n"
-        '                .select_related("course", "course__session")\n',
+        '                .select_related("course")\n',
         [LEFT_COURSE],
     ),
     "M20_a_withdrawn_classmate_does_not_hold_the_name": (
@@ -283,6 +288,26 @@ MUTANTS = {
         '            ",".join(str(course_id) for course_id in through) or "none",\n',
         '            "none",\n',
         [LOG_LINE],
+    ),
+    # The fault of this route's first version, put back: the lock taken
+    # through the join to the course's session. Its expected set is not a
+    # prediction: the first fifteen are the tests that were red in the
+    # first gate's own run (modules_and_guards_17febb89, "500 != ..."),
+    # the last two were written for it.
+    "M25_the_lock_goes_through_the_session_join_again": (
+        VIEWS,
+        '                StudentCourse.objects.select_for_update(of=("self",))\n'
+        "                .filter(student=student)\n"
+        '                .select_related("course")\n',
+        "                StudentCourse.objects.select_for_update()\n"
+        "                .filter(student=student)\n"
+        '                .select_related("course", "course__session")\n',
+        [
+            CARRIES, TRIMMED, NAMELESS, PENDING, EITHER, ONLY_NAME,
+            FORMER_ELSEWHERE, SUPER, OWN_CLASH, ELSEWHERE, GONE_MATE,
+            LEFT_COURSE, OWN_NAME, LOG_LINE, LOG_SUPER,
+            NO_SESSION, NO_SESSION_CLASH,
+        ],  # fmt: skip
     ),
 }
 
