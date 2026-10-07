@@ -96,9 +96,7 @@ def send_student_login_invitation_email(student, course, generated_password):
         f"{course.teacher.get_full_name()} has invited you to join "
         f"{course.name} on Grade A+.\n\n"
         "Your account is ready - log in below with your email and the "
-        f"temporary password: {generated_password}\n\n"
-        "You'll be asked to choose your own password the first time you "
-        "log in."
+        f"temporary password: {generated_password}"
     )
 
     merge_data = _base_merge_data(

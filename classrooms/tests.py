@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import ACTIVATION_TOKEN_VALIDITY
 
 from .models import Course, EnrollmentStatusType, School, Session, StudentCourse
@@ -285,7 +286,7 @@ class CourseStudentsActionAuthorizationTest(APITestCase):
         self.client.force_authenticate(user=self.teacher_a)
 
         response = self.client.post(
-            self.url, {"email": "some-student@example.com"}, format="json"
+            self.url, add_by_email("some-student@example.com"), format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -306,7 +307,9 @@ class CourseStudentsActionAuthorizationTest(APITestCase):
         )
         self.client.force_authenticate(user=self.teacher_b)
 
-        response = self.client.post(self.url, {"email": student.email}, format="json")
+        response = self.client.post(
+            self.url, add_by_email(student.email), format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(
@@ -393,7 +396,7 @@ class EnrollStudentByEmailActiveImmediatelyTest(APITestCase):
     @patch("classrooms.services.notifications.send_student_login_invitation_email")
     def test_new_student_is_created_active_with_no_activation_token(self, mock_email):
         response = self.client.post(
-            self.url, {"email": "brand-new-student@example.com"}, format="json"
+            self.url, add_by_email("brand-new-student@example.com"), format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -431,7 +434,9 @@ class EnrollStudentByEmailActiveImmediatelyTest(APITestCase):
         )
         old_password_hash = student.password
 
-        response = self.client.post(self.url, {"email": student.email}, format="json")
+        response = self.client.post(
+            self.url, add_by_email(student.email), format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         student.refresh_from_db()
@@ -471,7 +476,9 @@ class EnrollStudentByEmailActiveImmediatelyTest(APITestCase):
             enrollment_status=EnrollmentStatusType.PENDING,
         )
 
-        response = self.client.post(self.url, {"email": student.email}, format="json")
+        response = self.client.post(
+            self.url, add_by_email(student.email), format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         student.refresh_from_db()
@@ -517,7 +524,9 @@ class EnrollStudentByEmailActiveImmediatelyTest(APITestCase):
         student.set_unusable_password()
         student.save()
 
-        response = self.client.post(self.url, {"email": student.email}, format="json")
+        response = self.client.post(
+            self.url, add_by_email(student.email), format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         student.refresh_from_db()
