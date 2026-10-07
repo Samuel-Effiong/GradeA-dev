@@ -10,7 +10,7 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from ai_processor.services import ai_processor
+from ai_processor.services import REPLY_CORRECTED, ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from AutoGrader.celery import app as celery_app
@@ -321,6 +321,14 @@ def _worst_tier(tiers):
     return max(ranked)[1]
 
 
+def _whole_count(value):
+    """A count read back out of a saved grading result: never raises."""
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _coerce_confidence(value):
     """Clamp a model-reported 0-100 confidence to a safe int; the DB field
     is non-nullable, and the model can emit null or junk here."""
@@ -469,6 +477,36 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
                     "review_reason", "second_opinion_unavailable"
                 ),
                 "detail": second_opinion.get("skipped"),
+            }
+        )
+
+    # Source 3 (H-154): the AI's reply did not hold exactly one evaluation
+    # per question, and the arithmetic authority left a repeat or a stray
+    # out of the sum (AIProcessor._finalize_grading_result). The grade is
+    # the cautious one, but it was made from a reply that was wrong in
+    # shape, so a teacher looks at it. Moderate: nothing measures how far
+    # off it may be. Numbers and counts only.
+    note = grading.get("score_calculation_verification")
+    if isinstance(note, dict) and note.get("verification_status") == REPLY_CORRECTED:
+        repeated = [
+            item
+            for item in note.get("repeated_evaluations_dropped") or []
+            if isinstance(item, dict)
+        ]
+        tiers.append("moderate")
+        sort_keys.append(_review_sort_key("moderate", None))
+        reasons.append(
+            {
+                "type": "ai_reply_corrected",
+                "repeated_questions": [
+                    item.get("question_number") for item in repeated
+                ],
+                "repeated_dropped": sum(
+                    _whole_count(item.get("dropped")) for item in repeated
+                ),
+                "unmatched_dropped": _whole_count(
+                    note.get("unmatched_evaluations_dropped")
+                ),
             }
         )
 
