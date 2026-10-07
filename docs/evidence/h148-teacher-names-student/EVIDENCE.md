@@ -218,3 +218,115 @@ One-minute load 3.75 at the start, 3.87 at the end.
 
 Written 14:56 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1. H-152
 and H-153 sit on 356bdd34 and do not contain this branch's two docs commits.
+
+## A follow-up, tests only: five calls I had missed (found by Verifier 1)
+
+**Everything in this section down to "Results of the follow-up" was written on 2026-10-07 at
+15:30 WAT, before any run of it.**
+
+### What was wrong, and whose miss
+
+Verifier 1 found by reading, at 117feddc, and I confirmed by reading: two billing test modules
+still posted an email alone to the add-by-email route, which this row made refuse a request
+without first and last name. Five calls:
+
+- `billing/tests/test_h38_teacher_removal.py`: `TeacherRemovalBase.setUp`;
+  `SchoolAdminSeesRemovedTeachersNewDataTests.setUp`;
+  `test_cannot_enrol_more_students_into_the_school_course`;
+  `test_licensed_teacher_can_read_list_and_enrol_into_the_school_course`.
+- `billing/tests/test_h38_part2_removed_teacher_routes.py`: `TeacherRemovalBase.setUp`.
+
+80 of the 81 tests of the two modules pass through one of them (16 of 17; 64 of 64). Neither
+module was in this row's gate (billing had `billing.tests.test_license_service` only) or in its
+regression (classrooms and users). They would have been red in the batch's full run.
+
+**Why I missed them:** under "Existing tests changed" above I wrote "the route's 33 existing
+calls in 14 test files". I had searched for the route's NAME (`course-students`). These two
+modules write the path by hand (`f"{API}/course/{id}/students"`), and I had not searched for
+the path. So "33 calls in 14 files" was the calls that use the name, not the whole tree. That
+sentence is left as written; this section corrects it.
+
+### The search, this time of the whole tree (0b's GRANT, 2026-10-07 15:27; 15:27:29 to 15:27:35)
+
+`git grep -nE` over every tracked `.py` file of the worktree at 117feddc (the `docs/` folder
+left out of the hits), by the script `route_callers_search.py.txt` in this folder (sha256 of
+the script as run starts d9e1d142c7153e6a); its whole output is `route_callers_search_117feddc.txt.gz`
+(gzipped: 24 of its lines end in whitespace). The terms, so that the search can be judged and
+not only its hits:
+
+| | Term | Pattern | Lines / files |
+|---|---|---|---|
+| T1 | the route's name | `course-students` | 26 / 15 |
+| T2 | the raw path, any spelling: `students`, an optional slash, then a quote (catches `"/students"`, `"students/"`, an f-string ending `/students"`, a `"/students"` piece joined on) | `students/?["']` | 252 / 90 |
+| T3 | the route's own definition | `url_path="students"` | 1 / 1 |
+| T4 | the body helper | `add_by_email` | 69 / 15 |
+| T5 | the form | `AddStudentToCourseSerializer` | 6 / 3 |
+| T6 | the service under the route | `enroll_student_by_email` | 64 / 22 |
+| T7 | the class-list import (it takes names per row and requires nothing new; listed for completeness) | `bulk-add-students` or `bulk_add_students` | 21 / 14 |
+
+T2 is wide on purpose and most of its 252 lines are not this route (dictionary keys named
+"students", the dashboard routes, migrations). I went through them: the lines that name the
+route or a path ending in `/students` for a course are **31, in 17 test files**:
+
+- by the name, 26 lines in 15 files: `AutoGrader/tests_cache_matrix_concurrency.py`,
+  `tests_cache_matrix_selftest.py`, `tests_probe_h1s3_commit_race.py`; `classrooms/test_views.py`,
+  `tests.py`, `tests_cache_course_roster_scope.py`, `tests_concurrency_and_resilience.py`,
+  `tests_course_payload_student_exposure.py`, `tests_cross_school_enrollment.py`,
+  `tests_h71_student_add_role.py`, `tests_h99_placeholder_email.py`, `tests_roster_ready_to_use.py`,
+  `tests_security_penetration.py`, `tests_teacher_names_student_on_add.py`;
+  `dashboard/tests_cache_matrix_status_summary.py`;
+- by the hand-written path, 5 lines in 2 files: the two billing modules above.
+
+**Helpers that wrap the post** (the script lists every function that holds a site and is not a
+test method, and its callers): `_enroll`, `enrol_as`, `writer`, `enrol_newcomer`, `enroll`,
+`add_by_email` (a method of that name in the cross-school module), `routes` and the `post`
+wrappers of the H-71 and H-99 modules, `teacher_enrolls_student_in_course_b`, and this row's own
+`add`. Each builds or is handed `add_by_email(...)`. Where a test keeps the address of the route
+in an attribute (`self.url`, `self.single_url`, a local `url`), I read every post made with it
+in that file: `classrooms/tests.py`, `test_views.py`, `tests_roster_ready_to_use.py`.
+
+**Result: every post to the route in the 15 files found by name sends a name; the five posts in
+the two billing files did not. No other post without a name exists in the tree as I read it.**
+
+What the search cannot see: a path assembled from pieces none of which contains "students"
+followed by a quote, and callers outside `.py` files. I know of neither.
+
+### What changes (tests only, 1d97842d)
+
+The five calls send `add_by_email(...)`, as the 33 changed earlier do. No assertion is changed.
+No production file is changed, so this row's gate and its regression stand as run and are not
+repeated (Senior Manager, 2026-10-07).
+
+**One of the five would have gone on passing for the wrong reason had only the status been
+loosened:** `test_cannot_enrol_more_students_into_the_school_course` posts as a teacher removed
+from the school and wants 403 or 404. The view validates the form first
+(`classrooms/views.py`, `students`, `if not serializer.is_valid(): raise ValidationError`) and
+looks the course up after (`get_object_or_404(self.get_queryset(), pk=...)`). With an email
+alone the answer is 400 from the form, before the course is looked at. With a complete form the
+removed teacher is refused by the lookup: 404, which is what the test is about. **[R]**, to be
+shown by the run.
+
+### Written before the run
+
+Script: `~/Documents/Projects/GAP-ed-scripts/run_h148_followup.sh <tip> 117feddc` (sha256 starts
+fd68b250cd6978fd as this is written). No mutant step and no makemigrations step: no production file
+differs from 117feddc (the script checks that).
+
+**A. Before** (the two billing modules with their two test files as at 117feddc, on the tip's
+production code): Ran 81, FAILED, **80 red**: every test of every class built on
+`TeacherRemovalBase` in the two modules (the names, one per line, are in `followup_red_written.txt`
+and in the script, which halts on any difference). **Green, 1:**
+`IndividualCoursesSurviveSchoolMembershipTests.test_private_course_stays_reachable_through_join_and_removal`,
+which adds nobody by email.
+
+**B. After** (as committed): the 17 modules the search found calling the route, in AutoGrader,
+billing, classrooms and dashboard, and rule 20's `AutoGrader.tests_cache_bespoke_1114`: OK. No
+count written.
+
+Rule 19: the red proof here is A. It shows that the 80 tests depend on the corrected calls. It
+does not show more than that; in particular the 404 of the removed teacher's add is shown by B
+being green on that test, and by nothing stronger.
+
+### Results of the follow-up
+
+(none yet)
