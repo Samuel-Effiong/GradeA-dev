@@ -9,7 +9,9 @@ its dependency read off the code rather than inferred from the pattern.
 | 11 | `classrooms` my_courses | `usr` + `global` | enrolments bump `usr`; |
 |    |                         |                  | the payload also has TEACHER-owned names, topics, assignments |
 | 12 | `students` submission detail | `usr` | staff: `raw_input` is a persisted snapshot; |
-|    |                              |       | a student before release: the assignment's save bumps them |
+|    |                              |       | a student before release: the assignment's save bumps them; |
+|    |                              |       | a student's title, due date, course name (H-150): the |
+|    |                              |       | assignment's and the course's saves bump them |
 | 13 | `users` profile | `usr` | the user's own row and nothing else |
 | 14 | `users` my_settings | `usr` | a Settings save bumps its owner |
 
@@ -307,7 +309,10 @@ class SubmissionDetailFreshnessTests(BespokeBase):
         after = self.get(self.student_client, self.url)
         self.assertIn("Retitled By Teacher", after["raw_input"])
         self.assertNotIn("Original Title", after["raw_input"])
-        # The document is the only thing that follows the assignment.
+        # The document and the title beside it (H-150) are the only
+        # things that follow a retitle.
+        self.assertEqual(before.pop("assignment_title"), "Original Title")
+        self.assertEqual(after.pop("assignment_title"), "Retitled By Teacher")
         before.pop("raw_input")
         after.pop("raw_input")
         self.assertEqual(before, after)
@@ -341,7 +346,9 @@ class SubmissionDetailFreshnessTests(BespokeBase):
 
     def test_a_teachers_retitle_does_NOT_change_a_released_students_document(self):
         """Once the grade is released the student reads the stored
-        snapshot, as staff do, and it does not follow the assignment."""
+        snapshot, as staff do, and it does not follow the assignment. The
+        title sent BESIDE the document (H-150) is today's, released or
+        not, and nothing else moves."""
         self.get(self.teacher_client, self.url)  # materialises the snapshot
         self.submission.refresh_from_db()
         self.submission.is_published = True
@@ -351,7 +358,135 @@ class SubmissionDetailFreshnessTests(BespokeBase):
 
         self.retitle()
 
-        self.assertEqual(before, self.get(self.student_client, self.url))
+        after = self.get(self.student_client, self.url)
+        self.assertEqual(before["raw_input"], after["raw_input"])
+        self.assertEqual(before.pop("assignment_title"), "Original Title")
+        self.assertEqual(after.pop("assignment_title"), "Retitled By Teacher")
+        self.assertEqual(before, after)
+
+    # --- H-150: the three details a student's answer declares ---------
+    #
+    # `assignment_title`, `assignment_due_date` and `course_title` were
+    # declared on the student's serializer with sources that named no
+    # attribute, so they were never sent. They are sent now, read from
+    # the assignment and its course at the time of the read. The key
+    # still hangs on the student's own generation alone: an assignment's
+    # save and a course's save each bump every student holding an
+    # enrolment row in the course. H-149's known gap (a deleted enrolment
+    # row; at most the TTL) applies to these three as to the document.
+
+    def due(self, day):
+        from datetime import datetime, timezone
+
+        return datetime(2026, 10, day, 9, 0, tzinfo=timezone.utc)
+
+    def test_the_students_answer_holds_the_three_details(self):
+        from rest_framework import serializers
+
+        self.assignment.due_date = self.due(14)
+        self.assignment.save()
+
+        answer = self.get(self.student_client, self.url)
+
+        self.assertEqual(answer["assignment_title"], "Original Title")
+        self.assertEqual(answer["course_title"], "Original Course")
+        # The standard form, the one submission_date has in this answer.
+        standard = serializers.DateTimeField().to_representation
+        self.assertEqual(answer["assignment_due_date"], standard(self.due(14)))
+        self.assertEqual(answer["assignment_due_date"], "2026-10-14T09:00:00Z")
+        self.submission.refresh_from_db()
+        self.assertEqual(
+            answer["submission_date"], standard(self.submission.submission_date)
+        )
+
+    def test_an_assignment_with_no_due_date_and_no_title_sends_null(self):
+        Assignment.objects.filter(pk=self.assignment.pk).update(
+            title=None, due_date=None
+        )
+
+        answer = self.get(self.student_client, self.url)
+
+        self.assertIn("assignment_title", answer)
+        self.assertIsNone(answer["assignment_title"])
+        self.assertIn("assignment_due_date", answer)
+        self.assertIsNone(answer["assignment_due_date"])
+
+    def test_the_three_are_all_that_was_added_and_none_is_of_a_grade(self):
+        """The exact keys of a student's answer: what it had, and three."""
+        answer = self.get(self.student_client, self.url)
+
+        self.assertEqual(
+            sorted(answer),
+            sorted(
+                [
+                    "id",
+                    "assignment",
+                    "assignment_title",
+                    "assignment_due_date",
+                    "course_title",
+                    "submission_status",
+                    "score",
+                    "remaining_attempts",
+                    "max_points",
+                    "score_percentage",
+                    "grade_status",
+                    "submission_date",
+                    "raw_input",
+                    "formatted_grade",
+                    "grade_letter",
+                    "feedback",
+                    "is_published",
+                ]
+            ),
+        )
+
+    def test_a_teachers_answer_does_not_gain_them(self):
+        """Control: the staff serializer is not this row's."""
+        answer = self.get(self.teacher_client, self.url)
+
+        for key in ("assignment_title", "assignment_due_date", "course_title"):
+            self.assertNotIn(key, answer)
+
+    def test_a_due_date_the_teacher_saves_reaches_the_next_read(self):
+        self.assignment.due_date = self.due(14)
+        self.assignment.save()
+        before = self.get(self.student_client, self.url)
+
+        self.assignment.due_date = self.due(21)
+        self.assignment.save()
+
+        after = self.get(self.student_client, self.url)
+        self.assertEqual(before["assignment_due_date"], "2026-10-14T09:00:00Z")
+        self.assertEqual(after["assignment_due_date"], "2026-10-21T09:00:00Z")
+
+    def test_a_course_rename_reaches_the_next_read(self):
+        before = self.get(self.student_client, self.url)
+
+        self.course.name = "Renamed Course"
+        self.course.save()
+
+        after = self.get(self.student_client, self.url)
+        self.assertEqual(before.pop("course_title"), "Original Course")
+        self.assertEqual(after.pop("course_title"), "Renamed Course")
+        # A course's name is in nothing else of this answer.
+        self.assertEqual(before, after)
+
+    def test_grading_changes_none_of_the_three(self):
+        """Nothing about a grade: an unreleased student reads the same
+        three before and after the paper is graded."""
+        from django.utils import timezone
+
+        before = self.get(self.student_client, self.url)
+
+        self.submission.refresh_from_db()
+        self.submission.score = 7
+        self.submission.max_points = 10
+        self.submission.graded_at = timezone.now()
+        self.submission.save()
+
+        after = self.get(self.student_client, self.url)
+        for key in ("assignment_title", "assignment_due_date", "course_title"):
+            self.assertEqual(before[key], after[key])
 
     def test_a_regrade_is_visible_on_the_next_read(self):
         from django.utils import timezone
