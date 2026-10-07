@@ -325,3 +325,57 @@ describes (an error that is not an outage); Verifier 2 has a probe for it.
 The runbook (outside the repository) was corrected for the same read: the sentence that said
 an account "is STILL converted" when the queue cannot be reached is put in the past, and it now
 says not to paste the service log's "Could not dispatch task" line anywhere.
+
+### A search of the whole test tree for callers (0b's GRANT, 2026-10-07 15:59:54; 16:00:26)
+
+After Verifier 1 found, in H-148, callers of a route that my search by the route's name had
+missed, I asked for the same search here before the regression: a test in another app that
+posts to one of the two closed routes by a hand-written path, expecting the old answers, would
+be red and would not be in a regression of users and classrooms.
+
+`git grep -nE` over every tracked `.py` file of the worktree at 6cae1ad4 (`docs/` left out of
+the hits), by `route_callers_search.py.txt` in this folder (sha256 of the script as run starts
+f0204a415de0f646); its whole output is `route_callers_search_6cae1ad4.txt`. Eleven terms: for
+the door its route name, its raw path (`register/student`) and its view function; the same
+three for the renewal (`course-renew-activation-token`, `renew-student-token`,
+`handle_expired_token`); the removed service and the two removed forms; the conversion
+command; the invitation sender; and `activation_token` in test files (a test that makes an
+old-scheme account is a candidate caller).
+
+**Result:** the door and the renewal are each posted to by ONE test file,
+`users/tests_old_activation_door_is_closed.py`, by the route's name. In tests the two raw paths
+appear only in docstrings. The command is called by three test files and the sender by four,
+all in users or classrooms. **No caller outside users and classrooms**, so the regression below
+covers every caller the search found.
+
+**What the search also shows, and this row did not remove:** code that nothing calls any more:
+the service `renew_student_activation` (still exported), the forms
+`StudentRegistrationCompletionSerializer` and `ExpiredTokenSerializer` (the second still named in
+the renewal route's schema decoration), and the email builders that make `/register/student/<code>`
+links. Dead, and harmless as far as I read; told to the Senior Manager for a later row. Twenty
+test files mention `activation_token`; I did not read each of them through: none posts to
+either closed route (terms T1, T2, T4, T5 would have shown it).
+
+### The regression at 6cae1ad4 (0b's GRANT, 2026-10-07 16:07:52 WAT)
+
+6cae1ad4 is the delta's gated 51cd2773 with its results, the Release Engineer's base update
+onto H-148's final tip (1a2995f2), and the comment-only commit above. One run of
+`run_h152_gate.sh 6cae1ad4 3 19f5c872` (script sha256 starts 4cde1f03112df21c): users and
+classrooms, serial, in 0b's quiet window, alone among this team's runs. 16:08:42 to 16:11:23,
+exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1122 tests in 139.674s, OK (skipped=4)** | `regression_6cae1ad4.txt.gz`; console `regression_console_6cae1ad4.txt` |
+
+The skips, in their own words: one 'CI_REQUIRE_NETWORK not set', one 'CI_REQUIRE_REDIS not set',
+two 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1'. None is for want of a
+browser. One-minute load 6.33 at the start, 4.86 at the end. A docs-only commit of mine on
+another branch ran its hooks 34 seconds into this run (I had been told not in the first
+minute); the run is green.
+
+What stands for this row: the first gate (at 8b396aa9), the delta's gate (at 51cd2773), and
+this regression on the final code. The base update and the comment-only commit changed no
+line of this row's code after its gates (`mutate.py --check` passed after each).
+
+Written 16:11 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 2.
