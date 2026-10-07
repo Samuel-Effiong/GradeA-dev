@@ -25,19 +25,32 @@ The rule (Senior Manager, 2026-10-07):
 - one log line, ids and the kind of value only, where a document or a
   grade is stored for such a row. Not in the builder: it runs on every
   read of an unreleased paper by its student.
+
+Added after Verifier 2's finding (2026-10-07): the tests above replace
+the whole of `students.services.ai_processor`, so the real grading code
+never met a list holding an entry that is not an object. With the
+environment switch GRADING_DETERMINISTIC_OBJECTIVE off, the step that
+reuses saved evaluations (`_partition_cached`) called `.get` on such an
+entry and the paper was not graded: no paid call, the claim FAILED, no
+flag. The last two classes run the real pipeline with only the provider
+call replaced, by the method of Verifier 2's probe (its Y1 and Y2); the
+tests are mine and say the opposite of its Y2, which stated the limit.
 """
 
 import hashlib
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 
+import ai_processor.tests_reply_repeated_evaluation as paper
+from ai_processor.services import AIProcessor
+from assignments.models import Assignment, AssignmentStatus
 from billing.refunds import record_billing_task_id
 from classrooms.tests_final_grade_zero_score import grading_result
 from students import exceptions, services
@@ -564,3 +577,157 @@ class TheWritersRefuseWhatTheBuilderRefusedForThem(AnswerDocumentBase):
         self.assertEqual(self.stored_answers(), EXTRACTED["answers"])
         self.upload([])
         self.assertEqual(self.stored_answers(), [])
+
+
+OBJECTIVE_STEP_OFF = override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)
+
+
+def mixed_answers(numbers):
+    """An answer for every question but the second, whose place holds an
+    entry that is not an object."""
+    answers: list = [paper.answer(n) for n in numbers if n != 2]
+    answers.insert(1, TELLTALE)
+    return answers
+
+
+def marks_every_question_asked(numbers, prompts):
+    """A provider that marks, 8 each, the questions its prompt names, and
+    answers the long paper's closing summary call."""
+
+    def provider(**kwargs):
+        prompts.append(str(kwargs.get("user_prompt")))
+        if paper.is_a_batch_call(kwargs) or len(numbers) <= 3:
+            asked = [n for n in numbers if f"Essay question {n}?" in prompts[-1]]
+            return paper.reply(
+                {"question_evaluations": [paper.evaluation(n) for n in asked]}
+            )
+        return paper.reply(paper.SUMMARY_REPLY)
+
+    return provider
+
+
+@override_settings(GRADING_ANSWER_CACHE_ENABLED=True)
+class TheRealGradingCodeMeetsAMixedList(paper.ReplyCase):
+    """The AI layer itself, the provider call alone replaced."""
+
+    SHORT = (1, 2, 3)
+    LONG = tuple(range(1, paper.LONG_PAPER + 1))
+
+    def grade_mixed(self, numbers):
+        self.prompts: list = []
+        with patch.object(AIProcessor, "execute_graded_task") as execute:
+            execute.side_effect = marks_every_question_asked(numbers, self.prompts)
+            result = self.processor.extract_grade_with_retry(
+                MagicMock(),
+                [paper.essay(n) for n in numbers],
+                mixed_answers(numbers),
+                assignment_model=paper.ASSIGNMENT,
+            )
+        self.assertGreaterEqual(execute.call_count, 1)
+        return result
+
+    def test_the_reuse_step_leaves_out_an_entry_that_is_not_an_object(self):
+        questions = [paper.essay(n) for n in self.SHORT]
+
+        reused, left_questions, left_answers = self.processor._partition_cached(
+            questions, mixed_answers(self.SHORT)
+        )
+
+        self.assertEqual(reused, [])
+        self.assertEqual(left_questions, questions)
+        self.assertEqual(left_answers, [paper.answer(1), paper.answer(3)])
+
+    @OBJECTIVE_STEP_OFF
+    def test_a_short_paper_is_graded_with_the_objective_step_off(self):
+        result = self.grade_mixed(self.SHORT)
+
+        self.assertOneEvaluationPerQuestion(result, self.SHORT)
+
+    def test_a_short_paper_is_graded_with_the_settings_as_shipped(self):
+        """Control: green before the cure too."""
+        result = self.grade_mixed(self.SHORT)
+
+        self.assertOneEvaluationPerQuestion(result, self.SHORT)
+
+    @OBJECTIVE_STEP_OFF
+    def test_a_long_paper_is_graded_with_the_objective_step_off(self):
+        result = self.grade_mixed(self.LONG)
+
+        self.assertOneEvaluationPerQuestion(result, self.LONG)
+
+    def test_a_long_paper_is_graded_with_the_settings_as_shipped(self):
+        """Control: green before the cure too."""
+        result = self.grade_mixed(self.LONG)
+
+        self.assertOneEvaluationPerQuestion(result, self.LONG)
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False,
+    GRADING_EVIDENCE_ENFORCEMENT=paper.services.MODE_LOG,
+    GRADING_ANSWER_CACHE_ENABLED=True,
+)
+class APaperWithSomeLeftOutThroughTheRealPipeline(AnswerDocumentBase):
+    """grade_engine to the saved row; the provider call alone is replaced."""
+
+    NUMBERS = (1, 2, 3)
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+        self.addCleanup(cache.clear)
+        assignment = Assignment.objects.create(
+            title="A paper",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=30,
+            questions=[paper.essay(n) for n in self.NUMBERS],
+        )
+        self.mixed = StudentSubmission.objects.create(
+            assignment=assignment,
+            student=self.student,
+            answers=mixed_answers(self.NUMBERS),
+        )
+        self.prompts: list = []
+
+    def graded(self):
+        with (
+            patch.object(AIProcessor, "execute_graded_task") as execute,
+            patch("students.services._formatted_grade_task") as formatted,
+            patch("students.services.student_summary_async"),
+        ):
+            execute.side_effect = marks_every_question_asked(self.NUMBERS, self.prompts)
+            formatted.return_value.delay.return_value = SimpleNamespace(
+                id="h165-fake-task-id"
+            )
+            services.grade_engine(
+                self.teacher, StudentSubmission.objects.get(pk=self.mixed.pk)
+            )
+        self.assertGreaterEqual(execute.call_count, 1)
+        return StudentSubmission.objects.get(pk=self.mixed.pk)
+
+    def assert_graded_and_flagged(self):
+        row = self.graded()
+
+        self.assertIsNotNone(row.graded_at)
+        self.assertEqual(row.max_points, 30)
+        self.assertTrue(row.needs_review)
+        self.assertIn({"type": "answers_unreadable", "left_out": 1}, row.review_reasons)
+        document = str(row.raw_input)
+        self.assertIn(SOME, document)
+        self.assertIn("Essay 1 answer.", document)
+        self.assertNotIn(TELLTALE, document)
+        # A fact, as before this row: the entry that is not printed is
+        # still sent to the model, inside the untrusted-text wrapper.
+        self.assertTrue(self.prompts)
+        self.assertEqual(self.prompts[0].count("<untrusted_student_answers>"), 1)
+        wrapped = self.prompts[0].split("<untrusted_student_answers>")[1]
+        self.assertIn(TELLTALE, wrapped.split("</untrusted_student_answers>")[0])
+
+    @OBJECTIVE_STEP_OFF
+    def test_it_is_graded_and_flagged_with_the_objective_step_off(self):
+        self.assert_graded_and_flagged()
+
+    def test_it_is_graded_and_flagged_with_the_settings_as_shipped(self):
+        """Control: green before the cure too (Verifier 2's Y1)."""
+        self.assert_graded_and_flagged()
