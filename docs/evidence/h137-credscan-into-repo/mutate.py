@@ -54,9 +54,9 @@ MUTANTS = [
     ),
     (
         "L4",
-        "an assignment on a long line is taken once per word near it",
-        "            if m.end(1) not in taken:\n",
-        "            if True:\n",
+        "a second word in a name already tried is not passed over",
+        "        if word.start() < tried_to:\n            continue\n",
+        "        if False:\n            continue\n",
     ),
     (
         "L5",
@@ -75,6 +75,34 @@ MUTANTS = [
         "line numbers start at 0",
         'enumerate(data.split(b"\\n"), 1)',
         'enumerate(data.split(b"\\n"), 0)',
+    ),
+    (
+        "L8",
+        "a name is not followed back to its start",
+        "        while (\n"
+        "            start > 0\n"
+        "            and word.start() - start < NAME_BEFORE\n"
+        "            and line[start - 1] in NAME_BYTES\n"
+        "        ):\n"
+        "            start -= 1\n",
+        "",
+    ),
+    (
+        "L9",
+        "the pattern is searched for over the stretch before the name too (the fault Verifier 2 found)",
+        "        m = ASSIGN.match(line, start, end + VALUE_AFTER)\n",
+        "        m = ASSIGN.search(line, max(0, start - NAME_BEFORE), end + VALUE_AFTER)\n",
+    ),
+    (
+        "L10",
+        "a name is not followed forward to its end",
+        "        while (\n"
+        "            end < len(line)\n"
+        "            and end - word.end() < NAME_BEFORE\n"
+        "            and line[end] in NAME_BYTES\n"
+        "        ):\n"
+        "            end += 1\n",
+        "",
     ),
     (
         "N1",
@@ -176,16 +204,22 @@ WHERE = "test_the_hit_list_names_the_file_and_the_line"
 TEST_FILE = "test_a_literal_assignment_in_a_test_file_is_counted_but_not_listed"
 ADDRESS = "test_an_address_in_a_test_file_is_listed"
 TWO_WAYS = "test_one_value_written_two_ways_is_reported_as_a_group"
+WHOLE = "test_a_bare_value_far_after_an_earlier_word_is_found_whole"
+SAME = "test_a_long_line_gives_what_the_same_text_gives_on_a_short_line"
+CLOSE = "test_two_assignments_close_together_are_each_found_once"
 
 #: The exact set of failing tests per mutant, written before any run.
 EXPECTED = {
-    "L1": {FAR, START, RUN, ONCE, LINENO, SAID},
+    "L1": {FAR, START, RUN, ONCE, LINENO, SAID, WHOLE, SAME, CLOSE},
     "L2": {SAID},
     "L3": {SAID},
     "L4": {ONCE},
     "L5": {LIMIT},
     "L6": {FAR, START},
-    "L7": {WHERE, LINENO},
+    "L7": {WHERE, LINENO, WHOLE, CLOSE},
+    "L8": {FAR, START, RUN, LINENO, WHOLE, SAME, CLOSE},
+    "L9": {ONCE, WHOLE, SAME},
+    "L10": {ONCE},
     "N1": {FOURTH, DEFAULT},
     "N2": {FOURTH, DEFAULT},
     "N3": {THREE, FOURTH, DEFAULT},
@@ -240,7 +274,8 @@ def main():
         print(len(MUTANTS), "mutants: every anchor found once, all parse")
         print(" ".join(m[0] for m in MUTANTS))
         return
-    logs = HERE / "mutant_logs"
+    tag = os.environ.get("MUT_TAG", "")
+    logs = HERE / ("mutant_logs_" + tag if tag else "mutant_logs")
     logs.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     settings = os.environ.get("MUT_SETTINGS", "settings_worktree")
@@ -283,7 +318,11 @@ def main():
             "failing_tests": failed,
         }
         print(mid, results[mid], flush=True)
-    with open(HERE / "mutation_results.json", "w") as f:
+    with open(
+        HERE
+        / ("mutation_results_" + tag + ".json" if tag else "mutation_results.json"),
+        "w",
+    ) as f:
         json.dump(results, f, indent=2)
         f.write("\n")
     for status in ("KILLED", "SURVIVED", "BROKEN"):

@@ -173,3 +173,67 @@ assignment, no value in two forms.
 - **The team's copy outside the repository is not removed or changed.** Which one the team runs
   after the merge is for the Senior Manager to say.
 - **No hook or CI step runs the tool.** The row did not ask for one.
+
+## CORRECTION, 2026-10-07 12:09:29 WAT: the first fix hid a real hit; found by Verifier 2 by reading
+
+Everything above this line describes the tool at `5bff2762` and its gate at `563534a4`. That gate
+was green, and the tool was wrong.
+
+**The fault** (Verifier 2, by reading, before any run of its own; confirmed by me with a direct
+call of the tool's function): on a line over 4000 characters, the first fix ran the assignment
+pattern over the whole stretch around each word (200 characters before, 420 after) and took
+every match in it. A stretch belonging to one word could end inside the UNQUOTED value of an
+assignment belonging to a later word. The pattern is content with a shorter value, so the
+cut-off value was recorded: with one to five characters left it was classed as a code expression
+(no LITERAL row, nothing in the hit list), with six or more it was a LITERAL of the wrong
+length. The whole assignment, met again at its own word, was then passed over as already taken.
+A quoted value could not be cut this way. A short line was never affected.
+Seen by direct call at `46ef23ee`: after 4800 characters of padding, the word "key", 405 dots
+and a ten-character unquoted NAME=value give one assignment of shape code-expression, length 1,
+and an empty hit list; with 397 to 404 dots, a LITERAL of the wrong length.
+
+**Why my gate did not see it:** none of the 23 tests put an unquoted value at such a distance
+after an earlier word, and none compared a long line with the same text on a short one. All
+twenty mutants were mutants of what I had thought of.
+
+**What I wrote above that is wrong:** the paragraph "Two checks I wrote and then removed". The
+first of them (a match must belong to the word whose stretch found it) was NOT covered by the
+take-once rule: it is what would have stopped this. I removed it on reasoning, without a test
+that could tell the difference, and called that a virtue.
+
+**The cure (`8d78a179`; tests first in `c779cc7e`):** each of the five words is followed to the
+start and the end of the name it stands in (up to 200 characters each way); the pattern is tried
+ONCE, at the name's start, reading 420 characters past the name's END; a word inside a name
+already tried is passed over. The pattern is never run over another word's stretch. What a long
+line still does not show is stated in the docstring: a password part over about 590 characters;
+a value ending more than 420 characters after its name; a name with more than 200 characters
+before or after its word. One difference from a short line that errs toward reporting: an
+assignment standing inside another one's value is found by itself.
+
+**Three new tests** (`LongLineSameAsShortTests`): an unquoted value far after an earlier word is
+found whole, over the fifty distances 380 to 429; a long line gives what the same text gives on
+a short line, over the hundred distances 0 to 693 in steps of 7; two assignments close together
+are each found once. 26 tests in all.
+
+**Expected, written before any run of the new tip** (from direct calls of the tool's functions
+on small inputs, no test loader):
+- Step 0, the module against the tool as moved (`840619b4`): Ran 26, 14 failing: the eleven of
+  the first red run and all three new tests.
+- Step 0b, the module against the tool of the first fix (`5bff2762`): Ran 26, exactly TWO
+  failing: `test_a_bare_value_far_after_an_earlier_word_is_found_whole` and
+  `test_a_long_line_gives_what_the_same_text_gives_on_a_short_line`. The third new test passes
+  there; it is seen red under mutants L1, L7 and L8.
+- Step 1, the module and the 23 guard modules: OK (Ran 312).
+- Step 2: 23 mutants KILLED, each by exactly its named set. Changed against the first battery:
+  L4 is now "a second word in a name already tried is not passed over" (the one-hit-once test);
+  L1 and L7 gain the new tests they must fail; three are new: L8 "a name is not followed back to
+  its start" (seven tests), L9 "the pattern is searched for over the stretch before the name
+  too", which is the fault itself (the two new tests and the one-hit-once test), L10 "a name is
+  not followed forward to its end" (the one-hit-once test). The sets of L4, L8, L9 and L10 were
+  checked by direct calls on copies changed in memory; the rest are by reading.
+
+**A slip of mine in doing this:** I ran a cost check of the tool in plain Python (about 23
+seconds of one core, ending 12:02:37) while another row's timed regression was running in a
+quiet window I had ordered. Reported to the Senior Manager and written into that row's evidence.
+The cost figures for the new code are therefore from that one check and one more made after the
+window: see "Results of the second gate".
