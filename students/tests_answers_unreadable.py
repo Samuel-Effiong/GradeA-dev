@@ -38,6 +38,7 @@ from django.test import SimpleTestCase
 from django.urls import reverse
 from rest_framework import status
 
+from billing.refunds import record_billing_task_id
 from classrooms.tests_final_grade_zero_score import grading_result
 from students import exceptions, services
 from students.models import StudentSubmission
@@ -514,6 +515,25 @@ class TheWritersRefuseWhatTheBuilderRefusedForThem(AnswerDocumentBase):
 
     def test_the_edit_refuses_a_list_that_is_not_all_objects(self):
         self.assert_refused(self.edit, self.NOT_A_LIST_OF_OBJECTS)
+
+    @patch("billing.services.SubscriptionService.refund_credits")
+    def test_the_edits_refusal_refunds_the_charge(self, refund):
+        """The refusal is raised inside the edit's refund scope, as the
+        one for a value that is not a list already is."""
+
+        def charge_then_return(*args, **kwargs):
+            record_billing_task_id("h165-edit-charge")
+            return {"answers": [ONE_ANSWER, TELLTALE]}
+
+        with patch(EXTRACTOR, side_effect=charge_then_return):
+            with self.assertRaises(ValueError):
+                services.update_submission_from_raw_text(
+                    self.student, self.submission, "some text"
+                )
+
+        refund.assert_called_once()
+        self.assertEqual(refund.call_args.args[0], "h165-edit-charge")
+        self.assertEqual(self.stored_answers(), EXTRACTED["answers"])
 
     def test_what_was_refused_is_still_refused(self):
         """Control."""
