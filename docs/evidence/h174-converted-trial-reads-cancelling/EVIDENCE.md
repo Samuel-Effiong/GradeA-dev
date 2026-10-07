@@ -289,3 +289,83 @@ lines quoted are that commit's own removed and added lines.
 
 Written 18:19 WAT. Still owed as this is committed: the regression (the billing app), on its own
 grant.
+
+## The delta: a cancellation Stripe has scheduled (written 19:11 WAT, 2026-10-07, before any run of it)
+
+### The restart, and a run that is not counted
+
+The machine stopped at about 18:31 and came up at 18:51:13. One run of the regression had just
+ended: `run_h174_gate.sh 425d4e5d 3 d7143538`, the billing app, 18:26:15 to 18:30:41, exit 0, by its
+console "Ran 2126 tests in 246.952s", "OK". **Its raw log was lost in the stop** (the gzipped log and
+the console copy in this folder came back as empty files, and the section being appended here as
+NUL bytes; this file was restored to the committed 425d4e5d and the two empty files removed). The
+console file survives outside the repository
+(`~/Documents/Projects/GAP-ed-scripts/logs/h174_regression_425d4e5d_1007_1826.txt`). By the Senior
+Manager's ruling that run is told here as a first run, green by its console, and **is not
+counted**: the raw log is the evidence and it is gone. Every file committed before the stop reads
+back whole from git (checked file by file at 425d4e5d).
+
+### What was wrong (found by Verifier 1, by reading, at 425d4e5d)
+
+Stripe can schedule a cancellation for a DATE (`cancel_at`), for instance from its dashboard, and
+then `cancel_at_period_end` is false. The new branch of `reactivate_if_cancelling` looked at that
+flag alone. For such a subscription "Keep subscription" would have set our record to renewing,
+cleared its date, and told the customer it "was never scheduled to cancel", while Stripe cancels
+it on that date. My fault in f29bc45f; my tests had no such answer from Stripe.
+
+### What changes (Senior Manager's ruling)
+
+- **cc97616e, tests only, four tests.** Its message says "four, red until the change"; that is wrong
+  for one of them and I correct it here: "an answer whose two dates are empty is still corrected"
+  is GREEN at f29bc45f (it holds what the change must not break) and red on the base. The other
+  three are red at f29bc45f.
+- **98c75afa, the change.** In `reactivate_if_cancelling` "not cancelling" means
+  `cancel_at_period_end` is False AND Stripe's answer carries neither `cancel_at` nor
+  `canceled_at`. With either present: the local record is left exactly as it is, no call changes
+  Stripe, and the result carries `scheduled_at_provider=True` (a new field, False by default).
+  `resume` then answers 200 with status "cancellation_scheduled" and "A cancellation of this
+  subscription is scheduled with our payment provider and could not be undone here. Nothing was
+  changed. Please contact support if you want to keep your subscription.", in place of "already
+  active and set to renew". The enclosed subscription still reads as a pending cancellation, which
+  for such a record is the truth.
+
+### What it does NOT do
+
+- **Nothing in this code undoes, mirrors or shows a cancellation scheduled by date.** "Keep" does
+  not undo it; the webhook's sync does not copy it to our record; the page shows it only when our
+  record happens to say "not renewing". Older than this row and wider; a row of its own (MEDIUM,
+  Senior Manager).
+- `select_plan` calls the same core and ignores the new field: a customer with a dated
+  cancellation who changes plan is told nothing about it, as before.
+- **Not isolated by any test:** the status rule's clause "not for a trial" (a trial whose Stripe
+  answer carries a dated cancellation keeps its trial sentence and the status "already_active"). No
+  test makes that record; a mutant on the clause would survive, and none is included.
+- Whether Stripe ever answers `canceled_at` set with nothing scheduled (which would make "keep"
+  refuse to correct a record it could correct) I do not know; the cautious side was ruled.
+
+### Written before the run
+
+Script `~/Documents/Projects/GAP-ed-scripts/run_h174_delta_gate.sh` (sha256 starts 37e80733b8c86d19):
+the first gate's script with four more names in step 0's written list, "Ran 28", and 25 mutants.
+
+**0. Reproduce-first** (the new module, now 20 tests, and the older class, 8, on the three production
+files as at d7143538): **Ran 28, FAILED, 18 distinct tests red**: the 14 of the first gate and the
+four new ones (the shared-core report as an error: the result has no such field on the base).
+
+**1a.** no changes. **1.** OK, no count written.
+
+**2. Mutants: 25** (re-derived 19:11). The twenty of the first gate, two sets one test longer: R1 and
+R4 each also fail "an answer whose two dates are empty" (7 each). Five new:
+
+| Mutant | Must fail |
+|---|---|
+| D1 a cancellation by date counts as not cancelling | the dated test; the shared core's report |
+| D2 a recorded cancellation counts as not cancelling | the recorded test |
+| D3 the core does not report it | dated; recorded; the shared core's report |
+| D4 "keep" says "already active and set to renew" | dated; recorded |
+| D5 "keep" gives the status "already_active" | dated; recorded |
+
+Every one of the 20 new-module tests is named by at least one mutant.
+
+**3. Regression** (the billing app, serial; own grant, after the gate's record): OK. Its raw log is
+committed before anything else is touched.

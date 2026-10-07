@@ -13,7 +13,7 @@ EVIDENCE.md also says, for each mutant, whether the failing set is exactly
 the written one or holds more (the four modules have many older tests I
 have read only in part).
 
-Every one of the new module's 16 tests is named by at least one mutant
+Every one of the new module's 20 tests is named by at least one mutant
 (checked below), so the four that are green on the old code are seen red
 here.
 
@@ -75,6 +75,13 @@ C_RESULT = C + "test_it_reports_a_local_correction_and_no_change_at_stripe"
 C_PLAN = C + "test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation"
 X_SAYS = X + "test_it_says_what_it_did_and_records_when"
 X_SECOND = X + "test_a_second_cancel_still_says_already_and_keeps_the_date"
+# The delta (a cancellation Stripe has scheduled), added 19:10 before any run of it.
+K_DATED = K + "test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away"
+K_RECORDED = K + "test_a_cancellation_stripe_has_recorded_is_not_corrected_away"
+K_EMPTY = K + "test_an_answer_whose_two_dates_are_empty_is_still_corrected"
+C_SCHEDULED = (
+    C + "test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing"
+)
 
 # Older tests, read line by line for the mutants that name them.
 REACT = (
@@ -100,6 +107,7 @@ TRIAL_NO_DATE = STAMPS + "test_cancelling_a_trial_does_not_fabricate_a_date"
 NEW_TESTS = [
     RENEW, PAGE, ANNUAL, STRAY, S_RENEW, S_STRAY, K_AFTER, K_FIX, K_STALE,
     K_GUESS, K_REAL, K_TRIAL, C_RESULT, C_PLAN, X_SAYS, X_SECOND,
+    K_DATED, K_RECORDED, K_EMPTY, C_SCHEDULED,
 ]  # fmt: skip
 
 # ---- anchors
@@ -156,7 +164,18 @@ NEVER_STAMP = (
 PURCHASE_NOT_RENEWING = [RENEW, PAGE, ANNUAL, STRAY, K_AFTER]
 #: What fails when "keep" does not set auto_renew on a record Stripe
 #: contradicts.
-KEEP_DOES_NOT_CORRECT = [K_FIX, K_STALE, C_RESULT, C_PLAN, R_LOCAL, R_PASTDUE]
+#: (Re-derived 19:10 with the delta: K_EMPTY is such a record too. The two
+#: dated answers are caught by the branch before the correction, so R1,
+#: R2 and R4, which change only the correcting branch, leave them green.)
+KEEP_DOES_NOT_CORRECT = [
+    K_FIX, K_STALE, C_RESULT, C_PLAN, R_LOCAL, R_PASTDUE, K_EMPTY,
+]  # fmt: skip
+SCHEDULED_IF = (
+    '            stripe_sub.get("cancel_at") or stripe_sub.get("canceled_at")\n'
+)
+SCHEDULED_SET = "            scheduled_at_provider = True\n"
+SCHEDULED_MSG = "            elif result.scheduled_at_provider:\n"
+SCHEDULED_STATUS = '                            "cancellation_scheduled"\n'
 
 MUTANTS = {
     # ---- the purchase from the plans page (finalize_trial_to_paid_conversion)
@@ -244,6 +263,37 @@ MUTANTS = {
         NOTICE,
         "                resumed_from_cancellation = reactivation.changed\n",
         [C_PLAN],
+    ),
+    # ---- the delta: a cancellation Stripe has scheduled
+    "D1_a_cancellation_by_date_counts_as_not_cancelling": (
+        STRIPE,
+        SCHEDULED_IF,
+        '            stripe_sub.get("canceled_at")\n',
+        [K_DATED, C_SCHEDULED],
+    ),
+    "D2_a_recorded_cancellation_counts_as_not_cancelling": (
+        STRIPE,
+        SCHEDULED_IF,
+        '            stripe_sub.get("cancel_at")\n',
+        [K_RECORDED],
+    ),
+    "D3_the_core_does_not_report_it": (
+        STRIPE,
+        SCHEDULED_SET,
+        "            pass\n",
+        [K_DATED, K_RECORDED, C_SCHEDULED],
+    ),
+    "D4_keep_says_already_active_and_set_to_renew": (
+        VIEWS,
+        SCHEDULED_MSG,
+        "            elif False:\n",
+        [K_DATED, K_RECORDED],
+    ),
+    "D5_keep_gives_the_status_already_active": (
+        VIEWS,
+        SCHEDULED_STATUS,
+        '                            "already_active"\n',
+        [K_DATED, K_RECORDED],
     ),
     # ---- what the two requests answer
     "V1_keep_says_resumed_normally_for_a_corrected_record": (
