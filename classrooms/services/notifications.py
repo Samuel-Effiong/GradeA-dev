@@ -100,15 +100,25 @@ def send_student_login_invitation_email(student, course, generated_password):
 
     It does not raise for an outage. Any other error from the dispatch is
     not swallowed (`safe_delay` lets it through), as before H-152: the
-    conversion command then stops at that account, whose conversion is
-    undone with its transaction while the accounts before it stay
-    converted; a teacher's add answers 500 and is undone, as it always was.
+    conversion command then lists that account as not converted, undoes
+    it with its transaction and goes on; a teacher's add answers 500 and
+    is undone, as it always was.
+
+    A course need not have a teacher (`Course.teacher` may be empty), and
+    the conversion command can meet such a course. The email then names
+    nobody: "You have been invited to join <course> on Grade A+." (H-152).
+    A teacher's add never meets one: every add route looks the course up
+    among the caller's own.
     """
     login_url = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/login"
 
+    inviter = course.teacher.get_full_name() if course.teacher_id else ""
+    if inviter:
+        invitation = f"{inviter} has invited you to join {course.name} on Grade A+."
+    else:
+        invitation = f"You have been invited to join {course.name} on Grade A+."
     top_content = (
-        f"{course.teacher.get_full_name()} has invited you to join "
-        f"{course.name} on Grade A+.\n\n"
+        f"{invitation}\n\n"
         "Your account is ready - log in below with your email and the "
         f"temporary password: {generated_password}"
     )

@@ -35,6 +35,9 @@ import sys
 TESTS = [
     "users.tests_old_activation_door_is_closed",
     "classrooms.tests_conversion_needs_a_queued_email",
+    # The second delta's (one account never stops the conversion). The
+    # delta's gate, at 51cd2773, ran the first two ("ran 22").
+    "classrooms.tests_conversion_goes_on_past_one_account",
 ]
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 HERE = pathlib.Path("docs/evidence/h152-old-activation-door-closed")
@@ -97,6 +100,38 @@ DELTA_TESTS = [
     PREVIEW,
     ADD_NEW,
     ADD_NEVER,
+]
+
+# ---- the second delta: one account never stops the conversion
+G = "classrooms.tests_conversion_goes_on_past_one_account."
+G_SENDER = G + "TheSenderDoesNotNeedATeacherTest."
+NO_TEACHER = G_SENDER + "test_with_no_teacher_the_email_names_nobody"
+WITH_TEACHER = G_SENDER + "test_with_a_teacher_the_wording_is_as_it_was"
+ORPHAN = (
+    G + "AStudentOfACourseWithNoTeacherIsConvertedTest."
+    "test_the_conversion_converts_them_and_goes_on"
+)
+G_ERR = G + "OneAccountNeverStopsTheRunTest."
+E_LEFT = G_ERR + "test_the_account_is_left_as_it_was_and_listed_by_the_errors_type"
+E_GOES_ON = G_ERR + "test_the_run_goes_on_to_the_others"
+E_SUMMARY = G_ERR + "test_the_summary_counts_them_apart_from_the_unqueued"
+E_TYPE = G_ERR + "test_the_line_carries_the_errors_type_and_never_its_text"
+E_SECOND = G_ERR + "test_a_second_run_takes_them_up_again"
+E_INTERRUPT = G_ERR + "test_an_interrupt_from_the_keyboard_still_stops_the_run"
+E_DATABASE = (
+    G + "ADatabaseErrorStopsTheRunTest.test_the_run_stops_and_says_which_account"
+)
+DELTA2_TESTS = [
+    NO_TEACHER,
+    WITH_TEACHER,
+    ORPHAN,
+    E_LEFT,
+    E_GOES_ON,
+    E_SUMMARY,
+    E_TYPE,
+    E_SECOND,
+    E_INTERRUPT,
+    E_DATABASE,
 ]
 
 DOOR_ANSWER = (
@@ -195,17 +230,23 @@ MUTANTS = {
         "        if False:\n            raise EmailNotQueued\n",
         [LEFT, SUMMARY, SECOND, NOBODY],
     ),
-    "Q04_one_unqueued_email_stops_the_whole_run": (
+    # Until the second delta this mutant stopped the whole run and failed
+    # five tests (the delta's gate at 51cd2773 shows it). Since then an
+    # error that is not caught as "not queued" is caught as a plain error:
+    # the run goes on and a second run still takes the account up, so
+    # GOES_ON and SECOND pass under it; what it breaks is the kind of line
+    # and of count. GOES_ON is still named by Q02.
+    "Q04_an_unqueued_email_is_reported_as_a_plain_error": (
         COMMAND,
         "                except EmailNotQueued:\n",
         "                except KeyError:\n",
-        [LEFT, GOES_ON, SUMMARY, SECOND, NOBODY],
+        [LEFT, SUMMARY, NOBODY],
     ),
     "Q05_the_conversion_is_not_undone": (
         COMMAND,
         "    @staticmethod\n    @transaction.atomic\n    def _convert(",
         "    @staticmethod\n    def _convert(",
-        [LEFT, SUMMARY, SECOND],
+        [LEFT, SUMMARY, SECOND, E_LEFT, E_SUMMARY, E_SECOND, E_INTERRUPT],
     ),
     "Q06_the_summary_does_not_count_them": (
         COMMAND,
@@ -215,7 +256,9 @@ MUTANTS = {
     ),
     "Q07_the_line_shows_the_address": (
         COMMAND,
+        '                        "NOT converted (email could not be queued): "\n'
         '                        f"student {student.pk}"\n',
+        '                        "NOT converted (email could not be queued): "\n'
         '                        f"student {student.email}"\n',
         [LEFT, NOBODY],
     ),
@@ -257,6 +300,68 @@ MUTANTS = {
         "        return student, True\n",
         [ADD_NEVER],
     ),
+    # ---- the second delta. Each of its nine tests is named by at least
+    # one mutant (asserted in check()).
+    "R01_the_email_reads_the_teacher_whether_there_is_one_or_not": (
+        NOTIFY,
+        '    inviter = course.teacher.get_full_name() if course.teacher_id else ""\n',
+        "    inviter = course.teacher.get_full_name()\n",
+        [NO_TEACHER, ORPHAN],
+    ),
+    "R02_the_sentence_without_a_teacher_is_another": (
+        NOTIFY,
+        '        invitation = f"You have been invited to join {course.name} on Grade A+."\n',
+        '        invitation = f"Someone has invited you to join {course.name} on Grade A+."\n',
+        [NO_TEACHER],
+    ),
+    "R03_the_teachers_name_is_never_used": (
+        NOTIFY,
+        "    if inviter:\n",
+        "    if False:\n",
+        [WITH_TEACHER],
+    ),
+    "R04_an_error_in_one_account_stops_the_run_again": (
+        COMMAND,
+        "                except Exception as exc:\n",
+        "                except KeyError as exc:\n",
+        [E_LEFT, E_GOES_ON, E_SUMMARY, E_TYPE, E_SECOND],
+    ),
+    "R05_the_line_carries_the_errors_text": (
+        COMMAND,
+        '                        f"NOT converted ({type(exc).__name__}): "\n',
+        '                        f"NOT converted ({exc}): "\n',
+        [E_LEFT, E_TYPE],
+    ),
+    "R06_the_errors_are_not_counted": (
+        COMMAND,
+        "                    errors += 1\n",
+        "                    errors += 0\n",
+        [E_SUMMARY],
+    ),
+    "R07_an_account_that_failed_is_listed_as_converted": (
+        COMMAND,
+        "                    errors += 1\n                    continue\n",
+        "                    errors += 1\n                    pass\n",
+        [E_LEFT, E_SUMMARY],
+    ),
+    "R08_an_interrupt_is_swallowed_as_that_accounts_error": (
+        COMMAND,
+        "                except Exception as exc:\n",
+        "                except BaseException as exc:\n",
+        [E_INTERRUPT],
+    ),
+    "R09_a_database_error_is_taken_for_that_accounts_and_the_run_goes_on": (
+        COMMAND,
+        "                except AnyDatabaseError as exc:\n",
+        "                except KeyError as exc:\n",
+        [E_DATABASE],
+    ),
+    "R10_the_stop_line_shows_the_address": (
+        COMMAND,
+        '                        f"at student {student.pk}. That account is not "\n',
+        '                        f"at student {student.email}. That account is not "\n',
+        [E_DATABASE],
+    ),
 }
 
 
@@ -279,7 +384,7 @@ def check():
         ast.parse(source.replace(old, new, 1))
         assert expected and len(set(expected)) == len(expected), name
     named = {test for (_, _, _, expected) in MUTANTS.values() for test in expected}
-    unnamed = [test for test in DELTA_TESTS if test not in named]
+    unnamed = [test for test in DELTA_TESTS + DELTA2_TESTS if test not in named]
     assert not unnamed, f"delta tests no mutant names: {unnamed}"
     print(len(MUTANTS), "mutants: anchors unique, all parse, expected tests named")
 
