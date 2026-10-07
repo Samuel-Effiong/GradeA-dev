@@ -308,3 +308,42 @@ with a password part, no name-and-value line.
 What stands for this row: the gate at fd5245dd and this regression on the same code.
 
 Written 17:40 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1.
+
+### The six lines again: the whole made address removed (Verifier 1's note N7; Senior Manager's ruling)
+
+Written 18:09 WAT, 2026-10-07, after the row was verified at a1397c5b. Docs only; no code or test differs.
+
+The masking above left each of the six lines with the SHAPE of an address with a password part (a
+label in the password position). The standing rule is that no committed text has that shape, even
+with a placeholder or a masked label, and the credential tool would list six address rows for these
+two files at a batch's first gate. So the two logs are committed again, made from the same RAW
+files by ONE substitution, which replaces the whole made address:
+
+    redis://:<12 hexadecimal characters>@queue.invalid:6379/0   ->   [made queue address removed by ed]
+
+- `prefix_base_production_failing_fd5245dd.txt.gz`: lines **311 and 321** (2 lines, 426 in the file).
+- `mutant_logs_fd5245dd/H4_the_contexts_are_left_alone.txt.gz`: lines **11, 21, 29 and 30** (4 lines, 39 in the file).
+
+Checked by program before this commit: applying that one substitution to each raw file gives the
+committed bytes exactly; no line of either file matches the address-with-a-password pattern (the
+wide one, empty user name allowed). This replaces the section "Exactly which lines of two
+committed logs were masked" above as the description of what is committed NOW; that section
+describes the files as they were from 682f192e to a1397c5b.
+
+Said plainly, three things:
+- **The earlier commits of this branch (682f192e, a1397c5b) keep the masked-label form in history.**
+  Accepted by the Senior Manager. No file in any commit holds the made address with its value in place.
+- **The made random value itself is still in both logs, on its own**, as the quoted text an assertion
+  looked for ("'<value>' unexpectedly found in ..."), in these and in the earlier commits. It is
+  twelve random characters made by the test for a host that does not exist; it is not in an
+  address. Row H-169 (tests should not print such values) covers it.
+- The expected text `redis://[credentials]@queue.invalid:6379/0` (H-89's scrubbed form, no password
+  part) remains in both logs, as it stands in H-89's own tests.
+
+The raw files stay outside the repository, unchanged: `~/Documents/Projects/GAP-ed-scripts/logs/h167_raw_fd5245dd/`
+(sha256 starts e00b70532b05a722 and 7bece1cde8357bb4).
+
+Also ruled on Verifier 1's notes: N5 (the SDK's `data_collection` option: read this row again
+before setting it or upgrading sentry-sdk) becomes a comment beside the two keywords, to ride in
+H-169 or the guard row, not on this verified tip; the guard for a `sentry_sdk.init` elsewhere or
+under another name is a LOW row of its own; N6 (main) is with the user.
