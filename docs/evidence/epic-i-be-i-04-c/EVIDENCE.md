@@ -474,3 +474,37 @@ phrases of this file were corrected (words only): the item 5 row no longer says 
 is unknown, and the delta is described as three commits. No code or test changed.
 
 Next: the Release Engineer's one full run on the final tip; its log is committed here when done.
+
+### The one full run at 0eaa97c4, 2026-10-07 (the Release Engineer's, rule 15)
+
+Made by the Release Engineer on the final tip, after the Checker's verdict, during a quiet period
+it called. 14:28:28 to 14:37:15 WAT, exit 0, wall 527 seconds. **`Ran 6632 tests in 488.842s`,
+`OK (skipped=30)`**; no FAIL or ERROR header; the stall watchdog did not fire; no suspend during
+the run; mypy passed and `makemigrations` said `No changes detected` before it. Load 3.47 at the
+start, 7.00 at the end. These figures are the Release Engineer's report and its summary file; I
+checked the two result lines and the absence of FAIL and ERROR headers in the log by program.
+
+Per app (the summary file): ai_processor 996, assignments 663, audit 367, AutoGrader 613, billing
+2139, classrooms 434, dashboard 270, students 452, users 698.
+
+The 30 skips, counted from the log by their own words: 12 real paid-AI tests (opt-in); 8 and 1
+load tests (opt-in); 2 live Google tests, 1 live network check and 1 other network test (opt-in);
+1 that needs Redis switched on; 2 that cannot fork inside a parallel worker; 2 benchmarks run by
+label only.
+
+Files, as handed over: `gate10_slice_c_r1.log.xz` (the whole log, 114312 lines, packed with xz byte
+for byte before staging; gzip left it over the repository's 500 KB limit for one file, as with
+the earlier full run's log), `gate10_slice_c_r1.out.txt` (the summary) and `gate10_slice_c.sh.txt` (the
+script; the two `.txt` endings are mine, the bytes are the Release Engineer's).
+`full_run_sha256.txt` holds the sha256 of each as handed over (7a8cad77..., e23ffd77...,
+3ec782e8...), equal to the ones the Release Engineer gave.
+
+Checked by program before the commit, names and counts only, no value printed: no line with a
+password inside an address; 43 lines of a NAME=value shape, of which 34 are sub-check labels
+(keys=name) and 9 are lines of code shown in a traceback, where the right-hand side is an
+expression, not a value; 11 lines with the word "secret": 6 test names, 3 lines of test output
+beside them, and the 2 warning lines of a test's blocked address that the Checker's first record
+describes for the earlier full run.
+
+This closes slice C's evidence. The merge into the Phase 2 line is the Release Engineer's, on the
+Senior Manager's OK.
