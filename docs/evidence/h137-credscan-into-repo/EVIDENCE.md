@@ -269,3 +269,43 @@ start, 7.45 at the end. Nothing in these runs is timed.
 `red_run_tool_of_first_fix_d6a1396c.txt.gz`, `modules_and_guards_d6a1396c.txt.gz`,
 `mutation_log_d6a1396c.txt`, `mutation_results_d6a1396c.json`, `mutant_logs_d6a1396c.tar.gz`,
 `raw_logs_sha256_d6a1396c.txt` (taken before packing).
+
+## A second point from Verifier 2, 2026-10-07 12:54:26 WAT: a bare value cut off by the end of what is read
+
+Read by Verifier 2 in the cure itself (`8d78a179`), by arithmetic, before any run; confirmed by me
+with direct calls. The pattern reads 420 characters past a name's end. With hundreds of blanks
+between the name and the sign, a BARE value can begin inside those 420 characters and end
+outside them, and the pattern is content with the part it can see: 410 blanks, the sign and a
+twelve-character value gave a LITERAL row of length 9; 416 blanks gave a "code-expression" of
+length 3 and no hit. My docstring called this "not seen". It was seen, cut short, and passed off
+as the value.
+
+**What I chose** (Verifier 2 offered words only, or a guard; the Senior Manager asked which): the
+GUARD, with the words. Tests first in `6a8c1e60`, the change in `71b9807e`: a bare match that
+reaches the end of what was read, while the line goes on with a character that could continue
+the value, is not recorded as an assignment. It gets a row of its own, `cut` /
+`VALUE-CUT-AT-WINDOW` with the length that was read, listed in every form of the report and in
+the hit list, and it is kept out of the comparison of values. A value that ends exactly where
+the reading ends, followed by a blank, a separator or the end of the line, is whole. A QUOTED
+value that runs past the reading still gives no match at all; the docstring says so.
+
+**Two new tests** (`LongLineCutValueTests`): the cut case at two distances; the "ends exactly
+there" case with three kinds of ending. 28 tests in all.
+
+**Expected for the third gate, written before any run** (from direct calls of the four tool
+versions' functions on small inputs, no test loader; and by reading):
+- Step 0, the tool as moved (`840619b4`): Ran 28, 16 distinct tests failing (the 14 of the second
+  gate and the two new ones).
+- Step 0b, the tool of the first fix (`5bff2762`): Ran 28, FOUR distinct tests failing: the two
+  of the second gate and both new ones (there the reading ended four characters sooner, so even
+  the "ends exactly there" value was cut).
+- Step 0c, the tool of the second fix (`8d78a179`): Ran 28, exactly ONE test failing:
+  `test_a_bare_value_cut_by_the_end_of_the_stretch_is_reported_as_cut`.
+- Step 1: the module and the 23 guard modules, OK (Ran 314).
+- Step 2: 26 mutants KILLED, each by exactly its named set. New: C1 "a cut value is recorded as
+  the part seen" (the cut test), C2 "a value that ends where the reading ends is called cut" (the
+  whole-value test), C3 "the report does not list cut values" (the cut test). Changed sets: L1,
+  L7, L8 and L10 gain the new tests they must fail (L10, a name not followed forward, now fails
+  both, since the reading then ends four characters sooner). The sets of L4, L8, L9, L10, C1, C2
+  and C3 were checked by direct calls on copies changed in memory; the rest are by reading or
+  were seen in the second gate.

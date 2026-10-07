@@ -30,7 +30,7 @@ import sys
 HERE = pathlib.Path("docs/evidence/h137-credscan-into-repo")
 TOOL = "scripts/credscan.py"
 MODULE = "AutoGrader.tests_credscan"
-LISTED = '            or kind in ("url", "archive", "longline")\n'
+LISTED = '            or kind in ("url", "archive", "longline", "cut")\n'
 
 #: (name, what, old, new)
 MUTANTS = [
@@ -50,7 +50,7 @@ MUTANTS = [
         "L3",
         "the report does not list long lines",
         LISTED,
-        '            or kind in ("url", "archive")\n',
+        '            or kind in ("url", "archive", "cut")\n',
     ),
     (
         "L4",
@@ -90,8 +90,8 @@ MUTANTS = [
     (
         "L9",
         "the pattern is searched for over the stretch before the name too (the fault Verifier 2 found)",
-        "        m = ASSIGN.match(line, start, end + VALUE_AFTER)\n",
-        "        m = ASSIGN.search(line, max(0, start - NAME_BEFORE), end + VALUE_AFTER)\n",
+        "        m = ASSIGN.match(line, start, stop)\n",
+        "        m = ASSIGN.search(line, max(0, start - NAME_BEFORE), stop)\n",
     ),
     (
         "L10",
@@ -105,6 +105,24 @@ MUTANTS = [
         "",
     ),
     (
+        "C1",
+        "a bare value cut off by the end of what is read is recorded as the part seen",
+        "        if cut:\n",
+        "        if False:\n",
+    ),
+    (
+        "C2",
+        "a bare value that ends where the reading ends is called cut",
+        "            and stop < len(line)\n            and line[stop] not in VALUE_ENDS\n",
+        "            and stop < len(line)\n",
+    ),
+    (
+        "C3",
+        "the report does not list cut values",
+        LISTED,
+        '            or kind in ("url", "archive", "longline")\n',
+    ),
+    (
         "N1",
         "an archive nested too deep is not reported",
         '            rows[("archive", name, "NOT-OPENED:nested-too-deep", 0)] += 1\n',
@@ -116,7 +134,7 @@ MUTANTS = [
         "N4",
         "the report does not list archive rows",
         LISTED,
-        '            or kind in ("url", "longline")\n',
+        '            or kind in ("url", "longline", "cut")\n',
     ),
     (
         "B1",
@@ -154,7 +172,7 @@ MUTANTS = [
         "F2",
         "the report does not list addresses by default",
         LISTED,
-        '            or kind in ("archive", "longline")\n',
+        '            or kind in ("archive", "longline", "cut")\n',
     ),
     (
         "F3",
@@ -207,19 +225,24 @@ TWO_WAYS = "test_one_value_written_two_ways_is_reported_as_a_group"
 WHOLE = "test_a_bare_value_far_after_an_earlier_word_is_found_whole"
 SAME = "test_a_long_line_gives_what_the_same_text_gives_on_a_short_line"
 CLOSE = "test_two_assignments_close_together_are_each_found_once"
+CUT = "test_a_bare_value_cut_by_the_end_of_the_stretch_is_reported_as_cut"
+EXACT = "test_a_bare_value_that_ends_where_the_stretch_ends_is_whole"
 
 #: The exact set of failing tests per mutant, written before any run.
 EXPECTED = {
-    "L1": {FAR, START, RUN, ONCE, LINENO, SAID, WHOLE, SAME, CLOSE},
+    "L1": {FAR, START, RUN, ONCE, LINENO, SAID, WHOLE, SAME, CLOSE, CUT, EXACT},
     "L2": {SAID},
     "L3": {SAID},
     "L4": {ONCE},
     "L5": {LIMIT},
     "L6": {FAR, START},
-    "L7": {WHERE, LINENO, WHOLE, CLOSE},
-    "L8": {FAR, START, RUN, LINENO, WHOLE, SAME, CLOSE},
+    "L7": {WHERE, LINENO, WHOLE, CLOSE, CUT},
+    "L8": {FAR, START, RUN, LINENO, WHOLE, SAME, CLOSE, CUT, EXACT},
     "L9": {ONCE, WHOLE, SAME},
-    "L10": {ONCE},
+    "L10": {ONCE, CUT, EXACT},
+    "C1": {CUT},
+    "C2": {EXACT},
+    "C3": {CUT},
     "N1": {FOURTH, DEFAULT},
     "N2": {FOURTH, DEFAULT},
     "N3": {THREE, FOURTH, DEFAULT},
