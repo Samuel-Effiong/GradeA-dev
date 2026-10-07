@@ -369,3 +369,15 @@ Every one of the 20 new-module tests is named by at least one mutant.
 
 **3. Regression** (the billing app, serial; own grant, after the gate's record): OK. Its raw log is
 committed before anything else is touched.
+
+### Results of the delta gate at b960b7cd (run_h174_delta_gate.sh 37e80733b8c86d19, step 1, started 19:30:41, ended 19:37:33 WAT, 2026-10-07)
+
+Console log: `gate_console_b960b7cd.txt.gz` (sha256 of the raw console starts 407f69e460e34881; rc=0). Load at start 3.41 4.29 4.34; at end 3.81 3.89 4.12. The files without the `_e92c7ea1` suffix above are from the earlier gate at e92c7ea1; these are the `_b960b7cd` ones.
+
+- **Step 0 (the old production files at d7143538):** Ran 28, FAILED (failures=17, errors=1): 18 distinct red, exactly the written list. "step 0 is as written."
+- **makemigrations --check:** no changes.
+- **Step 1 (changed and related modules plus the repo-wide guards, including tests_cache_bespoke_1114 and tests_migration_safety_check):** Ran 585, OK. Raw log `modules_and_guards_b960b7cd.txt.gz` (sha256 of the raw file starts f91c30c71bf7ba03).
+- **Step 2 (25 mutants, rule 17):** KILLED 25 of 25, each as expected, each Ran 117; SURVIVED [], KILLED_NOT_AS_EXPECTED [], BROKEN []; source clean after the mutants; the mutants' database dropped.
+- Credential patterns on every new file before this commit (wide address pattern and name=value pattern, masked): 0 lines.
+
+Not shown by this run: the billing regression (next, part 2, same grant), behaviour at Stripe, on a service, in a database or on the web page.
