@@ -1,0 +1,37 @@
+1a, H-141 at 44a23f98: what each run must show. Written 2026-10-07 15:15:16 WAT (clock read), BEFORE any run of mine.
+Neither probe below has been seen red yet; neither is evidence until its run shows it.
+
+Baseline (unmutated): students.tests_vf1a_h141_probe (2 tests, mine), students.tests_student_upload_answer (15, the
+author's) and AutoGrader.tests_submission_audience_guard (17, the author's): Ran 34, OK.
+
+W1 and W2 run my probe module ALONE (Ran 2). G1, G2, G5 and G6 run the author's guard module ALONE (Ran 17); they change
+the guard module's OWN scanner or census (a test file), to show its self-tests and census test can fail.
+A method with sub-tests may show more than one FAIL line; the set of failing METHODS is what is compared, and it must be
+exactly the set named: no more, no fewer.
+
+W1 (the constant field hands out its own value, not a copy) -> test_pa_two_answers_of_one_serializer_do_not_share_a_list
+W2 (the edit route builds its answer without the request)    -> test_pb_an_accepted_edit_shows_a_student_nothing_of_grading
+
+G1 (scanner: every serializer "has a context") -> 4 methods, all of ScannerSelfTest:
+     test_a_serializer_built_without_a_context_is_seen
+     test_the_body_of_that_test_is_not_the_staff_branch
+     test_the_else_of_another_test_is_not_the_staff_branch
+     test_a_test_for_a_teacher_does_not_count
+   (each expects "no context" for a call written without one; rule 3's context test passes, wrongly, as it must)
+G2 (scanner: the else of a test for a student is not the staff branch) -> 2 methods:
+     test_the_else_of_a_test_for_a_student_is_the_staff_branch                    (ScannerSelfTest)
+     test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch           (retrieve builds the teacher's serializer in that else)
+G5 (scanner: no serializer "has a context") -> 3 methods:
+     test_a_context_keyword_is_seen                                               (ScannerSelfTest)
+     test_the_else_of_a_test_for_a_student_is_the_staff_branch                    (ScannerSelfTest; it expects the context seen on both)
+     test_rule_3_a_student_action_gives_every_serializer_the_context
+G6 (census leaves out StudentSubmissionDetailSerializer) -> 3 methods:
+     test_the_census_found_the_serializers
+     test_rule_1_the_serializers_are_for_whom_this_guard_was_told
+     test_rule_2_each_action_builds_the_serializers_named_and_no_other
+
+Between them G1, G2 and G5 name each of the six ScannerSelfTest tests at least once; G6 names the census test.
+Every assertion of all 17 guard tests was read against each G mutant before this was written (controls too).
+
+Stop rule: a red baseline, a mutant not applied (the runner exits 8 before any test) or a differing set means RELEASE
+with the facts and no second attempt inside the grant.
