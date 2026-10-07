@@ -304,3 +304,24 @@ line matches.
 
 Written 15:19 WAT. Still owed as this is committed: the regression (users and classrooms) on
 the final tip, on its own grant.
+
+### A comment-only correction after Verifier 2's read (15:55 WAT, 2026-10-07)
+
+Verifier 2 read the row at 1a2995f2 (this branch's 8bde93a0 base-updated onto H-148's final tip)
+and found no fault in code or tests, and one wrong sentence of mine in a docstring: the
+invitation sender's note said "It still never raises". It does not raise for a queue OUTAGE;
+any other error from the dispatch is let through by `safe_delay`, as before this row. The
+docstring of `send_student_login_invitation_email` and the module's opening note in
+`classrooms/services/notifications.py` now say what happens then: the conversion command stops
+at that account, whose conversion is undone with its transaction, the accounts before it stay
+converted; a teacher's add answers 500 and is undone, as it always was.
+
+No line of code is changed: compared by program, the file's syntax tree with every docstring
+emptied is identical before and after. `mutate.py --check` passes after it (20 mutants, no
+anchor moved). By the Senior Manager's word no gate is repeated for a docstring; the regression
+runs on the tip that carries it. Not tested by me: the behaviour the corrected sentence
+describes (an error that is not an outage); Verifier 2 has a probe for it.
+
+The runbook (outside the repository) was corrected for the same read: the sentence that said
+an account "is STILL converted" when the queue cannot be reached is put in the past, and it now
+says not to paste the service log's "Could not dispatch task" line anywhere.
