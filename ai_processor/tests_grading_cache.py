@@ -74,6 +74,37 @@ def _payload(evaluations):
     return {"question_evaluations": evaluations}
 
 
+# BE-I-04 slice B: the key also holds the assignment's context and the
+# prompt and settings versions, and a stored value names the model that
+# answered. These unit tests hold everything but the question, the answer
+# and the intended model fixed; tests_grading_cache_key_v2 covers the rest.
+_CONTEXT = grading_cache.MatchContext(
+    assignment_id="assignment-1",
+    assignment_title="A title",
+    assignment_instructions="Some instructions.",
+    custom_instructions="",
+    prompt_version="PROMPT:00000000",
+    config_version="cfg:000000000000",
+)
+
+
+def _store(question, answer_html, evaluation, *, model_name):
+    return grading_cache.store_evaluation(
+        question,
+        answer_html,
+        evaluation,
+        model_name=model_name,
+        served_model=model_name,
+        context=_CONTEXT,
+    )
+
+
+def _get(question, answer_html, *, model_name):
+    return grading_cache.get_cached_evaluation(
+        question, answer_html, model_name=model_name, context=_CONTEXT
+    )
+
+
 # ── Unit tests for the cache module itself ─────────────────────────────────
 
 
@@ -84,36 +115,28 @@ class GradingCacheUnitTest(SimpleTestCase):
 
     def test_roundtrip_hit(self):
         question = _essay(1)
-        grading_cache.store_evaluation(
-            question, "<p>my answer</p>", _evaluation(1), model_name="m"
-        )
-        hit = grading_cache.get_cached_evaluation(
-            question, "<p>my answer</p>", model_name="m"
-        )
+        _store(question, "<p>my answer</p>", _evaluation(1), model_name="m")
+        hit = _get(question, "<p>my answer</p>", model_name="m")
         self.assertIsNotNone(hit)
         self.assertTrue(hit["from_cache"])
         self.assertEqual(hit["score_awarded"], 8)
 
     def test_miss_on_different_answer(self):
         question = _essay(1)
-        grading_cache.store_evaluation(
-            question, "<p>answer A</p>", _evaluation(1), model_name="m"
-        )
-        hit = grading_cache.get_cached_evaluation(
-            question, "<p>answer B</p>", model_name="m"
-        )
+        _store(question, "<p>answer A</p>", _evaluation(1), model_name="m")
+        hit = _get(question, "<p>answer B</p>", model_name="m")
         self.assertIsNone(hit)
 
     def test_miss_on_different_model_answer(self):
         # A rubric/model_answer edit must change the key automatically —
         # there is nothing to invalidate by hand.
-        grading_cache.store_evaluation(
+        _store(
             _essay(1, model_answer="Old model answer."),
             "<p>my answer</p>",
             _evaluation(1),
             model_name="m",
         )
-        hit = grading_cache.get_cached_evaluation(
+        hit = _get(
             _essay(1, model_answer="New model answer."),
             "<p>my answer</p>",
             model_name="m",
@@ -121,55 +144,39 @@ class GradingCacheUnitTest(SimpleTestCase):
         self.assertIsNone(hit)
 
     def test_miss_on_different_model_name(self):
-        grading_cache.store_evaluation(
-            _essay(1), "<p>my answer</p>", _evaluation(1), model_name="model-a"
-        )
-        hit = grading_cache.get_cached_evaluation(
-            _essay(1), "<p>my answer</p>", model_name="model-b"
-        )
+        _store(_essay(1), "<p>my answer</p>", _evaluation(1), model_name="model-a")
+        hit = _get(_essay(1), "<p>my answer</p>", model_name="model-b")
         self.assertIsNone(hit)
 
     def test_answer_whitespace_edges_are_ignored(self):
-        grading_cache.store_evaluation(
-            _essay(1), "  <p>my answer</p>  ", _evaluation(1), model_name="m"
-        )
-        hit = grading_cache.get_cached_evaluation(
-            _essay(1), "<p>my answer</p>", model_name="m"
-        )
+        _store(_essay(1), "  <p>my answer</p>  ", _evaluation(1), model_name="m")
+        hit = _get(_essay(1), "<p>my answer</p>", model_name="m")
         self.assertIsNotNone(hit)
 
     @override_settings(GRADING_ANSWER_CACHE_ENABLED=False)
     def test_disabled_never_stores_or_hits(self):
-        grading_cache.store_evaluation(
-            _essay(1), "<p>my answer</p>", _evaluation(1), model_name="m"
-        )
-        hit = grading_cache.get_cached_evaluation(
-            _essay(1), "<p>my answer</p>", model_name="m"
-        )
+        _store(_essay(1), "<p>my answer</p>", _evaluation(1), model_name="m")
+        hit = _get(_essay(1), "<p>my answer</p>", model_name="m")
         self.assertIsNone(hit)
 
     @override_settings(GRADING_ANSWER_CACHE_TTL_SECONDS=999)
     def test_store_uses_the_configured_ttl(self):
         with patch("ai_processor.grading_cache.cache") as mock_cache:
-            grading_cache.store_evaluation(
-                _essay(1), "<p>my answer</p>", _evaluation(1), model_name="m"
-            )
+            _store(_essay(1), "<p>my answer</p>", _evaluation(1), model_name="m")
             self.assertEqual(mock_cache.set.call_args.kwargs["timeout"], 999)
 
     def test_backend_error_degrades_to_a_miss_not_a_crash(self):
         with patch(
             "ai_processor.grading_cache.cache.get", side_effect=Exception("boom")
         ):
-            hit = grading_cache.get_cached_evaluation(
-                _essay(1), "<p>my answer</p>", model_name="m"
-            )
+            hit = _get(_essay(1), "<p>my answer</p>", model_name="m")
         self.assertIsNone(hit)
 
     def test_backend_error_on_write_does_not_raise(self):
         with patch(
             "ai_processor.grading_cache.cache.set", side_effect=Exception("boom")
         ):
-            grading_cache.store_evaluation(
+            _store(
                 _essay(1), "<p>my answer</p>", _evaluation(1), model_name="m"
             )  # must not raise
 

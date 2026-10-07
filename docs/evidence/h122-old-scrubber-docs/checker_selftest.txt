@@ -1,0 +1,11 @@
+test_baselined_file_is_not_reported_as_new (__main__.BaselineTests.test_baselined_file_is_not_reported_as_new) ... ok
+test_does_not_flag_id_argument (__main__.FindViolationsTests.test_does_not_flag_id_argument) ... ok
+test_does_not_flag_unrelated_call (__main__.FindViolationsTests.test_does_not_flag_unrelated_call) ... ok
+test_flags_direct_email_argument (__main__.FindViolationsTests.test_flags_direct_email_argument) ... ok
+test_flags_get_full_name_call (__main__.FindViolationsTests.test_flags_get_full_name_call) ... ok
+test_flags_multiline_call (__main__.FindViolationsTests.test_flags_multiline_call) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.005s
+
+OK

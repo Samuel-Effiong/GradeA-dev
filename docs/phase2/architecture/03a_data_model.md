@@ -490,6 +490,18 @@ exactly one is authoritative.
 **Scoped by:** `submission.assignment.course.teacher`, and the student for
 their own.
 
+> **As decided (note added 2026-10-06, BE-I-04).** This table is **not built
+> yet**. The founder's representative chose the small version of BE-I-04 on
+> 2026-10-06: the label of a grade is first recorded as six columns on
+> `students.StudentSubmission` (§4.4), written in the same `UPDATE` as the
+> score. **That is the first form of the grading record. A later stage
+> improves on it: this table of grading runs, built beside re-grading
+> (BE-I-05) or feedback editing (BE-E-08), whichever comes first, and filled
+> from those columns**, so every grade made since the columns shipped carries
+> its real label into the table. Until the table exists, a re-grade
+> overwrites the label with the newer run's, as it overwrites the score; the
+> audit trail keeps the score before and after each grading.
+
 **This is the largest schema change in Part 1.** `StudentSubmission` holds
 `score`, `score_percentage`, `max_points`, `feedback` and `graded_at` inline
 today (`students/models.py:53-81`). Those move here.
@@ -700,6 +712,42 @@ winner is recorded on `SubmissionGrading.strictness_source`.
 |---|---|---|---|---|---|
 | `submission_status` | CharField(16) | no | `SUBMITTED` | add. `SUBMITTED` / `MISSING` / **`EXCUSED`** / `GRADED`. Excused and missing have documented, API-visible treatment in the weighted average (BE-E-07): `EXCUSED` is excluded from both numerator and denominator; `MISSING` counts as 0 | BE-E-07 |
 | `score`, `score_percentage`, `max_points`, `feedback`, `graded_at` | — | — | — | **remove in the §2.12 contract step** | BE-I-05 |
+| `grading_prompt_version`, `grading_config_version` | CharField(128) | no | `unlabelled` (also the database default) | **added 2026-10-06, BE-I-04, migration `students/0031`.** Version of the grading instructions; version of the grading settings, read once per run (`ai_processor/grading_config.py`) | BE-I-04, FR-I-04 |
+| `grading_strictness` | CharField(32) | no | `unlabelled` | added with the above. `not_yet_set` until the strictness scale exists | BE-I-04 |
+| `grading_model` | CharField(255) | no | `unlabelled` | added with the above. The model that marked the most answers, as the provider named it; `deterministic`; or `unknown` | BE-I-04 |
+| `grading_fallback_used` | CharField(16) | no | `unlabelled` | added with the above. `yes` / `no` / `unknown` / `not_applicable` | NFR-MDL-03 |
+| `grading_release` | CharField(64) | no | `unlabelled` | added with the above. The release that did the grading, or `none`; beside the settings version, never inside it | BE-I-04 |
+
+> **First form of the grading record (note added 2026-10-06, BE-I-04).** The
+> six `grading_*` label columns above are the first form of the record of
+> what produced a grade. **A later stage improves on it: the table of grading
+> runs (§2.12), built beside re-grading or feedback editing and filled from
+> these columns.** They are dropped again in §2.12's contract step, with the
+> grade columns. `unlabelled` means no label recorded: graded before labels
+> existed, or not graded. As of slice A the columns exist and nothing writes
+> them; the label is written with the grade in a later slice of this stage.
+
+> **When a saved AI answer is reused (note added 2026-10-06, BE-I-04
+> slice B).** Not a table: the store is the cache
+> (`ai_processor/grading_cache.py`). A saved answer is reused only when
+> everything sent to the AI for that question matches: the whole question as
+> serialised into the prompt; the answer's text, its `answer_status` and its
+> `transcription_notes`; the assignment's title and instructions; the
+> teacher's extra instructions as spliced; the grading prompt's version and
+> the grading settings' version; and the intended model. **Stated limits.**
+> The match does not look at the other questions of the paper, the other
+> answers or the answer's place in a batch, which the AI also sees in the
+> same call. Nor does it look at the answer's `source_page`, its
+> `confidence` or its own copy of `question_text`, which are sent too: they
+> differ from student to student for the same text, so matching on them
+> would end all reuse. A question's image is matched by its address, not its
+> content: a new picture put at the same address is not seen. The release is
+> not part of the match, so a deploy
+> does not empty the store. Each stored value names the model that answered.
+> **A stated choice** (accepted by the SM 2026-10-06): for `answer_status`
+> and `transcription_notes`, a field that is missing, null, empty or only
+> whitespace counts as "nothing said" and matches as one; outer whitespace is
+> not compared.
 
 ### 4.5 `students.BackgroundProcessingTask`
 

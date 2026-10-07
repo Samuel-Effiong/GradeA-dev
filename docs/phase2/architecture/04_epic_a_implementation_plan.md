@@ -237,6 +237,30 @@ or alongside the emitter, not deferred to a "someday" cleanup:
    above, since a lint rule only catches what it's told to look for and a
    raw `f"{exc}"` on a future exception is not a static-analysis-catchable
    pattern.
+
+   > **As built (note added 2026-10-05, H-122).** Items 2 and 3 are not
+   > what the code has today.
+   > - Item 2 is an AST check, not a grep: `scripts/check_no_pii_in_logs.py`
+   >   as a pre-commit hook, and the same rule as a test in
+   >   `AutoGrader/tests_no_pii_in_logs.py` (H-91). The script's baseline
+   >   file `scripts/pii_log_baseline.txt` has had no entry since the
+   >   bundle 7 merge-down.
+   > - Item 3 was first built as one `before_send` function in
+   >   `AutoGrader/sentry_scrubbing.py`. The bundle 7 merge-down
+   >   (phase2/epic-a 2919e5aa) replaced it with beta's H-89 module of the
+   >   same file name: three hooks, `scrub_event` (passed as `before_send`
+   >   and `before_send_transaction`), `scrub_breadcrumb`
+   >   (`before_breadcrumb`) and `scrub_log` (`before_send_log`), wired in
+   >   `AutoGrader/settings.py`. They remove email addresses and URL
+   >   passwords from text and withhold a part they cannot scrub.
+   > - H-89 also added a log record factory, `AutoGrader/log_scrubbing.py`,
+   >   which does the same for what log handlers print. It is off under
+   >   the test runner.
+   >
+   > The text above and the FR-A-04 row in the test mapping are left as
+   > planned. Evidence: `docs/evidence/h89-log-address-scrubber/`,
+   > `docs/evidence/h91-ids-only-logs-everywhere/`,
+   > `docs/evidence/epic-a-merge-down-b7/`.
 4. A policy decision, not just a fix, for `exc_info=e`/`str(e)` on broad
    excepts in the grading pipeline specifically (`ai_processor/services.py`)
    — this is where the systemic pattern is most likely to reintroduce a
