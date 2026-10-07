@@ -246,6 +246,16 @@ MUTANTS = [
         1,
         TESTS,
     ),
+    (
+        "U21",
+        "to the grading pipeline a value that is not a list is no answers "
+        "(not changed by this row; here to show two controls can fail)",
+        AI,
+        "        if not isinstance(answers, list):\n            answers = []\n",
+        "",
+        1,
+        TESTS,
+    ),
 ]
 
 LOAD_FAILURE = "unittest.loader._FailedTest"
