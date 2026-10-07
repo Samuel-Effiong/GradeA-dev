@@ -309,3 +309,37 @@ versions' functions on small inputs, no test loader; and by reading):
   both, since the reading then ends four characters sooner). The sets of L4, L8, L9, L10, C1, C2
   and C3 were checked by direct calls on copies changed in memory; the rest are by reading or
   were seen in the second gate.
+
+## Results of the third gate, at `07c624f8` (a grant to myself, logged first; 2026-10-07 12:54:40 to 13:00:44 WAT)
+
+One run of `run_h137_gate3.sh 07c624f8`, serial, 6G cap; no other test run of ours was going.
+Load (1 minute) 6.74 at the start, 5.61 at the end. Nothing in these runs is timed.
+
+| Step | Result, from the raw log | Written beforehand |
+|---|---|---|
+| 0 the module against the tool as moved (`840619b4`) | exit 1: Ran 28, FAILED (failures=167): 16 distinct tests | 16 distinct tests |
+| 0b against the first fix (`5bff2762`) | exit 1: Ran 28, FAILED (failures=15): 4 distinct tests | four |
+| 0c against the second fix (`8d78a179`) | exit 1: Ran 28, FAILED (failures=2): 1 distinct test | exactly one, the cut test |
+| 1 the module and 23 guard modules at `07c624f8` | exit 0: Ran 314 tests in 158.932s, OK | OK, Ran 314 |
+| 2 the 26 mutants | exit 0: 26 KILLED, 0 SURVIVED, 0 BROKEN | 26 KILLED |
+
+- The failing tests of steps 0, 0b and 0c are, by name, exactly the ones written beforehand
+  (entries are more than tests because three tests check many cases one by one).
+- Every mutant's run has its own "Ran 28 tests" line and exit 1, and its failing tests are
+  EXACTLY the set written beforehand.
+- **Nothing differed from what was written before the run.** All 28 tests have been seen red.
+
+**Files:** `console_07c624f8.txt`, the three red runs and `modules_and_guards_07c624f8.txt` as
+`.gz`, `mutation_log_07c624f8.txt`, `mutation_results_07c624f8.json`,
+`mutant_logs_07c624f8.tar.gz`, `raw_logs_sha256_07c624f8.txt` (taken before packing).
+
+## Where the row stands, for the verifier
+
+- Code tip `71b9807e`; test tip `6a8c1e60`; everything after is evidence.
+- Three gates, the first two green on a tool that was then shown wrong by READING. So a green
+  gate of mine is not the measure here: the verifier's own probe and a whole-tree comparison of
+  the old tool against the new one on a real revision are. Neither has been run.
+- Still not done: the cost of the committed long-line code on hostile lines has not been
+  measured again after the last two changes; no hook or CI step runs the tool; the copy outside
+  the repository stays the tool of record until the batch that carries this row is pushed
+  (the Senior Manager's ruling, 2026-10-07).
