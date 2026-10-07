@@ -190,9 +190,10 @@ By module: `tests_grading_run_label` 55, all fail; `tests_grading_run_pipeline` 
 
 ## The mutants (expected failing test named before any run)
 
-51 in `mutate.py`, each with one expected failing test in `EXPECTED`: R1 to R20 on the run's
+52 in `mutate.py` (51 as first committed, and S13 added on 2026-10-07 with the carried test,
+below), each with one expected failing test in `EXPECTED`: R1 to R20 on the run's
 rules (`ai_processor/grading_run.py`); S1 to S12 on what the grading service keeps and on its
-settings reads; T1 to T10 on the save and the audit entry (`students/services.py`); A1 to A4 on
+settings reads; S13 on the store's skip of a reused answer; T1 to T10 on the save and the audit entry (`students/services.py`); A1 to A4 on
 the permitted keys and the measurement; F1 the formatting job; M1 a teacher's manual change; X1 a
 serializer; E1 a third place emitting the entry; and **V1, the reverse half of slice A's
 migration test** (the Checker's note on slice A): the migration's way back spoils the grade, on a
@@ -212,16 +213,115 @@ only from what the run kept, and the run is fed only the model our code read fro
 so there is no single line to break that leaves the rest standing; slice B's mutants B1, B2, C2
 and C3 are the ones that put a reply's own marker back.
 
+## Rule 19: each expected kill, re-read (can-fail table)
+
+Written 2026-10-07, after the base update (below) and before any run. Slice C's nine mutated
+files are the same on the new base as at a12bc6bc: the base update changed, outside the
+evidence folders, only `ai_processor/grading_cache.py` (two docstring lines),
+`ai_processor/tests_grading_cache_key_v2.py`, the Checker's test module and 03a.
+`mutate.py --check` on the new base: 52 mutants, every anchor found once, all parse.
+
+Every row is BY READING: nothing of slice C has run. "Fails because" says
+what the named test's assertion sees under the mutant. The gate's battery is
+the run that shows each red.
+
+| Mutant | Expected failing test | Fails because (by reading) |
+|---|---|---|
+| R1 | test_the_summary_call_does_not_vote | 5 backup summary calls outvote 1 main answer: model reads backup, test wants main |
+| R2 | test_fresh_and_reused_answers_are_counted_together | 3 reused backup answers no longer vote: model reads main, test wants backup |
+| R3 | test_a_two_way_tie_goes_to_the_main_model | 5:5 tie falls to the alphabet: "backup/model" before "main/model" |
+| R4 | test_a_tie_without_the_main_model_goes_to_the_first_by_alphabet | reversed order gives "zeta/model", test wants "alpha/model" |
+| R5 | test_unknown_loses_a_tie_to_a_named_model | 4:4 tie with an unnamed model reads "unknown", test wants "zeta/model" |
+| R6 | test_any_backup_answer_is_yes | 9 main + 1 backup is not all-backup: flag reads "unknown", test wants "yes" |
+| R7 | test_main_with_an_unnamed_model_is_unknown | the unnamed answer is passed over: flag reads "no" |
+| R8 | test_main_with_a_model_on_neither_list_is_unknown | the other model is passed over: flag reads "no" |
+| R9 | test_a_reused_answer_first_made_by_a_backup_is_yes | reused backup answer left out: flag reads "no" |
+| R10 | test_a_backup_summary_call_alone_is_yes | backup summary call left out: flag reads "no" |
+| R11 | test_it_is_in_neither_the_model_nor_the_flag | 9 backup second opinions counted: flag reads "yes", test wants "no" |
+| R12 | test_no_ai_call_and_nothing_reused_is_not_applicable | empty run reads "no" |
+| R13 | test_a_new_attempt_starts_from_nothing | 5 backup answers of the old attempt stay: flag "yes" and backup among the served |
+| R14 | test_a_reused_backup_answer_does_not_make_the_fresh_calls_yes | reused backup counted as fresh: "yes", test wants "no" |
+| R15 | test_a_backup_name_longer_than_an_audit_item_is_still_yes | the 150-character name cut to 64 is not on the backup list: flag "unknown" |
+| R16 | test_a_long_model_name_is_cut_to_the_column_not_refused | 400 characters returned, test wants 255 |
+| R17 | test_the_lists_are_read_from_the_runs_reading_not_live | live main is "another/main": the kept main answer reads "unknown", test wants "no" |
+| R18 | test_a_model_name_shaped_like_an_address_is_not_dropped_silently | "@" still in the served item |
+| R19 | test_an_unnamed_model_is_the_explicit_word_unknown | lists hold "" instead of "unknown" |
+| R20 | test_the_versions_and_the_release_come_from_the_runs_reading | release read live is "release-43", test wants "release-42" |
+| S1 | test_a_whole_attempt_that_failed_leaves_nothing_behind | attempt one's backup part stays: flag "yes", backup among the served |
+| S2 | test_marked_by_a_backup_model | nothing kept: model "deterministic", test wants the backup |
+| S3 | test_one_call_marking_three_answers_votes_three_times | one vote for main against two reused backup answers: model reads backup |
+| S4 | test_a_backup_marking_one_part_is_seen | no part kept, only the summary call: model "deterministic" |
+| S5 | test_the_part_with_the_most_answers_names_the_model | parts of 10 (backup) and 2 (main) vote 1:1, tie goes to main; test wants backup |
+| S6 | test_its_model_is_in_its_own_list_and_nowhere_else | second opinion kept as an answer: flag "unknown", second model among the served |
+| S7 | test_a_backup_summary_call_is_flagged_but_does_not_name_the_model | summary call not kept: flag "no", served without the backup |
+| S8 | test_a_wholly_reused_paper_names_the_model_that_first_answered | nothing kept: model "deterministic" |
+| S9 | test_a_reused_answer_whose_first_model_was_not_named_is_unknown | the store's word "llm" kept as a name: model reads "llm" |
+| S10 | test_fixed_rule_marking_stays_on_for_a_run_that_started_with_it_on | live switch is off: the objective answer goes to the AI, call count is not 0 (or the stand-in reply errors: the test is then an ERROR, which the judge counts) |
+| S11 | test_a_second_opinion_switched_on_mid_run_is_not_asked_for | live switch is on: a second call is made (rests on the default second-opinion list being non-empty and the 20-point question passing the default threshold of 15, both read in AutoGrader/settings.py) |
+| S12 | test_nothing_outside_the_settings_version_module_reads_one | the scan finds the getattr in ai_processor/services.py |
+| S13 | test_the_store_skips_an_answer_marked_as_reused | the store is called for answers 1 and 2, test wants 2 only (NEW, see below) |
+| T1 | test_the_six_columns_after_a_grading_by_the_main_model | the six columns are not in the UPDATE: the row reads "unlabelled" |
+| T2 | test_the_grading_service_is_handed_a_run | the stand-in reads kwargs["run"]: KeyError (an ERROR of that test) |
+| T3 | test_a_backup_model_is_flagged | the save uses a new empty run: "deterministic" / "not_applicable" |
+| T4 | test_the_label_and_the_score_are_one_update | two UPDATEs set a label column, only one sets the score |
+| T5 | test_it_carries_the_three_lists_of_models | metadata has no "models_served" (KeyError) |
+| T6 | test_an_entry_is_stored_with_the_lists | stored metadata has no "fresh_backup_used" (KeyError, after the three list assertions pass) |
+| T7 | test_its_model_is_the_labels_model | model falls back to the feedback's, which has none: None, test wants the backup |
+| T8 | test_it_carries_the_settings_version_and_the_strictness | metadata has no "grading_config_version" (KeyError) |
+| T9 | test_what_grade_engine_returns_carries_the_run | the assignment is no longer in the function's source |
+| T10 | test_the_function_that_writes_the_label_says_it | the docstring no longer holds "first form of the grading record" |
+| A1 | test_the_three_lists_are_permitted_for_this_entry_and_pass_validation | "models_reused" not in the entry's permitted keys |
+| A2 | test_unknown_is_counted_apart_and_not_in_the_rate | samples are {model_fallback_rate: 0.0}, test wants {model_unknown_rate: 1.0} |
+| A3 | test_no_fresh_call_gives_no_sample | a 0.0 sample is given, test wants none |
+| A4 | test_the_old_single_model_does_not_override_the_key | the main model's 0.0 is written after the key's 1.0 |
+| F1 | test_a_score_and_label_saved_meanwhile_are_not_written_back_over | the whole-row save writes the old score and the placeholder label back |
+| M1 | test_a_teachers_change_of_the_score_does_not_touch_the_label | grading_model reads "manual", test wants the kept value |
+| X1 | test_no_submission_serializer_has_a_label_field | StudentSubmissionGradeUpdateSerializer lists grading_model |
+| E1 | test_the_entry_is_emitted_in_exactly_the_two_callers | a third caller, grade_all_submissions, is found |
+| V1 | test_a_row_made_before_0031_reads_the_placeholder_after_it | going back sets score to 0, test wants 7.0 |
+
+Changed by the re-read: none of the 51. Added: S13 with one new test.
+
+### The carried test: a reused answer is not stored a second time
+
+Two defences hold this. The grading service hands the store only what the
+run freshly marked (`fresh_evaluations`, taken before the reused answers
+are merged in); and `_store_cache_evaluations` itself skips an evaluation
+marked `from_cache`. With both in place, no single break of the first can
+be seen from outside, so an end-to-end test of it could not be shown red
+and is NOT added (rule 19). The second defence is held alone:
+
+- test `test_the_store_skips_an_answer_marked_as_reused`
+  (`ai_processor/tests_grading_run_pipeline.py`): the store routine is
+  called directly with one answer marked as reused and one fresh; the store
+  must be called for the fresh one only. The fresh one shows the routine
+  was reached.
+- mutant S13: the `from_cache` half of the skip is removed.
+
+The behaviour is slice B's, so the test PASSES in the red run: 125 tests,
+111 fail, 14 pass.
+
+## The base (2026-10-07)
+
+The branch was moved onto the merged line by the Release Engineer's merge 142a5040 (parents
+a12bc6bc and `phase2/epic-a` 441c0e70, which is the merge of slice B, 82c3108d, plus the record
+of the release full run: 6498 OK). Two files were resolved as I had prepared them and compared
+byte for byte: 03a (my side of one conflict) and `ai_processor/grading_cache.py` (git merged it
+without a conflict and doubled one docstring paragraph; one copy removed, so the file equals the
+merged line's). The gate's step 1 now also runs the Checker's module
+`ai_processor.tests_grading_cache_key_v2_checker`, which came with the base.
+
 ## Expected for the gate, written before any run
 
 - Step 0, the red run: the five new test modules against the seven code files as at 9c0370f1:
-  non-zero exit, a "Ran" line, 124 tests, **111 failing or in error and 13 passing**, as named
-  above.
-- Step 1a clean (no model, no migration changed). Step 1 OK. Step 2: 51 KILLED.
+  non-zero exit, a "Ran" line, **125 tests, 111 failing or in error and 14 passing**: the 124
+  named above (111 and 13) and the carried test of 2026-10-07, which passes there because the
+  behaviour is slice B's.
+- Step 1a clean (no model, no migration changed). Step 1 OK. Step 2: 52 KILLED.
 - The regression is 0b's one full run on the frozen tip (SM ruling).
 
-The gate script is committed here as `run_be_i_04_c_gate.sh.txt`. No run is asked for before
-slice B is merged and this branch is moved onto that merge.
+The gate script is committed here as `run_be_i_04_c_gate.sh.txt`. Slice B is merged and this branch is on that merge
+(above), so the gate is now asked for.
 
 ## Runs
 

@@ -350,6 +350,16 @@ MUTANTS = [
         K,
     ),
     (
+        "S13",
+        "an answer marked as reused is stored again",
+        SVC,
+        '                evaluation.get("from_cache")\n'
+        '                or evaluation.get("graded_by") == "deterministic"\n',
+        '                evaluation.get("graded_by") == "deterministic"\n',
+        TESTS,
+        K,
+    ),
+    (
         "T1",
         "the label is not among the fields the grading save writes",
         STU,
@@ -576,6 +586,7 @@ EXPECTED = {
     "S10": "test_fixed_rule_marking_stays_on_for_a_run_that_started_with_it_on",
     "S11": "test_a_second_opinion_switched_on_mid_run_is_not_asked_for",
     "S12": "test_nothing_outside_the_settings_version_module_reads_one",
+    "S13": "test_the_store_skips_an_answer_marked_as_reused",
     "T1": "test_the_six_columns_after_a_grading_by_the_main_model",
     "T2": "test_the_grading_service_is_handed_a_run",
     "T3": "test_a_backup_model_is_flagged",

@@ -248,6 +248,24 @@ class ReusedAndFixedRuleTest(_RouteCase):
         )
         self.assert_run(run, MAIN, grading_label.FALLBACK_YES, [MAIN], reused=[BACKUP])
 
+    def test_the_store_skips_an_answer_marked_as_reused(self, mock_execute):
+        """A reused answer is not stored a second time. The store routine
+        is handed one answer marked as reused and one fresh: it stores the
+        fresh one only (which also shows the routine was reached)."""
+        reused = dict(_evaluation(1), from_cache=True, graded_by=MAIN)
+        fresh = dict(_evaluation(2), graded_by=MAIN)
+        with patch.object(services.grading_cache, "store_evaluation") as store:
+            self.processor._store_cache_evaluations(
+                [reused, fresh],
+                [_essay(1), _essay(2)],
+                [_answer(1), _answer(2)],
+                {},
+                assignment_model=ASSIGNMENT,
+                run=GradingRun.start(),
+            )
+        stored = [call.args[0]["question_number"] for call in store.call_args_list]
+        self.assertEqual(stored, [2])
+
 
 def _long_paper():
     numbers = range(1, LONG_PAPER + 1)
