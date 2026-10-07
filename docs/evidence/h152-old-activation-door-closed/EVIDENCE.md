@@ -123,4 +123,37 @@ this row reaches it only with the next promotion.
 
 ## Results
 
-(none yet)
+### The gate at 8b396aa9 (0b's GRANT, 2026-10-07 14:56:18 WAT)
+
+8b396aa9 is this branch's fade2ade and 0b's merge of the base-updated H-148 branch (356bdd34).
+One run of `run_h152_gate.sh 8b396aa9 1 356bdd34`. Script sha256 starts ab717bc25e91447f: the
+script named above plus, by the Senior Manager's ruling of the same day, a halt at part 0 when
+the Ran count or the set of distinct red tests differs from the written list (the list is in
+the script, test by test). 14:56:50 to 15:01:25. Load 4.38 at the start, 5.94 at the start of
+part 1, 4.88 at its end, 7.74 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 11; 10 red: every test but `test_the_output_still_carries_ids_only` | **Ran 11 tests in 1.393s, FAILED (failures=10)**: exactly those ten; the script's own comparison: "step 0 is as written" | `prefix_base_production_failing_8b396aa9.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_8b396aa9.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 506 tests in 141.666s, OK (skipped=3)** | `modules_and_guards_8b396aa9.txt.gz` |
+| 2. Mutants | 9 KILLED with their named tests | **9 of 9 KILLED**: each exit 1, its own "Ran 11", every expected test among the failed (`expected-but-passed []` nine times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_8b396aa9.txt`, `mutation_results_8b396aa9.json`, `mutant_logs_8b396aa9/` |
+
+Nothing differed from what was written before the run. The run's console is
+`gate_console_8b396aa9.txt.gz`.
+
+The three skips are in `users.tests_google_auth`, in their own words: 'CI_REQUIRE_NETWORK not
+set' (one) and 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1' (two). None is
+for want of a browser.
+
+Rule 19, counted from these records: of the 11 new tests, 10 were red in part 0 and the
+eleventh (`test_the_output_still_carries_ids_only`) failed under mutant C3. None is left unseen
+red.
+
+Credential-pattern check before this commit (this folder only, inside the .gz too): no line
+matches.
+
+Written 15:02 WAT. **This gate does not close the row.** While it ran, the Senior Manager ordered
+a delta on this branch (about 15:00): the conversion command must not convert an account whose
+login email could not be queued. It follows as tests first, then the change, then its own short
+gate; the regression (users and classrooms) runs on the final tip after that.
