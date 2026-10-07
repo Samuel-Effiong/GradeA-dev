@@ -190,3 +190,141 @@ class FileClassTests(ScanCase):
         tool.report("abc123", 2, rows, values, False, out)
         self.assertIn("across lines: 1 group(s)", out.getvalue())
         self.assertIn("a.env  <->  b.md", out.getvalue())
+
+
+def nested_tar(levels):
+    """BODY as run.log inside `levels` tar files, one in the other."""
+    data, name = BODY, "run.log"
+    for level in range(levels, 0, -1):
+        data = tar_of(name, data, "w")
+        name = f"level{level}.tar"
+    return data
+
+
+class LongLineTests(ScanCase):
+    """A line over 4000 characters is scanned, and said to be long.
+
+    Run logs are stored compressed and hold very long lines, so this was the
+    likeliest real miss (v2's note on H-136).
+    """
+
+    PAD = b"lorem ipsum " * 400  # 4800 characters, no pattern in it
+
+    def test_a_pattern_far_along_a_long_line_is_found(self):
+        line = self.PAD + PLANTED_URL + b" and " + PLANTED_ASSIGN + b"\n"
+        self.assertEqual(self.counts("run.log", line), (1, 1, 0))
+
+    def test_a_pattern_at_the_start_of_a_long_line_is_found(self):
+        line = PLANTED_ASSIGN + b" then " + PLANTED_URL + b" " + self.PAD + b"\n"
+        self.assertEqual(self.counts("run.log", line), (1, 1, 0))
+
+    def test_a_pattern_after_one_long_unbroken_run_is_found(self):
+        line = b"A" * 50000 + b" " + PLANTED_ASSIGN + b" " + b"B" * 50000 + b"\n"
+        self.assertEqual(self.counts("run.log", line), (0, 1, 0))
+
+    def test_one_hit_is_counted_once_however_many_words_surround_it(self):
+        # The name holds two of the words the scan looks for, and more stand near it.
+        name = "SECRET_" + "KEY"
+        line = (
+            self.PAD
+            + b"key token " * 5
+            + (name + ' = "' + WORD + '"').encode()
+            + b" pass key"
+            + b"\n"
+        )
+        self.assertEqual(self.counts("run.log", line), (0, 1, 0))
+
+    def test_the_hit_on_a_long_line_carries_its_line_number(self):
+        tool, _rows, _values = self.scan(
+            "run.log", CLEAN + self.PAD + PLANTED_ASSIGN + b"\n"
+        )
+        self.assertEqual(
+            [(name, line) for name, line, *_ in tool.HITS],
+            [("docs/evidence/x/run.log", 5)],
+        )
+
+    def test_a_long_line_is_said_to_be_long_in_the_report(self):
+        tool, rows, values = self.scan(
+            "run.log", self.PAD + b"\n" + self.PAD + b"\nshort\n"
+        )
+        self.assertEqual(
+            sum(c for (kind, *_), c in rows.items() if kind == "longline"), 2
+        )
+        out = io.StringIO()
+        tool.report("abc123", 1, rows, values, False, out)
+        self.assertIn("longline |     2 |", out.getvalue())
+        self.assertIn("docs/evidence/x/run.log", out.getvalue())
+
+    def test_a_line_of_exactly_the_limit_is_not_called_long(self):
+        _tool, rows, _values = self.scan("run.log", b"z" * 4000 + b"\n")
+        self.assertEqual(
+            sum(c for (kind, *_), c in rows.items() if kind == "longline"), 0
+        )
+
+
+class NestingTests(ScanCase):
+    """An archive nested deeper than the tool opens is said not to be opened."""
+
+    def test_three_archives_deep_is_opened(self):
+        self.assertEqual(self.counts("logs.tar", nested_tar(3)), (1, 1, 0))
+
+    def test_a_fourth_archive_is_reported_as_not_opened(self):
+        _tool, rows, _values = self.scan("logs.tar", nested_tar(4))
+        not_opened = [
+            (name, shape) for (kind, name, shape, _l) in rows if kind == "archive"
+        ]
+        self.assertEqual(
+            not_opened,
+            [
+                (
+                    "docs/evidence/x/logs.tar!level2.tar!level3.tar!level4.tar",
+                    "NOT-OPENED:nested-too-deep",
+                )
+            ],
+        )
+
+    def test_the_archive_not_opened_is_listed_in_the_default_report(self):
+        tool, rows, values = self.scan("logs.tar", nested_tar(4))
+        out = io.StringIO()
+        tool.report("abc123", 1, rows, values, False, out)
+        self.assertIn(
+            "NOT-OPENED:nested-too-deep | docs/evidence/x/logs.tar!level2.tar!level3.tar!level4.tar",
+            out.getvalue(),
+        )
+
+
+class BinaryFileTests(ScanCase):
+    """A file passed over because it looks binary is counted, not passed over in silence."""
+
+    def test_a_file_with_an_early_nul_byte_is_counted_as_not_read(self):
+        tool, rows, values = self.scan("blob.bin", b"\0\0\0" + BODY)
+        self.assertEqual(self.counts("blob.bin", b"\0\0\0" + BODY)[:2], (0, 0))
+        self.assertEqual(
+            [name for (kind, name, _s, _l) in rows if kind == "binary"],
+            ["docs/evidence/x/blob.bin"],
+        )
+        out = io.StringIO()
+        tool.report("abc123", 1, rows, values, False, out)
+        self.assertIn(
+            "# not read: 1 file(s) with a NUL byte in the first 4096 bytes",
+            out.getvalue(),
+        )
+        self.assertNotIn("blob.bin", out.getvalue())
+
+    def test_the_files_not_read_are_named_when_every_row_is_asked_for(self):
+        tool, rows, values = self.scan("blob.bin", b"\0\0\0" + BODY)
+        out = io.StringIO()
+        tool.report("abc123", 1, rows, values, True, out)
+        self.assertIn("NOT-READ | docs/evidence/x/blob.bin", out.getvalue())
+
+    def test_a_nul_byte_after_the_first_4096_bytes_does_not_stop_the_scan(self):
+        self.assertEqual(self.counts("run.log", BODY + b"y" * 4096 + b"\0"), (1, 1, 0))
+
+    def test_a_report_with_nothing_unread_says_zero(self):
+        tool, rows, values = self.scan("run.log", BODY)
+        out = io.StringIO()
+        tool.report("abc123", 1, rows, values, False, out)
+        self.assertIn(
+            "# not read: 0 file(s) with a NUL byte in the first 4096 bytes",
+            out.getvalue(),
+        )
