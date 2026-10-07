@@ -432,3 +432,26 @@ seen red in some run; `test_a_submitted_paper` remains the one that never has.
 Logs: `modules_and_guards_a9ca796b.txt.gz`, `mutation_log_a9ca796b.txt`,
 `mutation_results_a9ca796b.json`, `mutant_logs_a9ca796b/`. Still owed as this is committed: the
 regression (students and assignments) once more, by the Senior Manager's ruling, on 0b's grant.
+
+### The regression after the max_points delta, at 24355264 (0b's GRANT, 2026-10-07 10:42:06 WAT)
+
+24355264 is a9ca796b and one docs commit. Before it 0b ran its three guards on 24355264: Ran 56,
+OK (10:37:28 to 10:37:46; 0b's log `GAP-0b-runs/crossside_guards_on_h133_24355264.log`, not
+copied here). Then one run of `run_h133_gate.sh 24355264 3 be05f953` (script sha256 starts
+f5346867ac36db45): students and assignments, serial, under the full-suite lock, 12G scope, sleep
+inhibited, output to a file. 10:42:20 to 10:45:15. Load at start 1.24 4.39 3.24, at end
+3.79 4.11 3.32; the other project's work was stopped for it. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK (to 0b at 10:39, before the grant: Ran 1030, skipped=14) | exit 0: **Ran 1030 tests in 159.243s, OK (skipped=14)** | `regression_24355264.txt.gz` |
+
+- 1030 is the 1022 of bce9c5d4 and the eight new tests of this delta.
+- The 14 skips are the same opt-in ones, by their own messages: 9 load tests (`RUN_LOAD_TESTS`)
+  and 5 real, billed AI calls (`RUN_REAL_AI`). No FAIL or ERROR line in the log.
+
+Nothing differed from what was written before the run. With this, nothing of mine is owed on
+this row before Verifier 1's verdict.
+
+Mutants on the final code, in all: 25 of 25 KILLED (the 22 above, of which the six on
+`students/serializers.py` were run again on the final file, and M1 to M3).
