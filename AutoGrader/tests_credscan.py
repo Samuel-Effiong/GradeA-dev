@@ -389,3 +389,54 @@ class LongLineSameAsShortTests(ScanCase):
         kept, hits = self.found(line)
         self.assertEqual(kept, [("assign", "LITERAL", 10, 3)])
         self.assertEqual(hits, [(1, 10), (1, 10), (1, 10)])
+
+
+class LongLineCutValueTests(ScanCase):
+    """A bare value cut off by the end of what is read is said to be cut.
+
+    Verifier 2's second point: on a long line the pattern reads 420
+    characters past a name's end. With hundreds of blanks between the name
+    and the sign, a bare value can begin inside that stretch and end outside
+    it; the pattern is content with the part it can see. Recording that
+    part as the value would be a quiet untruth, so it is reported as cut.
+    """
+
+    PAD = b"lorem ipsum " * 400
+    NAME = ("DB_" + "PASSWORD").encode()
+    TWELVE = (WORD + "Qw").encode()  # a made-up 12-character value
+
+    def rows_of(self, line):
+        tool, rows, values = self.scan("run.log", line + b"\n")
+        kept = sorted(
+            (kind, shape, length, count)
+            for (kind, _n, shape, length), count in rows.items()
+            if kind != "longline"
+        )
+        return tool, rows, values, kept
+
+    def test_a_bare_value_cut_by_the_end_of_the_stretch_is_reported_as_cut(self):
+        for blanks, seen in ((410, 9), (416, 3)):
+            with self.subTest(blanks=blanks):
+                line = (
+                    self.PAD + self.NAME + b" " * blanks + b"=" + self.TWELVE + b" tail"
+                )
+                tool, rows, values, kept = self.rows_of(line)
+                self.assertEqual(kept, [("cut", "VALUE-CUT-AT-WINDOW", seen, 1)])
+                self.assertEqual(
+                    [(lineno, shape) for _n, lineno, _nm, _len, shape in tool.HITS],
+                    [(1, "VALUE-CUT-AT-WINDOW")],
+                )
+                self.assertEqual(dict(values), {})
+                out = io.StringIO()
+                tool.report("abc123", 1, rows, values, False, out)
+                self.assertIn(
+                    "VALUE-CUT-AT-WINDOW | docs/evidence/x/run.log", out.getvalue()
+                )
+
+    def test_a_bare_value_that_ends_where_the_stretch_ends_is_whole(self):
+        # 407 blanks, the sign and twelve characters: the value's last character is the 420th.
+        for tail in (b" tail", b"", b";x"):
+            with self.subTest(tail=tail):
+                line = self.PAD + self.NAME + b" " * 407 + b"=" + self.TWELVE + tail
+                _tool, _rows, _values, kept = self.rows_of(line)
+                self.assertEqual(kept, [("assign", "LITERAL", 12, 1)])
