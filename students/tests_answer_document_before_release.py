@@ -215,11 +215,12 @@ class GradingChangesNothingTheStudentReads(AnswerDocumentBase):
         StudentSubmission.objects.filter(pk=self.submission.pk).update(raw_input="")
 
         self.assertEqual(self.on_the_submission(self.student), self.submitted)
-        # The stored document is not compared with the one grading stored:
-        # grading prints the score from the value in memory ("7.0") and
-        # this rebuild prints it from the database ("7.00"). That existing
-        # difference is not this row's. What matters here: a document was
-        # stored, and it is not the ungraded form the student was given.
+        # The stored document is not compared with the one grading stored.
+        # (When this was written the two differed: grading printed "7.0"
+        # and this rebuild "7.00". Since H-139 both print "7.00"; the test
+        # for that is in tests_answer_document_score_printing.) What
+        # matters here: a document was stored, and it is not the ungraded
+        # form the student was given.
         rebuilt = self.stored()
         self.assertTrue(rebuilt)
         self.assertNotEqual(rebuilt, self.submitted)
@@ -402,7 +403,19 @@ class TheUploadRoutesOwnAnswer(AnswerDocumentBase):
         response = self.upload(self.assignment)
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(list(response.data), ["error"])
+        # H-133 added "code" beside the sentence. The point of this test: a
+        # refused upload carries no document and no grade. (Agreed with d5,
+        # 2026-10-06.)
+        for absent in (
+            "raw_input",
+            "score",
+            "score_percentage",
+            "feedback",
+            "formatted_grade",
+            "graded_at",
+        ):
+            self.assertNotIn(absent, response.data)
+        self.assertLessEqual(set(response.data), {"error", "code"})
         self.assertEqual(self.stored(), graded)
 
 
