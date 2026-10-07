@@ -214,6 +214,41 @@ at least one mutant; in addition 15 of them have been seen red in the first gate
 written by reading and have never been run either; a survivor or a set that differs is possible
 and will be reported as it is.
 
-### The fresh gate
+### The fresh gate, at 5db450d2: green (2026-10-07)
 
-(none yet)
+5db450d2 is 17febb89 plus c2c39b72 (two tests) and the fix of the lock. One run of
+`run_h153_gate.sh 5db450d2 1 1a2995f2` (script sha256 starts 5180bd2f47af4516) on the Release
+Engineer's GRANT of 15:59:54, 16:00:43 to 16:07:44. It ran beside Verifier 1's H-148 runs;
+one-minute load 4.53 at the start, 6.80 at the start of part 1, 6.37 at its end, 4.00 at the
+end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 28, all 28 red, as errors (`NoReverseMatch`) | **Ran 28 tests in 2.990s, FAILED (errors=34)**: 34 lines (sub-tests counted singly), 28 distinct tests; the script's own comparison: "step 0 is as written" | `prefix_base_production_failing_5db450d2.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_5db450d2.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 524 tests in 180.491s, OK** (no skip) | `modules_and_guards_5db450d2.txt.gz` |
+| 2. Mutants | 25 KILLED with their named tests | **25 of 25 KILLED**: each exit 1, its own "Ran 28", every expected test among the failed (`expected-but-passed []` twenty-five times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_5db450d2.txt`, `mutation_results_5db450d2.json`, `mutant_logs_5db450d2/` |
+
+Nothing differed from what was written before this run. The console is
+`gate_console_5db450d2.txt.gz`.
+
+**The fault is gone and would be seen again:** the 15 tests that answered 500 in the first gate
+pass here, with the two new ones; and under M25, the first version's statement put back, 17
+tests fail, the 17 named.
+
+**The 24 older mutants**, whose expected sets were written by reading and had never been run:
+each was killed with its written set. None survived, none differed.
+
+Rule 20's cache modules were in part 1 and are green.
+
+Rule 19, counted from `mutation_results_5db450d2.json`: each of the 28 tests failed under at
+least one mutant. In addition 15 of them were red in the first gate for the fault itself. Step 0
+proves nothing test by test (the route does not exist on the base), as said from the start.
+
+What is still not isolated by any test, as written above: `of=("self",)` on its own. Row H-166
+(batch 13) is the guard test for it.
+
+Credential-pattern check before this commit (the new files, before gzip): no line matches.
+
+Written 16:08 WAT. Still owed as this is committed: the regression (users and classrooms), on
+its own grant.
