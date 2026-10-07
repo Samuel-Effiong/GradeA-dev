@@ -166,3 +166,26 @@ re-run.
 
 - No run of any kind yet.
 - The frontend note above is a draft for the Senior Manager, not sent to anyone.
+
+## Added 2026-10-07 11:38 WAT, still before any run: rule 20 (the cache tests)
+
+New team rule 20 (Senior Manager, 2026-10-07, after batch 11's full run was red on a
+cache-contract test that a serializer change of another row broke): a change to what a serializer
+or a cached route returns runs the AutoGrader app's cache tests with its gate.
+
+This row changes what the course answer and the session list return to a student. Added to step 1
+of `run_h147_gate.sh` (sha256 now starts 0624551ec8df1146): `AutoGrader.tests_cache_bespoke_1114`
+(named by the Release Engineer for every such change) and the seven other AutoGrader cache
+modules that read a course, session or roster route: `tests_cache_user_fanout`,
+`tests_cache_matrix_tenant_isolation`, `tests_cache_collateral_damage`,
+`tests_cache_generation_wiring`, `tests_cache_dashboard_wide`, `tests_cache_dashboard_freshness`,
+`tests_cache_matrix_concurrency`. `tests_cache_matrix_selftest` and
+`tests_cache_invalidation_coverage` were in already. Not added: `tests_cache_commit_race`,
+`tests_cache_commit_race_cost`, `tests_cache_matrix_scale`, `tests_cache_matrix_measurement`
+(measurements; they come with the batch's full run).
+
+Expected: OK. By reading, where these modules read a course route they do it as a TEACHER, or
+compare a student's answer with itself before and after another tenant's change; I found none
+that expects a student to see a classmate. I read the places a grep for the course, roster and
+session names found, not every line of the eight modules: a red here would be a real finding
+about this row, reported as it is.
