@@ -27,6 +27,30 @@ Address-form hits are listed everywhere, tests too.
 
 It opens .gz, .xz, .bz2, .tar (also .tar.gz, .tgz, .tar.xz, .txz, .tar.bz2,
 .tbz2) and .zip, nested up to three deep.
+
+What it does not read, it says (H-137):
+
+* An archive inside three others is not opened. It is listed as
+  NOT-OPENED:nested-too-deep, in every form of the report.
+* A file with a NUL byte in its first 4096 bytes is taken for binary and not
+  read. The report counts such files; `--all` names them.
+* A line longer than 4000 characters is scanned, but not by running the two
+  patterns over the whole of it, which can take minutes on one unbroken run
+  of letters. Instead each place where "://" or one of the five words
+  stands is looked at with the text around it (200 characters before a
+  word, 420 after; 600 after "://"). So on such a line a password part
+  longer than about 590 characters, or a name and value that together
+  reach further than that, is not seen. Every such line is counted in a
+  `longline` row, in every form of the report.
+
+Limits it does NOT report:
+
+* Text after the end of a compressed stream is not read.
+* Archive types it does not claim are not opened: .lzma, .7z, .zst, and a
+  zip file under another suffix (.jar, .whl, .docx, .xlsx).
+* A compressed file inside a compressed file with no name of its own
+  (x.gz.gz) is opened once: the inner stream has no suffix to go by.
+* It reads the tree at one revision, not the history.
 """
 
 import bz2
@@ -104,8 +128,15 @@ CODE = (
 TAR_SUFFIXES = (".tar.gz", ".tgz", ".tar", ".tar.xz", ".txz", ".tar.bz2", ".tbz2")
 #: How many archives deep the scan opens.
 MAX_DEPTH = 3
-#: A line longer than this is not scanned.
+#: A line longer than this is scanned around its "://" and its words only.
 LONG_LINE = 4000
+#: On a long line: how far before a word a name may start, how far after it
+#: the value may end, and how far after "://" the at sign may stand.
+NAME_BEFORE = 200
+VALUE_AFTER = 420
+ADDRESS_AFTER = 600
+WORD = re.compile(rb"(?i)PASS|PWD|SECRET|TOKEN|KEY")
+ARCHIVE_SUFFIXES = TAR_SUFFIXES + (".gz", ".xz", ".bz2", ".zip")
 #: A file with a NUL byte this early is taken for binary and not read.
 BINARY_PROBE = 4096
 
@@ -159,6 +190,8 @@ def open_archive(name, data, rows, values, depth):
     """Scan the members of an archive; True if `data` was one and was opened."""
     low = name.lower()
     if depth >= MAX_DEPTH:
+        if low.endswith(ARCHIVE_SUFFIXES):
+            rows[("archive", name, "NOT-OPENED:nested-too-deep", 0)] += 1
         return False
     try:
         if low.endswith(TAR_SUFFIXES):
@@ -189,32 +222,62 @@ def open_archive(name, data, rows, values, depth):
     return False
 
 
+def record_address(name, lineno, value, rows, values):
+    """Record one address with a password part."""
+    sh = shape(value, True, name)
+    rows[("url", name, sh, len(value))] += 1
+    HITS.append((name, lineno, "(url password position)", len(value), sh))
+    if sh == "LITERAL":
+        values[value].add(name)
+
+
+def record_assignment(name, lineno, m, rows, values):
+    """Record one NAME=value match."""
+    v, quoted = (m.group(3), True) if m.group(3) is not None else (m.group(4), False)
+    sh = shape(v, quoted, name)
+    nm = m.group(1).upper()
+    strong = any(w in nm for w in (b"PASS", b"PWD", b"SECRET", b"TOKEN")) or bool(
+        STRONG_KEY.search(nm)
+    )
+    if not strong:
+        rows[("assign", "(names with KEY only, e.g. cache keys)", sh, 0)] += 1
+        return
+    rows[("assign", name, sh, len(v))] += 1
+    if sh == "LITERAL" and not is_test(name):
+        HITS.append((name, lineno, m.group(1).decode("ascii", "replace"), len(v), sh))
+        values[v].add(name)
+
+
 def scan_line(name, lineno, line, rows, values):
     """Record every hit on one line."""
     for m in URL.finditer(line):
-        sh = shape(m.group(1), True, name)
-        rows[("url", name, sh, len(m.group(1)))] += 1
-        HITS.append((name, lineno, "(url password position)", len(m.group(1)), sh))
-        if sh == "LITERAL":
-            values[m.group(1)].add(name)
+        record_address(name, lineno, m.group(1), rows, values)
     for m in ASSIGN.finditer(line):
-        v, quoted = (
-            (m.group(3), True) if m.group(3) is not None else (m.group(4), False)
-        )
-        sh = shape(v, quoted, name)
-        nm = m.group(1).upper()
-        strong = any(w in nm for w in (b"PASS", b"PWD", b"SECRET", b"TOKEN")) or bool(
-            STRONG_KEY.search(nm)
-        )
-        if not strong:
-            rows[("assign", "(names with KEY only, e.g. cache keys)", sh, 0)] += 1
-            continue
-        rows[("assign", name, sh, len(v))] += 1
-        if sh == "LITERAL" and not is_test(name):
-            HITS.append(
-                (name, lineno, m.group(1).decode("ascii", "replace"), len(v), sh)
-            )
-            values[v].add(name)
+        record_assignment(name, lineno, m, rows, values)
+
+
+def scan_long_line(name, lineno, line, rows, values):
+    """Record the hits on a line too long to run the patterns over whole.
+
+    Each "://" and each of the five words is looked at with the text around
+    it. Two words can stand in or near one name, so an assignment is taken
+    once, by where its name ends in the line. An address cannot be found
+    twice: each "://" is tried once, from its own place.
+    """
+    rows[("longline", name, "scanned-around-its-words", 0)] += 1
+    at = line.find(b"://")
+    while at != -1:
+        m = URL.match(line, at, at + ADDRESS_AFTER)
+        if m:
+            record_address(name, lineno, m.group(1), rows, values)
+        at = line.find(b"://", at + 1)
+    taken = set()
+    for word in WORD.finditer(line):
+        start = max(0, word.start() - NAME_BEFORE)
+        for m in ASSIGN.finditer(line, start, word.end() + VALUE_AFTER):
+            if m.end(1) not in taken:
+                taken.add(m.end(1))
+                record_assignment(name, lineno, m, rows, values)
 
 
 def scan(name, data, rows, values, depth=0):
@@ -222,11 +285,13 @@ def scan(name, data, rows, values, depth=0):
     if open_archive(name, data, rows, values, depth):
         return
     if b"\0" in data[:BINARY_PROBE]:
+        rows[("binary", name, "NOT-READ", 0)] += 1
         return
     for lineno, line in enumerate(data.split(b"\n"), 1):
         if len(line) > LONG_LINE:
-            continue
-        scan_line(name, lineno, line, rows, values)
+            scan_long_line(name, lineno, line, rows, values)
+        else:
+            scan_line(name, lineno, line, rows, values)
 
 
 def report(rev, n, rows, values, show_all, out):
@@ -238,7 +303,7 @@ def report(rev, n, rows, values, show_all, out):
     ):
         if (
             show_all
-            or kind in ("url", "archive")
+            or kind in ("url", "archive", "longline")
             or (sh == "LITERAL" and not is_test(name))
         ):
             out.write(f"{kind:6s} | {c:5d} | {ln:6d} | {sh} | {name}\n")
@@ -253,6 +318,10 @@ def report(rev, n, rows, values, show_all, out):
     out.write(
         f"# not listed: {t_lit} literal assignment lines in test files; "
         f"{other} assignment lines of non-literal shape\n"
+    )
+    unread = sum(c for (k, *_), c in rows.items() if k == "binary")
+    out.write(
+        f"# not read: {unread} file(s) with a NUL byte in the first {BINARY_PROBE} bytes\n"
     )
     # One secret in two forms: compare the decoded and encoded forms of the literal values.
     forms = collections.defaultdict(set)
