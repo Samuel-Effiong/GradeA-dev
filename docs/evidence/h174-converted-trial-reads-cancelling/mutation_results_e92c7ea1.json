@@ -1,0 +1,306 @@
+{
+  "A1_the_purchase_does_not_set_auto_renew": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_plan_is_set_to_renew",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_page_is_not_told_a_cancellation_is_pending",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_an_annual_plan_the_same",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared",
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_right_after_the_purchase_the_answer_does_not_contradict_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_right_after_the_purchase_the_answer_does_not_contradict_itself",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_an_annual_plan_the_same",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_page_is_not_told_a_cancellation_is_pending",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_plan_is_set_to_renew"
+    ],
+    "pycache_left": 0
+  },
+  "A2_the_purchase_sets_it_but_does_not_save_it": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_plan_is_set_to_renew",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_page_is_not_told_a_cancellation_is_pending",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_an_annual_plan_the_same",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared",
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_right_after_the_purchase_the_answer_does_not_contradict_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_right_after_the_purchase_the_answer_does_not_contradict_itself",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_an_annual_plan_the_same",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_page_is_not_told_a_cancellation_is_pending",
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_plan_is_set_to_renew"
+    ],
+    "pycache_left": 0
+  },
+  "A3_the_purchase_keeps_a_stray_date": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared"
+    ],
+    "pycache_left": 0
+  },
+  "A4_the_purchase_clears_the_date_but_does_not_save_it": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared"
+    ],
+    "pycache_left": 0
+  },
+  "B1_the_stripe_conversion_does_not_set_auto_renew": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending"
+    ],
+    "pycache_left": 0
+  },
+  "B2_the_stripe_conversion_sets_it_but_does_not_save_it": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending"
+    ],
+    "pycache_left": 0
+  },
+  "B3_the_stripe_conversion_keeps_a_stray_date": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_a_stray_date_of_cancellation_is_cleared"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_a_stray_date_of_cancellation_is_cleared"
+    ],
+    "pycache_left": 0
+  },
+  "B4_the_stripe_conversion_clears_the_date_but_does_not_save_it": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_a_stray_date_of_cancellation_is_cleared"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_a_stray_date_of_cancellation_is_cleared"
+    ],
+    "pycache_left": 0
+  },
+  "R1_keep_never_corrects_the_local_record": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected",
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_local_correction_and_no_change_at_stripe",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_local_record_is_corrected_when_stripe_is_not_cancelling",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_surfaces_past_due_warning"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected",
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_local_correction_and_no_change_at_stripe",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_local_record_is_corrected_when_stripe_is_not_cancelling",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_surfaces_past_due_warning"
+    ],
+    "pycache_left": 0
+  },
+  "R2_keep_corrects_when_stripe_does_not_say": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_it_does_not_guess_when_stripe_does_not_say"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_it_does_not_guess_when_stripe_does_not_say"
+    ],
+    "pycache_left": 0
+  },
+  "R3_keep_corrects_a_trial": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_trial_is_never_corrected_into_a_renewing_plan"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_trial_is_never_corrected_into_a_renewing_plan"
+    ],
+    "pycache_left": 0
+  },
+  "R4_keep_clears_the_date_but_leaves_auto_renew": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected",
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_local_correction_and_no_change_at_stripe",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_local_record_is_corrected_when_stripe_is_not_cancelling",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_surfaces_past_due_warning"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected",
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation",
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_local_correction_and_no_change_at_stripe",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_local_record_is_corrected_when_stripe_is_not_cancelling",
+      "billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_surfaces_past_due_warning"
+    ],
+    "pycache_left": 0
+  },
+  "R5_keep_leaves_the_stale_date": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it"
+    ],
+    "pycache_left": 0
+  },
+  "R6_choosing_a_plan_claims_an_undone_cancellation": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation"
+    ],
+    "pycache_left": 0
+  },
+  "V1_keep_says_resumed_normally_for_a_corrected_record": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected"
+    ],
+    "pycache_left": 0
+  },
+  "V2_keep_says_corrected_for_a_real_resume": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_real_cancellation_is_still_undone_at_stripe",
+      "billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_successful_resume"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_real_cancellation_is_still_undone_at_stripe",
+      "billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_successful_resume"
+    ],
+    "pycache_left": 0
+  },
+  "V3_cancel_treats_an_unrecorded_cancellation_as_already_done": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_it_says_what_it_did_and_records_when"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_it_says_what_it_did_and_records_when"
+    ],
+    "pycache_left": 0
+  },
+  "V4_cancel_does_not_record_when": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_it_says_what_it_did_and_records_when"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_it_says_what_it_did_and_records_when"
+    ],
+    "pycache_left": 0
+  },
+  "V5_cancel_forgets_a_recorded_cancellation": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_a_second_cancel_still_says_already_and_keeps_the_date",
+      "billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_already_not_renewing_reports_so",
+      "billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_cancelling_twice_in_a_row_succeeds",
+      "billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_repeat_cancel_does_not_slide_the_date"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_repeat_cancel_does_not_slide_the_date",
+      "billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_a_second_cancel_still_says_already_and_keeps_the_date",
+      "billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_already_not_renewing_reports_so",
+      "billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_cancelling_twice_in_a_row_succeeds"
+    ],
+    "pycache_left": 0
+  },
+  "V6_cancel_fabricates_a_date_for_a_trial": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 113,
+    "expected": [
+      "billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_cancelling_a_trial_does_not_fabricate_a_date"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_cancelling_a_trial_does_not_fabricate_a_date"
+    ],
+    "pycache_left": 0
+  }
+}
