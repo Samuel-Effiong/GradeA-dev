@@ -369,7 +369,8 @@ here when it is done.
 
 The Next-stage Checker's verdict at d37f6a7e: VERIFIED-WITH-NOTES, five items required before
 merge. Its record is committed here byte for byte as `VERIFICATION_be_i_04_slice_c.md`
-(sha256 d4b98836...bbbc82). The delta is one set of two commits, tests first.
+(sha256 d4b98836...bbbc82). The delta is three commits: the tests first (6d28cc0f), the code and
+words (37af761b), then the gate's logs and the row number, files under docs/ only (752baa2a).
 
 **Commit 6d28cc0f, tests only.** Two modules adopted from the Checker's hand-over files
 (`handover_slice_c_probes_ai_processor.py` fe6f3a04..., `handover_slice_c_probe_route.py`
@@ -387,7 +388,7 @@ the other row and went red at another assertion than the one it was written for)
 | 2. A rejected reply that holds answers | No code change (the Checker: the code is right). Test: PC1. |
 | 3. A check that sees a dropped run | No code change. Test: PC2 (two tests). The stated limit above is corrected. |
 | 4. One test from a real entry point to the row and the entry | No code change. Test: PC0. |
-| 5. The vote count, stated | No code change (ruling). `GradingRun._grading_model`'s docstring, 03a and the stated limits above say that votes are counted over the reply's items as received, with the pointer to the beta-line row (opened by the Senior Manager on 2026-10-07, owner the Hardening Engineer; I do not have its number yet). |
+| 5. The vote count, stated | No code change (ruling). `GradingRun._grading_model`'s docstring, 03a and the stated limits above say that votes are counted over the reply's items as received, with the pointer to the beta-line row (opened by the Senior Manager on 2026-10-07, owner the Hardening Engineer; its number, H-154, was added to this file and to 03a at 752baa2a). |
 
 Offered and adopted though not required: PC3 and PC4 (both tests of each). The five smaller
 points of the record are not taken up in this delta.
@@ -463,3 +464,13 @@ file and in 03a; the comment in `GradingRun._grading_model` keeps its words with
 on the Senior Manager's word (the code is as verified).
 
 Next: the Checker verifies this delta; then the Release Engineer's one full run on the final tip.
+
+### The Checker's verdict on the delta, 2026-10-07
+
+**VERIFIED** at 752baa2a: the five required items are closed; four notes, none required. Its record
+is committed here byte for byte as `VERIFICATION_be_i_04_slice_c_delta.md` (sha256
+7fcf8fad...523f1c40), beside the first one. In the same commit, on the record's first note, two
+phrases of this file were corrected (words only): the item 5 row no longer says the row's number
+is unknown, and the delta is described as three commits. No code or test changed.
+
+Next: the Release Engineer's one full run on the final tip; its log is committed here when done.
