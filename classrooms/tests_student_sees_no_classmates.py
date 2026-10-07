@@ -11,8 +11,8 @@ teacher's scheduling of a grading run.
 
 Now, for a student:
   * `students` is the student's own entry and no other;
-  * `student_count` is not sent (null) until the founder's representative
-    says whether a bare class size may be shown;
+  * `student_count`, the size of the class as a bare number, is still
+    sent: the founder's representative allowed that much;
   * the nested assignments are the student's own view of each assignment
     (the shape the assignment list route gives a student), with no count of
     classmates' work and no scheduling field;
@@ -32,11 +32,15 @@ Run with:
 
 import json
 from datetime import timedelta
+from types import SimpleNamespace
 
+from django.core.cache import cache
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
-from assignments.models import Assignment
+from assignments.models import Assignment, AssignmentStatus
 from assignments.serializers import (
     AssignmentListSerializer,
     AssignmentListStudentSerializer,
@@ -53,6 +57,8 @@ from classrooms.tests_course_payload_student_exposure import (
     CoursePayloadBase,
     make_user,
 )
+from classrooms.views import CourseViewSet
+from students.models import StudentSubmission
 from students.serializers import StudentSerializer
 from users.models import UserTypes
 
@@ -123,14 +129,14 @@ class StudentSeesOnlyTheirOwnEntryTest(StudentCourseAnswerBase):
                 for mark in self.classmate_marks():
                     self.assertNotIn(mark, body)
 
-    def test_the_class_size_is_not_sent_to_a_student(self):
-        """Until the founder's representative decides whether a bare number
-        of classmates may be shown, a student is sent none."""
+    def test_the_class_size_is_sent_as_a_bare_number(self):
+        """The founder's representative allowed this much: how many are in
+        the class ("e.g., 24 students"), and nothing else about them."""
         for route in self.routes:
             with self.subTest(route=route):
                 _, course = self.course_as(self.viewer, route)
-                self.assertIn("student_count", course)
-                self.assertIsNone(course["student_count"])
+                self.assertEqual(course["student_count"], 2)
+                self.assertEqual(len(course["students"]), 1)
 
     def test_a_classmate_of_any_enrolment_status_is_absent(self):
         pending = self.new_student("pending")
@@ -250,3 +256,106 @@ class StudentSeesNoStaffIdsOnASessionTest(StudentCourseAnswerBase):
         own = [row for row in self.rows(data) if row["name"] == "Fall"]
         self.assertEqual(len(own), 1)
         self.assertEqual(str(own[0]["created_by"]), str(self.teacher.id))
+
+
+class StudentCourseAnswerQueryCountTest(StudentCourseAnswerBase):
+    """The student's view of an assignment reads the student's own
+    submission. Nested in the course answer it must not ask the database
+    once per assignment: the course view loads them all in one query."""
+
+    def measure(self, route):
+        cache.clear()
+        self.client.force_authenticate(self.viewer)
+        with CaptureQueriesContext(connection) as captured:
+            response = self.client.get(self.routes[route])
+        self.assertEqual(response.status_code, 200)
+        return len(captured), response.data
+
+    def test_the_count_stays_flat_as_the_assignments_grow(self):
+        few = {route: self.measure(route)[0] for route in self.routes}
+        for number in range(5):
+            self.add_assignment(
+                self.course_id, f"More work {number}", AssignmentStatus.PUBLISHED
+            )
+        for route in self.routes:
+            with self.subTest(route=route):
+                count, data = self.measure(route)
+                course = (
+                    data if route == "detail" else self.course_in(data, self.course_id)
+                )
+                # Six assignments are really in the answer...
+                self.assertEqual(len(course["assignments"]), 6)
+                # ...for the same number of queries as one.
+                self.assertEqual(count, few[route])
+
+
+class StudentReadsOnlyTheirOwnSubmissionTest(StudentCourseAnswerBase):
+    """The nested view of an assignment shows the student's own state on
+    it. It is read from submissions the course view loaded beforehand, so
+    two things keep a classmate's paper out of it, each tested alone: the
+    view loads only the viewer's own, and the serializer reads only the
+    requester's own from whatever was loaded."""
+
+    def hand_in(self, student):
+        return StudentSubmission.objects.create(
+            assignment=self.published,
+            student=student,
+            answers=[{"question_number": 1, "answer_html": "an answer"}],
+            attempt_count=1,
+        )
+
+    def status_as(self, user):
+        _, course = self.course_as(user, "detail")
+        return course["assignments"][0]["status"]
+
+    def test_the_students_own_paper_shows_as_submitted(self):
+        self.assertEqual(self.status_as(self.viewer), "NOT SUBMITTED")
+        self.hand_in(self.viewer)
+        for route in self.routes:
+            with self.subTest(route=route):
+                _, course = self.course_as(self.viewer, route)
+                self.assertEqual(course["assignments"][0]["status"], "SUBMITTED")
+                self.assertEqual(course["assignments"][0]["remaining_attempts"], 2)
+
+    def test_a_classmates_paper_changes_nothing_the_student_reads(self):
+        before, _ = self.course_as(self.viewer, "detail")
+        self.hand_in(self.classmate)
+        # The classmate's own answer did change, so a paper was handed in...
+        self.assertEqual(self.status_as(self.classmate), "SUBMITTED")
+        # ...and the viewer's did not.
+        after, _ = self.course_as(self.viewer, "detail")
+        self.assertEqual(plain(after), plain(before))
+
+    def test_the_view_loads_only_the_viewers_own_submissions(self):
+        own = self.hand_in(self.viewer)
+        self.hand_in(self.classmate)
+        view = CourseViewSet()
+        view.request = SimpleNamespace(user=self.viewer)  # type: ignore[assignment]
+        view.action = "retrieve"
+        course = view.get_queryset().get(pk=self.course_id)
+        loaded = [
+            submission.pk
+            for assignment in course.assignments.all()
+            for submission in assignment.viewer_submissions
+        ]
+        self.assertEqual(loaded, [own.pk])
+
+    def test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded(self):
+        theirs = self.hand_in(self.classmate)
+        assignment = Assignment.objects.get(pk=self.published.pk)
+        request = SimpleNamespace(user=self.viewer)
+
+        assignment.viewer_submissions = [theirs]  # type: ignore[attr-defined]
+        data = AssignmentListStudentSerializer(
+            assignment, context={"request": request}
+        ).data
+        self.assertEqual(data["status"], "NOT SUBMITTED")
+        self.assertEqual(data["remaining_attempts"], 3)
+
+        mine = self.hand_in(self.viewer)
+        assignment.viewer_submissions = [theirs, mine]  # type: ignore[attr-defined]
+        data = AssignmentListStudentSerializer(
+            assignment, context={"request": request}
+        ).data
+        self.assertEqual(data["status"], "SUBMITTED")
+        self.assertEqual(data["remaining_attempts"], 2)
