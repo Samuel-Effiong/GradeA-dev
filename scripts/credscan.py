@@ -36,12 +36,18 @@ What it does not read, it says (H-137):
   read. The report counts such files; `--all` names them.
 * A line longer than 4000 characters is scanned, but not by running the two
   patterns over the whole of it, which can take minutes on one unbroken run
-  of letters. Instead each place where "://" or one of the five words
-  stands is looked at with the text around it (200 characters before a
-  word, 420 after; 600 after "://"). So on such a line a password part
-  longer than about 590 characters, or a name and value that together
-  reach further than that, is not seen. Every such line is counted in a
-  `longline` row, in every form of the report.
+  of letters. Instead each "://" is tried from its own place, reading 600
+  characters on, and each of the five words is followed to the start and
+  end of the name it stands in (up to 200 characters each way), where the
+  assignment pattern is tried once, reading 420 characters past the name's
+  end. So on such a line these are NOT seen, and nothing says so beyond the
+  `longline` row: a password part longer than about 590 characters; a value
+  that ends more than 420 characters after its name (spaces, the sign and
+  quotes included); and a name with more than 200 characters before or
+  after its word. An assignment standing inside another one's value is
+  found there by itself, where a short line would give the outer one only.
+  Every such line is counted in a `longline` row, in every form of the
+  report.
 
 Limits it does NOT report:
 
@@ -59,6 +65,7 @@ import gzip
 import io
 import lzma
 import re
+import string
 import subprocess
 import sys
 import tarfile
@@ -130,10 +137,12 @@ TAR_SUFFIXES = (".tar.gz", ".tgz", ".tar", ".tar.xz", ".txz", ".tar.bz2", ".tbz2
 MAX_DEPTH = 3
 #: A line longer than this is scanned around its "://" and its words only.
 LONG_LINE = 4000
-#: On a long line: how far before a word a name may start, how far after it
-#: the value may end, and how far after "://" the at sign may stand.
+#: On a long line: how far to each side of a word its name is followed, how
+#: far after the name's end the value may end, and how far after "://" the at
+#: sign may stand.
 NAME_BEFORE = 200
 VALUE_AFTER = 420
+NAME_BYTES = frozenset((string.ascii_letters + string.digits + "_").encode())
 ADDRESS_AFTER = 600
 WORD = re.compile(rb"(?i)PASS|PWD|SECRET|TOKEN|KEY")
 ARCHIVE_SUFFIXES = TAR_SUFFIXES + (".gz", ".xz", ".bz2", ".zip")
@@ -259,10 +268,16 @@ def scan_line(name, lineno, line, rows, values):
 def scan_long_line(name, lineno, line, rows, values):
     """Record the hits on a line too long to run the patterns over whole.
 
-    Each "://" and each of the five words is looked at with the text around
-    it. Two words can stand in or near one name, so an assignment is taken
-    once, by where its name ends in the line. An address cannot be found
-    twice: each "://" is tried once, from its own place.
+    Each "://" is tried once, from its own place, so an address cannot be
+    found twice.
+
+    Each of the five words is part of a name. The name is followed back to
+    its start and the assignment pattern is tried there, once, reading no
+    further than VALUE_AFTER past the name's end. Two words can stand in one
+    name, so a word inside a name already tried is passed over. The pattern
+    is never run over a stretch that belongs to another word: such a stretch
+    can end inside a value, and the cut-off value would be recorded in place
+    of the whole one (found by Verifier 2, 2026-10-07).
     """
     rows[("longline", name, "scanned-around-its-words", 0)] += 1
     at = line.find(b"://")
@@ -271,13 +286,28 @@ def scan_long_line(name, lineno, line, rows, values):
         if m:
             record_address(name, lineno, m.group(1), rows, values)
         at = line.find(b"://", at + 1)
-    taken = set()
+    tried_to = 0
     for word in WORD.finditer(line):
-        start = max(0, word.start() - NAME_BEFORE)
-        for m in ASSIGN.finditer(line, start, word.end() + VALUE_AFTER):
-            if m.end(1) not in taken:
-                taken.add(m.end(1))
-                record_assignment(name, lineno, m, rows, values)
+        if word.start() < tried_to:
+            continue
+        start = word.start()
+        while (
+            start > 0
+            and word.start() - start < NAME_BEFORE
+            and line[start - 1] in NAME_BYTES
+        ):
+            start -= 1
+        end = word.end()
+        while (
+            end < len(line)
+            and end - word.end() < NAME_BEFORE
+            and line[end] in NAME_BYTES
+        ):
+            end += 1
+        tried_to = end
+        m = ASSIGN.match(line, start, end + VALUE_AFTER)
+        if m:
+            record_assignment(name, lineno, m, rows, values)
 
 
 def scan(name, data, rows, values, depth=0):
