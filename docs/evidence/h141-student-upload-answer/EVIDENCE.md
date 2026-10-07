@@ -172,6 +172,18 @@ upload's total: O4; the teacher's page: T1). Of the audience guard's 17: six red
 P1 and P2. **Never seen red, and not claimed as evidence:** the six scanner self-tests and the
 census test of the audience guard. H-127's new guard test: red in step 0 and under nine mutants.
 
+## Added 2026-10-07 11:38 WAT, still before any run: rule 20 (the cache tests)
+
+New team rule 20 (Senior Manager, 2026-10-07): a change to what a serializer or a cached route
+returns runs the AutoGrader app's cache tests with its gate. This row changes what one route
+returns, the upload's 201 answer, which is not cached; the serializers that cached routes use
+are changed only by a class attribute (`audience`). Added to step 1 of `run_h141_gate.sh`
+(sha256 now starts 7aff28f69409a90e): `AutoGrader.tests_cache_bespoke_1114` (its family 12 is the
+submission's detail page) and the three other AutoGrader cache modules that read a submission
+route: `tests_cache_user_fanout`, `tests_cache_matrix_tenant_isolation`,
+`tests_cache_matrix_concurrency`. Not added: `tests_cache_matrix_measurement` (a measurement).
+Expected: OK; I expect no effect of this row on them at all.
+
 ## Not done
 
 Nothing run. No frontend read. `main` not read for the same route.
