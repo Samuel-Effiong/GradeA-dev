@@ -475,28 +475,40 @@ class TheTotalIsNeverAboveTheMaximum(ReplyCase):
         return self.processor._finalize_grading_result(evaluations, self.QUESTIONS)
 
     def test_whatever_the_list_holds(self):
+        """Each shape with the total it must give, added up by hand: every
+        question once, at the kept score. Not every right total is the
+        maximum (the second shape); until 2026-10-07 this test demanded
+        30 of all of them, which was the test's mistake."""
+        full = [evaluation(n, 10) for n in (1, 2, 3)]
         shapes = {
-            "every question twice at full marks": [evaluation(n, 10) for n in (1, 2, 3)]
-            * 2,
-            "one question five times": [evaluation(1, 10)] * 5
-            + [evaluation(2), evaluation(3)],
-            "strays only beside the three": [evaluation(n, 10) for n in (1, 2, 3)]
-            + [evaluation(STRAY, 1000), evaluation("x", 7)],
-            "a quoted number repeats a plain one": [
-                evaluation(1, 10),
-                evaluation("1", 10),
-                evaluation(2, 10),
-                evaluation(3, 10),
-            ],
+            "every question twice at full marks": (full * 2, 30),
+            "one question five times, the others at 8": (
+                [evaluation(1, 10)] * 5 + [evaluation(2), evaluation(3)],
+                10 + 8 + 8,
+            ),
+            "one question five times, the others at full marks": (
+                [evaluation(1, 10)] * 5 + [evaluation(2, 10), evaluation(3, 10)],
+                30,
+            ),
+            "strays only beside the three": (
+                full + [evaluation(STRAY, 1000), evaluation("x", 7)],
+                30,
+            ),
+            "a quoted number repeats a plain one": (
+                [evaluation(1, 10), evaluation("1", 10)]
+                + [evaluation(2, 10), evaluation(3, 10)],
+                30,
+            ),
         }
-        for name, evaluations in shapes.items():
+        for name, (evaluations, total) in shapes.items():
             with self.subTest(shape=name):
                 finalized = self.finalize(evaluations)
 
                 self.assertLessEqual(
                     finalized["total_score"], finalized["max_total_points"]
                 )
-                self.assertEqual(finalized["total_score"], 30)
+                self.assertEqual(finalized["total_score"], total)
+                self.assertEqual(finalized["max_total_points"], 30)
                 self.assertEqual(len(finalized["question_evaluations"]), 3)
                 self.assertLessEqual(finalized["percentage"], 100)
 
