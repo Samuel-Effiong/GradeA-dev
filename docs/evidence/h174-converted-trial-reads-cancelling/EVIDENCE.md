@@ -381,3 +381,13 @@ Console log: `gate_console_b960b7cd.txt.gz` (sha256 of the raw console starts 40
 - Credential patterns on every new file before this commit (wide address pattern and name=value pattern, masked): 0 lines.
 
 Not shown by this run: the billing regression (next, part 2, same grant), behaviour at Stripe, on a service, in a database or on the web page.
+
+### Results of the billing regression on the delta tip (013774da; step 3, started 19:41:36, ended 19:53:00 WAT, 2026-10-07)
+
+Raw log `regression_013774da.txt.gz` (sha256 of the raw file starts 34705e816b8af3ef; the gzip decompresses to the same bytes, checked with cmp before the raw file was removed from the tree); console `regression_console_013774da.txt.gz`.
+
+- **billing app, one serial run: Ran 2130 tests in 301.846s, OK.** 0 lines starting FAIL or ERROR. Load at start 2.89 3.73 4.01, at end 4.63 3.84 3.88.
+- The earlier run on 425d4e5d (Ran 2126, OK by its console summary; raw log lost in the machine stop at about 18:31) is **not counted**. The 4 tests more now are the delta's four.
+- Credential patterns (wide address pattern, name=value), masked: 0 lines.
+
+Not shown by any run: behaviour at Stripe, on a service, in a database or on the web page; the order of Stripe's messages; the patch working on main (that is a separate branch and run).
