@@ -130,3 +130,46 @@ OK; step 2 twenty KILLED.
 
 **Not asked for:** a regression of an app. The change is one new script that nothing imports and
 one new test module; the batch's full run covers the rest.
+
+## Results: the gate at `563534a4` (a grant to myself, logged first; 2026-10-07 11:52:57 to 11:57:24 WAT)
+
+One run of `run_h137_gate.sh 563534a4`, serial, 6G cap, beside the Next-stage Builder's serial
+mutant battery (the Senior Manager's standing form for two targeted runs: no full suite running,
+caps 12G together, loads recorded). Load (1 minute) 8.07 at the start, 6.60 at the end. Nothing
+in these runs is timed.
+
+| Step | Result, from the raw log | Written beforehand |
+|---|---|---|
+| 0 the module against the tool as at `840619b4` | exit 1: Ran 23 tests in 0.206s, FAILED (failures=11) | non-zero, Ran 23, eleven failing |
+| 1 the module and 23 guard modules at `563534a4` | exit 0: Ran 309 tests in 135.541s, OK | OK |
+| 2 the twenty mutants | exit 0: 20 KILLED, 0 SURVIVED, 0 BROKEN | 20 KILLED |
+
+- **Step 0:** the eleven failing tests are exactly the eleven named above, compared by class and
+  name; the other twelve passed.
+- **Step 2:** every mutant's run has its own "Ran 23 tests" line and exit 1, and its failing
+  tests are EXACTLY the set written beforehand (the tool judges that; `mutation_results.json`
+  holds both lists for each). After the battery the source was as committed and
+  `scripts/__pycache__` did not exist.
+- **Nothing differed from what was written before the run.**
+- **Rule 19, now from runs:** all 23 tests have been seen red: eleven in step 0, and every one of
+  the 23 under at least one mutant.
+
+**Files:** `console_563534a4.txt` (the script's own output), `red_run_tool_as_moved.txt.gz`,
+`modules_and_guards.txt.gz`, `mutation_log.txt`, `mutation_results.json`, `mutant_logs.tar.gz`
+(each inner run's whole output). `raw_logs_sha256.txt` holds the sha256 of each raw log as
+written, taken before packing.
+
+**The new files scanned with the new tool** (its functions called directly on this folder's
+files, the tool and the test module; masked): no address with a password part, no literal
+assignment, no value in two forms.
+
+## Not done
+
+- **No whole-tree comparison of the new tool against the old one.** That is a whole-tree scan and
+  takes the run slot; it is worth doing once before the tool is relied on, since the report now
+  has `longline` rows and a "not read" line that older outputs lack. Asked of the verifier or
+  done by me on a grant, as the Senior Manager rules.
+- **No timing test.** The cost figures above are observations, not assertions.
+- **The team's copy outside the repository is not removed or changed.** Which one the team runs
+  after the merge is for the Senior Manager to say.
+- **No hook or CI step runs the tool.** The row did not ask for one.
