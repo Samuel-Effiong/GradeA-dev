@@ -1033,6 +1033,48 @@ class SubscriptionReactivationService:
                             )
                         raise
 
+        elif stripe_sub.get("cancel_at_period_end") is False:
+            # H-174: Stripe says, in so many words, that this subscription
+            # is NOT scheduled to cancel. Stripe is the source of truth: a
+            # local row that says otherwise (auto_renew False, or a date of
+            # cancellation) is wrong and is corrected here, with no call to
+            # Stripe. Such rows were left by a trial converted to a paid
+            # plan before the conversions set auto_renew. `is False`, not
+            # falsy: an answer that OMITS the flag is not "not cancelling"
+            # (the same caution as _sync_cancellation_intent's caller).
+            # A trial's auto_renew is False by design and is never touched.
+            with transaction.atomic():
+                locked_sub = (
+                    UserSubscription.objects.select_for_update()
+                    .filter(pk=user_sub.pk)
+                    .first()
+                )
+                if (
+                    locked_sub
+                    and locked_sub.is_active
+                    and not locked_sub.is_trial
+                    and now < locked_sub.billing_cycle_end
+                ):
+                    local_update_fields = []
+                    if not locked_sub.auto_renew:
+                        locked_sub.auto_renew = True
+                        local_update_fields.append("auto_renew")
+                    if locked_sub.cancelled_at is not None:
+                        locked_sub.cancelled_at = None
+                        local_update_fields.append("cancelled_at")
+                    if local_update_fields:
+                        locked_sub.save(
+                            update_fields=local_update_fields + ["updated_at"]
+                        )
+                        local_changed = True
+                        logger.info(
+                            "Reactivation: subscription %s read as scheduled "
+                            "to cancel locally, but Stripe says it is not. "
+                            "Local record corrected (%s).",
+                            locked_sub.id,
+                            ", ".join(local_update_fields),
+                        )
+
         return ReactivationResult(
             changed=stripe_changed or local_changed,
             stripe_changed=stripe_changed,
@@ -2447,7 +2489,10 @@ class IndividualPlanChangeService:
                 reactivation = SubscriptionReactivationService.reactivate_if_cancelling(
                     current_sub, now=timezone.now()
                 )
-                resumed_from_cancellation = reactivation.changed
+                # H-174: only when a cancellation was really undone at
+                # Stripe. A local record corrected to agree with Stripe
+                # (nothing was ever scheduled there) is not that.
+                resumed_from_cancellation = reactivation.stripe_changed
                 resume_warnings = reactivation.warnings
 
             def _with_resume_notice(message):

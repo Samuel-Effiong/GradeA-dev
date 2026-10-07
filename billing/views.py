@@ -946,8 +946,20 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
                 had_pending_change = bool(user_subscription.pending_plan_id)
                 had_stripe_schedule = bool(user_subscription.stripe_schedule_id)
+                # H-174: "already" needs a cancellation that was recorded
+                # (or a trial, whose auto_renew is False by design). A paid
+                # row with auto_renew False and NO date was never cancelled
+                # through here: it is a trial converted before the
+                # conversions set auto_renew, and Stripe was never told.
+                # For it this request IS the cancellation, and says so.
+                cancellation_never_recorded = (
+                    not user_subscription.auto_renew
+                    and not user_subscription.is_trial
+                    and user_subscription.cancelled_at is None
+                )
                 was_already_not_renewing = (
                     not user_subscription.auto_renew
+                    and not cancellation_never_recorded
                     and not had_pending_change
                     and not user_subscription.stripe_schedule_id
                 )
@@ -1012,6 +1024,9 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     # happened) never gets a fabricated one.
                     user_subscription.cancelled_at = timezone.now()
                     update_fields += ["auto_renew", "cancelled_at"]
+                elif cancellation_never_recorded:
+                    user_subscription.cancelled_at = timezone.now()
+                    update_fields.append("cancelled_at")
 
                 if had_pending_change:
                     user_subscription.pending_plan = None
@@ -1196,6 +1211,14 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     )
             elif not stripe_changed and not local_changed:
                 message = "Your subscription is already active and set to renew — nothing to resume."
+            elif not stripe_changed:
+                # H-174: nothing was scheduled to cancel at Stripe; only
+                # our own record said so, and it has just been corrected.
+                message = (
+                    "Your subscription was never scheduled to cancel with "
+                    "our payment provider. Our record showed otherwise and "
+                    "has been corrected — it will renew normally."
+                )
             else:
                 message = "Your subscription has been resumed and will renew normally."
 

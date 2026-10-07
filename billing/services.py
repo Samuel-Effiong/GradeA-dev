@@ -1678,6 +1678,13 @@ class SubscriptionService:
 
         trial_sub.is_trial = False
         trial_sub.trial_end = None
+        # H-174: a trial is born with auto_renew=False ("does not turn into
+        # a paid plan by itself"). This is the SAME row, now a paid plan
+        # that Stripe renews: left as it was, the row read as "scheduled
+        # to cancel" (not a trial, not renewing) until its first renewal,
+        # while Stripe, never told to cancel, went on to charge.
+        trial_sub.auto_renew = True
+        trial_sub.cancelled_at = None
 
         trial_sub.billing_cycle_start = cycle_start
         trial_sub.billing_cycle_end = billing_end
@@ -1694,6 +1701,8 @@ class SubscriptionService:
                 "billing_cycle_start",
                 "billing_cycle_end",
                 "next_credit_grant_at",
+                "auto_renew",
+                "cancelled_at",
                 "updated_at",
             ]
         )
@@ -1845,6 +1854,11 @@ class SubscriptionService:
         trial_sub.next_credit_grant_at = monthly_bucket_expiry
         trial_sub.stripe_subscription_id = stripe_subscription_id  # Attach Stripe ID
         trial_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+        # H-174: the trial's auto_renew=False must not stay on the paid
+        # plan (see finalize_trial_conversion_via_stripe). Assigned AND
+        # named in update_fields below.
+        trial_sub.auto_renew = True
+        trial_sub.cancelled_at = None
 
         trial_sub.save(
             update_fields=[
@@ -1859,6 +1873,8 @@ class SubscriptionService:
                 "next_credit_grant_at",
                 "stripe_subscription_id",
                 "stripe_status",
+                "auto_renew",
+                "cancelled_at",
                 "updated_at",
             ]
         )
