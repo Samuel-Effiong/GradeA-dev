@@ -1,0 +1,365 @@
+{
+  "C1_the_command_does_not_count_the_nameless": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "pycache_left": 0
+  },
+  "C2_the_command_counts_every_converted_account_as_nameless": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "pycache_left": 0
+  },
+  "C3_the_command_prints_an_address": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_output_still_carries_ids_only"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.AStudentOfACourseWithNoTeacherIsConvertedTest.test_the_conversion_converts_them_and_goes_on",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_a_second_run_takes_them_up_again",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_line_carries_the_errors_type_and_never_its_text",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_preview_queues_nothing_and_does_not_guess",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_output_still_carries_ids_only"
+    ],
+    "pycache_left": 0
+  },
+  "Q01_the_sender_always_says_queued": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheSenderSaysWhetherTheEmailWasQueuedTest.test_false_and_no_error_when_the_queue_could_not_be_reached",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheSenderSaysWhetherTheEmailWasQueuedTest.test_false_and_no_error_when_the_queue_could_not_be_reached"
+    ],
+    "pycache_left": 0
+  },
+  "Q02_the_sender_never_says_queued": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheSenderSaysWhetherTheEmailWasQueuedTest.test_true_when_it_was_queued",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_run_goes_on_and_converts_the_others",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_run_with_the_queue_up_says_none_was_left"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.AStudentOfACourseWithNoTeacherIsConvertedTest.test_the_conversion_converts_them_and_goes_on",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_a_second_run_takes_them_up_again",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_line_carries_the_errors_type_and_never_its_text",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_run_goes_on_to_the_others",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued",
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_a_teacher_the_wording_is_as_it_was",
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_no_teacher_the_email_names_nobody",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_run_with_the_queue_up_says_none_was_left",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_run_goes_on_and_converts_the_others",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheSenderSaysWhetherTheEmailWasQueuedTest.test_true_when_it_was_queued",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "pycache_left": 0
+  },
+  "Q03_the_command_ignores_the_answer": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "pycache_left": 0
+  },
+  "Q04_an_unqueued_email_is_reported_as_a_plain_error": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "pycache_left": 0
+  },
+  "Q05_the_conversion_is_not_undone": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_a_second_run_takes_them_up_again",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_an_interrupt_from_the_keyboard_still_stops_the_run"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_a_second_run_takes_them_up_again",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_an_interrupt_from_the_keyboard_still_stops_the_run",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_a_second_run_picks_up_exactly_those",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "pycache_left": 0
+  },
+  "Q06_the_summary_does_not_count_them": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "pycache_left": 0
+  },
+  "Q07_the_line_shows_the_address": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_output_names_nobody_when_an_email_could_not_be_queued"
+    ],
+    "pycache_left": 0
+  },
+  "Q08_the_preview_converts": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_preview_queues_nothing_and_does_not_guess"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_preview_queues_nothing_and_does_not_guess",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name"
+    ],
+    "pycache_left": 0
+  },
+  "Q09_an_unconverted_account_is_listed_as_converted": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_account_is_left_exactly_as_it_was",
+      "classrooms.tests_conversion_needs_a_queued_email.TheConversionNeedsAQueuedEmailTest.test_the_summary_counts_them"
+    ],
+    "pycache_left": 0
+  },
+  "R01_the_email_reads_the_teacher_whether_there_is_one_or_not": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_no_teacher_the_email_names_nobody",
+      "classrooms.tests_conversion_goes_on_past_one_account.AStudentOfACourseWithNoTeacherIsConvertedTest.test_the_conversion_converts_them_and_goes_on"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.AStudentOfACourseWithNoTeacherIsConvertedTest.test_the_conversion_converts_them_and_goes_on",
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_no_teacher_the_email_names_nobody"
+    ],
+    "pycache_left": 0
+  },
+  "R02_the_sentence_without_a_teacher_is_another": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_no_teacher_the_email_names_nobody"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_no_teacher_the_email_names_nobody"
+    ],
+    "pycache_left": 0
+  },
+  "R03_the_teachers_name_is_never_used": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_a_teacher_the_wording_is_as_it_was"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.TheSenderDoesNotNeedATeacherTest.test_with_a_teacher_the_wording_is_as_it_was"
+    ],
+    "pycache_left": 0
+  },
+  "R04_an_error_in_one_account_stops_the_run_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_run_goes_on_to_the_others",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_line_carries_the_errors_type_and_never_its_text",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_a_second_run_takes_them_up_again"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_a_second_run_takes_them_up_again",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_line_carries_the_errors_type_and_never_its_text",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_run_goes_on_to_the_others",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued"
+    ],
+    "pycache_left": 0
+  },
+  "R05_the_line_carries_the_errors_text": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_line_carries_the_errors_type_and_never_its_text"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_line_carries_the_errors_type_and_never_its_text"
+    ],
+    "pycache_left": 0
+  },
+  "R06_the_errors_are_not_counted": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued"
+    ],
+    "pycache_left": 0
+  },
+  "R07_an_account_that_failed_is_listed_as_converted": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_account_is_left_as_it_was_and_listed_by_the_errors_type",
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_the_summary_counts_them_apart_from_the_unqueued"
+    ],
+    "pycache_left": 0
+  },
+  "R08_an_interrupt_is_swallowed_as_that_accounts_error": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_an_interrupt_from_the_keyboard_still_stops_the_run"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.OneAccountNeverStopsTheRunTest.test_an_interrupt_from_the_keyboard_still_stops_the_run"
+    ],
+    "pycache_left": 0
+  },
+  "R09_a_database_error_is_taken_for_that_accounts_and_the_run_goes_on": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.ADatabaseErrorStopsTheRunTest.test_the_run_stops_and_says_which_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.ADatabaseErrorStopsTheRunTest.test_the_run_stops_and_says_which_account"
+    ],
+    "pycache_left": 0
+  },
+  "R10_the_stop_line_shows_the_address": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 32,
+    "expected": [
+      "classrooms.tests_conversion_goes_on_past_one_account.ADatabaseErrorStopsTheRunTest.test_the_run_stops_and_says_which_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_conversion_goes_on_past_one_account.ADatabaseErrorStopsTheRunTest.test_the_run_stops_and_says_which_account"
+    ],
+    "pycache_left": 0
+  }
+}

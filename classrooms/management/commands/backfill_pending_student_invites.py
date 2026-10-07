@@ -50,6 +50,20 @@ so a second run picks up exactly those. Before this, such a student came
 out switched on with a password nobody held and no email, and nothing
 said which account. A queued email lost later is beyond this command.
 
+H-152 (second delta): no one account stops the run. Any other error while
+one account is being converted undoes that account, prints
+"NOT converted (<the error's type>): student <id>" (the type, never the
+error's text), is counted, and the run goes on; a second run tries those
+accounts again. The one exception is a DATABASE error: the run stops at
+the first one and its last line says so and names the student (by id)
+whose email may have gone out with a password that was not saved, since
+the email is queued before the account's transaction commits.
+
+Before this, a student whose pending place was in a course with no
+teacher made the email builder raise, and every run stopped at that same
+account. The email no longer needs a teacher either. A preview builds no
+email and converts nothing, so it cannot foresee such an error.
+
 Usage:
     python manage.py backfill_pending_student_invites --dry-run
     python manage.py backfill_pending_student_invites
@@ -58,6 +72,7 @@ Usage:
 import logging
 
 from django.core.management.base import BaseCommand
+from django.db import Error as AnyDatabaseError
 from django.db import transaction
 
 from classrooms.models import EnrollmentStatusType, StudentCourse
@@ -100,6 +115,7 @@ class Command(BaseCommand):
 
         converted = cleared_only = placeholder = deactivated = 0
         not_queued = 0
+        errors = 0
         # H-152: an old-scheme account was created without a name (the
         # student typed it at the door, which is now closed), and a student
         # does not name themselves. Each converted account with no name
@@ -158,6 +174,35 @@ class Command(BaseCommand):
                     )
                     not_queued += 1
                     continue
+                except AnyDatabaseError as exc:
+                    # A database error is not "that account's": the email
+                    # is queued before the account's transaction commits,
+                    # so a commit that fails has already sent a password
+                    # that was not saved, and going on would do the same
+                    # to every account after it. The run stops here.
+                    self.stdout.write(
+                        f"STOPPED on a database error ({type(exc).__name__}) "
+                        f"at student {student.pk}. That account is not "
+                        "converted, and an email with a password that was "
+                        "not saved MAY have been sent to it. Do not run "
+                        "again; report this line."
+                    )
+                    raise
+                except Exception as exc:
+                    # One account must never stop the run: its conversion
+                    # is undone with its transaction, it still matches the
+                    # selection, and without this every later run would
+                    # stop at the same account, oldest first, and never
+                    # reach the ones after it. The TYPE of the error only:
+                    # an error's text can hold an address. An interrupt
+                    # from the keyboard is not an Exception and still
+                    # stops the run.
+                    self.stdout.write(
+                        f"NOT converted ({type(exc).__name__}): "
+                        f"student {student.pk}"
+                    )
+                    errors += 1
+                    continue
             self.stdout.write(
                 f"{prefix}convert: student {student.pk} (pending course "
                 f"{course.pk})"
@@ -180,6 +225,8 @@ class Command(BaseCommand):
                 f"inactive, not emailed). "
                 f"{not_queued} NOT converted (email could not be queued; "
                 f"run again when the email queue is up). "
+                f"{errors} NOT converted (an error while converting; its "
+                f"line above names the type). "
                 f"{converted_without_a_name} of the converted have no name "
                 f"(a teacher must name each of them). "
                 f"Inactive students still holding a code: {remaining}."

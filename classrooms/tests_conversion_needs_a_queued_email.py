@@ -59,22 +59,32 @@ NOT_CONVERTED = "NOT converted (email could not be queued): student "
 class Queue:
     """Stands where the email task stands. `.delay` raises a connection
     error for the addresses in `down` (or for all, with `all_down`), as a
-    broker that cannot be reached does; otherwise it records the call."""
+    broker that cannot be reached does; otherwise it records the call.
+
+    For the tests of the second delta (classrooms/
+    tests_conversion_goes_on_past_one_account.py): `faulty` maps an address
+    to an exception to raise that is NOT an outage, and `sent` keeps what
+    each queued email was built with."""
 
     name = "send_email_task"
 
     def __init__(self):
         self.down = set()
         self.all_down = False
+        self.faulty = {}
         self.queued = []
         self.attempts = []
+        self.sent = {}
 
     def delay(self, *args, **kwargs):
         (address,) = kwargs["recipient_list"]
         self.attempts.append(address)
+        if address in self.faulty:
+            raise self.faulty[address]
         if self.all_down or address in self.down:
             raise ConnectionError("broker unreachable (test)")
         self.queued.append(address)
+        self.sent[address] = kwargs
         return object()
 
 

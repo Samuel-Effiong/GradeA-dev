@@ -3,7 +3,8 @@
 Every function here builds a MailerLite merge payload and hands it to
 `safe_delay`, so a broker outage degrades to "the enrollment happened but
 the notification didn't" rather than failing the teacher's request. None of
-them raise.
+them raise for an outage; an error that is not an outage (a fault in how
+the call was built) is let through by `safe_delay` and reaches the caller.
 
 Extracted verbatim from `classrooms.views` during the section-3 audit: the
 subject lines, template ids and merge keys are the contract MailerLite's
@@ -91,17 +92,33 @@ def send_student_login_invitation_email(student, course, generated_password):
     an activation link.
 
     Returns True when the email was handed to the queue and False when the
-    queue could not be reached (H-152). It still never raises, and a
-    teacher's add ignores the answer: an enrolment must not fail on an
-    email. The one-off conversion command does not ignore it, because an
-    account converted without this email has a password nobody holds.
-    True is not "delivered": a queued email can still be lost later.
+    queue could not be reached (H-152). A teacher's add ignores the answer:
+    an enrolment must not fail on an email. The one-off conversion command
+    does not ignore it, because an account converted without this email
+    has a password nobody holds. True is not "delivered": a queued email
+    can still be lost later.
+
+    It does not raise for an outage. Any other error from the dispatch is
+    not swallowed (`safe_delay` lets it through), as before H-152: the
+    conversion command then lists that account as not converted, undoes
+    it with its transaction and goes on; a teacher's add answers 500 and
+    is undone, as it always was.
+
+    A course need not have a teacher (`Course.teacher` may be empty), and
+    the conversion command can meet such a course. The email then names
+    nobody: "You have been invited to join <course> on Grade A+." (H-152).
+    A teacher's add never meets one: every add route looks the course up
+    among the caller's own.
     """
     login_url = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/login"
 
+    inviter = course.teacher.get_full_name() if course.teacher_id else ""
+    if inviter:
+        invitation = f"{inviter} has invited you to join {course.name} on Grade A+."
+    else:
+        invitation = f"You have been invited to join {course.name} on Grade A+."
     top_content = (
-        f"{course.teacher.get_full_name()} has invited you to join "
-        f"{course.name} on Grade A+.\n\n"
+        f"{invitation}\n\n"
         "Your account is ready - log in below with your email and the "
         f"temporary password: {generated_password}"
     )

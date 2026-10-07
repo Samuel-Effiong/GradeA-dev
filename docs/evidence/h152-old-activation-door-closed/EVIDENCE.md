@@ -304,3 +304,292 @@ line matches.
 
 Written 15:19 WAT. Still owed as this is committed: the regression (users and classrooms) on
 the final tip, on its own grant.
+
+### A comment-only correction after Verifier 2's read (15:55 WAT, 2026-10-07)
+
+Verifier 2 read the row at 1a2995f2 (this branch's 8bde93a0 base-updated onto H-148's final tip)
+and found no fault in code or tests, and one wrong sentence of mine in a docstring: the
+invitation sender's note said "It still never raises". It does not raise for a queue OUTAGE;
+any other error from the dispatch is let through by `safe_delay`, as before this row. The
+docstring of `send_student_login_invitation_email` and the module's opening note in
+`classrooms/services/notifications.py` now say what happens then: the conversion command stops
+at that account, whose conversion is undone with its transaction, the accounts before it stay
+converted; a teacher's add answers 500 and is undone, as it always was.
+
+No line of code is changed: compared by program, the file's syntax tree with every docstring
+emptied is identical before and after. `mutate.py --check` passes after it (20 mutants, no
+anchor moved). By the Senior Manager's word no gate is repeated for a docstring; the regression
+runs on the tip that carries it. Not tested by me: the behaviour the corrected sentence
+describes (an error that is not an outage); Verifier 2 has a probe for it.
+
+The runbook (outside the repository) was corrected for the same read: the sentence that said
+an account "is STILL converted" when the queue cannot be reached is put in the past, and it now
+says not to paste the service log's "Could not dispatch task" line anywhere.
+
+### A search of the whole test tree for callers (0b's GRANT, 2026-10-07 15:59:54; 16:00:26)
+
+After Verifier 1 found, in H-148, callers of a route that my search by the route's name had
+missed, I asked for the same search here before the regression: a test in another app that
+posts to one of the two closed routes by a hand-written path, expecting the old answers, would
+be red and would not be in a regression of users and classrooms.
+
+`git grep -nE` over every tracked `.py` file of the worktree at 6cae1ad4 (`docs/` left out of
+the hits), by `route_callers_search.py.txt` in this folder (sha256 of the script as run starts
+f0204a415de0f646); its whole output is `route_callers_search_6cae1ad4.txt`. Eleven terms: for
+the door its route name, its raw path (`register/student`) and its view function; the same
+three for the renewal (`course-renew-activation-token`, `renew-student-token`,
+`handle_expired_token`); the removed service and the two removed forms; the conversion
+command; the invitation sender; and `activation_token` in test files (a test that makes an
+old-scheme account is a candidate caller).
+
+**Result:** the door and the renewal are each posted to by ONE test file,
+`users/tests_old_activation_door_is_closed.py`, by the route's name. In tests the two raw paths
+appear only in docstrings. The command is called by three test files and the sender by four,
+all in users or classrooms. **No caller outside users and classrooms**, so the regression below
+covers every caller the search found.
+
+**What the search also shows, and this row did not remove:** code that nothing calls any more:
+the service `renew_student_activation` (still exported), the forms
+`StudentRegistrationCompletionSerializer` and `ExpiredTokenSerializer` (the second still named in
+the renewal route's schema decoration), and the email builders that make `/register/student/<code>`
+links. Dead, and harmless as far as I read; told to the Senior Manager for a later row. Twenty
+test files mention `activation_token`; I did not read each of them through: none posts to
+either closed route (terms T1, T2, T4, T5 would have shown it).
+
+### The regression at 6cae1ad4 (0b's GRANT, 2026-10-07 16:07:52 WAT)
+
+6cae1ad4 is the delta's gated 51cd2773 with its results, the Release Engineer's base update
+onto H-148's final tip (1a2995f2), and the comment-only commit above. One run of
+`run_h152_gate.sh 6cae1ad4 3 19f5c872` (script sha256 starts 4cde1f03112df21c): users and
+classrooms, serial, in 0b's quiet window, alone among this team's runs. 16:08:42 to 16:11:23,
+exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1122 tests in 139.674s, OK (skipped=4)** | `regression_6cae1ad4.txt.gz`; console `regression_console_6cae1ad4.txt` |
+
+The skips, in their own words: one 'CI_REQUIRE_NETWORK not set', one 'CI_REQUIRE_REDIS not set',
+two 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1'. None is for want of a
+browser. One-minute load 6.33 at the start, 4.86 at the end. A docs-only commit of mine on
+another branch ran its hooks 34 seconds into this run (I had been told not in the first
+minute); the run is green.
+
+What stands for this row: the first gate (at 8b396aa9), the delta's gate (at 51cd2773), and
+this regression on the final code. The base update and the comment-only commit changed no
+line of this row's code after its gates (`mutate.py --check` passed after each).
+
+Written 16:11 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 2.
+
+## The second delta: one account never stops the conversion
+
+**Everything in this section down to "Results of the second delta" was written on 2026-10-07 at
+16:21 WAT, before any run of it.** **[R]** = read by me in the code. It supersedes the sentence
+above, "Nothing is owed on this row by me now": the tip handed to Verifier 2, 7b49fc67, was not
+the last.
+
+### What was wrong (found by Verifier 2, by reading, at 7b49fc67)
+
+A course need not have a teacher (`Course.teacher` may be empty). The login email named the
+inviting teacher with `course.teacher.get_full_name()`. For a leftover student whose pending
+place is in a course with no teacher the sender raised `AttributeError`. That is not a queue
+outage, so nothing swallowed it; the command stopped; the account's conversion was undone with
+its transaction, so it still matched the selection; the command goes oldest first, so every
+later run stopped at the same account and the accounts after it were never converted. The
+preview builds no email and showed nothing of it. **[R]**, confirmed by me line by line. Older
+than this row (the command and the sender predate it); whether such a row exists on any service
+is not known. My hand-over had named "rows my fixtures do not make" as a place to attack;
+Verifier 2 found this one there.
+
+Senior Manager's rulings (2026-10-07, about 16:16 and 16:20): cure it on this row, even at the
+cost of the batch's cut (the pair H-152 and H-153 now travel as batch 12b). The sender does not
+need a teacher. The command never lets one account stop the run. A database error is the
+exception: the run stops and says which account.
+
+### What changes
+
+- `classrooms/services/notifications.py`, `send_student_login_invitation_email`: with a teacher
+  whose full name is not empty the wording is unchanged ("<Name> has invited you to join <course>
+  on Grade A+."). With no teacher, or a teacher with an empty name, the first sentence is
+  **"You have been invited to join <course> on Grade A+."** Such an account is then converted
+  like any other.
+- `classrooms/management/commands/backfill_pending_student_invites.py`, around the conversion of
+  one account, in this order:
+  1. the email could not be queued: as before (the first delta);
+  2. **a database error (`django.db.Error`: `DatabaseError` and its kin, `InterfaceError` too):
+     the run STOPS.** The command writes one last line, `STOPPED on a database error (<type>) at
+     student <id>. That account is not converted, and an email with a password that was not
+     saved MAY have been sent to it. Do not run again; report this line.`, and ends with the
+     same error; no summary is printed. Why it is not treated as "that account's": the email is
+     queued before the account's transaction commits (said as a limit of the first delta), so a
+     commit that fails has already sent a password that was not saved, and going on would do the
+     same to every account after it;
+  3. **any other error: that account is undone with its transaction, the line `NOT converted
+     (<type>): student <id>` is written, it is counted, and the run goes on.** The type of the
+     error only, never its text (a text can hold an address); nothing is written to a log. The
+     summary gains `E NOT converted (an error while converting; its line above names the
+     type).` A second run tries those accounts again.
+  An interrupt from the keyboard is not an `Exception` and still stops the run.
+- No model, no migration, no route, no serializer. Rule 20 does not apply.
+
+### Read for the Senior Manager
+
+- **Can a teacher's ordinary add reach a course with no teacher? No. [R]** The add by email, the
+  direct add, the class-list import and the removal each look the course up through
+  `CourseViewSet.get_queryset`, which is the caller's own reachable courses for a teacher and
+  empty for everyone else but a student. So this was never a 500 there, and no test is added
+  for a case that cannot be reached; one test holds that the wording WITH a teacher is unchanged.
+- **Other emails in `notifications.py` that read `course.teacher`:** the "added to course" and
+  "removed from course" emails (the teacher's name and address), the old invitation email, the
+  bulk-enrolment email, the two renewal emails. The first two are reached only from the routes
+  above; the others are dead since this row or have no caller I found. None is cured here; they
+  go into the row for the dead code this row leaves.
+
+### What it does NOT do (limits, accepted by the Senior Manager)
+
+- The catch is around the CONVERSION step (the account's save and the email). The three "clear
+  the code only" branches and the reads before them (is the address a placeholder, was the
+  account ever activated, which pending course) are outside it: an error there still stops the
+  run. They are plain reads and one two-field save.
+- A database error at the COMMIT of an account, after its email is queued, cannot be staged
+  inside a test's own transaction. The test stages the error at the save; the command treats
+  both alike, and its line says MAY.
+  Verifier 2 has a way to stage the commit failure itself (a test that really commits, and a
+  foreign key the database refuses at the commit, after the email is queued). That is its own
+  probe, offered to me and not copied, so that it stays independent: the commit case is shown
+  by Verifier 2's run or not at all.
+- A preview converts nothing and builds no email, so it cannot foresee either kind of error.
+- If the database connection is lost, the run stops at that account (rule 2).
+
+### Tests
+
+`classrooms/tests_conversion_goes_on_past_one_account.py`, 10 tests, committed first, tests only
+(a940c2db; the gate's base argument).
+`classrooms/tests_conversion_needs_a_queued_email.py` gains two things in its stand-in for the
+email task (an error to raise that is not an outage; what each queued email was built with); no
+test of that module is changed.
+
+### Written before the run
+
+Gate script: `~/Documents/Projects/GAP-ed-scripts/run_h152_delta2_gate.sh <tip> <the tests-only
+commit>` (sha256 starts 7bc4af6cd49acf5a as this is written).
+
+**0. Reproduce-first** (the second delta's module on the two production files as at the
+tests-only commit): Ran 10, FAILED, **8 red**: `test_with_no_teacher_the_email_names_nobody`;
+`test_the_conversion_converts_them_and_goes_on`; five of `OneAccountNeverStopsTheRunTest` (left
+as it was and listed; the run goes on; the summary; the type and never the text; a second run);
+and `ADatabaseErrorStopsTheRunTest.test_the_run_stops_and_says_which_account` (the old code
+raises the error, as the test wants, but prints no line: the test fails at reading the last
+line). **Green there, 2**, each read against the old code:
+`test_with_a_teacher_the_wording_is_as_it_was` (it holds what must not change) and
+`test_an_interrupt_from_the_keyboard_still_stops_the_run` (the old code let it through too).
+The script compares the set and halts on a difference.
+
+**1a.** `makemigrations --check`: no changes.
+
+**1. Modules and guards at the tip**: OK. No count written. In the list: the second delta's
+module, the row's two earlier modules, the related modules of the earlier gates (H-148's add by
+email among them, which reads the wording with a teacher), the four modules that replace the
+queue, the guards.
+
+**2. Mutants, 22**, each KILLED with at least the tests `mutate.py` names (`--check` passes; it
+refuses to load if a test of either delta is named by no mutant). Each inner run is of three
+modules: "Ran 32".
+
+| Mutant | Must fail at least |
+|---|---|
+| R01 the email reads the teacher whether there is one or not | no-teacher wording; the teacherless student converted |
+| R02 the sentence without a teacher is another | no-teacher wording |
+| R03 the teacher's name is never used | wording with a teacher |
+| R04 an error in one account stops the run again | left and listed; the run goes on; the summary; the type; a second run |
+| R05 the line carries the error's text | left and listed; the type and never the text |
+| R06 the errors are not counted | the summary |
+| R07 an account that failed is listed as converted | left and listed; the summary |
+| R08 an interrupt is swallowed as that account's error | the interrupt |
+| R09 a database error is taken for that account's and the run goes on | the database error |
+| R10 the stop line shows the address | the database error |
+| Q01 to Q09, C1 to C3 (the earlier ones on the two changed files), again | as before, with two changes below |
+
+Two earlier mutants change with this delta, and I say how:
+- **Q04** used to stop the whole run and failed five tests (the first delta's gate shows it). Now
+  an unqueued email that is not caught as such is caught as a plain error: the run goes on and
+  a second run still takes the account up. It is renamed "an unqueued email is reported as a
+  plain error" and must fail three: left as it was (the line is another), the summary (the count
+  is in the other place), names nobody (the line is another). "The run goes on" is still named
+  by Q02.
+- **Q05** (no transaction) must now fail four of the new tests as well: left and listed, the
+  summary, a second run, the interrupt.
+- Q07 is re-anchored (its line now occurs twice in the file); what it changes is the same.
+Q10 and Q11 (on `enrollment.py`, untouched) and D1 to D6 (the two views files, untouched) are
+not run again.
+
+Rule 19, as it should stand after this run: of the 10 new tests, 8 red in step 0; the 2 green
+ones each under a mutant (the wording with a teacher: R03; the interrupt: R08).
+
+**3. Regression** (users, classrooms, serial; own grant) AGAIN on the final tip: OK. The one at
+6cae1ad4 stands for the code as it then was.
+
+### Results of the second delta
+
+**The second delta's gate at 76c82c35 (0b's GRANT, 2026-10-07 16:30:34 WAT).** 76c82c35 is
+7b49fc67 plus a940c2db (tests only) and the change. One run of
+`run_h152_delta2_gate.sh 76c82c35 a940c2db` (script sha256 starts 7bc4af6cd49acf5a). 16:30:59 to
+16:36:36. Verifier 1's credential scans ran beside its first minutes; one-minute load 2.79 at
+the start, 3.07 at the start of part 1, 3.78 at its end, 4.27 at the end. Not stopped, not
+repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the two production files as at a940c2db | Ran 10; 8 red, 2 green, named above | **Ran 10 tests in 0.641s, FAILED (errors=9)**: 9 lines (the database test once per kind of error), 8 distinct tests, exactly the eight; the script's own comparison: "step 0 is as written" | `prefix_base_production_failing_delta2_76c82c35.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_delta2_76c82c35.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 563 tests in 155.806s, OK (skipped=3)** | `modules_and_guards_delta2_76c82c35.txt.gz` |
+| 2. Mutants, 22 | KILLED with their named tests | **22 of 22 KILLED**: each exit 1, its own "Ran 32", every expected test among the failed (`expected-but-passed []` twenty-two times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_delta2_76c82c35.txt`, `mutation_results_delta2_76c82c35.json`, `mutant_logs_delta2_76c82c35/` |
+
+Nothing differed from what was written before the run. The console is
+`gate_console_delta2_76c82c35.txt.gz`. The three skips are the opt-in live Google tests.
+
+Q04, whose expected set I changed for this delta, failed exactly the three tests written for it
+(left as it was; the summary; names nobody), and "the run goes on" and "a second run" pass
+under it, as written.
+
+Rule 19, counted from these records: of the 10 new tests, 8 were red in part 0; the wording
+with a teacher failed under R03 and the keyboard interrupt under R08. None is left unseen red.
+The 22 tests of the row's two earlier modules ran under every mutant here as well.
+
+What these runs do not show, as written above: a database error at the commit itself (Verifier
+2's own probe); an error outside the conversion step.
+
+Credential-pattern check before this commit (the second delta's files, before gzip): no line
+matches.
+
+Written 16:37 WAT. Still owed as this is committed: the regression (users and classrooms) AGAIN,
+on this tip, on its own grant.
+
+### The regression at 9e104937 (0b's GRANT, 2026-10-07 16:41:37 WAT)
+
+9e104937 is the second delta's gated 76c82c35 with its results (docs only). The second delta
+changed two production files after the regression at 6cae1ad4, so that regression no longer
+covered the row's final code and was owed again. One run of `run_h152_gate.sh 9e104937 3
+19f5c872` (script sha256 starts 4cde1f03112df21c): users and classrooms, serial, in 0b's quiet
+window, alone among this team's runs. 16:41:56 to 16:44:35, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1132 tests in 143.619s, OK (skipped=4)** | `regression_9e104937.txt.gz`; console `regression_console_9e104937.txt` |
+
+1132 is the 1122 of the regression at 6cae1ad4 and the ten tests of the second delta's module.
+The skips, in their own words, are the same four: one 'CI_REQUIRE_NETWORK not set', one
+'CI_REQUIRE_REDIS not set', two 'live Google contract tests are opt-in: set
+CI_REQUIRE_NETWORK=1'. One-minute load 3.50 at the start, 5.49 at the end. No commit or hook of
+mine ran beside it.
+
+Credential-pattern check before this commit (the log before gzip, values masked): no URL that
+carries a password; nine lines match the name-and-value pattern, the same count as in the
+committed log of the regression at 6cae1ad4. Read masked: seven are a validation error's own
+sentence ("The password cannot be changed through this endpoint...", "This field is required."),
+two are lines of source in a traceback that assign the result of a call. None holds a value.
+
+What stands for this row: the first gate (at 8b396aa9), the delta's gate (at 51cd2773), the
+second delta's gate (at 76c82c35), and this regression on the final code. The regression at
+6cae1ad4 stays in the record; it is no longer the one the row rests on.
+
+Written 16:45 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 2.
