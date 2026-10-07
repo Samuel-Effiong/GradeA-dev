@@ -22,14 +22,16 @@ The rule (Senior Manager, 2026-10-07):
 """
 
 import copy
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from ai_processor.services import ai_processor
+from ai_processor import services as ai_services
+from ai_processor.services import AIProcessor, ai_processor
 from assignments import services
 from assignments.models import Assignment, AssignmentGenerationMessage, AssignmentStatus
 from assignments.serializers import AssignmentSerializer
@@ -300,6 +302,44 @@ class ExtractionNumbersInOrderTest(TestCase):
             paired(data["questions"]),
             [(FIRST, "answer 1"), (SECOND, "answer 2"), (THIRD, "answer 3")],
         )
+
+    @override_settings(
+        GRADING_SECOND_OPINION_ENABLED=False,
+        GRADING_EVIDENCE_ENFORCEMENT=ai_services.MODE_LOG,
+    )
+    def test_the_real_grading_pipeline_grades_three_questions_not_two(self):
+        """The real pipeline. These are objective questions with an answer
+        key ("4"), which the system grades itself: no provider call is
+        made, and one would fail the test."""
+        cache.clear()
+        self.addCleanup(cache.clear)
+        answers = [
+            {"question_number": n, "answer_html": f"<p>{given}</p>"}
+            for n, given in ((1, "4"), (2, "3"), (3, "4"))
+        ]
+
+        def graded(questions):
+            with patch.object(AIProcessor, "execute_graded_task") as provider:
+                provider.side_effect = AssertionError("no provider call expected")
+                result = ai_processor.extract_grade_with_retry(
+                    MagicMock(), questions, answers, assignment_model=None
+                )
+            return (
+                [
+                    (evaluation["question_number"], evaluation["score_awarded"])
+                    for evaluation in result["question_evaluations"]
+                ],
+                result["grading_summary"]["max_total_points"],
+            )
+
+        # Control, the fault itself (seen by calling the pipeline so,
+        # 2026-10-07): with the model's numbers the paper of three is
+        # graded as a paper of two, out of 20.
+        self.assertEqual(graded(three(REPEAT)), ([(1, 10), (2, 0)], 20))
+
+        data = self.extract(extraction_reply())
+
+        self.assertEqual(graded(data["questions"]), ([(1, 10), (2, 0), (3, 10)], 30))
 
 
 class TheExtractionRoutesSaveNumbersInOrderTest(AIOutputAllowListFixture):
