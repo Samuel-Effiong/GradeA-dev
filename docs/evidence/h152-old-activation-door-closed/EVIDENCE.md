@@ -530,4 +530,36 @@ ones each under a mutant (the wording with a teacher: R03; the interrupt: R08).
 
 ### Results of the second delta
 
-(none yet)
+**The second delta's gate at 76c82c35 (0b's GRANT, 2026-10-07 16:30:34 WAT).** 76c82c35 is
+7b49fc67 plus a940c2db (tests only) and the change. One run of
+`run_h152_delta2_gate.sh 76c82c35 a940c2db` (script sha256 starts 7bc4af6cd49acf5a). 16:30:59 to
+16:36:36. Verifier 1's credential scans ran beside its first minutes; one-minute load 2.79 at
+the start, 3.07 at the start of part 1, 3.78 at its end, 4.27 at the end. Not stopped, not
+repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the two production files as at a940c2db | Ran 10; 8 red, 2 green, named above | **Ran 10 tests in 0.641s, FAILED (errors=9)**: 9 lines (the database test once per kind of error), 8 distinct tests, exactly the eight; the script's own comparison: "step 0 is as written" | `prefix_base_production_failing_delta2_76c82c35.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_delta2_76c82c35.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 563 tests in 155.806s, OK (skipped=3)** | `modules_and_guards_delta2_76c82c35.txt.gz` |
+| 2. Mutants, 22 | KILLED with their named tests | **22 of 22 KILLED**: each exit 1, its own "Ran 32", every expected test among the failed (`expected-but-passed []` twenty-two times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_delta2_76c82c35.txt`, `mutation_results_delta2_76c82c35.json`, `mutant_logs_delta2_76c82c35/` |
+
+Nothing differed from what was written before the run. The console is
+`gate_console_delta2_76c82c35.txt.gz`. The three skips are the opt-in live Google tests.
+
+Q04, whose expected set I changed for this delta, failed exactly the three tests written for it
+(left as it was; the summary; names nobody), and "the run goes on" and "a second run" pass
+under it, as written.
+
+Rule 19, counted from these records: of the 10 new tests, 8 were red in part 0; the wording
+with a teacher failed under R03 and the keyboard interrupt under R08. None is left unseen red.
+The 22 tests of the row's two earlier modules ran under every mutant here as well.
+
+What these runs do not show, as written above: a database error at the commit itself (Verifier
+2's own probe); an error outside the conversion step.
+
+Credential-pattern check before this commit (the second delta's files, before gzip): no line
+matches.
+
+Written 16:37 WAT. Still owed as this is committed: the regression (users and classrooms) AGAIN,
+on this tip, on its own grant.
