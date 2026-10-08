@@ -8,10 +8,20 @@ No migration, no model change, no setting. **Does it change grading?** No: the
 same sanitizer, one parser per call instead of one shared parser.
 
 ## What the record may say (the Senior Manager's wording, 2026-10-08)
-> crash and wedge OBSERVED (5 of 5 on the old code); mixed text NOT observed
-> in any run; possible by d5's reading of the library.
+**Superseded by the ruling made after Verifier 2's observation run** (the
+earlier wording, "mixed text NOT observed in any run", was true of MY runs only
+and is void as a statement of the whole record). The ruled wording:
 
-Nobody writes "mixes users' text" as a fact. Said again in the package.
+> MIXED TEXT OBSERVED on the old shared Cleaner under a stress probe by
+> Verifier 2 (8 threads, switch interval 1 microsecond, three 60-second runs on
+> the module as at 3f2ad13e): outputs differing from the single-thread output
+> 3, 66, 470; of those, outputs carrying ANOTHER input's marker 2, 28, 213;
+> calls that raised 3, 79, 1011. Crash and wedge observed by d5 and 0b (5 of 5).
+> NOT shown: that it happened in production, that it reached the database, the
+> rate under real load; the probe counted and saved no sample text; the marker
+> check is a substring test.
+
+The record is `verification_v2/VERIFICATION_h191_sanitizer_per_call_cleaner_9c204540.md`.
 
 ## The fault
 `sanitize_editor_html` called ONE module-level `bleach.Cleaner`
@@ -59,14 +69,15 @@ likely form.** (Corrected after Verifier 2's reading.)
   `sanitize_editor_html -> Cleaner.clean -> parseFragment`). WHY they do not
   finish is my reading (a loop whose exit condition another thread's reset
   destroyed), **not shown**.
-- **Mixed text was NOT observed in any run.** Said exactly: on the old code
+- **Mixed text was NOT observed in MY runs** (it WAS observed by Verifier 2's probe, see the top of this file). Said exactly: on the old code
   the tests failed at their first assertion, the error list (`assertEqual(errors,
   [])`), before they reached the comparison of outputs; the errors in the (r)
   log are `IndexError: list index out of range`, `IndexError: list assignment
   index out of range`, `AttributeError`, `ValueError`, `ProseMirrorConversionError`
   and the `hung` marker. So a run on the old code could not have shown a
   wrong output even if one had been produced: the test was not built to catch
-  mixing past a crash. By my reading of the library it is possible.
+  mixing past a crash. By my reading of the library it was possible; Verifier 2's
+  probe then observed it (counts only, no sample saved).
 
 ## The cure (`bfcea0bd`)
 `sanitize_editor_html` builds its own Cleaner for each call (`_new_cleaner()`),
@@ -172,7 +183,7 @@ foreign-marker list is built from results whose count is asserted. No count==0
 assertion.
 
 ## Limits, stated
-- Mixing was never observed; it is a reading of the library.
+- Mixing was not seen in my runs; Verifier 2's probe observed it on the old code (counts only; nothing about production or the database).
 - Only `sanitize_editor_html`'s Cleaner is changed; I found no other
   module-level object documented as not thread-safe (the list is in the row).
 - The task worker is not run in threads by its script; I did not check the
