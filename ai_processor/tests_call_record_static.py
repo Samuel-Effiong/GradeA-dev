@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """The per-call usage record (H-201): what the code is allowed to look like.
 
 Static checks, read from the source, so that a later change cannot widen the
@@ -120,13 +119,13 @@ class TheColumns(SimpleTestCase):
                         "error_class",
                         "finish_reason",
                     ):
-                        self.assertIn("other", [c[0] for c in field.choices])
+                        self.assertIn("other", [c[0] for c in (field.choices or [])])
 
     def test_every_text_column_is_capped(self):
         for field in AICallRecord._meta.get_fields():
             if isinstance(field, models.CharField):
                 with self.subTest(field=field.name):
-                    self.assertLessEqual(field.max_length, 255)
+                    self.assertLessEqual(field.max_length or 0, 255)
 
     def test_the_prompt_version_column_is_there_unfilled_with_both_defaults(self):
         field = AICallRecord._meta.get_field("prompt_version")
@@ -147,14 +146,16 @@ class TheColumns(SimpleTestCase):
             "questions",
         ):
             with self.subTest(name=name):
-                field = AICallRecord._meta.get_field(name)
+                field = next(
+                    f for f in AICallRecord._meta.concrete_fields if f.name == name
+                )
                 self.assertTrue(field.null)
                 self.assertFalse(field.has_default())
 
     def test_the_two_indexes_and_no_more(self):
         indexed = sorted(
             f.name
-            for f in AICallRecord._meta.get_fields()
+            for f in AICallRecord._meta.concrete_fields
             if getattr(f, "db_index", False) and not f.primary_key
         )
         self.assertEqual(indexed, ["created_at", "task_id"])
@@ -316,11 +317,13 @@ class TheCallSites(SimpleTestCase):
         self.assertNotIn(None, call_record.KIND_BY_TASK_TYPE)
 
     def test_every_kind_is_in_the_models_closed_set(self):
-        choices = {c[0] for c in AICallRecord._meta.get_field("kind").choices}
+        choices = {c[0] for c in (AICallRecord._meta.get_field("kind").choices or [])}
         self.assertTrue(set(call_record.KIND_BY_TASK_TYPE.values()) <= choices)
 
     def test_the_task_type_and_feature_sets_cover_every_listed_site(self):
-        task_types = {c[0] for c in AICallRecord._meta.get_field("task_type").choices}
+        task_types = {
+            c[0] for c in (AICallRecord._meta.get_field("task_type").choices or [])
+        }
         for _function, task_type in CALL_SITES:
             if task_type is not None:
                 self.assertIn(task_type, task_types)

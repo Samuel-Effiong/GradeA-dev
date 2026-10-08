@@ -38,7 +38,7 @@ from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
-from . import grading_cache
+from . import call_record, grading_cache
 from .answer_completeness import MODE_LOG as ANSWER_MODE_LOG
 from .answer_completeness import MODE_OFF as ANSWER_MODE_OFF
 from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
@@ -4551,6 +4551,7 @@ Now, respond to the following teacher's instruction using the rules above
         else:
             raise ValueError("content cannot be empty")
 
+    @call_record.recorded_call
     def execute_graded_task(
         self,
         user,
@@ -4687,6 +4688,7 @@ Now, respond to the following teacher's instruction using the rules above
             # below instead of a clear, actionable error here.
             raise ValueError(f"Unsupported user_type for AI access: {user.user_type!r}")
 
+        call_record.note_billed(target_teacher)
         total_prompt = ""
         image_bytes = []
         pdf_bytes = []
@@ -4733,6 +4735,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         ensure_task_not_cancelled(processing_task_id)
         estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
+        call_record.note_estimate(estimated_cost)
 
         balance = wallet.total_remaining_credits()
 
@@ -4747,6 +4750,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         ensure_task_not_cancelled(processing_task_id)
         task_id = str(uuid.uuid4())
+        call_record.note_task_id(task_id)
         response = self.__ai_model(
             system_prompt,
             user_prompt,
@@ -4758,6 +4762,7 @@ Now, respond to the following teacher's instruction using the rules above
             override_model=override_model,
         )
 
+        call_record.note_response(response)
         resolved_course = assignment.course if assignment else course
 
         with transaction.atomic():

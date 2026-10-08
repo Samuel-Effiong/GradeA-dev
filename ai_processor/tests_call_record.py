@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """The per-call usage record (estimate step 1, H-201): what it writes, and
 that it can never change a call or its charge.
 
@@ -32,6 +31,7 @@ import math
 import threading
 import uuid
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import patch
 
 from celery.exceptions import SoftTimeLimitExceeded
@@ -198,7 +198,7 @@ class TheRowOfACharge(Base):
     def test_a_weird_value_in_the_reply_becomes_null_and_the_call_goes_on(
         self, ai_model
     ):
-        weird = [
+        weird: list[dict[str, Any]] = [
             {"prompt": "many"},
             {"prompt": -5},
             {"prompt": math.nan},
@@ -442,6 +442,7 @@ class TheRowOfACallThatWasNotCharged(Base):
         with self.assertRaises((AIFeatureNotAvailableError, InsufficientCreditsError)):
             self.run_call(user=teacher)
         refused = AICallRecord.objects.order_by("-created_at").first()
+        assert refused is not None
         self.assertIsNone(refused.estimate)
         self.assertIsNone(refused.task_id)
         self.assertIsNone(refused.total_tokens)
@@ -816,11 +817,9 @@ class TheRowsOutliveTheirRecords(Base):
         assignment.delete()
         teacher.delete()
         self.assertEqual(AICallRecord.objects.count(), before)
-        self.assertTrue(
-            isinstance(
-                uuid.UUID(str(AICallRecord.objects.first().billed_user_id)), uuid.UUID
-            )
-        )
+        first = AICallRecord.objects.first()
+        assert first is not None
+        self.assertIsInstance(uuid.UUID(str(first.billed_user_id)), uuid.UUID)
 
 
 class TheWriteOutsideATransaction(TransactionTestCase):

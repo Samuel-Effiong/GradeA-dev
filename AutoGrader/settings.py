@@ -648,6 +648,11 @@ ANSWER_BLANK_VERIFICATION_MAX_PAGES = env.int(
 # which still asks a far narrower question than the extraction did.
 ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", default="")
 
+# The per-call usage record (ai_processor/call_record.py, H-201): one row per
+# AI call, written after the call and its charge are finished; numbers and
+# ids only. Switch off without a deploy by setting this to false.
+AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
+
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
 # grade; disagreement flags the submission needs_review for the teacher.
