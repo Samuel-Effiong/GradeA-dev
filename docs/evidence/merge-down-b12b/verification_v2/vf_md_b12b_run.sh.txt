@@ -1,0 +1,36 @@
+#!/bin/bash
+# v2's one slot for the merge-down b12b (0b, merge tip given as an argument):
+# the tree is checked out and clean at the tip, a baseline of the judged
+# modules, then ten mutants (vf_md_b12b_mutants.py), each judgement to its
+# own file. Rules 12, 13, 16 (ONE inhibit around the whole script), 17 in the
+# runner, 18 (stdin from /dev/null, output to files). Database tests
+# (--keepdb, test_vf2_s1). The provider call is replaced by the tests'
+# own mocks; nothing reaches a model.
+# Usage: bash /full/path/vf_md_b12b_run.sh <tip-sha8>   (only after 0b's GO)
+set -uo pipefail
+if [ -z "${GAP_INHIBITED:-}" ]; then GAP_INHIBITED=1 exec systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block "$(readlink -f "$0")" "$@"; fi
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export COMMIT=$TIP MUTANT_LOGS=$H/runs/mdb12b_${TIP}_mutant_logs EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/mdb12b_${TIP}.status
+WRAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+[ ! -e $MUTANT_LOGS ] && [ ! -e $H/runs/mdb12b_${TIP}_baseline.log ] || { echo "logs of $TIP exist already"; exit 9; }
+finish() {
+  rm -rf $WT/ai_processor/__pycache__/services* $WT/students/__pycache__/services* $WT/students/__pycache__/exceptions* $WT/students/__pycache__/views*
+  if [ -z "$(git -C $WT status --porcelain)" ] && [ "$(git -C $WT rev-parse --short=8 HEAD)" = "$TIP" ]; then say "tree is the frozen tip again"; else say "WARNING: tree not the frozen tip at exit"; fi
+}
+trap finish EXIT
+say "baseline start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_md_b12b_mutants.py baseline > $H/runs/mdb12b_${TIP}_baseline.log 2>&1 < /dev/null || rc=$?
+say "baseline end exit=$rc: loadavg $(cat /proc/loadavg)"
+[ $rc -eq 0 ] || { echo "baseline red (exit $rc): no mutant is run"; exit 1; }
+say "mutants start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_md_b12b_mutants.py > $H/runs/mdb12b_${TIP}_mutants.log 2>&1 < /dev/null || rc=$?
+say "mutants end exit=$rc: loadavg $(cat /proc/loadavg)"
+echo "done: see $ST"

@@ -1,0 +1,47 @@
+# Verification: merge-down of beta batches 8 to 12b (035e0a07) into phase2/epic-a (0b)
+
+- **Branch:** task/epic-a-merge-down-b12b. Merge commit **79ab843c** (parents a29d8cb4 epic, 035e0a07 beta; merge base 63c3da22). Follow-ups: 0b268c3e, 5a6133bd, bf7404ad. v2's run was on **bf7404ad**, the code 0b's one full run tested (Ran 7079, OK, skipped=30, 12:30:04 to 12:39:56). A record commit of 0b's follows; docs only (0b gives its sha; v2 compares by cmp).
+- **Verifier:** v2 (independent), 2026-10-08. One slot from 0b, 12:42:07 to 12:43:45 WAT, 1-minute load 3.39 to 4.90 at the end (4.0 or lower at the start). A first start at 12:42:02 ended in the same second with "Permission denied": the script file was not executable and the re-exec needs it; nothing ran; v2 did `chmod +x`, content unchanged (checksum a9785611ef06b60b).
+- **Verdict:** **VERIFIED-WITH-NOTES.** Every conflict resolution and each of the Senior Manager's seven requirements holds on the merged blobs; each resolved place v2 took out was caught by the existing guard modules. The notes are limits.
+
+## What v2 read (git objects only, in 0b's quiet; no run)
+1. **The nine conflicts** of RESOLUTIONS.md read against the merged files: the busy refusal's code kept with the epic's classes after it; both imports kept; the student upload keeps the audit event and then the student's own serializer; `grade_engine` runs the rubric refusal first, then the unreadable-answers refusal, both before the claim and before any paid call; the upload engine keeps the epic's refund scope with beta's `is_a_list_of_objects` and `told_to_student=is_student_self_upload`; both stamp sites keep the epic's `_stamp_graded_by` and the `run.keep_*` lines.
+2. **The seven requirements:** (1) only `_stamp_graded_by` exists, it assigns `model_name or grading_cache.UNNAMED_MODEL` (the constant is "llm"), beta's H-154 reasoning is in its docstring; (2) `run.keep_second_opinion` / `run.keep_answers` at the parts route and `run.keep_answers` at the single-pass route; (3) `_populate_and_save_grade`: one UPDATE over `GRADING_RESULT_FIELDS` (no new field), the run's label, the `ai_reply_corrected` and `answers_unreadable` reasons both before `if reasons:`; (4) all five callers of `_finalize_grading_result` take named keys, `kept_source_evaluations` is read only by `_kept_among`; (5) no line about a vote changed; (6) said in note 03a when H-160 is done, not here; (7) `student_safe_feedback` and the H-130 branch in `assignments/serializers.py`, by name. Beside them: H-165's Source 4, `is_readable_answer` (three uses in the reuse and pairing steps) and the up-front refusal survive.
+3. **Both sides' added lines, counted by v2's own script** (`md_b12b_lines.py`, two-tree diffs against the merge base): every non-blank line either side added is in the merged file except beta's `_stamp_as_a_models` (its docstring, body and two call sites; removed on purpose, requirement 1), in `students/services.py` three epic lines (the old import, the old `isinstance` check, the old one-line `_check_submission_open` call) and one beta import line, each replaced by the merged form that RESOLUTIONS.md names.
+4. **Files only one side changed:** 0 differ from that side (beta-only against beta, epic-only against the epic). The only file neither side touched that differs from the base is `docs/evidence/merge-down-b12b/RESOLUTIONS.md`.
+5. **The follow-ups, tests only:** `AffectedRowCase.setUp` (students/tests_answers_unreadable.py) and `make_people_and_submission` (students/tests_formatter_input.py) give the fixture assignment a marking guide, because the Phase 2 line refuses an assignment without one (rubric gate) before the unreadable-answers check; `RAW_FEEDBACK_READERS` in `AutoGrader/tests_student_feedback_guard.py` names `emit_grading_completed` (it reads one key, `grading_model`, of the saved feedback for the staff audit event, and returns nothing to anyone). No production line changed after 79ab843c (v2's name-only diff of 79ab843c..bf7404ad: nothing outside tests and docs).
+
+## v2's mutants (rule 19), expectations written first
+`vf_md_b12b_mutants.py` (dd8c58a4e21444d2) and `vf_md_b12b_run.sh` (a9785611ef06b60b), run in the scratch worktree detached at bf7404ad, own database, rules 12/13/16/17/18. No probe of v2's: each place is judged by the EXISTING modules that should guard it. For each mutant the tests that MUST fail were named where reading allowed ("must"); where it did not, the written expectation was only "some test fails" (weak). The full failing set is shown beside it.
+
+**Baseline** (nine guard modules: grading_run pipeline, checker, label, end-to-end, answers_unreadable, ai_reply_corrected_review, s6d rubric gate, no_grade_tell_before_release, upload audit): **Ran 195 tests in 14.624s, OK.**
+
+| Mutant: one resolved place taken out | Expectation | As run |
+|---|---|---|
+| MD1 single-pass route keeps no answers (req. 2) | must: 5 tests of AShortPaperTest | KILLED, failures=8, all five named failed (plus the end-to-end test, the mixed-paper test, the second-opinion-apart test) |
+| MD2 parts route keeps no answers (req. 2) | must: 2 | KILLED, failures=5, both named failed (plus three more of the same module) |
+| MD3 parts route keeps no second opinion (req. 2) | weak | KILLED_WEAK, failures=2 (PC4 checker test and the apart-from test) |
+| MD4 `grade_engine` has no rubric refusal (conflict 6) | must: test_t1_auto_grade_refuses_when_it_runs | **KILLED_OTHER:** killed, failures=16, but T1 was NOT among the failing; the failing were R1, R2, R3 on every route (H1 to H5) and T3 |
+| MD5 `grade_engine` has no unreadable refusal (conflict 6) | must: 2 | KILLED, failures=13, both named failed (eight tests of the class) |
+| MD6 upload checks only for a list (conflict 7) | must: 1 | KILLED, failures=3, the named test failed |
+| MD7 upload never tells the student (conflict 7) | weak | KILLED_WEAK, failures=2 (both the "only the check under the row lock can catch it" tests) |
+| MD8 no review reason for a corrected reply (req. 3) | must: 2 | KILLED, failures=4, both named failed (plus the beside-the-others and saved-row tests) |
+| MD9 the busy refusal has no code (conflict 1) | weak | KILLED_WEAK, failures=2 |
+| MD10 the student upload emits no audit event (conflict 3) | weak | KILLED_WEAK, failures=1 (`test_sync_upload_emits_exactly_one_event`) |
+
+Ten of ten killed; each restore matched the commit's blob (sha256), `__pycache__` cleared, the tree clean at bf7404ad afterwards.
+**MD4, told:** v2's named test was wrong. `test_t1_auto_grade_refuses_when_it_runs` goes through `auto_grade_due_assignment`, which refuses by its own check (the result string "Refused: RUBRIC_MISSING"), not through `grade_engine`; so with the head refusal of `grade_engine` taken out, T1 stays green and the route tests R1 to R3 (which expect 409 and got 403 "AI access denied" from the next gate) and T3 (the scheduled single grade) fall. The place is held; the slip was v2's reading of which tests reach `grade_engine`. T2 also stayed green, for the same reason (read, not run on its own).
+
+## 0b's gates (read by v2, not repeated, rule 15)
+0b's quick gate on 79ab843c: Ran 316, FAILED (failures=2, errors=15): the two interactions told in RESOLUTIONS.md (the H-165 fixtures meet the rubric gate, 16 results; the feedback guard meets `emit_grading_completed`, 1 result), cured by the tests-only follow-ups above. 0b's one full run: **Ran 7079 OK (skipped=30)** on bf7404ad. v2 did not read that raw log's file (0b's own; the line is 0b's message).
+
+## Notes
+1. **Order of the two refusals.** On the merged line a paper with no marking guide AND unreadable answers is refused with the rubric 409 first, and the unreadable-answers 400 only for a paper that has a guide. Both come before the claim and any paid call. Not a fault; the answer a teacher sees for such a paper changes (a decision of the resolution, conflict 6).
+2. **H-165's tests needed a marking guide in their fixtures** to reach their own check. The tests still assert the same things; the fixture is the only change (follow-up 0b268c3e). v2 read all three follow-ups; the unreadable module's whole-module result is in 0b's full run, not repeated.
+3. **A weak mutant is a weak statement.** MD3, MD7, MD9 and MD10 were written as "some test fails": they show the place is guarded, not which test guards it. Failing sets are in the logs.
+4. **`SubmissionProcessingInProgressError`** takes beta's `code = "submission_busy"` as a plain attribute (it is not a `CodedError` subclass, as the epic's two other classes in the file are). The tests that hold the code (MD9) pass on it. Whether the class should derive from `CodedError` on the Phase 2 line is a question for the Next-stage Builder; not tested.
+5. **Not done by v2:** the full-suite run (0b's), the migration check, the guards of both sides in a run of v2's own (rule 15). Nothing was run against a browser or a real model.
+6. **In v2's logs:** pattern check of the run files for password, secret and token: no line matches.
+
+## Files
+In `~/Documents/Projects/GAP-v2-handover/`: this record; `vf_md_b12b_mutants.py` (dd8c58a4e21444d2), `vf_md_b12b_run.sh` (a9785611ef06b60b), `md_b12b_lines.py` (v2's counting script); `runs/mdb12b_bf7404ad.status`, `runs/mdb12b_bf7404ad_script.out`, `runs/mdb12b_bf7404ad_baseline.log`, `runs/mdb12b_bf7404ad_mutants.log`, `runs/mdb12b_bf7404ad_v2_mutant_logs.tar.gz` (baseline and ten judgement files), `runs/md_b12b_lines_missing.txt` (the counting script's output at 79ab843c).
