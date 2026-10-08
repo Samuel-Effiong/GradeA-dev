@@ -38,6 +38,7 @@ from rest_framework.test import APITestCase
 from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
+from assignments.upload_door import upload_refusal_if_unaffordable
 from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
@@ -200,6 +201,9 @@ class StudentUploadDoorTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["task_id"], "task-1")
         launch.assert_called_once()
+        # The door read the file; the task must still be handed all of it.
+        payload = launch.call_args.args[3]
+        self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
 
     @patch("students.views.launch_processing_task")
     def test_the_line_is_the_estimate_itself_one_below_refuses_the_estimate_passes(
@@ -303,6 +307,9 @@ class TeacherBatchDoorTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertEqual(len(response.data["tasks"]), 2)
         self.assertEqual(launch.call_count, 2)
+        for call in launch.call_args_list:
+            payload = call.args[3]
+            self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
 
 
 class AssignmentUploadDoorTest(APITestCase):
@@ -335,6 +342,27 @@ class AssignmentUploadDoorTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         launch.assert_called_once()
+        payload = launch.call_args.kwargs["file_payload"]
+        self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+
+
+class TheDoorFunctionTest(TestCase):
+    def test_a_super_admin_is_never_refused_and_a_poor_teacher_is(self):
+        # The control comes first: with the same poor wallet and file, the
+        # function DOES refuse a teacher, so the None for the super admin
+        # below is a decision, not an absence of one.
+        teacher, _, _, _ = _classroom("door-fn", POOR)
+        admin = _user("door-admin", UserTypes.SUPER_ADMIN)
+        admin.is_superuser = True
+        admin.save(update_fields=["is_superuser"])
+        _fund(admin, POOR)
+
+        refused = upload_refusal_if_unaffordable(teacher, None, [_file()], "p")
+        passed = upload_refusal_if_unaffordable(admin, None, [_file()], "p")
+
+        self.assertIsNotNone(refused)
+        self.assertEqual(refused.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertIsNone(passed)
 
 
 class TheGateAsksTheSameMethodTest(ExecuteGradedTaskTestBase):
