@@ -1,0 +1,29 @@
+H-164 N3 (tip 42742c40): 1a's expected results, WRITTEN 2026-10-08 18:53:14 WAT, BEFORE ANY RUN.
+Module users.tests_vf1a_h164_n3, 4 tests: w1 w2a w2b w3. Mutants in h164n3_mutants_Z.py. Assertions counted per mutant (controls too).
+
+Unmutated tip:   Ran 4, FAILED (failures=1): w1 RED. (A never-verified command-line superuser asks for a VERIFY_EMAIL code,
+                 sends it to /auth/verify and gets tokens: a road around the refusal; the verify road was never touched by
+                 this row. I expect this to be a PRE-EXISTING hole, which the old-code run must also show.) w2a w2b w3 green.
+Old code (users/views.py from b6282c7f, the verified tip before N3; rest at the tip):
+                 w1 RED (same), w3 RED (no admin arm anywhere: the used code resets, 200), w2a w2b green.   => w1 w3
+Z1 reset has no admin arm:      w1, w3 (the used code answers 200)                       => w1 w3
+Z2 request has no admin arm:    w1, w3 (the second request answers 202)                  => w1 w3
+Z3 re-add never resends:        w1, w2a (count stays 1)                                  => w1 w2a   (w2b green: nothing resent)
+Z4 re-add always resends:       w1, w2b (count 2 after the reset; password replaced)     => w1 w2b   (w2a green)
+w1 is red in every run by design (it describes a hole the row does not touch); a kill is read from the other tests' names.
+Sets in order: base: w1; old: w1 w3; Z1: w1 w3; Z2: w1 w3; Z3: w1 w2a; Z4: w1 w2b.
+
+ADDED 2026-10-08 19:07 WAT AFTER THE FIRST CHAIN (old code, Z1 to Z4 matched what I wrote except for w1; w1 did not):
+my w1 was expected RED (first form: "not 200") on every run, and it was GREEN on the tip and on the old code: "Ran 4, OK" for the
+baseline and no w1 in any failure set. I do not know why the verify answer was not 200 (I did not print it), so that green is NOT
+evidence that the road is closed. The other failures matched: old w3; Z1 w3; Z2 w3; Z3 w2a; Z4 w2b (w1 absent from all, as it was green).
+SECOND FORM of w1 (characterisation, written before the extra run): it asserts what I read, HTTP 200 with tokens, and prints the
+real status and body if not. Expected on the tip: GREEN (the road is open). Z5 (the verify route refuses a staff or superuser account):
+w1 RED. Extra runs, if granted: base (expect Ran 4, OK) and Z5 (expect Ran 4, FAILED: w1).
+
+REASON FOUND BY READING, before any extra run (19:12 WAT): the verify route's success answer is HTTP 202 (users/views.py, the Response at the end of
+verify: "status=status.HTTP_202_ACCEPTED"), not 200. My first-form w1 asserted "status is not 200", so it would pass on a SUCCESS (202) as well as on a
+refusal: it was vacuous and my expectation of red was wrong. The second form was also wrong (it asserted 200): corrected before the run to assert 202
+with "access" in the body. EXPECTED: base GREEN (Ran 4, OK) because the code path reads open: send_user_activation_email gives any non-school-admin
+a 6-digit token (users/services.py), /auth/verify checks only email and token (no is_active, no user type, no password) and sets verified and active
+and returns tokens. Z5 (verify refuses is_staff or is_superuser with "Invalid email or token.", a 400): w1 RED with "answered 400".

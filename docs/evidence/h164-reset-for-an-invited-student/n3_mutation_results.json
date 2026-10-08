@@ -1,0 +1,373 @@
+{
+  "R1_the_request_refuses_every_never_verified_account_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_an_invited_student_who_never_signed_in_is_sent_a_reset_code",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reply_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_locked_reset_sends_nothing_and_answers_the_same",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teacher_is_sent_a_reset_code"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teacher_is_sent_a_reset_code",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_locked_reset_sends_nothing_and_answers_the_same",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_an_invited_student_who_never_signed_in_is_sent_a_reset_code",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reply_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "pycache_left": 0
+  },
+  "R2_the_request_refuses_nobody": {
+    "status": "KILLED_NOT_AS_EXPECTED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_an_inactive_never_verified_row_is_still_refused",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says"
+    ],
+    "expected_but_passed": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says"
+    ],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_an_inactive_never_verified_row_is_still_refused",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R3_the_reset_does_not_stamp_the_email": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_successful_reset_sets_the_password_and_stamps_the_email",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_successful_reset_sets_the_password_and_stamps_the_email"
+    ],
+    "pycache_left": 0
+  },
+  "R4_the_request_stamps_the_email": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_alone_does_not_verify_the_email"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_alone_does_not_verify_the_email"
+    ],
+    "pycache_left": 0
+  },
+  "R5_the_reset_keeps_must_change_password": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_successful_reset_clears_must_change_password",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_re_add_after_a_reset_keeps_the_password_they_chose"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_re_add_after_a_reset_keeps_the_password_they_chose",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_successful_reset_clears_must_change_password"
+    ],
+    "pycache_left": 0
+  },
+  "R6_the_reset_does_not_stamp_last_login": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_signs_the_student_in",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_later_add_to_another_course_keeps_the_password_they_chose",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_later_add_to_another_course_keeps_the_password_they_chose",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_signs_the_student_in"
+    ],
+    "pycache_left": 0
+  },
+  "R7_a_wrong_code_stamps_the_email": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_wrong_code_stamps_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_wrong_code_stamps_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "R8_the_reset_guard_is_removed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_refused_reset_leaves_the_code_and_its_budget_alone",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_refused_reset_leaves_the_code_and_its_budget_alone",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R9_the_guard_refuses_every_switched_off_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_switched_off_account_that_verified_its_email_still_resets",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_can_still_reset"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_switched_off_account_that_verified_its_email_still_resets",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_can_still_reset"
+    ],
+    "pycache_left": 0
+  },
+  "R10_the_guard_answers_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "pycache_left": 0
+  },
+  "R11_the_guard_deletes_the_issued_code": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_refused_reset_leaves_the_code_and_its_budget_alone"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_refused_reset_leaves_the_code_and_its_budget_alone"
+    ],
+    "pycache_left": 0
+  },
+  "R12_the_guard_stamps_the_email_before_refusing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R13_the_guard_sets_the_password_before_refusing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R14_the_helper_forgets_is_staff": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account"
+    ],
+    "pycache_left": 0
+  },
+  "R15_the_helper_forgets_is_superuser": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R16_the_helper_forgets_the_super_admin_type": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type"
+    ],
+    "pycache_left": 0
+  },
+  "R17_the_request_has_no_admin_power_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R18_the_request_refuses_a_verified_admin_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_is_still_sent_a_reset_code"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_is_still_sent_a_reset_code"
+    ],
+    "pycache_left": 0
+  },
+  "R19_the_request_answers_an_admin_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says"
+    ],
+    "pycache_left": 0
+  },
+  "R20_the_reset_has_no_admin_power_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag"
+    ],
+    "pycache_left": 0
+  },
+  "R21_the_reset_refuses_a_verified_admin_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_can_still_reset"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_can_still_reset"
+    ],
+    "pycache_left": 0
+  },
+  "R22_the_reset_answers_an_admin_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 53,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "pycache_left": 0
+  }
+}
