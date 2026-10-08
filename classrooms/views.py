@@ -1351,8 +1351,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
 
         try:
+            typed = {
+                "first_name": serializer.validated_data["first_name"],
+                "middle_name": serializer.validated_data.get("middle_name", ""),
+                "last_name": serializer.validated_data["last_name"],
+            }
             student, is_new_student = services.enroll_student_by_email(
-                course=course, email=serializer.validated_data["email"]
+                course=course,
+                email=serializer.validated_data["email"],
+                fill_empty_name=True,
+                **typed,
             )
         except services.EnrollmentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -1374,10 +1382,20 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # H-148: which name stands. An account that already had a name
+        # keeps it whatever was typed; the teacher is shown it here (and on
+        # the roster), and only when the add succeeded.
+        student_name = {
+            "first_name": student.first_name or "",
+            "middle_name": student.middle_name or "",
+            "last_name": student.last_name or "",
+        }
         return Response(
             {
                 "detail": "Student added to course successfully.",
                 "is_new_student": is_new_student,
+                "student_name": student_name,
+                "typed_name_used": student_name == typed,
             },
             status=status.HTTP_200_OK,
         )

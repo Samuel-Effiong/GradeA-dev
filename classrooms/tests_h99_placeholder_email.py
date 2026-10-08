@@ -37,6 +37,7 @@ from classrooms.services import (
     is_placeholder_email,
     new_placeholder_email,
 )
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -250,7 +251,10 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
         for address in self.variants():
             with self.subTest(address=address):
                 response = self.post(
-                    self.other, "course-students", self.other_course, {"email": address}
+                    self.other,
+                    "course-students",
+                    self.other_course,
+                    add_by_email(address),
                 )
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertIn(NOT_A_STUDENT_MESSAGE, response.content.decode())
@@ -290,7 +294,7 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
         (single add) and from the attach gate (direct add)."""
         for address in self.variants():
             with self.subTest(form="single add", address=address):
-                form = AddStudentToCourseSerializer(data={"email": address})
+                form = AddStudentToCourseSerializer(data=add_by_email(address))
                 self.assertFalse(form.is_valid())
                 self.assertEqual(form.errors["email"], [NOT_A_STUDENT_MESSAGE])
             with self.subTest(form="direct add", address=address):
@@ -310,7 +314,7 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
         name match is how a teacher re-adds their own roster-only student."""
         second = self.course_of(self.owner, "Owner second course")
         response = self.post(
-            self.owner, "course-students", second, {"email": self.taken}
+            self.owner, "course-students", second, add_by_email(self.taken)
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(StudentCourse.objects.filter(course=second).exists())
@@ -329,7 +333,7 @@ class ACallerSuppliedPlaceholderAddressIsRefusedTests(PlaceholderTestCase):
         """Control: the refusal is for the placeholder domain only."""
         pupil = make_user("pupil@h99.test", UserTypes.STUDENT)
         response = self.post(
-            self.other, "course-students", self.other_course, {"email": pupil.email}
+            self.other, "course-students", self.other_course, add_by_email(pupil.email)
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
         self.assertTrue(

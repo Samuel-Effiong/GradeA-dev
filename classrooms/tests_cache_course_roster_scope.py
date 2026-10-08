@@ -54,6 +54,7 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.services.enrollment import enroll_student_by_email
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -141,7 +142,7 @@ class ClassmateRosterFreshnessTests(FreshnessMatrixMixin, RosterBase):
     def enrol_newcomer(self):
         response = self.teacher_client().post(
             reverse("course-students", args=[self.course.pk]),
-            {"email": self.newcomer.email},
+            add_by_email(self.newcomer.email),
             format="json",
         )
         self.assertLess(response.status_code, 300, response.content)

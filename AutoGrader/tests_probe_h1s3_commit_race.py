@@ -32,6 +32,7 @@ import classrooms.signals
 from AutoGrader.cache_generation import bump_many as real_bump_many
 from AutoGrader.tests_cache_matrix_support import STALE, FreshnessMatrixMixin, Read
 from classrooms.models import Course, Session
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -100,7 +101,7 @@ class CommitRaceProbe(FreshnessMatrixMixin, TransactionTestCase):
                 client.force_authenticate(self.teacher)
                 response = client.post(
                     reverse("course-students", args=[self.course.pk]),
-                    {"email": self.student.email},
+                    add_by_email(self.student.email),
                 )
                 if response.status_code not in (200, 201):
                     errors.append(f"enroll failed: {response.status_code}")

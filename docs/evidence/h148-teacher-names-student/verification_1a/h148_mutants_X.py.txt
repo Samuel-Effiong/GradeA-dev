@@ -1,0 +1,65 @@
+"""1a's mutants X1 to X4 for H-148 (rule 19: each probe of mine is seen red).
+Usage, in the checkout: python -B h148_mutants_X.py <X1|X2|X3|X4>. Applied in
+place; restore with git checkout. Expected failing tests: h148_expected_kills.txt.
+
+X1: a stored name of spaces counts as a name (no strip in _has_no_name).
+X2: the fill does not write the middle name.
+X3: the fill does not ask whether the account has a name.
+X4: the one-name-per-course rule compares the first name exactly, not ignoring case.
+"""
+
+import ast
+import sys
+
+SERVICE = "classrooms/services/enrollment.py"
+
+MUTANTS = {
+    "X1": (
+        SERVICE,
+        "    return (\n"
+        '        not (student.first_name or "").strip() and not (student.last_name or "").strip()\n'
+        "    )\n",
+        "    return not student.first_name and not student.last_name\n",
+    ),
+    "X2": (
+        SERVICE,
+        "            student.first_name = first_name\n"
+        "            student.middle_name = middle_name\n"
+        "            student.last_name = last_name\n",
+        "            student.first_name = first_name\n"
+        "            student.last_name = last_name\n",
+    ),
+    "X3": (
+        SERVICE,
+        "        if fill_empty_name and first_name and last_name and _has_no_name(student):\n",
+        "        if fill_empty_name and first_name and last_name:\n",
+    ),
+    "X4": (
+        "classrooms/models.py",
+        "            student__first_name__iexact=first_name,\n",
+        "            student__first_name=first_name,\n",
+    ),
+}
+
+
+def main():
+    name = sys.argv[1]
+    path, old, new = MUTANTS[name]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    count = source.count(old)
+    if count != 1:
+        print(f"ABORT {name}: anchor found {count} times in {path}")
+        sys.exit(7)
+    mutated = source.replace(old, new, 1)
+    ast.parse(mutated)
+    if "--check" in sys.argv:
+        print(f"checked {name}: anchor once in {path}, mutant parses")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {name} to {path}")
+
+
+if __name__ == "__main__":
+    main()
