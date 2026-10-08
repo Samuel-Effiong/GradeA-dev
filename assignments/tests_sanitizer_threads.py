@@ -33,6 +33,12 @@ from assignments.prosemirror_converter import (
 
 INPUTS = 12
 ROUNDS = 60
+#: The end-to-end conversions (lxml + ProseMirror on top of the sanitizer) cost
+#: about ten times as much per call, so they run fewer rounds: on the cured
+#: code the 60-round version needed ~110 s of the 120 s deadline and once
+#: failed it (rate run, tip 1678fa6a, run 4). Fewer rounds still interleave:
+#: the barrier starts all threads together and the switch interval is 1 us.
+SLOW_ROUNDS = 12
 THREADS = 8
 
 
@@ -62,7 +68,7 @@ HUNG_AFTER_SECONDS = 120
 _threads_left_spinning = []
 
 
-def run_in_threads(function):
+def run_in_threads(function, rounds=ROUNDS):
     """(results, errors): every thread calls `function` on every input,
     ROUNDS times, starting at a different input; all start together and the
     interpreter switches threads as often as it can. A thread that is still
@@ -79,7 +85,7 @@ def run_in_threads(function):
 
     def work(offset):
         barrier.wait()
-        for round_number in range(ROUNDS):
+        for round_number in range(rounds):
             for step in range(INPUTS):
                 index = (offset + round_number + step) % INPUTS
                 try:
@@ -165,10 +171,10 @@ class TheSanitizerKeepsEachCallersTextToItself(SimpleTestCase):
         for document in expected:
             self.assertTrue(document.get("content"))
 
-        results, errors = run_in_threads(html_to_prosemirror_json)
+        results, errors = run_in_threads(html_to_prosemirror_json, SLOW_ROUNDS)
 
         self.assertEqual(errors, [])
-        self.assertEqual(len(results), THREADS * ROUNDS * INPUTS)
+        self.assertEqual(len(results), THREADS * SLOW_ROUNDS * INPUTS)
         wrong = [i for i, got in results if got != expected[i]]
         self.assertEqual(wrong, [])
 
@@ -185,7 +191,7 @@ class TheSanitizerKeepsEachCallersTextToItself(SimpleTestCase):
         expected = {text: html_to_prosemirror_json(text) for text in ALL_INPUTS}
         _cached_prosemirror_text.cache_clear()
 
-        results, errors = run_in_threads(html_to_prosemirror_text)
+        results, errors = run_in_threads(html_to_prosemirror_text, SLOW_ROUNDS)
 
         self.assertEqual(errors, [])
         self.assertTrue(results)
