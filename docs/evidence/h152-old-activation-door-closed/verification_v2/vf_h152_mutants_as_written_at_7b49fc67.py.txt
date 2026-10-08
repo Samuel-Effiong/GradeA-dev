@@ -1,0 +1,195 @@
+"""v2 mutants for H-152 and its delta (ed: the old activation door is
+closed; the conversion needs a queued email), beside ed's D1-D6, C1-C3 and
+Q01-Q11.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT, with v2's probe
+copied to classrooms/tests_vf2_h152_probe.py), inside the rule 16/13/12
+wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h152_mutants.py check |
+baseline | (no args: every mutant).
+
+Every inner run writes its OWN file: "baseline.txt", and for a mutant
+"<mutant>_<who judged it>.txt".
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of the mutated module's directory is deleted before each mutant
+and after each restore; `baseline` deletes it first. Database tests, cache
+in memory (as ed's modules): --keepdb (database test_vf2_s1, left for 0b
+to drop).
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+CMD = "classrooms/management/commands/backfill_pending_student_invites.py"
+UV = "users/views.py"
+ED = ["users.tests_old_activation_door_is_closed",
+      "classrooms.tests_conversion_needs_a_queued_email",
+      "classrooms.tests_backfill_pending_student_invites"]
+PROBE = ["classrooms.tests_vf2_h152_probe"]
+BASELINE = ED + PROBE
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+# Written 2026-10-07 before any run of this row by v2 (rules 18 and 19),
+# every line of X1 to X5 read against each mutant, controls and setUp
+# included: for each mutant the tests that must ALL be among the failing
+# ones, and (the probe has five tests, none inherited) no other. KILLED
+# only with the run's own "Ran" line and every named test failing.
+X1 = "test_x1_both_closed_routes_through_their_real_rate_limit"
+X2 = "test_x2_the_mailed_password_signs_the_converted_student_in"
+X3 = "test_x3_the_brokers_real_error_and_what_is_written_where"
+X4 = "test_x4_an_error_that_is_not_an_outage_stops_the_run_cleanly"
+X5 = "test_x5_a_pending_place_in_a_course_with_no_teacher"
+EXPECTED = {
+    # The email is handed a second, freshly made password; the saved one
+    # is another. X2's wrong-password control still answers 401; its login
+    # with the mailed password answers 401 where 200 is written.
+    "U1_the_email_carries_another_password_than_the_one_saved": {
+        "v2's probe": (PROBE, (X2,)),
+    },
+    # The conversion is not one transaction (the shape of ed's Q05, needed
+    # to see X3 and X4 red). X3: the account is switched on although its
+    # email was not queued. X4 and X5: the account the run stopped at
+    # stays converted.
+    "U2_the_conversion_is_not_one_transaction": {
+        "v2's probe": (PROBE, (X3, X4, X5)),
+    },
+    # The door keeps answering 410 but has no rate limit. X1's last line
+    # reads 410 where 429 is written. (The renewal still counts in the
+    # bucket; the door's knocks no longer do.)
+    "U3_the_door_has_no_rate_limit": {
+        "v2's probe": (PROBE, (X1,)),
+    },
+}
+PREDICTED_TO_SURVIVE = set()
+# Which mutant shows which probe red (rule 19): X1: U3. X2: U1. X3: U2.
+# X4: U2. X5: U2. ed's own tests are not run under U1 to U3 (rule 15).
+
+MUTANTS = {
+    "U1_the_email_carries_another_password_than_the_one_saved": (CMD, [
+        ("        queued = notifications.send_student_login_invitation_email(\n"
+         "            student, course, generated_password\n"
+         "        )\n",
+         "        queued = notifications.send_student_login_invitation_email(\n"
+         "            student, course, generate_temporary_password(student)\n"
+         "        )\n"),
+    ]),
+    "U2_the_conversion_is_not_one_transaction": (CMD, [
+        ("    @staticmethod\n    @transaction.atomic\n    def _convert(student, course):\n",
+         "    @staticmethod\n    def _convert(student, course):\n"),
+    ]),
+    "U3_the_door_has_no_rate_limit": (UV, [
+        ("        throttle_classes=[RegisterThrottle],\n        url_path=\"register/student\",\n",
+         "        throttle_classes=[],\n        url_path=\"register/student\",\n"),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits)."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(CMD)
+    clear_pycache(UV)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            # r2: one file per judgement. The first form wrote both judgements
+            # of a mutant to the same file, so the second overwrote the first.
+            slug = re.sub(r"[^a-z0-9]+", "_", who.lower()).strip("_")
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_{slug}.txt")
+            predicted = (name, who) in PREDICTED_TO_SURVIVE
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif predicted:
+                status = "KILLED_NOT_AS_PREDICTED"
+            elif all(test in failing for test in expected):
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if predicted else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

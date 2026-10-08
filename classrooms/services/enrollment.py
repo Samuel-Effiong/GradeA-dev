@@ -204,6 +204,17 @@ def check_existing_account_may_join(student, course):
 #: What a teacher is told when the address belongs to an account someone
 #: deactivated. Only reached after check_existing_account_may_join passes, so
 #: it never tells a teacher anything about another school's accounts.
+#: H-152: the one answer of both routes of the old code-based student
+#: sign-up (POST /auth/register/student and the renewal of a code), to every
+#: request, whatever it sends. User's decision of 2026-10-07: the door is
+#: closed outright. A student does not name themselves, and nothing mints
+#: such a code any more; what is left is converted by the one-off command
+#: backfill_pending_student_invites or healed by the teacher's next add.
+OLD_INVITATION_CLOSED_MESSAGE = (
+    "Invitations of this kind are no longer used. "
+    "Ask your teacher to add you to the class again."
+)
+
 DEACTIVATED_ACCOUNT_MESSAGE = (
     "This student's account is disabled. Contact support if they should have access."
 )
