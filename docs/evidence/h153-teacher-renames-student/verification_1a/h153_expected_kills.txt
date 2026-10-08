@@ -1,0 +1,31 @@
+1a, H-153 at 05c83b0d (the final tip): what each run must show. Written 2026-10-07 16:51:52 WAT (clock read), BEFORE any run of mine.
+No probe below has been seen green or red yet; none is evidence until its run shows it.
+
+Baseline (unmutated): users.tests_vf1a_h153_probe (3 tests, mine) and users.tests_teacher_renames_student (28, the
+author's): Ran 31, OK.
+
+Y1 to Y4 run my probe module ALONE (Ran 3). The set of failing METHODS must be exactly the one named (a method with
+sub-tests may show more than one FAIL line).
+
+Y1 (the rename writes with a queryset update: no save signal)       -> test_ra_another_teachers_cached_pages_show_the_new_name
+                                                                      AND test_rb_the_students_own_cached_course_page_shows_the_new_name
+Y2 (a user's change does not move the user's teachers' generations) -> test_ra_another_teachers_cached_pages_show_the_new_name   (only)
+Y3 (a user's change does not move the user's own generation)        -> test_rb_the_students_own_cached_course_page_shows_the_new_name   (only)
+Y4 (the rename keeps the stored middle name whatever is sent)       -> test_rc_a_middle_name_alone_can_be_changed   (only)
+
+Why, by reading every assertion of the three against each mutant:
+Y1: the name is written (rc's stored read and the answer are right), but nothing bumps any generation, so both cached
+    readers keep the old name. rc reads no cache.
+Y2: the other teacher's reads are keyed on that teacher's own generation, which only the "teachers of the user" scopes
+    move; the student's own generation still moves, so rb is fresh.
+Y3: the student's course page is keyed on the student's own generation and the course's; the rename moves neither then.
+    The other teacher's generation still moves, so ra is fresh.
+Y4: ra and rb read the first and last name only; rc sends a new middle name alone.
+
+Baseline risks I name now, both my own fixture's if they show: (1) each cached reader is "warmed" by two reads and the
+second must cost fewer queries than the first (my proof that the read is cached); (2) the readers sign in with real
+tokens as the author's tests do, and read the course page and the account page, which the author's tests do not read
+without clearing the cache. Answers are read from response.data.
+
+Stop rule: a red baseline, a mutant not applied (the runner exits 8 before any test) or a differing set means RELEASE
+with the facts and no second attempt inside the grant.

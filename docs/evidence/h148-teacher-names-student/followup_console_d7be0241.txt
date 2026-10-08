@@ -1,0 +1,19 @@
+start 2026-10-07 15:42:47 WAT
+load before start: 5.33 5.58 5.86 4/2146 668133
+=== A. BEFORE: the two billing modules with their test files as at 117feddc (own DB) 15:42:47
+load at start: 5.33 5.58 5.86 8/2150 668181
+before exit=1 (non-zero expected)
+test files restored
+Ran 81 tests in 11.242s
+FAILED (failures=80)
+A: Ran 81 tests in 11.242s; distinct red found 80, written 80 (Ran 81 written)
+A is as written
+dropped test_h148_teacher_names_student_mut
+=== B. AFTER: the 17 modules that call the route + the rule 20 cache module at d7be0241 15:43:18
+load at start: 4.87 5.43 5.81 2/2171 668556
+exit=0 15:44:55
+load at end: 3.99 4.91 5.58 4/2141 670729
+Ran 393 tests in 80.156s
+OK
+B is green
+SCRIPT-ENDED rc=0 15:44:55
