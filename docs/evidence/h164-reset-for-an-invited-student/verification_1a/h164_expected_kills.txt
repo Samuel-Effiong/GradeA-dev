@@ -1,0 +1,27 @@
+H-164 (tip 1c970b9d): 1a's expected results, WRITTEN 2026-10-08 16:45:20 WAT, BEFORE ANY RUN.
+Module users.tests_vf1a_h164_reset, 7 tests v1..v7. Mutants in h164_mutants_Y.py (users/views.py).
+Every assertion of every test (controls too) was counted against each mutant.
+
+Unmutated tip:  Ran 7. v6 RED (expected: the reset of a switched-off, never-verified
+                account stamps its email and changes its password; I expect to find this),
+                v1 v2 v3 v4 v5 v7 green.   => FAILED (failures=1): v6
+Old code (users/views.py from 3f2ad13e, rest at the tip):
+                v1 RED (invited student answers 400), v2 RED (no stamp at all),
+                v5 RED (flag kept: login says true), v7 RED (400 for an active unverified teacher).
+                v3 green (nothing stamps on old code), v4 green, v6 green (no stamp; but the
+                password IS changed on old code, so v6 asserts password unchanged -> v6 RED too
+                if the old code lets the reset run; the old reset has no is_active check, so I
+                expect v6 RED on old code through the password assertion).
+                => failures: v1 v2 v5 v6 v7
+Y1 old refusal back:        v1 (invited 400), v7 (400)                    => v1 v7 (+ v6 as unmutated)
+Y2 stamp in a 2nd UPDATE:   v2 (the password UPDATE carries email None)   => v2 (+ v6)
+Y3 stamp before lock check: v3 (stamped though locked), v4 (stamped though expired) => v3 v4 (+ v6)
+Y4 stamp in expired branch: v4                                            => v4 (+ v6)
+Y5 flag kept:               v5 (login says must_change_password true)     => v5 (+ v6)
+                            (v2 reads the statement's must_change_password param: it also goes RED)
+                            => v2 v5 (+ v6)
+Y6 200 for unverified:      v1 (invited reply 200), v7 (200)              => v1 v7 (+ v6)
+Y7 NOT A FAULT (the plausible fix for v6: reset refuses an inactive never-verified account):
+                            v6 GREEN, all others green                    => OK (Ran 7)
+"(+ v6)" = v6 is red in every run except Y7 and, as on the tip, is the hole I expect to find.
+A kill is read from the log's own Ran line and the named failing tests.
