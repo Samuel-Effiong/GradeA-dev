@@ -771,6 +771,17 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
+def _holds_admin_power(user):
+    """H-164: any one of the three marks of an admin account.
+
+    They can differ: `create_superuser` sets is_staff and is_superuser and
+    leaves user_type at its default, TEACHER (H-19 read the same shape), and
+    the Django admin ticks the flags independently of the type."""
+    return bool(
+        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN
+    )
+
+
 def _reset_locked_response(otp_obj):
     """429 for POST /auth/reset-password while the reset code is locked.
 
@@ -1128,7 +1139,11 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             # temporary password, and a student who lost that email needs
             # this road. The reset itself proves the mailbox (see
             # reset_password).
-            if not user.email_verified_at and not user.is_active:
+            # An account with admin power that never verified its email gets no
+            # new first road by a mailbox code: refused as the inactive case is.
+            if not user.email_verified_at and (
+                not user.is_active or _holds_admin_power(user)
+            ):
                 raise ParseError("Email not verified.")
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
@@ -1311,9 +1326,12 @@ the plain rate limit (10 requests/hour per IP) does not.
 
         # H-164: a switched-off account that never verified its email is not
         # reset or stamped, whatever code exists (one issued while it was
-        # active). The same generic refusal as an unknown address; nothing is
+        # active), and neither is a never-verified account with admin power.
+        # The same generic refusal as an unknown address; nothing is
         # written, so the code is left to expire by itself.
-        if not user.email_verified_at and not user.is_active:
+        if not user.email_verified_at and (
+            not user.is_active or _holds_admin_power(user)
+        ):
             raise ParseError("Invalid email, OTP code, or new password.")
 
         if otp_obj.is_locked():
