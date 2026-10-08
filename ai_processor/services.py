@@ -375,6 +375,16 @@ def _canonical_question_key(value):
     return int(match.group(1)) if match else text
 
 
+def is_readable_answer(entry) -> bool:
+    """One entry of a stored `answers` list that the system can read: an
+    object (H-165). The column takes any JSON, so a list can hold a
+    string, a number or a list. The answer document
+    (students.services.printable_answers), both writers and the grading
+    steps below all ask THIS function, so that what is printed, what is
+    stored and what is graded cannot drift apart."""
+    return isinstance(entry, dict)
+
+
 def _declared_question_labels(questions) -> dict:
     """
     Canonical key -> the label the assignment itself uses for that question.
@@ -451,6 +461,12 @@ def _strip_markdown_fences(raw: str) -> str:
 
 def _int_if_whole(value):
     return int(value) if float(value).is_integer() else value
+
+
+#: What the saved arithmetic note says instead of "PASS" when the reply did
+#: not hold exactly one evaluation per question and something was left out
+#: of the sum (H-154). students.services reads it to flag the paper.
+REPLY_CORRECTED = "CORRECTED"
 
 
 # fetch_url_content pulls text from a page the model chose based on
@@ -2397,10 +2413,32 @@ Do not include any explanatory text before or after the JSON
         missing/malformed/too thin to define a ladder
         (_rubric_level_points).
 
-        An evaluation whose question_number matches no rubric question has
-        no known cap, so only the >= 0 floor applies to it (reconciling
-        stray evaluations against the rubric is the completeness check's
-        job, not this function's).
+        ONE evaluation per question goes into the sum (H-154). A reply is
+        a list, and nothing upstream makes it hold each question once: the
+        completeness checks look for a MISSING question, never a repeated
+        or an invented one. So, here, where every path passes:
+
+          * of several evaluations for one question, one is kept. An
+            evaluation the system already holds (graded against the answer
+            key, or reused from the saved-answer store) stands against
+            anything a model returned for that question: the model was not
+            asked it. Among the model's own repeats the LOWEST corrected
+            score is kept, the first of equals - never inflate a grade on
+            a coin-flip;
+          * an evaluation whose question_number matches no question is
+            dropped. It has no cap, and no question to belong to.
+
+        Whatever was dropped is counted in the verification note, which
+        then says CORRECTED and not PASS, and in one warning line (numbers
+        and counts only). No retry: the kept grade is the cautious one and
+        the caller flags the paper for the teacher.
+
+        With no usable `questions` at all there is nothing to match
+        against, so nothing is dropped as unmatched; repeats are still
+        folded.
+
+        `kept_source_evaluations` in the return value is internal: the
+        caller's own objects that survived, for the saved-answer store.
         """
         points_by_question = {}
         levels_by_question = {}
@@ -2412,9 +2450,11 @@ Do not include any explanatory text before or after the JSON
                 )
                 levels_by_question[key] = self._rubric_level_points(question)
 
-        corrected_evaluations = []
-        individual_scores = []
-        snapped_count = 0
+        # key -> (corrected, the caller's own object, snapped in this
+        # pass), in first-seen order
+        chosen: dict = {}
+        repeated_dropped: dict = {}
+        unmatched_dropped = 0
         for evaluation in evaluations:
             if not isinstance(evaluation, dict):
                 continue
@@ -2429,14 +2469,18 @@ Do not include any explanatory text before or after the JSON
                 cap = points_by_question[key]
                 score = min(score, cap)
                 corrected["max_points"] = _int_if_whole(cap)
+            elif points_by_question:
+                unmatched_dropped += 1
+                continue
 
+            was_snapped = False
             levels = levels_by_question.get(key) or []
             if levels and corrected.get("graded_by") != "deterministic":
                 snapped = self._snap_to_rubric_level(score, levels)
                 if snapped != score:
                     corrected["snapped_from"] = _int_if_whole(score)
                     score = snapped
-                    snapped_count += 1
+                    was_snapped = True
 
             score = _int_if_whole(score)
             corrected["score_awarded"] = score
@@ -2456,8 +2500,18 @@ Do not include any explanatory text before or after the JSON
                 else "clear"
             )
 
-            corrected_evaluations.append(corrected)
-            individual_scores.append(score)
+            held = chosen.get(key)
+            if held is None:
+                chosen[key] = (corrected, evaluation, was_snapped)
+                continue
+            repeated_dropped[key] = repeated_dropped.get(key, 0) + 1
+            if self._outranks(corrected, held[0]):
+                chosen[key] = (corrected, evaluation, was_snapped)
+
+        corrected_evaluations = [kept[0] for kept in chosen.values()]
+        kept_sources = [kept[1] for kept in chosen.values()]
+        individual_scores = [ev["score_awarded"] for ev in corrected_evaluations]
+        snapped_count = sum(1 for kept in chosen.values() if kept[2])
 
         total_score = _int_if_whole(sum(individual_scores))
         max_total_points = _int_if_whole(sum(points_by_question.values()))
@@ -2465,16 +2519,17 @@ Do not include any explanatory text before or after the JSON
             round((total_score / max_total_points) * 100, 2) if max_total_points else 0
         )
 
+        calculation_notes = (
+            "Score arithmetic calculated by the system from the clamped "
+            "per-question scores: "
+            f"{' + '.join(str(s) for s in individual_scores) or '0'} "
+            f"= {total_score}. Model-reported totals are not used."
+        )
         verification = {
             "individual_scores": individual_scores,
             "manual_sum": total_score,
             "verification_status": "PASS",
-            "calculation_notes": (
-                "Score arithmetic calculated by the system from the clamped "
-                "per-question scores: "
-                f"{' + '.join(str(s) for s in individual_scores) or '0'} "
-                f"= {total_score}. Model-reported totals are not used."
-            ),
+            "calculation_notes": calculation_notes,
         }
         if snapped_count:
             verification["snapped_to_rubric_level_count"] = snapped_count
@@ -2489,13 +2544,107 @@ Do not include any explanatory text before or after the JSON
                 len(corrected_evaluations),
             )
 
+        if repeated_dropped or unmatched_dropped:
+            repeated = [
+                {
+                    "question_number": chosen[key][0].get("question_number"),
+                    "dropped": count,
+                }
+                for key, count in repeated_dropped.items()
+            ]
+            verification["verification_status"] = REPLY_CORRECTED
+            verification["repeated_evaluations_dropped"] = repeated
+            verification["unmatched_evaluations_dropped"] = unmatched_dropped
+            # Its own field, not a sentence added to calculation_notes:
+            # the arithmetic line is sent on to the feedback formatter,
+            # whose wording a student reads, and this is for the teacher
+            # (students.feedback_projection.grading_result_for_formatter).
+            verification["correction_note"] = (
+                "The reply did not hold exactly one evaluation per question: "
+                f"{sum(repeated_dropped.values())} repeated evaluation(s) and "
+                f"{unmatched_dropped} evaluation(s) matching no question were "
+                "left out of the sum. Of a question's repeats the one the "
+                "system already held, or else the lowest score, was kept."
+            )
+            # Numbers and counts only: nothing of the answers or feedback.
+            logger.warning(
+                "[Grading] reply_corrected repeated_questions=%s "
+                "repeated_dropped=%s unmatched_dropped=%s kept=%s",
+                [item["question_number"] for item in repeated],
+                sum(repeated_dropped.values()),
+                unmatched_dropped,
+                len(corrected_evaluations),
+            )
+
         return {
             "total_score": total_score,
             "max_total_points": max_total_points,
             "percentage": percentage,
             "question_evaluations": corrected_evaluations,
             "score_calculation_verification": verification,
+            "kept_source_evaluations": kept_sources,
         }
+
+    @staticmethod
+    def _held_by_the_system(evaluation) -> bool:
+        """Graded against the answer key, or reused from the saved-answer
+        store: not something a model returned in this reply."""
+        return bool(
+            evaluation.get("graded_by") == "deterministic"
+            or evaluation.get("from_cache")
+        )
+
+    @staticmethod
+    def _stamp_as_a_models(evaluations, model_name) -> None:
+        """Mark a REPLY's evaluations as a model's, in place.
+
+        The system knows its own evaluations by two fields
+        (_held_by_the_system), and a reply is free text: it can carry
+        either. So `graded_by` is ASSIGNED here, not defaulted, and
+        `from_cache` is removed. Without this a reply's repeat carrying
+        the mark and a higher score would outrank an honest one, a
+        returned evaluation carrying it could lower a grade the model was
+        never asked about, and the same mark would skip the snap to a
+        rubric level and keep the evaluation out of the saved-answer
+        store (H-154; found by Verifier 2). The response schema refuses
+        extra fields where a provider honours it; this does not lean on
+        that.
+        """
+        for evaluation in evaluations:
+            if isinstance(evaluation, dict):
+                evaluation.pop("from_cache", None)
+                evaluation["graded_by"] = model_name or "llm"
+
+    def _outranks(self, candidate, held) -> bool:
+        """Whether `candidate` replaces `held` as a question's ONE
+        evaluation (both already corrected). See _finalize_grading_result."""
+        candidate_system = self._held_by_the_system(candidate)
+        held_system = self._held_by_the_system(held)
+        if candidate_system != held_system:
+            return candidate_system
+        return candidate["score_awarded"] < held["score_awarded"]
+
+    @staticmethod
+    def _carry_reply_corrections(verification, earlier) -> None:
+        """The long-paper path sums twice: on the joined parts, and again
+        inside the summary step on a list that is clean by then. Put what
+        the first sum dropped into the note that is saved."""
+        if earlier.get("verification_status") != REPLY_CORRECTED:
+            return
+        for field in (
+            "verification_status",
+            "repeated_evaluations_dropped",
+            "unmatched_evaluations_dropped",
+            "correction_note",
+        ):
+            verification[field] = earlier[field]
+
+    @staticmethod
+    def _kept_among(evaluations, finalized) -> list:
+        """Those of the caller's `evaluations` (the same objects) that
+        _finalize_grading_result kept."""
+        kept = {id(source) for source in finalized["kept_source_evaluations"]}
+        return [evaluation for evaluation in evaluations if id(evaluation) in kept]
 
     def _pair_question_with_answers(self, rubric_json, answer_json) -> list:
         """
@@ -2765,9 +2914,7 @@ Do not include any explanatory text before or after the JSON
                 )
                 # Provenance marker for the future eval loop.
                 batch_model = self._response_model_name(response)
-                for ev in evaluations:
-                    if isinstance(ev, dict):
-                        ev.setdefault("graded_by", batch_model or "llm")
+                self._stamp_as_a_models(evaluations, batch_model)
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -2981,7 +3128,7 @@ Do not include any explanatory text before or after the JSON
         no rubric question, preserving the existing pipeline's behavior
         for them.
         """
-        answers = [a for a in (answers or []) if isinstance(a, dict)]
+        answers = [a for a in (answers or []) if is_readable_answer(a)]
         answer_by_key = {
             self._question_number_key(a.get("question_number")): a for a in answers
         }
@@ -3061,7 +3208,7 @@ Do not include any explanatory text before or after the JSON
         answer_by_key = {
             self._question_number_key(a.get("question_number")): a
             for a in (answers or [])
-            if isinstance(a, dict)
+            if is_readable_answer(a)
         }
         assignment_id = getattr(assignment_model, "id", None)
 
@@ -3087,10 +3234,15 @@ Do not include any explanatory text before or after the JSON
             else:
                 remaining_questions.append(question)
 
+        # H-165: an entry that is not an object is left out here, as the
+        # tier-0 step leaves it out. With GRADING_DETERMINISTIC_OBJECTIVE
+        # off that step does not run and this one meets the stored list
+        # as it is; `.get` on such an entry failed the whole grading.
         remaining_answers = [
             a
             for a in (answers or [])
-            if self._question_number_key(a.get("question_number")) not in claimed_keys
+            if is_readable_answer(a)
+            and self._question_number_key(a.get("question_number")) not in claimed_keys
         ]
 
         if cached_evaluations:
@@ -3951,9 +4103,7 @@ Do not include any explanatory text before or after the JSON
             # Provenance marker for the future eval loop: which grader
             # produced each evaluation.
             model_name = self._response_model_name(response)
-            for ev in evaluations:
-                if isinstance(ev, dict):
-                    ev.setdefault("graded_by", model_name or "llm")
+            self._stamp_as_a_models(evaluations, model_name)
 
             # Captured before the merge below: exactly the questions this
             # call freshly graded (excludes deterministic and cache-hit
@@ -3966,6 +4116,9 @@ Do not include any explanatory text before or after the JSON
             # recompute every number from the per-question evaluations.
             # `questions` (the FULL rubric) so totals cover the merged set.
             finalized = self._finalize_grading_result(evaluations, questions)
+            # H-154: only what the sum kept may be stored - a dropped
+            # repeat or stray must not become a later paper's grade.
+            fresh_evaluations = self._kept_among(fresh_evaluations, finalized)
             json_data["question_evaluations"] = finalized["question_evaluations"]
             json_data["grading_summary"] = {
                 "total_score": finalized["total_score"],
@@ -4062,9 +4215,10 @@ Do not include any explanatory text before or after the JSON
 
         # Step 4: Clamp and correct the merged evaluations BEFORE the summary
         # call, so the model summarises the same numbers that get persisted.
-        all_evaluations = self._finalize_grading_result(all_evaluations, questions)[
-            "question_evaluations"
-        ]
+        finalized = self._finalize_grading_result(all_evaluations, questions)
+        # H-154: only what the sum kept may be stored.
+        fresh_evaluations = self._kept_among(fresh_evaluations, finalized)
+        all_evaluations = finalized["question_evaluations"]
 
         # Step 5: Build the overall summary from all evaluations
         summary = self._build_overall_grading_summary(
@@ -4081,6 +4235,11 @@ Do not include any explanatory text before or after the JSON
             **summary,
             "question_evaluations": all_evaluations,
         }
+        # H-154: the summary step summed a list that was already clean.
+        self._carry_reply_corrections(
+            final_result["score_calculation_verification"],
+            finalized["score_calculation_verification"],
+        )
 
         logger.info(
             f"[Grading] Complete. Score: {summary['grading_summary']['total_score']}/"

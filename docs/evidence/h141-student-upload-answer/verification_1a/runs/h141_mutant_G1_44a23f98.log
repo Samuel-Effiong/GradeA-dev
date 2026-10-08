@@ -1,0 +1,114 @@
+# 1a H-141 mutant G1 at 44a23f9816e9ce0132d4eb3af71d01903efe041a, the author's guard module alone, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 10.30 10.73 8.51 3/2185 583192
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+applied G1 to AutoGrader/tests_submission_audience_guard.py
+mutated sha differs: True
+ AutoGrader/tests_submission_audience_guard.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+test_a_context_keyword_is_seen (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_context_keyword_is_seen) ... ok
+test_a_serializer_built_without_a_context_is_seen (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_serializer_built_without_a_context_is_seen) ... FAIL
+test_a_test_for_a_teacher_does_not_count (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_test_for_a_teacher_does_not_count) ... FAIL
+test_the_body_of_that_test_is_not_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_body_of_that_test_is_not_the_staff_branch) ... FAIL
+test_the_else_of_a_test_for_a_student_is_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_else_of_a_test_for_a_student_is_the_staff_branch) ... ok
+test_the_else_of_another_test_is_not_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_else_of_another_test_is_not_the_staff_branch) ... FAIL
+test_rule_1_a_serializer_for_both_names_where_a_student_is_answered (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_a_serializer_for_both_names_where_a_student_is_answered) ... ok
+test_rule_1_every_serializer_of_a_submission_says_who_it_is_for (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_every_serializer_of_a_submission_says_who_it_is_for) ... ok
+test_rule_1_the_serializers_are_for_whom_this_guard_was_told (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told)
+Changing an audience is a decision; it is made here too. ... ok
+test_rule_2_each_action_builds_the_serializers_named_and_no_other (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_each_action_builds_the_serializers_named_and_no_other) ... ok
+test_rule_2_every_action_of_the_view_is_named (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_every_action_of_the_view_is_named) ... ok
+test_rule_2_put_is_not_routed (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_put_is_not_routed) ... ok
+test_rule_2_who_can_call_each_action_is_as_named (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_who_can_call_each_action_is_as_named) ... ok
+test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch) ... ok
+test_rule_3_a_student_action_gives_every_serializer_the_context (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_gives_every_serializer_the_context) ... ok
+test_rule_4_get_serializer_gives_a_student_no_staff_serializer (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_4_get_serializer_gives_a_student_no_staff_serializer) ... ok
+test_the_census_found_the_serializers (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_the_census_found_the_serializers) ... ok
+
+======================================================================
+FAIL: test_a_serializer_built_without_a_context_is_seen (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_serializer_built_without_a_context_is_seen)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h141/AutoGrader/tests_submission_audience_guard.py", line 188, in test_a_serializer_built_without_a_context_is_seen
+    self.assertEqual(
+AssertionError: Lists differ: [('Staff', True, False)] != [('Staff', False, False)]
+
+First differing element 0:
+('Staff', True, False)
+('Staff', False, False)
+
+- [('Staff', True, False)]
+?            ^^^
+
++ [('Staff', False, False)]
+?            ^^^^
+
+
+======================================================================
+FAIL: test_a_test_for_a_teacher_does_not_count (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_test_for_a_teacher_does_not_count)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h141/AutoGrader/tests_submission_audience_guard.py", line 237, in test_a_test_for_a_teacher_does_not_count
+    self.assertEqual(self.built(source), [("Staff", False, False)])
+AssertionError: Lists differ: [('Staff', True, False)] != [('Staff', False, False)]
+
+First differing element 0:
+('Staff', True, False)
+('Staff', False, False)
+
+- [('Staff', True, False)]
+?            ^^^
+
++ [('Staff', False, False)]
+?            ^^^^
+
+
+======================================================================
+FAIL: test_the_body_of_that_test_is_not_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_body_of_that_test_is_not_the_staff_branch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h141/AutoGrader/tests_submission_audience_guard.py", line 217, in test_the_body_of_that_test_is_not_the_staff_branch
+    self.assertEqual(self.built(source), [("Staff", False, False)])
+AssertionError: Lists differ: [('Staff', True, False)] != [('Staff', False, False)]
+
+First differing element 0:
+('Staff', True, False)
+('Staff', False, False)
+
+- [('Staff', True, False)]
+?            ^^^
+
++ [('Staff', False, False)]
+?            ^^^^
+
+
+======================================================================
+FAIL: test_the_else_of_another_test_is_not_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_else_of_another_test_is_not_the_staff_branch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h141/AutoGrader/tests_submission_audience_guard.py", line 227, in test_the_else_of_another_test_is_not_the_staff_branch
+    self.assertEqual(self.built(source), [("Staff", False, False)])
+AssertionError: Lists differ: [('Staff', True, False)] != [('Staff', False, False)]
+
+First differing element 0:
+('Staff', True, False)
+('Staff', False, False)
+
+- [('Staff', True, False)]
+?            ^^^
+
++ [('Staff', False, False)]
+?            ^^^^
+
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.081s
+
+FAILED (failures=4)
+Found 17 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=3 loadavg after: 10.30 10.73 8.51 3/2197 583566
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+tracked changes after restore: 0

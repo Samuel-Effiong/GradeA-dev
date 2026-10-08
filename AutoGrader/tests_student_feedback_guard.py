@@ -33,9 +33,10 @@ serves and writes that down.
 
 What this guard does NOT show (the last four from Verifier 1's pre-read):
   * which caller reaches a teacher-shaped serializer. The route tests do,
-    for the routes that exist. One student route, the answer upload,
-    answers with the teacher's detail serializer; it is safe only because
-    an upload is refused once the row is graded;
+    for the routes that exist, and since H-141 so does
+    AutoGrader/tests_submission_audience_guard.py for the submissions
+    view. (The student's answer upload used to answer with the teacher's
+    detail serializer; it has one of its own now.);
   * a column read through the ORM by name (`.values("feedback")`, a
     `feedback__...` lookup), or through a name built at run time;
   * a review-queue column read as an attribute into a hand-built
@@ -139,6 +140,10 @@ STUDENT_PROJECTED = (
     "through student_safe_formatted_grade"
 )
 STUDENT_REVIEW_HIDDEN = "both: review fields replaced for a student caller"
+STUDENT_CONSTANTS = (
+    "student (H-141, the upload's answer): every guarded column it lists "
+    "is a SentAs constant; the row's column is not read"
+)
 SERIALIZERS = {
     ("students/serializers.py", "StudentSubmissionSerializer"): TEACHER,
     ("students/serializers.py", "StudentSubmissionDetailSerializer"): TEACHER,
@@ -154,6 +159,10 @@ SERIALIZERS = {
         "students/serializers.py",
         "StudentSubmissionListSerializer",
     ): STUDENT_REVIEW_HIDDEN,
+    (
+        "students/serializers.py",
+        "StudentUploadAnswerSerializer",
+    ): STUDENT_CONSTANTS,
 }
 
 
@@ -431,6 +440,47 @@ class StudentFeedbackGuardTest(SimpleTestCase):
                 "grading_confidence": None,
             },
         )
+
+    def test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant(self):
+        """H-141. The keys are the teacher's, for the page's sake; the
+        values are not the row's."""
+        from typing import cast
+
+        from students.serializers import SentAs
+        from students.serializers import StudentUploadAnswerSerializer as Serializer
+
+        listed = self.field_lists[
+            ("students/serializers.py", "StudentUploadAnswerSerializer")
+        ]
+        self.assertEqual(
+            listed,
+            {
+                "formatted_grade",
+                "needs_review",
+                "review_reasons",
+                "review_severity",
+                "review_tier",
+            },
+        )
+        fields = Serializer().fields
+        expected = {
+            "formatted_grade": None,
+            "needs_review": False,
+            "review_reasons": None,
+            "review_severity": None,
+            "review_tier": None,
+            "grading_state": "IDLE",
+            "scheduled_grading_at": None,
+            "grading_task_name": None,
+            "is_grading_scheduled": False,
+        }
+        self.assertEqual(
+            set(expected), listed | GRADING_SCHEDULE_FIELDS | {GRADING_STATE_FIELD}
+        )
+        for name, value in expected.items():
+            with self.subTest(key=name):
+                self.assertIsInstance(fields[name], SentAs)
+                self.assertEqual(cast(SentAs, fields[name]).value, value)
 
     def test_rule_3_a_student_is_refused_every_review_queue_filter(self):
         from students.views import StudentSubmissionViewSet as View

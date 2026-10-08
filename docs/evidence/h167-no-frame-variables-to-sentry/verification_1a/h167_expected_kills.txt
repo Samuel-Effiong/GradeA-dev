@@ -1,0 +1,47 @@
+1a, H-167 at a1397c5b (the final tip), SECOND attempt: what each run must show. Written 2026-10-07 17:50:11 WAT (clock read), BEFORE the second attempt's runs.
+First attempt (17:49:39, kept: runs/h167_a1397c5b_first_attempt_17h49.log, h167_probe_v1_as_run_17h49.py,
+h167_expected_kills_first_attempt.txt): the baseline was red, Ran 44, FAILED (errors=3): sa, sb and se, each
+"TypeError: 'Client' object is not callable". My probe's fault: I had named a helper method `client`, and Django's test
+case sets `self.client` to its own test client on every instance. None of the three reached the SDK. No mutant was run.
+In that run sc and sd were "ok", and so were the author's 39 tests. The only change to the probe: the helper is called
+`real_client` (one definition, five uses) and a paragraph in its docstring. The mutants and the expected sets below are
+unchanged.
+
+Seen so far in a test run: sc and sd green once (first attempt). sa, sb, se: never seen green or red. None seen red.
+
+Baseline (unmutated): AutoGrader.tests_vf1a_h167_probe (5 tests, mine), AutoGrader.tests_sentry_sends_no_variables (23, the
+author's) and AutoGrader.tests_sentry_scrubbing (16, H-89's, changed by this row): Ran 44, OK.
+
+Z1 to Z5 run my probe module ALONE (Ran 5). The set of failing METHODS must be exactly the one named.
+
+Z1 (the init call does not pass include_local_variables) -> test_sa_a_real_client_with_our_values_sends_no_frame_variables   (only)
+Z2 (the init call lets medium request bodies through)    -> test_sb_a_real_client_with_our_values_takes_no_request_body      (only)
+Z3 (the hooks leave an event's contexts alone)           -> test_sc_the_four_new_parts_in_other_shapes                       (only)
+Z4 (the pattern does not know the fourth name)           -> test_sc_the_four_new_parts_in_other_shapes
+                                                           AND test_sd_the_pattern_beside_addresses_another_name_and_an_object
+Z5 (the hooks leave an event's exception alone)          -> test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed   (only)
+
+Why, by reading every assertion of the five against each mutant:
+Z1: sa builds a real client from the init call's values; with the keyword gone it is not passed, the SDK's default is
+    True, and sa's first assertion on the client's resolved option fails. sb reads the other option. se's made value is
+    in the exception's text only (no local variable of any frame in its traceback holds it), and the text is scrubbed.
+Z2: sb's assertion on the resolved option fails ("medium"). sa and se do not look at bodies.
+Z3: sc's contexts hold two of the made values; they stay. sd's object is under "extra"; se has no contexts.
+Z4: sc holds two values after the fourth name (in contexts and in the query string); sd's line begins with it. sa and sb
+    use no pattern; se's value follows the first name.
+Z5: se's value is in the exception's text. sc and sd pass no exception part; sa uses no hook.
+
+What I did OUTSIDE a test run, said plainly: to predict, I called the functions under test directly in plain Python (no
+test loader, no Django settings, no database): scrub and scrub_event from copies of the tip's two modules on sc's, sd's
+and se's inputs (all as expected), and the SDK's own Client with an in-memory transport and typed-in values (defaults:
+2 frames with variables; our three values: none; the body bound False). So the SDK calls of sa, sb and se have been
+seen to work, but not as tests, not through the author's init_keywords() and not under a mutant.
+
+The transport in my probe only collects envelopes in memory; the made address ends in .invalid; nothing can leave the
+process. No Sentry project, log or settings value is opened.
+
+Baseline risks I name now, mine if they show: a real sentry_sdk client is constructed inside a Django test process for
+the first time in this repository (five clients, each closed at the end of its test).
+
+Stop rule: a red baseline, a mutant not applied (the runner exits 8 before any test) or a differing set means RELEASE
+with the facts and no second attempt inside the grant.

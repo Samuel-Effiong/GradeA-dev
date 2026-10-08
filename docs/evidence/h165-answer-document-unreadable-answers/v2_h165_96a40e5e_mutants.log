@@ -1,0 +1,10 @@
+M1_the_refusal_drops_the_reasons_already_on_the_paper | v2's probe | KILLED | Ran 5 tests in 1.923s | FAILED (failures=1) | expected ('test_y3_a_graded_paper_whose_answers_were_then_damaged',) | failing ['test_y3_a_graded_paper_whose_answers_were_then_damaged']
+  restore students/services.py ok | __pycache__ cleared
+M2_the_refusal_comes_after_the_claim | v2's probe | KILLED | Ran 5 tests in 1.863s | FAILED (failures=2) | expected ('test_y3_a_graded_paper_whose_answers_were_then_damaged', 'test_y4_the_refusal_comes_before_a_claim_that_is_held') | failing ['test_y3_a_graded_paper_whose_answers_were_then_damaged', 'test_y4_the_refusal_comes_before_a_claim_that_is_held']
+  restore students/services.py ok | __pycache__ cleared
+M3_grading_does_not_add_the_reason | v2's probe | KILLED | Ran 5 tests in 1.811s | FAILED (failures=3) | expected ('test_y1_some_left_out_through_the_real_pipeline', 'test_y2_with_the_objective_step_off_the_same_paper_is_graded', 'test_y5_with_both_partition_steps_off_the_same_paper_is_graded') | failing ['test_y1_some_left_out_through_the_real_pipeline', 'test_y2_with_the_objective_step_off_the_same_paper_is_graded', 'test_y5_with_both_partition_steps_off_the_same_paper_is_graded']
+  restore students/services.py ok | __pycache__ cleared
+M4_the_reuse_step_calls_get_on_every_entry_again | v2's probe | KILLED | Ran 5 tests in 1.659s | FAILED (failures=1) | expected ('test_y2_with_the_objective_step_off_the_same_paper_is_graded',) | failing ['test_y2_with_the_objective_step_off_the_same_paper_is_graded']
+  restore ai_processor/services.py ok | __pycache__ cleared
+M5_the_builder_walks_the_stored_value_again | v2's probe | KILLED | Ran 5 tests in 3.001s | FAILED (failures=3) | expected ('test_y1_some_left_out_through_the_real_pipeline', 'test_y2_with_the_objective_step_off_the_same_paper_is_graded', 'test_y5_with_both_partition_steps_off_the_same_paper_is_graded') | failing ['test_y1_some_left_out_through_the_real_pipeline', 'test_y2_with_the_objective_step_off_the_same_paper_is_graded', 'test_y5_with_both_partition_steps_off_the_same_paper_is_graded']
+  restore students/services.py ok | __pycache__ cleared

@@ -88,6 +88,7 @@ from .serializers import (
     StudentSubmissionUpdateAsyncSerializer,
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
+    StudentUploadAnswerSerializer,
 )
 from .services import (
     ensure_no_active_extraction,
@@ -95,7 +96,9 @@ from .services import (
     ensure_submission_open,
     grade_engine,
     notify_student_of_graded_submission,
+    printable_answers,
     student_submission_to_html,
+    unreadable_answers_log_line,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -366,6 +369,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             StudentSubmission.objects.filter(pk=submission.pk).update(
                 raw_input=submission.raw_input
             )
+            # H-165: a document was just stored for a row whose answers
+            # were not all readable. Ids and the kind of value only.
+            left_out = printable_answers(submission.answers)[1]
+            if left_out:
+                logger.warning(*unreadable_answers_log_line(submission, left_out))
 
         if request.user.user_type == UserTypes.STUDENT:
             serializer = StudentSubmissionDetailStudentVersionSerializer(
@@ -481,7 +489,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
         responses={
             201: OpenApiResponse(
-                response=StudentSubmissionDetailSerializer,
+                response=StudentUploadAnswerSerializer,
                 description="Answer processed successfully",
             ),
             400: OpenApiResponse(
@@ -568,7 +576,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
 
             submission = upload_answers_engine(assignment, content, request.user)
-            serializer = StudentSubmissionDetailSerializer(submission)
+            # H-141: the student's own serializer, not the teacher's. With
+            # the context, as every serializer a student's route builds;
+            # this one does not need the request to be safe.
+            serializer = StudentUploadAnswerSerializer(
+                submission, context=self.get_serializer_context()
+            )
 
             return Response(serializer.data, status=HTTP_201_CREATED)
         except SUBMISSION_CLOSED_ERRORS as exc:

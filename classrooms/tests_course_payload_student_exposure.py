@@ -1,4 +1,10 @@
-"""A student's course payload must not expose drafts or classmates' emails.
+"""A student's course payload must not expose drafts or classmates.
+
+H-147 (2026-10-06) tightened the second half: a student used to be sent the
+roster with the classmates' emails blanked; now they are sent their own
+entry only, the size of the class, and their own view of each assignment. The
+tests below were rewritten to that rule where they held the older one;
+classrooms/tests_student_sees_no_classmates.py holds the new rule itself.
 
 `CourseSerializer` backs the course list, retrieve and `my-courses`
 endpoints. For a STUDENT requester it used to nest every assignment in the
@@ -30,7 +36,10 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
-from assignments.serializers import AssignmentListSerializer
+from assignments.serializers import (
+    AssignmentListSerializer,
+    AssignmentListStudentSerializer,
+)
 from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Session, StudentCourse
 from students.serializers import StudentSerializer
@@ -180,19 +189,13 @@ class CoursePayloadBase(APITestCase):
     def assert_student_safe(self, payload, viewer, published_ids):
         assignment_ids = {str(a["id"]) for a in payload["assignments"]}
         self.assertEqual(assignment_ids, {str(i) for i in published_ids})
-        for assignment in payload["assignments"]:
-            self.assertEqual(assignment["status"], AssignmentStatus.PUBLISHED)
         self.assertEqual(payload["assignment_count"], len(published_ids))
 
-        self.assertTrue(payload["students"], "the roster was empty - vacuous")
-        for entry in payload["students"]:
-            if str(entry["id"]) == str(viewer.id):
-                self.assertEqual(entry["email"], viewer.email)
-            else:
-                self.assertIsNone(
-                    entry["email"],
-                    f"classmate {entry['first_name']}'s email reached a student",
-                )
+        # H-147: the student's own entry and no other.
+        self.assertEqual(
+            [str(entry["id"]) for entry in payload["students"]], [str(viewer.id)]
+        )
+        self.assertEqual(payload["students"][0]["email"], viewer.email)
 
 
 class StudentCoursePayloadExposure(CoursePayloadBase):
@@ -231,7 +234,7 @@ class StudentCoursePayloadExposure(CoursePayloadBase):
         )
         self.assert_student_safe(payload, self.viewer, [self.published.id])
 
-    def test_payload_shape_is_unchanged_for_students(self):
+    def test_payload_shape_for_students(self):
         payload = self.get_as(
             self.viewer, reverse("course-detail", kwargs={"pk": self.course_id})
         )
@@ -240,9 +243,10 @@ class StudentCoursePayloadExposure(CoursePayloadBase):
             list(payload["students"][0].keys()),
             list(StudentSerializer().fields.keys()),
         )
+        # H-147: the student's own view of an assignment, not the teacher's.
         self.assertEqual(
             list(payload["assignments"][0].keys()),
-            list(AssignmentListSerializer().fields.keys()),
+            list(AssignmentListStudentSerializer().fields.keys()),
         )
 
     def test_withdrawn_classmate_is_still_excluded(self):
@@ -275,25 +279,19 @@ class StudentInTwoCourses(CoursePayloadBase):
         self.enroll(second_id, second_classmate, teacher=other_teacher)
 
         expected = {
-            str(self.course_id): ([self.published.id], {self.classmate.id}),
-            str(second_id): (
-                [a.id for a in second_published],
-                {second_classmate.id},
-            ),
+            str(self.course_id): [self.published.id],
+            str(second_id): [a.id for a in second_published],
         }
 
         for url in (reverse("course-list"), reverse("course-my-courses")):
             data = self.get_as(self.viewer, url)
             self.assertEqual({str(r["id"]) for r in self.rows(data)}, set(expected))
-            for course_id, (published_ids, classmates) in expected.items():
+            for course_id, published_ids in expected.items():
                 payload = self.course_in(data, course_id)
+                # The viewer's own entry in each course, and no classmate.
                 self.assert_student_safe(payload, self.viewer, published_ids)
-                self.assertEqual(
-                    {str(s["id"]) for s in payload["students"]},
-                    {str(self.viewer.id)} | {str(c) for c in classmates},
-                )
 
-        for course_id, (published_ids, _) in expected.items():
+        for course_id, published_ids in expected.items():
             payload = self.get_as(
                 self.viewer, reverse("course-detail", kwargs={"pk": course_id})
             )
