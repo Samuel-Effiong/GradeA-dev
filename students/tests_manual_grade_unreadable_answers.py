@@ -127,6 +127,14 @@ class TheGuardKeepsTheSaveSafeFromTheNextBuilderFault(ManualGradeCase):
         self.assertIn(str(self.submission.pk), text)
         self.assertIn("RuntimeError", text)
         self.assertNotIn("boom-text-of-the-fault", text)
+        # The values must exist before "not in" means anything: the base
+        # class enrols the student by e-mail with no names, and '' is in
+        # every string.
+        self.student.first_name = "Adaeze"
+        self.student.last_name = "Okonkwo"
+        self.student.save(update_fields=["first_name", "last_name"])
+        self.assertTrue(self.student.get_full_name())
+        self.assertTrue(self.student.email)
         self.assertNotIn(self.student.get_full_name(), text)
         self.assertNotIn(self.student.email, text)
 
