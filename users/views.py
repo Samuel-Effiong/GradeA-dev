@@ -1309,6 +1309,13 @@ the plain rate limit (10 requests/hour per IP) does not.
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
+        # H-164: a switched-off account that never verified its email is not
+        # reset or stamped, whatever code exists (one issued while it was
+        # active). The same generic refusal as an unknown address; nothing is
+        # written, so the code is left to expire by itself.
+        if not user.email_verified_at and not user.is_active:
+            raise ParseError("Invalid email, OTP code, or new password.")
+
         if otp_obj.is_locked():
             return _reset_locked_response(otp_obj)
 

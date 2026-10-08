@@ -48,9 +48,17 @@ T9 = C + "test_a_reset_leaves_an_established_accounts_flag_alone"
 T10 = C + "test_a_reset_signs_the_student_in"
 T11 = C + "test_a_later_add_to_another_course_keeps_the_password_they_chose"
 # T9 is a guard, green on the old code and under every mutant below but R7.
-NEW_TESTS = [T1, T2, T3, T4, T5, T6, T7, T8, T10, T11]
+T12 = C + "test_a_reset_is_refused_for_a_switched_off_never_verified_account"
+T13 = C + "test_that_refusal_is_the_same_as_for_an_address_with_no_account"
+T14 = C + "test_a_refused_reset_leaves_the_code_and_its_budget_alone"
+T15 = C + "test_a_switched_off_account_that_verified_its_email_still_resets"
+NEW_TESTS = [T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14]
 
 REFUSE = "            if not user.email_verified_at and not user.is_active:\n"
+GUARD = (
+    "        if not user.email_verified_at and not user.is_active:\n"
+    '            raise ParseError("Invalid email, OTP code, or new password.")\n'
+)
 STAMP = (
     "        if not user.email_verified_at:\n"
     "            user.email_verified_at = timezone.now()\n"
@@ -103,6 +111,51 @@ MUTANTS = {
         '            user.save(update_fields=["email_verified_at"])\n'
         "            otp_obj.register_failure()\n            # The guess that spends the budget",
         [T7],
+    ),
+    # Delta (Senior Manager's ruling, 2026-10-08): the guard in reset_password.
+    "R8_the_reset_guard_is_removed": (VIEWS, GUARD, "", [T12, T13, T14]),
+    "R9_the_guard_refuses_every_switched_off_account": (
+        VIEWS,
+        GUARD,
+        GUARD.replace("not user.email_verified_at and ", ""),
+        [T15],
+    ),
+    "R10_the_guard_answers_in_its_own_words": (
+        VIEWS,
+        GUARD,
+        GUARD.replace(
+            "Invalid email, OTP code, or new password.", "Account is not active."
+        ),
+        [T13],
+    ),
+    "R11_the_guard_deletes_the_issued_code": (
+        VIEWS,
+        GUARD,
+        GUARD.replace(
+            "            raise", "            otp_obj.delete()\n            raise"
+        ),
+        [T14],
+    ),
+    "R12_the_guard_stamps_the_email_before_refusing": (
+        VIEWS,
+        GUARD,
+        GUARD.replace(
+            "            raise",
+            "            CustomUser.objects.filter(pk=user.pk).update(\n"
+            "                email_verified_at=timezone.now()\n"
+            "            )\n"
+            "            raise",
+        ),
+        [T12],
+    ),
+    "R13_the_guard_sets_the_password_before_refusing": (
+        VIEWS,
+        GUARD,
+        GUARD.replace(
+            "            raise",
+            "            user.set_password(new_password)\n            user.save()\n            raise",
+        ),
+        [T12],
     ),
 }
 

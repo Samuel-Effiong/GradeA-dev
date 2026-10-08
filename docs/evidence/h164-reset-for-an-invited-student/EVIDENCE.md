@@ -17,7 +17,7 @@ No new Stripe or service call, no migration, no serializer change.
 
 ## The enumeration condition, said precisely
 
-At the request step: an unknown address answers 202; an invited ACTIVE student now answers the same 202 with the same bytes (tested byte for byte; before, it answered 400 "Email not verified.", which told a caller the address HAD an account). An INACTIVE never-verified row still answers 400 "Email not verified." (the Senior Manager: it stays refused; that 400 is the existing answer, also used by the API's documented hint to offer `VERIFY_EMAIL`, so I did not change it). **So the answers for "unknown" and "invited active" are the same, and "inactive never-verified" still differs from both: the old oracle for THAT case is unchanged, not widened.** If the Senior Manager wants the inactive case neutral too, the 400 hint for the student site goes with it; that is a separate decision.
+At the request step: an unknown address answers 202; an invited ACTIVE student now answers the same 202 with the same bytes (tested byte for byte; before, it answered 400 "Email not verified.", which told a caller the address HAD an account). **CORRECTION (2026-10-08, Verifier 1's probe v6): the sentence "inactive never-verified rows stay refused" held only for the REQUEST step. The RESET step had no such check: a code that already existed (issued while the account was active, then the account switched off) let the reset run, stamp `email_verified_at` and change the password, giving "verified and inactive". Fixed inside this row, see the Delta section.** An INACTIVE never-verified row still answers 400 "Email not verified." (the Senior Manager: it stays refused; that 400 is the existing answer, also used by the API's documented hint to offer `VERIFY_EMAIL`, so I did not change it). **So the answers for "unknown" and "invited active" are the same, and "inactive never-verified" still differs from both: the old oracle for THAT case is unchanged, not widened.** If the Senior Manager wants the inactive case neutral too, the 400 hint for the student site goes with it; that is a separate decision.
 
 ## Tests (written first, 22f26279; NOT RUN)
 
@@ -34,7 +34,7 @@ At the request step: an unknown address answers 202; an invited ACTIVE student n
 
 ## Known limits, in plain words
 
-- The student site's behaviour on the old 400 is not read; after this row a student who presses "forgot password" gets the code. A student of the OLD scheme (inactive) is still refused: they use Google sign-in, the verify-email link, or a teacher's remove-and-add (see the H-152 answer).
+- The student site's behaviour on the old 400 is not read; after this row a student who presses "forgot password" gets the code. A student of the OLD scheme (inactive) is still refused at the request step, and (since the delta) at the reset step too: they use Google sign-in, the verify-email link, or a teacher's remove-and-add (see the H-152 answer).
 - A licence-invited teacher (active, never verified, emailed temporary password) now also gets the reset road: the same shape, the same rule.
 - The reset code is still 6 digits with the existing budget (5 wrong codes, 30-minute lock): the exposure of an invited student's account to a code guess is what an established account's already is.
 
@@ -55,3 +55,24 @@ Script run_h164_gate.sh ecb10be877ae6a4d, each step once, one outer inhibit each
 | 3 users + classrooms, serial | 16:38:05 to 16:40:39 | Ran 1171, OK (skipped=4) (regression.txt.gz) |
 
 Step 3 ran at c82882a4, before this record was committed; this commit is docs only over it. Load at the starts: 3.01 (step 1), 2.15 (step 3). Rule 20 not applicable (no serializer or cached-route change).
+
+## Delta: the reset step refuses a switched-off, never-verified account (Senior Manager's ruling, 2026-10-08 17:00)
+
+**The hole (Verifier 1's v6, seen red on 1c970b9d):** the invited student asks for a code, the account is then switched off, the code is used: the reset ran, stamped `email_verified_at` and set the password. **The guard:** in `reset_password`, right after the user and code row are found and before the lock check: `if not user.email_verified_at and not user.is_active: raise ParseError("Invalid email, OTP code, or new password.")` (the generic refusal an unknown address gets, so the reply is the same). Nothing is stamped or changed, whatever code exists.
+
+**The already-issued code is LEFT, not invalidated.** Why: a refusal writes nothing (no attempt counted, no row deleted), so the refusal cannot be used to probe or wear down anything; the guard looks at the account every time, so the code is useless while the account stays switched off; it expires by itself in 15 minutes. If the account is switched back on within that time, the code works for the owner of the mailbox, which is what it was issued for. Deleting would add a write to a refusal for no gain. A test pins this (`test_a_refused_reset_leaves_the_code_and_its_budget_alone`), and mutant R11 (the guard deletes the code) is killed by it.
+
+**Tests (written first, 9bb0b532; Verifier 1's v6 adopted as the first of them, with its two assertions on the stamp and the password):** T12 `test_a_reset_is_refused_for_a_switched_off_never_verified_account` (400, no tokens, no stamp, password unchanged); T13 `test_that_refusal_is_the_same_as_for_an_address_with_no_account` (same status and bytes); T14 `test_a_refused_reset_leaves_the_code_and_its_budget_alone`; T15 `test_a_switched_off_account_that_verified_its_email_still_resets` (control, green on the old code: the guard is for never-verified accounts only).
+
+**Written expectations, before any run (rule 19, which mutant kills which assertion):**
+- Step 0 (the previous tip's `users/views.py` under the new module): **Ran 15, THREE red: T12, T13, T14** (T15 and the eleven older tests green).
+- Step 1: makemigrations no changes; the new module + related modules + the repo-wide guards OK; 13 mutants (R1..R7 as before with the same failing sets, plus):
+  - R8 the guard removed: T12, T13, T14 (this is the only mutant that kills T12's status, token, stamp and password assertions together).
+  - R9 the guard refuses every switched-off account: T15 only.
+  - R10 the guard answers in its own words: T13 only.
+  - R11 the guard deletes the issued code: T14 only.
+  - R12 the guard stamps the email, then refuses: T12 only (isolates the stamp assertion).
+  - R13 the guard sets the password, then refuses: T12 only (isolates the password assertion).
+- Verifier 1 saw v6 red on 1c970b9d in his own baseline; my T12 has the same two assertions and is expected red at step 0 (the same code). Until my step 0 has run, T12 is expected red, not shown red.
+- **Owning-app regression: not run, my call.** The guard is one `if` inside `reset_password`; it touches no model, serializer, cached route or shared helper, and it can only add a refusal for an account that is both inactive and never verified. The related modules (OTP no-oracle, reset budget, auth endpoints, token revocation, Google auth, login lockout, throttle identity) and the repo-wide guards are in step 1. Rule 20 not applicable. If the Release Engineer wants users + classrooms again, I run it on his word.
+- Not shown: the cases where a never-verified active user is later switched off in production by an admin tool I did not read; what the student site shows for a 400 on the reset.
