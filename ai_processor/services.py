@@ -133,6 +133,36 @@ STUDENT_AI_UNAVAILABLE_MESSAGE = (
 )
 
 
+# H-179. A reply the model stopped because of its length limit
+# (finish_reason "length") is cut off, usually in the middle of its JSON. Every
+# metered call logs one WARNING line for it, with this fixed prefix, so the
+# count can be read from the logs. No prompt or reply text, no user or
+# submission id, no e-mail. (The metrics module the row's brief named exists
+# only on the next-stage line.)
+CUT_OFF_REPLY_LOG = (
+    "AI reply cut off by the length limit: task_type=%s model=%s finish_reason=%s"
+)
+
+
+def note_if_reply_cut_off(response, task_type):
+    """Log the cut-off line when the reply's first choice says "length". Never
+    raises: a reply without the attribute, without choices, or with a
+    non-string reason (a test stand-in) is simply not a cut-off reply."""
+    choices = getattr(response, "choices", None)
+    if not isinstance(choices, (list, tuple)) or not choices:
+        return
+    reason = getattr(choices[0], "finish_reason", None)
+    if not isinstance(reason, str) or reason != "length":
+        return
+    model = getattr(response, "model", None)
+    logger.warning(
+        CUT_OFF_REPLY_LOG,
+        task_type,
+        model if isinstance(model, str) else None,
+        reason,
+    )
+
+
 class GradingEvidenceError(ValueError):
     """
     A response was rejected because a points-awarding evaluation cited no
@@ -4757,6 +4787,7 @@ Now, respond to the following teacher's instruction using the rules above
             sub_models=sub_models,
             override_model=override_model,
         )
+        note_if_reply_cut_off(response, task_type)
 
         resolved_course = assignment.course if assignment else course
 
