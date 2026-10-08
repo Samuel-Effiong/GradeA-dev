@@ -782,7 +782,7 @@ class VerifyEmailAdminPowerTests(APITestCase):
 
         response = self.verify(account.email, "424242")
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertIn("access", response.data)
 
     def test_an_ordinary_unverified_user_still_activates_end_to_end(self):
@@ -797,7 +797,7 @@ class VerifyEmailAdminPowerTests(APITestCase):
         self.mail.delay.assert_called_once()
         response = self.verify(user.email, user.activation_token)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         user.refresh_from_db()
         self.assertTrue(user.is_active)
         self.assertIsNotNone(user.email_verified_at)
@@ -817,7 +817,7 @@ class VerifyEmailAdminPowerTests(APITestCase):
 
         response = self.verify(admin.email, "424242")
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         admin.refresh_from_db()
         self.assertTrue(admin.is_active)
         self.assertIsNotNone(admin.email_verified_at)
@@ -832,6 +832,6 @@ class VerifyEmailAdminPowerTests(APITestCase):
         self.assertIsNotNone(teacher.activation_token)
         response = self.verify(teacher.email, teacher.activation_token)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         teacher.refresh_from_db()
         self.assertIsNotNone(teacher.email_verified_at)

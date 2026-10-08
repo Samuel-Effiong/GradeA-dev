@@ -166,8 +166,15 @@ Runner run_h164_n3_gate.sh c702f0e69d0bf574, once, one outer inhibit, on the Rel
 | New test (VerifyEmailAdminPowerTests) | Why it is red on 42742c40's code | Fragment looked for in its block |
 |---|---|---|
 | the code request sends nothing to a never-verified staff / superuser-flag / SUPER_ADMIN-type account / command-line superuser (four) | the old request step makes and stores an activation code for the account (users/views.py VERIFY_EMAIL branch, `send_user_activation_email`), so `activation_token` is set and the first assertion fails | `self.assertIsNone(account.activation_token)` |
-| verify refuses a never-verified staff / flag / type / command-line account (four) | the old `/auth/verify` has no admin-power check: with the stored code it activates the account and answers 200 | `200 != 400` |
-| the verify refusal for a staff / flag / type account is the wrong-code one (three) | the first request (the right code) is accepted: 200, where a refusal would be 400 | `200 != 400` |
+| verify refuses a never-verified staff / flag / type / command-line account (four) | the old `/auth/verify` has no admin-power check: with the stored code it activates the account and answers 200 | `202 != 400` |
+| the verify refusal for a staff / flag / type account is the wrong-code one (three) | the first request (the right code) is accepted: 202, where a refusal would be 400 | `202 != 400` |
 | a refused verify spends the budget like a wrong guess | on the old code the first attempt succeeds and clears the failures, the second and third are ordinary wrong guesses: the third answers 400, not the lock's 429 | `400 != 429` |
 
 Green on the old code by design: the three code-request-answer tests (the old answer is already the same 202) and the five controls.
+
+### Verify-road gate, first attempt STOPPED at step 0 (2026-10-08 19:23:19, tip 79010e43; raw log `v_first_attempt_79010e43_prefix_base_production_failing.txt`)
+
+Step 0 ran 50 tests and found **16 red against 12 written**; the script stopped itself; nothing after step 0 ran; the source was restored; nothing was re-run.
+- **Four EXTRA reds, all controls I had written as green on the old code:** the ordinary user end to end, the invited school admin, the licence teacher end to end, and the verified admin who verifies. Reason, read from the log: each failed at its own `assertEqual(response.status_code, HTTP_200_OK)` with `202 != 200`. **My fault:** a successful `POST /auth/verify` answers 202 (`status=status.HTTP_202_ACCEPTED`, users/views.py 1017), not 200, and I wrote 200 from memory without reading the line. The code is as it was; the four controls were wrong.
+- **The same wrong guess sits in the written reasons of the seven verify tests:** their failure reads `202 != 400`, not `200 != 400` as I wrote in the rule 22 table. The rule 22 check (r) never ran because the name check stopped first; it would have said WRONG REASON for those seven. The table and the runner now say `202 != 400`.
+- Fix (tests and runner only, no run yet): the four controls assert 202; the reason fragment is `202 != 400`. Everything else is as written. The Senior Manager's rule: a stop comes to him; a re-run waits for his word through the Release Engineer.
