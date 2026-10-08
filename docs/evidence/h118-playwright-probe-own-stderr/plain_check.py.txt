@@ -1,0 +1,23 @@
+"""Plain Python, no Django test run: the pure source rule of H-118 over its
+own shapes and over the tree. Not a gate."""
+import ast, os, sys
+sys.path.insert(0, os.getcwd())
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings_worktree")
+import AutoGrader.tests_no_playwright_at_import as m
+t = m.NoTestModuleStartsPlaywrightAtImportTests
+src = open(m.__file__).read()
+tree = ast.parse(src)
+for cls in tree.body:
+    if isinstance(cls, ast.ClassDef) and cls.name == t.__name__:
+        for fn in cls.body:
+            if fn.name in ("test_the_rule_sees_each_shape", "test_the_rule_allows_what_does_not_run_at_import"):
+                d = ast.literal_eval(fn.body[0].value)
+                for k, v in d.items():
+                    print(fn.name[:22], "|", k, "->", m.playwright_started_at_import(v))
+import django; from django.conf import settings
+paths = list(m.all_test_modules())
+print("test modules:", len(paths))
+for p in paths:
+    s = open(os.path.join(settings.BASE_DIR, p), encoding="utf-8").read()
+    r = m.playwright_started_at_import(s)
+    if r: print("OFFENDER", p, r)

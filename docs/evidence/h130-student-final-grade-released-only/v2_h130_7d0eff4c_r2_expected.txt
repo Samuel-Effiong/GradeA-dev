@@ -1,0 +1,21 @@
+H-130, v2's repeat for evidence (vf_h130_run_r2.sh 7d0eff4c): expected failing sets,
+written by v2 at 2026-10-06 17:26:09 WAT, BEFORE the grant and before the repeat.
+They are the sets of the first run (17:23:44 to 17:24:22), taken from its summary lines
+in h130_7d0eff4c_mutants.log. The SM's condition: if a set differs, stop and tell the SM.
+
+V1 against d5's tests (Ran 25): exactly these four fail
+  test_a_half_graded_row_reads_the_same_too
+  test_a_rename_shows_when_it_happens_and_not_when_grading_happens
+  test_a_rename_the_teacher_saves_refreshes_the_students_cached_document
+  test_the_same_on_the_students_view_of_the_assignment
+V1 against v2's probe (Ran 9): exactly these two fail
+  test_d3_a_rename_on_the_assignment_route
+  test_d4_the_due_date_and_the_name_follow_the_same_rule
+V3 against d5's tests (Ran 25): exactly these two fail
+  test_the_same_on_the_students_view_of_the_assignment
+  test_the_students_assignment_serializer_does_not_read_the_stored_column
+V3 against v2's probe (Ran 9): exactly these two fail
+  test_d3_a_rename_on_the_assignment_route
+  test_d4_the_due_date_and_the_name_follow_the_same_rule
+Each judgement's raw output goes to its own file:
+  h130_7d0eff4c_r2_mutant_logs/<mutant>_d5_tests.txt and <mutant>_v2_probe.txt

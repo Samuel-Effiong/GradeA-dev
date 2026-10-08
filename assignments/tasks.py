@@ -88,6 +88,17 @@ COURSE_NOT_FOUND = "This course wasn't found."
 # budget (3 attempts of a multi-minute call is still well under this).
 EXTRACTION_TASK_STALE_AFTER_SECONDS = 60 * 60
 
+
+def _refusal_code(exc):
+    """The refusal's stable code beside its sentence, when it has one
+    (H-133: the four refusals that close a submission to changes). It is
+    put in the task's return value AND in the tracked row's meta: a client
+    that polls the task-status route is served the row, not the return
+    value."""
+    code = getattr(exc, "code", None)
+    return {"code": code} if code else {}
+
+
 UPLOAD_REFUSALS = (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
@@ -444,11 +455,18 @@ def extract_answer_background_task(
         mark_processing_task_failure(
             processing_task_id,
             exc,
-            meta={"step": "Submission edit refused", "submission_id": submission_id},
+            # The code goes on the tracked row too: the task-status route
+            # serves the row's meta, not this task's return value (H-133).
+            meta={
+                "step": "Submission edit refused",
+                "submission_id": submission_id,
+                **_refusal_code(exc),
+            },
         )
         return {
             "status": states.FAILURE,
             "message": describe_background_task_error(exc),
+            **_refusal_code(exc),
         }
     except Exception as exc:
         if self.request.retries < self.max_retries:
@@ -1036,14 +1054,19 @@ def upload_answers_engine_async(
         task = mark_processing_task_failure(
             processing_task_id,
             exc,
-            meta={"step": "Submission refused", "assignment_id": assignment_id},
+            # The code on the tracked row too, for the one who polls (H-133).
+            meta={
+                "step": "Submission refused",
+                "assignment_id": assignment_id,
+                **_refusal_code(exc),
+            },
         )
         if session_id:
             session = BatchUploadSession.objects.get(id=session_id)
             session.update_result(
                 file_name, "FAILED", error=task.error if task else message
             )
-        return {"status": states.FAILURE, "message": message}
+        return {"status": states.FAILURE, "message": message, **_refusal_code(exc)}
     except Exception as exc:
         if self.request.retries < self.max_retries:
             # Not a failure yet. Marking FAILURE here (as this used to)

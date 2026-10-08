@@ -1,0 +1,22 @@
+Written 2026-10-06 15:13:22 WAT by 1a, before any run of mine for H-127.
+Tip of the runs: f43e0f23 (ed's c7882331 merged with task/beta-batch-10 8bbf44f9; code as at 595e323e).
+Each run is my probe module (7 test methods), students.tests_student_feedback_routes (29) and
+AutoGrader.tests_student_feedback_guard (14): 50 by my count of the test methods.
+
+Baseline: all OK.
+
+Mutant Y14 (the formatted-grade reader treats only syntax and value errors as "nothing";
+h127_mutant_Y14.py) is expected to fail:
+  students.tests_vf1a_h127_probe.H127Probe.test_w4_the_reader_is_bounded   (certain: the text
+  "{[1, 2]: 'x'}" makes the reader raise a TypeError, which then leaves the function)
+and MAY also fail the author's
+  students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing
+only if 10,000 nested brackets make the reader raise something other than a syntax error.
+No other test is expected to fail. If only mine fails, the author's tests do not pin
+"every failure reads as nothing" beyond syntax and value errors.
+
+Mutant Y18 (the ordering refusal does not strip the spaces around a term; h127_mutant_Y18.py)
+is expected to fail exactly two tests:
+  students.tests_vf1a_h127_probe.H127Probe.test_w6_the_ordering_refusal_in_every_accepted_spelling
+  students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue
+(the author added the spaced form to that test at 5ca8f909, after my pre-read).

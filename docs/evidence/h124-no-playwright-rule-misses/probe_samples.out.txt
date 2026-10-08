@@ -1,0 +1,15 @@
+M1 alias import                        rule=[]       prefilter_passes=True
+M2 assignment                          rule=[]       prefilter_passes=True
+M3a staticmethod                       rule=[]       prefilter_passes=True
+M3b classmethod                        rule=[]       prefilter_passes=True
+M4 getattr literal                     rule=[]       prefilter_passes=False
+M4b getattr only, double quotes        rule=[]       prefilter_passes=False
+F1 import with comma                   rule=[2]      prefilter_passes=True
+F2 import list first                   rule=[2]      prefilter_passes=True
+F3 comma import, call via helper       rule=[5]      prefilter_passes=True
+F4 passed as argument                  rule=[]       prefilter_passes=True
+F5 call result subscripted             rule=[]       prefilter_passes=False
+F6 alias of own helper                 rule=[]       prefilter_passes=True
+F7 import alias of module fn in class  rule=[]       prefilter_passes=True
+A1 false alarm local                   rule=[4]      prefilter_passes=True
+A2 false alarm method name             rule=[6]      prefilter_passes=True

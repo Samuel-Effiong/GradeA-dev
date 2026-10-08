@@ -7,8 +7,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
 from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
+from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
-from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import (  # Rubric
@@ -339,6 +339,17 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             and hasattr(request.user, "user_type")
             and request.user.user_type == UserTypes.STUDENT
         ):
+            # H-147: a caller that serialises many assignments at once (the
+            # course answer) loads the viewer's own submissions beforehand,
+            # as `viewer_submissions`; without that this is a query per
+            # field per assignment. Whatever was loaded, only the
+            # requester's own row is ever read.
+            loaded = getattr(obj, "viewer_submissions", None)
+            if loaded is not None:
+                for submission in loaded:
+                    if submission.student_id == request.user.id:
+                        return submission
+                return None
             return obj.submissions.filter(student=request.user).first()
         return None
 
@@ -544,7 +555,9 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     def get_performance_summary(self, obj):
         submission = self._get_submission(obj)
         if submission and submission.is_published:
-            return submission.feedback or submission.ai_feedback
+            # H-127: the student projection, never the saved column. The
+            # saved result also holds what is written for the teacher.
+            return student_safe_feedback(submission.feedback or submission.ai_feedback)
         return None
 
     def get_student_submission_id(self, obj):
@@ -552,14 +565,15 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         return str(submission.id) if submission else None
 
     def get_student_submission_raw_input(self, obj):
+        # Not the stored column: before release it carries the grade
+        # (H-130). Imported here because students.services imports this
+        # app's services.
+        from students.services import answer_document_for_student
+
         submission = self._get_submission(obj)
         if submission:
-            return submission.raw_input
+            return answer_document_for_student(submission)
         return None
-
-    def get_submission(self, obj):
-        submission = self._get_submission(obj)
-        return StudentSubmissionSerializer(submission).data
 
     def get_assignment_raw_input(self, obj):
         """

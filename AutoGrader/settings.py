@@ -209,6 +209,16 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # These carry student work, grades, and billing identifiers.
             # Keep them out of the error reports.
             send_default_pii=False,
+            # H-167: no frame's local variables. The SDK's default sends
+            # each frame's locals as text with every error: whatever the
+            # code held (a name, an address, an answer, a temporary
+            # password in a queued email's arguments, the queue's own
+            # password in a connection pool's printed form).
+            include_local_variables=False,
+            # H-167: and no request body. The default ("medium") sends the
+            # failing request's parsed body up to 10,000 bytes, whatever
+            # send_default_pii says.
+            max_request_body_size="never",
             # H-89: and no address in the TEXT of what is sent either. The
             # logging integration builds events from a record's raw parts
             # and the exception's own text, which the log record factory

@@ -1,0 +1,18 @@
+assignments/0014_assignment_self_assessment_and_more: assignment.potential_issues: rule 2: type TextField to ArrayField
+assignments/0028_alter_assignment_raw_input_hash: assignment.raw_input_hash: rule 3: max_length 255 to 64
+billing/0002_alter_subscriptionplan_options_and_more: subscriptionplan.carry_over_max: rule 2: type PositiveBigIntegerField to PositiveIntegerField
+billing/0002_alter_subscriptionplan_options_and_more: subscriptionplan.overage_block_size: rule 2: type PositiveBigIntegerField to PositiveIntegerField
+billing/0004_alter_creditwallet_options_alter_creditbucket_wallet: creditbucket.wallet: rule 1: NULL to NOT NULL, nothing to fill
+billing/0010_alter_betaprofile_id: betaprofile.id: rule 2: type BigAutoField to CharField
+billing/0011_remove_betaprofile_uuid_betaprofile_uid_and_more: betaprofile.id: rule 2: type CharField to BigAutoField
+billing/0031_alter_licensesubscription_custom_price_cents_and_more: licensesubscription.custom_price_cents: rule 2: type PositiveSmallIntegerField to PositiveIntegerField
+billing/0031_alter_licensesubscription_custom_price_cents_and_more: licensesubscription.max_seats: rule 2: type PositiveSmallIntegerField to PositiveIntegerField
+billing/0032_remove_subscriptionplan_price_cents_and_more: subscriptionplan.overage_block_price: rule 2: type PositiveIntegerField to DecimalField
+billing/0034_alter_licensesubscription_custom_price_cents: licensesubscription.custom_price_cents: rule 2: type PositiveIntegerField to DecimalField
+billing/0036_alter_licensesubscription_contract_months_and_more: licensesubscription.custom_price_cents: rule 2: type DecimalField to IntegerField
+billing/0039_alter_subscriptionplan_overage_block_price: subscriptionplan.overage_block_price: rule 2: type DecimalField to IntegerField
+students/0004_alter_studentsubmission_graded_at: studentsubmission.graded_at: rule 2: type DateField to DateTimeField
+students/0027_alter_studentsubmission_ai_grading_completed_at: studentsubmission.ai_grading_completed_at: rule 2: type DateField to DateTimeField
+users/0021_betawhitelist_test_id_alter_betawhitelist_id: betawhitelist.id: rule 2: type BigAutoField to CharField
+users/0022_remove_betawhitelist_test_id_alter_betawhitelist_id: betawhitelist.id: rule 2: type CharField to UUIDField; rule 3: max_length 100 to 32
+206 migration files of the project's apps read; 117 AlterField operations

@@ -1,0 +1,22 @@
+baseline exit=0
+A1	the student's figure leaves out unreleased work	KILLED	FAILED (failures=9)	True	8.4
+A2	a student is not read as staff	KILLED	FAILED (failures=12)	True	8.1
+A3	the letter comes from the reader's figure, not the stored one	KILLED	FAILED (failures=9)	True	8.1
+A4	the number comes from the reader's figure, not the stored one	KILLED	FAILED (failures=12)	True	8.9
+A5	released work with no stored maximum is weighted by the assignment's points	KILLED	FAILED (failures=3)	True	8.8
+A6	another course's work is not counted	KILLED	FAILED (failures=1)	True	8.7
+A7	a row with no grading time is left out, as in the stored figure	KILLED	FAILED (failures=2)	True	9.0
+A8	a teacher still reads the stored figure	KILLED	FAILED (failures=2, errors=1)	True	7.2
+A9	a reader that cannot be identified is not read as staff	KILLED	FAILED (failures=1)	True	9.0
+B1	after release the student reads the stored document	KILLED	FAILED (failures=3)	True	9.3
+B2	a row with no stored document is served as it is	KILLED	FAILED (failures=2)	True	9.9
+B3	before release the student does not read the stored document (the defect itself)	KILLED	FAILED (failures=13)	True	9.2
+B4	the ungraded form hides the grading date	KILLED	FAILED (failures=11)	True	9.3
+B5	the ungraded form hides the row's score	KILLED	FAILED (failures=11)	True	9.0
+B6	the ungraded form prints the score as a new row's, not as 'Not graded yet'	KILLED	FAILED (failures=10)	True	11.7
+B7	the student's submission serializer goes through the helper	KILLED	FAILED (failures=11)	True	7.0
+B8	the student's assignment serializer goes through the helper	KILLED	FAILED (failures=5)	True	10.2
+B9	the student's submission serializer does not carry the stored column	KILLED	FAILED (failures=12)	True	13.0
+
+18/18 killed with verified restore
+exit=0 wall_s=193

@@ -1,0 +1,75 @@
+"""1a's mutants for H-141 (rule 19). W1 and W2 are for my two probes. G1, G2,
+G5 and G6 change the author's guard module's OWN scanner and census, to show
+that its six ScannerSelfTest tests and its census test, never seen red in the
+author's runs, can fail. Usage, in the checkout: python -B h141_mutants_W.py
+<W1|W2|G1|G2|G5|G6>. Applied in place; restore with git checkout. Expected
+failing tests: h141_expected_kills.txt.
+
+W1: the constant field hands out its own value, not a copy.
+W2: the edit route builds its answer without the request.
+G1: the scanner says every serializer was given a context.
+G2: the scanner does not treat the else of a test for a student as the staff branch.
+G5: the scanner says no serializer was given a context.
+G6: the census leaves out the teacher's detail serializer.
+"""
+
+import ast
+import sys
+
+GUARD = "AutoGrader/tests_submission_audience_guard.py"
+HAS_CONTEXT = '                has_context = any(k.arg == "context" for k in node.keywords)\n'
+
+MUTANTS = {
+    "W1": (
+        "students/serializers.py",
+        "        return copy.deepcopy(self.value)\n",
+        "        return self.value\n",
+    ),
+    "W2": (
+        "students/views.py",
+        "        serializer = StudentSubmissionListSerializer(\n"
+        "            submission, context=self.get_serializer_context()\n"
+        "        )\n"
+        "        return Response(serializer.data, status=HTTP_201_CREATED)\n",
+        "        serializer = StudentSubmissionListSerializer(submission)\n"
+        "        return Response(serializer.data, status=HTTP_201_CREATED)\n",
+    ),
+    "G1": (GUARD, HAS_CONTEXT, "                has_context = True\n"),
+    "G2": (
+        GUARD,
+        "            for child in node.orelse:\n                visit(child, True)\n",
+        "            for child in node.orelse:\n                visit(child, in_staff_branch)\n",
+    ),
+    "G5": (GUARD, HAS_CONTEXT, "                has_context = False\n"),
+    "G6": (
+        GUARD,
+        '        if getattr(getattr(value, "Meta", None), "model", None) is StudentSubmission:\n'
+        "            found[name] = value\n",
+        '        if getattr(getattr(value, "Meta", None), "model", None) is StudentSubmission:\n'
+        '            if name != "StudentSubmissionDetailSerializer":\n'
+        "                found[name] = value\n",
+    ),
+}
+
+
+def main():
+    name = sys.argv[1]
+    path, old, new = MUTANTS[name]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    count = source.count(old)
+    if count != 1:
+        print(f"ABORT {name}: anchor found {count} times in {path}")
+        sys.exit(7)
+    mutated = source.replace(old, new, 1)
+    ast.parse(mutated)
+    if "--check" in sys.argv:
+        print(f"checked {name}: anchor once in {path}, mutant parses")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {name} to {path}")
+
+
+if __name__ == "__main__":
+    main()

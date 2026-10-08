@@ -1,15 +1,23 @@
+import copy
+
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from users.models import CustomUser
 
-from .models import StudentSubmission
+from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
+from .models import GradingState, StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
     SecondOpinionSerializer,
 )
-from .services import get_grade_details, remaining_student_attempts
+from .services import (
+    answer_document_for_student,
+    get_grade_details,
+    remaining_student_attempts,
+)
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -62,6 +70,13 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionSerializer(serializers.ModelSerializer):
+    #: H-141: who this serializer is for ("staff", "student" or "both").
+    #: AutoGrader/tests_submission_audience_guard.py fails on a serializer
+    #: of a submission without one, and on a student's route that builds a
+    #: "staff" one. This is the view's fallback class; no route builds an
+    #: answer from it today.
+    audience = "staff"
+
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
     remaining_attempts = serializers.SerializerMethodField()
@@ -126,6 +141,11 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
+    # H-141: names the body of an edit in the API description. No route
+    # builds an answer from it; one that did so for a student would have
+    # to decide this again.
+    audience = "staff"
+
     class Meta:
         model = StudentSubmission
         fields = [
@@ -138,7 +158,31 @@ class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+def max_points_shown(submission, request):
+    """The maximum a reader of a submission is shown.
+
+    The denominator the score was actually graded against, when the row
+    has one - serving assignment.total_points against a score computed
+    from a different max produces an internally inconsistent display.
+    Falls back to the assignment total for ungraded rows.
+
+    H-133: the row's own maximum is written by the grade save, so for a
+    student it would appear, or change, the moment a paper is graded.
+    Until the grade is released a student is shown what a submitted paper
+    shows: the assignment's total, or nothing.
+    """
+    if request and request.user.user_type == "STUDENT" and not submission.is_published:
+        return submission.assignment.total_points
+    return submission.max_points or submission.assignment.total_points
+
+
 class StudentSubmissionListSerializer(serializers.ModelSerializer):
+    # H-141: teachers and students both receive this one. It needs the
+    # request in its context: the methods named here change the answer
+    # when a student is asking, and without the request they cannot.
+    audience = "both"
+    student_answer_in = ("to_representation", "get_score", "get_score_percentage")
+
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
     course = serializers.CharField(source="assignment.course.id", read_only=True)
@@ -197,6 +241,46 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "is_grading_scheduled",
         ]
 
+    #: H-127: the teacher's review-queue fields, and what a student is sent
+    #: in their place, released or not. `review_reasons` holds both AI
+    #: graders' marks for each disputed question; the rest say that the
+    #: graders disagreed and how sure the grader was.
+    STUDENT_REVIEW_FIELD_VALUES = {
+        "needs_review": False,
+        "review_reasons": None,
+        "review_severity": None,
+        "review_tier": None,
+        "grading_confidence": None,
+    }
+
+    #: H-133: the teacher's scheduling of a grading run, and what a student
+    #: is sent in its place. Before release a student is shown nothing that
+    #: tells a grade exists or is on its way.
+    STUDENT_SCHEDULE_FIELD_VALUES = {
+        "scheduled_grading_at": None,
+        "grading_task_name": None,
+        "is_grading_scheduled": False,
+    }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT":
+            data.update(self.STUDENT_REVIEW_FIELD_VALUES)
+            data.update(self.STUDENT_SCHEDULE_FIELD_VALUES)
+            # H-133: DONE once the grade is released; until then IDLE, what
+            # a submitted paper shows. Never RUNNING or FAILED.
+            data["grading_state"] = (
+                GradingState.DONE.value
+                if instance.is_published
+                else GradingState.IDLE.value
+            )
+            # A student may know when a RELEASED grade was made, not that
+            # an unreleased one exists.
+            if not instance.is_published:
+                data["graded_at"] = None
+        return data
+
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
 
@@ -218,17 +302,18 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         )
 
     def get_max_points(self, obj) -> int:
-        # The denominator the score was actually graded against, when
-        # available - serving assignment.total_points against a score
-        # computed from a different max produces an internally inconsistent
-        # display. Falls back to the assignment total for ungraded rows.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
 
 
 class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+    # H-141: the teacher's page of a submission. Its student branches are
+    # from before the student had a serializer of their own; no student
+    # route may build it (the guard holds that).
+    audience = "staff"
+
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
@@ -350,8 +435,11 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
 
     def get_formatted_grade(self, obj):
         request = self.context.get("request")
-        if request and request.user.user_type == "STUDENT" and not obj.is_published:
-            return None
+        if request and request.user.user_type == "STUDENT":
+            # H-127: a student is never sent the column itself.
+            if not obj.is_published:
+                return None
+            return student_safe_formatted_grade(obj.formatted_grade)
         return obj.formatted_grade
 
     def get_submission_status(self, obj):
@@ -368,14 +456,15 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_max_points(self, obj) -> int:
-        # See StudentSubmissionListSerializer.get_max_points.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
 
 
 class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerializer):
+    audience = "student"  # H-141
+
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
@@ -383,18 +472,27 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
     max_points = serializers.SerializerMethodField()
     grade_status = serializers.SerializerMethodField()
 
-    assignment_title = serializers.CharField(source="assignment__title", read_only=True)
-    assignment_due_date = serializers.CharField(
-        source="assignment__due_date", read_only=True
+    # H-150: these three were declared with sources written with two
+    # underscores ("assignment__title"), which name no attribute; being
+    # read-only they were skipped, and no student was ever sent them.
+    # They are read at the time of the read, released or not. Nothing of
+    # a grade: the assignment's title and due date and the course's name.
+    assignment_title = serializers.CharField(source="assignment.title", read_only=True)
+    # The standard date form, as submission_date beside it; null when the
+    # assignment has no due date.
+    assignment_due_date = serializers.DateTimeField(
+        source="assignment.due_date", read_only=True
     )
-
+    # A course has a name and no title; the key is the one declared.
     course_title = serializers.CharField(
-        source="assignment__course__title", read_only=True
+        source="assignment.course.name", read_only=True
     )
 
     grade_letter = serializers.SerializerMethodField()
     feedback = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
+    # Not the stored column: before release it carries the grade (H-130).
+    raw_input = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
@@ -433,84 +531,18 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "feedback",
         ]
 
-    # Fields on a question_evaluations entry that are safe to show a
-    # student. Everything else — flag_for_review, graded_by provenance,
-    # snapped_from, evaluation_rationale (a teacher-directed note on level
-    # selection), and evidence_quotes (internal verification detail) — is
-    # stripped. second_opinion is not in this list at all: it is a second
-    # grader's dissenting score and rationale, meant for the teacher's
-    # review queue, never for a student to read as ammunition in a grade
-    # dispute.
-    _STUDENT_EVALUATION_FIELDS = (
-        "question_number",
-        "question_text",
-        "question_type",
-        "max_points",
-        "student_answer",
-        "score_awarded",
-        "level_achieved",
-        "strengths",
-        "weaknesses",
-        "improvement_suggestions",
-        "feedback_for_student",
-    )
+    # What a student is shown of the saved grading result is decided in
+    # students/feedback_projection.py (H-127), which every student route
+    # shares. second_opinion is not in it at all: it is a second grader's
+    # dissenting score and rationale, meant for the teacher's review queue,
+    # never for a student to read as ammunition in a grade dispute.
 
-    @classmethod
-    def _student_safe_feedback(cls, feedback):
-        """
-        Whitelist projection of the grading feedback blob for student eyes.
-        Built explicitly rather than by exclusion, so a new key added to
-        the grading output (e.g. a future second_opinion-like block) is
-        hidden from students by default instead of leaking until someone
-        remembers to blocklist it.
-        """
-        if not isinstance(feedback, dict):
-            return feedback
-
-        summary = feedback.get("grading_summary")
-        safe_summary = None
-        if isinstance(summary, dict):
-            safe_summary = {
-                key: summary.get(key)
-                for key in ("total_score", "max_total_points", "percentage")
-                if key in summary
-            }
-
-        evaluations = feedback.get("question_evaluations")
-        safe_evaluations = None
-        if isinstance(evaluations, list):
-            safe_evaluations = [
-                {
-                    key: evaluation.get(key)
-                    for key in cls._STUDENT_EVALUATION_FIELDS
-                    if key in evaluation
-                }
-                for evaluation in evaluations
-                if isinstance(evaluation, dict)
-            ]
-
-        overall = feedback.get("overall_performance_analysis")
-        safe_overall = overall if isinstance(overall, dict) else None
-
-        recommendations = feedback.get("recommendations")
-        safe_for_student = None
-        if isinstance(recommendations, dict):
-            safe_for_student = recommendations.get("for_student")
-
-        safe: dict = {}
-        if safe_summary is not None:
-            safe["grading_summary"] = safe_summary
-        if safe_evaluations is not None:
-            safe["question_evaluations"] = safe_evaluations
-        if safe_overall is not None:
-            safe["overall_performance_analysis"] = safe_overall
-        if safe_for_student is not None:
-            safe["recommendations"] = {"for_student": safe_for_student}
-        return safe
+    def get_raw_input(self, obj):
+        return answer_document_for_student(obj)
 
     def get_feedback(self, obj):
         if obj.is_published:
-            return self._student_safe_feedback(obj.feedback)
+            return student_safe_feedback(obj.feedback)
 
     def get_score(self, obj):
         request = self.context.get("request")
@@ -525,10 +557,12 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return obj.score_percentage
 
     def get_formatted_grade(self, obj):
-        request = self.context.get("request")
-        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+        # This serializer is the student's. H-127: the formatter's output
+        # also holds advice to the teacher (its prompt asks for it), so the
+        # student is sent a projection of it, and nothing before release.
+        if not obj.is_published:
             return None
-        return obj.formatted_grade
+        return student_safe_formatted_grade(obj.formatted_grade)
 
     def get_submission_status(self, obj):
         return "SUBMITTED"
@@ -547,14 +581,136 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return None
 
     def get_max_points(self, obj) -> int:
-        # See StudentSubmissionListSerializer.get_max_points.
-        return obj.max_points or obj.assignment.total_points
+        return max_points_shown(obj, self.context.get("request"))
 
     def get_remaining_attempts(self, obj) -> int:
         return remaining_student_attempts(obj)
 
 
+@extend_schema_field(OpenApiTypes.ANY)
+class SentAs(serializers.Field):
+    """A key that is sent as a constant, whatever the row holds. The row's
+    column of that name is not read."""
+
+    def __init__(self, value):
+        self.value = value
+        super().__init__(read_only=True)
+
+    def get_attribute(self, instance):
+        return instance
+
+    def to_representation(self, instance):
+        return copy.deepcopy(self.value)
+
+
+class StudentUploadAnswerSerializer(serializers.ModelSerializer):
+    """H-141: what a student's own answer upload is answered with.
+
+    The route answered with the teacher's StudentSubmissionDetailSerializer,
+    built without the request. An upload is refused once the paper is
+    graded, but on a paper that is not graded the student was still shown
+    the teacher's scheduled grading run and a failed or stale grading
+    state.
+
+    The same thirty keys, in the same order, so a page that reads the
+    answer finds what it found. The student's own facts keep their values.
+    Every staff key is a constant, the value of a paper nobody has graded
+    or scheduled: this class does not read the grade's columns at all, so
+    what it answers does not depend on the upload having been refused, nor
+    on the request. `score` is sent as null, as on the student's other
+    routes before release (the teacher's serializer sent the column's
+    default, a zero).
+    """
+
+    audience = "student"
+
+    full_name = serializers.CharField(source="student.get_full_name", read_only=True)
+    first_name = serializers.CharField(source="student.first_name", read_only=True)
+    last_name = serializers.CharField(source="student.last_name", read_only=True)
+    email = serializers.SerializerMethodField()
+    submission_status = serializers.SerializerMethodField()
+    remaining_attempts = serializers.SerializerMethodField()
+    max_points = serializers.SerializerMethodField()
+    # Not the stored column: the student's document (H-130).
+    raw_input = serializers.SerializerMethodField()
+
+    score = SentAs(None)
+    score_percentage = SentAs(None)
+    was_regraded = SentAs(False)
+    regraded_at = SentAs(None)
+    grade_status = SentAs("NOT GRADED")
+    formatted_grade = SentAs(None)
+    grading_state = SentAs(GradingState.IDLE.value)
+    needs_review = SentAs(False)
+    review_reasons = SentAs(None)
+    review_severity = SentAs(None)
+    review_tier = SentAs(None)
+    second_opinion = SentAs(None)
+    question_breakdown = SentAs([])
+    scheduled_grading_at = SentAs(None)
+    grading_task_name = SentAs(None)
+    is_grading_scheduled = SentAs(False)
+
+    class Meta:
+        model = StudentSubmission
+        # The keys and the order of StudentSubmissionDetailSerializer.
+        fields = [
+            "id",
+            "assignment",
+            "student",
+            "full_name",
+            "first_name",
+            "last_name",
+            "email",
+            "submission_status",
+            "score",
+            "remaining_attempts",
+            "max_points",
+            "score_percentage",
+            "was_regraded",
+            "regraded_at",
+            "grade_status",
+            "is_published",
+            "submission_date",
+            "raw_input",
+            "formatted_grade",
+            "answers",
+            "grading_state",
+            "needs_review",
+            "review_reasons",
+            "review_severity",
+            "review_tier",
+            "second_opinion",
+            "question_breakdown",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
+        ]
+        read_only_fields = fields
+
+    def get_email(self, obj):
+        if "student.local" in obj.student.email:
+            return None
+        return obj.student.email
+
+    def get_submission_status(self, obj):
+        return "SUBMITTED"
+
+    def get_remaining_attempts(self, obj) -> int:
+        return remaining_student_attempts(obj)
+
+    def get_max_points(self, obj):
+        # What a submitted paper shows (H-133): the assignment's total, not
+        # the maximum the grader stores on the row.
+        return obj.assignment.total_points
+
+    def get_raw_input(self, obj):
+        return answer_document_for_student(obj)
+
+
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
+    audience = "staff"  # H-141: the teacher's manual grade
+
     class Meta:
         model = StudentSubmission
         fields = [
@@ -564,6 +720,8 @@ class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionTeacherFeedbackSerializer(serializers.ModelSerializer):
+    audience = "staff"  # H-141: the teacher's feedback route
+
     class Meta:
         model = StudentSubmission
         fields = [

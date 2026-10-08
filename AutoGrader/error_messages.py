@@ -39,6 +39,7 @@ def _user_facing_exception_types():
         CannotAssociateStudentError,
         CourseNotReachableError,
         SubmissionAlreadyGradedError,
+        SubmissionAnswersUnreadableError,
         SubmissionBeingGradedError,
         SubmissionLimitReachedError,
     )
@@ -50,6 +51,7 @@ def _user_facing_exception_types():
         SubmissionAlreadyGradedError,
         SubmissionBeingGradedError,
         SubmissionLimitReachedError,
+        SubmissionAnswersUnreadableError,
         AssignmentNotOpenError,
         CourseNotReachableError,
         AIFeatureNotAvailableError,

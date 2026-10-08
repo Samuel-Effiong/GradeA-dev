@@ -1,0 +1,29 @@
+#!/bin/bash
+# v2's one slot for H-124: baseline (the whole guard module), then mutants
+# V1-V3 against the rule's test class. Rules 12, 13, 16 wrap each step; rule
+# 17 is in the runner (PYTHONDONTWRITEBYTECODE=1, __pycache__ cleared); rule
+# 18: every test run writes straight to a file, stdin from /dev/null. No
+# wall-clock assertion here, so no load condition; the load is recorded.
+# Usage: vf_h124_run.sh <tip-sha8>      (only after the Release Engineer's GRANT)
+set -uo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export COMMIT=$TIP MUTANT_LOGS=$H/runs/h124_${TIP}_mutant_logs EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/h124_${TIP}.status
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+[ ! -e $MUTANT_LOGS ] && [ ! -e $H/runs/h124_${TIP}_baseline.log ] || { echo "logs of $TIP exist already"; exit 9; }
+say "baseline start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h124_mutants.py baseline > $H/runs/h124_${TIP}_baseline.log 2>&1 < /dev/null || rc=$?
+say "baseline end exit=$rc: loadavg $(cat /proc/loadavg)"
+[ $rc -eq 0 ] || { echo "baseline red (exit $rc): no mutant is run"; exit 1; }
+say "mutants start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h124_mutants.py > $H/runs/h124_${TIP}_mutants.log 2>&1 < /dev/null || rc=$?
+say "mutants end exit=$rc: loadavg $(cat /proc/loadavg)"
+[ -z "$(git status --porcelain)" ] && [ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && say "tree is the frozen tip again" || say "WARNING: tree not the frozen tip at exit"
+echo "done: see $ST"

@@ -1,0 +1,128 @@
+........FException in thread Thread-1 (<lambda>):
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 252, in <lambda>
+    os.write(pipe.write_fd, line + b"\n") for line in lines
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BrokenPipeError: [Errno 32] Broken pipe
+FF....FEFF.F......
+======================================================================
+ERROR: test_a_long_line_is_cut (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_long_line_is_cut)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 189, in test_a_long_line_is_cut
+    [message, after] = self.read(b"x" * 5000 + b"\n", b"after\n")
+    ^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 2, got 1)
+
+======================================================================
+FAIL: test_the_reader_outlives_our_write_end_while_the_driver_has_one (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_the_reader_outlives_our_write_end_while_the_driver_has_one)
+close_write_end() is what the renderer calls right after the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 328, in test_the_reader_outlives_our_write_end_while_the_driver_has_one
+    self.assertTrue(pipe.is_reading())
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger)
+The reader is on the render path: while the log is slow the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 261, in test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger
+    self.assertEqual(got, [line.decode() for line in lines])
+AssertionError: Lists differ: ['bur[50 chars]zzzz'] != ['bur[50 chars]zzzz', 'burst line 00001 zzzzzzzzzzzzzzzzzzzzz[182894 chars]zzz']
+
+Second list contains 2999 additional elements.
+First extra element 1:
+'burst line 00001 zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
+
+Diff is 192194 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_last_line_with_no_newline_is_not_lost (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_last_line_with_no_newline_is_not_lost)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 169, in test_a_last_line_with_no_newline_is_not_lost
+    self.assertEqual(
+AssertionError: Lists differ: ['[PD[18 chars]er stderr: done'] != ['[PD[18 chars]er stderr: done', '[PDF] Playwright driver stderr: last words']
+
+Second list contains 1 additional elements.
+First extra element 1:
+'[PDF] Playwright driver stderr: last words'
+
+- ['[PDF] Playwright driver stderr: done']
+?                                        ^
+
++ ['[PDF] Playwright driver stderr: done',
+?                                        ^
+
++  '[PDF] Playwright driver stderr: last words']
+
+======================================================================
+FAIL: test_a_logger_that_raises_does_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_logger_that_raises_does_not_stop_the_reader)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 275, in test_a_logger_that_raises_does_not_stop_the_reader
+    self.assertEqual(calls, ["one", "two", "three"])
+AssertionError: Lists differ: ['one'] != ['one', 'two', 'three']
+
+Second list contains 2 additional elements.
+First extra element 1:
+'two'
+
+- ['one']
++ ['one', 'two', 'three']
+
+======================================================================
+FAIL: test_blank_lines_are_not_logged (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_blank_lines_are_not_logged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 174, in test_blank_lines_are_not_logged
+    self.assertEqual(self.read(b"\n\n   \nreal\n\n"), [PREFIX + "real"])
+AssertionError: Lists differ: [] != ['[PDF] Playwright driver stderr: real']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'[PDF] Playwright driver stderr: real'
+
+- []
++ ['[PDF] Playwright driver stderr: real']
+
+======================================================================
+FAIL: test_bytes_that_are_not_utf8_do_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_bytes_that_are_not_utf8_do_not_stop_the_reader)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 178, in test_bytes_that_are_not_utf8_do_not_stop_the_reader
+    self.assertEqual(len(messages), 2)
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_each_line_becomes_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_each_line_becomes_one_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 160, in test_each_line_becomes_one_warning
+    self.assertEqual(
+AssertionError: Lists differ: ['[PD[25 chars]rr: first line'] != ['[PD[25 chars]rr: first line', '[PDF] Playwright driver stderr: second line']
+
+Second list contains 1 additional elements.
+First extra element 1:
+'[PDF] Playwright driver stderr: second line'
+
+- ['[PDF] Playwright driver stderr: first line']
+?                                              ^
+
++ ['[PDF] Playwright driver stderr: first line',
+?                                              ^
+
++  '[PDF] Playwright driver stderr: second line']
+
+----------------------------------------------------------------------
+Ran 27 tests in 6.262s
+
+FAILED (failures=7, errors=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

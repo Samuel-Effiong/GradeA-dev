@@ -1,0 +1,3 @@
+12:03:33 before the load: loadavg 2.83 4.06 6.00 2/2636 1407022
+12:04:33 start, 12 busy loops for 60 s: loadavg 11.36 6.31 6.65 18/2622 1407630
+12:05:09 end: loadavg 13.70 7.47 7.03 1/2586 1408195; busy loops stopped: 12

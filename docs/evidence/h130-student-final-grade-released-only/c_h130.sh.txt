@@ -1,0 +1,25 @@
+#!/bin/bash
+# H-130 (c): the three apps the change touches (classrooms, students, assignments), at --parallel 2, through the file-form
+# wrapper (rule 18), flock, watchdog. Records the load average at
+# the start and the end and does not start on a loaded machine (1-minute
+# load average over 4). Usage: c_h130.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h130-student-final-grade-released-only
+export OUTDIR=$P/GAP-d5-runs/h130 TMO=1800 SILENCE=300
+unset STRACE OBSERVE PYTHONPATH || true
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+N=c_three_apps_p2_$TIP
+[ ! -e $OUTDIR/$N.raw.log ] || { echo "$N exists already"; exit 9; }
+L=$(cut -d" " -f1 /proc/loadavg)
+echo "$(date +%H:%M:%S) start: loadavg $(cat /proc/loadavg)" > $OUTDIR/$N.load.txt
+awk -v l="$L" 'BEGIN{exit !(l<=4)}' || { echo "NOT STARTED: 1-minute load average $L is over 4"; exit 8; }
+record_end() { echo "$(date +%H:%M:%S) end: loadavg $(cat /proc/loadavg)" >> $OUTDIR/$N.load.txt; }
+trap record_end EXIT
+$P/GAP-d5-runs/hang/iso_file.sh $N $WT 2 classrooms students assignments
+grep -q "^exit=0" $OUTDIR/$N.raw.log && tail -n 1 $OUTDIR/iso.status | grep -q "^[0-9:]* $N .*stalled=0" || { echo "H-130 (c) NOT green: see $OUTDIR/$N.raw.log and iso.status"; exit 1; }
+n=$(grep -c "Headless Chromium not available" $OUTDIR/$N.raw.log || true)
+[ "$n" = 0 ] || { echo "H-130 (c): $n tests skipped for want of Chromium"; exit 1; }
+echo "H-130 (c) GREEN"

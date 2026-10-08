@@ -10,10 +10,15 @@ the row's stored anchor, its fallback and the due time being served, and
 the next due time comes from next_monthly_grant.
 """
 
+import ast
+import os
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
+from types import SimpleNamespace
+from typing import Any
 
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.test import SimpleTestCase
 
 from billing.refresh_timing import (
@@ -251,3 +256,185 @@ class GrantsOwedTests(SimpleTestCase):
         self.assertEqual(
             grants_owed(anchor, anchor + relativedelta(months=4), until), 0
         )
+
+
+#: H-98: "this due time is on the allocation's STORED anchor". Passed this
+#: way so the module still type-checks on the commit before the argument
+#: exists.
+STORED: dict[str, Any] = {"on_stored_anchor": True}
+
+
+class GrantsOwedInTheLastWeekTests(SimpleTestCase):
+    """H-98. H-81's count ignores a due time within ANCHOR_SNAP (7 days) of
+    the cycle's end, so that a row drifted by the old chain is not reported.
+    A real point of a STORED anchor in that week, left unserved by an outage
+    that ran to the end, was not reported either. It is now, when all three
+    hold: the anchor is the stored one, the due time is exactly one of its
+    points, and it lies at least one full day before the end (the refresh
+    runs once a day: a point due later than that may have had no run with
+    Beat healthy)."""
+
+    ANCHOR = datetime(2026, 1, 25, 1, 0, tzinfo=UTC)
+    POINT = datetime(2026, 12, 25, 1, 0, tzinfo=UTC)  # ANCHOR + 11 months
+    END = datetime(2026, 12, 28, 1, 0, tzinfo=UTC)  # three days after it
+
+    def test_an_unserved_point_of_a_stored_anchor_is_owed(self):
+        self.assertEqual(self.POINT, self.ANCHOR + relativedelta(months=11))
+        self.assertEqual(grants_owed(self.ANCHOR, self.POINT, self.END, **STORED), 1)
+
+    def test_without_a_stored_anchor_it_is_ignored_as_before(self):
+        self.assertEqual(grants_owed(self.ANCHOR, self.POINT, self.END), 0)
+        self.assertEqual(
+            grants_owed(
+                self.ANCHOR, self.POINT, self.END, **{"on_stored_anchor": False}
+            ),
+            0,
+        )
+
+    def test_a_due_time_near_a_point_but_not_on_it_is_ignored(self):
+        """The drifted rows the 7 days exist for: near a point, not on it."""
+        for off in (
+            timedelta(seconds=1),
+            timedelta(hours=2),
+            timedelta(days=1),
+            timedelta(days=3),
+        ):
+            for due in (self.POINT - off, self.POINT + off):
+                if due + timedelta(days=1) > self.END:
+                    continue
+                with self.subTest(due=due):
+                    self.assertEqual(
+                        grants_owed(self.ANCHOR, due, self.END, **STORED), 0
+                    )
+
+    def test_it_needs_one_full_day_before_the_end(self):
+        day = timedelta(days=1)
+        for until, owed in (
+            (self.POINT + day, 1),  # exactly one day: a daily run fell between
+            (self.POINT + day - timedelta(seconds=1), 0),
+            (self.POINT + timedelta(hours=12), 0),
+            (self.POINT + timedelta(seconds=1), 0),
+        ):
+            with self.subTest(until=until):
+                self.assertEqual(
+                    grants_owed(self.ANCHOR, self.POINT, until, **STORED), owed
+                )
+
+    def test_a_chain_served_to_the_end_owes_nothing(self):
+        """The due time is then capped at the cycle's end, or beyond it."""
+        self.assertEqual(grants_owed(self.ANCHOR, self.END, self.END, **STORED), 0)
+        self.assertEqual(
+            grants_owed(
+                self.ANCHOR, self.ANCHOR + relativedelta(months=12), self.END, **STORED
+            ),
+            0,
+        )
+
+    def test_an_outage_that_ran_to_the_end_counts_the_last_point_too(self):
+        """Unserved from month 9: months 9 and 10 are more than 7 days
+        before the end (H-81 counted them); month 11 is the new one."""
+        due = self.ANCHOR + relativedelta(months=9)
+        self.assertEqual(grants_owed(self.ANCHOR, due, self.END), 2)
+        self.assertEqual(grants_owed(self.ANCHOR, due, self.END, **STORED), 3)
+
+    def test_every_day_of_the_month_clamped_dates_too(self):
+        for day in range(1, 32):
+            anchor = datetime(2026, 1, day, 1, 0, tzinfo=UTC)
+            point = anchor + relativedelta(months=1)  # 31 Jan -> 28 Feb
+            for days_before_end in (1, 3, 7):
+                until = point + timedelta(days=days_before_end)
+                with self.subTest(anchor=anchor, days_before_end=days_before_end):
+                    self.assertEqual(grants_owed(anchor, point, until, **STORED), 1)
+                    self.assertEqual(grants_owed(anchor, point, until), 0)
+
+    def test_outside_the_last_week_nothing_changes(self):
+        """H-81's own table, with and without a stored anchor."""
+        for day in range(1, 32):
+            anchor = datetime(2026, 1, day, 1, 0, tzinfo=UTC)
+            end = anchor + relativedelta(years=1)
+            points = anchor_points(anchor, end)
+            for served in range(len(points) + 1):
+                next_due = points[served] if served < len(points) else end
+                with self.subTest(anchor=anchor, served=served):
+                    self.assertEqual(
+                        grants_owed(anchor, next_due, end, **STORED),
+                        grants_owed(anchor, next_due, end),
+                    )
+
+
+class TheRenewalReportsTests(SimpleTestCase):
+    """H-98 at its caller: LicenseSubscriptionService._report_owed_refreshes
+    says "stored anchor" only for an allocation whose stored anchor is the
+    one in use."""
+
+    START = datetime(2025, 12, 28, 1, 0, tzinfo=UTC)
+    END = datetime(2026, 12, 28, 1, 0, tzinfo=UTC)
+    ANCHOR = datetime(2026, 1, 25, 1, 0, tzinfo=UTC)
+    POINT = datetime(2026, 12, 25, 1, 0, tzinfo=UTC)
+
+    def report(self, **allocation):
+        from billing.license_service import LicenseSubscriptionService
+
+        licence = SimpleNamespace(
+            id=77, billing_cycle_start=self.START, billing_cycle_end=self.END
+        )
+        row = SimpleNamespace(
+            id=501,
+            user_id=4821,
+            created_at=self.ANCHOR,
+            **allocation,
+        )
+        with self.assertLogs("billing.license_service", level="ERROR") as logs:
+            # assertLogs needs one record; this one is ours.
+            import logging
+
+            logging.getLogger("billing.license_service").error("sentinel")
+            LicenseSubscriptionService._report_owed_refreshes(
+                licence, [row], self.END + timedelta(minutes=3)
+            )
+        return [r for r in logs.records if r.getMessage() != "sentinel"]
+
+    def test_a_point_of_the_stored_anchor_in_the_last_week_is_reported(self):
+        records = self.report(
+            grant_anchor_at=self.ANCHOR, next_credit_grant_at=self.POINT
+        )
+
+        self.assertEqual(len(records), 1)
+        message = records[0].getMessage()
+        self.assertIn("allocation 501 (user 4821) is owed 1 monthly refresh", message)
+        self.assertIn("License 77", message)
+        self.assertNotIn("@", message)
+
+    def test_a_row_with_no_stored_anchor_is_not_reported_there(self):
+        """A row older than the field: its fallback anchor (created_at
+        here) puts the due time on a point too, but nothing was stored."""
+        records = self.report(grant_anchor_at=None, next_credit_grant_at=self.POINT)
+
+        self.assertEqual(records, [])
+
+    def test_a_stored_anchor_that_is_not_the_one_in_use_does_not_count(self):
+        """The due time is far off the stored anchor's chain (something
+        moved it), so the due time itself becomes the anchor in use: it is
+        then on its own chain, but not on the stored one."""
+        moved = self.END - timedelta(days=3)  # 25 Dec... of another rhythm
+        stale = datetime(2026, 1, 10, 1, 0, tzinfo=UTC)
+        records = self.report(grant_anchor_at=stale, next_credit_grant_at=moved)
+
+        self.assertEqual(records, [])
+
+    def test_the_individual_plan_caller_has_no_stored_anchor_and_says_so(self):
+        """billing/services.py passes the cycle start as the anchor; there
+        is no stored anchor for an individual plan, so it must not claim
+        one."""
+        with open(os.path.join(settings.BASE_DIR, "billing", "services.py")) as fh:
+            tree = ast.parse(fh.read())
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "grants_owed"
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls[0].args), 3)
+        self.assertEqual(calls[0].keywords, [])

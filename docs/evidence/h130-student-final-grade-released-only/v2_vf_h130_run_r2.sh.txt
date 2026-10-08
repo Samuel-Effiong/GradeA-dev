@@ -1,0 +1,42 @@
+#!/bin/bash
+# r2: ONLY mutants V1 and V3 again (both judgements each), no baseline, so that
+# each judgement's raw output is kept in its own file; the first run's
+# runner overwrote two of them. Everything else as in vf_h130_run.sh, whose
+# header follows.
+# v2's one slot for H-130: baseline (d5's two modules, the changed
+# zero-score module and v2's probe), then mutants V1-V3, each judged against
+# d5's tests and then against v2's probe. Rules 12, 13, 16 wrap each step;
+# rule 17 is in the runner (PYTHONDONTWRITEBYTECODE=1, __pycache__ cleared);
+# rule 18: every test run writes straight to a file, stdin from /dev/null.
+# Database tests (APITestCase), --keepdb, database test_vf2_s1. Nothing in
+# it is judged by the clock, so no load condition; the load is recorded.
+# The probe is copied into the scratch checkout for the run and removed at
+# the end; it is the only untracked file allowed.
+# Usage: vf_h130_run.sh <tip-sha8>      (only after the Release Engineer's GRANT)
+set -uo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PROBE=students/tests_vf2_h130_probe.py
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export COMMIT=$TIP MUTANT_LOGS=$H/runs/h130_${TIP}_r2_mutant_logs EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/h130_${TIP}_r2.status
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+[ ! -e $MUTANT_LOGS ] && [ ! -e $H/runs/h130_${TIP}_r2_mutants.log ] || { echo "logs of $TIP exist already"; exit 9; }
+cp $H/tests_vf2_h130_probe.py $WT/$PROBE
+cmp -s $H/tests_vf2_h130_probe.py $WT/$PROBE || { echo "probe copy differs"; exit 9; }
+[ "$(git status --porcelain)" = "?? $PROBE" ] || { echo "unexpected files beside the probe"; rm -f $WT/$PROBE; exit 9; }
+finish() {
+  rm -f $WT/$PROBE
+  rm -rf $WT/students/__pycache__/tests_vf2_h130_probe*
+  if [ -z "$(git -C $WT status --porcelain)" ] && [ "$(git -C $WT rev-parse --short=8 HEAD)" = "$TIP" ]; then say "probe removed; tree is the frozen tip again"; else say "WARNING: tree not the frozen tip at exit"; fi
+}
+trap finish EXIT
+say "mutants start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h130_mutants_r2.py V1_the_rebuild_only_once_there_is_a_grading_time V3_the_assignment_route_rebuilds_only_once_graded > $H/runs/h130_${TIP}_r2_mutants.log 2>&1 < /dev/null || rc=$?
+say "mutants end exit=$rc: loadavg $(cat /proc/loadavg)"
+echo "done: see $ST"

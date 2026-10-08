@@ -1,0 +1,61 @@
+"""H-123: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-05 BEFORE any test run of H-123, by
+reasoning from the code and the tests (a line of why beside each).
+Usage: python expected_kills.py <battery_dir>"""
+import re
+import sys
+from pathlib import Path
+
+X = "test_one_slow_render_does_not_stall_the_others"
+W = "test_a_machine_too_loaded_to_judge_fails_the_stall_test_and_says_why"
+T1 = "test_on_a_quiet_machine_they_are_the_numbers_the_test_always_used"
+T2 = "test_on_a_slower_machine_they_stretch_with_the_baseline"
+T3 = "test_the_load_that_failed_the_fixed_limit_is_judged_fairly"
+T4 = "test_a_pinned_render_is_over_the_limit_whatever_the_machine"
+T5 = "test_the_stretch_has_an_end"
+T6 = "test_too_loaded_is_a_failure_with_its_reason_not_a_pass"
+EXPECTED = {
+    # the stall put back in the renderer, run against ConcurrentRenderingTest:
+    # healthy renders queue behind the hung one at a recycle and take its
+    # whole timeout, so the stall test fails. The other tests of the class
+    # have no hung render: a recycle that waits only makes them a little
+    # slower (test_recycling_... still loses nothing; test_renders_actually_
+    # overlap sets no render bound), so nothing else fails. This is the
+    # prediction I am least sure of: a second failing test here would be a
+    # finding about those tests, to report, not to explain away.
+    "S1": {X},
+    # "too loaded" returns instead of failing: only the wiring test sees it
+    # (the real stall test's own baseline is far under the ceiling)
+    "S2": {W},
+    # (added 2026-10-05 23:58 by the file clock, still before any test run of H-123, after
+    # v2's reading: the stall test now asserts that the hung render ran and
+    # gave up.) The hung render's thread is never started: the healthy
+    # renders finish fast, and only that new assertion fails, in the stall
+    # test. Nothing else calls _time_healthy with a render beside.
+    "S3": {X},
+    # no floor: baseline 0.0 gives (0, 0) not (5, 4) (T1), and a limit that is
+    # not above the baseline (T4)
+    "L1": {T1, T4},
+    # three times: 2.0 gives 6 not 8 (T2); 7.5 gives 22.5 not 30, and 7.6 no
+    # longer raises (T5)
+    "L2": {T2, T5},
+    # no ceiling: 7.6 does not raise (T5)
+    "L3": {T5},
+    # share 1.0: (5, 5) (T1); 8.0 not 6.4 (T2); limit not under the timeout
+    # (T4); (30, 30) (T5)
+    "L4": {T1, T2, T4, T5},
+    # exactly the ceiling raises: 7.5 in T4 and in T5
+    "L5": {T4, T5},
+}
+logs = Path(sys.argv[1]) / "logs"
+bad = 0
+for mutant, expected in EXPECTED.items():
+    text = (logs / f"{mutant}.log").read_text(errors="replace")
+    failed = set(re.findall(r"^(?:FAIL|ERROR): (test_\w+)", text, re.M))
+    extra, missing = failed - expected, expected - failed
+    bad += failed != expected
+    print(f"{mutant}: {len(failed)} failing, {'as expected' if failed == expected else 'DIFFERS'}"
+          + (f"; unexpected: {sorted(extra)}" if extra else "")
+          + (f"; expected but passed: {sorted(missing)}" if missing else ""))
+print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

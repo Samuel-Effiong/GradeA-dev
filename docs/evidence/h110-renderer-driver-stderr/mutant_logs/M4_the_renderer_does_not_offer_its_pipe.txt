@@ -1,0 +1,49 @@
+..FFF....................F.
+======================================================================
+FAIL: test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking)
+Before the fix a SIGKILLed driver left the pipe non-blocking for
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr.py", line 141, in test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking
+    self.assertIs(self.ask_child()["reader_is_reading"], True)
+AssertionError: False is not True
+
+======================================================================
+FAIL: test_playwright_took_our_pipe_and_its_hook_is_put_back (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_playwright_took_our_pipe_and_its_hook_is_put_back)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr.py", line 133, in test_playwright_took_our_pipe_and_its_hook_is_put_back
+    self.assertIs(self.facts["handed_over"], True)
+AssertionError: False is not True
+
+======================================================================
+FAIL: test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr.py", line 126, in test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking
+    self.assertTrue(
+AssertionError: False is not true : the driver was given this process's stderr and made it non-blocking
+
+======================================================================
+FAIL: test_nothing_is_said_when_playwright_takes_the_pipe (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_nothing_is_said_when_playwright_takes_the_pipe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 143, in test_nothing_is_said_when_playwright_takes_the_pipe
+    self.assertEqual(self.errors_of_a_start(), [])
+AssertionError: Lists differ: ["[PDF] Playwright did not take the render[183 chars]de."] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+"[PDF] Playwright did not take the renderer's stderr pipe for its driver, so the driver shares this process's stderr and log lines can be lost while it runs (H-110). Check playwright._impl._transport after a Playwright upgrade."
+
++ []
+- ["[PDF] Playwright did not take the renderer's stderr pipe for its driver, so "
+-  "the driver shares this process's stderr and log lines can be lost while it "
+-  'runs (H-110). Check playwright._impl._transport after a Playwright upgrade.']
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.028s
+
+FAILED (failures=4)
+Found 27 test(s).
+System check identified no issues (0 silenced).

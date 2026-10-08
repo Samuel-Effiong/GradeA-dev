@@ -1,0 +1,15 @@
+"""1a's mutant Y11 for H-98: the last-week point counts only when nothing
+earlier was owed (the new check is skipped once H-81's loop has counted a
+grant). An outage that began months before the end would then be reported
+one refresh short. Not in the author's battery. Expected: killed by the
+author's test_an_outage_that_ran_to_the_end_counts_the_last_point_too and
+by my W1 (the 26th, out from month 9: 3 owed). Applied in place in the
+current directory; restore with git checkout. Run with python -B (rule 17)."""
+
+P = "billing/refresh_timing.py"
+s = open(P, encoding="utf-8").read()
+old = "    if (\n        on_stored_anchor\n        and next_due + OWED_MARGIN <= until\n"
+new = "    if (\n        owed == 0\n        and on_stored_anchor\n        and next_due + OWED_MARGIN <= until\n"
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y11")

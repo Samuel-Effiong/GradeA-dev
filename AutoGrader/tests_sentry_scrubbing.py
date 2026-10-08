@@ -11,8 +11,8 @@ before_breadcrumb (the log lines that led up to an event) and
 before_send_log (the log stream).
 
 The hooks touch text only: the log entry, the exception values, frame
-variables, breadcrumbs and extras. The event's user context and tags are
-left alone (send_default_pii=False already keeps Sentry from adding them).
+variables, breadcrumbs and extras. Since H-167 the event's request, user
+context, tags and contexts pass the same scrub (H-89 had left them alone).
 """
 
 import ast
@@ -159,14 +159,20 @@ class BeforeSendTests(SentryScrubbingTestCase):
         frame = scrubbed["exception"]["values"][0]["stacktrace"]["frames"][0]
         self.assertEqual(frame["vars"], local_variables)
 
-    def test_user_context_tags_and_request_are_left_alone(self):
-        """The SM's ruling: this is about addresses inside text."""
+    def test_user_context_tags_and_request_are_scrubbed_too(self):
+        """H-167 reverses H-89's "left alone" for these parts (Senior
+        Manager, 2026-10-07): they pass the same scrub as the rest. More
+        in tests_sentry_sends_no_variables.py."""
         before = event_for_a_logged_error()
+        self.assertEqual(before["user"]["email"], ADDRESS)
+        self.assertEqual(before["tags"]["owner"], ADDRESS)
 
         event = self.hooks.scrub_event(event_for_a_logged_error(), {})
 
-        for key in ("user", "tags", "request"):
-            self.assertEqual(event[key], before[key])
+        self.assertEqual(event["user"], {"id": "4821", "email": "[email]"})
+        self.assertEqual(event["tags"], {"school": "77", "owner": "[email]"})
+        # Nothing to replace in it: unchanged.
+        self.assertEqual(event["request"], before["request"])
 
     def test_an_event_with_none_of_these_parts_passes_through(self):
         for event in ({}, {"message": "plain"}, {"exception": None, "logentry": None}):

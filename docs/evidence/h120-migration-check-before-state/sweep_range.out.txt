@@ -1,0 +1,40 @@
+107 migration files added against origin/dev
+old rule: {'OK': 83, 'ACK': 11, 'FAIL': 13}
+new rule: {'OK': 92, 'ACK': 3, 'FAIL': 12}
+
+== FAIL under both: 6
+   assignments/0038_assignment_updated_at.py | new: ['AddField without null=True or a default']
+   billing/0011_remove_betaprofile_uuid_betaprofile_uid_and_more.py | new: ["AlterField changing a column's type (CharField to BigAutoField)", 'RemoveField']
+   billing/0013_remove_betaprofile_id_alter_betaprofile_uid.py | new: ['RemoveField']
+   billing/0014_rename_uid_betaprofile_id.py | new: ['RenameField']
+   billing/0016_planfeature_alter_subscriptionplan_options_and_more.py | new: ['AddField without null=True or a default', 'RemoveField']
+   billing/0017_remove_subscriptionplan_overage_credit_price_cents_and_more.py | new: ['RemoveField']
+
+== FAIL old, passes new: 7
+   assignments/0040_db_defaults_for_rollback.py | new: []
+   billing/0009_betaprofile_uuid_and_more.py | new: []
+   billing/0021_alter_creditbucket_bucket_type_and_more.py | new: []
+   billing/0022_usersubscription_is_trial_usersubscription_trial_end_and_more.py | new: []
+   billing/0023_alter_subscriptionplan_name.py | new: []
+   billing/0025_alter_subscriptionplan_name.py | new: []
+   billing/0059_append_only_audit_tables.py | new: []
+
+== passes old, FAIL new: 6
+   billing/0010_alter_betaprofile_id.py | new: ["AlterField changing a column's type (BigAutoField to CharField)"]
+   billing/0031_alter_licensesubscription_custom_price_cents_and_more.py | new: ["AlterField changing a column's type (PositiveSmallIntegerField to PositiveIntegerField)"]
+   billing/0034_alter_licensesubscription_custom_price_cents.py | new: ["AlterField changing a column's type (PositiveIntegerField to DecimalField)"]
+   billing/0036_alter_licensesubscription_contract_months_and_more.py | new: ["AlterField changing a column's type (DecimalField to IntegerField)"]
+   billing/0039_alter_subscriptionplan_overage_block_price.py | new: ["AlterField changing a column's type (DecimalField to IntegerField)"]
+   students/0027_alter_studentsubmission_ai_grading_completed_at.py | new: ["AlterField changing a column's type (DateField to DateTimeField)"]
+
+== marked (ACK) old, additive new: 8
+   billing/0030_alter_subscriptionplan_interval_and_more.py | new: []
+   billing/0048_alter_billingtransaction_transaction_type_and_more.py | new: []
+   billing/0054_stripeevent_attempts_stripeevent_claimed_at_and_more.py | new: []
+   billing/0058_alter_licensebillingrecord_record_type.py | new: []
+   billing/0063_payment_disputes.py | new: []
+   billing/0064_refund_credit_reversal.py | new: []
+   billing/0069_price_sync_audit.py | new: []
+   students/0026_alter_backgroundprocessingtask_task_type.py | new: []
+
+== additive old, marked and reported new: 0

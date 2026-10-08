@@ -1,0 +1,533 @@
+{
+  "V1_the_route_answers_with_the_teachers_serializer_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_failed_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_grading_claim_too_old_to_block_the_upload_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_each_action_builds_the_serializers_named_and_no_other",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_each_action_builds_the_serializers_named_and_no_other",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_failed_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_grading_claim_too_old_to_block_the_upload_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_papers_document_is_the_one_a_submitted_paper_has",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "V2_the_route_gives_the_serializer_no_context": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_gives_every_serializer_the_context"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_gives_every_serializer_the_context"
+    ],
+    "pycache_left": 0
+  },
+  "C01_score": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C02_grading_state": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_failed_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_grading_claim_too_old_to_block_the_upload_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_failed_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_grading_claim_too_old_to_block_the_upload_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C03_scheduled_grading_at": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C04_grading_task_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C05_is_grading_scheduled_says_true": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_a_scheduled_grading_run_is_not_shown",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant"
+    ],
+    "pycache_left": 0
+  },
+  "C06_needs_review": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C07_review_reasons": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C08_formatted_grade": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C09_second_opinion_is_the_saved_feedback": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C10_question_breakdown_is_the_saved_feedback": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C11_score_percentage": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C12_was_regraded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C13_regraded_at": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C14_grade_status_says_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_every_staff_field_is_the_constant",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_every_staff_field_is_the_constant_on_a_later_upload_too",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant"
+    ],
+    "pycache_left": 0
+  },
+  "C15_review_severity": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "C16_review_tier": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "O1_the_maximum_is_the_graders_when_the_row_has_one": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_shows_the_assignments_total_not_the_graders",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_shows_the_assignments_total_not_the_graders",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "O2_the_document_is_the_stored_one": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_papers_document_is_the_one_a_submitted_paper_has",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_papers_document_is_the_one_a_submitted_paper_has",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "O3_no_document_is_sent": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_students_own_facts_keep_their_values",
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_document_is_the_one_the_students_page_shows"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_document_is_the_one_the_students_page_shows",
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_students_own_facts_keep_their_values"
+    ],
+    "pycache_left": 0
+  },
+  "O4_the_maximum_is_the_rows_own_only": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_assignments_total_is_the_maximum_shown",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_shows_the_assignments_total_not_the_graders"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_assignments_total_is_the_maximum_shown",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_shows_the_assignments_total_not_the_graders",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "K1_a_key_is_dropped": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_keys_are_the_thirty_the_route_always_answered_with",
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_students_own_facts_keep_their_values"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_keys_are_the_thirty_the_route_always_answered_with",
+      "students.tests_student_upload_answer.AFirstUploadTest.test_the_students_own_facts_keep_their_values",
+      "students.tests_student_upload_answer.AnUploadOnAPaperNotYetGradedTest.test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant",
+      "students.tests_student_upload_answer.OnlyTheAnswerProtectsTest.test_grading_changes_nothing_in_the_answer_but_the_attempts"
+    ],
+    "pycache_left": 0
+  },
+  "A1_the_upload_serializer_says_staff": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch"
+    ],
+    "pycache_left": 0
+  },
+  "A2_the_list_serializer_says_nothing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_every_serializer_of_a_submission_says_who_it_is_for",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_4_get_serializer_gives_a_student_no_staff_serializer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_every_serializer_of_a_submission_says_who_it_is_for",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_4_get_serializer_gives_a_student_no_staff_serializer"
+    ],
+    "pycache_left": 0
+  },
+  "A3_the_list_serializer_names_a_method_it_has_not": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_a_serializer_for_both_names_where_a_student_is_answered"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_a_serializer_for_both_names_where_a_student_is_answered"
+    ],
+    "pycache_left": 0
+  },
+  "A4_the_teachers_serializer_says_both": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_a_serializer_for_both_names_where_a_student_is_answered"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_a_serializer_for_both_names_where_a_student_is_answered",
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told"
+    ],
+    "pycache_left": 0
+  },
+  "P1_the_edit_is_for_teachers_only": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_who_can_call_each_action_is_as_named"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_who_can_call_each_action_is_as_named"
+    ],
+    "pycache_left": 0
+  },
+  "P2_the_remaining_actions_are_open_to_a_student": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_who_can_call_each_action_is_as_named"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_who_can_call_each_action_is_as_named"
+    ],
+    "pycache_left": 0
+  },
+  "N1_a_new_action_nobody_classified": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_every_action_of_the_view_is_named"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_every_action_of_the_view_is_named"
+    ],
+    "pycache_left": 0
+  },
+  "H1_put_is_routed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_put_is_not_routed"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_put_is_not_routed"
+    ],
+    "pycache_left": 0
+  },
+  "T1_the_teacher_is_shown_the_assignments_total": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 48,
+    "expected": [
+      "students.tests_student_upload_answer.TheTeacherStillReadsEverythingTest.test_the_teachers_page_of_a_graded_paper"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_upload_answer.TheTeacherStillReadsEverythingTest.test_the_teachers_page_of_a_graded_paper"
+    ],
+    "pycache_left": 0
+  }
+}
