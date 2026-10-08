@@ -983,6 +983,12 @@ returns a JWT pair, so the user is signed in straight away.
 
         user = user.first()
 
+        # H-164: a never-verified account with admin power is not activated
+        # or signed in by a code: the wrong-code refusal, the attempt spent,
+        # nothing written.
+        if not user.email_verified_at and _holds_admin_power(user):
+            refuse("Invalid email or token.")
+
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.")
 
@@ -1126,10 +1132,15 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
-            # H-53: a locked address gets no new code (it could not be used
-            # until the lock ends), and the same reply as a send.
-            if not verify_lock_until(user.email):
-                send_user_activation_email(user)
+            # H-164: a never-verified account with admin power gets no
+            # activation code (/auth/verify would make it active and sign it
+            # in): nothing is made or sent, and the reply below is the one an
+            # unknown address gets.
+            if user.email_verified_at or not _holds_admin_power(user):
+                # H-53: a locked address gets no new code (it could not be
+                # used until the lock ends), and the same reply as a send.
+                if not verify_lock_until(user.email):
+                    send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
             # H-164: refused only when the account is also INACTIVE (a

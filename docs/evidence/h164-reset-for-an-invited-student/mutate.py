@@ -69,16 +69,52 @@ RCMD = C + "test_the_reset_refuses_a_command_line_superuser"
 RWORDS = C + "test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
 CVREQ = C + "test_a_verified_super_admin_is_still_sent_a_reset_code"
 CVRESET = C + "test_a_verified_super_admin_can_still_reset"
+# The verify-route tests (second class in the module).
+V = "users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests."
+VQ_STAFF = V + "test_the_code_request_sends_nothing_to_a_never_verified_staff_account"
+VQ_FLAG = V + "test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag"
+VQ_TYPE = V + "test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type"
+VQ_CMD = V + "test_the_code_request_sends_nothing_to_a_command_line_superuser"
+VQW_STAFF = V + "test_that_code_request_answer_for_a_staff_account_is_the_unknown_ones"
+VQW_FLAG = V + "test_that_code_request_answer_for_a_superuser_flag_is_the_unknown_ones"
+VQW_TYPE = (
+    V + "test_that_code_request_answer_for_a_super_admin_type_is_the_unknown_ones"
+)
+VV_STAFF = V + "test_verify_refuses_a_never_verified_staff_account"
+VV_FLAG = V + "test_verify_refuses_a_never_verified_superuser_flag"
+VV_TYPE = V + "test_verify_refuses_a_never_verified_super_admin_type"
+VV_CMD = V + "test_verify_refuses_a_command_line_superuser"
+VVW_STAFF = V + "test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one"
+VVW_FLAG = V + "test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one"
+VVW_TYPE = V + "test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one"
+VV_BUDGET = V + "test_a_refused_verify_spends_the_budget_like_a_wrong_guess"
+VC_ORDINARY = V + "test_an_ordinary_unverified_user_still_activates_end_to_end"
+VC_SCHOOL = V + "test_an_invited_school_admin_still_verifies"
+VC_LICENCE = V + "test_a_licence_invited_teacher_still_verifies_end_to_end"
+VC_VERIFIED_VERIFY = V + "test_a_verified_admin_can_still_verify"
+VQ_ALL = [VQ_STAFF, VQ_FLAG, VQ_TYPE, VQ_CMD]
+VQW_ALL = [VQW_STAFF, VQW_FLAG, VQW_TYPE]
+VV_ALL = [VV_STAFF, VV_FLAG, VV_TYPE, VV_CMD]
+VVW_ALL = [VVW_STAFF, VVW_FLAG, VVW_TYPE]
 # The four reset-step refusal tests of a never-verified account with admin power.
 RPOWER = [RSTAFF, RFLAG, RTYPE, RCMD]
 QPOWER = [QSTAFF, QFLAG, QTYPE, QCMD]
 NEW_TESTS = [T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14]
 NEW_TESTS += [LREQ, LRESET, LREADD] + QPOWER + [QWORDS] + RPOWER + [RWORDS]
+NEW_TESTS += VQ_ALL + VV_ALL + VVW_ALL + [VV_BUDGET]
+# VQW_ALL are green on the old code by design (the old answer is already the same 202):
+# only R25 sees them red.
+NEW_TESTS += VQW_ALL
 
 REFUSE = (
     "            if not user.email_verified_at and (\n"
     "                not user.is_active or _holds_admin_power(user)\n"
     "            ):\n"
+)
+REQV = "            if user.email_verified_at or not _holds_admin_power(user):\n"
+VGUARD = (
+    "        if not user.email_verified_at and _holds_admin_power(user):\n"
+    '            refuse("Invalid email or token.")\n'
 )
 HELPER = "        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN\n"
 GUARD = (
@@ -195,19 +231,19 @@ MUTANTS = {
         VIEWS,
         HELPER,
         HELPER.replace("user.is_staff or ", ""),
-        [QSTAFF, RSTAFF],
+        [QSTAFF, RSTAFF, VQ_STAFF, VV_STAFF, VVW_STAFF],
     ),
     "R15_the_helper_forgets_is_superuser": (
         VIEWS,
         HELPER,
         HELPER.replace("user.is_superuser or ", ""),
-        [QFLAG, RFLAG, QWORDS, RWORDS],
+        [QFLAG, RFLAG, QWORDS, RWORDS, VQ_FLAG, VV_FLAG, VVW_FLAG, VV_BUDGET],
     ),
     "R16_the_helper_forgets_the_super_admin_type": (
         VIEWS,
         HELPER,
         HELPER.replace(" or user.user_type == UserTypes.SUPER_ADMIN", ""),
-        [QTYPE, RTYPE],
+        [QTYPE, RTYPE, VQ_TYPE, VV_TYPE, VVW_TYPE],
     ),
     "R17_the_request_has_no_admin_power_refusal": (
         VIEWS,
@@ -256,6 +292,72 @@ MUTANTS = {
         "        if not user.email_verified_at and _holds_admin_power(user):\n"
         '            raise ParseError("Account is not verified.")\n',
         [RWORDS],
+    ),
+    # The verify route (Senior Manager's ruling 19:14): per place, per marker.
+    "R23_the_code_request_has_no_admin_power_refusal": (
+        VIEWS,
+        REQV,
+        "            if True:\n",
+        VQ_ALL,
+    ),
+    "R24_the_code_request_refuses_every_never_verified_account": (
+        VIEWS,
+        REQV,
+        "            if user.email_verified_at:\n",
+        [VC_ORDINARY, VC_LICENCE],
+    ),
+    "R25_the_code_request_answers_an_admin_with_a_refusal": (
+        VIEWS,
+        REQV,
+        "            if not (user.email_verified_at or not _holds_admin_power(user)):\n"
+        '                raise ParseError("Email not verified.")\n'
+        "            if True:\n",
+        VQW_ALL,
+    ),
+    "R26_verify_has_no_admin_power_refusal": (
+        VIEWS,
+        VGUARD,
+        "",
+        VV_ALL + VVW_ALL + [VV_BUDGET],
+    ),
+    "R27_verify_refuses_every_never_verified_account": (
+        VIEWS,
+        VGUARD,
+        VGUARD.replace(" and _holds_admin_power(user)", ""),
+        [VC_ORDINARY, VC_SCHOOL, VC_LICENCE],
+    ),
+    "R28_verify_refuses_a_verified_admin_too": (
+        VIEWS,
+        VGUARD,
+        VGUARD.replace("not user.email_verified_at and ", ""),
+        [VC_VERIFIED_VERIFY],
+    ),
+    "R29_verify_refuses_an_admin_in_its_own_words": (
+        VIEWS,
+        VGUARD,
+        VGUARD.replace("Invalid email or token.", "Account is not verified."),
+        VVW_ALL,
+    ),
+    "R30_verify_refuses_without_spending_the_attempt": (
+        VIEWS,
+        VGUARD,
+        VGUARD.replace(
+            'refuse("Invalid email or token.")',
+            'raise ParseError("Invalid email or token.")',
+        ),
+        [VV_BUDGET],
+    ),
+    "R31_verify_writes_before_refusing": (
+        VIEWS,
+        VGUARD,
+        VGUARD.replace(
+            "            refuse",
+            "            user.email_verified_at = timezone.now()\n"
+            "            user.is_active = True\n"
+            "            user.save()\n"
+            "            refuse",
+        ),
+        VV_ALL,
     ),
 }
 
