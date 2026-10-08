@@ -35,3 +35,9 @@ For each of the 15 files both sides changed besides the conflict ones, every non
 ## Not done in this document
 
 The gate (makemigrations, the four named modules, the guards from both sides, the one full run) and Verifier 2's verification are recorded in their own files in this folder when they exist.
+
+## What the quick module gate found on the merge commit `79ab843c` (2026-10-08 12:12 to 12:13 WAT), and the two follow-up changes
+
+Ran 316 tests, FAILED (failures=2, errors=15); every other module green (the four named modules of requirement 2 among them). Both causes are interactions that neither line could show alone; no production code changes.
+1. **Beta's H-165 tests meet the epic's rubric gate (16 results in `students.tests_answers_unreadable`).** The epic refuses to grade an assignment with no marking guide (F5, `students/grading_gates.py`: 409 `RubricMissingError`, before the claim, in the grade route and in `grade_engine`). The H-165 fixtures build an assignment with no questions at all, so on the merged line `grade_engine` stops at the rubric gate (409) before reaching H-165's unreadable-answers check (400). The order of the two refusals stays as resolved in conflict 6 (rubric first, then the unreadable answers: both before the claim and before any paid call). The change is in the TEST fixture: `AffectedRowCase.setUp` gives the base's assignment one question with a marking guide (`paper.essay(1)`); nothing else about the tests changes.
+2. **Beta's feedback guard meets the epic's audit function (1 result, `AutoGrader.tests_student_feedback_guard`, rule 1).** `students/services.py: emit_grading_completed` (slice C) reads the saved feedback column raw, for the model name of the audit event, and the guard (batch 10) insists that every raw reader be named. The function is named in `RAW_FEEDBACK_READERS` with who it serves (staff audit event; returns nothing to anyone). It reads one key, `grading_model`, and the event is not a student's.

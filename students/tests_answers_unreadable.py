@@ -219,6 +219,13 @@ class AffectedRowCase(AnswerDocumentBase):
 
     def setUp(self):
         super().setUp()
+        # Merge-down b12b: on the Phase 2 line a paper with no marking guide
+        # is refused (409) before anything else (F5, students/grading_gates),
+        # so a fixture assignment that is to reach the answers check needs
+        # one. The base's assignment has no questions at all.
+        Assignment.objects.filter(pk=self.assignment.pk).update(
+            questions=[paper.essay(1)]
+        )
         self.ordinary_document = self.stored()
         StudentSubmission.objects.filter(pk=self.submission.pk).update(
             answers=self.answers
