@@ -196,11 +196,14 @@ class ACallWithNoScopeFailsLoudlyTest(SimpleTestCase):
         # Grading travels by an explicit `run=` (BE-I-04's GradingRun).
         self.assertNotIn("grade_assignment", STEP_TASK_TYPES)
 
-    def test_in_slice_0_nothing_is_enforced_yet(self):
-        # Slice 0 changes no behaviour: a later slice switches a task type
-        # on, in its own tests-first commit, once every caller of that task
-        # type opens the scope.
-        self.assertEqual(ENFORCED_STEP_TASK_TYPES, frozenset())
-        for task_type in sorted(STEP_TASK_TYPES):
+    def test_in_slice_2_only_the_reading_is_enforced(self):
+        # Slice 0 enforced nothing. Slice 2 switches on extract_answer, in
+        # the commit that makes every caller of it open the scope (slice 3
+        # adds formatted_grade, slice 1 the two assignment steps; at slice 1
+        # a test pins the set equal to STEP_TASK_TYPES).
+        self.assertEqual(ENFORCED_STEP_TASK_TYPES, frozenset({"extract_answer"}))
+        for task_type in sorted(STEP_TASK_TYPES - ENFORCED_STEP_TASK_TYPES):
             with self.subTest(task_type=task_type):
                 self.assertIsNone(require_step_scope(task_type))
+        with self.assertRaises(StepScopeMissingError):
+            require_step_scope("extract_answer")
