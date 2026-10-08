@@ -192,6 +192,11 @@ def _model_name(value):
     return value[:255] if isinstance(value, str) and value else None
 
 
+def _provider_name(value):
+    """The upstream provider's name as the reply gave it, capped; None for anything but a non-empty string."""
+    return value[:100] if isinstance(value, str) and value.strip() else None
+
+
 def usage_numbers(response):
     """What the reply carries, as plain values; anything absent, odd or
     out of range is None. Reads attributes only."""
@@ -219,6 +224,7 @@ def usage_numbers(response):
         "cost_usd": _cost(getattr(usage, "cost", None)),
         "finish_reason": finish,
         "model_answered": _model_name(getattr(response, "model", None)),
+        "upstream_provider": _provider_name(getattr(response, "provider", None)),
     }
 
 

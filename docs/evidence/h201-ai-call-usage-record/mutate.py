@@ -233,6 +233,35 @@ MUTANTS = [
         K,
     ),
     (
+        "Q21",
+        "the upstream provider is not read from the reply",
+        CR,
+        '        "upstream_provider": _provider_name(getattr(response, "provider", None)),\n',
+        '        "upstream_provider": None,\n',
+        BOTH,
+        K,
+    ),
+    (
+        "Q22",
+        "the upstream provider is not capped at 100 characters",
+        CR,
+        "    return value[:100] if isinstance(value, str) and value.strip() else None\n",
+        "    return value if isinstance(value, str) and value.strip() else None\n",
+        BOTH,
+        K,
+    ),
+    (
+        "M3",
+        "the upstream provider column is dropped from the model",
+        MD,
+        "    upstream_provider = models.CharField(\n        max_length=100,\n        null=True,\n        blank=True,\n        help_text=(\n"
+        '            "The upstream provider that served the call, as the reply named it "\n'
+        '            "(read from the reply only; NULL when it names none)."\n        ),\n    )\n',
+        "",
+        BOTH,
+        K,
+    ),
+    (
         "H1",
         "the estimate note is missing",
         SV,
@@ -387,6 +416,18 @@ EXPECTED = {
         "test_each_site_is_marked_exactly_when_its_task_type_proves_a_kind",
         "test_a_kind_is_given_only_to_a_task_type_every_site_of_which_agrees",
         "test_the_kind_is_set_only_where_the_task_type_proves_it",
+    ],
+    "Q21": [
+        "test_a_charged_call_leaves_one_row_with_what_was_known",
+        "test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else",
+    ],
+    "Q22": ["test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else"],
+    # M3: the model loses the field; the recorder still passes it, the insert fails and is swallowed: no row is written.
+    "M3": [
+        "test_the_columns_are_exactly_these_by_name_and_type",
+        "test_the_upstream_provider_column_is_short_nullable_text",
+        "test_a_charged_call_leaves_one_row_with_what_was_known",
+        "test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else",
     ],
     "H1": _STATIC_HOOKS
     + [

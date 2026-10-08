@@ -149,6 +149,15 @@ class Migration(migrations.Migration):
                     models.CharField(blank=True, max_length=255, null=True),
                 ),
                 (
+                    "upstream_provider",
+                    models.CharField(
+                        blank=True,
+                        help_text="The upstream provider that served the call, as the reply named it (read from the reply only; NULL when it names none).",
+                        max_length=100,
+                        null=True,
+                    ),
+                ),
+                (
                     "finish_reason",
                     models.CharField(
                         blank=True,

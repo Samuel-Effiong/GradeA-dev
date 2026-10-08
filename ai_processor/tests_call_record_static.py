@@ -40,6 +40,7 @@ COLUMNS = {
     "error_class": "CharField",
     "model_asked": "CharField",
     "model_answered": "CharField",
+    "upstream_provider": "CharField",
     "finish_reason": "CharField",
     "prompt_version": "CharField",
     "estimate": "PositiveBigIntegerField",
@@ -61,7 +62,13 @@ COLUMNS = {
 }
 #: CharFields that are not a closed set: the provider's names, the billing id
 #: (a uuid text) and the prompt version word.
-OPEN_TEXT = {"model_asked", "model_answered", "task_id", "prompt_version"}
+OPEN_TEXT = {
+    "model_asked",
+    "model_answered",
+    "upstream_provider",
+    "task_id",
+    "prompt_version",
+}
 
 #: Every execute_graded_task call site in ai_processor/services.py, by the
 #: function it is in and its task type; True when the task type proves a kind.
@@ -126,6 +133,14 @@ class TheColumns(SimpleTestCase):
             if isinstance(field, models.CharField):
                 with self.subTest(field=field.name):
                     self.assertLessEqual(field.max_length or 0, 255)
+
+    def test_the_upstream_provider_column_is_short_nullable_text(self):
+        """The provider's name as the reply gave it: not content, so it may be text, but short and NULL when absent."""
+        field = AICallRecord._meta.get_field("upstream_provider")
+        self.assertIsInstance(field, models.CharField)
+        self.assertEqual(field.max_length, 100)
+        self.assertTrue(field.null)
+        self.assertFalse(field.choices)
 
     def test_the_prompt_version_column_is_there_unfilled_with_both_defaults(self):
         field = AICallRecord._meta.get_field("prompt_version")

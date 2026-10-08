@@ -71,6 +71,7 @@ def reply(
     cached=250,
     cost=0.0123,
     finish="stop",
+    provider="StreamLake",
 ):
     """A provider reply with the fields execute_graded_task and the record
     read. `None` for a field leaves it off."""
@@ -96,6 +97,8 @@ def reply(
     }
     if model is not None:
         fields["model"] = model
+    if provider is not None:
+        fields["provider"] = provider
     return SimpleNamespace(**fields)
 
 
@@ -147,6 +150,7 @@ class TheRowOfACharge(Base):
         self.assertEqual(float(row.cost_usd), 0.0123)
         self.assertEqual(row.finish_reason, "stop")
         self.assertEqual(row.model_answered, "answer/model")
+        self.assertEqual(row.upstream_provider, "StreamLake")
         self.assertEqual(row.model_asked, MAIN_MODEL)
         self.assertEqual(row.billed_user_id, self.teacher.id)
         self.assertEqual(row.charged_credits, 500)
@@ -181,11 +185,13 @@ class TheRowOfACharge(Base):
             cached=None,
             cost=None,
             finish=None,
+            provider=None,
         )
         self.run_call()
         row = self.only_row()
         self.assertEqual(row.outcome, CallOutcome.CHARGED)
         self.assertIsNone(row.model_answered)
+        self.assertIsNone(row.upstream_provider)
         self.assertIsNone(row.prompt_tokens)
         self.assertIsNone(row.completion_tokens)
         self.assertIsNone(row.reasoning_tokens)
@@ -221,6 +227,36 @@ class TheRowOfACharge(Base):
                     self.assertIsNone(row.cost_usd)
                 if "finish" in change:
                     self.assertIn(row.finish_reason, ("other", None))
+
+    @patch.object(AIProcessor, AI_MODEL)
+    def test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else(
+        self, ai_model
+    ):
+        """Read from the reply only (no extra request): a name is kept as given
+        and capped at 100 characters; anything that is not a non-empty string
+        is NULL."""
+        cases = {
+            "StreamLake": "StreamLake",
+            "Relace": "Relace",
+            "x" * 300: "x" * 100,
+            "": None,
+            "   ": None,
+            123: None,
+            ("tuple",): None,
+        }
+        for given, expected in cases.items():
+            with self.subTest(given=repr(given)[:30]):
+                AICallRecord.objects.all().delete()
+                ai_model.return_value = reply(provider=given)
+                self.run_call()
+                self.assertEqual(self.only_row().upstream_provider, expected)
+
+    @patch.object(AIProcessor, AI_MODEL)
+    def test_a_call_that_raised_has_no_upstream_provider(self, ai_model):
+        ai_model.side_effect = TimeoutError("provider down")
+        with self.assertRaises(TimeoutError):
+            self.run_call()
+        self.assertIsNone(self.only_row().upstream_provider)
 
     @patch.object(AIProcessor, AI_MODEL)
     def test_a_reply_with_no_usage_object_at_all_still_leaves_a_row(self, ai_model):

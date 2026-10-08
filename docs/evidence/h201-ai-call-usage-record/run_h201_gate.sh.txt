@@ -6,7 +6,7 @@
 #    (call_record.py and the migration taken away, models.py/services.py/settings.py taken back; own DB);
 # 1a makemigrations --check; 1b the seam: execute_graded_task differs from the base ONLY by the five hook lines, and
 #    neither call to __ai_model changed (by program); 1 the two modules + near modules (billing, refunds, upload
-#    routes, super admin) + guards incl. the cache test; 2 the 27 mutants (rule 17; own DB).
+#    routes, super admin) + guards incl. the cache test; 2 the 30 mutants (rule 17; own DB).
 # The regression is 0b's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
@@ -107,7 +107,7 @@ echo "=== 1. own modules + near modules + guards at $(git rev-parse --short=8 HE
 eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
-echo "=== 2. mutants: 27 (own DB, rules 17 and 18) $(date +%T)"
+echo "=== 2. mutants: 30 (own DB, rules 17 and 18) $(date +%T)"
 eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 5400 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
 echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
 git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"

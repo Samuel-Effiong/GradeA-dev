@@ -288,6 +288,15 @@ class AICallRecord(models.Model):
     )
     model_asked = models.CharField(max_length=255, blank=True, default="")
     model_answered = models.CharField(max_length=255, null=True, blank=True)
+    upstream_provider = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=(
+            "The upstream provider that served the call, as the reply named it "
+            "(read from the reply only; NULL when it names none)."
+        ),
+    )
     finish_reason = models.CharField(
         max_length=16, choices=CallFinishReason.choices, null=True, blank=True
     )
