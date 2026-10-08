@@ -1,4 +1,6 @@
-# AUDIT-NULL-SCHOOL (a): a School Admin with no school is shown an empty activity log
+# H-192 (AUDIT-NULL-SCHOOL (a)): a School Admin with no school is shown an empty activity log
+
+(Row numbers from the Release Engineer, 2026-10-08: H-192 this row, on the next-stage line; H-193 the rule "a SCHOOL_ADMIN must have a school", a beta row; H-194 AUDIT-ANON-FLOOD.)
 
 Branch `task/audit-null-school-empty`, base phase2/epic-a 75d826202249 (next-stage line, local; not pushed). Written by ed (Security Engineer), 2026-10-08. Severity MEDIUM (Senior Manager; low likelihood, cross-tenant privacy).
 **Nothing has been run on this branch yet.** Marks: READ = read in the code; NOT RUN = reasoning.
