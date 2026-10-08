@@ -79,6 +79,7 @@ from django.utils import timezone
 from AutoGrader.testing.concurrency import run_concurrently
 from billing.immutable import allow_unsafe_mutation
 from billing.license_service import LicenseSubscriptionService
+from billing.locks import lock_wallet_first
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -185,9 +186,19 @@ class RaceTestCase(TransactionTestCase):
 
     # -- the race ---------------------------------------------------------
 
-    def race(self, under_test):
+    def race(self, under_test, *, before_wallet_lock_in=None):
         """Run `under_test()` in worker 0 and a charge in worker 1, forced
-        to meet. Returns `(results, errors, hook_calls)`."""
+        to meet. Returns `(results, errors, hook_calls)`.
+
+        By default worker 0 stops at its first ledger row, which each function
+        writes after its first bucket lock: the test then shows that the
+        wallet was locked before THAT POINT. With `before_wallet_lock_in` (a
+        dotted name such as "billing.services.lock_wallet_first") worker 0
+        stops at the entry of the wallet-lock helper instead, so that a call
+        placed AFTER the bucket lock is caught: there worker 0 holds the
+        bucket while it waits, the charge takes the wallet and waits for that
+        bucket, and the helper's own lock then deadlocks (an order test).
+        """
         self.assertTrue(
             self.charge_target_exists(), "fixture: nothing for the charge to draw on"
         )
@@ -195,17 +206,24 @@ class RaceTestCase(TransactionTestCase):
         a_started = threading.Event()
         hook_calls: list[str] = []
         real_record = CreditLedger.record
+        real_lock = lock_wallet_first
 
-        def paused_record(*args, **kwargs):
-            # Worker 0 only, and only the first call: the first ledger row
-            # is written after the function's first bucket lock.
+        def pause_worker_0():
+            # Worker 0 only, and only the first time.
             if threading.current_thread().name.endswith("-0") and not hook_calls:
                 hook_calls.append("paused")
                 b_holds_bucket.set()
                 if not a_started.wait(timeout=MARK_TIMEOUT):
                     raise AssertionError("the charge never started")
                 time.sleep(PAUSE)
+
+        def paused_record(*args, **kwargs):
+            pause_worker_0()
             return real_record(*args, **kwargs)
+
+        def paused_lock(wallet):
+            pause_worker_0()
+            return real_lock(wallet)
 
         def work(i):
             with transaction.atomic():
@@ -215,8 +233,9 @@ class RaceTestCase(TransactionTestCase):
                     return under_test()
                 if not b_holds_bucket.wait(timeout=MARK_TIMEOUT):
                     raise AssertionError(
-                        "the function never reached the ledger hook: it did "
-                        "not lock a bucket and write a ledger row"
+                        "the function never reached its hook: it did not "
+                        "lock a bucket and write a ledger row (or, in an "
+                        "order test, never called the wallet-lock helper)"
                     )
                 a_started.set()
                 try:
@@ -227,7 +246,11 @@ class RaceTestCase(TransactionTestCase):
                     return "refused"
                 return "charged"
 
-        with patch.object(CreditLedger, "record", paused_record):
+        if before_wallet_lock_in is None:
+            hook = patch.object(CreditLedger, "record", paused_record)
+        else:
+            hook = patch(before_wallet_lock_in, paused_lock, create=True)
+        with hook:
             results, errors = run_concurrently(
                 work, 2, test=self, name="lockfirst", join_timeout=90
             )
@@ -332,6 +355,21 @@ class WalletLockFirstTests(RaceTestCase):
 
         results, errors, hook_calls = self.race(
             lambda: SubscriptionService.process_rollover_and_renewal(sub)
+        )
+
+        self.assertNoDeadlock(errors, hook_calls)
+        self.assertIsNotNone(results[0], "the renewal returned nothing")
+
+    def test_process_rollover_and_renewal_locks_the_wallet_before_the_bucket(self):
+        """The ORDER, not only the presence: worker 0 stops at the entry of the
+        wallet-lock helper. A call placed after the bucket query leaves worker
+        0 holding the bucket there, and the charge deadlocks it."""
+        plan = make_individual_plan()
+        sub = SubscriptionService.activate_subscription(self.user, plan)
+
+        results, errors, hook_calls = self.race(
+            lambda: SubscriptionService.process_rollover_and_renewal(sub),
+            before_wallet_lock_in="billing.services.lock_wallet_first",
         )
 
         self.assertNoDeadlock(errors, hook_calls)
@@ -471,4 +509,30 @@ class LicenceWalletLockFirstTests(RaceTestCase):
         self.assertNoDeadlock(errors, hook_calls)
         self.assertEqual(
             self.new_monthly_buckets().count(), 1, "the teacher was not refreshed"
+        )
+
+    def test_the_licence_rollover_helper_locks_the_wallet_before_the_bucket(self):
+        """The ORDER inside the shared helper, called directly (its callers
+        hold the licence row, which a charge also writes, and that other
+        cycle is H-182's, not this row's)."""
+        licence, _ = self.make_licence(cycle_ended=False)
+
+        results, errors, hook_calls = self.race(
+            lambda: LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+                teacher=self.user,
+                wallet=self.wallet,
+                plan=self.plan,
+                grant_amount=12_000_000,
+                new_expiry=timezone.now() + timedelta(days=30),
+                now=timezone.now(),
+                reference="lock-order test",
+                metadata={"license_id": str(licence.id)},
+            ),
+            before_wallet_lock_in="billing.license_service.lock_wallet_first",
+        )
+
+        self.assertNoDeadlock(errors, hook_calls)
+        self.assertIsNotNone(results[0], "the helper returned nothing")
+        self.assertEqual(
+            self.new_monthly_buckets().count(), 1, "the new bucket was not granted"
         )

@@ -49,7 +49,16 @@ T_PAID = W + "test_finalize_trial_to_paid_conversion"
 T_RENEW = L + "test_process_license_renewal"
 T_OFFLINE = L + "test_process_offline_renewal"
 T_REFRESH = L + "test_refresh_teacher_credits"
-NEW_TESTS = [
+T_ROLL_ORDER = (
+    W + "test_process_rollover_and_renewal_locks_the_wallet_before_the_bucket"
+)
+T_HELPER_ORDER = (
+    L + "test_the_licence_rollover_helper_locks_the_wallet_before_the_bucket"
+)
+# The nine tests that stop worker 0 at its first ledger row (presence of the wallet
+# lock before that point), and the two order tests that stop it at the entry of the
+# wallet-lock helper (a call placed AFTER the bucket lock).
+PRESENCE_TESTS = [
     T_ACTIVATE,
     T_CHANGE,
     T_MID,
@@ -60,6 +69,7 @@ NEW_TESTS = [
     T_OFFLINE,
     T_REFRESH,
 ]
+NEW_TESTS = [*PRESENCE_TESTS, T_ROLL_ORDER, T_HELPER_ORDER]
 
 CALL = (
     "        # H-181: the wallet lock before any bucket lock, the order\n"
@@ -96,7 +106,7 @@ MUTANTS = {
     "M4_process_rollover_and_renewal_no_wallet_first": (
         SERVICES,
         *removed("        old_monthly_bucket = (\n"),
-        [T_ROLL],
+        [T_ROLL, T_ROLL_ORDER],
     ),
     "M5_finalize_trial_conversion_via_stripe_no_wallet_first": (
         SERVICES,
@@ -112,13 +122,13 @@ MUTANTS = {
         LICENCE,
         "        wallet = lock_wallet_first(wallet)\n        current_bucket = (\n",
         "        current_bucket = (\n",
-        [T_RENEW, T_OFFLINE, T_REFRESH],
+        [T_RENEW, T_OFFLINE, T_REFRESH, T_HELPER_ORDER],
     ),
     "M8_the_helper_locks_nothing": (
         LOCKS,
         "    return CreditWallet.objects.select_for_update().get(pk=wallet.pk)\n",
         "    return wallet\n",
-        NEW_TESTS,
+        PRESENCE_TESTS,
     ),
     "M9_licence_rollover_helper_wallet_after_bucket": (
         LICENCE,
@@ -136,7 +146,7 @@ MUTANTS = {
         "            .first()\n"
         "        )\n"
         "        wallet = lock_wallet_first(wallet)\n",
-        [T_RENEW, T_OFFLINE, T_REFRESH],
+        [T_HELPER_ORDER],
     ),
     "M10_process_rollover_and_renewal_wallet_after_bucket": (
         SERVICES,
@@ -152,7 +162,7 @@ MUTANTS = {
         '            .order_by("-created_at")\n'
         "            .first()\n"
         "        )\n" + CALL,
-        [T_ROLL],
+        [T_ROLL_ORDER],
     ),
 }
 
