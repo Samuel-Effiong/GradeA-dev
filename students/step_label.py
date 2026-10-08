@@ -41,3 +41,20 @@ FIXED_MODEL_WORDS = frozenset({UNLABELLED, MODEL_UNKNOWN, NOT_RUN})
 RECHECK_RESULTS = (NOT_RUN, FAILED, CONFIRMED_BLANK, FOUND_WRITING)
 #: `Assignment.content_source` (besides UNLABELLED).
 SOURCES = (SOURCE_EXTRACTED, SOURCE_GENERATED)
+
+
+def pair_is_allowed(result, model):
+    """Whether (re-check result, re-check model) is a pair the design allows.
+
+    "unlabelled" and "not_run" stand in the model column only beside the same
+    word in the result column, and the result column holds one of the five
+    result words. Held a second time by the check constraint on the two
+    columns (students/0033); a test compares the two on every combination of
+    words.
+    """
+    if result not in (UNLABELLED, *RECHECK_RESULTS):
+        return False
+    stand_ins = (UNLABELLED, NOT_RUN)
+    if result in stand_ins or model in stand_ins:
+        return result == model
+    return True

@@ -59,8 +59,9 @@ STEP_TASK_TYPES = frozenset(
 )
 #: The task types for which a missing scope is an error. Empty in slice 0
 #: (no behaviour changes); each later slice adds its own, in the commit that
-#: makes every caller of that task type open the scope.
-ENFORCED_STEP_TASK_TYPES = frozenset()
+#: makes every caller of that task type open the scope. Slice 2: the reading
+#: of a student's answers.
+ENFORCED_STEP_TASK_TYPES = frozenset({"extract_answer"})
 
 _CURRENT: contextvars.ContextVar["StepRun | None"] = contextvars.ContextVar(
     "ai_step_run", default=None
@@ -114,6 +115,13 @@ class StepRun:
         self._votes = {}
         self._prompts = {}
         self._kept = False
+        self.call_left = False
+        self.reply_received = False
+        self.reply_model = None
+
+    def begin_call(self):
+        """Forget the facts of the last provider call (not the kept replies),
+        so the facts read after a call are that call's."""
         self.call_left = False
         self.reply_received = False
         self.reply_model = None

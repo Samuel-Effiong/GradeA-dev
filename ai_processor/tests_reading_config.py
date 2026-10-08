@@ -247,7 +247,7 @@ class OneReadingPerExtractionTest(SimpleTestCase):
         )
         run = ReadingRun()
         with patch.object(services.ai_processor, "client", client):
-            result = services.ai_processor.extract_answer_with_retry(  # type: ignore[call-arg]
+            result = services.ai_processor.extract_answer_with_retry(
                 SUPER,
                 [{"type": "text", "text": "paper"}, IMAGE],
                 "ctx",

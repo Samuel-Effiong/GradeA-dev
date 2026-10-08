@@ -128,7 +128,7 @@ class TheRecheckPairTest(SimpleTestCase):
                 left=left, replied=replied, name=name, used=used, found=found
             ):
                 pair = run.recheck_pair()
-                self.assertTrue(step_label.pair_is_allowed(*pair), pair)  # type: ignore[attr-defined]
+                self.assertTrue(step_label.pair_is_allowed(*pair), pair)
 
     def test_the_two_stand_in_words_never_appear_beside_a_different_word(self):
         for left, replied, name in itertools.product(
@@ -160,7 +160,7 @@ class TheAllowedTableTest(SimpleTestCase):
             ("found_writing", "unknown"),
         ):
             with self.subTest(pair=pair):
-                self.assertTrue(step_label.pair_is_allowed(*pair))  # type: ignore[attr-defined]
+                self.assertTrue(step_label.pair_is_allowed(*pair))
 
     def test_a_stand_in_word_beside_any_other_word_is_refused(self):
         for pair in (
@@ -178,11 +178,11 @@ class TheAllowedTableTest(SimpleTestCase):
             ("found_writing", "unlabelled"),
         ):
             with self.subTest(pair=pair):
-                self.assertFalse(step_label.pair_is_allowed(*pair))  # type: ignore[attr-defined]
+                self.assertFalse(step_label.pair_is_allowed(*pair))
 
     def test_a_result_word_that_does_not_exist_is_refused(self):
-        self.assertFalse(step_label.pair_is_allowed("maybe", "some/model"))  # type: ignore[attr-defined]
-        self.assertFalse(step_label.pair_is_allowed("", ""))  # type: ignore[attr-defined]
+        self.assertFalse(step_label.pair_is_allowed("maybe", "some/model"))
+        self.assertFalse(step_label.pair_is_allowed("", ""))
 
 
 class TheVoteTest(SimpleTestCase):

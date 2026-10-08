@@ -70,11 +70,14 @@ from .objective_grading import (
     build_objective_evaluation,
     match_objective_answer,
 )
+from .reading_config import ReadingConfig
+from .reading_run import ReadingRun
 from .second_opinion import (
     compare_evaluations,
     pick_second_model,
     select_second_opinion_targets,
 )
+from .step_run import require_step_scope
 from .tools import safe_sort_key
 
 env = Env()
@@ -830,6 +833,9 @@ class AIProcessor:
         NFR-OBS-04). Every call carries the server trace id as X-Request-ID
         and writes one log line: trace id, model, prompt version, task type,
         attempt, latency and outcome - never prompt or answer text."""
+        # A call for a task type that needs a step run, made with none open,
+        # fails here, before anything leaves (ai_processor/step_run.py).
+        step_run = require_step_scope(task_type)
         main_model = override_model or MAIN_MODEL
         if sub_models is None:
             sub_models = DEFAULT_FALLBACK_MODELS
@@ -871,7 +877,15 @@ class AIProcessor:
         outcome = "ok"
         served_model = main_model
         try:
+            # The two facts are recorded here, at the one place the call
+            # leaves: "left" immediately before it, "reply received" with the
+            # name the reply carries immediately after it returns. Never
+            # inferred from the kind of exception that comes later.
+            if step_run is not None:
+                step_run.mark_call_left()
             response = self.client.chat.completions.create(**request)
+            if step_run is not None:
+                step_run.mark_reply_received(getattr(response, "model", None))
             served_model = getattr(response, "model", None) or main_model
             return response
         except Exception as exc:
@@ -1636,6 +1650,8 @@ Do not include any explanatory text before or after the JSON
         assignment: str,
         assignment_model=None,
         processing_task_id=None,
+        reading_run=None,
+        config=None,
     ) -> dict:
         """
         Chunked answer extraction pipeline for multi-page student submissions.
@@ -1667,6 +1683,11 @@ Do not include any explanatory text before or after the JSON
 
         system_prompt = ANSWERS_EXTRACTION_PROMPT
         total_pages = len(image_contents)
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
 
         # Build slimmed question context once - reused for every chunk
         slim_context = self._slim_assignment_context(assignment)
@@ -1767,29 +1788,35 @@ Do not include any explanatory text before or after the JSON
 
             last_chunk_error: Optional[Exception] = None
             chunk_result = None
+            chunk_model = None
 
             for attempt in range(3):
                 ensure_task_not_cancelled(processing_task_id)
                 try:
-                    response = self.execute_graded_task(
-                        prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
-                        user=user,
-                        feature="Answer Extraction",
-                        task_type="extract_answer",
-                        messages=messages,
-                        assignment=assignment_model,
-                        processing_task_id=processing_task_id,
-                        # The SAME contract the single-call path uses. Without
-                        # it the model is not required to emit answer_status,
-                        # _stamp_answer_provenance falls back to
-                        # infer_answer_status(), and that returns BLANK and
-                        # never NOT_FOUND_IN_DOCUMENT - so an answer this
-                        # pipeline LOST becomes a legitimate-looking zero that
-                        # no human is ever shown. Chunking starts at
-                        # ANSWERS_EXTRACTION_PAGES_PER_CHUNK pages, i.e. on
-                        # exactly the multi-page handwritten submissions where
-                        # a dropped answer is most likely.
-                        response_schema=self._answer_extraction_schema(),
+                    with run.reading.scope():
+                        run.reading.begin_call()
+                        response = self.execute_graded_task(
+                            prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
+                            user=user,
+                            feature="Answer Extraction",
+                            task_type="extract_answer",
+                            messages=messages,
+                            assignment=assignment_model,
+                            processing_task_id=processing_task_id,
+                            # The SAME contract the single-call path uses. Without
+                            # it the model is not required to emit answer_status,
+                            # _stamp_answer_provenance falls back to
+                            # infer_answer_status(), and that returns BLANK and
+                            # never NOT_FOUND_IN_DOCUMENT - so an answer this
+                            # pipeline LOST becomes a legitimate-looking zero that
+                            # no human is ever shown. Chunking starts at
+                            # ANSWERS_EXTRACTION_PAGES_PER_CHUNK pages, i.e. on
+                            # exactly the multi-page handwritten submissions where
+                            # a dropped answer is most likely.
+                            response_schema=self._answer_extraction_schema(config),
+                        )
+                    chunk_model = (
+                        run.reading.reply_model if run.reading.reply_received else None
                     )
 
                     raw = response.choices[0].message.content
@@ -1861,6 +1888,7 @@ Do not include any explanatory text before or after the JSON
                 if q_num not in found_answers:
                     found_answers[q_num] = answer
                     found_origins[q_num] = origin
+                    run.keep_answers([answer], chunk_model)
                     continue
 
                 existing = found_answers[q_num]
@@ -1875,8 +1903,17 @@ Do not include any explanatory text before or after the JSON
                         kept.get("answer_status"),
                         chunk_index + 1,
                     )
+                    if kept is answer:
+                        # This part's answer won the question.
+                        run.keep_answers([answer], chunk_model)
+                    else:
+                        # Joined from both parts: counts for each part's model.
+                        run.add_origin(kept, chunk_model)
                 found_answers[q_num] = kept
                 found_origins[q_num] = kept_origin
+
+            # The part's reply was read and its answers merged: now it counts.
+            run.keep_reply(chunk_model, ANSWERS_EXTRACTION_PROMPT.version)
 
             chunk_feedback = chunk_result.get("feedback", "")
             if chunk_feedback:
@@ -1932,8 +1969,15 @@ Do not include any explanatory text before or after the JSON
         assignment,
         assignment_model=None,
         processing_task_id=None,
+        reading_run=None,
+        config=None,
     ):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
 
         is_large_submission = (
             isinstance(content, list)
@@ -1967,6 +2011,8 @@ Do not include any explanatory text before or after the JSON
                 assignment=assignment,
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
+                reading_run=run,
+                config=config,
             )
 
         # Get all the student in this assignment course
@@ -1998,15 +2044,20 @@ Do not include any explanatory text before or after the JSON
 
         try:
             ensure_task_not_cancelled(processing_task_id)
-            response = self.execute_graded_task(
-                prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
-                user=user,
-                feature="Answer Extraction",
-                task_type="extract_answer",
-                messages=messages,
-                assignment=assignment_model,
-                processing_task_id=processing_task_id,
-                response_schema=self._answer_extraction_schema(),
+            with run.reading.scope():
+                run.reading.begin_call()
+                response = self.execute_graded_task(
+                    prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
+                    user=user,
+                    feature="Answer Extraction",
+                    task_type="extract_answer",
+                    messages=messages,
+                    assignment=assignment_model,
+                    processing_task_id=processing_task_id,
+                    response_schema=self._answer_extraction_schema(config),
+                )
+            reply_model = (
+                run.reading.reply_model if run.reading.reply_received else None
             )
 
             content = response.choices[0].message.content
@@ -2030,10 +2081,15 @@ Do not include any explanatory text before or after the JSON
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {str(e)}")
             raise Exception(f"Error decoding JSON: {str(e)}") from e
+        # The reply was read: now it counts, and so do the answers it supplied
+        # (the link lives in the run, never inside the answers).
+        run.keep_reply(reply_model, ANSWERS_EXTRACTION_PROMPT.version)
+        if isinstance(json_data, dict) and isinstance(json_data.get("answers"), list):
+            run.keep_answers(json_data["answers"], reply_model)
         return json_data
 
     @staticmethod
-    def _answer_extraction_schema():
+    def _answer_extraction_schema(config=None):
         """
         The json_schema contract for an answer-extraction call, or None to
         fall back to free-form json_object.
@@ -2043,7 +2099,9 @@ Do not include any explanatory text before or after the JSON
         that can be disabled without leaving a trace is one that stops
         existing the moment somebody sets an env var and forgets.
         """
-        if getattr(settings, "ANSWER_EXTRACTION_SCHEMA_ENABLED", True):
+        if config is None:
+            config = ReadingConfig.read()
+        if config.get("ANSWER_EXTRACTION_SCHEMA_ENABLED"):
             return ANSWER_EXTRACTION_RESPONSE_SCHEMA
         logger.warning(
             "[AnswerExtraction] ANSWER_EXTRACTION_SCHEMA_ENABLED is off - "
@@ -2060,6 +2118,8 @@ Do not include any explanatory text before or after the JSON
         answers,
         assignment_model=None,
         processing_task_id=None,
+        reading_run=None,
+        config=None,
     ):
         """
         Re-read the pages for the questions extraction reported as empty.
@@ -2089,7 +2149,12 @@ Do not include any explanatory text before or after the JSON
         as it was. A verification step that can lose a submission would
         cost more than it saves.
         """
-        if not getattr(settings, "ANSWER_BLANK_VERIFICATION_ENABLED", True):
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
+        if not config.get("ANSWER_BLANK_VERIFICATION_ENABLED"):
             return answers
         if not isinstance(answers, list):
             return answers
@@ -2105,7 +2170,7 @@ Do not include any explanatory text before or after the JSON
             # answered submission costs nothing at all.
             return answers
 
-        cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", 12)
+        cap = config.get("ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS")
         if len(blanks) > cap:
             logger.info(
                 "[BlankVerification] %s blank(s) exceeds the cap of %s - "
@@ -2136,7 +2201,7 @@ Do not include any explanatory text before or after the JSON
         # running it can cost a recovery but can never produce a wrong
         # flag. The completeness flags from the extraction still stand
         # either way.
-        page_cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_PAGES", 10)
+        page_cap = config.get("ANSWER_BLANK_VERIFICATION_MAX_PAGES")
         if len(images) > page_cap:
             logger.info(
                 "[BlankVerification] %s page(s) exceeds the cap of %s - "
@@ -2149,28 +2214,28 @@ Do not include any explanatory text before or after the JSON
         numbers = [entry.get("question_number") for entry in blanks]
         instruction = BLANK_VERIFICATION_INSTRUCTION.format(numbers=numbers)
 
-        override_model = (
-            getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
-        )
+        override_model = config.get("ANSWER_BLANK_VERIFICATION_MODEL") or None
 
         try:
             ensure_task_not_cancelled(processing_task_id)
-            response = self.execute_graded_task(
-                prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
-                user=user,
-                feature="Answer Extraction",
-                task_type="extract_answer",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [{"type": "text", "text": instruction}] + images,
-                    }
-                ],
-                assignment=assignment_model,
-                processing_task_id=processing_task_id,
-                response_schema=BLANK_VERIFICATION_RESPONSE_SCHEMA,
-                override_model=override_model,
-            )
+            with run.recheck.scope():
+                run.recheck.begin_call()
+                response = self.execute_graded_task(
+                    prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
+                    user=user,
+                    feature="Answer Extraction",
+                    task_type="extract_answer",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [{"type": "text", "text": instruction}] + images,
+                        }
+                    ],
+                    assignment=assignment_model,
+                    processing_task_id=processing_task_id,
+                    response_schema=BLANK_VERIFICATION_RESPONSE_SCHEMA,
+                    override_model=override_model,
+                )
             findings = json.loads(response.choices[0].message.content).get(
                 "findings", []
             )
@@ -2198,9 +2263,11 @@ Do not include any explanatory text before or after the JSON
             logger.info(
                 "[BlankVerification] Re-read confirmed %s blank(s).", len(blanks)
             )
+            self._note_recheck_used(run, found_writing=False)
             return answers
 
         verified = []
+        applied = 0
         for entry in answers:
             key = (
                 self._question_number_key(entry.get("question_number"))
@@ -2230,6 +2297,9 @@ Do not include any explanatory text before or after the JSON
                 "not transcribe" + (f": {fragment!r}" if fragment else ".")
             ).strip()
             verified.append(updated)
+            applied += 1
+
+        self._note_recheck_used(run, found_writing=applied > 0)
 
         logger.warning(
             "[BlankVerification] Re-read found writing for %s question(s) "
@@ -2240,8 +2310,18 @@ Do not include any explanatory text before or after the JSON
         return verified
 
     @staticmethod
-    def _answer_completeness_mode():
-        mode = getattr(settings, "ANSWER_COMPLETENESS_ENFORCEMENT", ANSWER_MODE_STRICT)
+    def _note_recheck_used(run, found_writing):
+        """The re-check's reply was read and used. Only when the run saw the
+        reply arrive at the provider call (tests that replace the whole
+        billed call have no such mark)."""
+        if run.recheck.reply_received:
+            run.mark_recheck_used(found_writing=found_writing)
+
+    @staticmethod
+    def _answer_completeness_mode(config=None):
+        if config is None:
+            config = ReadingConfig.read()
+        mode = config.get("ANSWER_COMPLETENESS_ENFORCEMENT")
         if mode not in (ANSWER_MODE_STRICT, ANSWER_MODE_LOG, ANSWER_MODE_OFF):
             logger.warning(
                 "[AnswerExtraction] Unrecognised "
@@ -2260,8 +2340,17 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         max_retries: int = 3,
         processing_task_id=None,
+        reading_run=None,
     ):
         last_error = None
+
+        # The settings that shape this reading are taken ONCE, here, and
+        # every site below uses this reading (ai_processor/reading_config.py).
+        # The run gathers what the label needs (ai_processor/reading_run.py);
+        # a caller that does not label hands none and a throwaway is used.
+        run = reading_run if reading_run is not None else ReadingRun()
+        config = ReadingConfig.read()
+        run.config = config
 
         # The assignment's own questions are the only thing that can say
         # what a COMPLETE extraction looks like. Without them (no
@@ -2269,7 +2358,7 @@ Do not include any explanatory text before or after the JSON
         # produced questions) there is nothing to check against, so the
         # gate stays off rather than guessing.
         questions = getattr(assignment_model, "questions", None) or []
-        mode = self._answer_completeness_mode() if questions else ANSWER_MODE_OFF
+        mode = self._answer_completeness_mode(config) if questions else ANSWER_MODE_OFF
 
         # Nothing to read means nothing to extract. Without this the model was
         # still called - and billed - for an empty submission, and the empty
@@ -2283,6 +2372,8 @@ Do not include any explanatory text before or after the JSON
 
         for attempt in range(max_retries):
             ensure_task_not_cancelled(processing_task_id)
+            # A try that is thrown away leaves nothing behind.
+            run.begin_attempt()
             try:
                 result = self.extract_answer_image(
                     user,
@@ -2290,6 +2381,8 @@ Do not include any explanatory text before or after the JSON
                     assignment,
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
+                    reading_run=run,
+                    config=config,
                 )
 
                 # THE GATE RUNS INSIDE THE LOOP, ON PURPOSE. An incomplete
@@ -2345,6 +2438,8 @@ Do not include any explanatory text before or after the JSON
                         result.get("answers"),
                         assignment_model=assignment_model,
                         processing_task_id=processing_task_id,
+                        reading_run=run,
+                        config=config,
                     )
                 return result
             except (AIFeatureNotAvailableError, InsufficientCreditsError):

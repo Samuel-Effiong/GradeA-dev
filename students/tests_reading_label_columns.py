@@ -292,7 +292,7 @@ class TheConstraintOnThePairTest(TestCase):
             with self.subTest(pair=(result, model)):
                 self.assertEqual(
                     self._try(submission, result, model),
-                    step_label.pair_is_allowed(result, model),  # type: ignore[attr-defined]
+                    step_label.pair_is_allowed(result, model),
                 )
 
     def test_a_new_row_with_a_forbidden_pair_is_refused_too(self):

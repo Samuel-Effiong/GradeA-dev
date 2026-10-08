@@ -113,7 +113,7 @@ def read(provider, content=None, *, user=SUPER, questions=QUESTIONS, **kwargs):
     """The real extraction. Returns (result, the run it was handed)."""
     run = ReadingRun()
     with patch.object(services.ai_processor, "client", provider.client):
-        result = services.ai_processor.extract_answer_with_retry(  # type: ignore[call-arg]
+        result = services.ai_processor.extract_answer_with_retry(
             user,
             content if content is not None else [TEXT],
             "ctx",
