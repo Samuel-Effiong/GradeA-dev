@@ -204,6 +204,18 @@ MUTANTS = [
         K,
     ),
     (
+        "R15",
+        "the votes are cut down to one per saved answer",
+        RR,
+        "        return votes\n\n    def reading_model",
+        "        saved_count = len([a for a in (saved or []) if isinstance(a, dict)])\n"
+        "        while votes and sum(votes.values()) > saved_count:\n"
+        "            votes[max(votes, key=votes.get)] -= 1\n"
+        "        return votes\n\n    def reading_model",
+        TESTS,
+        K,
+    ),
+    (
         "V1",
         "the label is the model asked for, not the one that answered",
         SV,
@@ -442,6 +454,7 @@ EXPECTED = {
     "R12": "test_a_reply_cannot_be_used_before_it_was_received",
     "R13": "test_a_joined_answer_can_tip_the_label_to_the_later_model",
     "R14": "test_two_parts_by_the_same_model_count_once",
+    "R15": "test_the_sum_of_votes_may_exceed_the_number_of_saved_answers",
     "V1": "test_the_model_asked_for_is_not_the_label",
     "V2": "test_an_unnamed_reply_is_unknown_not_the_model_asked_for",
     "V3": "test_the_call_is_marked_before_it_leaves",
