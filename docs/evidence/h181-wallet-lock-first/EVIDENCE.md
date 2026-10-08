@@ -65,3 +65,36 @@ by this row. Whether a charge landing during a licence renewal still deadlocks w
 - The licence-row inversion with a charge (a charge holds the wallet and waits for the licence row that a renewal holds) is H-182's, not this row's.
 - The bucket-first order may exist in code I did not read (paths outside billing/services.py and billing/license_service.py): the grep for
   `buckets.select_for_update` found those two files only (with `billing/disputes.py`, `payment_refunds.py` and `credit_reversal.py`, which already take the wallet first).
+
+## RESULTS OF THE FIRST GATE (step 1 at 41a92162; run_h181_gate.sh 62bc8b8c2fdb35c8; started 12:44:30, ended 12:49:52 WAT, 2026-10-08)
+
+Console `gate_console_step1_41a92162.txt.gz` (raw sha256 starts 1fab63bbd1d13dc7; rc=0). Whole script under ONE `systemd-inhibit`. Load at start 3.57 5.25 5.14 (waited from 4.45 to 3.62 before starting).
+Raw files kept as they are, with the tip in their names: `modules_and_guards_41a92162.txt.gz` (raw sha 77954fac835749e6), `prefix_base_production_failing_41a92162.txt.gz` (raw sha 6acc9093d046cca4),
+`mutation_log_41a92162.txt`, `mutation_results_41a92162.json`, `mutant_logs_41a92162/`. Credential patterns on all of them: 0 lines.
+
+- **Step 0 (reproduce-first) as written**: Ran 9, FAILED (failures=9), the nine distinct red = the written nine. **Every one is a real Postgres deadlock**: the worker `errors` hold
+  `OperationalError('deadlock detected ...')` nine times (counted in the raw log), not a lock timeout. So the fault is shown, not only reasoned: on the old code a charge racing each of the nine
+  functions deadlocks, and the charge is the one Postgres aborts (it started waiting first), as written.
+- **makemigrations --check**: no changes.
+- **Step 1 modules and guards**: Ran 589, OK, 0 FAIL or ERROR lines.
+- **Step 2 mutants: KILLED 8 of 10, and TWO SURVIVED** (the rule: a survivor is a place the tests do not guard). M1-M8 each failed exactly the written test(s) (M7 the three licence tests; M8 all nine); each inner run Ran 9.
+  **M9 (the licence rollover helper takes the wallet lock AFTER its bucket query) and M10 (the same in `process_rollover_and_renewal`) SURVIVED**: Ran 9, failed 0.
+  **Why (read from the harness, confirmed by the survival):** worker 0 stops at its first ledger row, which each function writes AFTER both locks are taken. With the lock moved below the bucket query,
+  the wallet is still locked before that pause point, so the charge (which only starts at the pause) finds the wallet held and waits: no cycle. The window between the bucket lock and the late wallet lock
+  (a few statements long) was never raced. That window is real in production (a charge landing inside it deadlocks) but narrow; the tests did not guard it.
+- Nothing else was run. The step-3 grant was not given for this tip.
+
+## THE CORRECTION (written before any run of it, 2026-10-08)
+
+New tip adds two ORDER tests, and the harness a second pause point: worker 0 stops at the ENTRY of the wallet-lock helper instead of at the first ledger row (`race(..., before_wallet_lock_in=...)`).
+With the call in its right place the pause holds no bucket lock, the charge runs to the end, and nothing deadlocks; with the call below the bucket query worker 0 holds the bucket at the pause,
+the charge takes the wallet and waits for that bucket, and the helper's own wallet lock then deadlocks (the charge, which waited first, is the victim).
+- `WalletLockFirstTests.test_process_rollover_and_renewal_locks_the_wallet_before_the_bucket`, and
+- `LicenceWalletLockFirstTests.test_the_licence_rollover_helper_locks_the_wallet_before_the_bucket` (the helper is called DIRECTLY: its three callers hold or write the licence row, which a charge also writes, and that other cycle is H-182's; through them this test would deadlock for the wrong reason).
+
+**Written expectations for the new run, before it:**
+- **Step 0**: Ran 11, ELEVEN red: the first nine as before (deadlock), and the two new tests red because the base code never calls the wallet-lock helper (the pause point is never reached; each fails on `the hook was not reached once` / the other worker's `never reached its hook`).
+- **Step 1**: the new module Ran 11, OK; everything else as before (589 plus the two).
+- **Mutants (10, same list)**: M1-M3, M5, M6 as before (their own test only). **M4** fails `test_process_rollover_and_renewal` and the new rollover order test (the helper is never reached). **M7** fails the three licence tests and the new helper order test. **M8** (the helper locks nothing)
+  fails the NINE as before, NOT the two order tests (a pause before a no-op lock holds nothing, the charge completes first): said so that it is not read as a gap. **M9** fails exactly `test_the_licence_rollover_helper_locks_the_wallet_before_the_bucket`; **M10** fails exactly `test_process_rollover_and_renewal_locks_the_wallet_before_the_bucket`.
+  If M9 or M10 survives again I stop and report.
