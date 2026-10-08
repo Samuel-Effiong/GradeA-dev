@@ -65,3 +65,17 @@ Commit 4b407bbd; tests only.
 ## Not shown by any run so far
 
 Everything: nothing has been run. And, even when run: behaviour under pgbouncer in transaction mode, the role's lock timeout, a real process death between commit and callback, a real licence renewal of a large school.
+
+## RESULTS OF THE FIRST GATE (step 1 at 9c131ea1; run_h182_gate.sh 91738c86219b352d; started 12:57:43, ended 13:00:15 WAT, 2026-10-08): STOPPED, my tests were wrong
+
+Console `gate_console_step1_9c131ea1.txt.gz` (raw sha256 starts d2d2de0828836571; rc=2). Whole script under ONE `systemd-inhibit`. Load at start 3.55 4.11 4.23 (the pre-start check, alone, read 4.63; I waited to 3.83 and started in a separate command).
+Raw files kept as they are, named by the tip: `modules_and_guards_9c131ea1.txt.gz` (raw sha f9c6779e088bbea4), `prefix_base_production_failing_9c131ea1.txt.gz` (raw sha 71ee614823b13e18), `makemigrations_check_9c131ea1.txt`. Credential patterns: 0 lines.
+- **Step 0 as written**: Ran 7, the four written red (not-touched-inside-the-charge, refund-after-commit, failed-roll-up-logged, the thread test), the other three green by design.
+  The thread test fails on the old code with a real Postgres deadlock (the charge is the victim), as for H-181.
+- **makemigrations**: no changes.
+- **Step 1: RED. Ran 415, FAILED (failures=2)**: `test_the_figure_is_not_touched_inside_the_charge` and `test_a_refund_takes_it_back_after_commit`, both `AssertionError: 2 != 1 : exactly one callback was registered`. The script stopped (`STOP: not green`) and did NOT run the mutants.
+  The other 413 passed, including the thread test, the failed-roll-up test with its exact fields, and the two older modules whose charges were wrapped.
+- **Cause (from the raw log): my tests, not the change.** `captureOnCommitCallbacks` records EVERY after-commit callback of the charge or the refund, and the code under it registers another, unrelated one (a cache or analytics hook); I asserted the list held exactly one.
+  The change registers exactly one roll-up per charge and per refund (not counted by the tests until now).
+- **Fix** (tests only; the production code is unchanged): the two tests count only the licence roll-up callbacks (by the function `roll_up_after_commit` registers) and still require exactly one. The rolled-back-charge test keeps asserting that NO callback at all remains.
+- **Written expectations for the next run are the ones above, unchanged** (step 0 Ran 7 and the same four red; the same ten mutants N1-N10 with the same sets; N5 and N2 now fail the not-touched test by `0 != 1` roll-ups instead of by the figure).
