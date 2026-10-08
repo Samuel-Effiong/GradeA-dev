@@ -106,31 +106,47 @@ def clear_pycache(worktree):
             shutil.rmtree(cache)
 
 
+#: A mutant that restores the shared Cleaner can wedge the test process (seen:
+#: 11 minutes at 178% CPU, H-191). Each inner run is killed after this many
+#: seconds; a run killed that way counts as KILLED, the reason is logged
+#: ("timed_out: True" in the mutant's log), and the failing set of such a run
+#: is not compared (it may be partial).
+INNER_TIMEOUT_SECONDS = 400
+
+
 def run_tests(log_path, labels):
-    """One test run, output straight to `log_path` (rule 18)."""
+    """One test run, output straight to `log_path` (rule 18). Returns
+    (exit code, output, timed_out)."""
+    timed_out = False
     with open(log_path, "w") as log, open(os.devnull) as nothing:
-        proc = subprocess.run(
-            [
-                sys.executable,
-                "manage.py",
-                "test",
-                *labels,
-                "--settings=settings_worktree",
-                "--noinput",
-                "--keepdb",
-            ],
-            cwd=WORKTREE,
-            stdin=nothing,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            env={
-                **os.environ,
-                "EXEMPT_EMAIL_DOMAINS": "",
-                "PYTHONDONTWRITEBYTECODE": "1",
-            },
-        )
+        try:
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    "manage.py",
+                    "test",
+                    *labels,
+                    "--settings=settings_worktree",
+                    "--noinput",
+                    "--keepdb",
+                ],
+                cwd=WORKTREE,
+                stdin=nothing,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                env={
+                    **os.environ,
+                    "EXEMPT_EMAIL_DOMAINS": "",
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                },
+                timeout=INNER_TIMEOUT_SECONDS,
+            )
+            code = proc.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            code = 124
     with open(log_path, errors="replace") as log:
-        return proc.returncode, log.read()
+        return code, log.read(), timed_out
 
 
 def main():
@@ -157,7 +173,7 @@ def main():
         clear_pycache(WORKTREE)
         raw = os.path.join(logs, "raw")
         os.makedirs(raw, exist_ok=True)
-        code, output = run_tests(os.path.join(raw, "baseline.out"), TESTS)
+        code, output, _ = run_tests(os.path.join(raw, "baseline.out"), TESTS)
         with open(os.path.join(logs, "baseline.log"), "w") as fh:
             fh.write(f"# baseline, commit {commit}, exit {code}\n\n")
             fh.write(output)
@@ -174,7 +190,7 @@ def main():
                 fh.write(replace_nth(text, old, new, nth))
             clear_pycache(WORKTREE)
             started = time.monotonic()
-            code, output = run_tests(os.path.join(raw, f"{mid}.out"), labels)
+            code, output, timed_out = run_tests(os.path.join(raw, f"{mid}.out"), labels)
             elapsed = time.monotonic() - started
             sh("git", "checkout", "--", rel, cwd=WORKTREE)
             clear_pycache(WORKTREE)
@@ -198,6 +214,9 @@ def main():
             ]
             if code == 0:
                 status = "SURVIVED"
+            elif timed_out:
+                status = "KILLED"
+                summary = f"TIMEOUT after {INNER_TIMEOUT_SECONDS} s (counted killed)"
             elif ran.startswith("Ran ") and failing and loaded:
                 status = "KILLED"
             else:
@@ -207,7 +226,7 @@ def main():
                     f"# {mid}: {guard}\n# file: {rel} (occurrence {nth})\n"
                     f"# run against: {' '.join(labels)}\n"
                     f"# old: {old!r}\n# new: {new!r}\n# commit: {commit}\n"
-                    f"# exit: {code}\n# elapsed_s: {elapsed:.1f}\n"
+                    f"# exit: {code}\n# timed_out: {timed_out}\n# elapsed_s: {elapsed:.1f}\n"
                     f"# restored_sha256_matches_commit_blob: {restored}\n\n"
                 )
                 fh.write("\n".join(failing) + f"\n\n{ran}\n{summary}\n")
