@@ -25,8 +25,13 @@ open run (`current_step_run()`) and marks it where the call leaves. A call
 for a task type that needs a run, made with none open, fails loudly
 (`require_step_scope`); never a silent unlabelled step. STATED LIMIT: a
 future caller of `__ai_model` that forgets the scope loses its marks; the
-task types that need one are named in ENFORCED_STEP_TASK_TYPES and a static
-test covers their callers.
+task types that need one are named in ENFORCED_STEP_TASK_TYPES. A static test
+(students/tests_reading_label_static.py) shows every provider call for an
+enforced type inside a scope; each slice that enforces a type adds its callers
+to that test in the same commit. Slice 2 enforces extract_answer. A scope is
+opened only with `with run.scope():`, never by hand (a static test): Celery
+prefork reuses one context across tasks, so a scope left open would show in the
+next task.
 
 The run never travels inside the dictionary an AI reply became.
 

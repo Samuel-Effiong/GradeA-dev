@@ -270,6 +270,30 @@ class EveryProviderCallOfAnEnforcedTypeIsInsideAScopeTest(SimpleTestCase):
         self.assertEqual(len(checked), 3, checked)
 
 
+class ScopesAreOpenedOnlyWithAWithTest(SimpleTestCase):
+    """The Checker's note 3: never by hand. Every call of `.scope()` in the
+    project's code is the context expression of a `with`."""
+
+    def test_every_scope_call_is_a_with_item(self):
+        found = 0
+        for relative, _path in production_files():
+            tree = parsed(relative)
+            with_items = {
+                id(item.context_expr)
+                for node in ast.walk(tree)
+                if isinstance(node, ast.With)
+                for item in node.items
+            }
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Call)
+                    and getattr(node.func, "attr", "") == "scope"
+                ):
+                    found += 1
+                    self.assertIn(id(node), with_items, f"{relative}:{node.lineno}")
+        self.assertGreaterEqual(found, 3, "the walk must see the reading's scopes")
+
+
 class TheReadingPathCallsNoCacheTest(SimpleTestCase):
     FUNCTIONS = (
         "_extract_answers_chunked",

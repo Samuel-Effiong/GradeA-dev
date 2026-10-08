@@ -53,6 +53,7 @@ TESTS = [
     "ai_processor.tests_reading_run",
     "ai_processor.tests_reading_pipeline",
     "ai_processor.tests_step_run_scope",
+    "ai_processor.tests_step_run_adopted",
     "students.tests_reading_label_columns",
     "students.tests_reading_label_routes",
     "students.tests_reading_label_static",
@@ -212,6 +213,39 @@ MUTANTS = [
         "        while votes and sum(votes.values()) > saved_count:\n"
         "            votes[max(votes, key=votes.get)] -= 1\n"
         "        return votes\n\n    def reading_model",
+        TESTS,
+        K,
+    ),
+    (
+        "X1",
+        "a refused mark still leaves 'received' set (the Checker's XS14)",
+        STEP,
+        "        if not self.call_left:\n"
+        '            raise RuntimeError("a reply cannot be received before the call left")\n'
+        "        self.reply_received = True\n",
+        "        self.reply_received = True\n"
+        "        if not self.call_left:\n"
+        '            raise RuntimeError("a reply cannot be received before the call left")\n',
+        TESTS,
+        K,
+    ),
+    (
+        "X2",
+        "the single-call reading opens its scope by hand, not with 'with'",
+        SV,
+        "            with run.reading.scope():\n                run.reading.begin_call()\n",
+        "            _scope = run.reading.scope()\n"
+        "            _scope.__enter__()\n"
+        "            if True:\n                run.reading.begin_call()\n",
+        TESTS,
+        K,
+    ),
+    (
+        "X3",
+        "a scope is not closed when its body raises",
+        STEP,
+        "            _CURRENT.reset(token)\n",
+        "            pass\n",
         TESTS,
         K,
     ),
@@ -473,6 +507,16 @@ EXPECTED = {
         "test_an_answer_of_two_parts_counts_for_each_parts_model",
         "test_a_joined_answer_can_tip_the_label_to_the_later_model",
         "test_the_sum_of_votes_may_exceed_the_number_of_saved_answers",
+    ],
+    "X1": ["test_a_refused_mark_changes_nothing"],
+    "X2": ["test_every_scope_call_is_a_with_item"],
+    # X3: the scope is never reset. The slice-0 scope tests and the three new ones fail.
+    "X3": [
+        "test_the_scope_is_restored_after_an_exception",
+        "test_after_the_scope_nothing_is_current",
+        "test_after_an_extraction_that_failed_no_scope_is_open",
+        "test_after_a_cancellation_inside_the_call_no_scope_is_open",
+        "test_after_a_failed_recheck_no_scope_is_open",
     ],
     "V1": "test_the_model_asked_for_is_not_the_label",
     "V2": "test_an_unnamed_reply_is_unknown_not_the_model_asked_for",

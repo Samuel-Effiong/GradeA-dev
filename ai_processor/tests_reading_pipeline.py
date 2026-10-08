@@ -31,9 +31,10 @@ from unittest.mock import patch
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from ai_processor import services
+from ai_processor.exceptions import ProviderFailureError
 from ai_processor.extraction_schemas import ANSWERED, BLANK, NOT_FOUND_IN_DOCUMENT
 from ai_processor.reading_run import ReadingRun
-from ai_processor.step_run import StepRun, StepScopeMissingError
+from ai_processor.step_run import StepRun, StepScopeMissingError, current_step_run
 from students.exceptions import TaskCancelledError
 from users.models import CustomUser, UserTypes
 
@@ -607,6 +608,31 @@ class TheMarksAreMadeAtTheProviderCallTest(SimpleTestCase):
         provider = in_order(reply(payload(), "m/x"))
         self._call(provider, run)
         self.assertNotIn("StepRun", json.dumps(provider.requests[0], default=repr))
+
+
+class TheScopeIsClosedAfterAFailureTest(SimpleTestCase):
+    """Celery prefork reuses one context across tasks in a process: a scope
+    left open by a task that died would show in the next task (the Checker's
+    note 3). The scopes are opened with `with` only (a static test), and these
+    show them closed after an exception raised inside the task body."""
+
+    def test_after_an_extraction_that_failed_no_scope_is_open(self):
+        self.assertIsNone(current_step_run())
+        with self.assertRaises(ProviderFailureError):
+            read(in_order(RuntimeError("provider down")))
+        self.assertIsNone(current_step_run())
+
+    def test_after_a_cancellation_inside_the_call_no_scope_is_open(self):
+        with self.assertRaises(TaskCancelledError):
+            read(in_order(TaskCancelledError("Task cancelled by user.")))
+        self.assertIsNone(current_step_run())
+
+    def test_after_a_failed_recheck_no_scope_is_open(self):
+        read(
+            in_order(reply(BLANK_FIRST, "read/model"), RuntimeError("down")),
+            [TEXT, IMAGE],
+        )
+        self.assertIsNone(current_step_run())
 
 
 class AWholeRetryUsesOneRunTest(SimpleTestCase):

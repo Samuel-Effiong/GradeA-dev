@@ -6,7 +6,7 @@
 #    (the new modules and migrations taken away, the changed files taken back; own DB). Compared with what was written.
 # 1a makemigrations --check; 1b the seam (execute_graded_task identical to the slice-0 tip and to the base; slice C's
 #    test modules untouched); 1 the slice's modules + slice C and slice 0 pins + near modules + guards (incl. the cache
-#    test, rule 20); 2 the 38 mutants (rule 17; own DB, the one migration mutant last, DB dropped after).
+#    test, rule 20); 2 the 41 mutants (rule 17; own DB, the one migration mutant last, DB dropped after).
 # The regression is 0b's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
@@ -33,7 +33,7 @@ name = settings.DATABASES['default']['TEST']['NAME']
 with connection._nodb_cursor() as c:
     c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
 print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
-S2="ai_processor.tests_reading_config ai_processor.tests_reading_run ai_processor.tests_reading_pipeline ai_processor.tests_step_run_scope students.tests_reading_label_columns students.tests_reading_label_routes students.tests_reading_label_static"
+S2="ai_processor.tests_reading_config ai_processor.tests_reading_run ai_processor.tests_reading_pipeline ai_processor.tests_step_run_scope ai_processor.tests_step_run_adopted students.tests_reading_label_columns students.tests_reading_label_routes students.tests_reading_label_static"
 PIN="ai_processor.tests_vote_helper ai_processor.tests_step_run students.tests_step_label_words ai_processor.tests_grading_run_label ai_processor.tests_grading_run_pipeline ai_processor.tests_grading_run_checker students.tests_grading_label_written students.tests_grading_label_routes students.tests_grading_label_not_exposed students.tests_grading_label_migration students.tests_grading_label_fields students.tests_grading_label_end_to_end ai_processor.tests_grading_cache ai_processor.tests_grading_config"
 NEAR="ai_processor.tests_blank_verification ai_processor.tests_answer_extraction_gate ai_processor.tests_answer_completeness ai_processor.tests_answer_chunk_merge ai_processor.tests_chunked_extraction_contract ai_processor.tests_ai_call_trace ai_processor.tests_answer_benchmark_inputs ai_processor.tests_answer_benchmark_failures ai_processor.tests_answer_benchmark_scenarios ai_processor.tests_answer_benchmark_concurrency ai_processor.tests_answer_benchmark_grading students.tests_answers_unreadable students.tests_post_grading_submission_lock students.tests_student_upload_answer students.tests_raw_input_persistence students.tests_s6d_extraction_refund students.tests_async_edit_path students.tests_submission_concurrency students.tests_epic_a_submission_upload_audit students.tests_proxy_upload_attribution students.tests_upload_pipeline students.tests_missing_answer_review students.tests_batch_item_results students.tests_item_retry students.tests_app_boundaries assignments.tests_upload_batch_billing assignments.tests_upload_task_retry_policy billing.tests.test_execute_graded_task billing.tests.test_refusal_handling billing.tests.test_refusal_handling_gates"
 GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_reason_codes AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_codederror_serialization AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard audit.tests_history_guard audit.tests_route_coverage audit.tests_sweep_beat_lock"
@@ -104,7 +104,7 @@ echo "=== 1. slice modules + pins + near modules + guards at $(git rev-parse --s
 eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $S2 $PIN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
-echo "=== 2. mutants: 38 (own DB, rules 17 and 18) $(date +%T)"
+echo "=== 2. mutants: 41 (own DB, rules 17 and 18) $(date +%T)"
 eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 5400 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
 echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
 git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
