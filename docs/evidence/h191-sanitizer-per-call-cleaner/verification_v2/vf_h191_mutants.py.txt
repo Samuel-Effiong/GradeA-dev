@@ -1,0 +1,107 @@
+"""v2 mutants for H-191 at the final tip (53f92ff0; code = bf0d7632). Written 2026-10-08
+BEFORE any run. Run from the vf2-s1 scratch worktree detached at COMMIT with
+assignments/tests_vf2_h191_probe.py and assignments/_vf2_old_pmc.py copied in.
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h191_mutants.py check | baseline | mutants | obs
+A (single thread) tests: MUST = exactly the named test(s) (plus optionally a8, the
+whole-conversion test, whose result I could not read out for a given mutant). B (threads)
+is judged by the shared-Cleaner mutant M8: expected b1 red (error, wrong text, or
+deadline); if it passes, status LUCKY_SURVIVOR: reported, not hidden. Rule 17: no
+bytecode, pycache cleared, restore verified by sha256 against the commit blob.
+"obs" runs the OLD shared Cleaner under threads three times (Part C, observation only).
+"""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+PMC = "assignments/prosemirror_converter.py"
+MOD = "assignments.tests_vf2_h191_probe"
+A, B, C = MOD + ".PartA", MOD + ".PartB", MOD + ".PartC"
+T = {
+    "a1": "test_a1_comments", "a2": "test_a2_url_schemes", "a3": "test_a3_css",
+    "a4": "test_a4_disallowed_tags_are_stripped_not_escaped", "a5": "test_a5_attribute_allowlist",
+    "a6": "test_a6_raw_text_and_control_characters", "a8": "test_a8_whole_conversion_equals_the_old_one",
+    "b1": "test_b1_threads_get_their_own_text",
+}
+# name -> (edits, labels, must, may)
+MUTANTS = {
+    "M1_comments_kept": ([("        strip_comments=True,\n", "        strip_comments=False,\n")], [A], [T["a1"]], [T["a8"]]),
+    "M2_no_protocols": ([("        protocols=list(URL_ALLOWED_SCHEMES),\n", "        protocols=[],\n")], [A], [T["a2"]], [T["a8"]]),
+    "M3_no_css_sanitizer": ([("        css_sanitizer=_CSS_SANITIZER,\n", "        css_sanitizer=None,\n")], [A], [T["a3"]], [T["a8"]]),
+    "M4_tags_escaped_not_stripped": ([("        strip=True,\n", "        strip=False,\n")], [A], [T["a4"]], [T["a8"]]),
+    "M5_no_attributes": ([("        attributes=CONVERTER_ALLOWED_ATTRIBUTES,\n", "        attributes={},\n")], [A], [T["a2"], T["a3"], T["a5"]], [T["a8"]]),
+    "M6_raw_text_not_dropped": ([("strip_raw_text_elements(strip_control_chars(html_string))", "strip_control_chars(html_string)")], [A], [T["a6"]], [T["a8"]]),
+    "M7_control_chars_not_dropped": ([("strip_raw_text_elements(strip_control_chars(html_string))", "strip_raw_text_elements(html_string)")], [A], [T["a6"]], [T["a8"]]),
+    "M8_shared_cleaner": ([
+        ("def sanitize_editor_html(html_string: str) -> str:\n", "_SHARED = _new_cleaner()\n\n\ndef sanitize_editor_html(html_string: str) -> str:\n"),
+        ("    return _new_cleaner().clean(\n", "    return _SHARED.clean(\n"),
+    ], [B], [T["b1"]], []),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+INNER = 170  # seconds; a wedged threaded run is killed and reported as such
+
+
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear(): shutil.rmtree(pathlib.Path("assignments") / "__pycache__", ignore_errors=True)
+
+
+def run(labels, name, extra_env=None):
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / name
+    timed = False
+    with open(log, "wb") as fh:
+        try:
+            p = subprocess.run([sys.executable, "-B", "manage.py", "test", *labels, "--settings=settings_worktree",
+                                "--noinput", "--keepdb", "-v1"], stdout=fh, stderr=subprocess.STDOUT,
+                               env={**ENV, **(extra_env or {})}, stdin=subprocess.DEVNULL, timeout=INNER)
+            rc = p.returncode
+        except subprocess.TimeoutExpired:
+            rc, timed = 124, True
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summ = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={rc}")
+    return rc, ran, summ, failing, timed, o
+
+
+if sys.argv[1:] == ["check"]:
+    src0 = open(PMC).read()
+    for n, (edits, *_r) in MUTANTS.items():
+        s = src0
+        counts = [s.count(o) for o, _ in edits]
+        for o, nw in edits: s = s.replace(o, nw, 1)
+        ast.parse(s); print(n, counts, "parses")
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    clear(); rc, ran, summ, failing, timed, o = run([A, B], "baseline.txt")
+    print("baseline |", ran, "|", summ, "|", failing, "| timed_out", timed, flush=True)
+    if rc: print(o[-6000:])
+    sys.exit(rc)
+if sys.argv[1:] == ["obs"]:
+    for i in (1, 2, 3):
+        clear(); out = LOGS / f"obs{i}.json"
+        rc, ran, summ, failing, timed, o = run([C], f"obs{i}.txt", {"VF2_OLD_OBS": str(out)})
+        print(f"obs{i} | rc={rc} timed_out={timed} |", ran, "|", summ, "|",
+              out.read_text().replace("\n", " ") if out.exists() else "no obs file", flush=True)
+    sys.exit()
+
+for name, (edits, labels, must, may) in MUTANTS.items():
+    src = open(PMC).read()
+    counts = [src.count(o) for o, _ in edits]
+    if counts != [1] * len(edits):
+        print(name, "APPLY_FAILED", counts, flush=True); continue
+    for o, nw in edits: src = src.replace(o, nw, 1)
+    ast.parse(src)
+    try:
+        clear(); open(PMC, "w").write(src)
+        rc, ran, summ, failing, timed, _ = run(labels, f"{name}.txt")
+        if rc == 0: status = "SURVIVED" if name != "M8_shared_cleaner" else "LUCKY_SURVIVOR"
+        elif timed: status = "KILLED_BY_TIMEOUT(wedge)"
+        elif ran == "Ran ?" or not failing: status = "BROKEN"
+        elif all(t in failing for t in must) and set(failing) <= set(must) | set(may): status = "KILLED_AS_WRITTEN"
+        elif all(t in failing for t in must): status = "KILLED_MORE_THAN_WRITTEN"
+        else: status = "KILLED_OTHER"
+        print(name, "|", status, "|", ran, "|", summ, "| must", must, "may", may, "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", PMC], check=True); clear()
+        ok = sha(open(PMC, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{PMC}"], capture_output=True).stdout)
+        print("  restore", "ok" if ok else "MISMATCH", flush=True)
