@@ -1,4 +1,7 @@
+import copy
+
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -67,6 +70,13 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionSerializer(serializers.ModelSerializer):
+    #: H-141: who this serializer is for ("staff", "student" or "both").
+    #: AutoGrader/tests_submission_audience_guard.py fails on a serializer
+    #: of a submission without one, and on a student's route that builds a
+    #: "staff" one. This is the view's fallback class; no route builds an
+    #: answer from it today.
+    audience = "staff"
+
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
     remaining_attempts = serializers.SerializerMethodField()
@@ -131,6 +141,11 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
+    # H-141: names the body of an edit in the API description. No route
+    # builds an answer from it; one that did so for a student would have
+    # to decide this again.
+    audience = "staff"
+
     class Meta:
         model = StudentSubmission
         fields = [
@@ -162,6 +177,12 @@ def max_points_shown(submission, request):
 
 
 class StudentSubmissionListSerializer(serializers.ModelSerializer):
+    # H-141: teachers and students both receive this one. It needs the
+    # request in its context: the methods named here change the answer
+    # when a student is asking, and without the request they cannot.
+    audience = "both"
+    student_answer_in = ("to_representation", "get_score", "get_score_percentage")
+
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
     course = serializers.CharField(source="assignment.course.id", read_only=True)
@@ -288,6 +309,11 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+    # H-141: the teacher's page of a submission. Its student branches are
+    # from before the student had a serializer of their own; no student
+    # route may build it (the guard holds that).
+    audience = "staff"
+
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
@@ -437,6 +463,8 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerializer):
+    audience = "student"  # H-141
+
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
@@ -444,13 +472,20 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
     max_points = serializers.SerializerMethodField()
     grade_status = serializers.SerializerMethodField()
 
-    assignment_title = serializers.CharField(source="assignment__title", read_only=True)
-    assignment_due_date = serializers.CharField(
-        source="assignment__due_date", read_only=True
+    # H-150: these three were declared with sources written with two
+    # underscores ("assignment__title"), which name no attribute; being
+    # read-only they were skipped, and no student was ever sent them.
+    # They are read at the time of the read, released or not. Nothing of
+    # a grade: the assignment's title and due date and the course's name.
+    assignment_title = serializers.CharField(source="assignment.title", read_only=True)
+    # The standard date form, as submission_date beside it; null when the
+    # assignment has no due date.
+    assignment_due_date = serializers.DateTimeField(
+        source="assignment.due_date", read_only=True
     )
-
+    # A course has a name and no title; the key is the one declared.
     course_title = serializers.CharField(
-        source="assignment__course__title", read_only=True
+        source="assignment.course.name", read_only=True
     )
 
     grade_letter = serializers.SerializerMethodField()
@@ -552,7 +587,130 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return remaining_student_attempts(obj)
 
 
+@extend_schema_field(OpenApiTypes.ANY)
+class SentAs(serializers.Field):
+    """A key that is sent as a constant, whatever the row holds. The row's
+    column of that name is not read."""
+
+    def __init__(self, value):
+        self.value = value
+        super().__init__(read_only=True)
+
+    def get_attribute(self, instance):
+        return instance
+
+    def to_representation(self, instance):
+        return copy.deepcopy(self.value)
+
+
+class StudentUploadAnswerSerializer(serializers.ModelSerializer):
+    """H-141: what a student's own answer upload is answered with.
+
+    The route answered with the teacher's StudentSubmissionDetailSerializer,
+    built without the request. An upload is refused once the paper is
+    graded, but on a paper that is not graded the student was still shown
+    the teacher's scheduled grading run and a failed or stale grading
+    state.
+
+    The same thirty keys, in the same order, so a page that reads the
+    answer finds what it found. The student's own facts keep their values.
+    Every staff key is a constant, the value of a paper nobody has graded
+    or scheduled: this class does not read the grade's columns at all, so
+    what it answers does not depend on the upload having been refused, nor
+    on the request. `score` is sent as null, as on the student's other
+    routes before release (the teacher's serializer sent the column's
+    default, a zero).
+    """
+
+    audience = "student"
+
+    full_name = serializers.CharField(source="student.get_full_name", read_only=True)
+    first_name = serializers.CharField(source="student.first_name", read_only=True)
+    last_name = serializers.CharField(source="student.last_name", read_only=True)
+    email = serializers.SerializerMethodField()
+    submission_status = serializers.SerializerMethodField()
+    remaining_attempts = serializers.SerializerMethodField()
+    max_points = serializers.SerializerMethodField()
+    # Not the stored column: the student's document (H-130).
+    raw_input = serializers.SerializerMethodField()
+
+    score = SentAs(None)
+    score_percentage = SentAs(None)
+    was_regraded = SentAs(False)
+    regraded_at = SentAs(None)
+    grade_status = SentAs("NOT GRADED")
+    formatted_grade = SentAs(None)
+    grading_state = SentAs(GradingState.IDLE.value)
+    needs_review = SentAs(False)
+    review_reasons = SentAs(None)
+    review_severity = SentAs(None)
+    review_tier = SentAs(None)
+    second_opinion = SentAs(None)
+    question_breakdown = SentAs([])
+    scheduled_grading_at = SentAs(None)
+    grading_task_name = SentAs(None)
+    is_grading_scheduled = SentAs(False)
+
+    class Meta:
+        model = StudentSubmission
+        # The keys and the order of StudentSubmissionDetailSerializer.
+        fields = [
+            "id",
+            "assignment",
+            "student",
+            "full_name",
+            "first_name",
+            "last_name",
+            "email",
+            "submission_status",
+            "score",
+            "remaining_attempts",
+            "max_points",
+            "score_percentage",
+            "was_regraded",
+            "regraded_at",
+            "grade_status",
+            "is_published",
+            "submission_date",
+            "raw_input",
+            "formatted_grade",
+            "answers",
+            "grading_state",
+            "needs_review",
+            "review_reasons",
+            "review_severity",
+            "review_tier",
+            "second_opinion",
+            "question_breakdown",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
+        ]
+        read_only_fields = fields
+
+    def get_email(self, obj):
+        if "student.local" in obj.student.email:
+            return None
+        return obj.student.email
+
+    def get_submission_status(self, obj):
+        return "SUBMITTED"
+
+    def get_remaining_attempts(self, obj) -> int:
+        return remaining_student_attempts(obj)
+
+    def get_max_points(self, obj):
+        # What a submitted paper shows (H-133): the assignment's total, not
+        # the maximum the grader stores on the row.
+        return obj.assignment.total_points
+
+    def get_raw_input(self, obj):
+        return answer_document_for_student(obj)
+
+
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
+    audience = "staff"  # H-141: the teacher's manual grade
+
     class Meta:
         model = StudentSubmission
         fields = [
@@ -562,6 +720,8 @@ class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
 
 
 class StudentSubmissionTeacherFeedbackSerializer(serializers.ModelSerializer):
+    audience = "staff"  # H-141: the teacher's feedback route
+
     class Meta:
         model = StudentSubmission
         fields = [

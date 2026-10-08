@@ -48,16 +48,38 @@ TESTS = ["students.tests_answer_document_score_printing"]
 
 GRADED = "        if graded_at and score is not None:\n"
 TWO = '            score = format(Decimal(str(score)), ".2f")\n'
-REBUILD = (
-    "        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(\n"
-    "            student_submission_to_html(submission)\n"
+TRY_BUILD = (
+    "        try:\n"
+    "            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(\n"
+    "                student_submission_to_html(submission)\n"
+    "            )\n"
+)
+THE_GUARD = (
+    "        except Exception as exc:  # noqa: BLE001 - see the comment above\n"
+    "            logger.error(\n"
+    '                "Manual grade: the answer document could not be rebuilt: "\n'
+    '                "submission=%s error=%s",\n'
+    "                submission.pk,\n"
+    "                type(exc).__name__,\n"
+    "            )\n"
+)
+THE_SAVE = (
+    "        submission.save(\n"
+    "            update_fields=[\n"
+    '                "score",\n'
+    '                "score_percentage",\n'
+    '                "max_points",\n'
+    '                "feedback",\n'
+    '                "was_regraded",\n'
+    '                "regraded_at",\n'
+    '                "needs_review",\n'
+    '                "review_reasons",\n'
+    '                "raw_input",\n'
+    "            ]\n"
     "        )\n"
-    "\n"
-    "        # Update the formatted grade since the score/feedback changed\n"
 )
-AFTER_REBUILD = (
-    "        # Update the formatted grade since the score/feedback changed\n"
-)
+GAP = "\n        # Update the formatted grade since the score/feedback changed\n\n"
+GUARD_TESTS = ["students.tests_manual_grade_unreadable_answers"]
 
 #: (id, what it guards, file, old, new, occurrence, labels)
 MUTANTS = [
@@ -65,8 +87,8 @@ MUTANTS = [
         "M1",
         "the manual-grade route rebuilds the document (the defect itself)",
         VW,
-        REBUILD,
-        AFTER_REBUILD,
+        TRY_BUILD,
+        "        try:\n            pass\n",
         1,
         TESTS,
     ),
@@ -128,13 +150,38 @@ MUTANTS = [
         "M8",
         "the route rebuilds the graded document, not the ungraded form",
         VW,
-        REBUILD,
-        REBUILD.replace(
+        TRY_BUILD,
+        TRY_BUILD.replace(
             "student_submission_to_html(submission)",
             "student_submission_to_html(submission, show_grade=False)",
         ),
         1,
         TESTS,
+    ),
+    (
+        "M9",
+        "the guard: a builder fault does not stop the grade being saved",
+        VW,
+        TRY_BUILD + THE_GUARD,
+        "        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(\n"
+        "            student_submission_to_html(submission)\n"
+        "        )\n",
+        1,
+        GUARD_TESTS,
+    ),
+    (
+        "M10",
+        "the guard is around the build only, never the save",
+        VW,
+        TRY_BUILD + THE_GUARD + GAP + THE_SAVE,
+        TRY_BUILD
+        + GAP.replace("        #", "            #")
+        + THE_SAVE.replace("\n        ", "\n            ", 0).replace(
+            "        submission.save", "            submission.save", 1
+        )
+        + THE_GUARD,
+        1,
+        GUARD_TESTS,
     ),
 ]
 

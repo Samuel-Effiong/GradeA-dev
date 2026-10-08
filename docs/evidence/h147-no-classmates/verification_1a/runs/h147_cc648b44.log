@@ -1,0 +1,457 @@
+# 1a H-147 baseline at cc648b4446f6b7535c8ca84c06cc2bcdd9dfbe7a, unmutated, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 6.86 5.96 5.18 11/2086 557804
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+Creating test database for alias 'default' ('test_vf_h147')...
+Found 26 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_pg_handing_in_a_paper_refreshes_the_cached_course_answers (classrooms.tests_vf1a_h147_probe.Vf1aCachedOwnStateProbe.test_pg_handing_in_a_paper_refreshes_the_cached_course_answers) ... Free trial plan not found: no trial activated for user 86fe9220-34b5-46ff-82e3-79a0c4cb6d0f.
+Cannot activate automatic trial for user 86fe9220-34b5-46ff-82e3-79a0c4cb6d0f (validation): ValueError
+Free trial plan not found: no trial activated for user cde968bf-8cc0-4410-bcd0-ade57a713878.
+Cannot activate automatic trial for user cde968bf-8cc0-4410-bcd0-ade57a713878 (validation): ValueError
+Free trial plan not found: no trial activated for user cceab8e6-a536-4fc7-a2c4-d47351973914.
+Cannot activate automatic trial for user cceab8e6-a536-4fc7-a2c4-d47351973914 (validation): ValueError
+ok
+test_pa_a_course_not_loaded_by_the_view_gives_the_own_entry_only (classrooms.tests_vf1a_h147_probe.Vf1aRosterProbe.test_pa_a_course_not_loaded_by_the_view_gives_the_own_entry_only) ... Free trial plan not found: no trial activated for user a0cf7641-ac2a-4431-bd2f-fac0d9f5efff.
+Cannot activate automatic trial for user a0cf7641-ac2a-4431-bd2f-fac0d9f5efff (validation): ValueError
+Free trial plan not found: no trial activated for user ad7f689a-bedc-4c51-8fb8-a3e14babe82e.
+Cannot activate automatic trial for user ad7f689a-bedc-4c51-8fb8-a3e14babe82e (validation): ValueError
+Free trial plan not found: no trial activated for user 2cf48013-5a8a-464a-97f2-78208704a013.
+Cannot activate automatic trial for user 2cf48013-5a8a-464a-97f2-78208704a013 (validation): ValueError
+ok
+test_pd_a_student_who_completed_the_course_gets_their_own_entry (classrooms.tests_vf1a_h147_probe.Vf1aRosterProbe.test_pd_a_student_who_completed_the_course_gets_their_own_entry) ... Free trial plan not found: no trial activated for user 06984e5f-e407-4f34-8470-60e570121c86.
+Cannot activate automatic trial for user 06984e5f-e407-4f34-8470-60e570121c86 (validation): ValueError
+Free trial plan not found: no trial activated for user ae5bc7fe-6bc5-434c-af2d-aebbdb958f3c.
+Cannot activate automatic trial for user ae5bc7fe-6bc5-434c-af2d-aebbdb958f3c (validation): ValueError
+Free trial plan not found: no trial activated for user 59ac16e3-ee4e-4720-92e1-1ecf0df7a615.
+Cannot activate automatic trial for user 59ac16e3-ee4e-4720-92e1-1ecf0df7a615 (validation): ValueError
+ok
+test_pb_a_school_admin_still_gets_the_school_and_the_creator (classrooms.tests_vf1a_h147_probe.Vf1aSessionProbe.test_pb_a_school_admin_still_gets_the_school_and_the_creator) ... Free trial plan not found: no trial activated for user 0572ee81-5231-4b84-81a6-cc0f5e42e7a3.
+Cannot activate automatic trial for user 0572ee81-5231-4b84-81a6-cc0f5e42e7a3 (validation): ValueError
+Free trial plan not found: no trial activated for user f3f0bf81-bcf5-458b-856f-dbfd52577be8.
+Cannot activate automatic trial for user f3f0bf81-bcf5-458b-856f-dbfd52577be8 (validation): ValueError
+Free trial plan not found: no trial activated for user 90986962-399e-470d-aae6-c300fb6f5fb9.
+Cannot activate automatic trial for user 90986962-399e-470d-aae6-c300fb6f5fb9 (validation): ValueError
+Free trial plan not found: no trial activated for user 3a046b03-51da-4ad1-bbd2-926d56c8bfbb.
+Cannot activate automatic trial for user 3a046b03-51da-4ad1-bbd2-926d56c8bfbb (validation): ValueError
+ok
+test_pc_a_student_gets_neither_id_on_the_session_detail_route (classrooms.tests_vf1a_h147_probe.Vf1aSessionProbe.test_pc_a_student_gets_neither_id_on_the_session_detail_route) ... Free trial plan not found: no trial activated for user d2f0a9ff-e058-4359-b608-77bc505c4742.
+Cannot activate automatic trial for user d2f0a9ff-e058-4359-b608-77bc505c4742 (validation): ValueError
+Free trial plan not found: no trial activated for user 805fd402-afed-4e3f-95f7-012473c272dc.
+Cannot activate automatic trial for user 805fd402-afed-4e3f-95f7-012473c272dc (validation): ValueError
+Free trial plan not found: no trial activated for user 6fe9fde5-2eec-4e34-bb1c-bec6b5613107.
+Cannot activate automatic trial for user 6fe9fde5-2eec-4e34-bb1c-bec6b5613107 (validation): ValueError
+Free trial plan not found: no trial activated for user 694a050d-8c96-4916-b3af-3214e3e4a7b9.
+Cannot activate automatic trial for user 694a050d-8c96-4916-b3af-3214e3e4a7b9 (validation): ValueError
+ok
+test_the_count_stays_flat_as_the_assignments_grow (classrooms.tests_student_sees_no_classmates.StudentCourseAnswerQueryCountTest.test_the_count_stays_flat_as_the_assignments_grow) ... Free trial plan not found: no trial activated for user 63bb45e0-21fa-42fd-bce9-12189d47b760.
+Cannot activate automatic trial for user 63bb45e0-21fa-42fd-bce9-12189d47b760 (validation): ValueError
+Free trial plan not found: no trial activated for user f1955062-2894-440e-9f3a-b3e72e601e3c.
+Cannot activate automatic trial for user f1955062-2894-440e-9f3a-b3e72e601e3c (validation): ValueError
+Free trial plan not found: no trial activated for user 86b9c32c-b4b5-4a59-b296-ef955aff267d.
+Cannot activate automatic trial for user 86b9c32c-b4b5-4a59-b296-ef955aff267d (validation): ValueError
+ok
+test_a_classmates_paper_changes_nothing_the_student_reads (classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_a_classmates_paper_changes_nothing_the_student_reads) ... Free trial plan not found: no trial activated for user b62a95f6-e055-4595-ba44-384242cf21bd.
+Cannot activate automatic trial for user b62a95f6-e055-4595-ba44-384242cf21bd (validation): ValueError
+Free trial plan not found: no trial activated for user d93d267c-23d4-4f75-95b7-d11e6cc27757.
+Cannot activate automatic trial for user d93d267c-23d4-4f75-95b7-d11e6cc27757 (validation): ValueError
+Free trial plan not found: no trial activated for user d85f09f9-8380-46b4-8325-7607e9a9e8c5.
+Cannot activate automatic trial for user d85f09f9-8380-46b4-8325-7607e9a9e8c5 (validation): ValueError
+ok
+test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded (classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded) ... Free trial plan not found: no trial activated for user 3034926c-0cb6-4163-9aff-243ea0e4325a.
+Cannot activate automatic trial for user 3034926c-0cb6-4163-9aff-243ea0e4325a (validation): ValueError
+Free trial plan not found: no trial activated for user 931a1b1d-db64-44a3-915c-eebb087cd41c.
+Cannot activate automatic trial for user 931a1b1d-db64-44a3-915c-eebb087cd41c (validation): ValueError
+Free trial plan not found: no trial activated for user 19d2da90-a73c-466a-962a-031c743c4907.
+Cannot activate automatic trial for user 19d2da90-a73c-466a-962a-031c743c4907 (validation): ValueError
+ok
+test_the_students_own_paper_shows_as_submitted (classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_students_own_paper_shows_as_submitted) ... Free trial plan not found: no trial activated for user 15d86b87-77e9-49dc-99db-31142da882aa.
+Cannot activate automatic trial for user 15d86b87-77e9-49dc-99db-31142da882aa (validation): ValueError
+Free trial plan not found: no trial activated for user 1655cdb4-ec30-46ca-8d84-f54f34fdfd8f.
+Cannot activate automatic trial for user 1655cdb4-ec30-46ca-8d84-f54f34fdfd8f (validation): ValueError
+Free trial plan not found: no trial activated for user 89e3062a-a247-4a0c-adef-484a9377ef0c.
+Cannot activate automatic trial for user 89e3062a-a247-4a0c-adef-484a9377ef0c (validation): ValueError
+ok
+test_the_view_loads_only_the_viewers_own_submissions (classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_view_loads_only_the_viewers_own_submissions) ... Free trial plan not found: no trial activated for user 928f29fa-5c98-436b-b487-0847ded427bf.
+Cannot activate automatic trial for user 928f29fa-5c98-436b-b487-0847ded427bf (validation): ValueError
+Free trial plan not found: no trial activated for user ef38adb1-7f09-4584-96bc-7b805a631e44.
+Cannot activate automatic trial for user ef38adb1-7f09-4584-96bc-7b805a631e44 (validation): ValueError
+Free trial plan not found: no trial activated for user 77b9d958-cedf-476b-bb87-d568926bf102.
+Cannot activate automatic trial for user 77b9d958-cedf-476b-bb87-d568926bf102 (validation): ValueError
+ok
+test_a_student_is_sent_neither_id (classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_a_student_is_sent_neither_id) ... Free trial plan not found: no trial activated for user 37369a1c-030b-46f2-94cb-56839a575eeb.
+Cannot activate automatic trial for user 37369a1c-030b-46f2-94cb-56839a575eeb (validation): ValueError
+Free trial plan not found: no trial activated for user 69697c92-a6b5-4395-9b66-89148daba93d.
+Cannot activate automatic trial for user 69697c92-a6b5-4395-9b66-89148daba93d (validation): ValueError
+Free trial plan not found: no trial activated for user 399cb149-4bb0-4a8b-9439-b5c8a3813511.
+Cannot activate automatic trial for user 399cb149-4bb0-4a8b-9439-b5c8a3813511 (validation): ValueError
+Free trial plan not found: no trial activated for user 0a679d58-7962-478b-a5e7-deee40a3f1a4.
+Cannot activate automatic trial for user 0a679d58-7962-478b-a5e7-deee40a3f1a4 (validation): ValueError
+ok
+test_the_teacher_still_sees_who_created_their_session (classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_the_teacher_still_sees_who_created_their_session) ... Free trial plan not found: no trial activated for user 6b02aa9c-2987-4bc6-b047-ad3af0dd80b4.
+Cannot activate automatic trial for user 6b02aa9c-2987-4bc6-b047-ad3af0dd80b4 (validation): ValueError
+Free trial plan not found: no trial activated for user b6e07e78-11c4-4b6c-95a2-22ad0cd6fb41.
+Cannot activate automatic trial for user b6e07e78-11c4-4b6c-95a2-22ad0cd6fb41 (validation): ValueError
+Free trial plan not found: no trial activated for user 2aabbfdc-4190-41cb-ad07-ed8108b91586.
+Cannot activate automatic trial for user 2aabbfdc-4190-41cb-ad07-ed8108b91586 (validation): ValueError
+Free trial plan not found: no trial activated for user c5c052ef-33e8-42ae-9af7-24dd318862a5.
+Cannot activate automatic trial for user c5c052ef-33e8-42ae-9af7-24dd318862a5 (validation): ValueError
+ok
+test_a_classmate_of_any_enrolment_status_is_absent (classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_a_classmate_of_any_enrolment_status_is_absent) ... Free trial plan not found: no trial activated for user 5d38c009-1abb-4699-96ad-1c2a4a8ca2e0.
+Cannot activate automatic trial for user 5d38c009-1abb-4699-96ad-1c2a4a8ca2e0 (validation): ValueError
+Free trial plan not found: no trial activated for user 68963f7c-6c03-4750-91db-b5ae200756e7.
+Cannot activate automatic trial for user 68963f7c-6c03-4750-91db-b5ae200756e7 (validation): ValueError
+Free trial plan not found: no trial activated for user 7005f12b-c2c5-433d-b61a-8bc200be7260.
+Cannot activate automatic trial for user 7005f12b-c2c5-433d-b61a-8bc200be7260 (validation): ValueError
+Free trial plan not found: no trial activated for user 667bb5d2-f17a-47f0-aaa7-7f50dc8dfa8a.
+Cannot activate automatic trial for user 667bb5d2-f17a-47f0-aaa7-7f50dc8dfa8a (validation): ValueError
+ok
+test_the_class_size_is_sent_as_a_bare_number (classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_class_size_is_sent_as_a_bare_number)
+The founder's representative allowed this much: how many are in ... Free trial plan not found: no trial activated for user 24b13732-37a7-4ab5-a1c7-68bb00a40641.
+Cannot activate automatic trial for user 24b13732-37a7-4ab5-a1c7-68bb00a40641 (validation): ValueError
+Free trial plan not found: no trial activated for user 22d53acc-84fd-44c8-b960-61e4f5962801.
+Cannot activate automatic trial for user 22d53acc-84fd-44c8-b960-61e4f5962801 (validation): ValueError
+Free trial plan not found: no trial activated for user 337c0029-5cf7-4822-a9ee-61020e9c6668.
+Cannot activate automatic trial for user 337c0029-5cf7-4822-a9ee-61020e9c6668 (validation): ValueError
+ok
+test_the_roster_is_the_students_own_entry_on_every_course_route (classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_roster_is_the_students_own_entry_on_every_course_route) ... Free trial plan not found: no trial activated for user 3e9d9d0a-c7be-463b-a423-73695d87454c.
+Cannot activate automatic trial for user 3e9d9d0a-c7be-463b-a423-73695d87454c (validation): ValueError
+Free trial plan not found: no trial activated for user 7852c9e7-b3aa-4e16-a8b9-e30f0d5955cb.
+Cannot activate automatic trial for user 7852c9e7-b3aa-4e16-a8b9-e30f0d5955cb (validation): ValueError
+Free trial plan not found: no trial activated for user 91662f27-e47d-430a-9ee6-085c07ac36a2.
+Cannot activate automatic trial for user 91662f27-e47d-430a-9ee6-085c07ac36a2 (validation): ValueError
+ok
+test_the_teacher_still_sees_the_whole_roster_and_the_class_size (classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_teacher_still_sees_the_whole_roster_and_the_class_size) ... Free trial plan not found: no trial activated for user 4c2c9c66-7ea3-4fa7-a057-e3228b926aa7.
+Cannot activate automatic trial for user 4c2c9c66-7ea3-4fa7-a057-e3228b926aa7 (validation): ValueError
+Free trial plan not found: no trial activated for user 5dc0f179-a67f-47bc-bf27-b98652a610d8.
+Cannot activate automatic trial for user 5dc0f179-a67f-47bc-bf27-b98652a610d8 (validation): ValueError
+Free trial plan not found: no trial activated for user 13f96f9d-8eb1-4224-8c30-dcd697efe5e3.
+Cannot activate automatic trial for user 13f96f9d-8eb1-4224-8c30-dcd697efe5e3 (validation): ValueError
+ok
+test_the_nested_assignments_are_the_students_own_view (classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_nested_assignments_are_the_students_own_view) ... Free trial plan not found: no trial activated for user 22bab706-1def-4ea6-9297-d543a546521b.
+Cannot activate automatic trial for user 22bab706-1def-4ea6-9297-d543a546521b (validation): ValueError
+Free trial plan not found: no trial activated for user 3dfe4c92-a7bc-4c7a-b510-5244a3d53100.
+Cannot activate automatic trial for user 3dfe4c92-a7bc-4c7a-b510-5244a3d53100 (validation): ValueError
+Free trial plan not found: no trial activated for user 49433714-d6f8-43e2-84de-8ca864393f02.
+Cannot activate automatic trial for user 49433714-d6f8-43e2-84de-8ca864393f02 (validation): ValueError
+ok
+test_the_students_own_status_on_an_assignment_is_shown (classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_students_own_status_on_an_assignment_is_shown)
+What the student's view is for: their own state on the work. ... Free trial plan not found: no trial activated for user 60946bff-e15d-44be-b2a7-e33b28881d47.
+Cannot activate automatic trial for user 60946bff-e15d-44be-b2a7-e33b28881d47 (validation): ValueError
+Free trial plan not found: no trial activated for user 5a31eb9d-c164-4c55-ab41-5c56090c11f6.
+Cannot activate automatic trial for user 5a31eb9d-c164-4c55-ab41-5c56090c11f6 (validation): ValueError
+Free trial plan not found: no trial activated for user 622dafc7-a489-47ef-82eb-85871e08eb69.
+Cannot activate automatic trial for user 622dafc7-a489-47ef-82eb-85871e08eb69 (validation): ValueError
+ok
+test_the_teacher_still_gets_the_teachers_assignment_list (classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_teacher_still_gets_the_teachers_assignment_list) ... Free trial plan not found: no trial activated for user bc9b2bac-8fed-4bf4-be21-de3f0ab2f26a.
+Cannot activate automatic trial for user bc9b2bac-8fed-4bf4-be21-de3f0ab2f26a (validation): ValueError
+Free trial plan not found: no trial activated for user 513c793c-1135-492b-9d40-9ee309a9d228.
+Cannot activate automatic trial for user 513c793c-1135-492b-9d40-9ee309a9d228 (validation): ValueError
+Free trial plan not found: no trial activated for user 3316af67-c56a-45a2-b687-d89fdddb7bdd.
+Cannot activate automatic trial for user 3316af67-c56a-45a2-b687-d89fdddb7bdd (validation): ValueError
+ok
+test_rule_1_every_roster_site_is_classified (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_every_roster_site_is_classified) ... ok
+test_rule_1_no_classified_site_has_gone (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_no_classified_site_has_gone) ... ok
+test_rule_1_the_course_answer_serves_the_student_first (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first) ... ok
+test_rule_1_the_order_check_fails_when_the_roster_comes_first (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_order_check_fails_when_the_roster_comes_first) ... ok
+test_rule_1_the_scan_sees_a_site_when_there_is_one (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_scan_sees_a_site_when_there_is_one)
+The scan on a made-up file: a use in a method, in a decorator ... ok
+test_rule_2_each_refusal_is_where_the_table_says (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_each_refusal_is_where_the_table_says) ... ok
+test_rule_2_every_action_is_classified (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_every_action_is_classified) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 8.301s
+
+OK
+Destroying test database for alias 'default' ('test_vf_h147')...
+ OK
+exit=0 wall_s=35 loadavg after: 7.76 6.30 5.32 17/2125 558704

@@ -1,0 +1,106 @@
+AutoGrader/tests_student_feedback_guard.py:12:`needs_review`, `review_reasons`, `review_severity`, `review_tier` and
+AutoGrader/tests_student_feedback_guard.py:13:`grading_confidence` are the teacher's review queue; `review_reasons` holds
+AutoGrader/tests_student_feedback_guard.py:49:    `grading_result_for_formatter` keeps everything but one key (it is for
+AutoGrader/tests_student_feedback_guard.py:66:    "review_reasons",
+AutoGrader/tests_student_feedback_guard.py:87:    "grading_result_for_formatter",
+AutoGrader/tests_student_feedback_guard.py:116:    "grading_result_for_formatter",
+AutoGrader/tests_student_feedback_guard.py:278:            "    b = module.grading_result_for_formatter(s.feedback)\n"
+AutoGrader/tests_student_feedback_guard.py:307:            "        fields = ['id', 'feedback', 'review_reasons']\n"
+AutoGrader/tests_student_feedback_guard.py:313:            guarded_field_lists(source), [("A", {"feedback", "review_reasons"})]
+AutoGrader/tests_student_feedback_guard.py:428:                "review_reasons": None,
+ai_processor/tests_answer_benchmark_grading.py:113:                    "score_calculation_verification": {},
+ai_processor/tests_answer_benchmark_grading.py:223:                        for reason in (submission.review_reasons or [])
+ai_processor/tests_benchmark_history.py:55:            "graded_by": "test-model",
+ai_processor/tests_benchmark_history.py:187:        self.assertEqual(rows[0]["graded_by"], "test-model")
+ai_processor/tests_grading_arithmetic.py:106:            result["score_calculation_verification"]["unmatched_evaluations_dropped"],
+ai_processor/tests_grading_arithmetic.py:218:        self.assertIn("score_calculation_verification", result)
+ai_processor/tests_grading_cache.py:94:        self.assertTrue(hit["from_cache"])
+ai_processor/tests_grading_cache.py:205:        self.assertTrue(second["question_evaluations"][0].get("from_cache"))
+ai_processor/tests_grading_cache.py:206:        self.assertNotIn("from_cache", first["question_evaluations"][0])
+ai_processor/tests_grading_cache.py:333:        self.assertTrue(second["question_evaluations"][0].get("from_cache"))
+ai_processor/tests_grading_eval_command.py:150:            review_reasons=[
+ai_processor/tests_grading_eval_command.py:190:            review_reasons=[
+ai_processor/tests_grading_structured_output.py:100:        "score_calculation_verification": {},
+ai_processor/tests_objective_matching.py:293:        self.assertEqual(evaluation["graded_by"], "deterministic")
+ai_processor/tests_objective_pipeline.py:158:        self.assertEqual(by_number[1]["graded_by"], "deterministic")
+ai_processor/tests_objective_pipeline.py:160:        self.assertEqual(by_number[3]["graded_by"], "test-model")
+ai_processor/tests_objective_pipeline.py:191:        self.assertEqual(by_number[1]["graded_by"], "deterministic")
+ai_processor/tests_objective_pipeline.py:247:        self.assertIn("score_calculation_verification", result)
+ai_processor/tests_objective_pipeline.py:360:                        "score_calculation_verification": {},
+ai_processor/tests_objective_pipeline.py:441:                        "score_calculation_verification": {},
+ai_processor/tests_objective_pipeline.py:474:        self.assertIn('"graded_by": "deterministic"', summary_prompt)
+ai_processor/tests_reason_before_score.py:321:                        "graded_by": "deterministic",
+ai_processor/tests_reply_repeated_evaluation.py:100:    "graded against the answer key": {"graded_by": "deterministic"},
+ai_processor/tests_reply_repeated_evaluation.py:101:    "reused from the store": {"from_cache": True},
+ai_processor/tests_reply_repeated_evaluation.py:157:        return result["score_calculation_verification"]
+ai_processor/tests_reply_repeated_evaluation.py:169:        self.assertEqual(self.note(result)["verification_status"], "PASS")
+ai_processor/tests_reply_repeated_evaluation.py:225:        self.assertNotEqual(note["verification_status"], "PASS")
+ai_processor/tests_reply_repeated_evaluation.py:309:        self.assertNotEqual(note["verification_status"], "PASS")
+ai_processor/tests_reply_repeated_evaluation.py:360:        self.assertNotEqual(note["verification_status"], "PASS")
+ai_processor/tests_reply_repeated_evaluation.py:424:                self.assertTrue(first.get("from_cache"))
+ai_processor/tests_reply_repeated_evaluation.py:441:        self.assertNotEqual(note["verification_status"], "PASS")
+ai_processor/tests_reply_repeated_evaluation.py:489:            with self.subTest(first=evaluations[0].get("graded_by", "model")):
+ai_processor/tests_reply_repeated_evaluation.py:498:                self.assertEqual(kept[0].get("graded_by"), "deterministic")
+ai_processor/tests_reply_repeated_evaluation.py:510:            finalized["score_calculation_verification"]["individual_scores"],
+ai_processor/tests_reply_repeated_evaluation.py:538:                dict(evaluation(1), from_cache=True),
+ai_processor/tests_reply_repeated_evaluation.py:571:        self.assertEqual(self.note(again)["verification_status"], "PASS")
+ai_processor/tests_rubric_snapping.py:58:            result["score_calculation_verification"]["snapped_to_rubric_level_count"],
+ai_processor/tests_rubric_snapping.py:121:                "graded_by": "deterministic",
+ai_processor/tests_second_opinion_pipeline.py:399:                        "score_calculation_verification": {},
+ai_processor/tests_second_opinion_selection.py:53:        "graded_by": graded_by,
+assignments/tests_pdf_cache.py:614:    def test_second_download_is_served_from_cache_without_rendering(self, mock_render):
+students/tests_ai_reply_corrected_review.py:11:No model change: the reason is one more entry in `review_reasons`, with
+students/tests_ai_reply_corrected_review.py:22:from students.feedback_projection import grading_result_for_formatter
+students/tests_ai_reply_corrected_review.py:36:        "verification_status": "PASS",
+students/tests_ai_reply_corrected_review.py:47:        "score_calculation_verification": verification,
+students/tests_ai_reply_corrected_review.py:54:    "verification_status": "CORRECTED",
+students/tests_ai_reply_corrected_review.py:60:    "verification_status": "CORRECTED",
+students/tests_ai_reply_corrected_review.py:102:        self.assertIsNone(saved.review_reasons)
+students/tests_ai_reply_corrected_review.py:110:            saved.review_reasons,
+students/tests_ai_reply_corrected_review.py:128:            saved.review_reasons,
+students/tests_ai_reply_corrected_review.py:155:            [reason["type"] for reason in saved.review_reasons],
+students/tests_ai_reply_corrected_review.py:166:        self.assertIsNone(saved.review_reasons)
+students/tests_ai_reply_corrected_review.py:181:                result["score_calculation_verification"] = note
+students/tests_ai_reply_corrected_review.py:199:            grading_result_for_formatter(result)["score_calculation_verification"],
+students/tests_ai_reply_corrected_review.py:200:            result["score_calculation_verification"],
+students/tests_ai_reply_corrected_review.py:206:                sent = grading_result_for_formatter(grading_result(note))
+students/tests_ai_reply_corrected_review.py:209:                    sent["score_calculation_verification"],
+students/tests_ai_reply_corrected_review.py:222:        grading_result_for_formatter(result)
+students/tests_ai_reply_corrected_review.py:225:            result["score_calculation_verification"]["verification_status"],
+students/tests_ai_reply_corrected_review.py:228:        self.assertIn("correction_note", result["score_calculation_verification"])
+students/tests_ai_reply_corrected_review.py:232:        sent = grading_result_for_formatter(
+students/tests_formatter_input.py:34:from students.feedback_projection import grading_result_for_formatter
+students/tests_formatter_input.py:134:        self.assertEqual(grading_result_for_formatter(result), expected)
+students/tests_formatter_input.py:138:        grading_result_for_formatter(result)
+students/tests_formatter_input.py:143:            self.assertEqual(grading_result_for_formatter(value), value)
+students/tests_missing_answer_review.py:133:        reason = submission.review_reasons[0]
+students/tests_missing_answer_review.py:142:        self.assertEqual(len(submission.review_reasons), 3)
+students/tests_missing_answer_review.py:149:        self.assertIsNone(submission.review_reasons)
+students/tests_missing_answer_review.py:164:        types = {r["type"] for r in submission.review_reasons}
+students/tests_missing_answer_review.py:184:        types = {r["type"] for r in submission.review_reasons}
+students/tests_missing_answer_review.py:186:        self.assertEqual(len(submission.review_reasons), 2)
+students/tests_missing_answer_review.py:193:        self.assertEqual(len(submission.review_reasons), 1)
+students/tests_missing_answer_review.py:194:        self.assertEqual(submission.review_reasons[0]["type"], "grader_disagreement")
+students/tests_missing_answer_review.py:205:            submission.review_reasons[0]["type"], "second_opinion_unavailable"
+students/tests_missing_answer_review.py:213:        types = {r["type"] for r in submission.review_reasons}
+students/tests_missing_answer_review.py:222:        self.assertIsNone(submission.review_reasons)
+students/tests_missing_answer_review.py:229:        self.assertEqual(len(submission.review_reasons), 2)
+students/tests_second_opinion_queue.py:155:        [reason] = self.submission.review_reasons
+students/tests_second_opinion_queue.py:168:        self.assertIsNone(self.submission.review_reasons)
+students/tests_second_opinion_queue.py:178:        self.assertIsNone(self.submission.review_reasons)
+students/tests_second_opinion_queue.py:260:            for entry in self.submission.review_reasons
+students/tests_second_opinion_queue.py:269:                for entry in self.submission.review_reasons
+students/tests_second_opinion_queue.py:292:                for entry in self.submission.review_reasons
+students/tests_second_opinion_queue.py:305:        [reason] = self.submission.review_reasons
+students/tests_student_feedback_routes.py:50:    "graded_by",
+students/tests_student_feedback_routes.py:85:            "graded_by": "first-grader-model",
+students/tests_student_feedback_routes.py:276:    `review_reasons` holds both AI graders' marks for each disputed
+students/tests_student_feedback_routes.py:282:        "review_reasons": [
+students/tests_student_feedback_routes.py:312:        self.assertIsNone(row["review_reasons"])
+students/tests_student_feedback_routes.py:340:            as_plain(row["review_reasons"]), self.REVIEW_STATE["review_reasons"]
+students/tests_student_feedback_scoping.py:76:                    "graded_by": "x-ai/grok-4.3",
+students/tests_student_feedback_scoping.py:141:        self.assertNotIn("graded_by", evaluation)
+students/tests_student_feedback_scoping.py:176:        self.assertEqual(entry["graded_by"], "x-ai/grok-4.3")
+students/tests_submission_update_freshness.py:67:            review_reasons=[{"type": "grader_disagreement"}],
+users/tests_remaining_branches.py:152:    def test_a_repeated_list_is_served_from_cache(self):
+users/tests_remaining_branches.py:168:    def test_a_repeated_retrieve_is_served_from_cache(self):

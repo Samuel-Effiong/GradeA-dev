@@ -1,0 +1,23 @@
+baseline exit=0
+R1	of a question's repeats the last does not simply win	KILLED	FAILED (failures=15)	True	6.0
+R2	of a question's repeats the first does not simply win	KILLED	FAILED (failures=5)	True	6.2
+R3	an evaluation that matches no question is dropped	KILLED	FAILED (failures=5)	True	5.0
+R4	an evaluation the system held stands against a model's	KILLED	FAILED (failures=5)	True	5.5
+R5	among a model's repeats the LOWEST score is kept	KILLED	FAILED (failures=13)	True	5.9
+R6	the saved note does not say PASS when something was dropped	KILLED	FAILED (failures=4)	True	6.7
+R7	the long path's saved note carries what its first sum dropped	KILLED	FAILED (failures=1)	True	6.9
+R8	short path: only kept evaluations reach the saved-answer store	KILLED	FAILED (failures=3)	True	8.4
+R9	long path: only kept evaluations reach the saved-answer store	KILLED	FAILED (failures=1)	True	8.3
+R10	a corrected reply puts the paper in the teacher's review queue	KILLED	FAILED (failures=4)	True	7.6
+R11	the formatter is sent a corrected note as arithmetic only	KILLED	FAILED (failures=2)	True	6.2
+R12	a warning line is logged for a corrected reply	KILLED	FAILED (failures=1)	True	4.8
+R13	the count of dropped repeats is the count	KILLED	FAILED (failures=4)	True	5.0
+R14	a reply's evaluation cannot say it came from the saved-answer store	KILLED	FAILED (failures=4)	True	5.1
+R15	a reply's evaluation cannot name its own grader	KILLED	FAILED (failures=5)	True	7.7
+R16	short path: the reply's evaluations are stamped as a model's	KILLED	FAILED (failures=6)	True	6.2
+R17	long path: the reply's evaluations are stamped as a model's	KILLED	FAILED (failures=2)	True	6.2
+R18	a student is not sent the review reasons	KILLED	FAILED (failures=1)	True	6.7
+R19	a student is not sent the saved arithmetic note	KILLED	FAILED (failures=1)	True	6.2
+
+19/19 killed with verified restore
+exit=0 wall_s=144

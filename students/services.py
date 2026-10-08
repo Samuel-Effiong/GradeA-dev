@@ -11,7 +11,7 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from ai_processor.services import ai_processor
+from ai_processor.services import REPLY_CORRECTED, ai_processor, is_readable_answer
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from AutoGrader.celery import app as celery_app
@@ -27,6 +27,7 @@ from .exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
+    SubmissionAnswersUnreadableError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
@@ -52,6 +53,61 @@ logger = logging.getLogger(__name__)
 
 # How many times a student may submit their own answers to one assignment.
 MAX_STUDENT_SUBMISSION_ATTEMPTS = 3
+
+
+# H-165. `answers` is a JSON column and takes any JSON; the answer document
+# and grading read it as a list of objects, one per question. What a stored
+# value holds that is not that cannot be printed or graded. It is never an
+# error to READ such a row: the document says, in one fixed line of ours,
+# that something was left out. The lines are fixed text, never anything
+# from the row, and say nothing of grading: a student reads them too.
+ANSWERS_NOT_DISPLAYED = "This submission's answers could not be displayed."
+SOME_ANSWERS_NOT_DISPLAYED = "Some of this submission's answers could not be displayed."
+ANSWERS_UNREADABLE = "answers_unreadable"
+ALL_LEFT_OUT = "all"
+ANSWERS_UNREADABLE_FOR_TEACHER = (
+    "This submission's answers could not be read. Upload the paper again "
+    "or re-enter its answers, then grade it."
+)
+
+
+def printable_answers(answers) -> tuple[list, int | str]:
+    """The entries of a stored `answers` value that can be printed, and
+    what was left out: 0, a count, or ALL_LEFT_OUT when the value is not
+    empty and nothing of it can be printed.
+
+    An empty value of any kind leaves nothing out: there was nothing.
+    """
+    if not answers:
+        return [], 0
+    if not isinstance(answers, list):
+        return [], ALL_LEFT_OUT
+    printable = [entry for entry in answers if is_readable_answer(entry)]
+    if not printable:
+        return [], ALL_LEFT_OUT
+    return printable, len(answers) - len(printable)
+
+
+def is_a_list_of_objects(answers) -> bool:
+    """What both writers of `answers` accept. Until H-165 a list holding
+    anything else was kept out only by the document builder raising inside
+    them; the builder no longer raises, so they refuse it themselves."""
+    return isinstance(answers, list) and all(
+        is_readable_answer(entry) for entry in answers
+    )
+
+
+def unreadable_answers_log_line(submission, left_out) -> tuple:
+    """The one log line for a row whose answers were not all readable: ids
+    and the kind of value, never the value. Logged where a document or a
+    grade is stored for such a row, not in the builder, which runs on
+    every read of an unreleased paper by its student."""
+    return (
+        "Unreadable answers: submission=%s answers=%s left_out=%s",
+        submission.pk,
+        type(submission.answers).__name__,
+        left_out,
+    )
 
 
 def student_submission_to_html(submission, *, show_grade=True) -> str:
@@ -119,8 +175,11 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
 
     questions_html = "<section><h3>Student Responses</h3>"
 
-    if submission.answers:
-        for ans in submission.answers:
+    # Never raises on the shape of `answers` (H-165). The two levels of
+    # indentation are kept: the text below is part of the document.
+    printable, left_out = printable_answers(submission.answers)
+    if printable:
+        for ans in printable:
             status = "Answered" if ans.get("answer_html") else "Skipped"
 
             questions_html += f"""
@@ -138,6 +197,14 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
                 <p><strong>Status:</strong> {status}</p>
             </article>
             """
+
+    if left_out:
+        line = (
+            ANSWERS_NOT_DISPLAYED
+            if left_out == ALL_LEFT_OUT
+            else SOME_ANSWERS_NOT_DISPLAYED
+        )
+        questions_html += f"<p><em>{escape(line, quote=False)}</em></p>"
 
     questions_html += "</section>"
 
@@ -329,6 +396,14 @@ def _worst_tier(tiers):
     return max(ranked)[1]
 
 
+def _whole_count(value):
+    """A count read back out of a saved grading result: never raises."""
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _coerce_confidence(value):
     """Clamp a model-reported 0-100 confidence to a safe int; the DB field
     is non-nullable, and the model can emit null or junk here."""
@@ -339,7 +414,39 @@ def _coerce_confidence(value):
     return min(100, max(0, confidence))
 
 
+def _refuse_unreadable_answers(submission):
+    """Put a paper whose answers hold nothing readable in the teacher's
+    review queue and refuse to grade it (H-165). Before the claim and
+    before any paid call. An instance save, not a queryset update: the
+    queue is read through caches that a save's signal refreshes."""
+    row = StudentSubmission.objects.get(pk=submission.pk)
+    kept = [
+        reason
+        for reason in row.review_reasons or []
+        if not (isinstance(reason, dict) and reason.get("type") == ANSWERS_UNREADABLE)
+    ]
+    row.needs_review = True
+    row.review_reasons = kept + [{"type": ANSWERS_UNREADABLE, "left_out": ALL_LEFT_OUT}]
+    row.review_severity = max(
+        row.review_severity or 0.0, _review_sort_key("critical", 1.0)
+    )
+    row.review_tier = _worst_tier([row.review_tier, "critical"])
+    row.save(
+        update_fields=[
+            "needs_review",
+            "review_reasons",
+            "review_severity",
+            "review_tier",
+        ]
+    )
+    logger.warning(*unreadable_answers_log_line(row, ALL_LEFT_OUT))
+    raise SubmissionAnswersUnreadableError(ANSWERS_UNREADABLE_FOR_TEACHER)
+
+
 def grade_engine(user, submission, processing_task_id=None):
+    if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:
+        _refuse_unreadable_answers(submission)
+
     if not _claim_submission_for_grading(submission.id):
         raise SubmissionGradingInProgressError(
             f"Submission {submission.id} is already being graded."
@@ -479,6 +586,47 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
                 "detail": second_opinion.get("skipped"),
             }
         )
+
+    # Source 3 (H-154): the AI's reply did not hold exactly one evaluation
+    # per question, and the arithmetic authority left a repeat or a stray
+    # out of the sum (AIProcessor._finalize_grading_result). The grade is
+    # the cautious one, but it was made from a reply that was wrong in
+    # shape, so a teacher looks at it. Moderate: nothing measures how far
+    # off it may be. Numbers and counts only.
+    note = grading.get("score_calculation_verification")
+    if isinstance(note, dict) and note.get("verification_status") == REPLY_CORRECTED:
+        repeated = [
+            item
+            for item in note.get("repeated_evaluations_dropped") or []
+            if isinstance(item, dict)
+        ]
+        tiers.append("moderate")
+        sort_keys.append(_review_sort_key("moderate", None))
+        reasons.append(
+            {
+                "type": "ai_reply_corrected",
+                "repeated_questions": [
+                    item.get("question_number") for item in repeated
+                ],
+                "repeated_dropped": sum(
+                    _whole_count(item.get("dropped")) for item in repeated
+                ),
+                "unmatched_dropped": _whole_count(
+                    note.get("unmatched_evaluations_dropped")
+                ),
+            }
+        )
+
+    # Source 4 (H-165): the stored answers were not all readable. What
+    # could not be read was not graded and is not in the document, so a
+    # teacher looks at the paper. Critical, as an answer that was not
+    # found: the grade may not be about all of the student's work.
+    left_out = printable_answers(submission.answers)[1]
+    if left_out:
+        tiers.append("critical")
+        sort_keys.append(_review_sort_key("critical", 1.0))
+        reasons.append({"type": ANSWERS_UNREADABLE, "left_out": left_out})
+        logger.warning(*unreadable_answers_log_line(submission, left_out))
 
     if reasons:
         submission.needs_review = True
@@ -928,7 +1076,7 @@ def upload_answers_engine(
         # failure is legible and the enclosing refund scope can reclaim
         # the charge.
         extracted_answers = student_submission.get("answers")
-        if not isinstance(extracted_answers, list):
+        if not is_a_list_of_objects(extracted_answers):
             raise ValueError(
                 "Answer extraction returned no usable `answers` list "
                 f"(got {type(extracted_answers).__name__}); refusing to "
@@ -1236,7 +1384,7 @@ def update_submission_from_raw_text(
             processing_task_id=processing_task_id,
         )
         answers = extracted.get("answers") if isinstance(extracted, dict) else None
-        if not isinstance(answers, list):
+        if not is_a_list_of_objects(answers):
             raise ValueError(
                 "Answer extraction returned no usable `answers` list "
                 f"(got {type(answers).__name__}); refusing to persist it."

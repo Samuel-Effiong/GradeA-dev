@@ -339,6 +339,17 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             and hasattr(request.user, "user_type")
             and request.user.user_type == UserTypes.STUDENT
         ):
+            # H-147: a caller that serialises many assignments at once (the
+            # course answer) loads the viewer's own submissions beforehand,
+            # as `viewer_submissions`; without that this is a query per
+            # field per assignment. Whatever was loaded, only the
+            # requester's own row is ever read.
+            loaded = getattr(obj, "viewer_submissions", None)
+            if loaded is not None:
+                for submission in loaded:
+                    if submission.student_id == request.user.id:
+                        return submission
+                return None
             return obj.submissions.filter(student=request.user).first()
         return None
 

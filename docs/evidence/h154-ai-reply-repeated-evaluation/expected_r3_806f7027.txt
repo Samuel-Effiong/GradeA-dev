@@ -1,0 +1,2 @@
+repro3: 5 failing, as expected
+the red set is the expected one
