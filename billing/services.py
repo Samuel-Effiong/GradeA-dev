@@ -14,6 +14,7 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
 from users.mailerlite_service import queue_sync
 
+from .licence_rollup import roll_up_after_commit
 from .locks import lock_wallet_first
 from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CONVERSION_FACTOR,
@@ -25,7 +26,6 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditLedgerType,
     CreditUsageLog,
     CreditWallet,
-    LicenseSubscription,
     PlanCategory,
     PlanTier,
     PlanType,
@@ -1559,14 +1559,9 @@ class SubscriptionService:
                     .first()
                 )
                 if allocation:
-                    LicenseSubscription.objects.filter(
-                        pk=allocation.license_subscription_id
-                    ).update(
-                        total_credits_consumed=Greatest(
-                            F("total_credits_consumed") - amount, Value(0)
-                        ),
-                        updated_at=timezone.now(),
-                    )
+                    # H-182: after the refund commits, never inside the
+                    # wallet and bucket locks (billing/licence_rollup.py).
+                    roll_up_after_commit(allocation.license_subscription_id, -amount)
 
         logger.info(
             "Refunded %s credits across %s usage log(s) for task %s (%s)",
