@@ -1,3 +1,5 @@
+> **SUPERSEDED in part (2026-10-08):** this file describes the first form (every paper numbered 1..N, gated at `7f5d1743`). The second form is in `EVIDENCE_second_form.md`, which wins wherever they differ.
+
 # H-158: an AI reply's question numbers are made 1..N before anything is saved
 
 **Severity:** MEDIUM. **Author:** d5. **Branch:**
