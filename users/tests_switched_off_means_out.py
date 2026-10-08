@@ -58,6 +58,7 @@ from rest_framework.throttling import SimpleRateThrottle
 from classrooms.models import School
 from users.admin import CustomUserAdmin
 from users.models import PasswordResetOTP, Settings, UserTypes
+from users.throttling import verify_lock_until
 from users.tokens import EpochRefreshToken
 
 User = get_user_model()
@@ -195,6 +196,21 @@ class SwitchedOffRoadsTests(APITestCase):
         third = self.verify(user.email, CODE)
 
         self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    @override_settings(VERIFY_EMAIL_MAX_FAILURES=2)
+    def test_a_refused_verify_for_a_switched_off_account_locks_the_address_like_a_wrong_guess(
+        self,
+    ):
+        """The budget is spent as for a wrong guess only if the address is
+        locked when it runs out (the lock also stops a new code being mailed
+        to it). Its own test, so the budget test keeps one reason to fail."""
+        user = self.with_token(self.switched_off())
+
+        self.verify(user.email, CODE)
+        self.assertIsNone(verify_lock_until(user.email))
+        self.verify(user.email, CODE)
+
+        self.assertIsNotNone(verify_lock_until(user.email))
 
     # -- the reset road ----------------------------------------------------
 

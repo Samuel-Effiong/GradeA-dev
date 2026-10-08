@@ -43,6 +43,10 @@ VR2 = R + "test_that_verify_code_request_answers_like_an_unknown_address"
 V1 = R + "test_verify_does_not_switch_a_switched_off_account_back_on"
 V2 = R + "test_that_verify_refusal_is_the_wrong_code_refusal"
 V3 = R + "test_a_refused_verify_for_a_switched_off_account_spends_the_budget"
+VLOCK = (
+    R
+    + "test_a_refused_verify_for_a_switched_off_account_locks_the_address_like_a_wrong_guess"
+)
 RR1 = R + "test_the_reset_code_request_for_a_switched_off_account_makes_no_code"
 RR2 = R + "test_that_reset_code_request_answers_like_an_unknown_address"
 RS1 = R + "test_a_reset_for_a_switched_off_account_changes_nothing_and_signs_nobody_in"
@@ -118,7 +122,7 @@ MUTANTS = {
         VIEWS,
         VERIFY_REFUSE,
         "",
-        [V1, V2, V3],
+        [V1, V2, V3, VLOCK],
     ),
     "S4_verify_refuses_a_switched_off_account_in_its_own_words": (
         VIEWS,
@@ -133,7 +137,7 @@ MUTANTS = {
             'refuse("Invalid email or token.")',
             'raise ParseError("Invalid email or token.")',
         ),
-        [V3],
+        [VLOCK],
     ),
     "S6_a_switched_off_account_is_sent_a_reset_code": (VIEWS, RESET_GATE, "", [RR1]),
     "S7_that_reset_code_request_answers_with_a_refusal": (
@@ -214,6 +218,7 @@ NEW_TESTS = [
     V1,
     V2,
     V3,
+    VLOCK,
     RR1,
     RR2,
     RS1,
