@@ -35,7 +35,7 @@ clearing the flag does not undo a date still set; clearing both restores renewin
 
 ## Not shown by any run so far
 
-Step 1 has been run (Results below); step 3 (billing app) has not. Even after all steps: how a real Stripe forms `cancel_at`, the order of Stripe's messages, what the customer sees on the real page.
+Steps 1 and 3 have been run (Results below). Even after all steps: how a real Stripe forms `cancel_at`, the order of Stripe's messages, what the customer sees on the real page.
 
 ## Results, step 1 (gate on 9f6b124213b5e7413c73403f15804e470f48d170, base 3f2ad13e; raw logs in this folder)
 
@@ -48,4 +48,7 @@ Script run_h178_gate.sh c59b08493b140089, once, one outer inhibit, on the Releas
 | 1 new + related modules + guards | 17:39:03 to 17:41:05 | Ran 483, OK (modules_and_guards.txt) |
 | 2 mutants P1..P10 | 17:41:05 to 17:42:18 | 10 of 10 KILLED, expected-but-passed empty; SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN all empty (mutation_log.txt, mutation_results.json, mutant_logs/) |
 
-Load at the start of step 0 was 3.82, at the start of the modules run 4.06 (just over 4.0; the tests are not timing-based). Rule 20 not applicable (see above). Step 3 (billing app, serial) is not run.
+Load at the start of step 0 was 3.82, at the start of the modules run 4.06 (just over 4.0; the tests are not timing-based). Rule 20 not applicable (see above).
+## Results, step 3 (billing app, serial; on 98895ad96b5424d9d2730caeb067a47d3a3c9191, docs only over the gated 9f6b1242)
+
+`APPS=billing run_h178_gate.sh ... 3 3f2ad13e`, once, one outer inhibit, on the Release Engineer's GRANT. 2026-10-08 18:22:41 to 18:27:30 (WAT, from `date`), load 3.37 at the start, 4.10 at the end: **Ran 2140 tests in 271.147s, OK**, no FAIL or ERROR line (regression.txt.gz, cmp identical to the raw log).
