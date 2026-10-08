@@ -98,3 +98,13 @@ the charge takes the wallet and waits for that bucket, and the helper's own wall
 - **Mutants (10, same list)**: M1-M3, M5, M6 as before (their own test only). **M4** fails `test_process_rollover_and_renewal` and the new rollover order test (the helper is never reached). **M7** fails the three licence tests and the new helper order test. **M8** (the helper locks nothing)
   fails the NINE as before, NOT the two order tests (a pause before a no-op lock holds nothing, the charge completes first): said so that it is not read as a gap. **M9** fails exactly `test_the_licence_rollover_helper_locks_the_wallet_before_the_bucket`; **M10** fails exactly `test_process_rollover_and_renewal_locks_the_wallet_before_the_bucket`.
   If M9 or M10 survives again I stop and report.
+
+## RESULTS OF THE FRESH GATE (step 1 at 5286ccea; run_h181_gate.sh c25c7dda986ddee5; started 13:03:10, ended 13:10:44 WAT, 2026-10-08): GREEN AS WRITTEN
+
+Console `gate_console_step1_5286ccea.txt.gz` (raw sha256 starts b9afcc720bd4bb42; rc=0). Whole script under ONE `systemd-inhibit`. Load at start 3.37 3.93 4.12 (the pre-start check, alone, read 4.53 with another project's tests on the machine; I waited to 3.58 and started in a separate command).
+Raw files named by the tip: `modules_and_guards_5286ccea.txt.gz` (raw sha ca2a26a4d9c04d58), `prefix_base_production_failing_5286ccea.txt.gz` (raw sha 6ae254f04863b2e3), `mutation_log_5286ccea.txt`, `mutation_results_5286ccea.json`, `mutant_logs_5286ccea/`, `makemigrations_check_5286ccea.txt`. Credential patterns: 0 lines. The first gate's files (…_41a92162) are kept beside them as they were.
+- **Step 0 as written**: Ran 11, FAILED (failures=11), the eleven distinct red = the written eleven. Nine are real Postgres deadlocks on the old code; the two new order tests are red because the base never calls the wallet-lock helper (the pause point is never reached).
+- **makemigrations --check**: no changes.
+- **Step 1 modules and guards**: Ran 591, OK, 0 FAIL or ERROR (589 plus the two new tests).
+- **Step 2 mutants: KILLED 10 of 10**; SURVIVED [], KILLED_NOT_AS_EXPECTED [], BROKEN []; every inner run Ran 11; **every failing set is exactly the written one** (checked from the JSON: failing == expected for all ten). **M9 and M10, the two that survived the first gate, are each killed by exactly one test** (the licence helper order test, the rollover order test). M4 failed 2, M7 failed 4, M8 failed the original nine (not the two order tests, as written); M1-M3, M5, M6 failed 1 each. Source clean after the mutants; database dropped.
+- Not yet run: step 3 (the billing app). Not shown by any run: behaviour in production (pgbouncer in transaction mode, the role's lock timeout) and any path outside the nine functions.
