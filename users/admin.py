@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.db.models import Case, F, When
+from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
@@ -110,6 +110,10 @@ class CustomUserAdmin(UserAdmin):
             token_epoch=Case(
                 When(is_active=True, then=F("token_epoch") + 1),
                 default=F("token_epoch"),
+                # Said outright: the two branches would otherwise be an
+                # IntegerField and a PositiveIntegerField, which Django
+                # refuses to mix.
+                output_field=IntegerField(),
             ),
         )
         invalidate_user_caches(users)

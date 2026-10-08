@@ -88,6 +88,10 @@ BULK_FULL = (
     "            token_epoch=Case(\n"
     '                When(is_active=True, then=F("token_epoch") + 1),\n'
     '                default=F("token_epoch"),\n'
+    "                # Said outright: the two branches would otherwise be an\n"
+    "                # IntegerField and a PositiveIntegerField, which Django\n"
+    "                # refuses to mix.\n"
+    "                output_field=IntegerField(),\n"
     "            ),\n"
 )
 SAVE_MODEL = (
