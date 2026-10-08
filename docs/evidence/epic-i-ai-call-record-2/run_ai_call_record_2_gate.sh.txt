@@ -62,6 +62,17 @@ LOADERR=$(grep -cE "^ERROR: [A-Za-z0-9_]+ \(unittest.loader._FailedTest" $RF)
 for T in test_in_slice_2_only_the_reading_is_enforced test_there_is_one_list_of_the_six_in_the_order_of_the_model test_a_first_upload_leaves_a_complete_label_in_the_one_insert test_slice_2_enforces_the_reading_and_only_it test_each_call_for_an_enforced_type_is_in_a_with_scope; do
     grep -qE "^(FAIL|ERROR): $T " $RF || { echo "red run: $T is not among the failures"; RED_OK=0; }
 done
+# RULE 22: each of the five tests is red for its WRITTEN reason (a fragment written beforehand), looked for inside that
+# test's own FAIL/ERROR block; a test red for another reason is a WRONG REASON and fails the step.
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+python -I $RC $RF test_in_slice_2_only_the_reading_is_enforced "frozenset() != frozenset({'extract_answer'})" || RED_OK=0
+python -I $RC $RF test_slice_2_enforces_the_reading_and_only_it "frozenset() != frozenset({'extract_answer'})" || RED_OK=0
+python -I $RC $RF test_there_is_one_list_of_the_six_in_the_order_of_the_model "No module named 'students.reading_label'" || RED_OK=0
+python -I $RC $RF test_a_first_upload_leaves_a_complete_label_in_the_one_insert "has no attribute 'answers_model'" || RED_OK=0
+python -I $RC $RF test_each_call_for_an_enforced_type_is_in_a_with_scope "0 != 3" || RED_OK=0
+python -I $RC $RF tests_reading_config "cannot import name 'reading_config' from 'ai_processor'" || RED_OK=0
+python -I $RC $RF tests_reading_run "No module named 'ai_processor.reading_run'" || RED_OK=0
+python -I $RC $RF tests_reading_pipeline "No module named 'ai_processor.reading_run'" || RED_OK=0
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
     git checkout HEAD -- $CHANGED $NEWFILES
