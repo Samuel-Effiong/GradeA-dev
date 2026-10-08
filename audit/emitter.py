@@ -242,6 +242,9 @@ def _failed_auth_cap_scope(fields):
       is the spray noise the global cap is for. There is no per-target
       bucket to count it in: keys hold an account id, never an email.
       Otherwise it would be the one path written without bound.
+    - A DENIED admin action (H-194, an anonymous probe of an IsSuperAdmin
+      route): the global, no-target bucket from the first event, whatever
+      target the route names.
     Successes and signed-in requesters are never capped."""
     if fields.get("actor_role") != ActorRole.ANONYMOUS.value:
         return None
@@ -250,6 +253,16 @@ def _failed_auth_cap_scope(fields):
         fields.get("reason_code") == ReasonCode.SERVER_ERROR.value
         and outcome == AuditOutcome.FAILURE.value
     ):
+        return None, True
+    if (
+        fields.get("action") == AuditAction.ADMIN_ACTION.value
+        and fields.get("outcome") == AuditOutcome.DENIED.value
+    ):
+        # H-194: an anonymous caller refused at an admin route. The route's
+        # target is a URL id the caller chooses, so it is IGNORED here (a
+        # per-target bucket would give every id its own floor): this goes
+        # into the global, no-target bucket from the first event, with the
+        # summary row. A signed-in refusal never reaches this point.
         return None, True
     if fields.get("action") not in _CAPPED_ACTIONS:
         return None
