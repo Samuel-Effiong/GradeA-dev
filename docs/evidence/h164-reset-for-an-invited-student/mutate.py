@@ -88,6 +88,10 @@ VVW_STAFF = V + "test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_
 VVW_FLAG = V + "test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one"
 VVW_TYPE = V + "test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one"
 VV_BUDGET = V + "test_a_refused_verify_spends_the_budget_like_a_wrong_guess"
+VV_LOCK = (
+    V
+    + "test_a_refused_verify_on_an_admin_power_account_locks_the_address_like_a_wrong_guess"
+)
 VC_ORDINARY = V + "test_an_ordinary_unverified_user_still_activates_end_to_end"
 VC_SCHOOL = V + "test_an_invited_school_admin_still_verifies"
 VC_LICENCE = V + "test_a_licence_invited_teacher_still_verifies_end_to_end"
@@ -101,7 +105,7 @@ RPOWER = [RSTAFF, RFLAG, RTYPE, RCMD]
 QPOWER = [QSTAFF, QFLAG, QTYPE, QCMD]
 NEW_TESTS = [T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14]
 NEW_TESTS += [LREQ, LRESET, LREADD] + QPOWER + [QWORDS] + RPOWER + [RWORDS]
-NEW_TESTS += VQ_ALL + VV_ALL + VVW_ALL + [VV_BUDGET]
+NEW_TESTS += VQ_ALL + VV_ALL + VVW_ALL + [VV_BUDGET, VV_LOCK]
 # VQW_ALL are green on the old code by design (the old answer is already the same 202):
 # only R25 sees them red.
 NEW_TESTS += VQW_ALL
@@ -318,7 +322,7 @@ MUTANTS = {
         VIEWS,
         VGUARD,
         "",
-        VV_ALL + VVW_ALL + [VV_BUDGET],
+        VV_ALL + VVW_ALL + [VV_BUDGET, VV_LOCK],
     ),
     "R27_verify_refuses_every_never_verified_account": (
         VIEWS,
@@ -345,7 +349,7 @@ MUTANTS = {
             'refuse("Invalid email or token.")',
             'raise ParseError("Invalid email or token.")',
         ),
-        [VV_BUDGET],
+        [VV_LOCK],
     ),
     "R31_verify_writes_before_refusing": (
         VIEWS,
@@ -357,7 +361,7 @@ MUTANTS = {
             "            user.save()\n"
             "            refuse",
         ),
-        VV_ALL,
+        VV_ALL + [VV_BUDGET, VV_LOCK],
     ),
 }
 
