@@ -161,6 +161,16 @@ class WhenTheTaskCannotBeQueued(ManualGradeBase):
     """The score is saved and the notice sent before the task is queued.
     The grade went through; the route says so."""
 
+    def setUp(self):
+        super().setUp()
+        # A student with a name. Enrolled by e-mail the fixture's student
+        # has none, and an empty string is "in" every string: "the name is
+        # not in the log" could then neither pass nor catch anything. With
+        # a name, the prompt the route builds for the task holds it.
+        self.student.first_name = "Adaeze"
+        self.student.last_name = "Okonkwo"
+        self.student.save(update_fields=["first_name", "last_name"])
+
     def refused(self, error):
         with patch("students.views.formatted_grade_async") as task:
             task.delay.side_effect = error
@@ -191,8 +201,13 @@ class WhenTheTaskCannotBeQueued(ManualGradeBase):
         self.assertIn(str(self.submission.pk), logged)
         self.assertIn("OperationalError", logged)
         self.assertNotIn(BROKER_SAID, logged)
-        self.assertNotIn(self.student.email, logged)
-        self.assertNotIn(self.student.get_full_name(), logged)
+        # Each value is shown to be something before it is looked for.
+        email, name = self.student.email, self.student.get_full_name()
+        self.assertTrue(email)
+        self.assertEqual(name, "Adaeze Okonkwo")
+        self.assertNotIn(email, logged)
+        self.assertNotIn(name, logged)
+        self.assertNotIn(self.student.last_name, logged)
 
     def test_the_student_reads_the_new_score_and_no_formatted_grade(self):
         self.refused(OperationalError(BROKER_SAID))

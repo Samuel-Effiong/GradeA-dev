@@ -24,6 +24,7 @@ could put an old score back. It is narrowed to save its text alone; it
 is not removed here.
 """
 
+import copy
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -49,6 +50,15 @@ from students.tests_manual_grade_formatted_grade import (
 )
 
 FORMATTER = "assignments.tasks.ai_processor.formatted_grade"
+#: A sentence only this module's stand-in formatter says. The task rewrites
+#: the score sentence from the row, and for a paper still graded 7 that
+#: sentence is letter for letter the fixture's: "the task wrote" can be told
+#: from "it did not" only by something the fixture's text does not hold.
+WORDED_BY_THIS_RUN = "worded by this run"
+
+
+def the_formatters_reply() -> dict:
+    return {**copy.deepcopy(FROM_THE_FORMATTER), "closing_note": WORDED_BY_THIS_RUN}
 
 
 class SupersededBase(ManualGradeBase):
@@ -67,7 +77,7 @@ class SupersededBase(ManualGradeBase):
         def the_ai_call(*args, **kwargs):
             if meanwhile:
                 meanwhile()
-            return dict(FROM_THE_FORMATTER)
+            return the_formatters_reply()
 
         with patch(FORMATTER, side_effect=the_ai_call):
             return formatted_grade_async(
@@ -99,14 +109,19 @@ class AnOlderTaskDoesNotWriteOverAManualGrade(SupersededBase):
         _, queued = self.override()
 
         self.assertEqual(queued.kwargs["result_stamp"], self.stamp_now())
-        self.run_the_task(queued, return_value=dict(FROM_THE_FORMATTER))
+        self.run_the_task(queued, return_value=the_formatters_reply())
         self.assertIn("You scored 9 out of 10 points", self.stored_formatted())
 
     def test_a_task_whose_result_is_still_the_rows_writes(self):
+        # The fixture's text does not hold the marker, so finding it
+        # stored means this task wrote.
+        self.assertNotIn(WORDED_BY_THIS_RUN, self.stored_formatted())
+
         self.run_task(self.stamp_now())
 
-        self.assertIn("You scored 7 out of 10 points", self.stored_formatted())
-        self.assertNotEqual(self.stored_formatted(), str(OLD_FORMATTED))
+        stored = self.stored_formatted()
+        self.assertIn(WORDED_BY_THIS_RUN, stored)
+        self.assertIn("You scored 7 out of 10 points", stored)
 
     def test_a_message_with_no_stamp_behaves_as_before(self):
         """One queued before this change is still in the queue when it is
@@ -249,7 +264,7 @@ class FormatGradeSavesOnlyItsText(SupersededBase):
 
         def the_ai_call(*args, **kwargs):
             self.override(9)
-            return dict(FROM_THE_FORMATTER)
+            return the_formatters_reply()
 
         self.run_format_grade(side_effect=the_ai_call)
 
@@ -262,6 +277,10 @@ class FormatGradeSavesOnlyItsText(SupersededBase):
         self.assertEqual(after.feedback["grading_summary"]["total_score"], 9)
 
     def test_it_still_writes_its_text(self):
-        self.run_format_grade(return_value=dict(FROM_THE_FORMATTER))
+        self.assertNotIn(WORDED_BY_THIS_RUN, self.stored_formatted())
 
-        self.assertIn("You scored 7 out of 10 points", self.stored_formatted())
+        self.run_format_grade(return_value=the_formatters_reply())
+
+        stored = self.stored_formatted()
+        self.assertIn(WORDED_BY_THIS_RUN, stored)
+        self.assertIn("You scored 7 out of 10 points", stored)

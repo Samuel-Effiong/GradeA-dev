@@ -88,6 +88,7 @@ from .serializers import (
     StudentSubmissionUpdateAsyncSerializer,
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
+    StudentUploadAnswerSerializer,
 )
 from .services import (
     ensure_no_active_extraction,
@@ -96,7 +97,9 @@ from .services import (
     grade_engine,
     grading_result_stamp,
     notify_student_of_graded_submission,
+    printable_answers,
     student_submission_to_html,
+    unreadable_answers_log_line,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -367,6 +370,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             StudentSubmission.objects.filter(pk=submission.pk).update(
                 raw_input=submission.raw_input
             )
+            # H-165: a document was just stored for a row whose answers
+            # were not all readable. Ids and the kind of value only.
+            left_out = printable_answers(submission.answers)[1]
+            if left_out:
+                logger.warning(*unreadable_answers_log_line(submission, left_out))
 
         if request.user.user_type == UserTypes.STUDENT:
             serializer = StudentSubmissionDetailStudentVersionSerializer(
@@ -482,7 +490,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
         responses={
             201: OpenApiResponse(
-                response=StudentSubmissionDetailSerializer,
+                response=StudentUploadAnswerSerializer,
                 description="Answer processed successfully",
             ),
             400: OpenApiResponse(
@@ -569,7 +577,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
 
             submission = upload_answers_engine(assignment, content, request.user)
-            serializer = StudentSubmissionDetailSerializer(submission)
+            # H-141: the student's own serializer, not the teacher's. With
+            # the context, as every serializer a student's route builds;
+            # this one does not need the request to be safe.
+            serializer = StudentUploadAnswerSerializer(
+                submission, context=self.get_serializer_context()
+            )
 
             return Response(serializer.data, status=HTTP_201_CREATED)
         except SUBMISSION_CLOSED_ERRORS as exc:
@@ -1127,9 +1140,26 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # released student reads the stored document: rebuild it from the
         # row as it now is, as grading does, or the paper keeps the old
         # score beside the new one.
-        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-            student_submission_to_html(submission)
-        )
+        #
+        # A second line behind H-165's builder (which never raises on a shape
+        # of `answers`): the teacher's grade must never fail to save because
+        # a document builder raised. Around the BUILD only, never around the
+        # save. On a fault the stored document is left as it was (it is the
+        # paper the student reads; a stale printed score is a lesser harm
+        # than a paper that vanishes), the answer carries that old document
+        # (it claims no refresh), and the fault is logged by submission id and
+        # exception type only: no answer text, no names.
+        try:
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                student_submission_to_html(submission)
+            )
+        except Exception as exc:  # noqa: BLE001 - see the comment above
+            logger.error(
+                "Manual grade: the answer document could not be rebuilt: "
+                "submission=%s error=%s",
+                submission.pk,
+                type(exc).__name__,
+            )
 
         # The formatted grade words the OLD result, and its first sentence
         # states the old score. Clear it in the same save as the new score:

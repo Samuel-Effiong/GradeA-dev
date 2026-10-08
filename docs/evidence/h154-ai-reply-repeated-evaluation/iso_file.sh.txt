@@ -1,0 +1,60 @@
+#!/bin/bash
+# One gate or diagnostic run with the stall watchdog, FILE form (SM ruling
+# 2026-10-05, H-107): the test process's stdout and stderr go straight to
+# a file ($NAME.raw.log), never a pipe, and its stdin is /dev/null. The
+# timestamper reads that file from the side (tail -F) into $NAME.log; the
+# watchdog watches the raw file.
+# Usage: iso.sh <name> <worktree> <parallel> <label>...
+# A stall (no output for 150 s) is recorded (tree, parent's traceback
+# first, then the workers') and ended. Result line goes to iso.status.
+set -u
+NAME=$1; WT=$2; PAR=$3; shift 3
+OUT=${OUTDIR:-/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/hang}
+LOCK=/home/bond-servant-in-training/.machine-fullsuite.lock
+LOG=$OUT/$NAME.log
+export EXEMPT_EMAIL_DOMAINS=
+export PYTHONFAULTHANDLER=1
+export GAP_ISO_TAG=$NAME-$$
+if [ "${OBSERVE:-0}" = 1 ]; then export PYTHONPATH=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/hang/observe GAP_OBSERVE_FILE=$OUT/$NAME.observe; fi
+PRE="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10"
+TRACE=""; [ "${STRACE:-0}" = 1 ] && TRACE="strace -f -tt -qq -e trace=kill,tgkill,tkill,exit_group -e signal=all -o $OUT/$NAME.strace"
+stamp() { while IFS= read -r l; do printf '%s %s\n' "$(date +%H:%M:%S)" "$l"; done; }
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/iso.status; }
+mine() { for d in /proc/[0-9]*; do grep -qz "^GAP_ISO_TAG=$GAP_ISO_TAG\$" $d/environ 2>/dev/null && grep -qa "manage.py" $d/cmdline 2>/dev/null && [ "$(cat $d/comm)" = python ] && echo ${d#/proc/}; done; }
+cd $WT || exit 9
+[ -z "$(git status --porcelain --untracked-files=no)" ] || { say "$NAME ABORT: tree not clean"; exit 9; }
+: > $LOG
+[ "${STRACE:-0}" = 1 ] && echo "DIAGNOSTIC RUN UNDER strace -f (signals, kill/tgkill/tkill, exit_group only); observer ${OBSERVE:-0} (not evidence for any branch)" >> $LOG
+[ "${OBSERVE:-0}" = 1 ] && echo "DIAGNOSTIC RUN WITH observe/sitecustomize.py ON PYTHONPATH (not evidence for any branch)" >> $LOG
+s=$(date +%s)
+RAW=$OUT/$NAME.raw.log
+: > $RAW
+( tail -n +1 -F $RAW 2>/dev/null | stamp >> $LOG ) &
+STAMPER=$!
+( $PRE flock $LOCK timeout -k 60 ${TMO:-300} $TRACE python manage.py test "$@" --settings=settings_worktree --noinput --parallel $PAR --verbosity 2 > $RAW 2>&1 < /dev/null; echo "exit=$?" >> $RAW ) &
+RUN=$!
+stalled=0
+while kill -0 $RUN 2>/dev/null; do
+  perl -e 'select(undef,undef,undef,5)'
+  age=$(( $(date +%s) - $(stat -c %Y $RAW) ))
+  # silence counts only once the run has started writing (not while queued on the lock)
+  if [ -s $RAW ] && [ $age -ge ${SILENCE:-150} ] && [ $stalled = 0 ]; then
+    stalled=1
+    pids=$(mine | sort -n | tr '\n' ' ')
+    { date +%T; ps -o pid,ppid,stat,etimes,pcpu,wchan:20,nlwp,args -p $(echo $pids | tr ' ' ',') | cut -c1-140; ps -e -o pid,ppid,stat,etime,cmd --forest | grep -A10 "iso.sh $NAME" | grep -v grep | cut -c1-160; } > $OUT/$NAME.tree.txt 2>&1
+    parent=$(for p in $pids; do pp=$(ps -o ppid= -p $p | tr -d ' '); [ "$(cat /proc/$pp/comm 2>/dev/null)" != python ] && echo $p; done)
+    [ -n "$parent" ] && kill -ABRT $parent
+    perl -e 'select(undef,undef,undef,4)'
+    for p in $pids; do [ "$p" != "$parent" ] && [ -d /proc/$p ] && kill -ABRT $p; done
+  fi
+done
+wait $RUN
+# let the timestamper catch up with the file, then stop it and its tail
+# (no fixed ten seconds: on 2026-10-05 the reader was further behind than that
+# after two loaded parallel runs and the stamped copies lost their tails; v2, H-118)
+for i in $(seq 1 600); do [ "$(wc -l < $RAW)" -le "$(wc -l < $LOG)" ] && break; sleep 1; done
+for p in $(pgrep -P $STAMPER) $STAMPER; do kill $p 2>/dev/null; done
+ran=$(grep -o "Ran [0-9]* tests in [0-9.]*s" $RAW | tail -1)
+res=$(grep -E "^(OK|FAILED)" $RAW | tail -1)
+whole=1; [ "$(wc -l < $RAW)" -le "$(wc -l < $LOG)" ] || whole=0
+say "$NAME wt=$(basename $WT)@$(git rev-parse --short=8 HEAD) parallel=$PAR stalled=$stalled ok=$(grep -c ' \.\.\. ok' $RAW) [$ran] [$res] $(tail -1 $RAW) output=file stamped_copy_whole=$whole raw_lines=$(wc -l < $RAW) wall_s=$(( $(date +%s)-s ))"

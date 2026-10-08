@@ -1,0 +1,21 @@
+# 1a H-174 delta: expected failing test methods per mutant, written 20:00 WAT 2026-10-07, BEFORE any run of mine.
+# Tip e94dc5c3 (code and tests last changed in 98c75afa). Run set for every mutant: my probe module (3) + the author's
+# billing.tests.test_converted_trial_is_not_cancelling + billing.tests.test_subscription_reactivation (holds the resume route class).
+# Baseline expected: all green. Failing method names (class not named; the names are unique in the set):
+#   PA test_pa_a_cancel_date_already_passed_is_still_a_cancellation            (mine)
+#   PB test_pb_a_pending_plan_change_survives_a_scheduled_cancellation          (mine)
+#   PC test_pc_a_trial_keeps_its_trial_answer_beside_a_dated_cancellation       (mine)
+#   A1 test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away    (author)
+#   A2 test_a_cancellation_stripe_has_recorded_is_not_corrected_away            (author)
+#   A3 test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing   (author)
+#   N1 test_noop_when_stripe_and_the_local_record_agree                         (author, older module; never seen red by the author)
+#   N2 test_already_active_noop                                                 (author's older resume class)
+#   N3 test_right_after_the_purchase_the_answer_does_not_contradict_itself      (author)
+Q1 (a cancel date counts only while in the future)   : PA
+Q2 (neither Stripe date counts)                       : A1 A2 A3 PA PB
+Q3 (status says cancellation_scheduled for a trial)   : PC
+Q4 (correction saved and reported when nothing to fix): N1 N2 N3
+# Why: Q1: the author's dated test uses a date 10 days ahead, the recorded test uses canceled_at (still counted), the core test 10 days ahead;
+# only PA has a past cancel_at. Q2: A1, A2, A3 each need the branch; PA and PB also; PC's trial is not corrected either way (the correction
+# excludes trials) so PC stays green. Q3: only PC makes a trial with a dated cancellation. Q4: the record that agrees with Stripe (mark true,
+# no date, flag false, no dates) is saved and reported changed: N1 asserts changed False, N2 and N3 assert status already_active.

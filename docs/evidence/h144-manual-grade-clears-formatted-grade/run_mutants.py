@@ -3,8 +3,8 @@ Mutation battery for H-144 (rule 15): after a teacher's manual grade the
 formatted grade is cleared with the score, and a formatting task that
 cannot be queued does not fail a grade that went through.
 
-One mutant per condition the fix adds. Each is run against the row's own
-test module.
+One mutant per condition the fix adds, and two (N8, N9) for what the log
+line must not carry. Each is run against the row's own test module.
 
 One disposable detached worktree at the commit under test. A baseline run
 on the unmutated tree must pass first; then each mutant, with the file
@@ -49,6 +49,9 @@ CATCH = (
     "        except Exception as exc:" "  # noqa: BLE001 - the grade is already saved\n"
 )
 NAMED = "                type(exc.__cause__ or exc).__name__,\n"
+LOGGED_IDS = (
+    "                submission.id,\n" "                formatted_processing_task.id,\n"
+)
 
 #: (id, what it guards, file, old, new, occurrence, labels)
 MUTANTS = [
@@ -114,6 +117,30 @@ MUTANTS = [
         CLEAR,
         "        if submission.is_published:\n"
         "            submission.formatted_grade = None\n",
+        1,
+        TESTS,
+    ),
+    # N8 and N9 were added on 2026-10-07 after the first chain stopped:
+    # the test's "not in the log" lines had never been able to fail (the
+    # fixture's student had no name). Each puts into the logged line one
+    # thing the row promises is not there.
+    (
+        "N8",
+        "the log line does not carry the student's name",
+        VW,
+        LOGGED_IDS,
+        '                f"{submission.id} {submission.student.get_full_name()}",\n'
+        "                formatted_processing_task.id,\n",
+        1,
+        TESTS,
+    ),
+    (
+        "N9",
+        "the log line does not carry the student's e-mail",
+        VW,
+        LOGGED_IDS,
+        '                f"{submission.id} {submission.student.email}",\n'
+        "                formatted_processing_task.id,\n",
         1,
         TESTS,
     ),

@@ -1,0 +1,25 @@
+1a, H-147 at cc648b44: what each run must show. Written 2026-10-07 15:01:32 WAT (clock read), BEFORE any run of mine.
+No probe below has been seen red yet; none is evidence until its run shows it.
+
+Baseline (unmutated): classrooms.tests_vf1a_h147_probe (5 tests, mine), classrooms.tests_student_sees_no_classmates
+(14, the author's) and AutoGrader.tests_student_classmates_guard (7, the author's): Ran 26, OK.
+
+Mutants V1 V2 V3 V4 V7 run my probe module ALONE (Ran 5). Each must fail exactly the one method named, and no other.
+Mutants V5 V6 run the author's guard module ALONE (Ran 7). Each must fail exactly the one method named, and no other.
+A method with sub-tests may show more than one FAIL line; the set of failing METHODS is what is compared.
+
+V1 (serializer's own query loses "theirs only")      -> test_pa_a_course_not_loaded_by_the_view_gives_the_own_entry_only
+V2 (session ids blanked for everyone but a teacher)   -> test_pb_a_school_admin_still_gets_the_school_and_the_creator
+V3 (a student is sent the session ids)                -> test_pc_a_student_gets_neither_id_on_the_session_detail_route  (two sub-tests, so up to 2 FAIL lines)
+V4 (own entry only from an ENROLLED enrolment)        -> test_pd_a_student_who_completed_the_course_gets_their_own_entry  (three sub-tests, up to 3 FAIL lines)
+V5 (student_summary loses its permission line)        -> test_rule_2_each_refusal_is_where_the_table_says   (author's guard)
+V6 (a new GET action "classmates" on the course view) -> test_rule_2_every_action_is_classified             (author's guard)
+V7 (a submission write bumps no cache generation)     -> test_pg_handing_in_a_paper_refreshes_the_cached_course_answers  (three sub-tests, up to 3 FAIL lines)
+
+Why no other method fails, by reading: pa is the only probe on the serializer's own query (the routes load
+active_enrollments); pb is the only one read as a school admin; pc is the only student session read; pd is the only one
+with a COMPLETED viewer; pg is the only one that reads without clearing the cache. V5 and V6 change no roster site, so
+the guard's rule 1 tests stay green; V5 changes no action name; V6 changes no permission of a listed action.
+
+Stop rule: a red baseline, a mutant not applied (the runner exits 8 before any test) or a differing set means RELEASE
+with the facts and no second attempt inside the grant.
