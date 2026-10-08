@@ -7,7 +7,8 @@ parser, whose tree builder (open elements, the document) is replaced at the
 start of every parse and read again at the end. Two threads inside the parser
 at once can therefore (a) raise html5lib's own `assert False # We should never
 reach this point` (seen on CI, in students.tests_grading_redelivery_live), and
-(b) hand one caller the other's text. The cleaner runs on student answers,
+(b) hand one caller the other's text (by reading of the library; not
+observed). The cleaner runs on student answers,
 teacher assignment text and graded documents, on gunicorn's four threads per
 worker and on the task workers.
 

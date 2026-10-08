@@ -33,9 +33,12 @@ are replaced) and sets the parser's phase; tokens are then fed through that
 phase into that tree, and `parseFragment` returns `self.tree.getFragment()`,
 which does `self.openElements[0].reparentChildren(fragment)` on whatever the
 tree builder holds at that moment. So two threads inside the parser can
-corrupt each other. The part that removes markup (`BleachSanitizerFilter`) and
-the serializer are built per call, so a mixed tree is still filtered: **fail
-open was not shown and I do not think it is the likely form.**
+corrupt each other. In bleach 6.4.0 `Cleaner.__init__` builds the parser, the
+walker AND the serializer, so on the old code all three were shared; I read no
+per-call state in the walker or the serializer. Only the part that removes
+markup (`BleachSanitizerFilter`) is made inside `clean()`, per call, so a mixed
+tree is still filtered: **fail open was not shown and I do not think it is the
+likely form.** (Corrected after Verifier 2's reading.)
 
 ## What was OBSERVED (and what was not)
 - On CI, once (`students.tests_grading_redelivery_live`, six worker threads,
