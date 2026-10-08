@@ -206,16 +206,22 @@ class OnlyKeptRepliesCountTest(SimpleTestCase):
         self.assertEqual(label(result, run)["answers_model"], "good/model")
 
     def test_the_last_try_degrades_and_still_counts_only_itself(self):
-        """Tries 1 and 2 are rejected; try 3 is repaired in log mode, with a
-        placeholder for question 3, which has no vote."""
+        """Tries 1 and 2 (by aaa/bad) supply every question but are rejected;
+        try 3 (by zzz/last) supplies only question 1 and is repaired in log
+        mode, with placeholders for questions 2 and 3, which have no vote.
+        Were the thrown-away tries still counted, aaa/bad would hold the
+        origins of questions 2 and 3 and win."""
         provider = in_order(
             reply(payload(answer(1), answer(2), answer(3), answer(9)), "aaa/bad"),
             reply(payload(answer(1), answer(2), answer(3), answer(9)), "aaa/bad"),
-            reply(payload(answer(1), answer(2)), "zzz/last"),
+            reply(payload(answer(1)), "zzz/last"),
         )
         result, run = read(provider)
         self.assertEqual(len(provider.requests), 3)
-        self.assertEqual(result["answers"][2]["answer_status"], NOT_FOUND_IN_DOCUMENT)
+        self.assertEqual(
+            [a["answer_status"] for a in result["answers"]],
+            [ANSWERED, NOT_FOUND_IN_DOCUMENT, NOT_FOUND_IN_DOCUMENT],
+        )
         self.assertEqual(label(result, run)["answers_model"], "zzz/last")
 
     def test_a_placeholder_has_no_vote(self):
