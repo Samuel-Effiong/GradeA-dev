@@ -57,7 +57,7 @@ from rest_framework.throttling import SimpleRateThrottle
 
 from classrooms.models import School
 from users.admin import CustomUserAdmin
-from users.models import PasswordResetOTP, UserTypes
+from users.models import PasswordResetOTP, Settings, UserTypes
 from users.tokens import EpochRefreshToken
 
 User = get_user_model()
@@ -361,6 +361,9 @@ class SwitchingOffRevokesSessionsTests(APITestCase):
             email_verified_at=timezone.now(),
         )
         self.admin_changelist = reverse("admin:users_customuser_changelist")
+        # The person's own Settings row (made by a signal; get_or_create so the
+        # test does not depend on that): its detail route is open to its owner.
+        self.own_settings = Settings.objects.get_or_create(user=self.person)[0]
 
     # -- fixtures --------------------------------------------------------
 
@@ -383,7 +386,8 @@ class SwitchingOffRevokesSessionsTests(APITestCase):
     def settings_status(self, access):
         client = self.client_class()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
-        return client.get(reverse("settings-list")).status_code
+        url = reverse("settings-detail", kwargs={"pk": self.own_settings.pk})
+        return client.get(url).status_code
 
     def refresh_status(self, refresh):
         return (
