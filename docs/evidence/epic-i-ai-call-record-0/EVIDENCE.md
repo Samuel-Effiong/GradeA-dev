@@ -2,8 +2,7 @@
 
 Branch `task/epic-i-ai-call-record-0`, base `75d82620` (the merged line), tests first (see the commit list in section 4).
 Builder: Next-stage Builder. Design: `AI-call-record-design-note.md` revision 6 and `-rev7.md`
-(accepted by the Senior Manager, 8 October 2026). Nothing was run when this file was written;
-the results are added by the gate (section 4).
+(accepted by the Senior Manager, 8 October 2026). The results of the gate are in section 4.
 
 ## 1. What the slice does
 
@@ -74,7 +73,37 @@ Nothing a user can see. Four parts:
 
 ## 4. Results
 
-(To be filled by the gate: the red run, the modules and guards run, the mutants, the seam check.)
+Commits on `task/epic-i-ai-call-record-0` (base `75d82620`): tests only `c67bcf17`; code `679f9045`;
+gate pack `0d80aa96` (the tip the gate ran on). Release Engineer's grant of 8 October; one outer
+`systemd-inhibit`, `MemoryMax` 6G, rules 12, 13, 16 (revised), 17, 18. Gate script
+`run_ai_call_record_0_gate.sh.txt` (sha256 `18aa74e97c7f3cd581071cf6beeeb6d04a71640a18ce87d99f467f499240e5d9`).
+Logs are gzipped with `gzip -n -9`; `gzipped_logs_sha256.txt` lists the sha256 of each unpacked file.
+
+**The first start stopped at step 0 (14:11:41 to 14:11:45) and is kept as evidence.** The red run itself was
+exactly as written (exit 1, `Ran 4 tests`, `FAILED (errors=4)`, all four modules failed to load for the missing new
+modules, no database created). My comparison of it was wrong: the runner names a failed module by its last
+component, and my pattern looked for the dotted name, so the script halted (exit 4) as designed, on a bad
+comparison. Recorded by the Release Engineer as a script defect at step 0 (no test beyond the expected red run
+ran), not a red result. Kept: `first_stopped_gate_output.txt.gz`, `first_stopped_red_run.txt.gz`. The script's
+comparison was then made stricter and the gate run once more.
+
+**The gate run: 2026-10-08 14:31:39 to 14:37:10 (5 min 31 s), exit 0.** Load 3.37 at the start, 3.22 at the end.
+
+| Step | Expected | Result |
+|---|---|---|
+| 0 Red run of the four new modules against the code as at `c67bcf17` | all four fail to LOAD for the missing new modules; exit non-zero; no `OK` line | as written: `Ran 4 tests`, `FAILED (errors=4)`; the script's own comparison passed; source restored (`red_run_code_as_at_red_commit.txt.gz`) |
+| 1a `makemigrations --check` | no changes | `No changes detected` (`makemigrations_check.txt`) |
+| 1b The seam | `git diff 75d82620 HEAD` of `ai_processor/services.py` and of slice C's nine test modules empty | both 0 bytes (`seam_services_diff.txt`, `slice_c_tests_diff.txt`): `execute_graded_task` and `__ai_model` are untouched |
+| 1 The four new modules + slice C's label modules (unchanged) + near modules + guards (`AutoGrader` guards of the Release Engineer's list plus `tests_student_feedback_guard`, `tests_submission_audience_guard`, `tests_student_classmates_guard`, `audit.tests_history_guard`, `audit.tests_route_coverage`, `audit.tests_sweep_beat_lock`) | OK | `Ran 847 tests in 128.949s`, `OK` (`modules_and_guards.txt.gz`) |
+| 2 The 33 mutants (rule 17: bytecode off, `__pycache__` cleared; rule 18: each inner run straight to its file) | each KILLED: a `Ran` line, no load failure, its named test among the failing tests | KILLED 33, SURVIVED 0, BROKEN 0; every mutant's named test is among its failing tests: True; each inner run printed Ran 171 tests (`mutation_results.json`, `mutation_log.txt`, `mutant_logs/*.txt.gz`) |
+
+Source clean after the mutants; the mutant database dropped. The regression is the Release Engineer's one
+full run on the frozen tip (not in this gate).
+
+**Credential-pattern check (by program, counts only, over every file in this directory before packing, and over
+the gate output and the stopped-run files):** no address with a password position filled (0); no `NAME=value`
+for password-, token- or key-shaped names except one false match, a test description line containing `keys=`
+(`modules_and_guards.txt`); the word for a credential 0 times. No value was printed or copied.
 
 ## 5. Stated limits
 
