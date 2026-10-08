@@ -124,3 +124,22 @@ The three licence tests' later assertions had never run, so I read each against 
 - **LREAD (re-add keeps the chosen password)**: the existing-teacher branch finds the account (`teacher_account_for_email`), same school, no individual subscription, and resends only `if user.must_change_password` (license_service.py 1231); the reset cleared it, so no second `.delay` call. Sign-in goes through `auth/login`, whose serializer has a lockout and a STUDENT-only branch (users/serializers.py 467-496): nothing teacher-specific.
 
 **Expectation for the re-run (written before it):** step 0 on 9dc3a9ca's `users/views.py`: Ran 30, TEN red (the same ten: four request refusals, request same-words, four reset refusals, reset same-as-unknown). **The three licence tests are expected GREEN at step 0, and the reason is that the road they exercise (an active, never-verified teacher asking for and using a reset code) is already open at 9dc3a9ca: the H-164 change itself opened it for every active never-verified account.** They are not red on the old code because the old code differs for them; they are seen red only by mutants R1 (LREQ), R3/R5/R6 (LRESET) and R5 (LREAD). The two verified-admin controls are also green at step 0 (seen red by R9, R18, R21).
+
+### N3 results (re-run on f7f33822f5f305c4cb76367a022937a18df87331, base 9dc3a9ca; raw logs `n3_*` in this folder; the first attempt's log is kept beside them)
+
+Runner run_h164_n3_gate.sh c702f0e69d0bf574, once, one outer inhibit, on the Release Engineer's GRANT, the one re-run the Senior Manager approved. Times from `date`. The runner finished (exit 0); it reported one mutant as KILLED_NOT_AS_EXPECTED.
+
+| Step | Time (WAT) | Result |
+|---|---|---|
+| 0 reproduce-first (9dc3a9ca's views.py) | 2026-10-08 18:43:59 | Ran 30, TEN red, exactly the ten written; the three licence tests and the two verified-admin controls GREEN, as written (n3_prefix_base_production_failing.txt) |
+| 1a makemigrations --check | 18:44:19 | no changes |
+| 1 new + related modules + guards | 18:44:22 to 18:46:33 | Ran 490, OK (skipped=3) (n3_modules_and_guards.txt.gz) |
+| 2 mutants R1..R22 | 18:46:33 to 18:49:31 | 21 KILLED, **1 KILLED_NOT_AS_EXPECTED (R2)**, SURVIVED [], BROKEN [] (n3_mutation_log.txt, n3_mutation_results.json, n3_mutant_logs/) |
+
+### ADDED AFTER THE RUN (named with reasons; nothing was repaired or re-run)
+
+1. **R2 (the request step refuses nobody): one written test PASSED.** Written: the four request refusals, the inactive-refusal test AND `test_that_refusal_says_what_the_inactive_refusal_says`. Found: the first five failed; the same-words test passed. Reason: R2 removes the whole refusal, inactive case included, so both sides of that test's comparison answer 202 and are equal. **My written set was wrong, not the tests:** that test compares an admin account with an inactive one, and R2 changes both the same way. The test is still seen red by R17 (admin arm removed) and R19 (own words). No test is unguarded by this.
+2. **R15 (the helper forgets is_superuser): two EXTRA failures**, `test_that_refusal_says_what_the_inactive_refusal_says` and `test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account`. The runner counts a mutant as killed when every expected test failed, so it printed KILLED. Reason: my two same-words tests build their admin account with `is_superuser=True` ONLY, so dropping that flag lets the account through there too. I wrote the set from the flag tests alone and forgot which flag the same-words tests use. The written R15 set (flag tests only) is a subset of the real one.
+3. Every other mutant failed exactly its written set (no extras, nothing missing).
+
+**Plain reading:** 21 of 22 mutants were killed exactly as written; R2 and R15 differ from my written sets for the two reasons above, both errors in my expected sets, none a survivor. `mutate.py` is left as run (fdb8a852fd7d0b4b) so the record matches the run.
