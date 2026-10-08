@@ -20,7 +20,7 @@ They are pure Python (no database).
 import json
 import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor
+import time
 
 from django.test import SimpleTestCase
 
@@ -54,11 +54,26 @@ def one_input(i):
 ALL_INPUTS = [one_input(i) for i in range(INPUTS)]
 
 
+#: How long the threads may take before the run is called HUNG. On the shared
+#: Cleaner the corrupted parser has been seen to leave threads spinning for
+#: ever (11 minutes at 178% CPU in the first measured run, H-191): the test
+#: must fail, not wait. The threads are daemons so the process can still exit.
+HUNG_AFTER_SECONDS = 120
+_threads_left_spinning = []
+
+
 def run_in_threads(function):
     """(results, errors): every thread calls `function` on every input,
     ROUNDS times, starting at a different input; all start together and the
-    interpreter switches threads as often as it can."""
-    results, errors = [], []
+    interpreter switches threads as often as it can. A thread that is still
+    running after HUNG_AFTER_SECONDS is reported as an error, not waited for."""
+    if _threads_left_spinning:
+        raise AssertionError(
+            "an earlier test in this process left %d thread(s) spinning"
+            % len(_threads_left_spinning)
+        )
+    results: list = []
+    errors: list = []
     lock = threading.Lock()
     barrier = threading.Barrier(THREADS)
 
@@ -76,13 +91,25 @@ def run_in_threads(function):
                     with lock:
                         results.append((index, got))
 
+    threads = [
+        threading.Thread(target=work, args=(offset,), daemon=True)
+        for offset in range(THREADS)
+    ]
     previous = sys.getswitchinterval()
     sys.setswitchinterval(1e-6)
     try:
-        with ThreadPoolExecutor(max_workers=THREADS) as pool:
-            list(pool.map(work, range(THREADS)))
+        for thread in threads:
+            thread.start()
+        deadline = time.monotonic() + HUNG_AFTER_SECONDS
+        for thread in threads:
+            thread.join(max(0.0, deadline - time.monotonic()))
     finally:
         sys.setswitchinterval(previous)
+    alive = [thread for thread in threads if thread.is_alive()]
+    if alive:
+        _threads_left_spinning.extend(alive)
+        with lock:
+            errors.append(("hung", len(alive)))
     return results, errors
 
 
