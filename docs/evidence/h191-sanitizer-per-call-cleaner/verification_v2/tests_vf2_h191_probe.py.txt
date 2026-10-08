@@ -1,0 +1,207 @@
+"""v2's probe for H-191 (sanitizer builds its own bleach Cleaner per call), written
+2026-10-08 BEFORE any run. Copied to assignments/tests_vf2_h191_probe.py, together
+with assignments/_vf2_old_pmc.py (the blob of assignments/prosemirror_converter.py
+at beta 3f2ad13e, unchanged). Never committed to the branch.
+
+Part A (single thread, differential): the cured sanitize_editor_html gives, for a
+corpus that exercises EVERY setting of the Cleaner (strip_comments, protocols,
+css_sanitizer, strip, attributes) and the two steps before it, exactly what the
+old shared-Cleaner code gave. Each test also asserts a deciding value read from
+the NEW output, so equal-but-empty cannot pass.
+Part B (threads): my own corpus and shape, compared with the OLD code's single-
+thread output; per-call errors are counted, not fatal; own deadline.
+Part C (observation only, asserts nothing): the OLD code under threads; counts
+how many calls raised / returned a wrong text / returned another input's marker.
+Written to $VF2_OLD_OBS (a json file). It is evidence only if it shows something.
+"""
+import json
+import os
+import sys
+import threading
+import time
+
+from django.test import SimpleTestCase
+
+from assignments import _vf2_old_pmc as old
+from assignments import prosemirror_converter as new
+
+CORPUS = {
+    "comment": "<!-- VF-c-comment --><p>VF-c visible</p>",
+    "urls": (
+        '<p>VF-u <a href="javascript:alert(1)">bad</a> '
+        '<a href="https://e.example.com/a?b=1&amp;c=2">good</a> '
+        '<a href="mailto:a@b.example">mail</a> '
+        '<img src="data:text/html;base64,AAAA" alt="d"> '
+        '<img src="http://i.example.com/y.png" alt="ok" onerror="x()"></p>'
+    ),
+    "style": (
+        '<p style="color:red;position:absolute;background:url(http://x.example/y)">'
+        "VF-s styled</p>"
+    ),
+    "tags": (
+        "<p>VF-t keep</p><iframe src=x>ifr</iframe><form><input name=q></form>"
+        "<object>obj</object><custom-tag>cust</custom-tag>"
+    ),
+    "attributes": (
+        '<table><tr><td colspan="2" onclick="x()" class="c">VF-a cell</td></tr></table>'
+        '<ol start="3" onfocus="y()"><li>VF-a item</li></ol>'
+    ),
+    "raw_text": "<script>VFevil()</script><p>VF-r kept\x00\x01 text</p><style>p{}</style>",
+    "empty": "",
+}
+
+
+class PartA(SimpleTestCase):
+    def pair(self, key):
+        text = CORPUS[key]
+        return old.sanitize_editor_html(text), new.sanitize_editor_html(text)
+
+    def test_a1_comments(self):
+        was, now = self.pair("comment")
+        self.assertEqual(now, was)
+        self.assertIn("VF-c visible", now)
+        self.assertNotIn("<!--", now)
+
+    def test_a2_url_schemes(self):
+        was, now = self.pair("urls")
+        self.assertEqual(now, was)
+        self.assertIn("https://e.example.com/a", now)
+        self.assertIn("mailto:a@b.example", now)
+        self.assertNotIn("javascript:", now)
+        self.assertNotIn("data:text", now)
+        self.assertNotIn("onerror", now)
+
+    def test_a3_css(self):
+        was, now = self.pair("style")
+        self.assertEqual(now, was)
+        self.assertIn("VF-s styled", now)
+        self.assertIn("color", now)
+        self.assertNotIn("position", now)
+        self.assertNotIn("url(", now)
+
+    def test_a4_disallowed_tags_are_stripped_not_escaped(self):
+        was, now = self.pair("tags")
+        self.assertEqual(now, was)
+        self.assertIn("<p>VF-t keep</p>", now)
+        self.assertNotIn("<iframe", now)
+        self.assertNotIn("&lt;", now)
+
+    def test_a5_attribute_allowlist(self):
+        was, now = self.pair("attributes")
+        self.assertEqual(now, was)
+        self.assertIn('colspan="2"', now)
+        self.assertIn('start="3"', now)
+        self.assertNotIn("onclick", now)
+        self.assertNotIn("onfocus", now)
+
+    def test_a6_raw_text_and_control_characters(self):
+        was, now = self.pair("raw_text")
+        self.assertEqual(now, was)
+        self.assertIn("VF-r kept", now)
+        self.assertNotIn("VFevil", now)
+        self.assertNotIn("\x00", now)
+
+    def test_a7_empty(self):
+        was, now = self.pair("empty")
+        self.assertEqual(now, was)
+        self.assertEqual(now, "")
+
+    def test_a8_whole_conversion_equals_the_old_one(self):
+        for key, text in CORPUS.items():
+            if not text:
+                continue
+            with self.subTest(key=key):
+                was = old.html_to_prosemirror_json(text)
+                now = new.html_to_prosemirror_json(text)
+                self.assertTrue(now.get("content"))
+                self.assertEqual(now, was)
+
+
+N_IN = 10
+THREADS = 8
+ROUNDS = 25
+DEADLINE = 60.0
+
+
+def inputs():
+    out = []
+    for i in range(N_IN):
+        out.append(
+            f"<h2>VF{i:02d}-head</h2><p>VF{i:02d}-body <i>x{i}</i></p>"
+            f"<ol><li>VF{i:02d}-li</li></ol>"
+            f"<table><tr><th>h{i}</th></tr><tr><td>VF{i:02d}-td</td></tr></table>"
+            f"<blockquote>q{i}<a href=\"https://e.example.com/{i}\">l</a></blockquote>"
+        )
+    return out
+
+
+def hammer(function, texts):
+    results, errors, lock = [], [], threading.Lock()
+    barrier = threading.Barrier(THREADS)
+
+    def work(offset):
+        barrier.wait()
+        for r in range(ROUNDS):
+            for s in range(len(texts)):
+                k = (offset * 3 + r + s) % len(texts)
+                try:
+                    got = function(texts[k])
+                except Exception as exc:  # noqa: BLE001
+                    with lock:
+                        errors.append((k, type(exc).__name__))
+                else:
+                    with lock:
+                        results.append((k, got))
+
+    ts = [threading.Thread(target=work, args=(o,), daemon=True) for o in range(THREADS)]
+    prev = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    try:
+        for t in ts:
+            t.start()
+        end = time.monotonic() + DEADLINE
+        for t in ts:
+            t.join(max(0.0, end - time.monotonic()))
+    finally:
+        sys.setswitchinterval(prev)
+    hung = sum(1 for t in ts if t.is_alive())
+    return results, errors, hung
+
+
+class PartB(SimpleTestCase):
+    def test_b1_threads_get_their_own_text(self):
+        texts = inputs()
+        expected = [old.sanitize_editor_html(t) for t in texts]
+        for i, e in enumerate(expected):
+            self.assertIn(f"VF{i:02d}-body", e)
+        results, errors, hung = hammer(new.sanitize_editor_html, texts)
+        self.assertEqual(hung, 0)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(results), THREADS * ROUNDS * N_IN)
+        self.assertEqual([k for k, g in results if g != expected[k]], [])
+
+
+class PartC(SimpleTestCase):
+    def test_c1_observe_the_old_shared_cleaner(self):
+        texts = inputs()
+        expected = [old.sanitize_editor_html(t) for t in texts]
+        results, errors, hung = hammer(old.sanitize_editor_html, texts)
+        wrong = [(k, g) for k, g in results if g != expected[k]]
+        foreign = [
+            k
+            for k, g in wrong
+            if any(f"VF{j:02d}-" in g for j in range(N_IN) if j != k)
+        ]
+        obs = {
+            "calls_returned": len(results),
+            "calls_raised": len(errors),
+            "raised_kinds": sorted({e for _, e in errors}),
+            "returned_wrong_text": len(wrong),
+            "wrong_with_another_inputs_marker": len(foreign),
+            "threads_still_running_at_deadline": hung,
+        }
+        path = os.environ.get("VF2_OLD_OBS")
+        if path:
+            with open(path, "w") as fh:
+                json.dump(obs, fh, indent=1)
+        print("VF2_OLD_OBS", json.dumps(obs), file=sys.stderr)

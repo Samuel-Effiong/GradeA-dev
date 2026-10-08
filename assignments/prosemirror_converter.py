@@ -202,15 +202,25 @@ _CSS_SANITIZER = CSSSanitizer(
     allowed_css_properties=sorted(CONVERTER_ALLOWED_CSS_PROPERTIES)
 )
 
-# bleach.Cleaner is reusable and avoids re-parsing the allowlists per call.
-_CLEANER = bleach.sanitizer.Cleaner(
-    tags=CONVERTER_ALLOWED_TAGS,
-    attributes=CONVERTER_ALLOWED_ATTRIBUTES,
-    protocols=list(URL_ALLOWED_SCHEMES),
-    css_sanitizer=_CSS_SANITIZER,
-    strip=True,
-    strip_comments=True,
-)
+
+def _new_cleaner():
+    """A bleach.Cleaner of our own for ONE call (H-191).
+
+    Bleach documents that a Cleaner is not thread-safe: it holds one html5lib
+    parser, whose tree builder is replaced at the start of every parse and read
+    at the end. A Cleaner shared by threads could raise html5lib's own
+    `assert False` or hand one caller another caller's text. The allowlists
+    and the CSS sanitizer above are plain data and stay shared; only the
+    parser and serializer are built per call.
+    """
+    return bleach.sanitizer.Cleaner(
+        tags=CONVERTER_ALLOWED_TAGS,
+        attributes=CONVERTER_ALLOWED_ATTRIBUTES,
+        protocols=list(URL_ALLOWED_SCHEMES),
+        css_sanitizer=_CSS_SANITIZER,
+        strip=True,
+        strip_comments=True,
+    )
 
 
 # bleach removes disallowed *tags* but keeps their text. For the handful of
@@ -241,7 +251,9 @@ def strip_raw_text_elements(value):
 
 def sanitize_editor_html(html_string: str) -> str:
     """Strip control characters and everything outside the converter allowlist."""
-    return _CLEANER.clean(strip_raw_text_elements(strip_control_chars(html_string)))
+    return _new_cleaner().clean(
+        strip_raw_text_elements(strip_control_chars(html_string))
+    )
 
 
 # ---------------------------------------------------------------------------
