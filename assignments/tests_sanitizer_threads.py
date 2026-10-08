@@ -17,6 +17,7 @@ parser, and compare every output with the same input's single-thread output.
 They are pure Python (no database).
 """
 
+import faulthandler
 import json
 import sys
 import threading
@@ -113,6 +114,9 @@ def run_in_threads(function, rounds=ROUNDS):
         sys.setswitchinterval(previous)
     alive = [thread for thread in threads if thread.is_alive()]
     if alive:
+        # Where are they? Every thread's stack goes to stderr (the run's log),
+        # so a hang shows whether a thread is inside bleach or html5lib.
+        faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
         _threads_left_spinning.extend(alive)
         with lock:
             errors.append(("hung", len(alive)))
