@@ -553,3 +553,285 @@ class InvitedStudentResetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         account.refresh_from_db()
         self.assertTrue(account.check_password(NEW_PASSWORD))
+
+
+VERIFY_RATES = {**MANY_IPS, "verify_email": "1000/hour"}
+
+
+@override_settings(CACHES=LOCMEM)
+class VerifyEmailAdminPowerTests(APITestCase):
+    """Senior Manager's ruling (2026-10-08 19:14): the same three-marker
+    condition as the reset, on the VERIFY_EMAIL code request and on
+    POST /auth/verify. The code request answers like an unknown address and
+    sends nothing; /auth/verify answers with its wrong-code refusal, spends
+    the attempt like a wrong guess and writes nothing. The real activation
+    mail road runs (only the task's delay is replaced)."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        throttles = patch.dict(SimpleRateThrottle.THROTTLE_RATES, VERIFY_RATES)
+        throttles.start()
+        self.addCleanup(throttles.stop)
+        mail = patch("users.services.send_email_task")
+        self.mail = mail.start()
+        self.addCleanup(mail.stop)
+        for target in (
+            "users.views.sync_user_to_mailerlite",
+            "users.views.safe_delay",
+            "users.views.AnalyticsService",
+        ):
+            patcher = patch(target)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.ip = 0
+
+    # -- fixtures --------------------------------------------------------
+
+    def account(self, email, verified=False, active=True, **flags):
+        flags.setdefault("user_type", UserTypes.TEACHER)
+        return User.objects.create_user(
+            email=email,
+            password="Verify-pass-1",  # pragma: allowlist secret
+            is_active=active,
+            email_verified_at=timezone.now() if verified else None,
+            **flags,
+        )
+
+    def with_token(self, user):
+        User.objects.filter(pk=user.pk).update(
+            activation_token="424242",
+            activation_expires=timezone.now() + timedelta(minutes=15),
+        )
+        user.refresh_from_db()
+        return user
+
+    def ask_for_code(self, email):
+        self.ip += 1
+        return self.client.post(
+            reverse("auth-otp"),
+            {"email": email, "otp_type": "VERIFY_EMAIL"},
+            format="json",
+            REMOTE_ADDR=f"10.202.0.{self.ip}",
+        )
+
+    def verify(self, email, token):
+        return self.client.post(
+            reverse("auth-verify"),
+            {"email": email, "token": token},
+            format="json",
+        )
+
+    def assert_code_request_sends_nothing(self, account):
+        response = self.ask_for_code(account.email)
+
+        account.refresh_from_db()
+        self.assertIsNone(account.activation_token)
+        self.mail.delay.assert_not_called()
+        return response
+
+    def assert_code_request_answers_like_an_unknown_address(self, account):
+        unknown = self.ask_for_code("nobody.verify.h164@example.com")
+        response = self.ask_for_code(account.email)
+
+        self.assertEqual(unknown.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, unknown.status_code)
+        self.assertEqual(response.content, unknown.content)
+
+    def assert_verify_refused_and_nothing_written(self, account):
+        self.with_token(account)
+
+        response = self.verify(account.email, "424242")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("access", response.data)
+        account.refresh_from_db()
+        self.assertIsNone(account.email_verified_at)
+        self.assertEqual(account.activation_token, "424242")
+        self.assertIsNotNone(account.activation_expires)
+
+    def assert_verify_refusal_is_the_wrong_code_refusal(self, account):
+        self.with_token(account)
+
+        refused = self.verify(account.email, "424242")
+        wrong = self.verify(account.email, "000000")
+
+        self.assertEqual(refused.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(refused.status_code, wrong.status_code)
+        self.assertEqual(refused.content, wrong.content)
+
+    def staff_only(self, email):
+        return self.account(email, is_staff=True)
+
+    def flag_only(self, email):
+        return self.account(email, is_superuser=True)
+
+    def type_only(self, email):
+        return self.account(email, user_type=UserTypes.SUPER_ADMIN)
+
+    def command_line(self, email):
+        account = User.objects.create_superuser(
+            email=email,
+            password="Verify-pass-2",  # pragma: allowlist secret
+        )
+        self.assertEqual(account.user_type, UserTypes.TEACHER)
+        self.assertIsNone(account.email_verified_at)
+        return account
+
+    # -- the code request ------------------------------------------------
+
+    def test_the_code_request_sends_nothing_to_a_never_verified_staff_account(self):
+        self.assert_code_request_sends_nothing(self.staff_only("vqs.h164@x.example"))
+
+    def test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag(self):
+        self.assert_code_request_sends_nothing(self.flag_only("vqf.h164@x.example"))
+
+    def test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type(self):
+        self.assert_code_request_sends_nothing(self.type_only("vqt.h164@x.example"))
+
+    def test_the_code_request_sends_nothing_to_a_command_line_superuser(self):
+        self.assert_code_request_sends_nothing(self.command_line("vqc.h164@x.example"))
+
+    def test_that_code_request_answer_for_a_staff_account_is_the_unknown_ones(self):
+        self.assert_code_request_answers_like_an_unknown_address(
+            self.staff_only("vqws.h164@x.example")
+        )
+
+    def test_that_code_request_answer_for_a_superuser_flag_is_the_unknown_ones(self):
+        self.assert_code_request_answers_like_an_unknown_address(
+            self.flag_only("vqwf.h164@x.example")
+        )
+
+    def test_that_code_request_answer_for_a_super_admin_type_is_the_unknown_ones(self):
+        self.assert_code_request_answers_like_an_unknown_address(
+            self.type_only("vqwt.h164@x.example")
+        )
+
+    # -- POST /auth/verify -----------------------------------------------
+
+    def test_verify_refuses_a_never_verified_staff_account(self):
+        self.assert_verify_refused_and_nothing_written(
+            self.staff_only("vvs.h164@x.example")
+        )
+
+    def test_verify_refuses_a_never_verified_superuser_flag(self):
+        self.assert_verify_refused_and_nothing_written(
+            self.flag_only("vvf.h164@x.example")
+        )
+
+    def test_verify_refuses_a_never_verified_super_admin_type(self):
+        self.assert_verify_refused_and_nothing_written(
+            self.type_only("vvt.h164@x.example")
+        )
+
+    def test_verify_refuses_a_command_line_superuser(self):
+        self.assert_verify_refused_and_nothing_written(
+            self.command_line("vvc.h164@x.example")
+        )
+
+    def test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one(self):
+        self.assert_verify_refusal_is_the_wrong_code_refusal(
+            self.staff_only("vvws.h164@x.example")
+        )
+
+    def test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one(self):
+        self.assert_verify_refusal_is_the_wrong_code_refusal(
+            self.flag_only("vvwf.h164@x.example")
+        )
+
+    def test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one(self):
+        self.assert_verify_refusal_is_the_wrong_code_refusal(
+            self.type_only("vvwt.h164@x.example")
+        )
+
+    @override_settings(VERIFY_EMAIL_MAX_FAILURES=2)
+    def test_a_refused_verify_spends_the_budget_like_a_wrong_guess(self):
+        account = self.with_token(self.flag_only("vvb.h164@x.example"))
+
+        self.verify(account.email, "424242")
+        self.verify(account.email, "424242")
+        third = self.verify(account.email, "424242")
+
+        self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    # -- controls: nothing else changes ------------------------------------
+
+    def test_a_verified_admin_still_gets_the_already_verified_answer(self):
+        """Green on the old code too."""
+        account = self.account(
+            "vcv.h164@x.example",
+            verified=True,
+            is_staff=True,
+            is_superuser=True,
+            user_type=UserTypes.SUPER_ADMIN,
+        )
+
+        response = self.ask_for_code(account.email)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_a_verified_admin_can_still_verify(self):
+        """Green on the old code too."""
+        account = self.account(
+            "vcw.h164@x.example",
+            verified=True,
+            is_superuser=True,
+            user_type=UserTypes.SUPER_ADMIN,
+        )
+        self.with_token(account)
+
+        response = self.verify(account.email, "424242")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+
+    def test_an_ordinary_unverified_user_still_activates_end_to_end(self):
+        """Green on the old code too: a self-registered account (inactive,
+        never verified) asks for a code, gets one, and verifying makes it
+        active and verified."""
+        user = self.account("vco.h164@x.example", active=False)
+
+        self.ask_for_code(user.email)
+        user.refresh_from_db()
+        self.assertIsNotNone(user.activation_token)
+        self.mail.delay.assert_called_once()
+        response = self.verify(user.email, user.activation_token)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertIsNotNone(user.email_verified_at)
+
+    def test_an_invited_school_admin_still_verifies(self):
+        """Green on the old code too: an invited school admin (inactive,
+        never verified, a 7-day token) is not an admin-power account in this
+        sense."""
+        school = School.objects.create(name="Verify High")
+        admin = self.account(
+            "vcs.h164@x.example",
+            active=False,
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+        )
+        self.with_token(admin)
+
+        response = self.verify(admin.email, "424242")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        admin.refresh_from_db()
+        self.assertTrue(admin.is_active)
+        self.assertIsNotNone(admin.email_verified_at)
+
+    def test_a_licence_invited_teacher_still_verifies_end_to_end(self):
+        """Green on the old code too: an active, never-verified licence
+        teacher asks for a code and verifies with it."""
+        teacher = self.account("vcl.h164@x.example")
+
+        self.ask_for_code(teacher.email)
+        teacher.refresh_from_db()
+        self.assertIsNotNone(teacher.activation_token)
+        response = self.verify(teacher.email, teacher.activation_token)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        teacher.refresh_from_db()
+        self.assertIsNotNone(teacher.email_verified_at)
