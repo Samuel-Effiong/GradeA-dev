@@ -115,6 +115,10 @@ class AnOlderTaskDoesNotWriteOverAManualGrade(SupersededBase):
     def test_a_task_whose_result_is_still_the_rows_writes(self):
         # The fixture's text does not hold the marker, so finding it
         # stored means this task wrote.
+        # The stored text is the fixture's (set in the base class's setUp):
+        # something to look in, before "the marker is not in it" means anything.
+        self.assertTrue(self.stored_formatted())
+        self.assertTrue(WORDED_BY_THIS_RUN)
         self.assertNotIn(WORDED_BY_THIS_RUN, self.stored_formatted())
 
         self.run_task(self.stamp_now())
@@ -277,6 +281,10 @@ class FormatGradeSavesOnlyItsText(SupersededBase):
         self.assertEqual(after.feedback["grading_summary"]["total_score"], 9)
 
     def test_it_still_writes_its_text(self):
+        # The stored text is the fixture's (set in the base class's setUp):
+        # something to look in, before "the marker is not in it" means anything.
+        self.assertTrue(self.stored_formatted())
+        self.assertTrue(WORDED_BY_THIS_RUN)
         self.assertNotIn(WORDED_BY_THIS_RUN, self.stored_formatted())
 
         self.run_format_grade(return_value=the_formatters_reply())
