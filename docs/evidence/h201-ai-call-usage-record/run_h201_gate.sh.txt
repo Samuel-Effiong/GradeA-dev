@@ -56,6 +56,12 @@ for S in tests_call_record tests_call_record_static; do
 done
 LOADERR=$(grep -cE "^ERROR: [A-Za-z0-9_]+ \(unittest.loader._FailedTest" $RF)
 [ "$LOADERR" = 2 ] || { echo "red run: $LOADERR load errors (2 expected)"; RED_OK=0; }
+# RULE 22: each module is red for its WRITTEN reason (the missing import of the code under test, an allowed reason),
+# looked for inside that module's own ERROR block; another reason is a WRONG REASON and fails the step.
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+for S in tests_call_record tests_call_record_static; do
+    python -I $RC $RF $S "cannot import name 'call_record' from 'ai_processor'" || RED_OK=0
+done
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
     git checkout HEAD -- $CHANGED $NEWFILES
