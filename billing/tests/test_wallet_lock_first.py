@@ -47,6 +47,19 @@ LIMITS, STATED
     these tests show or do not show; nothing here is read from a real service.
   * Nothing here touches a licence row (that is H-182).
 
+THE LICENCE SIDE (same row, ruled by the Senior Manager 2026-10-08)
+-------------------------------------------------------------------
+`LicenseSubscriptionService._rollover_and_grant_monthly_bucket` locks the
+teacher's MONTHLY bucket and then inserts buckets; its three callers
+(`process_license_renewal`, `process_offline_renewal`,
+`_refresh_teacher_credits`) write the wallet afterwards or at commit. Each
+has a test below. `_enroll_teacher_internal` is NOT among them: it reads the
+teacher's monthly bucket without a lock, so it holds no bucket lock for a
+charge to wait on (read; stated in the evidence). The licence functions
+catch a failure per teacher, so a deadlock victim there is usually the
+CHARGE (the one that waited first); the tests also assert the renewal's own
+result.
+
 Run with:
     python manage.py test billing.tests.test_wallet_lock_first
 """
@@ -65,6 +78,7 @@ from django.utils import timezone
 
 from AutoGrader.testing.concurrency import run_concurrently
 from billing.immutable import allow_unsafe_mutation
+from billing.license_service import LicenseSubscriptionService
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -72,14 +86,18 @@ from billing.models import (
     CreditLedger,
     CreditWallet,
     InsufficientCreditsError,
+    LicenseBillingMethod,
+    LicenseSubscription,
     PlanCategory,
     PlanTier,
     PlanType,
+    SchoolCreditAllocation,
     SubscriptionPlan,
     UserSubscription,
 )
 from billing.services import SubscriptionService
 from billing.tests.tests_free_trial import make_individual_plan
+from classrooms.models import School
 from users.models import UserTypes
 
 CustomUser = get_user_model()
@@ -104,6 +122,8 @@ CHARGE = 1_000
 _queueing = [
     patch("billing.services.queue_sync", return_value=None),
     patch("billing.services.safe_delay", return_value=None),
+    patch("billing.license_service.queue_sync", return_value=None),
+    patch("billing.license_service.safe_delay", return_value=None),
 ]
 
 
@@ -133,9 +153,9 @@ def make_annual_plan(name="PRO_ANNUAL", price_id="price_lockfirst_annual"):
     )
 
 
-class WalletLockFirstTests(TransactionTestCase):
-    """One real-thread test per function: a charge racing the function must
-    not deadlock."""
+class RaceTestCase(TransactionTestCase):
+    """The harness: a user with a wallet, and `race()`, which runs a function
+    in worker 0 and a charge in worker 1, forced to meet."""
 
     reset_sequences = True
 
@@ -154,17 +174,6 @@ class WalletLockFirstTests(TransactionTestCase):
             CreditLedger.objects.filter(user_id=self.user.id).delete()
 
     # -- fixtures --------------------------------------------------------
-
-    def give_trial_bucket(self):
-        """A live, unprocessed TRIAL bucket with credits left: the bucket
-        `activate_subscription` forfeits (and so locks) on a paid plan."""
-        return CreditBucket.objects.create(
-            wallet=self.wallet,
-            bucket_type=CreditBucketType.TRIAL,
-            total_credits=5_000_000,
-            used_credits=0,
-            expires_at=timezone.now() + timedelta(days=7),
-        )
 
     def charge_target_exists(self):
         """Something `consume_credits` can draw on, so the charge reaches
@@ -234,7 +243,21 @@ class WalletLockFirstTests(TransactionTestCase):
             "lock timeout)",
         )
 
-    # -- the six functions -----------------------------------------------
+
+class WalletLockFirstTests(RaceTestCase):
+    """One real-thread test per function: a charge racing the function must
+    not deadlock."""
+
+    def give_trial_bucket(self):
+        """A live, unprocessed TRIAL bucket with credits left: the bucket
+        `activate_subscription` forfeits (and so locks) on a paid plan."""
+        return CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.TRIAL,
+            total_credits=5_000_000,
+            used_credits=0,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
 
     def test_activate_subscription(self):
         self.give_trial_bucket()
@@ -341,3 +364,111 @@ class WalletLockFirstTests(TransactionTestCase):
 
         self.assertNoDeadlock(errors, hook_calls)
         self.assertIsNotNone(results[0], "the conversion returned nothing")
+
+
+class LicenceWalletLockFirstTests(RaceTestCase):
+    """The licence functions that go through the shared rollover helper."""
+
+    def setUp(self):
+        super().setUp()
+        self.school = School.objects.create(name="Lock First High")
+        self.plan = SubscriptionPlan.objects.create(
+            name=PlanType.POWER_LICENSE,
+            display_name="Power License",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.POWER,
+            interval=BillingInterval.MONTHLY,
+            price_cents=19_900,
+            monthly_credits=12_000_000,
+            carry_over_percent=50,
+            carry_over_expiry_months=6,
+            is_active=True,
+        )
+        self.admin = CustomUser.objects.create_user(
+            email="lockfirst-admin@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.SUPER_ADMIN,
+        )
+        self.user.school = self.school
+        self.user.save(update_fields=["school"])
+
+    def make_licence(self, *, cycle_ended, method=LicenseBillingMethod.STRIPE):
+        now = timezone.now()
+        start = now - relativedelta(months=12) if cycle_ended else now
+        end = now - timedelta(days=1) if cycle_ended else now + relativedelta(months=12)
+        licence = LicenseSubscription.objects.create(
+            school=self.school,
+            admin_user=self.admin,
+            plan=self.plan,
+            contract_months=12,
+            max_seats=2,
+            billing_cycle_start=start,
+            billing_cycle_end=end,
+            billing_method=method,
+            is_active=True,
+            auto_renew=True,
+        )
+        allocation = SchoolCreditAllocation.objects.create(
+            license_subscription=licence,
+            user=self.user,
+            monthly_allocation=12_000_000,
+            is_active=True,
+            next_credit_grant_at=now - timedelta(minutes=1),
+        )
+        CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=12_000_000,
+            used_credits=3_000_000,
+            expires_at=now + timedelta(days=1),
+        )
+        return licence, allocation
+
+    def new_monthly_buckets(self):
+        return CreditBucket.objects.filter(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            is_processed=False,
+        )
+
+    def test_process_license_renewal(self):
+        licence, _ = self.make_licence(cycle_ended=True)
+
+        results, errors, hook_calls = self.race(
+            lambda: LicenseSubscriptionService.process_license_renewal(licence)
+        )
+
+        self.assertNoDeadlock(errors, hook_calls)
+        self.assertEqual(
+            self.new_monthly_buckets().count(), 1, "the teacher was not renewed"
+        )
+
+    def test_process_offline_renewal(self):
+        licence, _ = self.make_licence(
+            cycle_ended=True, method=LicenseBillingMethod.OFFLINE
+        )
+
+        results, errors, hook_calls = self.race(
+            lambda: LicenseSubscriptionService.process_offline_renewal(
+                licence,
+                performed_by=self.admin,
+                new_billing_cycle_end=timezone.now() + relativedelta(months=12),
+            )
+        )
+
+        self.assertNoDeadlock(errors, hook_calls)
+        self.assertEqual(
+            self.new_monthly_buckets().count(), 1, "the teacher was not renewed"
+        )
+
+    def test_refresh_teacher_credits(self):
+        _, allocation = self.make_licence(cycle_ended=False)
+
+        results, errors, hook_calls = self.race(
+            lambda: LicenseSubscriptionService._refresh_teacher_credits(allocation)
+        )
+
+        self.assertNoDeadlock(errors, hook_calls)
+        self.assertEqual(
+            self.new_monthly_buckets().count(), 1, "the teacher was not refreshed"
+        )
