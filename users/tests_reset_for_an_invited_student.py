@@ -361,16 +361,17 @@ class InvitedStudentResetTests(APITestCase):
             is_active=True,
             email_verified_at=timezone.now(),
         )
-        teacher = LicenseSubscriptionService._get_or_invite_teacher(
-            email, self.school, admin
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                email, self.school, admin
+            )
         if teacher is None:
             self.fail("the invitation made no teacher")
         teacher.refresh_from_db()
         self.assertTrue(teacher.is_active)
         self.assertIsNone(teacher.email_verified_at)
         self.assertTrue(teacher.must_change_password)
-        self.assertEqual(self.licence_mail.call_count, 1)
+        self.assertEqual(self.licence_mail.delay.call_count, 1)
         return teacher, admin
 
     def test_a_licence_invited_teacher_is_sent_a_reset_code(self):
@@ -402,14 +403,17 @@ class InvitedStudentResetTests(APITestCase):
         teacher, admin = self.licence_invite()
         self.reset(teacher.email, self.code_for(teacher))
 
-        again = LicenseSubscriptionService._get_or_invite_teacher(
-            teacher.email, self.school, admin
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            again = LicenseSubscriptionService._get_or_invite_teacher(
+                teacher.email, self.school, admin
+            )
 
         if again is None:
             self.fail("the re-add returned no teacher")
         self.assertEqual(again.pk, teacher.pk)
-        self.assertEqual(self.licence_mail.call_count, 1, "a new temporary password")
+        self.assertEqual(
+            self.licence_mail.delay.call_count, 1, "a new temporary password"
+        )
         self.client.credentials()
         signed_in = self.client.post(
             reverse("login"),
