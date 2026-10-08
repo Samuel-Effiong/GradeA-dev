@@ -100,6 +100,19 @@ class ReadingRun:
         if name not in known:
             self._origins[key] = known + (name,)
 
+    def votes(self, saved):
+        """{model or None: votes} over the answers as saved. An answer joined
+        from two parts counts once for each part's model, so the sum may be
+        larger than the number of answers (a ruling of the Senior Manager,
+        8 October 2026): both models read part of it."""
+        votes = {}
+        for answer in saved or []:
+            if not isinstance(answer, dict) or answer.get("question_number") is None:
+                continue
+            for name in self._origins.get(_key(answer["question_number"]), ()):
+                votes[name] = votes.get(name, 0) + 1
+        return votes
+
     def reading_model(self, saved, main=None):
         """The model of the reading: the vote over `saved`, the answers as
         they are saved. "unknown" when no saved answer has a reply behind it
@@ -108,13 +121,7 @@ class ReadingRun:
             from ai_processor import services
 
             main = services.MAIN_MODEL
-        votes = {}
-        for answer in saved or []:
-            if not isinstance(answer, dict) or answer.get("question_number") is None:
-                continue
-            for name in self._origins.get(_key(answer["question_number"]), ()):
-                votes[name] = votes.get(name, 0) + 1
-        return majority_model(votes, main) or MODEL_UNKNOWN
+        return majority_model(self.votes(saved), main) or MODEL_UNKNOWN
 
     # -- the re-check --------------------------------------------------------
 

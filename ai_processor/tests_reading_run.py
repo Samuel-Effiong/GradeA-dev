@@ -227,6 +227,42 @@ class TheVoteTest(SimpleTestCase):
         saved = [_answer(1), _answer(2)]
         self.assertEqual(run.reading_model(saved), "b/two")
 
+    def test_a_joined_answer_can_tip_the_label_to_the_later_model(self):
+        """Senior Manager's ruling, 8 October: a joined answer counts for
+        each part's model, so the label is decided by the tie rule more
+        often. Question 1 joined (m/one then a/two), question 2 by m/one,
+        question 3 by a/two: a tie, neither is the main model, so the first
+        by alphabet, a/two. Counted once (for the first part) it would be
+        m/one 2 to a/two 1, and m/one."""
+        run = ReadingRun()
+        run.keep_answers([_answer(1)], model="m/one")
+        run.add_origin(_answer(1), model="a/two")
+        run.keep_answers([_answer(2)], model="m/one")
+        run.keep_answers([_answer(3)], model="a/two")
+        saved = [_answer(1), _answer(2), _answer(3)]
+        self.assertEqual(run.reading_model(saved), "a/two")
+        self.assertEqual(run.votes(saved), {"m/one": 2, "a/two": 2})
+
+    def test_two_parts_by_the_same_model_count_once(self):
+        run = ReadingRun()
+        run.keep_answers([_answer(1)], model="a/m")
+        run.add_origin(_answer(1), model="a/m")
+        run.keep_answers([_answer(2), _answer(3)], model="b/n")
+        saved = [_answer(1), _answer(2), _answer(3)]
+        self.assertEqual(run.votes(saved), {"a/m": 1, "b/n": 2})
+        self.assertEqual(run.reading_model(saved), "b/n")
+
+    def test_the_sum_of_votes_may_exceed_the_number_of_saved_answers(self):
+        """Not a bug: a joined answer was read in part by two models, and
+        the record says so. Do not 'fix' the sum to equal the answers."""
+        run = ReadingRun()
+        run.keep_answers([_answer(1)], model="a/one")
+        run.add_origin(_answer(1), model="b/two")
+        saved = [_answer(1)]
+        votes = run.votes(saved)
+        self.assertEqual(votes, {"a/one": 1, "b/two": 1})
+        self.assertGreater(sum(votes.values()), len(saved))
+
     def test_a_later_reply_that_wins_a_question_replaces_the_earlier_origin(self):
         run = ReadingRun()
         run.keep_answers([_answer(1)], model="a/one")

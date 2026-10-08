@@ -6,7 +6,7 @@
 #    (the new modules and migrations taken away, the changed files taken back; own DB). Compared with what was written.
 # 1a makemigrations --check; 1b the seam (execute_graded_task identical to the slice-0 tip and to the base; slice C's
 #    test modules untouched); 1 the slice's modules + slice C and slice 0 pins + near modules + guards (incl. the cache
-#    test, rule 20); 2 the 35 mutants (rule 17; own DB, the one migration mutant last, DB dropped after).
+#    test, rule 20); 2 the 37 mutants (rule 17; own DB, the one migration mutant last, DB dropped after).
 # The regression is 0b's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
@@ -104,7 +104,7 @@ echo "=== 1. slice modules + pins + near modules + guards at $(git rev-parse --s
 eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $S2 $PIN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
-echo "=== 2. mutants: 35 (own DB, rules 17 and 18) $(date +%T)"
+echo "=== 2. mutants: 37 (own DB, rules 17 and 18) $(date +%T)"
 eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 5400 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
 echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
 git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
