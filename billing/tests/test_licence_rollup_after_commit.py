@@ -256,14 +256,26 @@ class RollupAfterCommitTests(LicensedTeacherFixture, TestCase):
             with patch.object(
                 LicenseSubscription.objects,
                 "filter",
-                side_effect=OperationalError("connection lost"),
+                side_effect=OperationalError("connection lost for someone@example.com"),
             ):
                 with self.captureOnCommitCallbacks(execute=True):
                     self.charge()
 
-        text = "\n".join(logged.output)
-        self.assertIn(str(self.licence.pk), text)
-        self.assertIn(str(CHARGE), text)
+        self.assertEqual(len(logged.records), 1)
+        record = logged.records[0]
+        # The exact fields: the licence id, the amount and the error's class.
+        # Nothing else of the failure: not its text (which here carries an
+        # address), not a traceback, no name or address of the teacher.
+        self.assertEqual(
+            record.getMessage(),
+            f"Licence consumption roll-up FAILED after commit: licence "
+            f"{self.licence.pk}, amount {CHARGE}, error OperationalError. The "
+            f"figure is short by this amount until its window resets.",
+        )
+        self.assertIsNone(record.exc_info)
+        full = "\n".join(logged.output)
+        self.assertNotIn("someone@example.com", full)
+        self.assertNotIn(self.teacher.email, full)
         self.assertEqual(self.consumed(), 0, "the figure moved although it failed")
 
 

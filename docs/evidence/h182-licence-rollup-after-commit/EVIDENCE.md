@@ -9,7 +9,7 @@ Branch `task/h182-licence-rollup-after-commit`, stacked on `task/h181-wallet-loc
 `CreditWallet.consume_credits` locked the wallet and buckets and then UPDATEd the school's `LicenseSubscription` row (`_record_license_consumption`); `refund_credits`
 did the same at its end. The licence paths take the licence row first and then write wallets, so a charge and `_grant_overage_blocks` (or a licence renewal) could deadlock.
 Now `billing/licence_rollup.py` `roll_up_after_commit(licence_id, delta)` registers the same F() update (clamped at zero for a refund) with `transaction.on_commit`; a
-callback that fails is logged at ERROR with the licence id and the amount and never raised. The allocation lookup stays inside the charge (as before); only the write moves.
+callback that fails is logged at ERROR with the licence id, the amount and the error's CLASS NAME only (no name, no address, no exception text, no traceback: a database error can quote what it was given) and never raised. A test pins the exact message and that an address in the error's text and the teacher's own address are absent (Senior Manager's condition, 2026-10-08). The allocation lookup stays inside the charge (as before); only the write moves.
 The rule is now: licence row, then wallets, then buckets, on the charge side as well. The only reader of the figure caps a newly enrolled teacher's first-month grant
 (`_enroll_teacher_internal`, license_service.py:1475): it never refuses or bills.
 
@@ -56,9 +56,9 @@ Commit 4b407bbd; tests only.
   A difference from this list (a count, a name) stops the gate.
 - **Step 1**: `makemigrations --check` no changes; the new module + `test_license_consumption_accounting`, `test_license_multi_month_budget`, `test_credit_refund`, `test_concurrent_credit_operations`,
   `test_execute_graded_task`, `ai_processor.tests_grading_pipeline` and the repo-wide guard modules: OK, no FAIL or ERROR line. The Ran count is reported.
-- **Step 2, mutants (9)**, each fails the tests named, exactly them: N1 (charge writes the licence inline): the not-touched test, the failed-roll-up test, the thread test; N2 (charge registers no roll-up): the charge result test, the not-touched test, the refund test,
+- **Step 2, mutants (10)**, each fails the tests named, exactly them: N1 (charge writes the licence inline): the not-touched test, the failed-roll-up test, the thread test; N2 (charge registers no roll-up): the charge result test, the not-touched test, the refund test,
   the failed-roll-up test, the thread test; N3 (refund registers none): the refund test and the clamp test; N4 (refund writes inline): the refund test; N5 (roll-up runs at once, not after commit): the not-touched test, the refund test, the thread test;
-  N6 (a failed roll-up is raised): the failed-roll-up test; N7 (not logged as an error): the failed-roll-up test; N8 (no clamp): the clamp test; N9 (adds nothing): the charge result, not-touched, refund and thread tests.
+  N6 (a failed roll-up is raised): the failed-roll-up test; N7 (not logged as an error): the failed-roll-up test; N8 (no clamp): the clamp test; N9 (adds nothing): the charge result, not-touched, refund and thread tests; N10 (the log line carries the error's text): the failed-roll-up test.
 - **Step 3**: the billing app, one serial run: OK. Rule 20 (the cache payload test) is not needed: no answer or serializer changes.
 - Nothing is re-run without the Release Engineer's word; a difference is reported, not repaired in place.
 

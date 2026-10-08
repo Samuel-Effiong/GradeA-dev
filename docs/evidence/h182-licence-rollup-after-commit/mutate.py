@@ -115,8 +115,8 @@ MUTANTS = {
     ),
     "N6_a_failed_roll_up_is_raised": (
         ROLLUP,
-        "                exc_info=True,\n            )\n",
-        "                exc_info=True,\n            )\n            raise\n",
+        "                type(exc).__name__,\n            )\n",
+        "                type(exc).__name__,\n            )\n            raise\n",
         [R6],
     ),
     "N7_a_failed_roll_up_is_not_logged_as_an_error": (
@@ -130,6 +130,12 @@ MUTANTS = {
         '                figure = Greatest(F("total_credits_consumed") + delta, Value(0))\n',
         '                figure = F("total_credits_consumed") + delta\n',
         [R5],
+    ),
+    "N10_the_log_line_carries_the_errors_text": (
+        ROLLUP,
+        "                type(exc).__name__,\n",
+        "                str(exc),\n",
+        [R6],
     ),
     "N9_the_roll_up_adds_nothing": (
         ROLLUP,

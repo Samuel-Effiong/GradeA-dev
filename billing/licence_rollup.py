@@ -43,14 +43,16 @@ def roll_up_after_commit(license_id, delta):
             LicenseSubscription.objects.filter(pk=license_id).update(
                 total_credits_consumed=figure, updated_at=timezone.now()
             )
-        except Exception:  # noqa: BLE001 - never raised into the caller
+        except Exception as exc:  # noqa: BLE001 - never raised into the caller
+            # Ids, a number and the error's class only: no name, no address and
+            # no exception text (a database error can quote what it was given).
             logger.error(
                 "Licence consumption roll-up FAILED after commit: licence %s, "
-                "amount %s. The figure is short by this amount until its window "
-                "resets.",
+                "amount %s, error %s. The figure is short by this amount until "
+                "its window resets.",
                 license_id,
                 delta,
-                exc_info=True,
+                type(exc).__name__,
             )
 
     transaction.on_commit(apply)
