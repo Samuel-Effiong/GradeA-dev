@@ -28,6 +28,11 @@ THE RULE (option A, approved 2026-10-08)
     student to another course would see "never signed in" and overwrite the
     password they just chose with a fresh temporary one.
 
+  * A reset is refused, and nothing is stamped or changed, for an account that
+    is INACTIVE and never verified, whatever code exists (a code issued while
+    the account was active, then the account switched off). Same generic 400 as
+    an unknown address. The code already issued is left as it is.
+
 Run with:
     python manage.py test users.tests_reset_for_an_invited_student
 """
@@ -267,3 +272,66 @@ class InvitedStudentResetTests(APITestCase):
         self.assertFalse(invited)
         same.refresh_from_db()
         self.assertTrue(same.check_password(NEW_PASSWORD))
+
+    # -- a switched-off, never-verified account (Senior Manager's ruling) --
+
+    def switched_off_with_a_code(self):
+        """An invited student asks for a code, then the account is switched
+        off (still never verified); the code exists, as the request step made
+        it. Adopted from Verifier 1's v6."""
+        student = self.invite()
+        code = self.code_for(student)
+        User.objects.filter(pk=student.pk).update(is_active=False)
+        student.refresh_from_db()
+        return student, code
+
+    def test_a_reset_is_refused_for_a_switched_off_never_verified_account(self):
+        student, code = self.switched_off_with_a_code()
+        before = student.password
+
+        response = self.reset(student.email, code)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("access", response.data)
+        student.refresh_from_db()
+        self.assertIsNone(student.email_verified_at)
+        self.assertEqual(student.password, before)
+
+    def test_that_refusal_is_the_same_as_for_an_address_with_no_account(self):
+        student, code = self.switched_off_with_a_code()
+
+        refused = self.reset(student.email, code)
+        unknown = self.reset("nobody.switched.off.h164@example.com", code)
+
+        self.assertEqual(unknown.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(refused.status_code, unknown.status_code)
+        self.assertEqual(refused.content, unknown.content)
+
+    def test_a_refused_reset_leaves_the_code_and_its_budget_alone(self):
+        """Decision: the code already issued is LEFT. A refusal writes nothing
+        (no attempt counted, no row deleted); the guard looks at the account
+        every time, and the code expires by itself."""
+        student, code = self.switched_off_with_a_code()
+
+        self.reset(student.email, code)
+
+        otp = PasswordResetOTP.objects.get(user=student)
+        self.assertEqual(otp.code, code)
+        self.assertEqual(otp.attempts, 0)
+
+    def test_a_switched_off_account_that_verified_its_email_still_resets(self):
+        """Green on the old code too: the guard is for never-verified accounts
+        only; what a verified switched-off account could do is unchanged."""
+        student = User.objects.create_user(
+            email="verified.off.h164@example.com",
+            password="Old-pass-2",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            is_active=False,
+            email_verified_at=timezone.now(),
+        )
+
+        response = self.reset(student.email, self.code_for(student))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        student.refresh_from_db()
+        self.assertTrue(student.check_password(NEW_PASSWORD))
