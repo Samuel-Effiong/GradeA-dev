@@ -76,3 +76,16 @@ Step 3 ran at c82882a4, before this record was committed; this commit is docs on
 - Verifier 1 saw v6 red on 1c970b9d in his own baseline; my T12 has the same two assertions and is expected red at step 0 (the same code). Until my step 0 has run, T12 is expected red, not shown red.
 - **Owning-app regression: not run, my call.** The guard is one `if` inside `reset_password`; it touches no model, serializer, cached route or shared helper, and it can only add a refusal for an account that is both inactive and never verified. The related modules (OTP no-oracle, reset budget, auth endpoints, token revocation, Google auth, login lockout, throttle identity) and the repo-wide guards are in step 1. Rule 20 not applicable. If the Release Engineer wants users + classrooms again, I run it on his word.
 - Not shown: the cases where a never-verified active user is later switched off in production by an admin tool I did not read; what the student site shows for a 400 on the reset.
+
+### Delta results (gate on bbf20687b4f4f03209ec26b7f8b23c0d86e45a07, base 1c970b9d; raw logs `delta_*` in this folder)
+
+Script run_h164_delta_gate.sh 5614cabdec2ec6b7, once, one outer inhibit, on the Release Engineer's GRANT. All as written. Times from `date`.
+
+| Step | Time (WAT) | Result |
+|---|---|---|
+| 0 reproduce-first (1c970b9d's views.py) | 2026-10-08 17:42:35 | Ran 15, THREE red, exactly the written three: T12 and T13 as FAIL, T14 (code left) as ERROR (the old code deletes the code row, so the test's lookup raises); red all the same (delta_prefix_base_production_failing.txt) |
+| 1a makemigrations --check | 17:42:50 | no changes |
+| 1 new + related modules + guards | 17:42:53 to 17:44:39 | Ran 475, OK (skipped=3) (delta_modules_and_guards.txt.gz) |
+| 2 mutants R1..R13 | 17:44:39 to 17:46:15 | 13 of 13 KILLED; failing counts equal the written sets (R8 three; R9, R10, R11, R12, R13 one each); expected-but-passed empty; SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN all empty (delta_mutation_log.txt, delta_mutation_results.json, delta_mutant_logs/) |
+
+T12 is now SHOWN red (step 0) and green (the run on the guarded tip), with its stamp and password assertions each isolated by a mutant (R12, R13). Load at the starts: 3.33 and 2.90. The owning-app regression was not run, by my stated call above; the Release Engineer accepted it for now, the Senior Manager may overrule at Gate 1.
