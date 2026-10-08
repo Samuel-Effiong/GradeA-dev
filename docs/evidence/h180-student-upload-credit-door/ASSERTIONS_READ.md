@@ -31,8 +31,9 @@ or the launch is mocked), so each defence is shown on its own.
 **Checks no mutant decides (not evidence):** `assertEqual(sorted(response.data),
 ["code", "error"])` in S2 (no mutant adds a key); the `assertGreater(estimate,
 20_000)` in S4 (a constant); S3's task id "task-1" (the mock's own value);
-the PDF branch of the door (no test uses a real PDF: the existing route
-modules of the chain's step (a) upload PDFs through the door).
+the PDF branch of the door (no test of this module uses a real PDF; whether
+the existing route modules of step (a) send a real PDF through the door I did
+not establish: it is a stated limit).
 
 ## The fixture wallets of the existing route modules (read BEFORE the gate)
 A wallet that passed "balance > 0" must now also pass "balance >= the file's
@@ -40,5 +41,5 @@ estimate" (about 20,300 for a small image, more for a PDF's pages).
 - `students/tests_async_edit_path.py` 100,000 (`_fund`); `students/tests_post_grading_submission_lock.py` 100,000; `students/tests_submission_tenancy.py` 100,000; `users/tests_credit_balance_permission.py` 100,000 (default), no upload route; `assignments/tests_upload_batch_billing.py` 500,000 (and a 20,000-credit PLAN, not a wallet); `billing/tests/test_h38_part2_removed_teacher_routes.py` 500,000 wallet (plan 20,000); `classrooms/tests_student_summary_tracking.py` 100,000; `students/tests_grading_idempotency.py` 100,000; `ai_processor/tests_grading_benchmark.py` 5,000,000.
 - `assignments/tests_security.py` patches `HasCreditBalance.has_permission` True: the teacher has NO wallet, so the door leaves it to the permission (test S7 holds that).
 - `billing/tests/test_refusal_handling.py`: `underfunded_teacher` has a 1,000-credit plan, but the three route entries that use an upload route post `{}` as an UNSUBSCRIBED teacher and are refused by the permission (402) before the door; the `underfunded_teacher` cases run through the synchronous routes and the gate, which this row does not change in outcome.
-- `students/tests_no_grade_tell_before_release.py`, `AutoGrader/tests_submission_audience_guard.py`, `students/tests_student_upload_answer.py`: funded through `students.tests_post_grading_submission_lock` (100,000) or never reach the door (closed-paper refusals come BEFORE the door).
+- `students/tests_no_grade_tell_before_release.py` imports its fixtures from `students.tests_post_grading_submission_lock` (100,000); its closed-paper refusals on the async route come BEFORE the door, its two busy-paper cases reach it. `AutoGrader/tests_submission_audience_guard.py` only names the routes. `students/tests_student_upload_answer.py` has no async-route hit (the synchronous route has no door).
 - Tests that patch `AssignmentProcessingService.prepare_ai_content` (a class attribute: the door calls the patch too): the async-route ones patch only `launch_processing_task`; the ones that assert `prepare_ai_content` NOT called are on the synchronous route, which has no door. If a patched prepare returns a non-list the door cannot read it and leaves the upload to the task.
