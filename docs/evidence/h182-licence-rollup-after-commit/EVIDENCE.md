@@ -1,0 +1,67 @@
+# H-182 (LOCK-2): the school licence's consumption rollup is applied after the charge commits
+
+Branch `task/h182-licence-rollup-after-commit`, stacked on `task/h181-wallet-lock-first` (41a92162; beta 035e0a07 underneath). Written by ed (Security Engineer),
+2026-10-08. Severity MEDIUM (Senior Manager). Design: ~/Documents/Projects/GAP-ed-scripts/lock2/DESIGN_NOTE_lock2.md (ruling: on_commit, **no outbox, no migration**).
+**Nothing has been run on this branch yet.** Marks: READ = read in the code; NOT RUN = reasoning, no run shows it.
+
+## The fault and the change (READ; NOT RUN)
+
+`CreditWallet.consume_credits` locked the wallet and buckets and then UPDATEd the school's `LicenseSubscription` row (`_record_license_consumption`); `refund_credits`
+did the same at its end. The licence paths take the licence row first and then write wallets, so a charge and `_grant_overage_blocks` (or a licence renewal) could deadlock.
+Now `billing/licence_rollup.py` `roll_up_after_commit(licence_id, delta)` registers the same F() update (clamped at zero for a refund) with `transaction.on_commit`; a
+callback that fails is logged at ERROR with the licence id and the amount and never raised. The allocation lookup stays inside the charge (as before); only the write moves.
+The rule is now: licence row, then wallets, then buckets, on the charge side as well. The only reader of the figure caps a newly enrolled teacher's first-month grant
+(`_enroll_teacher_internal`, license_service.py:1475): it never refuses or bills.
+
+## The counter the ruling asked for (a deviation, stated)
+
+The ruling said a failed callback is "logged and counted (a metric)". **Beta has no metric counter** (the `audit_metrics` counter exists only on the next-stage line;
+grep of beta finds none). So the failure is an ERROR log line (`billing.licence_rollup`) with a stable text; the project's logging reaches Sentry as an error event
+(`LoggingIntegration(event_level="ERROR")`, main and beta), so Sentry's event count is the count. Nothing is counted in a dashboard. A real metric is a later row.
+
+## Limit, said plainly
+
+A process that dies between the commit and the callback loses that one increment, silently. The figure is the licence's per-window total; a lost increment makes the school
+look like it consumed slightly less, so a teacher enrolled later in that window may be granted slightly more than the budget (by at most part of one allocation). The exact-once
+version is the Next-stage Builder's proposal for Epic B (a separate small table). Also: the callback is a separate statement after the commit; it waits for the licence row if a licence
+renewal holds it (it holds nothing else meanwhile), so a charge's request can be slower during a renewal; the wait is not new (the charge waited for the licence row before too),
+but it is now after the charge's own commit.
+
+## Callers that wrap the charge, and the timing (READ; NOT RUN)
+
+`consume_credits` has ONE production caller: `ai_processor/services.py` `execute_graded_task` (:4766 on 035e0a07), inside its own `with transaction.atomic():` (:4763), which is the
+outermost transaction for the grading pipeline (the pipeline deliberately does not wrap a run in one transaction; billing/refunds.py). The callback fires right after that block commits.
+`refund_credits` has one caller, `billing/refunds.py:94`, and opens its own `transaction.atomic()`; the callback fires after it commits. I searched every call of the form
+`ai_processor.<method>(` outside ai_processor (14, in assignments, classrooms, dashboard, students and billing): exactly ONE is inside an outer `atomic` block, `billing/views.py`
+(the super-admin custom AI prompt, ~:2692-2715). There the callback fires at that outer block's commit (later, never earlier), and an exception rolls the block back, registering
+nothing. That caller is a SUPER_ADMIN, who has no school-licence seat, so no rollup is registered at all. So the timing is right for each. Not read: calls made through names other
+than the `ai_processor` singleton (a direct `AIProcessor(...)`); none found by grep of `AIProcessor(` outside ai_processor is claimed here.
+
+## Older tests changed (named; assertions unchanged)
+
+The roll-up callback never runs inside an ordinary TestCase, so each charge or refund followed by a read of `total_credits_consumed` is wrapped in
+`self.captureOnCommitCallbacks(execute=True)`:
+- `billing/tests/test_license_consumption_accounting.py`: all six `consume_credits` calls and the two `refund_credits` calls (tests: consumption increments the counter; refund reverses it; refund
+  clamps at zero; admin analytics allocation excluded; individual teacher untouched). Without the wrapper the last two would pass vacuously (they assert the figure stays 0).
+- `billing/tests/test_license_multi_month_budget.py`: the two `consume_credits` calls (`_consume_whole_monthly_pool`, and the one in the idempotent-refresh test).
+Commit 4b407bbd; tests only.
+
+## Written expectations, before any run
+
+- **Step 0 (reproduce-first)**: `models.py` and `services.py` as at 41a92162 (before the change; `licence_rollup.py` present and unused) under the new module: **Ran 7, 4 red**: `test_the_figure_is_not_touched_inside_the_charge`,
+  `test_a_refund_takes_it_back_after_commit`, `test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised` (the inline update raises out of the charge), and the thread test
+  `test_a_charge_racing_a_licence_overage_grant_does_not_deadlock` (the charge is the deadlock victim: it started waiting first). **Green on the old code, by design (they hold results, not timing):**
+  `test_a_charge_rolls_up_what_it_charged_once_it_commits`, `test_a_charge_that_rolls_back_rolls_up_nothing`, `test_a_refund_never_takes_the_figure_below_zero`. These three are NOT counted as seen red;
+  the first and third are seen red by mutants (N2 and N3/N8 below); **the rolled-back-charge test is isolated by no mutant** (the inline update rolled back with the charge too), so it is a guard, not a proof.
+  A difference from this list (a count, a name) stops the gate.
+- **Step 1**: `makemigrations --check` no changes; the new module + `test_license_consumption_accounting`, `test_license_multi_month_budget`, `test_credit_refund`, `test_concurrent_credit_operations`,
+  `test_execute_graded_task`, `ai_processor.tests_grading_pipeline` and the repo-wide guard modules: OK, no FAIL or ERROR line. The Ran count is reported.
+- **Step 2, mutants (9)**, each fails the tests named, exactly them: N1 (charge writes the licence inline): the not-touched test, the failed-roll-up test, the thread test; N2 (charge registers no roll-up): the charge result test, the not-touched test, the refund test,
+  the failed-roll-up test, the thread test; N3 (refund registers none): the refund test and the clamp test; N4 (refund writes inline): the refund test; N5 (roll-up runs at once, not after commit): the not-touched test, the refund test, the thread test;
+  N6 (a failed roll-up is raised): the failed-roll-up test; N7 (not logged as an error): the failed-roll-up test; N8 (no clamp): the clamp test; N9 (adds nothing): the charge result, not-touched, refund and thread tests.
+- **Step 3**: the billing app, one serial run: OK. Rule 20 (the cache payload test) is not needed: no answer or serializer changes.
+- Nothing is re-run without the Release Engineer's word; a difference is reported, not repaired in place.
+
+## Not shown by any run so far
+
+Everything: nothing has been run. And, even when run: behaviour under pgbouncer in transaction mode, the role's lock timeout, a real process death between commit and callback, a real licence renewal of a large school.
