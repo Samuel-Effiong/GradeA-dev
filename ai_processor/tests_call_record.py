@@ -710,6 +710,7 @@ class TheRecordIsAfterTheChargeAndCheap(Base):
                     self.run_call()
             return [q["sql"] for q in captured.captured_queries]
 
+        statements(False)  # a warm-up: caches filled before anything is compared
         on = statements(True)
         off = statements(False)
         # a savepoint, the insert, the release: three statements and no more
