@@ -40,4 +40,18 @@ At the request step: an unknown address answers 202; an invited ACTIVE student n
 
 ## Not shown by any run so far
 
-Everything: nothing has been run.
+Production behaviour (mail delivery, the real throttle key). The student site's handling of the reply is not read. The established-account flag test is a guard no mutant isolates. Nothing else outstanding from the written expectations.
+
+## Results (gate on c82882a4ec86a141fae44fd65403dfbfb1f0aa08, base 3f2ad13e; raw logs in this folder)
+
+Script run_h164_gate.sh ecb10be877ae6a4d, each step once, one outer inhibit each, on the Release Engineer's GO. All as written.
+
+| Step | Time (WAT, from `date`) | Result |
+|---|---|---|
+| 0 reproduce-first (old code) | 2026-10-08 16:31 | Ran 11, 7 red, exactly the seven named above (prefix_base_production_failing.txt) |
+| 1a makemigrations --check | 16:31:26 | no changes (makemigrations_check.txt) |
+| 1 new + related modules + guards | 16:31:29 to 16:33:31 | Ran 471, OK (skipped=3) (modules_and_guards.txt.gz) |
+| 2 mutants R1..R7 | 16:33:31 to 16:34:42 | 7 of 7 KILLED, each failing set the written one; SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN all empty (mutation_log.txt, mutation_results.json, mutant_logs/) |
+| 3 users + classrooms, serial | 16:38:05 to 16:40:39 | Ran 1171, OK (skipped=4) (regression.txt.gz) |
+
+Step 3 ran at c82882a4, before this record was committed; this commit is docs only over it. Load at the starts: 3.01 (step 1), 2.15 (step 3). Rule 20 not applicable (no serializer or cached-route change).
