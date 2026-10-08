@@ -103,7 +103,7 @@ MUTANTS = {
         VIEWS,
         REFUSE,
         "            if False:\n",
-        [T3] + QPOWER + [QWORDS],
+        [T3] + QPOWER,
     ),
     "R3_the_reset_does_not_stamp_the_email": (
         VIEWS,
@@ -201,7 +201,7 @@ MUTANTS = {
         VIEWS,
         HELPER,
         HELPER.replace("user.is_superuser or ", ""),
-        [QFLAG, RFLAG],
+        [QFLAG, RFLAG, QWORDS, RWORDS],
     ),
     "R16_the_helper_forgets_the_super_admin_type": (
         VIEWS,
