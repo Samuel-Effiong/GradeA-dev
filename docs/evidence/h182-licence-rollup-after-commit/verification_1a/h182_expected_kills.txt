@@ -1,0 +1,35 @@
+# 1a H-182 (licence roll-up after commit): expected failing test methods per run, written 2026-10-08 14:14:41 WAT 2026-10-08, BEFORE any run of mine.
+# Tip 046a90f6e59dddc02ceff791635f362a7f078815 (code last changed in 1b7fc6a6 and 9c131ea1, tests in 5523aa55; stacked on H-181's 41a92162).
+# Run set for every run: ONE module of mine, billing.tests.test_vf1a_h182_rollup (5 tests, a TransactionTestCase: real commits). Expected Ran 5.
+#   A1 a charge: the SQL sent has exactly ONE UPDATE of the licence table, sent while NO transaction is open, after the last wallet/bucket write; the figure = the charge
+#   A2 a refund: exactly one such UPDATE, none inside a transaction; the figure goes back to 0
+#   B1 a charge inside an inner savepoint that was released, the OUTER transaction then rolls back: the figure stays 0
+#   B2 a charge rolled back in an inner savepoint, a second charge committed in the outer one: not written before the commit; after it, the figure = the second charge only
+#   C  (real threads) another connection holds the licence row; a charge starts: while it waits (1.2 s) it has ALREADY COMMITTED (bucket used = charge),
+#      the figure has not moved, and a third connection takes the wallet row and the bucket row with NOWAIT; after the holder lets go the figure = the charge
+# Baseline (tip, unmutated): all 5 green.
+# OLD: the tip with billing/models.py and billing/services.py put back to 41a92162 (the inline updates; licence_rollup.py unused): A1 A2 C red;
+#   B1 B2 GREEN by design (an inline update is inside the transaction, so it rolls back with it).
+# Mutants (h182_mutants_W.py): Z1 roll-up applied at once, no on_commit; Z2 the charge's inline update back (models.py); Z3 the refund's inline update back (services.py);
+#   Z4 registered twice; Z5 a refund adds instead of subtracting; Z6 applied at once in another thread (own connection, outside the transaction).
+Z1 : A1 A2 C           (B1 B2 stay green: the immediate update is in the same transaction and rolls back with it)
+Z2 : A1 C              (the refund path is untouched: A2 green; B1 B2 green)
+Z3 : A2
+Z4 : A1 A2 B2 C        (two updates sent, and the figure doubled; B1 does not read the figure's size)
+Z5 : A2                (the refund adds: the figure ends at 2x the charge, not 0)
+Z6 : A1 A2 B1 B2 C     (the update goes out on a connection the statement recorder does not see: 0 updates counted; it survives the outer rollback; it is
+                        visible before the commit; and the charge waits on the licence row while holding the wallet)
+# Why B1 and B2 are green for Z1/Z2/OLD: stated plainly, like the author's rolled-back-charge test, they are guards that only a mutant that writes OUTSIDE the
+# transaction (Z6) can fail; an update inside it is rolled back with the rest.
+# A GUESS to check against the logs, not a certainty: that all five are green on the unmutated tip in my fixture (a TransactionTestCase with my own stubs),
+# and that C finishes within its 8-second lock timeout. If the baseline is red for a fixture reason I fix my module and re-run the baseline, and say so.
+
+# ADDED AFTER THE RUN (2026-10-08 14:23:00 WAT; everything above was written at 14:14 before the run; the sha256 of this file therefore differs from the one I quoted to 0b; 47c771ae65617300 was the version above this line)
+# RESULT against the written sets: base Ran 5 OK (as written). Z3, Z4, Z5, Z6 exactly as written. THREE runs differ from what I wrote, each by ONE extra failing test, B2:
+#   OLD (inline updates)  written A1 A2 C         got A1 A2 B2 C
+#   Z1 (applied at once)  written A1 A2 C         got A1 A2 B2 C
+#   Z2 (charge inline)    written A1 C            got A1 B2 C
+# WHY, from the code: B2 reads the figure INSIDE the outer transaction after its second charge and asserts it is still 0 ("written before the commit"). An inline update is
+# visible to a read on the same connection inside the transaction (250), so B2 fails on every version that writes inside the charge. I wrote that B1 and B2 would both stay
+# green for these three; that was right for B1 and wrong for B2, because I did not count B2's in-transaction assertion when I wrote the sets (the rule: count every assertion
+# of every test against each mutant). So B2 is NOT a guard that only Z6 can fail; it also fails the inline versions. B1 is the one no mutant but Z6 fails.
