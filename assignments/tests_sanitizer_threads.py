@@ -17,6 +17,7 @@ parser, and compare every output with the same input's single-thread output.
 They are pure Python (no database).
 """
 
+import json
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -24,7 +25,9 @@ from concurrent.futures import ThreadPoolExecutor
 from django.test import SimpleTestCase
 
 from assignments.prosemirror_converter import (
+    _cached_prosemirror_text,
     html_to_prosemirror_json,
+    html_to_prosemirror_text,
     sanitize_editor_html,
 )
 
@@ -141,3 +144,28 @@ class TheSanitizerKeepsEachCallersTextToItself(SimpleTestCase):
         self.assertEqual(len(results), THREADS * ROUNDS * INPUTS)
         wrong = [i for i, got in results if got != expected[i]]
         self.assertEqual(wrong, [])
+
+    def test_a_wrong_result_is_never_kept_in_the_conversion_cache(self):
+        """html_to_prosemirror_text keeps the last 64 conversions in a
+        process-local cache keyed on the exact HTML, ABOVE the sanitizer: a
+        mixed result made by a race would be kept under its victim's input
+        and served again to every later request for that text until the
+        process restarts. Run the threads on the cached function, then read
+        every input back, single-threaded, from the cache the threads
+        filled: each must be its own document."""
+        _cached_prosemirror_text.cache_clear()
+        self.addCleanup(_cached_prosemirror_text.cache_clear)
+        expected = {text: html_to_prosemirror_json(text) for text in ALL_INPUTS}
+        _cached_prosemirror_text.cache_clear()
+
+        results, errors = run_in_threads(html_to_prosemirror_text)
+
+        self.assertEqual(errors, [])
+        self.assertTrue(results)
+        info = _cached_prosemirror_text.cache_info()
+        self.assertGreater(info.currsize, 0)
+        for text in ALL_INPUTS:
+            with self.subTest(text=text[:20]):
+                self.assertEqual(
+                    json.loads(html_to_prosemirror_text(text)), expected[text]
+                )
