@@ -106,3 +106,12 @@ Why each is expected from the code: N2 (no roll-up for a charge) and N9 (adds ze
 twice the charge; N3 (no roll-up for a refund) leaves the figure at the charge where the refund tests assert 0; N8 (no clamp) lets the refund of 700 against a reset figure of 100 go negative,
 which the PositiveIntegerField rejects, so the figure stays 100 where `test_refund_clamps_at_zero_after_cycle_reset` asserts 0. Corrected expected sets, for any later run: the written set plus the extras
 named here. N1, N4, N5, N6, N7, N10 and N12 failed exactly the written sets.
+
+## RESULTS: step 3, the billing app, at cc8e8db4 (run_h182_gate.sh eb3dd754065e0dae, APPS=billing; started 13:57:29, ended 14:03:04 WAT, 2026-10-08)
+
+Raw log `regression_cc8e8db4.txt.gz` (raw sha256 starts 221acd6231e2570d; the gzip decompresses to the same bytes, checked with cmp before the raw file was removed); console `gate_console_step3_cc8e8db4.txt.gz` (rc=0). The whole script ran under ONE `systemd-inhibit`. Load at start 2.14 2.68 3.40 (the pre-start check, alone, read 2.37; no other test run on the machine), at end 2.45 2.66 3.21.
+- **billing app, one serial run: Ran 2146 tests in 312.004s, OK.** 0 FAIL or ERROR lines, 0 skipped (counted from the full raw log; the Ran and OK lines are at lines 32974 and 32976). This includes the seven new tests of `test_licence_rollup_after_commit` (one with real threads), the two older modules whose charges were wrapped, and every other billing test, on top of H-181.
+- cc8e8db4 differs from the gated 5523aa55 only under `docs/` (checked: no file outside docs differs). Credential patterns: 0 lines; no NUL bytes.
+- Rule 20 (the cache payload test) is not needed: no serializer or answer changes.
+
+Not shown: a real process death between commit and callback; behaviour under pgbouncer; a caller of the AI processor outside the ones named.
