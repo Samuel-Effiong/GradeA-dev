@@ -51,6 +51,7 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from assignments.upload_door import upload_refusal_if_unaffordable
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
@@ -659,6 +660,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
+        # H-180: refuse here, before anything is queued, an upload the
+        # teacher's wallet cannot pay for (the gate in the task would refuse
+        # it and the student's file would be lost).
+        refusal = upload_refusal_if_unaffordable(
+            request.user, assignment, [uploaded_file], prompt
+        )
+        if refusal is not None:
+            return refusal
+
         file_payload = AssignmentProcessingService.build_async_upload_payload(
             uploaded_file
         )
@@ -1265,6 +1275,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         for uploaded_file in files:
             validate_upload_size(uploaded_file)
 
+        prompt = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
+        # H-180: before the session or any task exists.
+        refusal = upload_refusal_if_unaffordable(
+            request.user, assignment, files, prompt
+        )
+        if refusal is not None:
+            return refusal
+
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             assignment=assignment,
@@ -1276,13 +1300,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         task_ids = []
 
         for uploaded_file in files:
-            prompt = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
-
             # Read raw file bytes cheaply here; heavy rasterization/compression
             # happens inside the Celery task, not on the request thread.
             file_payload = AssignmentProcessingService.build_async_upload_payload(
