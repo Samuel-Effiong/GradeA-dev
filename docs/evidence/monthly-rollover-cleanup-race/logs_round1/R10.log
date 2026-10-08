@@ -1,0 +1,12 @@
+# R10: licence re-check: due tolerance
+# file: billing/tasks.py (occurrence 1)
+# old: 'if locked_allocation.next_credit_grant_at > refresh_due_by(now):'
+# new: 'if locked_allocation.next_credit_grant_at > now:'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 6.0
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK

@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
@@ -32,6 +33,9 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     SubscriptionPlan,
     UserSubscription,
 )
+from .refresh_timing import grants_owed
+from .refresh_timing import monthly_bucket_expiry as grace_expiry
+from .refresh_timing import next_monthly_grant, refresh_due_by
 from .subscription_resolver import (
     SOURCE_INDIVIDUAL,
     SOURCE_LICENSE_ADMIN,
@@ -235,7 +239,7 @@ class SubscriptionService:
         if trial_bucket:
             unused = trial_bucket.remaining_credits
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -259,7 +263,7 @@ class SubscriptionService:
                 "Expired TRIAL bucket %s for user %s on activate_subscription "
                 "(forfeited %d credits).",
                 trial_bucket.id,
-                user.email,
+                user.id,
                 unused,
             )
 
@@ -294,7 +298,7 @@ class SubscriptionService:
                         expires_at=expiry,
                     )
 
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -312,14 +316,30 @@ class SubscriptionService:
                     logger.info(
                         "Rollover fully suppressed by max_bank for user %s: "
                         "requested %d, room 0 (%s).",
-                        user.email,
+                        user.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
                     )
 
             # Crucial: Delete or expire the old monthly bucket so they don't have two active monthly buckets
+            #
+            # is_processed=True for the same reason the three sibling
+            # rollovers set it (process_mid_cycle_credit_grant,
+            # process_rollover_and_renewal, and
+            # LicenseSubscriptionService._rollover_and_grant_monthly_bucket):
+            # this bucket's unused balance has ALREADY been settled above —
+            # either re-granted as CARRY_OVER or deliberately suppressed by
+            # max_bank. Leaving it False let cleanup_expired_credit_buckets
+            # sweep it later and write an EXPIRE row for the full
+            # total-minus-used, so the rolled-over slice was counted twice in
+            # the ledger: once as a CARRY_OVER grant and again as an
+            # expiry. Balances were unaffected (buckets hold the truth) but
+            # the audit trail was wrong on every upgrade with unused credits.
             active_monthly.expires_at = now
-            active_monthly.save(update_fields=["expires_at"])
+            active_monthly.is_processed = True
+            active_monthly.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
 
         # 4. Ensure we reset overage usage for the new cycle
         wallet.overage_blocks_used = 0
@@ -331,11 +351,13 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=plan.monthly_credits,
             used_credits=0,
-            expires_at=monthly_bucket_expiry,
+            # A grace past the first grant's due time (billing/refresh_timing.py);
+            # for a MONTHLY plan both are billing_end, so nothing changes.
+            expires_at=grace_expiry(monthly_bucket_expiry, billing_end),
         )
 
         # 6 Create immutable audit ledger
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -347,6 +369,85 @@ class SubscriptionService:
         queue_sync(user)
 
         return subscription
+
+    @staticmethod
+    @transaction.atomic
+    def activate_plan_without_payment(user, plan):
+        """
+        The only sanctioned way to activate a plan WITHOUT a Stripe payment:
+        superadmin assignment (POST /subscription, POST /user-subscriptions)
+        and BETA-on-signup (users/signals.py). Stripe-driven renewals and
+        checkouts keep calling activate_subscription directly.
+
+        activate_subscription itself grants a full monthly bucket every
+        time it runs and replaces whatever subscription is active, which
+        is correct for a paid renewal but let a caller mint unlimited free
+        credits. The stateful rules are therefore enforced here, all under
+        a lock on the user's row so that concurrent or retried requests
+        for the same user are serialized. Without the lock, a second
+        request could check the grant history before the first commits,
+        then write after it: its UPDATE would deactivate the first grant
+        and its INSERT would succeed, leaving two grants. The
+        one-active-subscription constraint does not catch that
+        interleaving.
+
+        Raises:
+            PlanAssignmentRefused: when any rule refuses the activation.
+        """
+        from users.models import CustomUser
+
+        from .plan_policy import (
+            ONE_TIME_ENTITLEMENT_PLAN_NAMES,
+            PlanAssignmentRefused,
+            admin_assignment_error,
+            has_live_stripe_subscription,
+        )
+        from .stripe_service import IndividualPlanChangeService
+
+        CustomUser.objects.select_for_update().only("pk").get(pk=user.pk)
+
+        static_error = admin_assignment_error(plan)
+        if static_error:
+            raise PlanAssignmentRefused(static_error)
+
+        if plan.name == PlanType.BETA and not user.is_beta_eligible():
+            raise PlanAssignmentRefused(
+                "The Beta plan is restricted to teacher accounts."
+            )
+
+        try:
+            IndividualPlanChangeService._assert_not_on_the_license_track(user)
+        except ValueError as exc:
+            raise PlanAssignmentRefused(str(exc)) from exc
+
+        if (
+            plan.name in ONE_TIME_ENTITLEMENT_PLAN_NAMES
+            and UserSubscription.objects.filter(
+                user=user, plan__name=plan.name
+            ).exists()
+        ):
+            raise PlanAssignmentRefused(
+                f"This account has already received the {plan.name} plan. "
+                "It can only be granted once. Use a manual credit grant "
+                "for additional credits."
+            )
+
+        active = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True)
+            .first()
+        )
+        if has_live_stripe_subscription(active):
+            # Replacing it here would leave the app believing the user is
+            # on `plan` while Stripe keeps billing the old subscription,
+            # and renewal invoices would land on an inactive row.
+            raise PlanAssignmentRefused(
+                "This account has a Stripe-billed subscription. It must be "
+                "cancelled or changed through the Stripe subscription flow "
+                "before another plan can be activated."
+            )
+
+        return SubscriptionService.activate_subscription(user, plan)
 
     @staticmethod
     @transaction.atomic
@@ -461,7 +562,7 @@ class SubscriptionService:
                         used_credits=0,
                         expires_at=expiry,
                     )
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -480,7 +581,7 @@ class SubscriptionService:
                     logger.info(
                         "Immediate-upgrade rollover fully suppressed by "
                         "max_bank for user %s (%s -> %s): requested %d (%s).",
-                        user.email,
+                        user.id,
                         old_plan.name,
                         new_plan.name,
                         cap_meta["requested_rollover"],
@@ -488,7 +589,13 @@ class SubscriptionService:
                     )
 
             active_monthly.expires_at = now
-            active_monthly.save(update_fields=["expires_at", "updated_at"])
+            # H-76: retired, like the three sibling rollovers. Without it
+            # the 05:00 cleanup expired this bucket's unused credits again,
+            # after they had been rolled over above.
+            active_monthly.is_processed = True
+            active_monthly.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
 
         # --- Grant the new plan's MONTHLY bucket, on the EXISTING clock ---
         new_bucket_expiry = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
@@ -498,10 +605,12 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=new_plan.monthly_credits,
             used_credits=0,
-            expires_at=new_bucket_expiry,
+            # A grace past the next grant's due time (billing/refresh_timing.py);
+            # for a MONTHLY plan both are billing_cycle_end, so nothing changes.
+            expires_at=grace_expiry(new_bucket_expiry, user_sub.billing_cycle_end),
         )
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -534,7 +643,7 @@ class SubscriptionService:
         logger.info(
             "Applied immediate same-interval plan change for user %s "
             "(subscription %s): %s -> %s. billing_cycle_end unchanged (%s).",
-            user.email,
+            user.id,
             user_sub.id,
             old_plan.name,
             new_plan.name,
@@ -547,7 +656,7 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def process_mid_cycle_credit_grant(user_subscription):
+    def process_mid_cycle_credit_grant(user_subscription, now=None):
         """
         For ANNUAL-interval plans only. Stripe bills once a year, but credits
         still refresh monthly throughout that year. This grants the next
@@ -556,6 +665,13 @@ class SubscriptionService:
         that happens until the real annual renewal at billing_cycle_end.
         Rollover of unused credits between months follows the same
         carry_over_percent/carry_over_max rules as a normal full renewal.
+
+        Returns the subscription after a grant, or None when, under the row
+        lock, the subscription is no longer due (see below).
+
+        `now` is the run's start time, passed by the task so the due check
+        and the next due time come from the same moment (billing/
+        refresh_timing.py). Direct callers may omit it.
         """
         user_subscription = UserSubscription.objects.select_for_update().get(
             id=user_subscription.id
@@ -568,8 +684,37 @@ class SubscriptionService:
             )
 
         user = user_subscription.user
-        now = timezone.now()
+        now = now or timezone.now()
         wallet = user.credit_wallet
+
+        # Re-check, under the lock, what process_annual_plan_credit_grants
+        # selected on without one. Two overlapping runs (a redeploy overlap,
+        # a second Beat, a manual run) both select a due subscription; the
+        # second waits here on the row lock while the first grants and moves
+        # next_credit_grant_at a month on. Without this check the second then
+        # granted the same month again: it retired the bucket just granted,
+        # rolled part of it over as an unearned CARRY_OVER bucket, and wrote
+        # a second GRANT row.
+        if (
+            not user_subscription.is_active
+            or user_subscription.is_trial
+            or user_subscription.next_credit_grant_at is None
+            or user_subscription.next_credit_grant_at > refresh_due_by(now)
+            # A contract ending within the tolerance counts as ended.
+            or user_subscription.billing_cycle_end <= refresh_due_by(now)
+            # A due time capped at the cycle's end is the renewal's, not a
+            # mid-cycle grant (it can only be "due" through the tolerance).
+            or user_subscription.next_credit_grant_at
+            >= user_subscription.billing_cycle_end
+        ):
+            logger.info(
+                "Mid-cycle credit grant skipped for subscription %s: no longer "
+                "due under the row lock (next grant at %s), so another run "
+                "already granted it.",
+                user_subscription.id,
+                user_subscription.next_credit_grant_at,
+            )
+            return None
 
         # is_processed=False + explicit ordering, matching the two sibling
         # rollover implementations (process_rollover_and_renewal below, and
@@ -612,7 +757,7 @@ class SubscriptionService:
                         used_credits=0,
                         expires_at=expiry,
                     )
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -628,7 +773,7 @@ class SubscriptionService:
                     logger.info(
                         "Mid-cycle rollover fully suppressed by max_bank "
                         "for user %s (subscription %s): requested %d (%s).",
-                        user.email,
+                        user.id,
                         user_subscription.id,
                         cap_meta["requested_rollover"],
                         cap_meta,
@@ -638,7 +783,7 @@ class SubscriptionService:
             # the NEXT grant. It also means cleanup_expired_credit_buckets no
             # longer writes an EXPIRE row for this bucket's post-rollover
             # remainder — which is already how both renewal paths behave
-            # (process_rollover_and_renewal, _rollover_and_grant_monthly_bucket),
+            # (see process_rollover_and_renewal and _rollover_and_grant_monthly_bucket),
             # so this makes mid-cycle consistent with them rather than
             # introducing a new policy. Deliberately NOT expire_bucket(): that
             # logs the full total-minus-used, including the slice just
@@ -646,21 +791,45 @@ class SubscriptionService:
             old_monthly.is_processed = True
             old_monthly.save(update_fields=["expires_at", "is_processed", "updated_at"])
 
-        next_grant_at = now + relativedelta(months=1)
-        # Never let the bucket outlive the actual annual contract — in the
-        # final partial month, cap it at billing_cycle_end so the real
-        # annual renewal (rollover + possible plan change + Stripe price
+        # H-82: the next due time comes from the anchor and the due time
+        # being served, not from `now` (refresh_timing.next_monthly_grant).
+        # It is capped at billing_cycle_end: in the final partial month the
+        # real annual renewal (rollover + possible plan change + Stripe price
         # sync) takes over cleanly instead of overlapping with this grant.
-        bucket_expiry = min(next_grant_at, user_subscription.billing_cycle_end)
+        served_due = user_subscription.next_credit_grant_at
+        period, next_due = next_monthly_grant(
+            user_subscription.billing_cycle_start,
+            served_due,
+            user_subscription.billing_cycle_end,
+        )
+        if served_due + timedelta(days=1) < now:
+            # A missed run (an outage): the grant is still owed and is made
+            # now, one per run, until the chain is current again.
+            logger.warning(
+                "Mid-cycle grant for subscription %s caught up: the grant "
+                "due at %s (period %d) is made late.",
+                user_subscription.id,
+                served_due,
+                period - 1,
+            )
+        # A caught-up bucket lives a month from now, not to a due time that
+        # has already passed (it would be born expired).
+        bucket_expiry = (
+            next_due
+            if next_due > now
+            else min(now + relativedelta(months=1), user_subscription.billing_cycle_end)
+        )
 
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=plan.monthly_credits,
             used_credits=0,
-            expires_at=bucket_expiry,
+            # A grace past the next due time, so the customer keeps monthly
+            # credits until the next grant retires this bucket.
+            expires_at=grace_expiry(bucket_expiry, user_subscription.billing_cycle_end),
         )
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -675,16 +844,16 @@ class SubscriptionService:
         wallet.overage_blocks_used = 0
         wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
-        user_subscription.next_credit_grant_at = bucket_expiry
+        user_subscription.next_credit_grant_at = next_due
         user_subscription.save(update_fields=["next_credit_grant_at", "updated_at"])
 
         logger.info(
             "Mid-cycle credit grant for annual subscription %s (user %s): "
             "%d credits, next grant at %s.",
             user_subscription.id,
-            user.email,
+            user.id,
             plan.monthly_credits,
-            bucket_expiry,
+            next_due,
         )
         return user_subscription
 
@@ -711,6 +880,27 @@ class SubscriptionService:
         )
 
         user = user_subscription.user
+
+        # H-81: a monthly grant that came due in the ending cycle and was
+        # never made (Beat was down from its due time to the cycle's end,
+        # where the grant task stops serving it). Detection only.
+        if user_subscription.next_credit_grant_at is not None:
+            owed = grants_owed(
+                user_subscription.billing_cycle_start,
+                user_subscription.next_credit_grant_at,
+                min(user_subscription.billing_cycle_end, timezone.now()),
+            )
+            if owed:
+                logger.error(
+                    "Renewal of subscription %s (user %s): %d monthly "
+                    "grant(s) owed: due from %s, never made before the cycle "
+                    "ended at %s.",
+                    user_subscription.id,
+                    user.id,
+                    owed,
+                    user_subscription.next_credit_grant_at,
+                    user_subscription.billing_cycle_end,
+                )
 
         # If there's a pending plan, use it; otherwise, renew the current one
         target_plan = user_subscription.pending_plan or user_subscription.plan
@@ -750,7 +940,7 @@ class SubscriptionService:
                         expires_at=expiry_date,
                     )
 
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -768,7 +958,7 @@ class SubscriptionService:
                     logger.info(
                         "Renewal rollover fully suppressed by max_bank for "
                         "user %s (%s -> %s): requested %d (%s).",
-                        user.email,
+                        user.id,
                         old_plan.name,
                         target_plan.name,
                         cap_meta["requested_rollover"],
@@ -864,7 +1054,7 @@ class SubscriptionService:
         logger.info(
             "Plan change scheduled for user %s: %s -> %s (type=%s, "
             "stripe_schedule=%s), effective %s.",
-            user.email,
+            user.id,
             current_sub.plan.name,
             new_plan.name,
             change_type,
@@ -928,54 +1118,11 @@ class SubscriptionService:
             )
             logger.info(
                 "Cancelled scheduled plan change for user %s (was pending " "-> %s).",
-                user.email,
+                user.id,
                 previous_pending.name if previous_pending else "unknown",
             )
 
         return current_sub
-
-    # @staticmethod
-    # @transaction.atomic
-    # def cancel_scheduled_downgrade(user):
-    #     """
-    #     Clears a previously-scheduled downgrade (pending_plan) so the
-    #     subscription simply renews onto its current plan as normal.
-
-    #     Idempotent: if nothing is pending, this is a harmless no-op that still
-    #     returns the current subscription (does NOT raise) — callers that just
-    #     want to guarantee "no downgrade pending" after calling this don't need
-    #     to special-case "there wasn't one to begin with".
-
-    #     Args:
-    #         user (CustomUser): The user cancelling their scheduled downgrade.
-
-    #     Returns:
-    #         UserSubscription: The updated subscription, with pending_plan=None.
-
-    #     Raises:
-    #         ValueError: If the user has no active subscription at all.
-    #     """
-    #     current_sub = (
-    #         UserSubscription.objects.select_for_update()
-    #         .filter(user=user, is_active=True)
-    #         .select_related("plan", "pending_plan")
-    #         .first()
-    #     )
-
-    #     if not current_sub:
-    #         raise ValueError("No active subscription found.")
-
-    #     if current_sub.pending_plan_id:
-    #         previous_pending = current_sub.pending_plan
-    #         current_sub.pending_plan = None
-    #         current_sub.save(update_fields=["pending_plan", "updated_at"])
-    #         logger.info(
-    #             "Cancelled scheduled downgrade for user %s (was pending -> %s).",
-    #             user.email,
-    #             previous_pending.name if previous_pending else "unknown",
-    #         )
-
-    #     return current_sub
 
     @staticmethod
     @transaction.atomic
@@ -984,11 +1131,17 @@ class SubscriptionService:
         Formalizes the loss of credits due to expiration
         """
         bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
+        # Re-checked under the lock: two overlapping expiries of one bucket
+        # (two cleanup runs - a duplicate Beat, a redeploy overlap, a manual
+        # run) used to both write an EXPIRE row; the second waited on the
+        # lock, then recorded the same credits as expired again.
+        if bucket.is_processed:
+            return 0
         unused_amount = max(0, bucket.total_credits - bucket.used_credits)
 
         if unused_amount > 0:
             # Create the `EXPIRE' ledger entry to balance the books
-            CreditLedger.objects.create(
+            CreditLedger.record(
                 user=bucket.wallet.user,
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
@@ -1032,8 +1185,6 @@ class SubscriptionService:
             ValueError: If the user has already used a trial, if the plan is not
                         INDIVIDUAL category, or if the user has an active subscription.
         """
-        # from .models import PlanCategory  # local import avoids circular import risk
-
         # Guard 1 — only INDIVIDUAL plans have a free trial
         if plan.category != PlanCategory.INDIVIDUAL:
             raise ValueError(
@@ -1095,7 +1246,7 @@ class SubscriptionService:
         )
 
         # Immutable audit ledger entry
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=trial_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1114,7 +1265,7 @@ class SubscriptionService:
         logger.info(
             "Free trial activated for user %s on plan %s. "
             "Trial ends %s. Subscription ID: %s. Credits: %d display (%d raw).",
-            user.email,
+            user.id,
             plan.name,
             trial_end.isoformat(),
             subscription.id,
@@ -1149,6 +1300,11 @@ class SubscriptionService:
                 trial_end — once its credits run out. Time-based expiry
                 (the default, force=False) should never bypass this guard.
 
+        Returns:
+            bool: True if it expired the trial; False if, under the row lock,
+                  the subscription was no longer an active trial (another run
+                  expired it, or it was converted to paid), so nothing was done.
+
         Raises:
             ValueError: If the subscription is not a trial, or if the trial has not
                         yet ended (unless force=True).
@@ -1157,6 +1313,27 @@ class SubscriptionService:
             raise ValueError(
                 f"Subscription {user_subscription.id} is not a trial subscription."
             )
+
+        # Lock and re-read the row. Callers pass an object read without a
+        # lock (expire_active_trials reads every trial up front, then works
+        # through them), so by now another run may have expired it, or the
+        # user may have converted it to paid on the same row
+        # (finalize_trial_conversion_via_stripe). Acting on the stale copy
+        # wrote a second EXPIRE row and, after a conversion, deactivated the
+        # subscription the user had just paid for.
+        locked = UserSubscription.objects.select_for_update().get(
+            pk=user_subscription.pk
+        )
+        if not (locked.is_trial and locked.is_active):
+            logger.info(
+                "Trial expiry skipped for subscription %s: under the row lock "
+                "it is no longer an active trial (is_trial=%s, is_active=%s).",
+                locked.id,
+                locked.is_trial,
+                locked.is_active,
+            )
+            return False
+        user_subscription = locked
 
         now = timezone.now()
 
@@ -1172,11 +1349,14 @@ class SubscriptionService:
 
         user = user_subscription.user
 
-        # Expire any remaining TRIAL bucket
+        # Expire any remaining TRIAL bucket. Only an unprocessed one: the
+        # bucket expires at trial_end, so cleanup_expired_credit_buckets
+        # often reaches it first, and it has then already written the EXPIRE
+        # row for this remainder.
         wallet = user.credit_wallet
         trial_bucket = (
             wallet.buckets.select_for_update()
-            .filter(bucket_type=CreditBucketType.TRIAL)
+            .filter(bucket_type=CreditBucketType.TRIAL, is_processed=False)
             .first()
         )
 
@@ -1188,7 +1368,7 @@ class SubscriptionService:
             # get logged as forfeited instead of silently vanishing.
             unused = max(0, trial_bucket.total_credits - trial_bucket.used_credits)
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -1225,9 +1405,10 @@ class SubscriptionService:
         logger.info(
             "Free trial expired for user %s (subscription %s). "
             "Unused credits forfeited.",
-            user.email,
+            user.id,
             user_subscription.id,
         )
+        return True
 
     @staticmethod
     def refund_credits(task_id, reason=None):
@@ -1317,7 +1498,7 @@ class SubscriptionService:
                     # is_refunded flip below still records that the log
                     # was settled.
                     ledger_rows.append(
-                        CreditLedger(
+                        CreditLedger.build(
                             user=log.wallet.user,
                             bucket=bucket,
                             ledger_type=CreditLedgerType.REFUND,
@@ -1412,7 +1593,7 @@ class SubscriptionService:
         # Refresh the instance to get the updated value for logging
         wallet.refresh_from_db()
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=wallet.user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.PURCHASE,
@@ -1477,7 +1658,7 @@ class SubscriptionService:
             unused = trial_bucket.remaining_credits
 
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -1497,6 +1678,13 @@ class SubscriptionService:
 
         trial_sub.is_trial = False
         trial_sub.trial_end = None
+        # H-174: a trial is born with auto_renew=False ("does not turn into
+        # a paid plan by itself"). This is the SAME row, now a paid plan
+        # that Stripe renews: left as it was, the row read as "scheduled
+        # to cancel" (not a trial, not renewing) until its first renewal,
+        # while Stripe, never told to cancel, went on to charge.
+        trial_sub.auto_renew = True
+        trial_sub.cancelled_at = None
 
         trial_sub.billing_cycle_start = cycle_start
         trial_sub.billing_cycle_end = billing_end
@@ -1513,6 +1701,8 @@ class SubscriptionService:
                 "billing_cycle_start",
                 "billing_cycle_end",
                 "next_credit_grant_at",
+                "auto_renew",
+                "cancelled_at",
                 "updated_at",
             ]
         )
@@ -1530,10 +1720,10 @@ class SubscriptionService:
             # across twelve. _resolve_billing_period returns
             # grant_at == period_end for MONTHLY plans, so monthly behaviour
             # is bit-for-bit unchanged — that is what makes this safe.
-            expires_at=grant_at,
+            expires_at=grace_expiry(grant_at, billing_end),
         )
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1547,7 +1737,7 @@ class SubscriptionService:
 
         logger.info(
             "Trial converted to paid via Stripe for user %s (subscription %s).",
-            user.email,
+            user.id,
             trial_sub.id,
         )
 
@@ -1623,7 +1813,7 @@ class SubscriptionService:
 
             # Log unused trial credits as forfeited (they don't carry over)
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -1650,7 +1840,7 @@ class SubscriptionService:
             logger.info(
                 "Expired TRIAL bucket %s for user %s (forfeited %d credits)",
                 trial_bucket.id,
-                user.email,
+                user.id,
                 unused,
             )
 
@@ -1664,6 +1854,11 @@ class SubscriptionService:
         trial_sub.next_credit_grant_at = monthly_bucket_expiry
         trial_sub.stripe_subscription_id = stripe_subscription_id  # Attach Stripe ID
         trial_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+        # H-174: the trial's auto_renew=False must not stay on the paid
+        # plan (see finalize_trial_conversion_via_stripe). Assigned AND
+        # named in update_fields below.
+        trial_sub.auto_renew = True
+        trial_sub.cancelled_at = None
 
         trial_sub.save(
             update_fields=[
@@ -1678,6 +1873,8 @@ class SubscriptionService:
                 "next_credit_grant_at",
                 "stripe_subscription_id",
                 "stripe_status",
+                "auto_renew",
+                "cancelled_at",
                 "updated_at",
             ]
         )
@@ -1692,11 +1889,12 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=new_plan.monthly_credits,
             used_credits=0,
-            expires_at=monthly_bucket_expiry,
+            # A grace past the first grant's due time (billing/refresh_timing.py).
+            expires_at=grace_expiry(monthly_bucket_expiry, billing_cycle_end),
         )
 
         # --- STEP 5: Audit ledger entry ---
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=monthly_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1723,7 +1921,7 @@ class SubscriptionService:
             "Trial subscription %s upgraded to plan %s (interval: %s). "
             "Granted %d credits. Billing cycle: %s → %s. "
             "Next credit grant: %s. Stripe subscription: %s",
-            user.email,
+            user.id,
             trial_sub.id,
             new_plan.name,
             new_plan.interval,  # ← LOG INTERVAL
@@ -1788,17 +1986,22 @@ class SubscriptionService:
 
         # GUARD 1: Check if user has EVER had a trial (even expired ones)
 
-        # This is the ONE critical guard for automatic trial
-        # Use select_for_update to lock the user row during this check
-        # preventing concurrent registration from creating two trials.
+        # This is the ONE critical guard for automatic trial.
+        # Lock the user row first: select_for_update on the trial query
+        # alone locks nothing when no trial row exists yet, which is
+        # exactly the case a concurrent duplicate would race through.
+        from users.models import CustomUser
 
-        existing_trial = (
-            UserSubscription.objects.select_for_update()
-            .filter(user=user, is_trial=True)
-            .exists()
-        )
+        CustomUser.objects.select_for_update().only("pk").get(pk=user.pk)
+
+        existing_trial = UserSubscription.objects.filter(
+            user=user, is_trial=True
+        ).exists()
 
         if existing_trial:
+            logger.warning(
+                "User %s has already used the free trial: not activated.", user.id
+            )
             raise ValueError(
                 f"User {user.email} has already used the free trial. "
                 "Free trial can only be activated once per account."
@@ -1813,6 +2016,12 @@ class SubscriptionService:
                 tier=PlanTier.TRIAL, category=PlanCategory.INDIVIDUAL
             )
         except SubscriptionPlan.DoesNotExist as exc:
+            # A configuration fault that denies every new teacher a trial;
+            # the caller (users.signals) logs only the refusal's class.
+            logger.error(
+                "Free trial plan not found: no trial activated for user %s.",
+                user.id,
+            )
             raise ValueError(
                 "Free trial plan not found. Please create one in the admin panel."
             ) from exc
@@ -1854,7 +2063,7 @@ class SubscriptionService:
         # AUDIT LEDGER ENTRY
 
         # Immutable record for compliance and debugging
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=trial_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1875,7 +2084,7 @@ class SubscriptionService:
             "Automatic free trial activated for user %s on registration. "
             "Subscription ID: %s. Credits: %d display (%d raw). "
             "Trial ends: %s.",
-            user.email,
+            user.id,
             subscription.id,
             SubscriptionService.TRIAL_CREDITS_DISPLAY,
             SubscriptionService.TRIAL_CREDITS_RAW,
@@ -1951,7 +2160,7 @@ class ManualCreditService:
             except Exception:
                 logger.exception(
                     "Failed to queue manual-credit-grant email to %s",
-                    target_user.email,
+                    target_user.id,
                 )
 
         transaction.on_commit(_dispatch)
@@ -2016,7 +2225,7 @@ class ManualCreditService:
         display_amount = raw_amount // CONVERSION_FACTOR
 
         # Immutable audit ledger entry
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=target_user,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -2040,8 +2249,8 @@ class ManualCreditService:
             blocks,
             display_amount,
             raw_amount,
-            target_user.email,
-            granted_by.email if granted_by else "system",
+            target_user.id,
+            granted_by.id if granted_by else "system",
             bucket.id,
             expires_at or "never",
             reason,
@@ -2166,12 +2375,35 @@ class AnalyticsService:
         profile.refresh_from_db()
 
         # Check Thresholds
-        usage_ratio = profile.total_credits_used / profile.initial_beta_credits
+        #
+        # initial_beta_credits is the denominator, and it is NOT guaranteed
+        # positive: users.signals seeds it from the BETA plan's
+        # monthly_credits, which is `default=0, null=True`. A plan left at
+        # that default made this raise ZeroDivisionError on the user's very
+        # first AI action — after their credits had already been deducted,
+        # since record_consumption runs inside the consumption flow.
+        #
+        # These two flags mean "ever reached 80%/100% OF THEIR ALLOCATION".
+        # With no allocation there is no fraction to be a proportion of, so
+        # the honest answer is to leave both untouched rather than invent a
+        # ratio. The consumption totals above are still recorded either way,
+        # and billing/views.py only ever counts/filters on these flags.
+        allocation = profile.initial_beta_credits or 0
+        if allocation > 0:
+            usage_ratio = profile.total_credits_used / allocation
 
-        if usage_ratio >= 1.0:
-            profile.has_hit_cap = True
-        elif usage_ratio >= 0.8:
-            profile.has_hit_80_percent = True
+            if usage_ratio >= 1.0:
+                profile.has_hit_cap = True
+            elif usage_ratio >= 0.8:
+                profile.has_hit_80_percent = True
+        else:
+            logger.warning(
+                "BetaProfile for %s has initial_beta_credits=%r, so the "
+                "80%%/cap usage thresholds cannot be evaluated. Check the "
+                "BETA plan's monthly_credits.",
+                profile.user_id,
+                profile.initial_beta_credits,
+            )
 
         profile.save(
             update_fields=[
@@ -2252,7 +2484,13 @@ class AnalyticsService:
             score += 20
 
         # Calculate Velocity (Credits per day)
-        days_since_joined = (timezone.now() - profile.joined_beta_at).days
+        #
+        # The window is floored at one day: `.days` is 0 for a profile
+        # created today, which made this raise ZeroDivisionError. Flooring
+        # rather than returning 0.0 keeps the metric honest — a teacher who
+        # burned 5,000 credits on their first day has a high velocity, not a
+        # zero one — and it converges on the true rate from day two onward.
+        days_since_joined = max(1, (timezone.now() - profile.joined_beta_at).days)
         profile.usage_velocity = profile.total_credits_used / days_since_joined
 
         profile.conversion_probability = float(score)

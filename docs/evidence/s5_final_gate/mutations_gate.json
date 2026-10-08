@@ -1,0 +1,645 @@
+{
+  "generated_at": "2026-09-14T16:05:40Z",
+  "baseline": {
+    "exit_code": 0,
+    "seconds": 144.3,
+    "ran": 221,
+    "failures": [],
+    "tail": ""
+  },
+  "counts": {
+    "KILLED": 35
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "title": "chunked path sends no schema",
+      "stands_for": "remove extraction schema; Regression 2",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.6,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "ssertEqual(problems, [], describe(run, scenario, problems))\nAssertionError: Lists differ: ['extraction call 1 was sent no structured[69 chars]ema'] != []\n\nFirst list contains 2 additional elements.\nFirst extra element 0:\n'extraction call 1 was sent no structured-output schema'\n\n+ []\n- ['extraction call 1 was sent no structured-output schema',\n-  'extraction call 2 was sent no structured-output schema'] : \nscenario        : AE-202 blank-exactly-on-boundary [boundary]\nnotes           : A deliberate blank on the last page of chunk 1. The blank must survive the merge as BLANK, not be overwritten by chunk 2's not-found view of it.\nmodel quirks    : none\nknown gap       : none\npages           : 4\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4]]\npages claimed   : [[1, 3], [4, 4]]\nalready found   : [[], ['Q1', 'Q2']]\nschema per chunk: ['NONE', 'NONE']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      BLANK                  pages=[3]\n    Q4      ANSWERED               pages=[4]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\nproblems:\n    - extraction call 1 was sent no structured-output schema\n    - extraction call 2 was sent no structured-output schema\n\n----------------------------------------------------------------------\nRan 8 tests in 4.640s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M02",
+      "title": "single-call path sends no schema",
+      "stands_for": "remove extraction schema",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.3,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "y\", line 157, in extract_grade_and_persist\n    self.assertEqual(problems, [], describe(run, scenario, problems))\nAssertionError: Lists differ: ['extraction call 1 was sent no structured-output schema'] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n'extraction call 1 was sent no structured-output schema'\n\n- ['extraction call 1 was sent no structured-output schema']\n+ [] : \nscenario        : AE-300 all-three-states-together [status]\nnotes           : The canonical mixed case: answered, deliberately blank, and genuinely absent, in one document.\nmodel quirks    : none\nknown gap       : none\npages           : 2\npages_per_chunk : 3\nexecution path  : single-call\nchunks          : 1\npages sent      : [[1, 2]]\npages claimed   : [None]\nalready found   : [[]]\nschema per chunk: ['NONE']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[1]\n    Q3      BLANK                  pages=[2]\n    Q4      ANSWERED               pages=[2]\n    Q5      NOT_FOUND_IN_DOCUMENT  pages=[]\n    Q6      NOT_FOUND_IN_DOCUMENT  pages=[]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\n    Q5      NOT_FOUND_IN_DOCUMENT\n    Q6      NOT_FOUND_IN_DOCUMENT\nproblems:\n    - extraction call 1 was sent no structured-output schema\n\n----------------------------------------------------------------------\nRan 8 tests in 4.264s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M03",
+      "title": "BLANK removed from the status enum",
+      "stands_for": "remove BLANK enum",
+      "file": "ai_processor/extraction_schemas.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.0,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "ssor/tests_answer_benchmark_grading.py\", line 157, in extract_grade_and_persist\n    self.assertEqual(problems, [], describe(run, scenario, problems))\nAssertionError: Lists differ: [\"question Q3 has invalid answer_status 'BLANK'\"] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n\"question Q3 has invalid answer_status 'BLANK'\"\n\n- [\"question Q3 has invalid answer_status 'BLANK'\"]\n+ [] : \nscenario        : AE-300 all-three-states-together [status]\nnotes           : The canonical mixed case: answered, deliberately blank, and genuinely absent, in one document.\nmodel quirks    : none\nknown gap       : none\npages           : 2\npages_per_chunk : 3\nexecution path  : single-call\nchunks          : 1\npages sent      : [[1, 2]]\npages claimed   : [None]\nalready found   : [[]]\nschema per chunk: ['set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[1]\n    Q3      BLANK                  pages=[2]\n    Q4      ANSWERED               pages=[2]\n    Q5      NOT_FOUND_IN_DOCUMENT  pages=[]\n    Q6      NOT_FOUND_IN_DOCUMENT  pages=[]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\n    Q5      NOT_FOUND_IN_DOCUMENT\n    Q6      NOT_FOUND_IN_DOCUMENT\nproblems:\n    - question Q3 has invalid answer_status 'BLANK'\n\n----------------------------------------------------------------------\nRan 8 tests in 4.193s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M04",
+      "title": "NOT_FOUND_IN_DOCUMENT removed from the status enum",
+      "stands_for": "remove NOT_FOUND enum",
+      "file": "ai_processor/extraction_schemas.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.1,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "    self.assertEqual(problems, [], describe(run, scenario, problems))\nAssertionError: Lists differ: ['Q5: expected NOT_FOUND_IN_DOCUMENT, got [51 chars]ANK'] != []\n\nFirst list contains 2 additional elements.\nFirst extra element 0:\n'Q5: expected NOT_FOUND_IN_DOCUMENT, got BLANK'\n\n+ []\n- ['Q5: expected NOT_FOUND_IN_DOCUMENT, got BLANK',\n-  'Q6: expected NOT_FOUND_IN_DOCUMENT, got BLANK'] : \nscenario        : AE-300 all-three-states-together [status]\nnotes           : The canonical mixed case: answered, deliberately blank, and genuinely absent, in one document.\nmodel quirks    : none\nknown gap       : none\npages           : 2\npages_per_chunk : 3\nexecution path  : single-call\nchunks          : 1\npages sent      : [[1, 2]]\npages claimed   : [None]\nalready found   : [[]]\nschema per chunk: ['set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[1]\n    Q3      BLANK                  pages=[2]\n    Q4      ANSWERED               pages=[2]\n    Q5      NOT_FOUND_IN_DOCUMENT  pages=[]\n    Q6      NOT_FOUND_IN_DOCUMENT  pages=[]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\n    Q5      BLANK\n    Q6      BLANK\nproblems:\n    - Q5: expected NOT_FOUND_IN_DOCUMENT, got BLANK\n    - Q6: expected NOT_FOUND_IN_DOCUMENT, got BLANK\n\n----------------------------------------------------------------------\nRan 8 tests in 4.228s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M05",
+      "title": "answer chunker ignores the configured chunk size",
+      "stands_for": "ignore pages_per_chunk",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 5.0,
+        "ran": 4,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.CancellationTest.test_during_the_final_chunk"
+        ],
+        "tail": " INFO 2026-09-14 15:45:54,745 services 499024 135171983498176 [request_id=-] [Answer Extraction] Chunk 3/3 complete. Running total: 6 questions mapped.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:45:54,745 services 499024 135171983498176 [request_id=-] [Answer Extraction] Done. Merged 6 answers from 3 chunks. Confidence: 100%.\n\n\nF\n======================================================================\nFAIL: test_during_the_final_chunk (ai_processor.tests_answer_benchmark_failures.CancellationTest.test_during_the_final_chunk)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 411, in test_during_the_final_chunk\n    self.assertStoppedAfter(run, calls=2)\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 358, in assertStoppedAfter\n    self.assertIsInstance(run.error, TaskCancelledError, repr(run.error))\nAssertionError: None is not an instance of <class 'students.exceptions.TaskCancelledError'> : None\n\n----------------------------------------------------------------------\nRan 4 tests in 2.102s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M06",
+      "title": "assignment chunker reverts to the hard-coded CHUNK_SIZE",
+      "stands_for": "ignore pages_per_chunk; Regression 3",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 55.1,
+        "ran": 76,
+        "failures": [
+          "ai_processor.tests_chunked_extraction_contract.ChunkedAssignmentNoteReportsTheRealPagesTest.test_a_final_short_chunk_is_described_honestly"
+        ],
+        "tail": "ces 499068 133530067114944 [request_id=-] [Chunked Extraction] Processing chunk 2/3...\n\n\n\n\nai_processor.services INFO 2026-09-14 15:46:49,959 services 499068 133530067114944 [request_id=-] [Chunked Extraction] Processing chunk 3/3...\n\n\n\n\nai_processor.services INFO 2026-09-14 15:46:49,960 services 499068 133530067114944 [request_id=-] [Chunked Extraction] Done. Merged 3 questions from 3 chunks.\n\n\nF\n======================================================================\nFAIL: test_a_final_short_chunk_is_described_honestly (ai_processor.tests_chunked_extraction_contract.ChunkedAssignmentNoteReportsTheRealPagesTest.test_a_final_short_chunk_is_described_honestly)\nThe last chunk is usually smaller. Claiming a full-width range\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_chunked_extraction_contract.py\", line 244, in test_a_final_short_chunk_is_described_honestly\n    self.assertEqual([count for _, count in sent], [3, 2])\nAssertionError: Lists differ: [2, 2, 1] != [3, 2]\n\nFirst differing element 0:\n2\n3\n\nFirst list contains 1 additional elements.\nFirst extra element 2:\n1\n\n- [2, 2, 1]\n+ [3, 2]\n\n----------------------------------------------------------------------\nRan 76 tests in 51.994s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M07",
+      "title": "claimed page range shifted +1",
+      "stands_for": "shift page range by +1; Regression 4",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.2,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "s [1, 2, 3] but tol[111 chars]o 4'] != []\n\nFirst list contains 2 additional elements.\nFirst extra element 0:\n'chunk 1 was sent pages [1, 2, 3] but told the model it was seeing pages 2 to 3'\n\n+ []\n- ['chunk 1 was sent pages [1, 2, 3] but told the model it was seeing pages 2 to '\n-  '3',\n-  'chunk 2 was sent pages [4] but told the model it was seeing pages 5 to 4'] : \nscenario        : AE-202 blank-exactly-on-boundary [boundary]\nnotes           : A deliberate blank on the last page of chunk 1. The blank must survive the merge as BLANK, not be overwritten by chunk 2's not-found view of it.\nmodel quirks    : none\nknown gap       : none\npages           : 4\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4]]\npages claimed   : [[2, 3], [5, 4]]\nalready found   : [[], ['Q1', 'Q2']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      BLANK                  pages=[3]\n    Q4      ANSWERED               pages=[4]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\nproblems:\n    - chunk 1 was sent pages [1, 2, 3] but told the model it was seeing pages 2 to 3\n    - chunk 2 was sent pages [4] but told the model it was seeing pages 5 to 4\n\n----------------------------------------------------------------------\nRan 8 tests in 3.971s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M08",
+      "title": "claimed page range shifted -1",
+      "stands_for": "shift page range by -1; Regression 4",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.4,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "s [1, 2, 3] but tol[111 chars]o 4'] != []\n\nFirst list contains 2 additional elements.\nFirst extra element 0:\n'chunk 1 was sent pages [1, 2, 3] but told the model it was seeing pages 0 to 3'\n\n+ []\n- ['chunk 1 was sent pages [1, 2, 3] but told the model it was seeing pages 0 to '\n-  '3',\n-  'chunk 2 was sent pages [4] but told the model it was seeing pages 3 to 4'] : \nscenario        : AE-202 blank-exactly-on-boundary [boundary]\nnotes           : A deliberate blank on the last page of chunk 1. The blank must survive the merge as BLANK, not be overwritten by chunk 2's not-found view of it.\nmodel quirks    : none\nknown gap       : none\npages           : 4\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4]]\npages claimed   : [[0, 3], [3, 4]]\nalready found   : [[], ['Q1', 'Q2']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      BLANK                  pages=[3]\n    Q4      ANSWERED               pages=[4]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\nproblems:\n    - chunk 1 was sent pages [1, 2, 3] but told the model it was seeing pages 0 to 3\n    - chunk 2 was sent pages [4] but told the model it was seeing pages 3 to 4\n\n----------------------------------------------------------------------\nRan 8 tests in 4.190s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M09",
+      "title": "final chunk dropped",
+      "stands_for": "drop final chunk",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 4.5,
+        "ran": 3,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.CancellationTest.test_between_chunks"
+        ],
+        "tail": "tal: 6 questions mapped.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:47:09,194 services 500050 139160542792640 [request_id=-] [Answer Extraction] Done. Merged 6 answers from 1 chunks. Confidence: 50%.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:47:09,195 services 500050 139160542792640 [request_id=-] [BlankVerification] Re-read confirmed 3 blank(s).\n\n\nF\n======================================================================\nFAIL: test_between_chunks (ai_processor.tests_answer_benchmark_failures.CancellationTest.test_between_chunks)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 403, in test_between_chunks\n    self.assertStoppedAfter(run, calls=1)\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 358, in assertStoppedAfter\n    self.assertIsInstance(run.error, TaskCancelledError, repr(run.error))\nAssertionError: None is not an instance of <class 'students.exceptions.TaskCancelledError'> : None\n\n----------------------------------------------------------------------\nRan 3 tests in 1.475s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M10",
+      "title": "first chunk dropped",
+      "stands_for": "drop first chunk",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 4.6,
+        "ran": 3,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.CancellationTest.test_between_chunks"
+        ],
+        "tail": "tal: 6 questions mapped.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:47:13,820 services 500087 125933041585088 [request_id=-] [Answer Extraction] Done. Merged 6 answers from 1 chunks. Confidence: 50%.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:47:13,820 services 500087 125933041585088 [request_id=-] [BlankVerification] Re-read confirmed 3 blank(s).\n\n\nF\n======================================================================\nFAIL: test_between_chunks (ai_processor.tests_answer_benchmark_failures.CancellationTest.test_between_chunks)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 403, in test_between_chunks\n    self.assertStoppedAfter(run, calls=1)\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 358, in assertStoppedAfter\n    self.assertIsInstance(run.error, TaskCancelledError, repr(run.error))\nAssertionError: None is not an instance of <class 'students.exceptions.TaskCancelledError'> : None\n\n----------------------------------------------------------------------\nRan 3 tests in 1.763s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M11",
+      "title": "last chunk sent twice",
+      "stands_for": "duplicate a chunk",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 7.4,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "rst list contains 3 additional elements.\nFirst extra element 0:\n'pages submitted more than once: [4]'\n\n+ []\n- ['pages submitted more than once: [4]',\n-  'chunk layout [[1, 2, 3], [4], [4]] != expected [[1, 2, 3], [4]]',\n-  'chunk 3 was sent pages [4] but told the model it was seeing pages 7 to 4'] : \nscenario        : AE-202 blank-exactly-on-boundary [boundary]\nnotes           : A deliberate blank on the last page of chunk 1. The blank must survive the merge as BLANK, not be overwritten by chunk 2's not-found view of it.\nmodel quirks    : none\nknown gap       : none\npages           : 4\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 3\npages sent      : [[1, 2, 3], [4], [4]]\npages claimed   : [[1, 3], [4, 4], [7, 4]]\nalready found   : [[], ['Q1', 'Q2'], ['Q1', 'Q2', 'Q4']]\nschema per chunk: ['set', 'set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      BLANK                  pages=[3]\n    Q4      ANSWERED               pages=[4]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      BLANK\n    Q4      ANSWERED\nproblems:\n    - pages submitted more than once: [4]\n    - chunk layout [[1, 2, 3], [4], [4]] != expected [[1, 2, 3], [4]]\n    - chunk 3 was sent pages [4] but told the model it was seeing pages 7 to 4\n\n----------------------------------------------------------------------\nRan 8 tests in 4.536s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M12",
+      "title": "splitter accepts a negative size again (drops every page)",
+      "stands_for": "invalid chunk size rejected",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 55.2,
+        "ran": 37,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_inputs.ChunkSizeContractTest.test_sizes_below_one_are_rejected"
+        ],
+        "tail": "JSON: Expecting value: line 1 column 1 (char 0)\n\n\n\n\nai_processor.services INFO 2026-09-14 15:48:16,185 services 500228 130409936546752 [request_id=-] Retrying...\n\n\n\n\nai_processor.services ERROR 2026-09-14 15:48:16,330 services 500228 130409936546752 [request_id=-] Error decoding JSON: Expecting value: line 1 column 14 (char 13)\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:48:16,330 services 500228 130409936546752 [request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 14 (char 13)\n\n\n\n\nai_processor.services INFO 2026-09-14 15:48:16,330 services 500228 130409936546752 [request_id=-] Retrying...\n\n\n....F\n======================================================================\nFAIL: test_sizes_below_one_are_rejected (ai_processor.tests_answer_benchmark_inputs.ChunkSizeContractTest.test_sizes_below_one_are_rejected) (size=-1)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_inputs.py\", line 80, in test_sizes_below_one_are_rejected\n    with self.assertRaises(ValueError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ValueError not raised\n\n----------------------------------------------------------------------\nRan 37 tests in 52.342s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M13",
+      "title": "completeness placeholder says BLANK",
+      "stands_for": "convert NOT_FOUND -> BLANK; Regression 5",
+      "file": "ai_processor/answer_completeness.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 49.0,
+        "ran": 23,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_an_omitted_question_becomes_not_found_never_blank"
+        ],
+        "tail": "-09-14 15:49:05,294 services 501082 132662416702400 [request_id=-] Retrying...\n\n\n\n\nai_processor.answer_completeness WARNING 2026-09-14 15:49:05,294 answer_completeness 501082 132662416702400 [request_id=-] [AnswerCompleteness] Repaired 1 violation(s) on the final extraction attempt; affected questions are flagged for review. No answer entry for question 'Q2'.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:49:05,294 services 501082 132662416702400 [request_id=-] [BlankVerification] Re-read confirmed 1 blank(s).\n\n\nF\n======================================================================\nFAIL: test_an_omitted_question_becomes_not_found_never_blank (ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_an_omitted_question_becomes_not_found_never_blank) (scenario='AE-004')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 181, in test_an_omitted_question_becomes_not_found_never_blank\n    self.assertEqual(run.status_by_question[\"Q2\"], NOT_FOUND_IN_DOCUMENT)\nAssertionError: 'BLANK' != 'NOT_FOUND_IN_DOCUMENT'\n- BLANK\n+ NOT_FOUND_IN_DOCUMENT\n\n\n----------------------------------------------------------------------\nRan 23 tests in 46.082s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M14",
+      "title": "grading pairing placeholder says BLANK",
+      "stands_for": "convert NOT_FOUND -> BLANK; Regression 5",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 55.8,
+        "ran": 129,
+        "failures": [
+          "ai_processor.tests_answer_extraction_gate.AnswerStatusReachesGraderTest.test_fabricated_placeholder_carries_not_found_not_blank"
+        ],
+        "tail": "question 3.\n\n\n.....................\n\nai_processor.answer_completeness WARNING 2026-09-14 15:50:00,944 answer_completeness 501795 137448627043264 [request_id=-] [AnswerCompleteness] Unrecognised answer_status 'WEIRD' on question 1; re-deriving from the transcription.\n\n\n\n\nai_processor.answer_completeness WARNING 2026-09-14 15:50:00,944 answer_completeness 501795 137448627043264 [request_id=-] [AnswerCompleteness] Unrecognised answer_status 'WEIRD' on question 2; re-deriving from the transcription.\n\n\n.......................F\n======================================================================\nFAIL: test_fabricated_placeholder_carries_not_found_not_blank (ai_processor.tests_answer_extraction_gate.AnswerStatusReachesGraderTest.test_fabricated_placeholder_carries_not_found_not_blank)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_extraction_gate.py\", line 259, in test_fabricated_placeholder_carries_not_found_not_blank\n    self.assertEqual(pairs[1][\"answer\"][\"answer_status\"], NOT_FOUND_IN_DOCUMENT)\nAssertionError: 'BLANK' != 'NOT_FOUND_IN_DOCUMENT'\n- BLANK\n+ NOT_FOUND_IN_DOCUMENT\n\n\n----------------------------------------------------------------------\nRan 129 tests in 52.705s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M15",
+      "title": "merge trusts a BLANK the model cannot place",
+      "stands_for": "convert NOT_FOUND -> BLANK (AE-800, AE-802)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 9.0,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "or: Lists differ: ['Q9: expected NOT_FOUND_IN_DOCUMENT, got BLANK'] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n'Q9: expected NOT_FOUND_IN_DOCUMENT, got BLANK'\n\n- ['Q9: expected NOT_FOUND_IN_DOCUMENT, got BLANK']\n+ [] : \nscenario        : AE-800 last-chunk-blanks-questions-it-never-saw [merge]\nnotes           : The last chunk's note says to 'mark any question that was not found in any chunk as genuinely skipped'. A model that writes BLANK for Q9 - which is in no page at all - must not turn an absent answer into a silent zero. Q2, a real blank the first chunk located, must stay BLANK.\nmodel quirks    : ['last-chunk-blanks-unseen']\nknown gap       : none\npages           : 4\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4]]\npages claimed   : [[1, 3], [4, 4]]\nalready found   : [[], ['Q1', 'Q3']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      BLANK                  pages=[2]\n    Q3      ANSWERED               pages=[3]\n    Q4      ANSWERED               pages=[4]\n    Q9      NOT_FOUND_IN_DOCUMENT  pages=[]\nactual statuses:\n    Q1      ANSWERED\n    Q2      BLANK\n    Q3      ANSWERED\n    Q4      ANSWERED\n    Q9      BLANK\nproblems:\n    - Q9: expected NOT_FOUND_IN_DOCUMENT, got BLANK\n\n----------------------------------------------------------------------\nRan 8 tests in 6.091s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M16",
+      "title": "merge ties no longer favour NOT_FOUND",
+      "stands_for": "order-independent merge (AE-802 reversed)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 58.2,
+        "ran": 58,
+        "failures": [
+          "ai_processor.tests_answer_chunk_merge.MergeChunkAnswerTest.test_an_unplaced_blank_never_beats_not_found_in_either_order"
+        ],
+        "tail": "on] Chunk 1, attempt 2: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:51:08,345 services 502735 128213266353088 [request_id=-] [Answer Extraction] Chunk 1, attempt 3: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:51:08,345 services 502735 128213266353088 [request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 1 failed after 3 attempts. Last error: provider timed out\n\n\n...........F\n======================================================================\nFAIL: test_an_unplaced_blank_never_beats_not_found_in_either_order (ai_processor.tests_answer_chunk_merge.MergeChunkAnswerTest.test_an_unplaced_blank_never_beats_not_found_in_either_order) (first='BLANK')\nAE-800/802: the result must not depend on which chunk came first.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_chunk_merge.py\", line 200, in test_an_unplaced_blank_never_beats_not_found_in_either_order\n    self.assertEqual(kept[\"answer_status\"], NOT_FOUND_IN_DOCUMENT)\nAssertionError: 'BLANK' != 'NOT_FOUND_IN_DOCUMENT'\n- BLANK\n+ NOT_FOUND_IN_DOCUMENT\n\n\n----------------------------------------------------------------------\nRan 58 tests in 55.341s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M17",
+      "title": "merge reverts to the empty-html rule",
+      "stands_for": "BLANK -> NOT_FOUND collapse (AE-600, AE-601)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 11.3,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": "p/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_grading.py\", line 157, in extract_grade_and_persist\n    self.assertEqual(problems, [], describe(run, scenario, problems))\nAssertionError: Lists differ: ['Q4: expected BLANK, got NOT_FOUND_IN_DOCUMENT'] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n'Q4: expected BLANK, got NOT_FOUND_IN_DOCUMENT'\n\n- ['Q4: expected BLANK, got NOT_FOUND_IN_DOCUMENT']\n+ [] : \nscenario        : AE-601 noisy-scan [difficult]\nnotes           : Speckle, streaks and reduced contrast over the text.\nmodel quirks    : none\nknown gap       : none\npages           : 4\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4]]\npages claimed   : [[1, 3], [4, 4]]\nalready found   : [[], ['Q1', 'Q2', 'Q3']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      ANSWERED               pages=[3]\n    Q4      BLANK                  pages=[4]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      ANSWERED\n    Q4      NOT_FOUND_IN_DOCUMENT\nproblems:\n    - Q4: expected BLANK, got NOT_FOUND_IN_DOCUMENT\n\n----------------------------------------------------------------------\nRan 8 tests in 7.400s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M18",
+      "title": "answer split across chunks keeps only its first half",
+      "stands_for": "cross-chunk answer (AE-205)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 11.7,
+        "ran": 8,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_grading.ExtractionThroughGradingTest.test_status_score_and_review_agree_end_to_end"
+        ],
+        "tail": " element 0:\n\"Q3: expected an answer containing 'Nitrogen', got 'the major component is'\"\n\n+ []\n- [\"Q3: expected an answer containing 'Nitrogen', got 'the major component is'\",\n-  \"Q3: the part written on page 4 ('Nitrogen') is missing or out of order in \"\n-  \"'the major component is'\"] : \nscenario        : AE-205 answer-spans-chunk-boundary [boundary]\nnotes           : Q3 spans pages 3-4, i.e. across the seam at 3 pages/chunk. Chunk 1 sees only the opening, chunk 2 only the conclusion; the merge must produce one answer, not two halves or a not-found.\nmodel quirks    : none\nknown gap       : none\npages           : 5\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4, 5]]\npages claimed   : [[1, 3], [4, 5]]\nalready found   : [[], ['Q1', 'Q2', 'Q3']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      ANSWERED               pages=[3, 4]\n    Q4      ANSWERED               pages=[5]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      ANSWERED\n    Q4      ANSWERED\nproblems:\n    - Q3: expected an answer containing 'Nitrogen', got 'the major component is'\n    - Q3: the part written on page 4 ('Nitrogen') is missing or out of order in 'the major component is'\n\n----------------------------------------------------------------------\nRan 8 tests in 7.668s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M19",
+      "title": "later chunks told every question was already found",
+      "stands_for": "later-chunk answers skipped (AE-804)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 34.6,
+        "ran": 13,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_scenarios.ScenarioBenchmarkTest.test_every_catalogued_scenario"
+        ],
+        "tail": "T'\n\n+ []\n- ['Q4: expected ANSWERED, got NOT_FOUND_IN_DOCUMENT',\n-  \"Q4: expected an answer containing 'W', got ''\"] : \nscenario        : AE-803 split-answer-with-a-model-that-follows-the-chunk-note [merge]\nnotes           : AE-205's page 3|4 answer, with a model that does exactly what the chunk note says. Until 2026-09-14 the note said Q3 'does NOT need to be extracted again', and the second half was lost - the real model did the same (live AE-905). The note now asks for the continuation. Requirement: a student's answer must never be silently truncated because it crosses a chunk boundary.\nmodel quirks    : ['obeys-already-found']\nknown gap       : none\npages           : 5\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4, 5]]\npages claimed   : [[1, 3], [4, 5]]\nalready found   : [[], ['Q1', 'Q2', 'Q3', 'Q4']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      ANSWERED               pages=[3, 4]\n    Q4      ANSWERED               pages=[5]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      ANSWERED\n    Q4      NOT_FOUND_IN_DOCUMENT\nproblems:\n    - Q4: expected ANSWERED, got NOT_FOUND_IN_DOCUMENT\n    - Q4: expected an answer containing 'W', got ''\n\n----------------------------------------------------------------------\nRan 13 tests in 30.119s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M20",
+      "title": "shared PDFService singleton restored",
+      "stands_for": "remove per-upload service isolation; Regression 1",
+      "file": "assignments/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 66.7,
+        "ran": 194,
+        "failures": [
+          "ai_processor.tests_pdf_service_concurrency.PdfServiceInstancesAreIndependentTest.test_prepare_ai_content_does_not_mutate_the_shared_singleton"
+        ],
+        "tail": " the re-read; the completeness flags already route this submission for review.\n\n\n.\n\nai_processor.services INFO 2026-09-14 15:53:12,345 services 504433 140632059804608 [request_id=-] [BlankVerification] 3 page(s) exceeds the cap of 2 - skipping the re-read.\n\n\n..\n\nai_processor.services INFO 2026-09-14 15:53:12,366 services 504433 140632059804608 [request_id=-] [BlankVerification] Re-read confirmed 1 blank(s).\n\n\n.F\n======================================================================\nFAIL: test_prepare_ai_content_does_not_mutate_the_shared_singleton (ai_processor.tests_pdf_service_concurrency.PdfServiceInstancesAreIndependentTest.test_prepare_ai_content_does_not_mutate_the_shared_singleton)\nThe shared `pdf_service` object still exists (its stateless\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_pdf_service_concurrency.py\", line 181, in test_prepare_ai_content_does_not_mutate_the_shared_singleton\n    self.assertIsNone(\nAssertionError: <SimpleUploadedFile: alpha.pdf (application/pdf)> is not None : prepare_ai_content wrote per-request state onto the shared module-level PDFService again\n\n----------------------------------------------------------------------\nRan 194 tests in 63.060s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M21",
+      "title": "connected-peer SSRF check disabled",
+      "stands_for": "disable connected-peer SSRF check",
+      "file": "ai_processor/tools.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 65.9,
+        "ran": 198,
+        "failures": [
+          "ai_processor.tests_ssrf_guard.DnsRebindingIsCaughtAfterConnectingTest.test_a_connection_that_lands_on_localhost_is_refused"
+        ],
+        "tail": "\n.\n\nai_processor.services INFO 2026-09-14 15:54:16,356 services 505625 135348604156864 [request_id=-] [BlankVerification] 3 blank(s) exceeds the cap of 2 - skipping the re-read; the completeness flags already route this submission for review.\n\n\n.\n\nai_processor.services INFO 2026-09-14 15:54:16,366 services 505625 135348604156864 [request_id=-] [BlankVerification] 3 page(s) exceeds the cap of 2 - skipping the re-read.\n\n\n..\n\nai_processor.services INFO 2026-09-14 15:54:16,389 services 505625 135348604156864 [request_id=-] [BlankVerification] Re-read confirmed 1 blank(s).\n\n\n.....F\n======================================================================\nFAIL: test_a_connection_that_lands_on_localhost_is_refused (ai_processor.tests_ssrf_guard.DnsRebindingIsCaughtAfterConnectingTest.test_a_connection_that_lands_on_localhost_is_refused)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_ssrf_guard.py\", line 196, in test_a_connection_that_lands_on_localhost_is_refused\n    with self.assertRaises(BlockedURLError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: BlockedURLError not raised\n\n----------------------------------------------------------------------\nRan 198 tests in 62.027s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M22",
+      "title": "a chunk that never succeeds is skipped",
+      "stands_for": "swallow provider error; Regression 8",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 49.9,
+        "ran": 26,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.PersistentChunkFailureTest.test_no_partial_result_is_returned"
+        ],
+        "tail": ", 'answers': [{'question_number': 'Q1', 'question_text': 'What is the capital city of Iceland?', 'source_page': 1, 'transcription_notes': '', 'answer_html': '<p>Reykjavik</p>', 'answer_status': 'ANSWERED', 'confidence': 90}, {'question_number': 'Q2', 'question_text': 'Name the largest moon of Saturn.', 'source_page': 2, 'transcription_notes': '', 'answer_html': '<p>Titan</p>', 'answer_status': 'ANSWERED', 'confidence': 90}, {'question_number': 'Q3', 'question_text': \"Which gas is about 78% of Earth's atmosphere?\", 'source_page': 3, 'transcription_notes': '', 'answer_html': '<p>Nitrogen</p>', 'answer_status': 'ANSWERED', 'confidence': 90}, {'question_number': 'Q4', 'question_text': 'What is the chemical symbol for tungsten?', 'source_page': None, 'transcription_notes': '', 'answer_html': '', 'answer_status': 'NOT_FOUND_IN_DOCUMENT', 'confidence': 90}, {'question_number': 'Q5', 'question_text': 'In which year did Apollo 11 land?', 'source_page': None, 'transcription_notes': '', 'answer_html': '', 'answer_status': 'NOT_FOUND_IN_DOCUMENT', 'confidence': 90}, {'question_number': 'Q6', 'question_text': 'What is the square root of 289?', 'source_page': None, 'transcription_notes': '', 'answer_html': '', 'answer_status': 'NOT_FOUND_IN_DOCUMENT', 'confidence': 90}], 'extraction_confidence': 50, 'feedback': ''} is not None\n\n----------------------------------------------------------------------\nRan 26 tests in 47.017s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M23",
+      "title": "cancellation retried by extract_answer_with_retry",
+      "stands_for": "retry cancellation; Regression 7",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 65.7,
+        "ran": 45,
+        "failures": [
+          "ai_processor.tests_answer_chunk_merge.ErrorsKeepTheirTypeTest.test_a_cancellation_is_never_retried"
+        ],
+        "tail": "y user.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:56:14,063 services 507444 135546428492736 [request_id=-] Retrying...\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:56:14,063 services 507444 135546428492736 [request_id=-] Attempt 2 failed: Task cancelled by user.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:56:14,063 services 507444 135546428492736 [request_id=-] Retrying...\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:56:14,063 services 507444 135546428492736 [request_id=-] Attempt 3 failed: Task cancelled by user.\n\n\nF\n======================================================================\nFAIL: test_a_cancellation_is_never_retried (ai_processor.tests_answer_chunk_merge.ErrorsKeepTheirTypeTest.test_a_cancellation_is_never_retried) (path='single-call')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_chunk_merge.py\", line 390, in test_a_cancellation_is_never_retried\n    self.assertIsInstance(exc, TaskCancelledError)\nAssertionError: Exception('All 3 attempts failed. Last error: Task cancelled by user.') is not an instance of <class 'students.exceptions.TaskCancelledError'>\n\n----------------------------------------------------------------------\nRan 45 tests in 62.802s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M24",
+      "title": "cancellation retried inside the chunk loop",
+      "stands_for": "retry cancellation; Regression 7",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 67.0,
+        "ran": 45,
+        "failures": [
+          "ai_processor.tests_answer_chunk_merge.ErrorsKeepTheirTypeTest.test_a_cancellation_is_never_retried"
+        ],
+        "tail": "traction] Chunk 1, attempt 2: AI call failed \u2014 Task cancelled by user.\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:57:21,098 services 508792 124474553695168 [request_id=-] [Answer Extraction] Chunk 1, attempt 3: AI call failed \u2014 Task cancelled by user.\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:57:21,098 services 508792 124474553695168 [request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 1 failed after 3 attempts. Last error: Task cancelled by user.\n\n\nF\n======================================================================\nFAIL: test_a_cancellation_is_never_retried (ai_processor.tests_answer_chunk_merge.ErrorsKeepTheirTypeTest.test_a_cancellation_is_never_retried) (path='chunked')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_chunk_merge.py\", line 390, in test_a_cancellation_is_never_retried\n    self.assertIsInstance(exc, TaskCancelledError)\nAssertionError: Exception('All 3 attempts failed. Last error: [Answer Extraction] Chunk 1 failed after 3 attempts. Last error: Task cancelled by user.') is not an instance of <class 'students.exceptions.TaskCancelledError'>\n\n----------------------------------------------------------------------\nRan 45 tests in 63.342s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M25",
+      "title": "single-call path wraps credit/cancel errors again",
+      "stands_for": "error type preserved on both paths",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 57.4,
+        "ran": 45,
+        "failures": [
+          "ai_processor.tests_answer_chunk_merge.ErrorsKeepTheirTypeTest.test_a_cancellation_is_never_retried"
+        ],
+        "tail": "es 509787 124105487137728 [request_id=-] Retrying...\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:58:18,487 services 509787 124105487137728 [request_id=-] Attempt 2 failed: Error during AI model: Task cancelled by user.\n\n\n\n\nai_processor.services INFO 2026-09-14 15:58:18,487 services 509787 124105487137728 [request_id=-] Retrying...\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:58:18,487 services 509787 124105487137728 [request_id=-] Attempt 3 failed: Error during AI model: Task cancelled by user.\n\n\nF\n======================================================================\nFAIL: test_a_cancellation_is_never_retried (ai_processor.tests_answer_chunk_merge.ErrorsKeepTheirTypeTest.test_a_cancellation_is_never_retried) (path='single-call')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_chunk_merge.py\", line 390, in test_a_cancellation_is_never_retried\n    self.assertIsInstance(exc, TaskCancelledError)\nAssertionError: Exception('All 3 attempts failed. Last error: Error during AI model: Task cancelled by user.') is not an instance of <class 'students.exceptions.TaskCancelledError'>\n\n----------------------------------------------------------------------\nRan 45 tests in 54.301s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M26",
+      "title": "exhausted retries lose their cause",
+      "stands_for": "failure classification; Regression 8",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 48.3,
+        "ran": 27,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.PersistentChunkFailureTest.test_the_real_cause_reaches_the_user_facing_message"
+        ],
+        "tail": "tion] Chunk 2, attempt 1: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:59:06,739 services 510690 136058523655104 [request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:59:06,739 services 510690 136058523655104 [request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:59:06,739 services 510690 136058523655104 [request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out\n\n\nF\n======================================================================\nFAIL: test_the_real_cause_reaches_the_user_facing_message (ai_processor.tests_answer_benchmark_failures.PersistentChunkFailureTest.test_the_real_cause_reaches_the_user_facing_message)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 144, in test_the_real_cause_reaches_the_user_facing_message\n    self.assertIsNotNone(message)\nAssertionError: unexpectedly None\n\n----------------------------------------------------------------------\nRan 27 tests in 45.368s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M27",
+      "title": "failed chunk loses its cause",
+      "stands_for": "failure classification; Regression 8",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 49.5,
+        "ran": 27,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.PersistentChunkFailureTest.test_the_real_cause_reaches_the_user_facing_message"
+        ],
+        "tail": "tion] Chunk 2, attempt 1: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:59:56,216 services 511397 136210763955136 [request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:59:56,216 services 511397 136210763955136 [request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed \u2014 provider timed out\n\n\n\n\nai_processor.services WARNING 2026-09-14 15:59:56,217 services 511397 136210763955136 [request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out\n\n\nF\n======================================================================\nFAIL: test_the_real_cause_reaches_the_user_facing_message (ai_processor.tests_answer_benchmark_failures.PersistentChunkFailureTest.test_the_real_cause_reaches_the_user_facing_message)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 144, in test_the_real_cause_reaches_the_user_facing_message\n    self.assertIsNotNone(message)\nAssertionError: unexpectedly None\n\n----------------------------------------------------------------------\nRan 27 tests in 46.639s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M28",
+      "title": "empty submission billed again",
+      "stands_for": "missing document rejected",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 56.3,
+        "ran": 39,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_inputs.EmptySubmissionTest.test_no_content_is_refused_before_any_billed_call"
+        ],
+        "tail": ")\n\n\n\n\nai_processor.services INFO 2026-09-14 16:00:52,421 services 512320 129051458751424 [request_id=-] Retrying...\n\n\n\n\nai_processor.services ERROR 2026-09-14 16:00:52,546 services 512320 129051458751424 [request_id=-] Error decoding JSON: Expecting value: line 1 column 14 (char 13)\n\n\n\n\nai_processor.services WARNING 2026-09-14 16:00:52,546 services 512320 129051458751424 [request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 14 (char 13)\n\n\n\n\nai_processor.services INFO 2026-09-14 16:00:52,546 services 512320 129051458751424 [request_id=-] Retrying...\n\n\n......F\n======================================================================\nFAIL: test_no_content_is_refused_before_any_billed_call (ai_processor.tests_answer_benchmark_inputs.EmptySubmissionTest.test_no_content_is_refused_before_any_billed_call) (content=None)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_inputs.py\", line 134, in test_no_content_is_refused_before_any_billed_call\n    self.assertIsInstance(error, ValueError)\nAssertionError: None is not an instance of <class 'ValueError'>\n\n----------------------------------------------------------------------\nRan 39 tests in 53.496s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M29",
+      "title": "completeness gate keeps every duplicate",
+      "stands_for": "remove duplicate protection",
+      "file": "ai_processor/answer_completeness.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 45.9,
+        "ran": 19,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_a_duplicated_entry_appears_once"
+        ],
+        "tail": "processor.services INFO 2026-09-14 16:01:38,447 services 513195 131952184208320 [request_id=-] Retrying...\n\n\n\n\nai_processor.answer_completeness WARNING 2026-09-14 16:01:38,448 answer_completeness 513195 131952184208320 [request_id=-] [AnswerCompleteness] Repaired 1 violation(s) on the final extraction attempt; affected questions are flagged for review. Question 'Q2' has 2 answer entries (1 distinct).\n\n\nF\n======================================================================\nFAIL: test_a_duplicated_entry_appears_once (ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_a_duplicated_entry_appears_once) (scenario='AE-004')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 191, in test_a_duplicated_entry_appears_once\n    self.assertEqual(check_no_duplicates(run), [])\nAssertionError: Lists differ: [\"duplicated question entries in the result: ['Q2']\"] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n\"duplicated question entries in the result: ['Q2']\"\n\n- [\"duplicated question entries in the result: ['Q2']\"]\n+ []\n\n----------------------------------------------------------------------\nRan 19 tests in 42.944s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M30",
+      "title": "chunked merge result no longer sorted",
+      "stands_for": "remove final result ordering",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 48.9,
+        "ran": 25,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_without_the_gate_only_the_chunked_path_sorts"
+        ],
+        "tail": "or.services INFO 2026-09-14 16:02:27,415 services 513891 138764897930176 [request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 6 questions mapped.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:02:27,415 services 513891 138764897930176 [request_id=-] [Answer Extraction] Done. Merged 6 answers from 2 chunks. Confidence: 100%.\n\n\nF\n======================================================================\nFAIL: test_without_the_gate_only_the_chunked_path_sorts (ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_without_the_gate_only_the_chunked_path_sorts)\nThe documented contract where no assignment questions are known:\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 245, in test_without_the_gate_only_the_chunked_path_sorts\n    self.assertEqual(chunked.question_order, [f\"Q{n}\" for n in range(1, 7)])\nAssertionError: Lists differ: ['Q6', 'Q5', 'Q4', 'Q3', 'Q2', 'Q1'] != ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6']\n\nFirst differing element 0:\n'Q6'\n'Q1'\n\n- ['Q6', 'Q5', 'Q4', 'Q3', 'Q2', 'Q1']\n+ ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6']\n\n----------------------------------------------------------------------\nRan 25 tests in 45.682s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M31",
+      "title": "completeness gate output in reverse order",
+      "stands_for": "remove final result ordering",
+      "file": "ai_processor/answer_completeness.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 51.0,
+        "ran": 24,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_result_order_follows_the_assignment_not_the_provider"
+        ],
+        "tail": "rged 5 answers from 2 chunks. Confidence: 100%.\n\n\n\n\nai_processor.answer_completeness WARNING 2026-09-14 16:03:18,186 answer_completeness 515444 132896909552576 [request_id=-] [AnswerCompleteness] Repaired 1 violation(s) on the final extraction attempt; affected questions are flagged for review. No answer entry for question 'Q2'.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:03:18,187 services 515444 132896909552576 [request_id=-] [BlankVerification] Re-read confirmed 1 blank(s).\n\n\n.F\n======================================================================\nFAIL: test_result_order_follows_the_assignment_not_the_provider (ai_processor.tests_answer_benchmark_failures.MalformedModelOutputTest.test_result_order_follows_the_assignment_not_the_provider) (scenario='AE-004')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 234, in test_result_order_follows_the_assignment_not_the_provider\n    self.assertEqual(run.question_order, declared)\nAssertionError: Lists differ: ['Q2', 'Q1'] != ['Q1', 'Q2']\n\nFirst differing element 0:\n'Q2'\n'Q1'\n\n- ['Q2', 'Q1']\n+ ['Q1', 'Q2']\n\n----------------------------------------------------------------------\nRan 24 tests in 47.648s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M32",
+      "title": "generated PDFs no longer byte-deterministic",
+      "stands_for": "determinism (section 25)",
+      "file": "ai_processor/benchmark/answers/documents.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 20.3,
+        "ran": 3,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_concurrency.DeterminismTest.test_every_document_builds_to_identical_bytes"
+        ],
+        "tail": "\n\n\n\n\nai_processor.services INFO 2026-09-14 16:03:38,688 services 516324 139628917028544 [request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4\u20134)...\n\n\n\n\nai_processor.services INFO 2026-09-14 16:03:38,688 services 516324 139628917028544 [request_id=-] [Answer Extraction] QQ4: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:03:38,688 services 516324 139628917028544 [request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 4 questions mapped.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:03:38,688 services 516324 139628917028544 [request_id=-] [Answer Extraction] Done. Merged 4 answers from 2 chunks. Confidence: 100%.\n\n\n.F\n======================================================================\nFAIL: test_every_document_builds_to_identical_bytes (ai_processor.tests_answer_benchmark_concurrency.DeterminismTest.test_every_document_builds_to_identical_bytes) (scenario='AE-001')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_concurrency.py\", line 204, in test_every_document_builds_to_identical_bytes\n    self.assertEqual(len(builds), 1)\nAssertionError: 3 != 1\n\n----------------------------------------------------------------------\nRan 3 tests in 17.652s\n\nFAILED (failures=1)\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M33",
+      "title": "chunk note stops asking for the continuation of a found answer",
+      "stands_for": "split answer silently truncated at a chunk boundary (AE-803, AE-805, AE-806)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 24.1,
+        "ran": 13,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_scenarios.ScenarioBenchmarkTest.test_every_catalogued_scenario"
+        ],
+        "tail": "ing or out of order in \"\n-  \"'the major component is'\"] : \nscenario        : AE-803 split-answer-with-a-model-that-follows-the-chunk-note [merge]\nnotes           : AE-205's page 3|4 answer, with a model that does exactly what the chunk note says. Until 2026-09-14 the note said Q3 'does NOT need to be extracted again', and the second half was lost - the real model did the same (live AE-905). The note now asks for the continuation. Requirement: a student's answer must never be silently truncated because it crosses a chunk boundary.\nmodel quirks    : ['obeys-already-found']\nknown gap       : none\npages           : 5\npages_per_chunk : 3\nexecution path  : chunked\nchunks          : 2\npages sent      : [[1, 2, 3], [4, 5]]\npages claimed   : [[1, 3], [4, 5]]\nalready found   : [[], ['Q1', 'Q2', 'Q3']]\nschema per chunk: ['set', 'set']\nexpected statuses:\n    Q1      ANSWERED               pages=[1]\n    Q2      ANSWERED               pages=[2]\n    Q3      ANSWERED               pages=[3, 4]\n    Q4      ANSWERED               pages=[5]\nactual statuses:\n    Q1      ANSWERED\n    Q2      ANSWERED\n    Q3      ANSWERED\n    Q4      ANSWERED\nproblems:\n    - Q3: expected an answer containing 'Nitrogen', got 'the major component is'\n    - Q3: the part written on page 4 ('Nitrogen') is missing or out of order in 'the major component is'\n\n----------------------------------------------------------------------\nRan 13 tests in 20.965s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M34",
+      "title": "chunked merge keys on the model's raw question label again",
+      "stands_for": "question-number style switch re-bills the script (live AE-912, AE-921)",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 50.2,
+        "ran": 30,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.QuestionNumberStyleTest.test_an_integer_numbered_assignment_accepts_q_prefixed_answers"
+        ],
+        "tail": "\n\n\n\nai_processor.services INFO 2026-09-14 16:04:53,012 services 517021 126842178546624 [request_id=-] [Answer Extraction] Q4: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:04:53,012 services 517021 126842178546624 [request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 4 questions mapped.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:04:53,012 services 517021 126842178546624 [request_id=-] [Answer Extraction] Done. Merged 4 answers from 2 chunks. Confidence: 100%.\n\n\nF\n======================================================================\nFAIL: test_an_integer_numbered_assignment_accepts_q_prefixed_answers (ai_processor.tests_answer_benchmark_failures.QuestionNumberStyleTest.test_an_integer_numbered_assignment_accepts_q_prefixed_answers)\nExtracted assignments usually number questions 1, 2, 3.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 297, in test_an_integer_numbered_assignment_accepts_q_prefixed_answers\n    self.assertEqual(len(run.provider.extraction_calls), 2)\nAssertionError: 4 != 2\n\n----------------------------------------------------------------------\nRan 30 tests in 47.524s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    },
+    {
+      "id": "M35",
+      "title": "single-call answers no longer relabelled before the completeness gate",
+      "stands_for": "a real answer dropped as numbering drift on the final attempt",
+      "file": "ai_processor/services.py",
+      "status": "KILLED",
+      "targeted": {
+        "exit_code": 1,
+        "seconds": 47.3,
+        "ran": 29,
+        "failures": [
+          "ai_processor.tests_answer_benchmark_failures.QuestionNumberStyleTest.test_a_single_call_in_bare_numbers_keeps_every_answer"
+        ],
+        "tail": "der timed out\n\n\n.\n\nai_processor.services WARNING 2026-09-14 16:05:40,329 services 521711 136345170185152 [request_id=-] Attempt 1 failed: Extracted answers are incomplete: Answer for question 1 does not correspond to any question in this assignment (numbering drift).; Answer for question 2 does not correspond to any question in this assignment (numbering drift).; No answer entry for question 'Q1'.; No answer entry for question 'Q2'.\n\n\n\n\nai_processor.services INFO 2026-09-14 16:05:40,329 services 521711 136345170185152 [request_id=-] Retrying...\n\n\nF\n======================================================================\nFAIL: test_a_single_call_in_bare_numbers_keeps_every_answer (ai_processor.tests_answer_benchmark_failures.QuestionNumberStyleTest.test_a_single_call_in_bare_numbers_keeps_every_answer)\nBefore the fix the final attempt dropped both real answers as\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/303c0ac6-d78e-447c-8e86-77fb4cbabd44/scratchpad/s5_mut_tree/ai_processor/tests_answer_benchmark_failures.py\", line 283, in test_a_single_call_in_bare_numbers_keeps_every_answer\n    self.assertEqual(len(run.provider.extraction_calls), 1)\nAssertionError: 2 != 1\n\n----------------------------------------------------------------------\nRan 29 tests in 44.480s\n\nFAILED (failures=1)\nPreserving test database for alias 'default'...\n"
+      },
+      "full": null,
+      "detail": ""
+    }
+  ]
+}

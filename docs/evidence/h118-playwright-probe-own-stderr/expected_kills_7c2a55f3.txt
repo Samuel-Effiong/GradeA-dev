@@ -1,0 +1,12 @@
+P1: 1 failing, as expected
+P2: 1 failing, as expected
+P3: 1 failing, as expected
+P4: 1 failing, as expected
+P5: 1 failing, as expected
+P6: 1 failing, as expected
+P7: 1 failing, as expected
+P8: 8 failing, as expected
+G1: 1 failing, as expected
+G2: 1 failing, as expected
+G3: 1 failing, as expected
+every mutant's failing set is the expected one

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Waits for a 1-minute load of 4.00 or under, then runs the granted (c)
+# once. A refusal by the script (exit 8) is not a run and is tried again.
+# Gives up after the number of minutes given (default 10) without starting.
+# Detached from the session. Usage: wait_c.sh <tip-sha8> [minutes]
+set -u
+D=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h130
+cd $D; end=$(( $(date +%s) + 60*${2:-10} ))
+while :; do
+  L=$(cut -d" " -f1 /proc/loadavg)
+  echo "$(date +%H:%M:%S) load $L" >> $D/c_wait.log
+  if awk -v l="$L" 'BEGIN{exit !(l<=4.00)}'; then
+    echo "$(date +%H:%M:%S) starting (c) at load $L" >> $D/c_wait.log
+    ./c_h130.sh "$1" > $D/c_h130.out 2>&1 < /dev/null; rc=$?
+    echo "$(date +%H:%M:%S) c_h130 exit=$rc" >> $D/c_wait.log
+    [ $rc -eq 8 ] || break
+    rm -f $D/c_three_apps_p2_$1.load.txt
+  fi
+  [ $(date +%s) -lt $end ] || { echo "$(date +%H:%M:%S) GAVE UP: still over 4, nothing started" >> $D/c_wait.log; break; }
+  sleep 20
+done
+echo "$(date +%H:%M:%S) C END" >> $D/c_wait.log

@@ -200,3 +200,10 @@ class Command(BaseCommand):
     def _flush(self, batch):
         with transaction.atomic():
             Assignment.objects.bulk_update(batch, ["questions", *RIGOR_FIELDS])
+
+        # H-1 Stage 3 (pre-existing staleness P4): bulk_update fires no
+        # signal, so without this the repair never reached any cached
+        # assignment list/retrieve.
+        from assignments.signals import bump_assignment_course_scopes_bulk
+
+        bump_assignment_course_scopes_bulk(a.course_id for a in batch)

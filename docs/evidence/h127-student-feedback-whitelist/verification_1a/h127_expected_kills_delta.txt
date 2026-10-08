@@ -1,0 +1,11 @@
+Written 2026-10-06 15:28:39 WAT by 1a, before the author's two new tests are committed and before any run of mine on them.
+(The first note, h127_expected_kills.txt of 15:13:22, was for the runs at f43e0f23 and stands unchanged.)
+These runs are the author's routes module alone (students.tests_student_feedback_routes), without my probe module.
+
+Baseline: all OK (the 29 test methods of f43e0f23 and the two new ones: 31 by my count).
+
+Mutant Y14 (the formatted-grade reader treats only syntax and value errors as "nothing";
+h127_mutant_Y14.py, unchanged) is expected to fail exactly two tests, as a failure or as an error:
+  students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_whose_reading_fails_with_a_type_error_is_shown_as_nothing
+  students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_whose_reading_runs_out_of_memory_is_shown_as_nothing
+No other test is expected to fail: at f43e0f23 every other test of that module passed under Y14.

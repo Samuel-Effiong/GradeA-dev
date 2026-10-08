@@ -1,0 +1,12 @@
+# S8: a record whose class cannot be replaced fails closed
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '                record.msg, record.args = _withheld_message(record), None\n'
+# new: '                pass\n'
+# commit: 7d05b17342e11450893a2de06f244b1e36effa57
+# exit: 1
+# elapsed_s: 8.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_record_whose_class_cannot_be_replaced_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_a_record_whose_class_cannot_be_replaced_fails_closed)
+
+FAILED (failures=1)

@@ -1,0 +1,12 @@
+# W3: a spawned worker's setup gives the default action back too
+# file: AutoGrader/redis_test_runner.py (occurrence 1)
+# old: '    _die_on_sigterm()\n    isolate_beat_locks_per_test()\n'
+# new: '    isolate_beat_locks_per_test()\n'
+# commit: c3c10348d456513b85764a5b170bd850a00c67f5
+# exit: 1
+# elapsed_s: 12.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_setup_of_a_spawned_worker_restores_the_default_action_too (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too)
+
+FAILED (failures=1)

@@ -76,8 +76,8 @@ class MailerLiteService:
         api_key = getattr(settings, "MAILERLITE_API_KEY", "")
         if not api_key:
             logger.info(
-                "MailerLite sync skipped for %s: MAILERLITE_API_KEY not set",
-                user.email,
+                "MailerLite sync skipped for user %s: MAILERLITE_API_KEY not set",
+                user.id,
             )
             return None
 
@@ -97,7 +97,7 @@ class MailerLiteService:
             response.raise_for_status()
             return True
         except requests.RequestException:
-            logger.error("MailerLite sync failed for %s", user.email, exc_info=True)
+            logger.error("MailerLite sync failed for user %s", user.id, exc_info=True)
             return False
 
 

@@ -1,0 +1,40 @@
+baseline exit=0
+S1	an address is replaced	KILLED	FAILED (failures=43)	True	16.3
+S2	a URL's credentials are replaced, dotless hosts too	KILLED	FAILED (failures=9)	True	16.8
+S3	the exception text is rendered and scrubbed when the record is made	KILLED	FAILED (failures=7, errors=1)	True	16.7
+S4	a message that cannot be scrubbed fails closed (SM's D4)	KILLED	FAILED (failures=1)	True	16.3
+S5	the wrapped factory makes the record	KILLED	FAILED (failures=2)	True	19.5
+S6	a second install does not wrap again	KILLED	FAILED (failures=1)	True	17.3
+S7	a second install still sets the switch	KILLED	FAILED (failures=4)	True	16.7
+S8	a record whose class cannot be replaced fails closed	KILLED	FAILED (failures=1)	True	14.4
+S9	exception text that cannot be rendered fails closed	KILLED	FAILED (failures=1)	True	14.0
+S10	override_settings switches the scrubber	KILLED	FAILED (failures=4)	True	16.1
+S11	the scrubber is off while tests run	KILLED	FAILED (failures=4)	True	12.9
+S12	the AutoGrader package installs the factory	KILLED	FAILED (failures=26, errors=1)	True	12.8
+S13	a record made before settings are configured is scrubbed	KILLED	FAILED (failures=2)	True	12.0
+S14	a switched-off scrubber leaves the text alone	KILLED	FAILED (failures=2)	True	12.0
+S16	settings.py imports nothing from the project	KILLED	FAILED (failures=3)	True	12.0
+S17	the switch is read from settings once they are configured	KILLED	FAILED (failures=1)	True	12.2
+S15	text that only looks like an address is left alone	KILLED	FAILED (failures=3)	True	11.3
+S24	a version number after an @ is not an address (the last label starts with a letter)	KILLED	FAILED (failures=1)	True	11.3
+Y1	Sentry: the exception values are scrubbed	KILLED	FAILED (failures=4)	True	11.3
+Y2	Sentry: a part that cannot be scrubbed fails closed	KILLED	FAILED (failures=2)	True	11.5
+Y3	Sentry: the user context is left alone	KILLED	FAILED (failures=1)	True	11.4
+Y4	Sentry: an argument that is not text yet is scrubbed	KILLED	FAILED (failures=3)	True	11.5
+Y5	Sentry: a breadcrumb's data is scrubbed	KILLED	FAILED (failures=1)	True	12.0
+Y6	Sentry: a log item's attributes are scrubbed	KILLED	FAILED (failures=1)	True	11.6
+Y7	Sentry: settings pass before_send	KILLED	FAILED (failures=1)	True	11.8
+Y8	Sentry: settings pass before_send_log	KILLED	FAILED (failures=1)	True	11.5
+Y9	Sentry: a failure to import the hooks is not swallowed	KILLED	FAILED (failures=1)	True	12.3
+S18	P1: an apostrophe and the other special characters of a local part	KILLED	FAILED (failures=6)	True	11.3
+S19	P1: a local part in letters that are not ASCII	KILLED	FAILED (failures=1)	True	11.5
+S20	P1: the scrubber stops at / = ? & (key=value and URLs stay readable)	KILLED	FAILED (failures=8)	True	11.6
+S21	P1: a domain in letters that are not ASCII	KILLED	FAILED (failures=2)	True	11.9
+S22	P1: a last label that is punycode or not ASCII	KILLED	FAILED (failures=2)	True	11.7
+S23	P2: the userinfo runs to the last "@" before the host	KILLED	FAILED (failures=3)	True	11.5
+Y10	Sentry: an event's threads are scrubbed	KILLED	FAILED (failures=1)	True	12.0
+Y11	P3: a transaction's spans are scrubbed	KILLED	FAILED (failures=1)	True	11.4
+Y12	P3: settings pass before_send_transaction	KILLED	FAILED (failures=1)	True	12.6
+
+36/36 killed with verified restore
+exit=0 wall_s=491

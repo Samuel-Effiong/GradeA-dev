@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models.functions import Now
 from django.utils.translation import gettext_lazy as _
 
 from users.models import CustomUser
@@ -43,6 +44,12 @@ class Assignment(models.Model):
     raw_input_hash = models.CharField(max_length=64, editable=False, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    # Bumped on every save. Read by assignments/pdf_cache.py, which builds
+    # its cache key from this timestamp: an edit changes the key, so the
+    # next download is a natural miss and the stale entry simply ages out
+    # under its TTL - there is no invalidation hook to keep in sync with
+    # future write paths.
+    updated_at = models.DateTimeField(auto_now=True, db_default=Now())
 
     # AI GENERATED FIELDS
     instructions = models.TextField(null=True, blank=True, default="")
@@ -145,12 +152,6 @@ class Assignment(models.Model):
         ),
     )
 
-    # grading_status = models.CharField(
-    #     max_length=20,
-    #     choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
-    #     default="NOT_STARTED",
-    # )
-
     # IN REVIEW FOR REMOVAL
     teacher = models.ForeignKey(
         CustomUser,
@@ -159,13 +160,6 @@ class Assignment(models.Model):
         blank=True,
         related_name="assignments",
     )
-
-    # def save(self, *args, **kwargs):
-    #     self.raw_input_hash = hashlib.sha256(
-    #         self.raw_input.encode("utf-8")
-    #     ).hexdigest()
-    #
-    #     super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["title"]
@@ -187,16 +181,67 @@ class Assignment(models.Model):
         ]
 
 
+class AssignmentUploadFingerprint(models.Model):
+    """
+    One row per distinct uploaded assignment file per course, keyed by the
+    SHA-256 of its bytes.
+
+    Uploading an assignment file is billed per file, and a teacher who sees
+    part of a batch fail will reasonably upload the whole batch again. This
+    row makes that retry safe: a file whose assignment already exists gets
+    that assignment back instead of being extracted and charged again.
+
+    Claimed before any AI call, completed in the same transaction that saves
+    the assignment, deleted if the upload fails, and deleted with its
+    assignment, so a deleted assignment can be uploaded again. See
+    assignments/file_uploads.py.
+    """
+
+    class Status(models.TextChoices):
+        PROCESSING = "PROCESSING", _("PROCESSING")
+        COMPLETED = "COMPLETED", _("COMPLETED")
+
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        related_name="upload_fingerprints",
+    )
+    sha256 = models.CharField(max_length=64)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PROCESSING
+    )
+    # Changes whenever a stale claim is taken over, so a request that lost
+    # its claim can neither complete nor release the newer claimant's.
+    claim_token = models.UUIDField(default=uuid.uuid4)
+    claimed_at = models.DateTimeField()
+    assignment = models.OneToOneField(
+        Assignment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="upload_fingerprint",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "sha256"],
+                name="unique_upload_fingerprint_per_course",
+            )
+        ]
+
+
 class AssignmentGenerationHistory(models.Model):
     """
-        Stores the history of assignment generation requests.
+    Stores the history of assignment generation requests.
 
-        This model maintains a record of:
-        - User prompts sent to the AI
-        - Assignments generated in response to those prompts
-    f
-        Used for the chat-like history UI where users can browse
-        and reuse previously generated assignments without re-running AI.
+    This model maintains a record of:
+    - User prompts sent to the AI
+    - Assignments generated in response to those prompts
+
+    Used for the chat-like history UI where users can browse
+    and reuse previously generated assignments without re-running AI.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

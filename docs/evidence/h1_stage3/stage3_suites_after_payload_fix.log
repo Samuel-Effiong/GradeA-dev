@@ -1,0 +1,1253 @@
+=== Stage 3 cache suites (not scale/concurrency) on 13ee3cd2af52fa4efa263296cc44707393f46d8a, 2026-09-19T13:02:05+01:00, load=6.89 9.35 8.21
+Creating test database for alias 'default' ('test_h1_stage3_wildcard_removal')...
+Found 668 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_register_student_rejects_duplicate_name_in_pending_course (users.tests.StudentRegistrationTests.test_register_student_rejects_duplicate_name_in_pending_course) ... Cannot activate automatic trial for user teacher.register@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1217, in register_student
+    raise ValidationError(
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='A student with this exact name is already enrolled in the following course(s): Chemistry.', code='invalid')}
+ok
+test_client_cannot_choose_its_own_user_type (users.tests.TeacherRegistrationEncodingTests.test_client_cannot_choose_its_own_user_type)
+What the deleted strip was there to prevent. The serializer, not the ... Cannot activate automatic trial for user promotion.attempt.json@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user promotion.attempt.multipart@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_form_encoded_registration_succeeds (users.tests.TeacherRegistrationEncodingTests.test_form_encoded_registration_succeeds) ... Cannot activate automatic trial for user form.encoded@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_multipart_registration_succeeds (users.tests.TeacherRegistrationEncodingTests.test_multipart_registration_succeeds) ... Cannot activate automatic trial for user multipart.signup@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_school_admin_gets_frontend_domain (users.tests_activation_email_domain.SendUserActivationEmailDomainTests.test_school_admin_gets_frontend_domain)
+Only students get the student app - every other role stays on ... ok
+test_student_gets_student_frontend_domain (users.tests_activation_email_domain.SendUserActivationEmailDomainTests.test_student_gets_student_frontend_domain) ... ok
+test_teacher_gets_frontend_domain (users.tests_activation_email_domain.SendUserActivationEmailDomainTests.test_teacher_gets_frontend_domain) ... Cannot activate automatic trial for user teacher.activation@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_heartbeat_key_is_outside_every_sweep (users.tests_activity_middleware.HeartbeatKeyNamespaceTests.test_the_heartbeat_key_is_outside_every_sweep) ... ok
+test_the_old_names_would_have_failed_this_check (users.tests_activity_middleware.HeartbeatKeyNamespaceTests.test_the_old_names_would_have_failed_this_check)
+Proves the guard above is actually load-bearing rather than ... ok
+test_the_presence_set_key_is_outside_every_sweep (users.tests_activity_middleware.HeartbeatKeyNamespaceTests.test_the_presence_set_key_is_outside_every_sweep) ... ok
+test_a_failing_activity_write_does_not_break_the_request (users.tests_activity_middleware.UserActivityMiddlewareTests.test_a_failing_activity_write_does_not_break_the_request) ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_failing_cache_read_does_not_break_the_request (users.tests_activity_middleware.UserActivityMiddlewareTests.test_a_failing_cache_read_does_not_break_the_request)
+Regression: the throttle's cache.get() was briefly placed OUTSIDE ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_failing_online_set_write_does_not_break_the_request (users.tests_activity_middleware.UserActivityMiddlewareTests.test_a_failing_online_set_write_does_not_break_the_request) ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_lost_claim_skips_the_write_entirely (users.tests_activity_middleware.UserActivityMiddlewareTests.test_a_lost_claim_skips_the_write_entirely) ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_new_row_is_written_once_the_heartbeat_expires (users.tests_activity_middleware.UserActivityMiddlewareTests.test_a_new_row_is_written_once_the_heartbeat_expires) ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_anonymous_requests_record_nothing (users.tests_activity_middleware.UserActivityMiddlewareTests.test_anonymous_requests_record_nothing) ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_failures_are_logged_rather_than_silently_swallowed (users.tests_activity_middleware.UserActivityMiddlewareTests.test_failures_are_logged_rather_than_silently_swallowed)
+The except block used to be a bare `pass`, so a permanently broken ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_records_activity_on_a_first_request (users.tests_activity_middleware.UserActivityMiddlewareTests.test_records_activity_on_a_first_request) ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_repeat_requests_inside_the_window_write_only_one_row (users.tests_activity_middleware.UserActivityMiddlewareTests.test_repeat_requests_inside_the_window_write_only_one_row)
+The whole point of the throttle: 10 requests, 1 row. ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_window_is_claimed_atomically_for_the_active_window (users.tests_activity_middleware.UserActivityMiddlewareTests.test_the_window_is_claimed_atomically_for_the_active_window)
+`add`, not get-then-set: the claim has to be atomic or simultaneous ... Cannot activate automatic trial for user activity@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_unrelated_settings_save_leaves_the_throttle_window_held (users.tests_activity_middleware_load.UnrelatedUserSaveDoesNotClearPresenceTests.test_an_unrelated_settings_save_leaves_the_throttle_window_held) ... Cannot activate automatic trial for user presence.holder@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user presence.unrelated@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_unrelated_user_save_leaves_the_presence_set_intact (users.tests_activity_middleware_load.UnrelatedUserSaveDoesNotClearPresenceTests.test_an_unrelated_user_save_leaves_the_presence_set_intact) ... Cannot activate automatic trial for user presence.holder@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user presence.unrelated2@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_per_user_json_cache_is_still_swept (users.tests_activity_middleware_load.UnrelatedUserSaveDoesNotClearPresenceTests.test_the_per_user_json_cache_is_still_swept)
+The other half: moving these keys out of the way must not stop ... Cannot activate automatic trial for user presence.holder@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user presence.unrelated3@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_bytes_members_are_decoded_before_use (users.tests_activity_services.CleanupExpiredUsersTests.test_bytes_members_are_decoded_before_use)
+redis-py can hand back bytes; a b'...' key would never match. ... ok
+test_members_whose_heartbeat_expired_are_removed (users.tests_activity_services.CleanupExpiredUsersTests.test_members_whose_heartbeat_expired_are_removed) ... ok
+test_members_with_a_live_heartbeat_are_kept (users.tests_activity_services.CleanupExpiredUsersTests.test_members_with_a_live_heartbeat_are_kept) ... ok
+test_only_the_expired_members_are_removed (users.tests_activity_services.CleanupExpiredUsersTests.test_only_the_expired_members_are_removed) ... ok
+test_returns_zero_and_does_nothing_on_an_empty_set (users.tests_activity_services.CleanupExpiredUsersTests.test_returns_zero_and_does_nothing_on_an_empty_set) ... ok
+test_peak_is_the_highest_recorded_value (users.tests_activity_services.ConcurrentUserReportingTests.test_peak_is_the_highest_recorded_value) ... ok
+test_peak_is_zero_when_nothing_has_been_recorded (users.tests_activity_services.ConcurrentUserReportingTests.test_peak_is_zero_when_nothing_has_been_recorded) ... ok
+test_peak_respects_the_time_window (users.tests_activity_services.ConcurrentUserReportingTests.test_peak_respects_the_time_window) ... ok
+test_peak_time_of_day_averages_within_the_hour (users.tests_activity_services.ConcurrentUserReportingTests.test_peak_time_of_day_averages_within_the_hour) ... ok
+test_peak_time_of_day_reports_the_busiest_hour_with_a_label (users.tests_activity_services.ConcurrentUserReportingTests.test_peak_time_of_day_reports_the_busiest_hour_with_a_label) ... ok
+test_peak_time_of_day_with_no_data_says_so (users.tests_activity_services.ConcurrentUserReportingTests.test_peak_time_of_day_with_no_data_says_so) ... ok
+test_a_missing_set_is_zero (users.tests_activity_services.CurrentConcurrentUsersTests.test_a_missing_set_is_zero) ... ok
+test_an_empty_set_is_zero_not_none (users.tests_activity_services.CurrentConcurrentUsersTests.test_an_empty_set_is_zero_not_none) ... ok
+test_counts_the_members_of_the_online_set (users.tests_activity_services.CurrentConcurrentUsersTests.test_counts_the_members_of_the_online_set) ... ok
+test_does_not_leak_admins_from_another_school (users.tests_activity_services.OptedInSchoolAdminTests.test_does_not_leak_admins_from_another_school) ... ok
+test_inactive_admins_are_excluded (users.tests_activity_services.OptedInSchoolAdminTests.test_inactive_admins_are_excluded) ... ok
+test_no_school_returns_an_empty_queryset_rather_than_everyone (users.tests_activity_services.OptedInSchoolAdminTests.test_no_school_returns_an_empty_queryset_rather_than_everyone)
+A None school must not fall through to an unscoped list. ... ok
+test_non_admin_roles_are_excluded (users.tests_activity_services.OptedInSchoolAdminTests.test_non_admin_roles_are_excluded) ... Cannot activate automatic trial for user teacher.optin@school.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_returns_only_opted_in_admins_for_that_school (users.tests_activity_services.OptedInSchoolAdminTests.test_returns_only_opted_in_admins_for_that_school) ... ok
+test_an_unknown_range_is_rejected (users.tests_activity_services.TimeRangeTests.test_an_unknown_range_is_rejected) ... ok
+test_known_ranges_span_the_expected_number_of_days (users.tests_activity_services.TimeRangeTests.test_known_ranges_span_the_expected_number_of_days) ... ok
+test_a_missing_file_reports_an_error_and_writes_nothing (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_a_missing_file_reports_an_error_and_writes_nothing) ... ok
+test_adds_emails_passed_as_arguments (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_adds_emails_passed_as_arguments) ... ok
+test_blank_lines_in_a_file_are_ignored (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_blank_lines_in_a_file_are_ignored) ... ok
+test_emails_are_normalised_to_lowercase (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_emails_are_normalised_to_lowercase)
+Everything else in the stack looks these up lowercased. ... ok
+test_file_and_arguments_combine (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_file_and_arguments_combine) ... ok
+test_new_entries_are_active (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_new_entries_are_active) ... ok
+test_no_input_is_a_warning_not_a_crash (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_no_input_is_a_warning_not_a_crash) ... ok
+test_reads_one_email_per_line_from_a_file (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_reads_one_email_per_line_from_a_file) ... ok
+test_rerunning_is_idempotent_and_reports_the_skip (users.tests_add_whitelist_command.AddWhitelistCommandTests.test_rerunning_is_idempotent_and_reports_the_skip) ... ok
+test_a_completed_legacy_session_reports_complete (users.tests_auth_endpoints.LegacySessionResultsTests.test_a_completed_legacy_session_reports_complete) ... Cannot activate automatic trial for user legacy.session@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_legacy_failure_entry_keeps_its_error_text (users.tests_auth_endpoints.LegacySessionResultsTests.test_a_legacy_failure_entry_keeps_its_error_text) ... Cannot activate automatic trial for user legacy.session@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_empty_legacy_session_does_not_divide_by_zero (users.tests_auth_endpoints.LegacySessionResultsTests.test_an_empty_legacy_session_does_not_divide_by_zero) ... Cannot activate automatic trial for user legacy.session@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_legacy_results_are_counted_by_status (users.tests_auth_endpoints.LegacySessionResultsTests.test_legacy_results_are_counted_by_status) ... Cannot activate automatic trial for user legacy.session@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_blacklisted_token_can_no_longer_be_refreshed (users.tests_auth_endpoints.LogoutTests.test_a_blacklisted_token_can_no_longer_be_refreshed)
+Blacklisting has to actually stop the token working. ... Cannot activate automatic trial for user logout.user@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 112, in validate
+    refresh = self.token_class(attrs["refresh"])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/tokens.py", line 72, in __init__
+    self.verify()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/tokens.py", line 268, in verify
+    self.check_blacklist()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/tokens.py", line 280, in check_blacklist
+    raise TokenError(_("Token is blacklisted"))
+rest_framework_simplejwt.exceptions.TokenError: Token is blacklisted
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 48, in post
+    raise InvalidToken(e.args[0]) from e
+rest_framework_simplejwt.exceptions.InvalidToken: {'detail': ErrorDetail(string='Token is blacklisted', code='token_not_valid'), 'code': ErrorDetail(string='token_not_valid', code='token_not_valid')}
+ok
+test_a_malformed_refresh_token_is_a_400 (users.tests_auth_endpoints.LogoutTests.test_a_malformed_refresh_token_is_a_400) ... Cannot activate automatic trial for user logout.user@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+rest_framework_simplejwt.exceptions.TokenError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1077, in logout
+    raise ParseError("Invalid or expired token") from TokenError
+rest_framework.exceptions.ParseError: Invalid or expired token
+ok
+test_a_missing_refresh_token_is_a_400 (users.tests_auth_endpoints.LogoutTests.test_a_missing_refresh_token_is_a_400) ... Cannot activate automatic trial for user logout.user@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+KeyError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1075, in logout
+    raise ParseError("Refresh token is required.") from KeyError
+rest_framework.exceptions.ParseError: Refresh token is required.
+ok
+test_a_valid_refresh_token_is_blacklisted (users.tests_auth_endpoints.LogoutTests.test_a_valid_refresh_token_is_blacklisted) ... Cannot activate automatic trial for user logout.user@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_already_blacklisted_token_is_rejected (users.tests_auth_endpoints.LogoutTests.test_an_already_blacklisted_token_is_rejected) ... Cannot activate automatic trial for user logout.user@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+rest_framework_simplejwt.exceptions.TokenError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1077, in logout
+    raise ParseError("Invalid or expired token") from TokenError
+rest_framework.exceptions.ParseError: Invalid or expired token
+ok
+test_anonymous_callers_are_rejected (users.tests_auth_endpoints.LogoutTests.test_anonymous_callers_are_rejected) ... Cannot activate automatic trial for user logout.user@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_an_invalid_otp_type_is_rejected (users.tests_auth_endpoints.OTPEndpointBranchTests.test_an_invalid_otp_type_is_rejected) ... Cannot activate automatic trial for user otp.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 713, in otp
+    raise ParseError(
+rest_framework.exceptions.ParseError: Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`
+ok
+test_an_unknown_email_does_not_reveal_that_it_is_unknown (users.tests_auth_endpoints.OTPEndpointBranchTests.test_an_unknown_email_does_not_reveal_that_it_is_unknown)
+Account enumeration guard: same answer either way. ... Cannot activate automatic trial for user otp.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_reset_password_issues_a_code (users.tests_auth_endpoints.OTPEndpointBranchTests.test_reset_password_issues_a_code) ... Cannot activate automatic trial for user otp.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_reset_password_on_an_unverified_account_is_refused (users.tests_auth_endpoints.OTPEndpointBranchTests.test_reset_password_on_an_unverified_account_is_refused) ... Cannot activate automatic trial for user otp.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user otp.noreset@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 739, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_verify_email_on_an_already_verified_account_is_refused (users.tests_auth_endpoints.OTPEndpointBranchTests.test_verify_email_on_an_already_verified_account_is_refused) ... Cannot activate automatic trial for user otp.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 733, in otp
+    raise ParseError("Email already verified. Please login.")
+rest_framework.exceptions.ParseError: Email already verified. Please login.
+ok
+test_verify_email_resends_for_an_unverified_account (users.tests_auth_endpoints.OTPEndpointBranchTests.test_verify_email_resends_for_an_unverified_account) ... Cannot activate automatic trial for user otp.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user otp.unverified@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_non_school_admin_cannot_use_this_endpoint (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_a_non_school_admin_cannot_use_this_endpoint)
+The lookup pins user_type - a teacher invite is not redeemable here. ... Cache backend ConnectionProxy has no delete_pattern(); wildcard cache invalidation is disabled for this process. Cached responses will serve stale data until they expire, including for users whose access was just revoked.
+Cannot activate automatic trial for user teacher.invite@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1319, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+ok
+test_a_valid_invite_activates_the_account_and_logs_in (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_a_valid_invite_activates_the_account_and_logs_in) ... ok
+test_a_wrong_token_is_refused (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_a_wrong_token_is_refused) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1319, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+ok
+test_an_already_active_admin_cannot_re_register (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_an_already_active_admin_cannot_re_register) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1319, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+ok
+test_an_expired_invite_is_refused_with_guidance (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_an_expired_invite_is_refused_with_guidance) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1322, in register_school_admin
+    raise ParseError(
+rest_framework.exceptions.ParseError: This invitation link has expired. Please contact your superadmin for a new invitation.
+ok
+test_an_unexpected_failure_is_reported_without_leaking_internals (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_an_unexpected_failure_is_reported_without_leaking_internals) ... School admin registration failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1336, in register_school_admin
+    refresh = RefreshToken.for_user(user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: token backend exploded
+
+
+django.request ERROR 2026-09-19 12:06:34,156 log 203791 123745111882688 [request_id=-] Internal Server Error: /api/v1/auth/register/school-admin
+
+
+ok
+test_another_users_email_cannot_redeem_this_token (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_another_users_email_cannot_redeem_this_token) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1319, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+ok
+test_missing_fields_are_a_400 (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_missing_fields_are_a_400) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1300, in register_school_admin
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'token': [ErrorDetail(string='This field is required.', code='required')], 'password': [ErrorDetail(string='This field is required.', code='required')]}
+ok
+test_the_token_is_single_use (users.tests_auth_endpoints.RegisterSchoolAdminTests.test_the_token_is_single_use) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1319, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+ok
+test_an_otp_is_created_and_emailed (users.tests_auth_endpoints.RequestChangePasswordTests.test_an_otp_is_created_and_emailed) ... Cannot activate automatic trial for user request.change@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_unverified_inactive_account_is_refused (users.tests_auth_endpoints.RequestChangePasswordTests.test_an_unverified_inactive_account_is_refused) ... Cannot activate automatic trial for user request.change@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user unverified.change@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 872, in request_change_password
+    raise ParseError("Your email address is not verified")
+rest_framework.exceptions.ParseError: Your email address is not verified
+ok
+test_anonymous_callers_are_rejected (users.tests_auth_endpoints.RequestChangePasswordTests.test_anonymous_callers_are_rejected) ... Cannot activate automatic trial for user request.change@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_requesting_twice_replaces_the_code_rather_than_duplicating (users.tests_auth_endpoints.RequestChangePasswordTests.test_requesting_twice_replaces_the_code_rather_than_duplicating) ... Cannot activate automatic trial for user request.change@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_emailed_code_is_the_one_change_password_accepts (users.tests_auth_endpoints.RequestChangePasswordTests.test_the_emailed_code_is_the_one_change_password_accepts)
+End to end: request a code, then spend it. ... Cannot activate automatic trial for user request.change@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_successful_reset_blacklists_the_pre_existing_tokens (users.tests_auth_endpoints.ResetPasswordBranchTests.test_a_successful_reset_blacklists_the_pre_existing_tokens)
+A password reset has to end sessions that existed before it - that ... Cannot activate automatic trial for user reset.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_expired_otp_is_deleted_and_refused (users.tests_auth_endpoints.ResetPasswordBranchTests.test_an_expired_otp_is_deleted_and_refused) ... Cannot activate automatic trial for user reset.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 819, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_an_unknown_email_is_refused_with_the_generic_message (users.tests_auth_endpoints.ResetPasswordBranchTests.test_an_unknown_email_is_refused_with_the_generic_message) ... Cannot activate automatic trial for user reset.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Exception
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 810, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.") from Exception
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_no_outstanding_otp_is_refused_with_the_same_message (users.tests_auth_endpoints.ResetPasswordBranchTests.test_no_outstanding_otp_is_refused_with_the_same_message)
+Identical wording, so nothing distinguishes the two failures. ... Cannot activate automatic trial for user reset.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Exception
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 810, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.") from Exception
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_the_reset_hands_back_a_working_token (users.tests_auth_endpoints.ResetPasswordBranchTests.test_the_reset_hands_back_a_working_token)
+The freshly issued pair is minted AFTER the blacklisting, so the ... Cannot activate automatic trial for user reset.branches@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_unexpected_failure_is_reported_without_leaking_internals (users.tests_auth_endpoints.StudentRegistrationBranchTests.test_an_unexpected_failure_is_reported_without_leaking_internals) ... Cannot activate automatic trial for user student.reg.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Student registration failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1199, in register_student
+    StudentCourse.objects.filter(
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: enrollment lookup exploded
+
+
+django.request ERROR 2026-09-19 12:06:48,239 log 203791 123745111882688 [request_id=-] Internal Server Error: /api/v1/auth/register/student
+
+
+ok
+test_pending_enrollments_are_promoted_to_enrolled (users.tests_auth_endpoints.StudentRegistrationBranchTests.test_pending_enrollments_are_promoted_to_enrolled) ... Cannot activate automatic trial for user student.reg.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_superadmin_can_create_a_user (users.tests_auth_endpoints.SuperAdminUserCreationTests.test_a_superadmin_can_create_a_user) ... Cannot activate automatic trial for user create.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user made@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_teacher_cannot_create_users (users.tests_auth_endpoints.SuperAdminUserCreationTests.test_a_teacher_cannot_create_users) ... Cannot activate automatic trial for user create.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+ok
+test_a_valid_invite_still_completes_registration (users.tests_auth_input_validation.RegisterStudentExpiryTests.test_a_valid_invite_still_completes_registration)
+Regression guard: the None-check must not break the real flow. ... ok
+test_expired_activation_reports_renewal_rather_than_registering (users.tests_auth_input_validation.RegisterStudentExpiryTests.test_expired_activation_reports_renewal_rather_than_registering) ... ok
+test_missing_required_fields_is_a_400 (users.tests_auth_input_validation.RegisterStudentExpiryTests.test_missing_required_fields_is_a_400) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1166, in register_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='This field is required.', code='required')], 'last_name': [ErrorDetail(string='This field is required.', code='required')], 'password': [ErrorDetail(string='This field is required.', code='required')]}
+ok
+test_null_activation_expires_is_handled_not_crashed (users.tests_auth_input_validation.RegisterStudentExpiryTests.test_null_activation_expires_is_handled_not_crashed)
+The regression: `None < timezone.now()` raised TypeError. The ... ok
+test_unknown_token_is_rejected (users.tests_auth_input_validation.RegisterStudentExpiryTests.test_unknown_token_is_rejected) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 1176, in register_student
+    raise ParseError("Invalid or expired activation token")
+rest_framework.exceptions.ParseError: Invalid or expired activation token
+ok
+test_a_valid_token_still_activates (users.tests_auth_input_validation.VerifyEndpointInputTests.test_a_valid_token_still_activates)
+Regression guard: the input hardening must not break the real flow. ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_users_token_cannot_verify_this_account (users.tests_auth_input_validation.VerifyEndpointInputTests.test_another_users_token_cannot_verify_this_account)
+email and token must match the SAME row, not merely both exist. ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user verify.other@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 651, in verify
+    raise ParseError("Invalid email or token.")
+rest_framework.exceptions.ParseError: Invalid email or token.
+ok
+test_expired_token_is_rejected_and_leaves_the_account_inactive (users.tests_auth_input_validation.VerifyEndpointInputTests.test_expired_token_is_rejected_and_leaves_the_account_inactive) ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 656, in verify
+    raise ParseError("Activation link has expired.")
+rest_framework.exceptions.ParseError: Activation link has expired.
+ok
+test_missing_both_fields_is_a_400_not_a_500 (users.tests_auth_input_validation.VerifyEndpointInputTests.test_missing_both_fields_is_a_400_not_a_500)
+The regression: `.get("email").strip()` on an absent key. ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 647, in verify
+    raise ParseError("Email and Token are required.")
+rest_framework.exceptions.ParseError: Email and Token are required.
+ok
+test_missing_email_only_is_a_400_not_a_500 (users.tests_auth_input_validation.VerifyEndpointInputTests.test_missing_email_only_is_a_400_not_a_500) ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 647, in verify
+    raise ParseError("Email and Token are required.")
+rest_framework.exceptions.ParseError: Email and Token are required.
+ok
+test_missing_token_only_is_a_400_not_a_500 (users.tests_auth_input_validation.VerifyEndpointInputTests.test_missing_token_only_is_a_400_not_a_500) ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 647, in verify
+    raise ParseError("Email and Token are required.")
+rest_framework.exceptions.ParseError: Email and Token are required.
+ok
+test_null_values_are_a_400_not_a_500 (users.tests_auth_input_validation.VerifyEndpointInputTests.test_null_values_are_a_400_not_a_500) ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 647, in verify
+    raise ParseError("Email and Token are required.")
+rest_framework.exceptions.ParseError: Email and Token are required.
+ok
+test_oversized_field_does_not_crash_the_endpoint (users.tests_auth_input_validation.VerifyEndpointInputTests.test_oversized_field_does_not_crash_the_endpoint) ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 651, in verify
+    raise ParseError("Invalid email or token.")
+rest_framework.exceptions.ParseError: Invalid email or token.
+ok
+test_whitespace_only_values_are_rejected (users.tests_auth_input_validation.VerifyEndpointInputTests.test_whitespace_only_values_are_rejected)
+Stripped to empty, so this must take the "required" path. ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 647, in verify
+    raise ParseError("Email and Token are required.")
+rest_framework.exceptions.ParseError: Email and Token are required.
+ok
+test_wrong_token_does_not_activate_the_account (users.tests_auth_input_validation.VerifyEndpointInputTests.test_wrong_token_does_not_activate_the_account) ... Cannot activate automatic trial for user verify.input@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 651, in verify
+    raise ParseError("Invalid email or token.")
+rest_framework.exceptions.ParseError: Invalid email or token.
+ok
+test_anonymous_cannot_list_waitlist (users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_list_waitlist) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_anonymous_cannot_list_whitelist (users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_list_whitelist) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_anonymous_cannot_self_whitelist (users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_self_whitelist) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_anonymous_cannot_transfer_waitlist_entry (users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_transfer_waitlist_entry) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_authenticated_non_admin_cannot_list_waitlist (users.tests_authorization.BetaGateAccessTests.test_authenticated_non_admin_cannot_list_waitlist) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+ok
+test_authenticated_non_admin_cannot_list_whitelist (users.tests_authorization.BetaGateAccessTests.test_authenticated_non_admin_cannot_list_whitelist) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+ok
+test_superadmin_can_still_manage_whitelist (users.tests_authorization.BetaGateAccessTests.test_superadmin_can_still_manage_whitelist) ... Cannot activate automatic trial for user gate.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/pagination.py:207: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'users.models.BetaWhitelist'> QuerySet.
+  paginator = self.django_paginator_class(queryset, page_size)
+ok
+test_cached_detail_is_not_shared_across_users (users.tests_authorization.UserObjectScopingTests.test_cached_detail_is_not_shared_across_users)
+UserCacheMixin caches retrieve responses. If the key were not ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/mixins.py", line 72, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_list_is_superadmin_only (users.tests_authorization.UserObjectScopingTests.test_list_is_superadmin_only) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+ok
+test_school_reassignment_is_ignored (users.tests_authorization.UserObjectScopingTests.test_school_reassignment_is_ignored) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_student_can_patch_own_editable_profile_fields (users.tests_authorization.UserObjectScopingTests.test_student_can_patch_own_editable_profile_fields)
+Students may not change their name - see CustomUserSerializer.validate, ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_student_cannot_delete_another_user (users.tests_authorization.UserObjectScopingTests.test_student_cannot_delete_another_user) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+ok
+test_student_cannot_delete_self (users.tests_authorization.UserObjectScopingTests.test_student_cannot_delete_self) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+ok
+test_student_cannot_patch_another_user (users.tests_authorization.UserObjectScopingTests.test_student_cannot_patch_another_user) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 305, in partial_update
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_student_cannot_retrieve_another_user (users.tests_authorization.UserObjectScopingTests.test_student_cannot_retrieve_another_user) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/mixins.py", line 72, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_superadmin_can_retrieve_any_user (users.tests_authorization.UserObjectScopingTests.test_superadmin_can_retrieve_any_user) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_superadmin_can_set_privileged_fields (users.tests_authorization.UserObjectScopingTests.test_superadmin_can_set_privileged_fields)
+The read-only carve-out must not lock admins out of admin work. ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_teacher_can_patch_own_profile (users.tests_authorization.UserObjectScopingTests.test_teacher_can_patch_own_profile) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_teacher_cannot_patch_own_student (users.tests_authorization.UserObjectScopingTests.test_teacher_cannot_patch_own_student)
+Seeing a student in your roster is not permission to edit them. ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 312, in partial_update
+    raise PermissionDenied("You can only modify your own account.")
+rest_framework.exceptions.PermissionDenied: You can only modify your own account.
+ok
+test_teacher_cannot_see_teacher_from_other_school (users.tests_authorization.UserObjectScopingTests.test_teacher_cannot_see_teacher_from_other_school) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/mixins.py", line 72, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_teacher_cannot_see_unenrolled_student (users.tests_authorization.UserObjectScopingTests.test_teacher_cannot_see_unenrolled_student) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/mixins.py", line 72, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_user_can_retrieve_own_record (users.tests_authorization.UserObjectScopingTests.test_user_can_retrieve_own_record) ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_user_type_escalation_is_ignored (users.tests_authorization.UserObjectScopingTests.test_user_type_escalation_is_ignored)
+A student PATCHing their own user_type must not become an admin. ... Cannot activate automatic trial for user scope.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scope.other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_correct_otp_does_not_bypass_the_current_password_check (users.tests_change_password.ChangePasswordOTPOptionalTests.test_a_correct_otp_does_not_bypass_the_current_password_check) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 934, in change_password
+    raise ParseError("Incorrect current password. Please try again.")
+rest_framework.exceptions.ParseError: Incorrect current password. Please try again.
+ok
+test_a_used_otp_cannot_be_replayed (users.tests_change_password.ChangePasswordOTPOptionalTests.test_a_used_otp_cannot_be_replayed) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 951, in change_password
+    raise ParseError(
+rest_framework.exceptions.ParseError: No password change code has been requested for this account. Request one and try again.
+ok
+test_a_wrong_otp_is_rejected_and_the_password_is_unchanged (users.tests_change_password.ChangePasswordOTPOptionalTests.test_a_wrong_otp_is_rejected_and_the_password_is_unchanged) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 966, in change_password
+    raise ParseError("Invalid password change code. Please try again.")
+rest_framework.exceptions.ParseError: Invalid password change code. Please try again.
+ok
+test_an_expired_otp_is_rejected (users.tests_change_password.ChangePasswordOTPOptionalTests.test_an_expired_otp_is_rejected) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 958, in change_password
+    raise ParseError(
+rest_framework.exceptions.ParseError: This password change code has expired. Request a new one and try again.
+ok
+test_an_otp_sent_when_none_was_requested_is_rejected (users.tests_change_password.ChangePasswordOTPOptionalTests.test_an_otp_sent_when_none_was_requested_is_rejected) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 951, in change_password
+    raise ParseError(
+rest_framework.exceptions.ParseError: No password change code has been requested for this account. Request one and try again.
+ok
+test_an_unused_outstanding_otp_does_not_block_a_no_otp_change (users.tests_change_password.ChangePasswordOTPOptionalTests.test_an_unused_outstanding_otp_does_not_block_a_no_otp_change) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_users_otp_cannot_be_used (users.tests_change_password.ChangePasswordOTPOptionalTests.test_another_users_otp_cannot_be_used)
+A valid code belonging to someone else must not authorise this change. ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 951, in change_password
+    raise ParseError(
+rest_framework.exceptions.ParseError: No password change code has been requested for this account. Request one and try again.
+ok
+test_no_otp_still_requires_the_current_password (users.tests_change_password.ChangePasswordOTPOptionalTests.test_no_otp_still_requires_the_current_password) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h1-stage3-wildcard-removal/users/views.py", line 934, in change_password
+    raise ParseError("Incorrect current password. Please try again.")
+rest_framework.exceptions.ParseError: Incorrect current password. Please try again.
+ok
+test_succeeds_with_a_correct_otp (users.tests_change_password.ChangePasswordOTPOptionalTests.test_succeeds_with_a_correct_otp) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_succeeds_with_an_empty_otp_string (users.tests_change_password.ChangePasswordOTPOptionalTests.test_succeeds_with_an_empty_otp_string) ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_succeeds_without_an_otp (users.tests_change_password.ChangePasswordOTPOptionalTests.test_succeeds_without_an_otp)
+The frontend does not send `otp` yet - this must keep working. ... Cannot activate automatic trial for user teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+                                                                                                                                                       

@@ -1,0 +1,45 @@
+# M40: backfill conditional update
+# file: billing/management/commands/backfill_receipt_urls.py line: None
+# old: '                    pk=txn.pk, receipt_url__isnull=True\n'
+# new: '                    pk=txn.pk\n'
+# modules: billing.tests.test_receipts.BackfillReceiptUrlsCommandTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 4.4
+# restored_sha256_matches_commit_blob: True
+
+Found 2 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_dry_run_writes_nothing (billing.tests.test_receipts.BackfillReceiptUrlsCommandTests.test_dry_run_writes_nothing) ... ok
+test_uses_bounded_lookup_and_never_overwrites (billing.tests.test_receipts.BackfillReceiptUrlsCommandTests.test_uses_bounded_lookup_and_never_overwrites) ... FAIL
+
+======================================================================
+FAIL: test_uses_bounded_lookup_and_never_overwrites (billing.tests.test_receipts.BackfillReceiptUrlsCommandTests.test_uses_bounded_lookup_and_never_overwrites)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M40-ilpfkqz6/wt/billing/tests/test_receipts.py", line 484, in test_uses_bounded_lookup_and_never_overwrites
+    self.assertEqual(kept.receipt_url, "https://sweep-won.test/r")
+AssertionError: 'https://invoice.stripe.test/in_backfill_kept' != 'https://sweep-won.test/r'
+- https://invoice.stripe.test/in_backfill_kept
++ https://sweep-won.test/r
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.054s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

@@ -1,0 +1,10 @@
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_a_call_the_budget_never_started_is_failed_not_pending ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_an_error_from_stripe_reaches_the_caller_unchanged ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_nested_budgets_keep_the_earlier_deadline ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_the_production_budget_ends_well_inside_the_request_timeout ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_the_worker_thread_leaves_no_database_connection_open ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_under_a_budget_the_call_reports_its_callers_transaction ... ok
+billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_without_a_budget_the_call_runs_inline ... ok
+Ran 8 tests in 2.593s
+OK

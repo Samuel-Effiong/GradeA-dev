@@ -1,0 +1,115 @@
+# Hotfix: more teachers than seats gives a 400, not a 500
+
+Branch `task/hotfix-license-seat-400` off beta `e7e4bdf`. Founder-requested and urgent (SM, 2026-09-29). It ships **alone** as a hotfix to beta; the founder approves the push, and main is on hold per the founder.
+
+## The bug (reproduced on beta e7e4bdf, `prefix_beta_e7e4bdf_failing.txt`)
+Superadmin "School billing", `POST /api/v1/license-subscriptions` (OFFLINE), with 3 `teacher_emails` and `max_seats=2`, answered **500** "An unexpected error occurred".
+- `LicenseSubscriptionService.create_license_subscription` refused the request with a **bare `ValueError`** ("Cannot enroll 3 teachers: license max_seats is 2.").
+- Nothing between it and the view caught it: `LicenseSubscriptionSerializer.create` and the view's OFFLINE branch inside `transaction.atomic()` both let it through.
+
+**Found while fixing it: the STRIPE branch was worse.** `StripeCheckoutService.create_license_session` never checked seats against teachers, so the checkout went ahead (**200** with a `checkout_url`). The same refusal would then have happened in the **webhook, after the school had paid**, and no licence would have been created.
+
+Reproduce-first on beta's code (a scratch copy of the new tests; the typed error stubbed as `ValueError`):
+- The OFFLINE over-cap test and the carry-forward over-cap test each got 500 where 400 was expected.
+- The Stripe over-cap test got 200 where 400 was expected.
+- The 2-teachers-on-2-seats control and the bare-ValueError guard passed on beta, as they should.
+
+## Every ValueError reachable from `create_license_subscription`
+| Raise | Where | Kind | Now |
+|---|---|---|---|
+| seat cap, plain and carry-forward variants | the old inline check, now `check_seat_capacity` | user input | `LicenseRequestError` with the new message |
+| `max_seats must be a positive integer` | `create_license_subscription` | user input; the serializer also validates it | `LicenseRequestError` |
+| plan category, missing `monthly_credits`, STANDARD tier | `validate_license_plan` | user input (plan choice) | `LicenseRequestError`. The serializer checked only the category, so the other two could also 500 |
+| admin is a student / superadmin / has no school / is from another school; the school has no admin | `validate_admin_user`, `resolve_admin_user` | user input; `validate()` already turns these into a 400 on `admin_user` | `LicenseRequestError` (same messages) |
+| email required, not a business email, not a teacher account | `_get_or_invite_teacher` | user input | **Unchanged.** They don't reach the view: `_invite_and_enroll_one_teacher` never raises and reports them per teacher in `teacher_invitations.errors` |
+
+- `LicenseRequestError` **subclasses `ValueError`**, so every existing `except ValueError` caller keeps working. That includes the Stripe view branch, the webhook's admin fallback and the tests.
+- Only this type becomes a 400. A bare `ValueError` stays a loud 500, which a test pins.
+
+## Fix
+- `billing/license_service.py`:
+  - `LicenseRequestError(ValueError)`.
+  - `LicenseSubscriptionService.check_seat_capacity(...)`: the carry-forward/new split and the seat check, moved verbatim out of `create_license_subscription` into a shared helper, with the new message.
+  - The user-input raises above now use the typed error.
+- `billing/serializers.py`: `LicenseSubscriptionSerializer.create` catches **only** `LicenseRequestError` and raises `ValidationError({"non_field_errors": [msg]})`. The renderer shows that as one clean sentence, with no field label and no numbered list. It is raised inside the view's `transaction.atomic()`, so nothing is written.
+- `billing/stripe_service.py`: `create_license_session` runs `check_seat_capacity` **before** creating the Stripe checkout. The view already maps `ValueError` to 400 `{"error": msg}`, so the school now gets the same message before paying.
+
+**Message** (singular and plural handled):
+- "This licence has 2 seats, but 3 teachers were added. Remove a teacher or increase Max seats."
+- Carry-forward: "This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats."
+
+## Tests
+`billing/tests/test_license_seat_400.py`, 12 tests (7, plus 5 for N1: see VERIFICATION.md "Author's N1 response"), all through the real `POST /license-subscriptions` except the last two:
+- OFFLINE, 3 teachers on 2 seats: **400**, the exact message as the envelope's top-level `message`, and **nothing created** (no licence, no billing record, no teacher accounts).
+- Carry-forward, with 1 carried over and 2 new on 2 seats: 400 with the carry-forward message. The **old licence stays active**, only one licence exists, and its allocations are byte-for-byte unchanged (atomic).
+- Positive control: 2 teachers on 2 seats → **201**, with 2 teacher allocations.
+- STRIPE, 3 on 2: 400 with the message, and **`stripe.checkout.Session.create` is never called**.
+- A bare `ValueError` from the service is still a **500**, and its text is not leaked.
+- Service level: the singular wording ("1 seat", "2 teachers were added"), and `LicenseRequestError` is a `ValueError`.
+
+Also: `billing/tests/test_license_service.py`'s existing carry-forward over-cap test now asserts the new typed error and message; it previously matched "max_seats is 2".
+
+## Also checked (reported, not changed)
+- **`add_teachers`** (`license_views.py`): catches every exception and returns 400 with `describe_user_error`. No 500 is possible.
+- **`update_seats`** (lowering `max_seats` below the seats in use): the view already maps `ValueError` to 400 with the service's message. No 500.
+- **`PATCH /license-subscriptions/<id>` with `max_seats`**: `max_seats` is a writable field, but `update()` saves only `auto_renew` and `custom_price_cents`. So the PATCH answers 200 and **silently ignores `max_seats`**. It isn't a 500; the endpoint for that is `update_seats`. A backlog candidate: reject `max_seats` on PATCH, or document it.
+- **The Stripe webhook** still calls `create_license_subscription`, which can refuse if carry-forward membership changed between checkout and payment. That is rare, and pre-existing: the webhook's own error handling and alerting apply. Not in scope.
+
+## Gates
+| Gate | Result |
+|---|---|
+| 1 Reproduce-first | 3 fail on beta (500, 500, 200), and the 2 guards pass. See `prefix_beta_e7e4bdf_failing.txt` |
+| 1 Regression | whole `billing` app (the serializer-change rule), `EXEMPT_EMAIL_DOMAINS=`: **1654 OK**, and **1665 OK** after the widening; plus every non-billing test module that uses `AutoGrader.error_messages` (incl. `AutoGrader.tests_error_messages`): 124 OK. See `regression_billing_app.txt` |
+| 2 Mutation | **18 mutants, 18 killed** after the widening (W1–W6: no-seats/inactive/remove refusals untyped, not listed as user-facing, message loses the counts, full-licence branch lost). Before that, **12 mutants, 12 killed** (after N1; the Verification Engineer's V1–V4 were added and are killed by the N1 tests: Stripe pre-check ignoring carry-forward, zero-credit plan untyped, STANDARD tier untyped, max_seats guard untyped). Originally 8 of 8, every anchor asserted unique (`mutate.py`, `mutation_log.txt`, `mutation_results.json`). H1 catch removed (500); H2 catch widened to bare `ValueError` (the 500 guard); H3 seat refusal raised untyped; H4 Stripe pre-flight removed; H5 cap off by one (kills the 2-on-2 control); H6 carried-over teachers not counted; H7 message loses the remedy; H8 singular wording broken |
+| mypy | whole-repo `pre-commit run mypy --all-files` → Passed |
+| 4 Adversarial | the bare `ValueError` stays a 500 and its text never reaches the client; the Stripe checkout cannot be paid for an impossible licence |
+| 5 Failure/atomicity | the refused request leaves the old licence and its allocations unchanged, and creates nothing |
+| Full suite | not run per fix (0b's rule); covered by the hotfix's own landing run on beta |
+
+## Widening: the school admin's Add / Remove teachers (founder report, SM 2026-09-29)
+**The report.** A school admin's "Add teachers" (`POST license-subscriptions/<id>/add_teachers`, beta) on a full licence answered 400 with the **generic** "We couldn't add these teachers to the license. Please try again, or contact support if this continues."
+- `add_teachers_batch` refused with a bare `ValueError` ("Not enough seats available. Need 1, only 0 remaining.").
+- The view's `except Exception` → `describe_user_error(e, fallback)` shows only exception types listed as user-facing, so the reason was hidden.
+
+**Reproduce-first** on the pre-widening tip (`prefix_widen_665b026_failing.txt`): 4 tests fail with the generic text (full licence, fewer seats than teachers, inactive licence, removing a teacher who isn't on the licence). The positive control and the generic-fallback guard pass.
+
+**Fix** (no view code changed):
+- `add_teachers_batch`: the seat shortfall and the inactive-licence refusal raise `LicenseRequestError`.
+  - The seat message comes from `_no_seats_message`: "Your licence has no seats left (2 of 2 in use). Remove a teacher or ask us to add seats.", or "Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use). Add fewer teachers, remove a teacher, or ask us to add seats."
+  - Inactive licence: "This licence isn't active, so teachers can't be added to it."
+- `remove_teacher_from_license`: "This teacher isn't an active teacher on this licence." (typed; it no longer quotes the email or licence id).
+- `AutoGrader/error_messages._user_facing_exception_types` lists `LicenseRequestError`, beside `IndividualSubscriptionConflictError` from the same module. Both views' existing `describe_user_error` now shows the typed message.
+- Any other exception keeps the generic fallback; a test pins that a bare `ValueError`'s text is not shown.
+- Listing it as user-facing affects only `LicenseRequestError`, which is raised only by the licence refusals typed in this hotfix. Those are all messages written for the requester.
+
+**Checked and not changed:**
+- `update_seats`: its view already maps `ValueError` to 400 with the message, so nothing was hidden. Stripe's text leaking there is 1a's N3, backlog.
+- `add_teacher_to_license` (single add): no view calls it.
+
+**Tests** (`billing/tests/test_license_teacher_changes_400.py`, 6, as the school admin through the real routes):
+- A full licence gives the exact message, and nothing is written or invited (allocations unchanged, no user created, no email).
+- Fewer seats than teachers gives the exact message.
+- **Positive control:** a free seat → 200, `successful: 1`.
+- An inactive licence gives its message.
+- Any other error keeps the generic message with no leak.
+- remove_teachers for a teacher not on the licence gives the plain row error.
+
+**Reach of the user-facing listing** (1a's pre-check). `LicenseRequestError` is raised only by `validate_license_plan`, `validate_admin_user`/`resolve_admin_user`, `check_seat_capacity`, the max_seats guard, `add_teachers_batch` and `remove_teacher_from_license`. Every path from those to `describe_user_error` / `is_user_facing_error` (grep of all non-test call sites):
+
+| Path | Handler | Changed? |
+|---|---|---|
+| `add_teachers` view → `add_teachers_batch` | `describe_user_error` | **Yes (intended):** the seat and inactive-licence messages |
+| `remove_teachers` view → `remove_teacher_from_license` | `describe_user_error` per row | **Yes (intended):** the plain "not on this licence" row error (no email) |
+| create (serializer) → `create_license_subscription` / `resolve_admin_user` | the serializer catch and `validate()`'s `except ValueError` | no: already a 400 with the text |
+| Stripe checkout → `create_license_session` (plan, admin, seats) | the view's `except ValueError` → 400 text | no: unchanged (1a's N2) |
+| Stripe webhook → `validate_admin_user`, `create_license_subscription` | its own `except ValueError` fallback / propagates | no: never calls `describe_user_error` |
+| `_invite_and_enroll_one_teacher`, carry-forward | `describe_user_error` per teacher | no: they only receive `_get_or_invite_teacher` / enrol errors, which are not typed |
+| `process_renewal` view | `describe_user_error` | no: not routed (`@action` commented out) and doesn't call the typed raisers |
+| `update_license_plan` (`validate_license_plan`) | — | no callers |
+| `audit_school_admins` command | its own `except ValueError` | no: superadmin CLI |
+| `students/views.py` `is_user_facing_error` | — | no: never sees a licence error |
+| Renderer's unhandled-500 branch (`users/renderers.py:152`) | `describe_user_error` on an uncaught exception | **latent** (1a's N7): no web route lets a `LicenseRequestError` escape uncaught today (create serializer, `validate()`, Stripe branch, add/remove teachers all catch it; the webhook answers with a bare `HttpResponse`). If a future view did, the status stays 500 and the body shows the typed, written-to-be-shown message instead of "An unexpected error occurred" |
+
+- `validate_admin_user`'s texts (with emails and school names) therefore reach only the superadmin create and checkout paths, which already showed them. They never reach a school admin.
+- `update_seats`' Stripe-wrapped raise stays a **bare** `ValueError`, so the listing doesn't touch it (N3 unchanged).
+- `add_teachers`' catch-all is **not** narrowed: a genuine bug stays a 400 with the generic fallback (pre-existing behaviour, and tested that its text is not shown). Narrowing it so bugs become 500s is left out of the hotfix on purpose.

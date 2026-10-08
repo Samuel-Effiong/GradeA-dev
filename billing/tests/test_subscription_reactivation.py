@@ -127,7 +127,33 @@ class SubscriptionReactivationServiceTestCase(TestCase):
         mock_subscription.retrieve.assert_not_called()
 
     @patch("stripe.Subscription")
-    def test_noop_when_not_cancelling(self, mock_subscription):
+    def test_local_record_is_corrected_when_stripe_is_not_cancelling(
+        self, mock_subscription
+    ):
+        """H-174 reverses the old "noop when not cancelling" (Senior
+        Manager, 2026-10-07): Stripe is the source of truth. This row says
+        "not renewing" and Stripe says it is not scheduled to cancel, so
+        the row is corrected, with no call that changes Stripe. More in
+        test_converted_trial_is_not_cancelling.py."""
+        self.assertFalse(self.sub.auto_renew)
+        mock_subscription.retrieve.return_value = FakeStripeObject(
+            status="active", cancel_at_period_end=False
+        )
+
+        result = SubscriptionReactivationService.reactivate_if_cancelling(self.sub)
+
+        self.assertTrue(result.changed)
+        self.assertTrue(result.local_changed)
+        self.assertFalse(result.stripe_changed)
+        self.assertEqual(result.warnings, [])
+        mock_subscription.modify.assert_not_called()
+        self.sub.refresh_from_db()
+        self.assertTrue(self.sub.auto_renew)
+
+    @patch("stripe.Subscription")
+    def test_noop_when_stripe_and_the_local_record_agree(self, mock_subscription):
+        self.sub.auto_renew = True
+        self.sub.save(update_fields=["auto_renew"])
         mock_subscription.retrieve.return_value = FakeStripeObject(
             status="active", cancel_at_period_end=False
         )
@@ -137,8 +163,6 @@ class SubscriptionReactivationServiceTestCase(TestCase):
         self.assertFalse(result.changed)
         self.assertEqual(result.warnings, [])
         mock_subscription.modify.assert_not_called()
-        self.sub.refresh_from_db()
-        self.assertFalse(self.sub.auto_renew)
 
     @patch("stripe.Subscription")
     def test_clears_and_flips_auto_renew(self, mock_subscription):
@@ -178,7 +202,10 @@ class SubscriptionReactivationServiceTestCase(TestCase):
 
         result = SubscriptionReactivationService.reactivate_if_cancelling(self.sub)
 
-        self.assertFalse(result.changed)
+        # H-174: nothing changes at Stripe; the local "not renewing" mark,
+        # which Stripe contradicts, is corrected (see the test above).
+        self.assertFalse(result.stripe_changed)
+        self.assertTrue(result.local_changed)
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("outstanding payment issue", result.warnings[0])
 

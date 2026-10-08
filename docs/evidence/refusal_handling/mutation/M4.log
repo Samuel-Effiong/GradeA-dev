@@ -1,0 +1,161 @@
+# M4: superadmin analytics chat answers refusal 403
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest billing.tests.test_custom_ai_prompt_beta
+# exit 1
+
+Found 9 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Dashboard AI context section failed to load
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/dashboard/views.py", line 166, in dashboard_context_section
+    body = dashboard_context_json(build())
+                                  ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/dashboard/views.py", line 2748, in <lambda>
+    lambda: self.students(request, *args, **kwargs).data,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/dashboard/views.py", line 2415, in students
+    cache_key = versioned_key(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/AutoGrader/cache_generation.py", line 299, in versioned_key
+    f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/AutoGrader/cache_generation.py", line 125, in get_generation
+    key = generation_key(scope, entity_id)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/AutoGrader/cache_generation.py", line 112, in generation_key
+    raise ValueError(f"scope {scope!r} requires an entity id")
+ValueError: scope 'sch' requires an entity id
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+.Custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/views.py", line 2454, in custom_ai_prompt
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 4682, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 4617, in custom_ai_prompt
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+
+
+django.request ERROR 2026-09-17 17:52:54,273 log 1914637 126426136214464 [request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FCannot activate automatic trial for user d2-feature-186ca109@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+Cannot activate automatic trial for user d2-credits-ec0b0644@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+.Cannot activate automatic trial for user beta-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/views.py", line 2327, in custom_ai_prompt
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'prompt': [ErrorDetail(string='This field may not be blank.', code='blank')]}
+.Cannot activate automatic trial for user beta-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/views.py", line 2454, in custom_ai_prompt
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 4682, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 4617, in custom_ai_prompt
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+
+
+django.request ERROR 2026-09-17 17:52:59,035 log 1914637 126426136214464 [request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FCannot activate automatic trial for user beta-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user beta-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/views.py", line 2327, in custom_ai_prompt
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'prompt': [ErrorDetail(string='Ensure this field has no more than 2000 characters.', code='max_length')]}
+.Cannot activate automatic trial for user beta-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 422, in initial
+    self.check_throttles(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 377, in check_throttles
+    self.throttled(request, duration)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 187, in throttled
+    raise exceptions.Throttled(wait)
+rest_framework.exceptions.Throttled: Request was throttled. Expected available in 60 seconds.
+.Cannot activate automatic trial for user beta-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [analytics-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_refusal_handling.py", line 307, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"The AI analytics assistant is temporarily unavailable. Please try again later.","error":{"field_errors":{"error":"The AI analytics assistant is temporarily unavailable. Please try again later."}}}'
+
+======================================================================
+FAIL: test_kill_switch_applies_to_beta_endpoint_too (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_kill_switch_applies_to_beta_endpoint_too)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_custom_ai_prompt_beta.py", line 90, in test_kill_switch_applies_to_beta_endpoint_too
+    self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+AssertionError: 500 != 403
+
+----------------------------------------------------------------------
+Ran 9 tests in 12.423s
+
+FAILED (failures=2)
+Preserving test database for alias 'default'...

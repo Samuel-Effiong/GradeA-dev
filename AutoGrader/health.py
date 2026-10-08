@@ -21,8 +21,10 @@ Railway's own docs, e.g. their Uptime Kuma template) to poll on its own,
 independent of any deploy.
 """
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
+from django.http import Http404
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -32,6 +34,83 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
+from rest_framework.throttling import BaseThrottle
+
+
+def deployed_version():
+    """
+    Which commit this instance is actually running.
+
+    Exists because "is the fix deployed yet?" was, for a while, an
+    unanswerable question. A settings-only change (NUM_PROXIES) alters no
+    API surface, so "not deployed yet" and "deployed but the value is
+    wrong" look identical from outside - and tuning a value on that guess
+    is how you make things worse. This turns it into one curl.
+
+    Railway injects RAILWAY_GIT_COMMIT_SHA per deploy; the others are
+    accepted so this keeps working under a different host or in CI.
+    Returns "unknown" rather than raising or omitting the key: a health
+    endpoint must never fail because of its own metadata, and a stable
+    key shape keeps it trivial to parse.
+    """
+    import os
+
+    for var in (
+        "RAILWAY_GIT_COMMIT_SHA",
+        "GIT_COMMIT_SHA",
+        "SOURCE_COMMIT",
+        "HEROKU_SLUG_COMMIT",
+    ):
+        sha = (os.environ.get(var) or "").strip()
+        if sha:
+            return sha[:12]
+    return "unknown"
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([])
+def client_identity(request):
+    """
+    Echo the proxy headers of THIS request, plus the client identity DRF
+    would derive from them.
+
+    Exists because rate limiting silently did nothing and no amount of
+    black-box probing could say why. Every throttle keys on
+    BaseThrottle.get_ident(); if that value differs between two requests
+    from the same caller, no limit can ever be reached, and from outside
+    that is indistinguishable from "the limit is high" or "the code
+    isn't deployed". Guessing NUM_PROXIES costs a full CI + deploy cycle
+    per attempt. This turns it into one measurement.
+
+    Returns only the caller's own connection metadata - the same thing
+    any "what is my IP" service returns, and nothing about anyone else.
+    Still gated behind EXPOSE_CLIENT_DIAGNOSTICS (default off) and 404s
+    otherwise, so it is not a permanent public surface: enable it, take
+    the reading, set NUM_PROXIES, turn it off.
+    """
+    if not getattr(settings, "EXPOSE_CLIENT_DIAGNOSTICS", False):
+        raise Http404("client diagnostics are not enabled in this environment")
+
+    meta = request.META
+    return Response(
+        {
+            # What every AnonRateThrottle actually buckets on.
+            "resolved_ident": BaseThrottle().get_ident(request),
+            "num_proxies": api_settings.NUM_PROXIES,
+            # The raw inputs, so the correct hop count can be counted
+            # rather than inferred: with N proxies DRF reads the Nth
+            # entry from the RIGHT of x_forwarded_for.
+            "x_forwarded_for": meta.get("HTTP_X_FORWARDED_FOR"),
+            "x_real_ip": meta.get("HTTP_X_REAL_IP"),
+            "x_envoy_external_address": meta.get("HTTP_X_ENVOY_EXTERNAL_ADDRESS"),
+            "cf_connecting_ip": meta.get("HTTP_CF_CONNECTING_IP"),
+            "remote_addr": meta.get("REMOTE_ADDR"),
+            "version": deployed_version(),
+        }
+    )
 
 
 def _check_database():
@@ -80,7 +159,11 @@ def health(request):
     )
 
     return Response(
-        {"status": "ok" if healthy else "degraded", "checks": results},
+        {
+            "status": "ok" if healthy else "degraded",
+            "checks": results,
+            "version": deployed_version(),
+        },
         status=(status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE),
     )
 

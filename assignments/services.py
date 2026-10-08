@@ -3,12 +3,10 @@ import logging
 import re
 from datetime import datetime
 from io import BytesIO
-from pathlib import Path
 from typing import Any, Dict
 from urllib.parse import urlparse
 
 import bleach
-import fitz
 from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
@@ -16,9 +14,10 @@ from django.utils.html import escape as escape_html
 from django.utils.html import strip_tags
 from lxml import html as lxml_html
 from PIL import Image
+from PIL.Image import DecompressionBombError
 from rest_framework.exceptions import ParseError
 
-from ai_processor.services import ai_processor, pdf_service
+from ai_processor.services import PDFService, ai_processor
 from ai_processor.tools import (
     ImageCompressionError,
     compress_image_for_upload,
@@ -36,12 +35,6 @@ from students.task_tracking import (
 )
 
 logger = logging.getLogger(__name__)
-
-# from docutils.transforms.universal import Validate
-
-# from ai_processor.services import ai_processor
-
-# from assignments.models import Assignment
 
 # AI-generated content is untrusted input. It's only ever supposed to use
 # plain formatting markup (see the "HTML Must Be Clean" rules in
@@ -172,6 +165,34 @@ def _strip_html_from_title(value):
     return re.sub(r"\s+", " ", strip_tags(value)).strip()
 
 
+#: Human labels for the question types printed into the teacher-facing
+#: document heading. Keyed by the UPPERCASED stored value, because
+#: format_assignment_standard_html normalises `question_type` with .upper()
+#: before looking it up (extracted assignments have been seen carrying
+#: "Essay" and "short-answer" alike).
+#:
+#: HYBRID is deliberately absent: it is an ASSIGNMENT-level type, never a
+#: question-level one (see AssignmentTypes vs QuestionSerializer's
+#: ALLOWED_QUESTION_TYPES), so a question carrying it is malformed and gets
+#: no label rather than a misleading one. An unrecognised value likewise
+#: yields "" and the heading renders exactly as it did before.
+QUESTION_TYPE_LABELS = {
+    "OBJECTIVE": "Multiple Choice",
+    "ESSAY": "Essay",
+    "SHORT-ANSWER": "Short Answer",
+}
+
+#: Ceiling on an uploaded image's DECODED size, checked from the header
+#: before any pixels are allocated. AutoGrader/uploads.py caps the encoded
+#: bytes at 50 MB, which a compressed "decompression bomb" slips straight
+#: through - a 400 KB PNG can declare a raster of billions of pixels.
+#:
+#: 50 MP is far above any real scan (a 600-dpi A4 page is ~35 MP) and far
+#: below what would threaten a worker's memory: at 4 bytes per pixel this
+#: bounds one decode at roughly 200 MB.
+MAX_IMAGE_PIXELS = 50_000_000
+
+
 def _option_letter(index: int) -> str:
     """A, B, C, ... Z, then falls back to a 1-based number past 26 options."""
     return chr(65 + index) if index < 26 else str(index + 1)
@@ -221,6 +242,26 @@ def _render_lettered_option_html(letter: str, sanitized_option_html: str) -> str
     return "".join(lxml_html.tostring(child, encoding="unicode") for child in children)
 
 
+def lock_placeholder_assignment_for_cleanup(assignment_id):
+    """
+    Lock and return an assignment that a cancelled create/upload task left
+    behind, or None if it is missing or has already received submissions
+    (in which case it is real work and must survive the cancellation).
+
+    Must be called inside a transaction: the row lock is what stops a
+    submission from landing between this check and the caller's delete.
+    This is the assignments app's side of
+    students.task_tracking.cleanup_cancelled_task_artifacts - the students
+    app owns the tracked task, this app owns the assignment row.
+    """
+    from assignments.models import Assignment
+
+    assignment = Assignment.objects.select_for_update().filter(id=assignment_id).first()
+    if assignment is None or assignment.submissions.exists():
+        return None
+    return assignment
+
+
 def _parse_due_date(due_date):
     """
     Render `due_date` as "Month DD, YYYY", or None if absent/unparsable.
@@ -244,53 +285,62 @@ def _parse_due_date(due_date):
         return None
 
 
-class PDFService:
+# The only keys an AI extraction or generation response may contribute to an
+# Assignment - exactly the content contract in
+# ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt,
+# ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt and
+# ASSIGNMENT_GENERATION_RESPONSE_SCHEMA.
+#
+# The AI's JSON used to be passed whole into AssignmentSerializer, whose
+# writable fields include course, topic, teacher, status, due_date and
+# auto_grade_on_due_date. Extraction runs on free-form json_object output,
+# so text in an uploaded document could steer the model into emitting, say,
+# "status": "PUBLISHED" or "teacher": "<uuid>" and have it saved (H-18).
+# Everything the server sets (course, topic, raw_input, timestamps) is added
+# AFTER this filter, from trusted values.
+AI_ASSIGNMENT_CONTENT_FIELDS = frozenset(
+    {
+        "title",
+        "instructions",
+        "total_points",
+        "question_count",
+        "assignment_type",
+        "questions",
+        "potential_issues",
+        "self_assessment",
+        "extraction_confidence",
+    }
+)
+
+
+def get_student_assignment_status(assignment, submission):
+    """One of "SUBMITTED", "GRADED", "OVERDUE", "NOT SUBMITTED" for a
+    student's view of one assignment.
+
+    Whether a submission EXISTS is checked first, independent of publish
+    state - `assignments/serializers.py`'s `get_status` used to check
+    `submission and not submission.graded_at` for the SUBMITTED case, so a
+    submission graded but not yet released (`is_published=False`) fell
+    through to OVERDUE/NOT SUBMITTED instead. A submission's existence, not
+    its publish state, is what makes a student "done"; publish state only
+    decides whether they get to see a grade for it yet.
     """
-    Service class for extracting structured data from assignment PDFs
-    """
+    if submission is not None:
+        if submission.graded_at and submission.is_published:
+            return "GRADED"
+        return "SUBMITTED"
+    if assignment.due_date and assignment.due_date < timezone.now():
+        return "OVERDUE"
+    return "NOT SUBMITTED"
 
-    def __init__(self, uploaded_file: UploadedFile) -> None:
-        self.uploaded_file = uploaded_file
-        self.extracted_data = {
-            "title": "",
-            "questions": [],
-            "page_count": 0,
-        }
 
-    def extract(self) -> dict:
-        """
-        Extract data from the uploaded pdf
-        """
-
-        if self.uploaded_file.content_type != "application/pdf":
-            raise ValueError("Unsupported file format. Only PDF is supported.")
-        else:
-            self.__process_pdf()
-        return self.extracted_data
-
-    def __process_pdf(self):
-        """
-        Process the PDF using fitz (PyMuPDF) to extract data from the UploadedFile object.
-        """
-        try:
-            pdf_bytes = self.uploaded_file.read()
-            pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
-
-            self.extracted_data["page_count"] = pdf_document.page_count
-
-            full_text = ""
-
-            for page_number in range(pdf_document.page_count):
-                page = pdf_document.load_page(page_number)
-                full_text += page.get_text().strip()
-
-            # Use the filename for the title
-            self.extracted_data["title"] = Path(self.uploaded_file.name).stem
-            self.extracted_data["questions"] = full_text
-
-            pdf_document.close()
-        except Exception as e:
-            raise ValueError(f"Something went wrong: {str(e)}") from e
+def ai_assignment_content_only(ai_output):
+    """`ai_output` reduced to AI_ASSIGNMENT_CONTENT_FIELDS."""
+    return {
+        key: value
+        for key, value in ai_output.items()
+        if key in AI_ASSIGNMENT_CONTENT_FIELDS
+    }
 
 
 class AssignmentProcessingService:
@@ -298,15 +348,81 @@ class AssignmentProcessingService:
     PDF_FORMAT = "application/pdf"
 
     @classmethod
+    def _compress_uploaded_image(cls, uploaded_file) -> bytes:
+        """
+        Decode and compress one uploaded image, refusing anything that is
+        not really a decodable image of a sane size.
+
+        `uploaded_file.content_type` is the CLIENT'S claim - it comes
+        straight off the multipart Content-Type header and is trivially
+        forged - so it selects which branch to try, never what is trusted.
+        Two things previously went wrong once that claim was false:
+
+          * A non-image body labelled "image/png" made Image.open raise
+            UnidentifiedImageError, which nothing caught. The caller got a
+            500 and a stack trace for what is an ordinary bad request.
+
+          * A "decompression bomb" - a few hundred KB of PNG that decodes
+            to gigabytes of pixels - passed the 50 MB size cap (which
+            bounds the ENCODED bytes, not the decoded raster) and was
+            handed to Pillow to allocate. Pillow only *warns* between 1x
+            and 2x its MAX_IMAGE_PIXELS default, so a single request could
+            allocate hundreds of MB on an endpoint that is reachable by
+            any authenticated teacher.
+
+        The dimensions are therefore checked from the header BEFORE the
+        pixels are decoded, which is the only point at which refusing is
+        still cheap.
+        """
+        try:
+            image = Image.open(BytesIO(uploaded_file.read()))
+        except DecompressionBombError as exc:
+            raise ParseError(
+                f"{uploaded_file.name} declares image dimensions too large "
+                "to process safely."
+            ) from exc
+        except Exception as exc:
+            # UnidentifiedImageError, a truncated file, an OSError from a
+            # malformed header - all of them mean the same thing to the
+            # caller, and none of them is a server fault.
+            raise ParseError(
+                f"{uploaded_file.name} could not be read as an image. It may "
+                "be corrupted, or not actually be the format its name "
+                "suggests. Please re-export it and try again."
+            ) from exc
+
+        width, height = image.size
+        if width * height > MAX_IMAGE_PIXELS:
+            raise ParseError(
+                f"{uploaded_file.name} is {width}x{height} pixels, which is "
+                f"larger than the {MAX_IMAGE_PIXELS // 1_000_000} megapixel "
+                "limit. Please downscale it and try again."
+            )
+
+        try:
+            # Forces the actual decode. Anything that only fails on real
+            # pixel data - a truncated body, a corrupt scanline - surfaces
+            # here rather than deeper in the AI pipeline.
+            image.load()
+            return compress_image_for_upload(image)
+        except ImageCompressionError as exc:
+            raise ParseError(str(exc)) from exc
+        except DecompressionBombError as exc:
+            raise ParseError(
+                f"{uploaded_file.name} expands to an unsafe size when decoded."
+            ) from exc
+        except Exception as exc:
+            raise ParseError(
+                f"{uploaded_file.name} could not be decoded. It may be "
+                "truncated or corrupted."
+            ) from exc
+
+    @classmethod
     def prepare_ai_content(cls, uploaded_file, prompt_text: str):
         content: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
 
         if uploaded_file.content_type in cls.IMAGE_FORMATS:
-            try:
-                image = Image.open(BytesIO(uploaded_file.read()))
-                compressed_bytes = compress_image_for_upload(image)
-            except ImageCompressionError as exc:
-                raise ParseError(str(exc)) from exc
+            compressed_bytes = cls._compress_uploaded_image(uploaded_file)
             base64_data = encode_image(image_byte=compressed_bytes)
             content.append(
                 {
@@ -316,9 +432,17 @@ class AssignmentProcessingService:
                 }
             )
         elif uploaded_file.content_type == cls.PDF_FORMAT:
-            pdf_service.set_uploaded_file(uploaded_file)
+            # A FRESH PDFService per upload, never the module-level
+            # `pdf_service` singleton. That singleton carries the file it is
+            # working on as instance state, and both callers of this method
+            # are synchronous DRF views running under
+            # `gunicorn --worker-class gthread --threads 4` - so two uploads
+            # on one worker could interleave as set(A) / set(B) / extract(),
+            # and a student would be graded on another student's paper while
+            # that paper's contents were stored against this submission.
+            # See ai_processor/tests_pdf_service_concurrency.py.
             try:
-                images = pdf_service.extract()
+                images = PDFService(uploaded_file).extract()
             except (ValueError, ImageCompressionError) as exc:
                 raise ParseError(str(exc)) from exc
 
@@ -552,10 +676,39 @@ class AssignmentProcessingService:
             )
             image_url = cls.sanitize_ai_image_url(q.get("question_image", ""))
 
+            # Question type, printed into the heading on the TEACHER view
+            # only. This is the document AI re-extraction reads back (see
+            # AssignmentDetailSerializer.get_raw_input: teachers get the
+            # full raw_input, students get a rubric-free regeneration), and
+            # until it was written here the type existed in the database
+            # but appeared NOWHERE in the document - so every edit round
+            # trip had to re-derive it from the question's wording.
+            #
+            # It drifted, measurably: the extraction benchmark
+            # (ai_processor/benchmark/extraction_dataset.py) caught
+            # SHORT-ANSWER questions coming back as ESSAY on a plain save.
+            # That is not cosmetic. The grader marks an ESSAY as one
+            # overall judgement of sustained quality and a SHORT-ANSWER
+            # against specific required content, so a drifted question is
+            # marked by the wrong standard - and AssignmentSerializer's own
+            # validate() REJECTS a non-HYBRID assignment whose questions
+            # disagree about their type, so the drift can fail a teacher's
+            # edit outright.
+            #
+            # Gated on include_rubric, the same flag that already hides
+            # rubrics and model answers: this is marking metadata, and the
+            # student's paper is left exactly as it was.
+            type_label = QUESTION_TYPE_LABELS.get(q_type, "")
+            type_suffix = (
+                f" &mdash; {escape_html(type_label)}"
+                if include_rubric and type_label
+                else ""
+            )
+
             html_output.append(
                 f"""
             <div style="margin-bottom:40px;">
-                <p><strong>Question {q_no} ({q_points} marks)</strong></p>
+                <p><strong>Question {q_no} ({q_points} marks){type_suffix}</strong></p>
                 {q_text}
             """
             )
@@ -701,18 +854,20 @@ class AssignmentProcessingService:
         processing_task_id=None,
     ) -> dict:
 
-        print("Extracting assignment content")
-
-        # assignment = Assignment.objects.get(id=assignment_id)
+        logger.info(
+            "Extracting assignment content for user %s", getattr(user, "id", None)
+        )
 
         ensure_task_not_cancelled(processing_task_id)
         extraction_started_at = timezone.now()
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            user,
-            content,
-            max_retries=3,
-            upload=upload,
-            processing_task_id=processing_task_id,
+        assignment_questions = ai_assignment_content_only(
+            ai_processor.extract_assignment_with_retry(
+                user,
+                content,
+                max_retries=3,
+                upload=upload,
+                processing_task_id=processing_task_id,
+            )
         )
         extraction_completed_at = timezone.now()
 

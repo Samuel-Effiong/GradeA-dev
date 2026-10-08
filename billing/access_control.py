@@ -48,8 +48,6 @@ from rest_framework.response import Response
 
 from .models import PlanFeature, PlanFeatureKey
 
-# from billing.models import CreditWallet  #, UserSubscription
-
 logger = logging.getLogger(__name__)
 
 
@@ -314,7 +312,7 @@ def can_user_access_ai(
     except Exception as exc:
         logger.error(
             "Error resolving AI access context for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
         )
         return False, "Internal Error: Could not verify subscription status"
@@ -333,7 +331,7 @@ def can_user_access_ai(
         if not context.trial_end:
             logger.warning(
                 "Trial subscription has no trial_end set. User %s.",
-                user.email,
+                user.id,
             )
             return False, "Internal Error: Trial subscription configuration issue"
 
@@ -348,7 +346,7 @@ def can_user_access_ai(
     if context.wallet is None:
         logger.error(
             "Error fetching wallet for user %s: no CreditWallet found",
-            user.email,
+            user.id,
         )
         return False, "Internal Error: Could not verify credit balance"
 
@@ -479,7 +477,7 @@ def get_user_ai_access_status(user, feature: Optional[str] = None) -> dict:
     except Exception as exc:
         logger.error(
             "Error resolving AI access context for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
         )
         return {
@@ -504,7 +502,7 @@ def get_user_ai_access_status(user, feature: Optional[str] = None) -> dict:
         except Exception as exc:
             logger.error(
                 "Error computing wallet balance for user %s: %s",
-                user.email,
+                user.id,
                 str(exc),
             )
 
@@ -583,7 +581,7 @@ def require_ai_access(view_func=None, *, feature: Optional[str] = None):
             if not can_access:
                 logger.warning(
                     "AI access denied for user %s (feature=%s): %s",
-                    request.user.email if request.user.is_authenticated else "ANON",
+                    request.user.id if request.user.is_authenticated else "ANON",
                     feature,
                     reason,
                 )
@@ -636,7 +634,7 @@ def get_remaining_trial_days(user) -> int:
     except Exception as exc:
         logger.error(
             "Error fetching trial days for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
         )
         return 0
@@ -689,49 +687,11 @@ def is_user_trial_expired(user) -> bool:
 
 
 # ============================================================================
-# INTEGRATION EXAMPLES
+# INTEGRATION
 # ============================================================================
 #
-# 1. In a view:
-#
-#    from billing.access_control import require_ai_access
-#
-#    @require_ai_access
-#    @action(detail=False, methods=['post'])
-#    def grade_assignment(self, request):
-#        # User is guaranteed to have access here
-#        ...
-#
-# 2. In serializer:
-#
-#    def to_representation(self, instance):
-#        ret = super().to_representation(instance)
-#        can_access, _ = can_user_access_ai(self.context['request'].user)
-#        ret['ai_access_enabled'] = can_access
-#        return ret
-#
-# 3. In middleware:
-#
-#    class AIAccessMiddleware:
-#        def __init__(self, get_response):
-#            self.get_response = get_response
-#
-#        def __call__(self, request):
-#            # Check before processing
-#            if request.path.startswith('/api/ai/'):
-#                can_access, reason = can_user_access_ai(request.user)
-#                if not can_access:
-#                    return Response({'detail': reason}, status=403)
-#            return self.get_response(request)
-#
-# 4. In Celery task:
-#
-#    @shared_task
-#    def grade_assignment_task(user_id, assignment_id):
-#        user = CustomUser.objects.get(id=user_id)
-#        can_access, reason = can_user_access_ai(user)
-#        if not can_access:
-#            logger.info("Task rejected: %s", reason)
-#            return {"error": reason}
-#        # Process grading...
-#
+# Views gate AI features with the require_ai_access decorator; its docstring
+# shows both forms (bare, and with feature=...). Code that runs outside a
+# request, such as Celery tasks, serializers and services, calls
+# can_user_access_ai(user, feature=...) directly and acts on the returned
+# (can_access, reason) pair.

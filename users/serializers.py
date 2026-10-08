@@ -3,14 +3,17 @@ import logging
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 
 from AutoGrader.error_messages import describe_user_error
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
-
-# from students.task_context import get_session_context, get_task_context
 from users.models import (
     BetaWhitelist,
     CustomUser,
@@ -19,7 +22,8 @@ from users.models import (
     UserTypes,
     Waitlist,
 )
-from users.services import send_user_activation_email
+from users.services import send_user_activation_email, stamp_last_login
+from users.tokens import EpochRefreshToken, assert_epoch_current
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +109,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "user_type",
             "password",
             "is_active",
+            "must_change_password",
             "date_joined",
             "settings",
             "credit_wallet",
@@ -116,6 +121,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
+            "must_change_password": {"read_only": True},
             "date_joined": {"read_only": True},
             "profile_image_url": {"read_only": True},
         }
@@ -139,12 +145,55 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
 
+    def _is_acting_on_self(self):
+        request = self.context.get("request")
+        acting = getattr(request, "user", None)
+        return bool(
+            self.instance is not None
+            and acting is not None
+            and getattr(acting, "pk", None) == self.instance.pk
+        )
+
     def validate(self, attrs):
         from users.utils import (
             is_business_email,
             is_exempt_email_domain,
             is_personal_email,
         )
+
+        # AUTHZ-PATCHPW: a user must not set their own password through this
+        # serializer (PATCH /users/<id>). That route needs only a bearer
+        # token, so a stolen access token could set a password the attacker
+        # knows and keep the account for good; /auth/change-password
+        # requires current_password (and the OTP when supplied). Rejected
+        # loudly rather than dropped so a client that relied on it fails
+        # visibly. A super admin acting on ANOTHER account, and account
+        # creation (self.instance is None), are unchanged.
+        if "password" in attrs and self._is_acting_on_self():
+            raise serializers.ValidationError(
+                {
+                    "password": (
+                        "The password cannot be changed through this endpoint. "
+                        "Use POST /auth/change-password instead."
+                    )
+                }
+            )
+
+        # AUTHZ-PATCHPW part 2 (founder decision 2026-09-28): the email is
+        # the recovery identity - reset codes go there - so changing it on a
+        # bearer token alone hands a stolen access token the account. It is
+        # refused for EVERY caller on an existing account, super admins
+        # acting on someone else included. Frontends send the whole object,
+        # so an unchanged address (compared after validate_email's
+        # lower/strip) still passes.
+        if (
+            self.instance is not None
+            and "email" in attrs
+            and attrs["email"] != (self.instance.email or "").lower().strip()
+        ):
+            raise serializers.ValidationError(
+                {"email": "Email address can't be changed."}
+            )
 
         # Determine user_type and email for this operation
         user_type = attrs.get("user_type")
@@ -393,11 +442,52 @@ class GoogleUserSerializer(CustomUserSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    token_class = EpochRefreshToken
+
+    # Login-specific: kept separate from the generic simplejwt failure
+    # message so a locked account gets an explanation instead of looking
+    # like a wrong password forever.
+    LOCKED_MESSAGE = "Too many failed login attempts. Please try again later."
+
     def validate(self, attrs):
         if "email" in attrs:
             attrs["email"] = attrs["email"].lower().strip()
 
-        data = super().validate(attrs)
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        # Looked up independently of simplejwt's own authenticate() call
+        # below, because that call cannot tell us afterwards *why* it
+        # failed (wrong password vs. inactive account) - we need that
+        # distinction so an unverified account trying its correct password
+        # doesn't get penalized as a brute-force guess.
+        user = CustomUser.objects.filter(email=email).first() if email else None
+
+        if user and user.is_account_locked():
+            raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+
+        try:
+            data = super().validate(attrs)
+        except AuthenticationFailed:
+            if user and password and not user.check_password(password):
+                user.register_failed_login()
+            raise
+
+        if user:
+            user.reset_login_lockout()
+
+        stamp_last_login(self.user)
+
+        if self.user.user_type == UserTypes.STUDENT:
+            # Local import: classrooms.services (via roster_import ->
+            # classrooms.serializers) imports users.serializers, so a
+            # module-level import here would be circular.
+            from classrooms.services.enrollment import (
+                activate_pending_enrollments_on_login,
+            )
+
+            activate_pending_enrollments_on_login(self.user)
+
         user_data = CustomUserSerializer(self.user).data
 
         data.update({"user": user_data})
@@ -406,6 +496,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         AnalyticsService.track_activity(self.user)
 
         return data
+
+
+class EpochTokenRefreshSerializer(TokenRefreshSerializer):
+    """Refuse to refresh a token minted under a revoked epoch, so a device
+    that was signed out by a logout / password change elsewhere gets a clean
+    401 instead of new tokens that would be rejected on first use."""
+
+    token_class = EpochRefreshToken
+
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+        user = CustomUser.objects.filter(pk=refresh.get("user_id")).first()
+        if user is None:
+            raise InvalidToken("Token contained no recognizable user identification")
+        assert_epoch_current(refresh, user)
+        return super().validate(attrs)
 
 
 class OTPSerializer(serializers.Serializer):
@@ -433,7 +539,18 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    # otp = serializers.CharField(required=False)
+    # Optional by design. The authenticated change-password flow is gated on
+    # `current_password`; the OTP emailed by AuthViewSet.request_change_password
+    # is a second factor the frontend does not send yet. Accepting it when
+    # present means the backend is already wired for that rollout, while a
+    # client that omits it keeps working exactly as before.
+    #
+    # Note this is NOT an enforcement point on its own: until the field is
+    # made mandatory, any caller can simply leave it out. It is forward
+    # compatibility, not a security control - see AuthViewSet.change_password.
+    otp = serializers.CharField(
+        required=False, allow_blank=True, write_only=True, trim_whitespace=True
+    )
     current_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(
         required=True, write_only=True, validators=[validate_password]

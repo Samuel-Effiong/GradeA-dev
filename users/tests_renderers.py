@@ -91,6 +91,46 @@ class APIJSONRendererTests(TestCase):
         self.assertIn("2. Password: Too short.", payload["message"])
         self.assertEqual(payload["error"]["field_errors"], response.data)
 
+    def test_refusal_code_beside_the_message_is_not_shown_as_text(self):
+        # billing/refusals.py: {"error", "code"}. The code is for clients to
+        # branch on; the message is exactly the error text.
+        response = Response(
+            {"error": "Not on your plan.", "code": "ai_feature_not_available"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+        response._drf_handled = True
+
+        payload = self.render_payload(response)
+
+        self.assertEqual(payload["message"], "Not on your plan.")
+        self.assertEqual(payload["error"]["field_errors"], response.data)
+
+    def test_a_validation_error_on_a_field_named_code_still_renders_as_before(self):
+        # The code-suppression is cross-cutting render logic: it must only
+        # ever drop a STRING code sitting beside a message key. A serializer
+        # field called "code" (list of messages) is an ordinary field error.
+        cases = [
+            (
+                {"code": ["Invalid code."], "email": ["This field is required."]},
+                ("1. Code: Invalid code.", "2. Email: This field is required."),
+            ),
+            (
+                {"error": ["Bad."], "code": ["Invalid code."]},
+                ("1. Error: Bad.", "2. Code: Invalid code."),
+            ),
+            ({"code": "only a code"}, ("Code: only a code",)),
+        ]
+        for data, expected_parts in cases:
+            with self.subTest(data=data):
+                response = Response(data, status=status.HTTP_400_BAD_REQUEST)
+                response._drf_handled = True
+
+                payload = self.render_payload(response)
+
+                for part in expected_parts:
+                    self.assertIn(part, payload["message"])
+                self.assertEqual(payload["error"]["field_errors"], data)
+
     def test_unhandled_exception_never_leaks_raw_technical_detail(self):
         # An unhandled 500: no _drf_handled marker, no data payload — this is
         # the path custom_exception_handler takes for anything DRF itself

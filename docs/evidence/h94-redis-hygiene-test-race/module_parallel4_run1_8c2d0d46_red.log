@@ -1,0 +1,86 @@
+Found 14 test(s).
+System check identified no issues (0 silenced).
+.......FF.....
+======================================================================
+FAIL: test_delete_own_keys_is_unmoved_by_another_runs_sweep (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_is_unmoved_by_another_runs_sweep)
+H-94: under --parallel another worker's sweep can run between
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h94-redis-hygiene-test-race/AutoGrader/tests_redis_hygiene.py", line 190, in test_delete_own_keys_is_unmoved_by_another_runs_sweep
+    self.check_delete_own_keys_takes_only_that_exact_prefix(
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h94-redis-hygiene-test-race/AutoGrader/tests_redis_hygiene.py", line 215, in check_delete_own_keys_takes_only_that_exact_prefix
+    self.assertEqual(_keys(f"gaplus-t{pid}:*"), [mine], "a live prefix was swept")
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 885, in assertEqual
+    assertion_func(first, second, msg=msg)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 1091, in assertListEqual
+    self.assertSequenceEqual(list1, list2, msg, seq_type=list)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 1073, in assertSequenceEqual
+    self.fail(msg)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 715, in fail
+    raise self.failureException(msg)
+    ^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['gaplus-t1124701:1:a', 'gaplus-t1124701:1:b'] != ['gaplus-t1124701:1:a']
+
+First list contains 1 additional elements.
+First extra element 1:
+'gaplus-t1124701:1:b'
+
+- ['gaplus-t1124701:1:a', 'gaplus-t1124701:1:b']
++ ['gaplus-t1124701:1:a'] : a live prefix was swept
+
+======================================================================
+FAIL: test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h94-redis-hygiene-test-race/AutoGrader/tests_redis_hygiene.py", line 185, in test_delete_own_keys_takes_only_that_exact_prefix
+    self.check_delete_own_keys_takes_only_that_exact_prefix()
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h94-redis-hygiene-test-race/AutoGrader/tests_redis_hygiene.py", line 215, in check_delete_own_keys_takes_only_that_exact_prefix
+    self.assertEqual(_keys(f"gaplus-t{pid}:*"), [mine], "a live prefix was swept")
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 885, in assertEqual
+    assertion_func(first, second, msg=msg)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 1091, in assertListEqual
+    self.assertSequenceEqual(list1, list2, msg, seq_type=list)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 1073, in assertSequenceEqual
+    self.fail(msg)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 715, in fail
+    raise self.failureException(msg)
+    ^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['gaplus-t1124841:1:a', 'gaplus-t1124841:1:b'] != ['gaplus-t1124841:1:a']
+
+First list contains 1 additional elements.
+First extra element 1:
+'gaplus-t1124841:1:b'
+
+- ['gaplus-t1124841:1:a', 'gaplus-t1124841:1:b']
++ ['gaplus-t1124841:1:a'] : a live prefix was swept
+
+----------------------------------------------------------------------
+Ran 14 tests in 14.630s
+
+FAILED (failures=2)
+systemd-run failed with exit status 1.
+exit=1 wall_s=18

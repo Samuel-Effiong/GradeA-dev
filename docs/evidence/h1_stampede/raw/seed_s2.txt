@@ -1,0 +1,1 @@
+{'db': 'ag_h1_stampede_s2', 'teachers_per_school': 60, 'schools': 10, 'users': 1211, 'courses': 2400, 'courses_per_school': 240, 'enrolments': 72000, 'assignments': 19200, 'submissions': 172958, 'seconds': 35.7}

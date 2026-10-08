@@ -1,4 +1,3 @@
-# import csv
 import io
 from unittest.mock import patch
 
@@ -42,10 +41,13 @@ class BulkEnrollmentTest(APITestCase):
         self.assertEqual(response.data["total_processed"], 2)
         self.assertEqual(response.data["success_count"], 2)
 
-        # Verify John Doe (with email)
+        # Verify John Doe (with email): ready to use, like a single add -
+        # active with a temporary password, no activation code.
         john = User.objects.get(email="john.doe@example.com")
         self.assertEqual(john.first_name, "John")
-        self.assertFalse(john.is_active)  # Should be inactive (invitation flow)
+        self.assertTrue(john.is_active)
+        self.assertTrue(john.must_change_password)
+        self.assertIsNone(john.activation_token)
 
         # Verify Jane Smith (without email)
         jane = User.objects.get(first_name="Jane", last_name="Smith")
@@ -108,7 +110,7 @@ class BulkEnrollmentTest(APITestCase):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_bulk_invite_link_uses_student_frontend_domain(self, mock_send_email):
         """A bulk-added row with an email (invitation flow, inactive
         student) gets a registration link on the student app, not the

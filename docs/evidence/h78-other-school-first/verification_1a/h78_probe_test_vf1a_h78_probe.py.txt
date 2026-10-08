@@ -1,0 +1,116 @@
+"""1a's verification probes for H-78 (2d94c43). Not committed.
+
+Reuses d5's fixture; the inherited d5 tests are switched off.
+
+R1: the race path. The teacher passes _get_or_invite_teacher (no active
+    subscription at that check), then has one when _enroll_teacher_internal
+    runs. Does any log line carry the address?
+R2: the licence carry-forward path with a teacher who now has an individual
+    subscription. Does any log line carry the address?
+R3: the operator's view of "Skipped enrolling" (class only) for a refusal
+    with no ids-only reason line of its own: the seat limit.
+R4: an UNATTACHED paying teacher (no school): what the admin is told.
+"""
+
+from unittest.mock import patch
+
+from billing.license_service import LicenseSubscriptionService
+from billing.models import LicenseBillingMethod, SchoolCreditAllocation, UserSubscription
+from billing.tests.test_other_school_before_subscription import (
+    OtherSchoolBeforeSubscriptionTest,
+)
+from django.utils import timezone
+from datetime import timedelta
+
+
+def only_own_tests(cls, parent):
+    for name in dir(parent):
+        if name.startswith("test_") and name not in cls.__dict__:
+            setattr(cls, name, None)
+    return cls
+
+
+class H78Probes(OtherSchoolBeforeSubscriptionTest):
+    def billing_logs(self, fn):
+        with self.assertLogs("billing", "INFO") as logs:
+            result = fn()
+        return result, logs.output
+
+    def test_r1_the_race_path_logs_no_address(self):
+        teacher = self.teacher("race@h78own.edu", self.school, paying=False)
+
+        def invite_then_subscribe(*args, **kwargs):
+            # The check passed; the teacher subscribes before enrolment.
+            UserSubscription.objects.create(
+                user=teacher,
+                plan=self.individual_plan,
+                is_active=True,
+                billing_cycle_start=timezone.now(),
+                billing_cycle_end=timezone.now() + timedelta(days=30),
+            )
+            return teacher
+
+        with patch.object(
+            LicenseSubscriptionService, "_get_or_invite_teacher", side_effect=invite_then_subscribe
+        ):
+            result, lines = self.billing_logs(
+                lambda: LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                    self.licence, self.school, self.admin, teacher.email
+                )
+            )
+        leaking = [line for line in lines if teacher.email in line]
+        print(f"\nVF1A_H78_R1 successful={result['successful']} lines_with_address={leaking}")
+        self.assertEqual(leaking, [], "a refusal path still logs the address")
+
+    def test_r2_the_carry_forward_path_logs_no_address(self):
+        teacher = self.teacher("carried@h78own.edu", self.school, paying=False)
+        LicenseSubscriptionService._enroll_teacher_internal(self.licence, teacher)
+        UserSubscription.objects.create(
+            user=teacher,
+            plan=self.individual_plan,
+            is_active=True,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + timedelta(days=30),
+        )
+        # A superadmin replaces the school's licence: the real path carries
+        # the active teachers forward (create_license_subscription's default).
+        _, lines = self.billing_logs(
+            lambda: LicenseSubscriptionService.create_license_subscription(
+                school=self.school,
+                plan=self.plan,
+                teacher_emails=[],
+                max_seats=5,
+                billing_method=LicenseBillingMethod.OFFLINE,
+            )
+        )
+        leaking = [line for line in lines if teacher.email in line]
+        print(f"\nVF1A_H78_R2 lines_with_address={leaking}")
+        self.assertEqual(leaking, [], "a refusal path still logs the address")
+
+    def test_r3_what_the_operator_sees_for_a_seat_limit_refusal(self):
+        type(self.licence).objects.filter(pk=self.licence.pk).update(max_seats=1)
+        first = self.teacher("first@h78own.edu", self.school, paying=False)
+        LicenseSubscriptionService._enroll_teacher_internal(self.licence, first)
+        self.licence.refresh_from_db()
+        second = self.teacher("second@h78own.edu", self.school, paying=False)
+        result, lines = self.billing_logs(
+            lambda: LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                self.licence, self.school, self.admin, second.email
+            )
+        )
+        print(
+            f"\nVF1A_H78_R3 admin_error={result['error']!r}\n  operator_lines="
+            + "\n  ".join(line.split(":", 2)[-1] for line in lines)
+        )
+        self.assertFalse(result["successful"])
+
+    def test_r4_an_unattached_paying_teacher(self):
+        teacher = self.teacher("solo@h78any.edu", None, paying=True)
+        response = self.add([teacher.email])
+        print(f"\nVF1A_H78_R4 status={response.status_code} body={response.content.decode()[:400]}")
+        self.assertFalse(
+            SchoolCreditAllocation.objects.filter(user=teacher).exists()
+        )
+
+
+only_own_tests(H78Probes, OtherSchoolBeforeSubscriptionTest)

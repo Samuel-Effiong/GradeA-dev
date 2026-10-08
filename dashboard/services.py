@@ -1,5 +1,7 @@
+import json
 from collections import Counter, defaultdict
 from datetime import timedelta
+from uuid import UUID
 
 from django.db.models import (
     Avg,
@@ -7,16 +9,23 @@ from django.db.models import (
     DurationField,
     ExpressionWrapper,
     F,
+    Min,
     Prefetch,
     Q,
     Sum,
 )
 from django.utils import timezone
 
+from ai_processor.services import AI_CONFIDENCE_THRESHOLD
 from assignments.models import Assignment, AssignmentStatus
-from classrooms.models import Course, EnrollmentStatusType, StudentCourse
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    StudentCourse,
+    reachable_courses,
+)
 from dashboard.rigor import build_rigor_by_teacher, empty_rigor_payload
-from dashboard.risk import RiskInputs, StudentRiskEvaluator
+from dashboard.risk import TREND_INSUFFICIENT_DATA, RiskInputs, StudentRiskEvaluator
 from students.models import StudentSubmission
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
@@ -24,33 +33,82 @@ from users.models import CustomUser, UserTypes
 
 class DashboardService:
     def analyze_question_difficulty(self, submissions):
+        """
+        The hardest and easiest questions across a set of submissions, as
+        (question_number, mean fraction of available marks) pairs.
+
+        WHAT THIS USED TO DO, AND WHY IT COULD NOT WORK
+
+        It read `submission.answers.items()` and pulled a "score" off each
+        value. Both halves were wrong:
+
+          * `answers` is a LIST of per-question dicts (see
+            ANSWERS_EXTRACTION_PROMPT_HTML_4's output contract and
+            students/services.py, which assigns the extractor's `answers`
+            array straight into the JSONField), so `.items()` raises
+            AttributeError on any real submission;
+          * those dicts carry the student's ANSWER, never a score. Marks
+            live in `submission.feedback["question_evaluations"]`, written
+            by AIProcessor._finalize_grading_result.
+
+        It never surfaced because both callers are commented out
+        (dashboard/views.py). Fixed rather than deleted so that
+        uncommenting them does something correct.
+
+        Scores are normalised to a FRACTION of each question's own marks
+        before averaging. Raw marks are not comparable across questions -
+        a 20-point essay averaging 12 is not "easier" than a 2-point MCQ
+        averaging 2, though raw sums would say so.
+        """
         question_scores = defaultdict(list)
 
         for submission in submissions:
-            if not submission.answers:
+            feedback = getattr(submission, "feedback", None)
+            if not isinstance(feedback, dict):
                 continue
 
-            for q_id, q_data in submission.answers.items():
-                score = q_data.get("score")
-                if score is not None:
-                    question_scores[q_id].append(score)
+            for evaluation in feedback.get("question_evaluations") or []:
+                if not isinstance(evaluation, dict):
+                    continue
+
+                number = evaluation.get("question_number")
+                if number is None:
+                    continue
+
+                raw_awarded = evaluation.get("score_awarded")
+                raw_available = evaluation.get("max_points")
+                if raw_awarded is None or raw_available is None:
+                    continue
+                try:
+                    awarded = float(raw_awarded)
+                    available = float(raw_available)
+                except (TypeError, ValueError):
+                    continue
+
+                # A zero-mark question has no meaningful difficulty and
+                # would divide by zero.
+                if available <= 0:
+                    continue
+
+                question_scores[str(number)].append(
+                    max(0.0, min(1.0, awarded / available))
+                )
 
         if not question_scores:
             return [], []
 
         question_averages = {
-            q: sum(scores) / len(scores) for q, scores in question_scores.items()
+            number: sum(scores) / len(scores)
+            for number, scores in question_scores.items()
         }
 
-        hardest = sorted(question_averages.items(), key=lambda x: x[1])[:2]
-        easiest = sorted(question_averages.items(), key=lambda x: x[1], reverse=True)[
-            :2
-        ]
+        # Sorted by (score, question_number) so questions that tie come out
+        # in a stable order rather than whatever dict iteration gives.
+        ranked = sorted(question_averages.items(), key=lambda item: (item[1], item[0]))
+        hardest = ranked[:2]
+        easiest = list(reversed(ranked[-2:]))
 
         return hardest, easiest
-
-    def get_ai_context(self, user):
-        pass
 
 
 class StudentWeeklySummaryService:
@@ -810,10 +868,14 @@ class WeeklyCourseSummaryService:
         )
 
     def _trend_from_values(self, previous_value, current_value, *, threshold):
+        # One spelling, shared with dashboard/risk.py. This used to return
+        # "INSUFFICIENT DATA" on one branch and "INSUFFICIENT_DATA" on the
+        # next, so the same condition read two different ways in the
+        # teacher's weekly email depending on which side had no data.
         if previous_value is None and current_value is None:
-            return "INSUFFICIENT DATA"
+            return TREND_INSUFFICIENT_DATA
         if previous_value is None:
-            return "IMPROVING" if current_value else "INSUFFICIENT_DATA"
+            return "IMPROVING" if current_value else TREND_INSUFFICIENT_DATA
         if current_value is None:
             return "DECLINING"
 
@@ -828,6 +890,520 @@ class WeeklyCourseSummaryService:
         if not counter:
             return None, 0
         return counter.most_common(1)[0]
+
+
+class TeacherPerformanceStatsService:
+    """Per-teacher performance statistics, for any number of teachers, in a
+    fixed number of queries.
+
+    The ONE implementation of these figures. It replaces two line-for-line
+    copies - `compute_teacher_performance_stats` in dashboard/views.py (the
+    school-admin teacher list and teacher detail) and the loop in
+    SchoolAdminWeeklySummaryService._build_teacher_activity (the weekly
+    email) - which had to be kept in step by hand, and each of which ran
+    about eight queries per teacher. A school with 60 teachers cost ~480
+    queries to render its weekly digest.
+
+    Here every figure is one grouped query across all requested teachers:
+    four queries, plus the two rigor roll-ups, however many teachers there
+    are. Each grouped query aggregates over a single relation, so no figure
+    can be inflated by a join fan-out.
+    """
+
+    #: "Growth" compares students in courses created in the last 180 days
+    #: with students in courses created before that.
+    GROWTH_WINDOW_DAYS = 180
+
+    def build(self, teachers, *, now=None, session=None):
+        """Return {teacher_id: payload} with an entry for every teacher.
+
+        `session` optionally restricts every figure to one
+        `classrooms.Session` instead of the teacher's whole history, for a
+        school admin viewing one term. Omitted (the default), behaviour is
+        unchanged for every existing caller (teacher list/detail, weekly
+        digest, AI chat context).
+        """
+        teachers = list(teachers)
+        if not teachers:
+            return {}
+
+        now = now or timezone.now()
+        growth_cutoff = now - timedelta(days=self.GROWTH_WINDOW_DAYS)
+        teacher_ids = [teacher.id for teacher in teachers]
+
+        course_filters = {"teacher_id__in": teacher_ids}
+        if session is not None:
+            course_filters["session"] = session
+        course_counts = {
+            row["teacher_id"]: row["n"]
+            for row in Course.objects.filter(**course_filters)
+            .values("teacher_id")
+            .annotate(n=Count("id"))
+            .order_by()
+        }
+
+        enrolment_filters = {"course__teacher_id__in": teacher_ids}
+        if session is not None:
+            enrolment_filters["course__session"] = session
+        active_enrolments = StudentCourse.objects.filter(**enrolment_filters).exclude(
+            enrollment_status=EnrollmentStatusType.WITHDRAWN
+        )
+        enrolment_rows = {
+            row["course__teacher_id"]: row
+            for row in active_enrolments.values("course__teacher_id")
+            .annotate(
+                students=Count("student", distinct=True),
+                current_students=Count(
+                    "student",
+                    distinct=True,
+                    filter=Q(course__created_at__gte=growth_cutoff),
+                ),
+                past_students=Count(
+                    "student",
+                    distinct=True,
+                    filter=Q(course__created_at__lt=growth_cutoff),
+                ),
+            )
+            .order_by()
+        }
+
+        assignment_filters = {"course__teacher_id__in": teacher_ids}
+        if session is not None:
+            assignment_filters["course__session"] = session
+        assignment_rows = {
+            row["course__teacher_id"]: row
+            for row in Assignment.objects.filter(**assignment_filters)
+            .values("course__teacher_id")
+            .annotate(n=Count("id"), first_created_at=Min("created_at"))
+            .order_by()
+        }
+
+        graded_filters = {
+            "assignment__course__teacher_id__in": teacher_ids,
+            "graded_at__isnull": False,
+        }
+        if session is not None:
+            graded_filters["assignment__course__session"] = session
+        graded_rows = {
+            row["assignment__course__teacher_id"]: row
+            for row in StudentSubmission.objects.filter(**graded_filters)
+            .values("assignment__course__teacher_id")
+            .annotate(
+                n=Count("id"),
+                total_turnaround=Sum(
+                    ExpressionWrapper(
+                        F("graded_at") - F("submission_date"),
+                        output_field=DurationField(),
+                    )
+                ),
+                ai_confidence=Avg("grading_confidence"),
+            )
+            .order_by()
+        }
+
+        rigor_by_teacher = build_rigor_by_teacher(teacher_ids, session=session)
+
+        return {
+            teacher.id: self._payload(
+                teacher,
+                now=now,
+                courses=course_counts.get(teacher.id, 0),
+                enrolments=enrolment_rows.get(teacher.id) or {},
+                assignments=assignment_rows.get(teacher.id) or {},
+                graded=graded_rows.get(teacher.id) or {},
+                rigor=rigor_by_teacher.get(teacher.id) or empty_rigor_payload(),
+            )
+            for teacher in teachers
+        }
+
+    @staticmethod
+    def _payload(teacher, *, now, courses, enrolments, assignments, graded, rigor):
+        current_students = enrolments.get("current_students") or 0
+        past_students = enrolments.get("past_students") or 0
+        if past_students > 0:
+            growth = ((current_students - past_students) / past_students) * 100
+        elif current_students > 0:
+            growth = 100.0  # started from zero
+        else:
+            growth = None
+
+        # Assignments per week, over the lifetime since the first assignment.
+        assignments_count = assignments.get("n") or 0
+        first_created_at = assignments.get("first_created_at")
+        if first_created_at and assignments_count > 0:
+            weeks = (now - first_created_at).days / 7
+            assignments_per_week = assignments_count / weeks if weeks > 0 else 0
+        else:
+            assignments_per_week = None
+
+        # Average days from submission to grading, over graded submissions.
+        graded_count = graded.get("n") or 0
+        total_turnaround = graded.get("total_turnaround")
+        if graded_count > 0 and total_turnaround:
+            turnaround = total_turnaround.total_seconds() / (graded_count * 86400)
+        else:
+            turnaround = None
+
+        ai_confidence = graded.get("ai_confidence")
+
+        return {
+            "id": teacher.id,
+            "name": teacher.get_full_name(),
+            "email": teacher.email,
+            "courses": courses,
+            "students": enrolments.get("students") or 0,
+            "growth": round(growth, 1) if growth is not None else None,
+            "assignments_per_week": (
+                round(assignments_per_week, 1)
+                if assignments_per_week is not None
+                else None
+            ),
+            "turnaround": round(turnaround, 1) if turnaround is not None else None,
+            "ai_confidence": (
+                round(ai_confidence, 1) if ai_confidence is not None else None
+            ),
+            # `rigor` stays a plain 0-5 float for existing consumers; the
+            # components that make it actionable ride in `rigor_breakdown`.
+            "rigor": rigor.get("score"),
+            "rigor_breakdown": rigor,
+            "status": teacher.is_active,
+        }
+
+
+def dashboard_context_json(payload):
+    """Serialise dashboard data for an AI prompt.
+
+    Compact JSON: every character of context is paid for in tokens on every
+    request, and JSON is unambiguous to the model where a Python dict repr
+    (what the prompts used to receive) is not.
+    """
+    return json.dumps(payload, default=str, separators=(",", ":"), ensure_ascii=False)
+
+
+class SchoolAdminAIContextService:
+    """Data sections for the school-admin AI chat that are built here rather
+    than borrowed from a dashboard endpoint."""
+
+    #: A school admin's question is about their staff, so every teacher up to
+    #: this many is included; beyond it the section says how many were left
+    #: out, so the model never presents a partial list as the whole school.
+    MAX_TEACHERS = 100
+
+    def teachers(self, school):
+        teachers_qs = CustomUser.objects.filter(
+            school=school, user_type=UserTypes.TEACHER
+        ).order_by("first_name", "last_name", "id")
+        total = teachers_qs.count()
+        teachers = list(teachers_qs[: self.MAX_TEACHERS])
+        stats = TeacherPerformanceStatsService().build(teachers)
+
+        rows = []
+        for teacher in teachers:
+            row = stats[teacher.id]
+            rows.append(
+                {
+                    "teacher": row["name"],
+                    "active": row["status"],
+                    "courses": row["courses"],
+                    "students": row["students"],
+                    "student_growth_percent": row["growth"],
+                    "assignments_per_week": row["assignments_per_week"],
+                    "grading_turnaround_days": row["turnaround"],
+                    "ai_grading_confidence": row["ai_confidence"],
+                    "rigor_score_0_to_5": row["rigor"],
+                    "rigor_verdict": row["rigor_breakdown"].get("label"),
+                }
+            )
+
+        section = {"teachers_total": total, "teachers": rows}
+        if total > len(rows):
+            section["limit"] = (
+                f"Showing {len(rows)} of {total} teachers, alphabetically. "
+                f"The other {total - len(rows)} are not listed here."
+            )
+        return section
+
+
+class TeacherAIContextService:
+    """Everything the teacher AI chat needs, in a fixed number of queries.
+
+    REPLACES a context built by calling four dashboard endpoints in loops -
+    `overview` per session, `courses` per course, `assignments` PER
+    ASSIGNMENT and `students` per course - and pasting their full responses
+    into the prompt. Measured: ten more assignments added 37 queries to a
+    single chat request, and the prompt grew with every submission a
+    teacher had ever received.
+
+    Here: four queries whatever the teacher's size, and every list has a cap
+    plus an explicit total, so a limit is always stated in the data rather
+    than silently applied. The caps are high enough that a typical teacher is
+    never truncated at all.
+    """
+
+    MAX_COURSES = 50
+    MAX_RECENT_ASSIGNMENTS = 60
+    MAX_LOWEST_SCORING = 10
+    MAX_UPCOMING = 10
+    #: At-risk students are listed first, so they are the last to be cut.
+    MAX_STUDENT_ROWS = 200
+
+    risk_evaluator = StudentRiskEvaluator()
+
+    def build(self, teacher, *, now=None):
+        now = now or timezone.now()
+
+        courses = list(
+            reachable_courses(teacher)
+            .select_related("session")
+            .order_by("-is_active", "name", "id")
+        )
+        course_by_id = {course.id: course for course in courses}
+        course_ids = list(course_by_id)
+
+        # Per-assignment aggregates over the ONE `submissions` relation, so
+        # nothing is multiplied by a second join.
+        assignments = list(
+            Assignment.objects.filter(course_id__in=course_ids)
+            .annotate(
+                submission_total=Count("submissions"),
+                graded_total=Count(
+                    "submissions",
+                    filter=Q(submissions__score_percentage__isnull=False),
+                ),
+                average_score=Avg("submissions__score_percentage"),
+            )
+            .values(
+                "id",
+                "title",
+                "course_id",
+                "status",
+                "assignment_type",
+                "due_date",
+                "created_at",
+                "extraction_confidence",
+                "submission_total",
+                "graded_total",
+                "average_score",
+            )
+            .order_by("-created_at", "id")
+        )
+
+        enrolments = list(
+            StudentCourse.objects.filter(course_id__in=course_ids)
+            .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            .values(
+                "course_id",
+                "student_id",
+                "student__first_name",
+                "student__last_name",
+            )
+            .order_by("student__last_name", "student__first_name", "student_id")
+        )
+
+        submissions = list(
+            StudentSubmission.objects.filter(
+                assignment__course_id__in=course_ids
+            ).values(
+                "student_id",
+                "assignment_id",
+                "assignment__course_id",
+                "submission_date",
+                "score_percentage",
+                "grading_confidence",
+            )
+        )
+
+        return self._assemble(
+            now, courses, course_by_id, assignments, enrolments, submissions
+        )
+
+    def _assemble(
+        self, now, courses, course_by_id, assignments, enrolments, submissions
+    ):
+        # Same definition of "work a student could have submitted by now" as
+        # the at-risk dashboards: published, and either undated or due.
+        due_by_course = defaultdict(int)
+        published_by_course = defaultdict(int)
+        for assignment in assignments:
+            if assignment["status"] != AssignmentStatus.PUBLISHED:
+                continue
+            published_by_course[assignment["course_id"]] += 1
+            if assignment["due_date"] is None or assignment["due_date"] <= now:
+                due_by_course[assignment["course_id"]] += 1
+
+        submitted_ids = defaultdict(set)
+        dated_scores = defaultdict(list)
+        submissions_by_course = defaultdict(int)
+        graded_scores_by_course = defaultdict(list)
+        for submission in submissions:
+            key = (submission["student_id"], submission["assignment__course_id"])
+            submitted_ids[key].add(submission["assignment_id"])
+            submissions_by_course[submission["assignment__course_id"]] += 1
+            if submission["score_percentage"] is not None:
+                score = float(submission["score_percentage"])
+                dated_scores[key].append((submission["submission_date"], score))
+                graded_scores_by_course[submission["assignment__course_id"]].append(
+                    score
+                )
+
+        students = []
+        at_risk_by_course = defaultdict(int)
+        for enrolment in enrolments:
+            key = (enrolment["student_id"], enrolment["course_id"])
+            course = course_by_id[enrolment["course_id"]]
+            result = self.risk_evaluator.evaluate(
+                RiskInputs(
+                    expected_assignment_count=due_by_course[enrolment["course_id"]],
+                    submitted_count=len(submitted_ids[key]),
+                    graded_scores=dated_scores[key],
+                )
+            )
+            if result.at_risk:
+                at_risk_by_course[enrolment["course_id"]] += 1
+            name = f"{enrolment['student__first_name']} {enrolment['student__last_name']}".strip()
+            students.append(
+                {
+                    "student": name,
+                    "course": course.name,
+                    "at_risk": result.at_risk,
+                    "average_score": result.average_grade,
+                    "submitted": len(submitted_ids[key]),
+                    "due_assignments": due_by_course[enrolment["course_id"]],
+                    "submission_rate_percent": result.submission_rate,
+                    "trend": result.grade_trend,
+                    "risk_reasons": result.reasons,
+                }
+            )
+        students.sort(
+            key=lambda row: (
+                not row["at_risk"],
+                row["average_score"] is None,
+                row["average_score"] if row["average_score"] is not None else 0.0,
+                row["student"].lower(),
+            )
+        )
+
+        course_rows = []
+        for course in courses:
+            scores = graded_scores_by_course[course.id]
+            course_rows.append(
+                {
+                    "course": course.name,
+                    "session": course.session.name if course.session else None,
+                    "active": course.is_active,
+                    "students": sum(
+                        1 for e in enrolments if e["course_id"] == course.id
+                    ),
+                    "published_assignments": published_by_course[course.id],
+                    "due_assignments": due_by_course[course.id],
+                    "submissions": submissions_by_course[course.id],
+                    "graded_submissions": len(scores),
+                    "average_score": (
+                        round(sum(scores) / len(scores), 2) if scores else None
+                    ),
+                    "at_risk_students": at_risk_by_course[course.id],
+                }
+            )
+
+        def assignment_row(assignment):
+            average = assignment["average_score"]
+            return {
+                "title": assignment["title"],
+                "course": course_by_id[assignment["course_id"]].name,
+                "status": assignment["status"],
+                "type": assignment["assignment_type"],
+                "due_date": assignment["due_date"],
+                "submissions": assignment["submission_total"],
+                "graded": assignment["graded_total"],
+                "average_score": (
+                    round(float(average), 2) if average is not None else None
+                ),
+                "extraction_confidence": assignment["extraction_confidence"],
+            }
+
+        lowest_scoring = sorted(
+            (a for a in assignments if a["average_score"] is not None),
+            key=lambda a: (a["average_score"], a["title"]),
+        )[: self.MAX_LOWEST_SCORING]
+        upcoming = sorted(
+            (
+                a
+                for a in assignments
+                if a["status"] == AssignmentStatus.PUBLISHED
+                and a["due_date"] is not None
+                and a["due_date"] > now
+            ),
+            key=lambda a: a["due_date"],
+        )[: self.MAX_UPCOMING]
+
+        extraction = [
+            a["extraction_confidence"]
+            for a in assignments
+            if a["extraction_confidence"] is not None
+        ]
+        grading = [
+            s["grading_confidence"]
+            for s in submissions
+            if s["grading_confidence"] is not None
+        ]
+        low = sum(1 for v in extraction if v < AI_CONFIDENCE_THRESHOLD) + sum(
+            1 for v in grading if v < AI_CONFIDENCE_THRESHOLD
+        )
+        records = len(extraction) + len(grading)
+
+        limits = []
+
+        def capped(rows, cap, what, order):
+            if len(rows) > cap:
+                limits.append(
+                    f"{what}: showing {cap} of {len(rows)} ({order}); the rest "
+                    f"are counted in the totals but not listed."
+                )
+            return rows[:cap]
+
+        at_risk_total = sum(1 for row in students if row["at_risk"])
+        # Every capped list is cut BEFORE the payload is assembled, so the
+        # limits they record are in `limits` when it is read.
+        listed_courses = capped(
+            course_rows, self.MAX_COURSES, "courses", "active first, then by name"
+        )
+        listed_assignments = capped(
+            [assignment_row(a) for a in assignments],
+            self.MAX_RECENT_ASSIGNMENTS,
+            "recent_assignments",
+            "newest first",
+        )
+        listed_students = capped(
+            students,
+            self.MAX_STUDENT_ROWS,
+            "students",
+            "at-risk first, then lowest average",
+        )
+        return {
+            "generated_at": now,
+            "limits": limits or ["Nothing was left out: every record is listed."],
+            "courses_total": len(course_rows),
+            "courses": listed_courses,
+            "assignments_total": len(assignments),
+            "recent_assignments": listed_assignments,
+            "lowest_scoring_assignments": [assignment_row(a) for a in lowest_scoring],
+            "upcoming_assignments": [assignment_row(a) for a in upcoming],
+            "student_enrolments_total": len(students),
+            "at_risk_students_total": at_risk_total,
+            "students": listed_students,
+            "ai_trust": {
+                "average_extraction_confidence": (
+                    round(sum(extraction) / len(extraction), 2) if extraction else None
+                ),
+                "average_grading_confidence": (
+                    round(sum(grading) / len(grading), 2) if grading else None
+                ),
+                "low_confidence_rate_percent": (
+                    round(low / records * 100, 2) if records else 0.0
+                ),
+                "low_confidence_threshold": AI_CONFIDENCE_THRESHOLD,
+            },
+        }
 
 
 class SchoolAdminWeeklySummaryService:
@@ -872,11 +1448,20 @@ class SchoolAdminWeeklySummaryService:
             school=school, user_type=UserTypes.TEACHER, is_active=True
         ).count()
 
-        active_student_count = CustomUser.objects.filter(
-            enrollments__course__teacher__school=school,
-            is_active=True,
-            user_type=UserTypes.STUDENT,
-        ).count()
+        # .distinct(): the filter joins through enrollments, so without it a
+        # student enrolled in five courses was counted five times. Measured:
+        # one student in two courses reported as 2. The live dashboard
+        # summary already used .distinct(), so the weekly email and the
+        # dashboard disagreed about the same school on the same day.
+        active_student_count = (
+            CustomUser.objects.filter(
+                enrollments__course__teacher__school=school,
+                is_active=True,
+                user_type=UserTypes.STUDENT,
+            )
+            .distinct()
+            .count()
+        )
 
         active_course_count = Course.objects.filter(
             teacher__school=school, is_active=True
@@ -933,27 +1518,33 @@ class SchoolAdminWeeklySummaryService:
         at-risk definition shared across the codebase — and return the
         CustomUser instances that are at-risk, worst average first (students
         with no graded work yet, if flagged via missing work, sort last).
-        Each returned student has `avg_score` set as a dynamic attribute.
+        Each returned student has `avg_score` set as a dynamic attribute. The
+        instances are partial (id and name fields only; see the note where they
+        are loaded).
 
         Only currently-ENROLLED students are considered, so a student who
         withdraws naturally drops out of the at-risk set (rather than
         remaining flagged indefinitely on stale submission history).
         Reused by both the weekly digest and the daily at-risk alert task.
         """
+        # Scalar columns only. This used to build a CustomUser per enrollment
+        # and a StudentSubmission plus its Assignment per submission (a large
+        # school is ~17,000 of them, each carrying its answers/feedback JSON),
+        # so the cost was Python object construction, not SQL (H-14). The
+        # evaluator needs six values per submission, and a student object is
+        # only needed for the students who turn out to be at risk.
         enrollments = StudentCourse.objects.filter(
             course__teacher__school=school,
             enrollment_status=EnrollmentStatusType.ENROLLED,
             student__is_active=True,
             student__user_type=UserTypes.STUDENT,
-        ).select_related("student")
+        ).values_list("student_id", "course_id")
 
         course_ids_by_student = defaultdict(set)
-        students_by_id = {}
-        for enrollment in enrollments:
-            students_by_id[enrollment.student_id] = enrollment.student
-            course_ids_by_student[enrollment.student_id].add(enrollment.course_id)
+        for student_id, course_id in enrollments:
+            course_ids_by_student[student_id].add(course_id)
 
-        if not students_by_id:
+        if not course_ids_by_student:
             return []
 
         all_course_ids = {
@@ -978,36 +1569,42 @@ class SchoolAdminWeeklySummaryService:
         submissions_by_student = defaultdict(list)
         submissions = (
             StudentSubmission.objects.filter(
-                student_id__in=students_by_id.keys(),
+                student_id__in=course_ids_by_student.keys(),
                 assignment__course_id__in=all_course_ids,
             )
-            .select_related("assignment")
+            .values_list(
+                "student_id",
+                "assignment_id",
+                "assignment__course_id",
+                "submission_date",
+                "is_published",
+                "score_percentage",
+            )
             .order_by("submission_date", "id")
         )
-        for submission in submissions:
-            submissions_by_student[submission.student_id].append(submission)
+        for row in submissions:
+            submissions_by_student[row[0]].append(row[1:])
 
-        at_risk_students = []
-        for student_id, student in students_by_id.items():
-            student_course_ids = course_ids_by_student[student_id]
+        at_risk_scores: dict[UUID, float | None] = {}
+        for student_id, student_course_ids in course_ids_by_student.items():
             expected_assignment_count = sum(
                 due_assignment_counts.get(course_id, 0)
                 for course_id in student_course_ids
             )
             student_submissions = [
-                submission
-                for submission in submissions_by_student.get(student_id, [])
-                if submission.assignment.course_id in student_course_ids
+                row
+                for row in submissions_by_student.get(student_id, [])
+                if row[1] in student_course_ids
             ]
-            submitted_count = len(
-                {submission.assignment_id for submission in student_submissions}
-            )
+            submitted_count = len({row[0] for row in student_submissions})
             # Only published, graded submissions count toward the average
             # shown to school admins (matches the prior school-wide behavior).
             graded_scores = [
-                (submission.submission_date, float(submission.score_percentage))
-                for submission in student_submissions
-                if submission.is_published and submission.score_percentage is not None
+                (submission_date, float(score_percentage))
+                for _, _, submission_date, is_published, score_percentage in (
+                    student_submissions
+                )
+                if is_published and score_percentage is not None
             ]
 
             risk_result = self.risk_evaluator.evaluate(
@@ -1018,15 +1615,30 @@ class SchoolAdminWeeklySummaryService:
                 )
             )
             if risk_result.at_risk:
-                student.avg_score = risk_result.average_grade
-                at_risk_students.append(student)
+                at_risk_scores[student_id] = risk_result.average_grade
 
-        at_risk_students.sort(
-            key=lambda student: (
-                student.avg_score is None,
-                student.avg_score if student.avg_score is not None else 0.0,
-            )
-        )
+        # Partial instances: id and the name fields, which is everything the
+        # weekly digest, the summary endpoint and the daily alert read
+        # (get_full_name, id, avg_score). Any other attribute is deferred and
+        # would cost one query per student.
+        students_by_id = CustomUser.objects.only(
+            "id", "first_name", "middle_name", "last_name"
+        ).in_bulk(at_risk_scores.keys())
+        at_risk_students: list[CustomUser] = []
+        for student_id, avg_score in at_risk_scores.items():
+            student = students_by_id.get(student_id)
+            if student is None:
+                # Hard-deleted after the enrollment scan above.
+                continue
+            # Callers read avg_score off the user, as they would an annotation.
+            student.avg_score = avg_score  # type: ignore[attr-defined]
+            at_risk_students.append(student)
+
+        def by_score(student: CustomUser) -> tuple[bool, float]:
+            score = at_risk_scores[student.pk]
+            return (score is None, score if score is not None else 0.0)
+
+        at_risk_students.sort(key=by_score)
         return at_risk_students
 
     def _build_at_risk_students(self, school):
@@ -1053,126 +1665,11 @@ class SchoolAdminWeeklySummaryService:
         window-scoped to this week — mirrors SchoolAdminDashboardView
         .teacher_performance intentionally, since a single week is too
         short a window for meaningful growth/rigor/turnaround trends."""
-        # Only `courses` is prefetched: every metric below runs through fresh
-        # manager queries and aggregates, so the previous
-        # courses__enrollments / courses__assignments / ...__submissions
-        # prefetch pulled every submission row in the school into memory and
-        # was then never read.
-        teachers = (
+        teachers = list(
             CustomUser.objects.filter(school=school, user_type=UserTypes.TEACHER)
-            .distinct()
-            .prefetch_related("courses")
         )
-
-        now = timezone.now()
-        six_months_ago = now - timedelta(days=self.TEACHER_GROWTH_WINDOW_DAYS)
-
-        teachers = list(teachers)
-        # Two queries for the whole school, rather than two per teacher.
-        rigor_by_teacher = build_rigor_by_teacher([teacher.id for teacher in teachers])
-
-        result = []
-        for teacher in teachers:
-            courses = teacher.courses.all()
-            course_ids = [course.id for course in courses]
-            courses_count = len(course_ids)
-
-            students_count = (
-                StudentCourse.objects.filter(course_id__in=course_ids)
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-
-            current_students = (
-                StudentCourse.objects.filter(
-                    course_id__in=course_ids, course__created_at__gte=six_months_ago
-                )
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-            past_students = (
-                StudentCourse.objects.filter(
-                    course_id__in=course_ids, course__created_at__lt=six_months_ago
-                )
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-            if past_students > 0:
-                growth = ((current_students - past_students) / past_students) * 100
-            elif current_students > 0:
-                growth = 100.0
-            else:
-                growth = None
-
-            assignments = Assignment.objects.filter(course_id__in=course_ids)
-            assignments_count = assignments.count()
-            first_assignment = assignments.order_by("created_at").first()
-            if first_assignment and assignments_count > 0:
-                weeks = (now - first_assignment.created_at).days / 7
-                assignments_per_week = assignments_count / weeks if weeks > 0 else 0
-            else:
-                assignments_per_week = None
-
-            graded_submissions = StudentSubmission.objects.filter(
-                assignment__course_id__in=course_ids, graded_at__isnull=False
-            )
-            graded_count = graded_submissions.count()
-            if graded_count > 0:
-                total_duration = graded_submissions.aggregate(
-                    total=Sum(
-                        ExpressionWrapper(
-                            F("graded_at") - F("submission_date"),
-                            output_field=DurationField(),
-                        )
-                    )
-                )["total"]
-                turnaround = (
-                    total_duration.total_seconds() / (graded_count * 86400)
-                    if total_duration
-                    else None
-                )
-            else:
-                turnaround = None
-
-            ai_confidence = graded_submissions.aggregate(
-                avg_conf=Avg("grading_confidence")
-            )["avg_conf"]
-
-            # Composite rigor (dashboard/rigor.py): cognitive demand from
-            # per-question Bloom's levels, achieved outcomes, and rubric
-            # coverage. Precomputed in bulk above.
-            rigor = rigor_by_teacher.get(teacher.id) or empty_rigor_payload()
-
-            result.append(
-                {
-                    "id": teacher.id,
-                    "name": teacher.get_full_name(),
-                    "email": teacher.email,
-                    "courses": courses_count,
-                    "students": students_count,
-                    "growth": round(growth, 1) if growth is not None else None,
-                    "assignments_per_week": (
-                        round(assignments_per_week, 1)
-                        if assignments_per_week is not None
-                        else None
-                    ),
-                    "turnaround": (
-                        round(turnaround, 1) if turnaround is not None else None
-                    ),
-                    "ai_confidence": (
-                        round(ai_confidence, 1) if ai_confidence is not None else None
-                    ),
-                    "rigor": rigor.get("score"),
-                    "rigor_breakdown": rigor,
-                    "status": teacher.is_active,
-                }
-            )
+        stats = TeacherPerformanceStatsService().build(teachers)
+        result = [stats[teacher.id] for teacher in teachers]
 
         result.sort(key=lambda row: (not row["status"], row["name"].lower()))
         return result

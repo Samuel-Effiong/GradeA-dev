@@ -1,0 +1,13 @@
+# W4: the action is the default one (die), not ignore
+# file: AutoGrader/redis_test_runner.py (occurrence 1)
+# old: '    signal.signal(signal.SIGTERM, signal.SIG_DFL)\n'
+# new: '    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+# commit: 6370f662bae94068ef0e1f8f880bf6127997a711
+# exit: 1
+# elapsed_s: 21.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies)
+FAIL: test_the_setup_of_a_spawned_worker_restores_the_default_action_too (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too)
+
+FAILED (failures=2)

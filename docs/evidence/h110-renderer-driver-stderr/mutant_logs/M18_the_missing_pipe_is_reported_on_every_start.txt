@@ -1,0 +1,24 @@
+..........................F
+======================================================================
+FAIL: test_the_renderer_starts_and_says_so_once_per_process (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_the_renderer_starts_and_says_so_once_per_process)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 134, in test_the_renderer_starts_and_says_so_once_per_process
+    self.assertEqual(self.errors_of_a_start(), [])
+AssertionError: Lists differ: ["[PDF] Playwright did not take the render[183 chars]de."] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+"[PDF] Playwright did not take the renderer's stderr pipe for its driver, so the driver shares this process's stderr and log lines can be lost while it runs (H-110). Check playwright._impl._transport after a Playwright upgrade."
+
++ []
+- ["[PDF] Playwright did not take the renderer's stderr pipe for its driver, so "
+-  "the driver shares this process's stderr and log lines can be lost while it "
+-  'runs (H-110). Check playwright._impl._transport after a Playwright upgrade.']
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.997s
+
+FAILED (failures=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

@@ -3,8 +3,6 @@ import uuid
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
-# from idlelib.pyparse import trans
-
 
 class GradingState(models.TextChoices):
     """
@@ -27,7 +25,6 @@ class GradingState(models.TextChoices):
     FAILED = "FAILED", _("Failed")
 
 
-# Create your models here.
 class StudentSubmission(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.ForeignKey(
@@ -168,7 +165,13 @@ class StudentSubmission(models.Model):
         blank=True,
         help_text=_("The time student submission was graded by AI"),
     )
-    ai_grading_completed_at = models.DateField(
+    # DateTimeField, paired with ai_graded_at above: the superadmin AI
+    # performance dashboard reports their difference as the average grading
+    # duration. This was a DateField until migration 0027 - a date minus a
+    # timestamp is (midnight - the real time), so every reported duration
+    # was negative garbage. 0028 backfills historical rows from graded_at,
+    # which the same save sets milliseconds later.
+    ai_grading_completed_at = models.DateTimeField(
         null=True,
         blank=True,
         help_text=_("The time the ai finished grading the student submission"),
@@ -308,8 +311,16 @@ class BatchUploadSession(models.Model):
                 }
             )
 
+        # Read-modify-write on a JSON list, called concurrently by every task
+        # a "Grade All" / batch upload fans out. Without the row lock two
+        # workers read the same list, each append their own entry, and the
+        # second save silently drops the first worker's result - the batch
+        # then reports fewer results than files and the frontend polls a
+        # session that can never complete. select_for_update serialises
+        # the appends on the row (the surrounding atomic() is what makes
+        # the lock hold until the save commits).
         with transaction.atomic():
-            session = BatchUploadSession.objects.select_related().get(id=self.id)
+            session = BatchUploadSession.objects.select_for_update().get(id=self.id)
             session.results.append(new_entry)
             session.save(update_fields=["results"])
 
@@ -323,6 +334,12 @@ class BackgroundTaskType(models.TextChoices):
     SUBMISSION_GRADING = "submission_grading", _("Submission Grading")
     BATCH_SUBMISSION_GRADING = "batch_submission_grading", _("Batch Submission Grading")
     FORMATTED_GRADE = "formatted_grade", _("Formatted Grade")
+    # Unlike every type above, this one has no assignment/submission/batch FK
+    # to hang off - a student summary is scoped to a (student, course) pair,
+    # which BackgroundProcessingTask has no column for. Those two ids live in
+    # `meta` instead, and students.task_context.get_task_context reads them
+    # back from there.
+    STUDENT_SUMMARY = "student_summary", _("Student Summary")
 
 
 class BackgroundTaskStatus(models.TextChoices):

@@ -1,0 +1,13 @@
+G1_no_guard_in_resolve_user {'killed': True, 'failing_tests': ['test_a_named_teacher_is_refused_too', 'test_refused_outside_debug_and_nothing_is_created', 'test_the_nightly_replay_is_skipped_and_creates_nothing', 'test_the_weekly_live_job_is_skipped_without_the_benchmark_switch']}
+G2_debug_does_not_allow {'killed': True, 'failing_tests': ['test_debug_lets_it_run']}
+G3_the_flag_does_not_allow {'killed': True, 'failing_tests': ['test_archive_preparation_failure_does_not_break_the_run', 'test_database_mirror_failure_does_not_break_the_run', 'test_history_is_written_and_report_is_unaffected', 'test_history_write_failure_does_not_break_the_run', 'test_no_history_flag_writes_nothing', 'test_replay_run_is_recorded_but_not_archived', 'test_report_is_identical_with_and_without_history', 'test_the_flag_lets_it_run']}
+G4_the_setting_does_not_allow {'killed': True, 'failing_tests': ['test_the_nightly_replay_runs_when_enabled', 'test_the_setting_lets_it_run', 'test_the_weekly_live_job_runs_with_both_switches']}
+G5_handle_drops_the_flag {'killed': True, 'failing_tests': ['test_archive_preparation_failure_does_not_break_the_run', 'test_database_mirror_failure_does_not_break_the_run', 'test_history_is_written_and_report_is_unaffected', 'test_history_write_failure_does_not_break_the_run', 'test_no_history_flag_writes_nothing', 'test_replay_run_is_recorded_but_not_archived', 'test_report_is_identical_with_and_without_history', 'test_the_flag_lets_it_run']}
+G6_nightly_does_not_skip_on_refusal {'killed': True, 'failing_tests': ['test_the_nightly_replay_is_skipped_and_creates_nothing']}
+G7_weekly_does_not_skip_on_refusal {'killed': True, 'failing_tests': ['test_the_weekly_live_job_is_skipped_without_the_benchmark_switch']}
+G9_the_live_qa_skip_logs_at_debug {'killed': True, 'failing_tests': ['test_the_weekly_live_job_is_skipped_without_live_qa']}
+G10_the_refusal_skip_logs_at_debug {'killed': True, 'failing_tests': ['test_the_nightly_replay_is_skipped_and_creates_nothing', 'test_the_weekly_live_job_is_skipped_without_the_benchmark_switch']}
+G11_the_live_qa_skip_logs_nothing {'killed': True, 'failing_tests': ['test_the_weekly_live_job_is_skipped_without_live_qa']}
+G12_the_refusal_skip_names_no_switch {'killed': True, 'failing_tests': ['test_the_nightly_replay_is_skipped_and_creates_nothing', 'test_the_weekly_live_job_is_skipped_without_the_benchmark_switch']}
+G8_the_switch_defaults_on {'killed': True, 'failing_tests': ['test_enable_grading_benchmark_defaults_to_false']}
+SURVIVORS: []

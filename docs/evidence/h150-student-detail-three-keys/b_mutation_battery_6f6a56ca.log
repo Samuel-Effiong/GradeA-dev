@@ -1,0 +1,9 @@
+baseline exit=0
+T1	the title's source names the assignment's title	KILLED	FAILED (failures=2, errors=4)	True	14.7
+T2	the due date is sent in the standard date form	KILLED	FAILED (failures=2)	True	14.3
+T3	the course's name is what course_title sends	KILLED	FAILED (failures=2)	True	16.9
+T4	an assignment's save bumps the students enrolled in its course	KILLED	FAILED (failures=3)	True	14.5
+T5	a course's save bumps the students enrolled in it	KILLED	FAILED (failures=1)	True	15.4
+
+5/5 killed with verified restore
+exit=0 wall_s=112

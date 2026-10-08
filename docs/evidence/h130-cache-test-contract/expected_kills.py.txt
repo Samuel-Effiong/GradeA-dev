@@ -1,0 +1,48 @@
+"""H-130 follow-up (the three cache tests): for every mutant, the tests
+that fail must be the expected set and nothing else. Written on
+2026-10-07 BEFORE any test run of this change, by reasoning from the code
+and the tests; no mutant was applied to anything. A test is named
+Class.method. Usage: python expected_kills.py <battery_dir>"""
+import re
+import sys
+from pathlib import Path
+
+C = "SubmissionDetailFreshnessTests"
+STUDENT_FOLLOWS = (C, "test_a_teachers_retitle_reaches_the_students_unreleased_document")
+TEACHER_SAME = (C, "test_a_teachers_retitle_does_NOT_change_the_teachers_payload")
+RELEASED_SAME = (C, "test_a_teachers_retitle_does_NOT_change_a_released_students_document")
+
+EXPECTED = {
+    # the student is not bumped: the second read is the cached first one.
+    "X1": {STUDENT_FOLLOWS},
+    # every read re-makes the stored document with today's title: the
+    # teacher and the released student both see the retitle. The
+    # unreleased student's document is rebuilt anyway, so that test passes.
+    "X2": {TEACHER_SAME, RELEASED_SAME},
+    # a released student gets the rebuilt document, which follows the title.
+    "X3": {RELEASED_SAME},
+}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+logs = Path(sys.argv[1]) / "logs"
+bad = sum(
+    compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+    for mutant, expected in EXPECTED.items()
+)
+print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

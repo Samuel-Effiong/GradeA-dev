@@ -1,0 +1,490 @@
+"""v2's probe for H-130 (d5). Copy to students/tests_vf2_h130_probe.py of the
+scratch worktree; never committed to the branch. Written 2026-10-06 before
+any run of H-130, after reading 5a50a220.
+
+Every read goes through the real student or teacher route. The fixtures are
+d5's (the submission is made by the upload engine, so it has production's
+shape).
+
+  D1  whole-payload diff of the four student reads, before and after grading
+      with nothing released: prints the keys that differ (for the record:
+      per-submission signals are H-127's) and requires that the document,
+      the final grade and its letter are not among them.
+  D2  a second attempt, then grading: the student still reads exactly what
+      the second upload stored.
+  D3  a rename read on the ASSIGNMENT route: it shows when it happens and
+      not when grading happens (d5 holds this on the submission route).
+  D4  the due date and the student's name, both routes: same rule.
+  D5  the teacher's reads before release: the stored document, the stored
+      final grade and its letter (list and detail).
+  D6  the student's course list costs the same number of queries with more
+      enrolments and more released work.
+  D7  a student's write on a graded, unreleased row gives back no document.
+  D8  (added 2026-10-06 after d5's first run showed the fixture's student
+      was PENDING and the assignment route answered 404) a second student,
+      made the way production makes one: invited by e-mail (PENDING), then
+      activated by the function every student login calls, then an upload
+      through the engine. Every read first checks 200 and the keys it is
+      about; then grading must change nothing on either student route and
+      leave the course figure empty.
+
+  D9  (added 2026-10-06 after the line-by-line read found that the student's
+      own upload route answers with the staff serializer) the upload ROUTE,
+      driven as d5's TheUploadRoutesOwnAnswer drives it; the assertions are
+      mine: a first upload and a SECOND attempt each answer 201 with the
+      stored document and with no grade in any grade-bearing key; after
+      grading (unreleased) a third upload is refused 409 with the single key
+      "error", and both student reads are what they were before grading.
+
+Every probe class also checks in setUp that its student is ENROLLED, and
+every read checks the status and the key before the content is compared.
+"""
+
+import json
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from django.utils import timezone
+
+from assignments.models import Assignment, AssignmentStatus
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from classrooms.services import enroll_student_by_email
+from classrooms.services.enrollment import activate_pending_enrollments_on_login
+from classrooms.tests_student_final_grade_released_only import StudentFinalGradeBase
+from students.models import StudentSubmission
+from students.services import get_grade_details, upload_answers_engine
+from students.tests_answer_document_before_release import (
+    EXTRACTED,
+    AnswerDocumentBase,
+)
+
+
+def plain(data):
+    return json.loads(json.dumps(data, default=str, sort_keys=True))
+
+
+def differing(before, after, prefix=""):
+    """Paths whose values differ between two JSON-like payloads."""
+    if isinstance(before, dict) and isinstance(after, dict):
+        out = []
+        for key in sorted(set(before) | set(after)):
+            out += differing(before.get(key), after.get(key), f"{prefix}{key}.")
+        return out
+    if isinstance(before, list) and isinstance(after, list) and len(before) == len(after):
+        out = []
+        for index, (b, a) in enumerate(zip(before, after)):
+            out += differing(b, a, f"{prefix}{index}.")
+        return out
+    return [] if before == after else [prefix.rstrip(".")]
+
+
+KEY_OF = {
+    "submission detail": "raw_input",
+    "assignment detail": "student_submission_raw_input",
+    "course detail": "final_grade",
+    "course list": "results",
+}
+
+
+class VF2DocumentProbe(AnswerDocumentBase):
+    def setUp(self):
+        super().setUp()
+        self.assertEqual(
+            self.enrollment().enrollment_status, EnrollmentStatusType.ENROLLED
+        )
+
+    def student_reads(self):
+        cache.clear()
+        self.client.force_authenticate(self.student)
+        routes = {
+            "submission detail": reverse(
+                "student-submission-detail", kwargs={"pk": self.submission.pk}
+            ),
+            "assignment detail": reverse(
+                "assignment-detail", kwargs={"pk": self.assignment.pk}
+            ),
+            "course detail": reverse(
+                "student-course-detail", kwargs={"pk": self.enrollment().pk}
+            ),
+            "course list": reverse("student-course-list"),
+        }
+        out = {}
+        for name, url in routes.items():
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, name)
+            self.assertIn(KEY_OF[name], response.data, name)
+            out[name] = plain(response.data)
+        self.assertTrue(out["submission detail"]["raw_input"])
+        self.assertTrue(out["assignment detail"]["student_submission_raw_input"])
+        self.assertEqual(
+            [str(row["id"]) for row in out["course list"]["results"]],
+            [str(self.enrollment().pk)],
+        )
+        return out
+
+    def test_d1_whole_payload_diff_before_and_after_grading(self):
+        before = self.student_reads()
+        self.grade_by_ai(self.submission, 7)
+        after = self.student_reads()
+
+        for name in before:
+            paths = differing(before[name], after[name])
+            print(f"VF2-D1 {name}: {paths}", flush=True)
+            leaves = {path.split(".")[-1] for path in paths}
+            for forbidden in (
+                "raw_input",
+                "student_submission_raw_input",
+                "final_grade",
+                "grade_letter",
+            ):
+                self.assertNotIn(forbidden, leaves, name)
+
+    def test_d2_a_second_attempt_then_grading(self):
+        second = {"answers": [dict(EXTRACTED["answers"][0], answer_html="<p>Jem.</p>")]}
+        with (
+            patch(
+                "students.services.ai_processor.extract_answer_with_retry",
+                return_value=second,
+            ),
+            patch("students.services.send_email_task.delay"),
+        ):
+            upload_answers_engine(
+                self.assignment, [{"type": "text", "text": "again"}], self.student
+            )
+        stored = self.stored()
+        self.assertIn("Jem.", stored)
+        self.assertEqual(self.on_the_submission(self.student), stored)
+        self.assertEqual(self.on_the_assignment(self.student), stored)
+
+        self.grade_by_ai(self.submission, 7)
+
+        self.assertEqual(self.on_the_submission(self.student), stored)
+        self.assertEqual(self.on_the_assignment(self.student), stored)
+
+    def test_d3_a_rename_on_the_assignment_route(self):
+        submitted = self.on_the_assignment(self.student)
+
+        Assignment.objects.filter(pk=self.assignment.pk).update(title="Essay, revised")
+        renamed = self.on_the_assignment(self.student)
+        self.grade_by_ai(self.submission, 7)
+        graded = self.on_the_assignment(self.student)
+
+        self.assertNotEqual(renamed, submitted)
+        self.assertEqual(graded, renamed)
+
+    def test_d4_the_due_date_and_the_name_follow_the_same_rule(self):
+        Assignment.objects.filter(pk=self.assignment.pk).update(
+            due_date=timezone.now() + timedelta(days=9)
+        )
+        type(self.student).objects.filter(pk=self.student.pk).update(first_name="Renamed")
+        before = (
+            self.on_the_submission(self.student),
+            self.on_the_assignment(self.student),
+        )
+        self.assertIn("Renamed", before[0])
+
+        self.grade_by_ai(self.submission, 7)
+
+        after = (
+            self.on_the_submission(self.student),
+            self.on_the_assignment(self.student),
+        )
+        self.assertEqual(after, before)
+
+    def test_d5_the_teachers_reads_before_release(self):
+        self.grade_by_ai(self.submission, 7)
+        stored_grade = self.enrollment().final_grade
+        self.assertIsNotNone(stored_grade)
+
+        self.assertEqual(self.on_the_submission(self.teacher), self.stored())
+        cache.clear()
+        self.client.force_authenticate(self.teacher)
+        detail = self.client.get(
+            reverse("student-course-detail", kwargs={"pk": self.enrollment().pk})
+        ).data
+        listed = [
+            row
+            for row in self.client.get(reverse("student-course-list")).data["results"]
+            if str(row["id"]) == str(self.enrollment().pk)
+        ][0]
+        for data in (detail, listed):
+            self.assertEqual(str(data["final_grade"]), str(stored_grade))
+            self.assertEqual(
+                data["grade_letter"]["letter_grade"],
+                get_grade_details(stored_grade)["letter_grade"],
+            )
+
+    def test_d7_a_students_write_on_a_graded_unreleased_row(self):
+        self.grade_by_ai(self.submission, 7)
+        self.client.force_authenticate(self.student)
+        with (
+            patch(
+                "students.services.ai_processor.extract_answer_with_retry",
+                return_value=EXTRACTED,
+            ),
+            patch("students.services.send_email_task.delay"),
+        ):
+            response = self.client.patch(
+                reverse("student-submission-detail", kwargs={"pk": self.submission.pk}),
+                {"raw_input": "another answer"},
+                format="json",
+            )
+        body = plain(response.data)
+        print(
+            f"VF2-D7 status {response.status_code}; keys "
+            f"{sorted(body) if isinstance(body, dict) else type(body).__name__}",
+            flush=True,
+        )
+        self.assertGreaterEqual(response.status_code, 400)
+        self.assertNotIn("raw_input", body if isinstance(body, dict) else {})
+
+
+class VF2UploadRouteProbe(AnswerDocumentBase):
+    """D9."""
+
+    def setUp(self):
+        super().setUp()
+        self.assertEqual(
+            self.enrollment().enrollment_status, EnrollmentStatusType.ENROLLED
+        )
+        self.third = self.assignments[2]
+        self.ungraded[1].delete()  # the base's bare row for that assignment
+
+    def upload(self, answer_html):
+        extracted = {"answers": [dict(EXTRACTED["answers"][0], answer_html=answer_html)]}
+        self.client.force_authenticate(self.student)
+        with (
+            patch(
+                "students.views.AssignmentProcessingService.prepare_ai_content",
+                return_value="content",
+            ),
+            patch(
+                "students.services.ai_processor.extract_answer_with_retry",
+                return_value=extracted,
+            ),
+            patch("students.services.send_email_task.delay"),
+        ):
+            return self.client.post(
+                reverse(
+                    "student-submission-upload-answers",
+                    kwargs={"assignment_id": self.third.pk},
+                ),
+                {
+                    "answer": SimpleUploadedFile(
+                        "answers.pdf",
+                        b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n",
+                        content_type="application/pdf",
+                    )
+                },
+                format="multipart",
+            )
+
+    def row(self):
+        return StudentSubmission.objects.get(student=self.student, assignment=self.third)
+
+    def reads(self):
+        cache.clear()
+        self.client.force_authenticate(self.student)
+        own = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.row().pk})
+        )
+        self.assertEqual(own.status_code, 200)
+        self.assertIn("raw_input", own.data)
+        on_assignment = self.client.get(
+            reverse("assignment-detail", kwargs={"pk": self.third.pk})
+        )
+        self.assertEqual(on_assignment.status_code, 200)
+        self.assertIn("student_submission_raw_input", on_assignment.data)
+        return own.data["raw_input"], on_assignment.data["student_submission_raw_input"]
+
+    def assert_an_ungraded_answer(self, response):
+        self.assertEqual(response.status_code, 201, getattr(response, "data", None))
+        body = plain(response.data)
+        self.assertIn("raw_input", body)
+        self.assertEqual(body["raw_input"], self.row().raw_input)
+        self.assertIsNone(body.get("graded_at"))
+        self.assertFalse(body.get("is_published"))
+        self.assertIn(str(body.get("score")), ("None", "0", "0.0", "0.00"))
+        self.assertFalse(body.get("feedback"))
+        print(f"VF2-D9 keys of a student's upload answer: {sorted(body)}", flush=True)
+
+    def test_d9_two_attempts_then_grading_then_a_refused_third(self):
+        first = self.upload("<p>Attempt one.</p>")
+        self.assert_an_ungraded_answer(first)
+        self.assertIn("Attempt one.", self.row().raw_input)
+        self.assertEqual(self.reads(), (self.row().raw_input,) * 2)
+
+        second = self.upload("<p>Attempt two.</p>")
+        self.assert_an_ungraded_answer(second)
+        stored = self.row().raw_input
+        self.assertIn("Attempt two.", stored)
+        before = self.reads()
+        self.assertEqual(before, (stored, stored))
+
+        self.grade_by_ai(self.row(), 7)
+        self.assertNotEqual(self.row().raw_input, stored)
+
+        third = self.upload("<p>Attempt three.</p>")
+        self.assertEqual(third.status_code, 409)
+        self.assertEqual(sorted(plain(third.data)), ["error"])
+        self.assertNotIn("Attempt three.", self.row().raw_input)
+        self.assertEqual(self.reads(), before)
+
+
+class VF2ProductionMadeStudentProbe(AnswerDocumentBase):
+    """D8: nothing here is put into the enrolment by hand."""
+
+    def setUp(self):
+        super().setUp()
+        self.course2 = Course.objects.create(
+            name="History 8",
+            teacher=self.teacher,
+            session=Session.objects.create(name="Term 2", teacher=self.teacher),
+        )
+        self.student2, _ = enroll_student_by_email(
+            course=self.course2, email="vf2-invited@x.test"
+        )
+        self.enrolment2 = StudentCourse.objects.get(
+            student=self.student2, course=self.course2
+        )
+        self.assertEqual(
+            self.enrolment2.enrollment_status, EnrollmentStatusType.PENDING
+        )
+        activate_pending_enrollments_on_login(self.student2)
+        self.enrolment2.refresh_from_db()
+        self.assertEqual(
+            self.enrolment2.enrollment_status, EnrollmentStatusType.ENROLLED
+        )
+        self.assignment2 = Assignment.objects.create(
+            title="Sources",
+            course=self.course2,
+            teacher=self.teacher,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=10,
+            due_date=timezone.now() + timedelta(days=3),
+        )
+        # As the upload route does: the assignment comes from the database,
+        # so the due date printed at upload is the stored value.
+        self.assignment2 = Assignment.objects.get(pk=self.assignment2.pk)
+        self.assertIsNotNone(self.assignment2.due_date)
+        with (
+            patch(
+                "students.services.ai_processor.extract_answer_with_retry",
+                return_value=EXTRACTED,
+            ),
+            patch("students.services.send_email_task.delay"),
+        ):
+            upload_answers_engine(
+                self.assignment2, [{"type": "text", "text": "an answer"}], self.student2
+            )
+        self.submission2 = StudentSubmission.objects.get(
+            student=self.student2, assignment=self.assignment2
+        )
+
+    def reads(self):
+        cache.clear()
+        self.client.force_authenticate(self.student2)
+        own = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission2.pk})
+        )
+        self.assertEqual(own.status_code, 200)
+        self.assertIn("raw_input", own.data)
+        on_assignment = self.client.get(
+            reverse("assignment-detail", kwargs={"pk": self.assignment2.pk})
+        )
+        self.assertEqual(on_assignment.status_code, 200)
+        self.assertIn("student_submission_raw_input", on_assignment.data)
+        course = self.client.get(
+            reverse("student-course-detail", kwargs={"pk": self.enrolment2.pk})
+        )
+        self.assertEqual(course.status_code, 200)
+        self.assertIn("final_grade", course.data)
+        self.assertIn("grade_letter", course.data)
+        return (
+            own.data["raw_input"],
+            on_assignment.data["student_submission_raw_input"],
+            course.data["final_grade"],
+            course.data["grade_letter"],
+        )
+
+    def test_d8_grading_changes_nothing_for_a_student_made_by_the_production_path(self):
+        stored = StudentSubmission.objects.get(pk=self.submission2.pk).raw_input
+        self.assertTrue(stored)
+        self.assertIn(str(self.assignment2.due_date.year), stored)
+        before = self.reads()
+        self.assertEqual(before[0], stored)
+        self.assertEqual(before[1], stored)
+        self.assertIsNone(before[2])
+        self.assertIsNone(before[3])
+
+        self.grade_by_ai(self.submission2, 7)
+        self.assertIsNotNone(
+            StudentCourse.objects.get(pk=self.enrolment2.pk).final_grade
+        )
+        self.assertNotEqual(
+            StudentSubmission.objects.get(pk=self.submission2.pk).raw_input, stored
+        )
+
+        self.assertEqual(self.reads(), before)
+
+
+class VF2CourseListProbe(StudentFinalGradeBase):
+    def setUp(self):
+        super().setUp()
+        activate_pending_enrollments_on_login(self.student)
+        self.assertEqual(
+            self.enrollment().enrollment_status, EnrollmentStatusType.ENROLLED
+        )
+
+    def count_list_queries(self):
+        cache.clear()
+        self.client.force_authenticate(self.student)
+        with CaptureQueriesContext(connection) as captured:
+            response = self.client.get(reverse("student-course-list"))
+        self.assertEqual(response.status_code, 200)
+        return len(captured), len(response.data["results"])
+
+    def test_d6_the_students_course_list_costs_the_same_with_more_work(self):
+        self.grade_by_ai(self.first, 7)
+        self.release(self.first)
+        few, rows_few = self.count_list_queries()
+
+        for number in range(3):
+            course = Course.objects.create(
+                name=f"More {number}",
+                teacher=self.teacher,
+                session=Session.objects.create(name=f"T{number}", teacher=self.teacher),
+            )
+            enroll_student_by_email(course=course, email=self.student.email)
+            activate_pending_enrollments_on_login(self.student)
+            for title in ("One", "Two", "Three"):
+                assignment = Assignment.objects.create(
+                    title=title,
+                    course=course,
+                    teacher=self.teacher,
+                    status=AssignmentStatus.PUBLISHED,
+                    total_points=10,
+                )
+                StudentSubmission.objects.create(
+                    student=self.student,
+                    assignment=assignment,
+                    answers={},
+                    score=6,
+                    max_points=10,
+                    graded_at=timezone.now(),
+                    is_published=True,
+                )
+        many, rows_many = self.count_list_queries()
+
+        print(
+            f"VF2-D6 queries: {few} for {rows_few} enrolment(s), "
+            f"{many} for {rows_many}",
+            flush=True,
+        )
+        self.assertEqual(rows_many, rows_few + 3)
+        self.assertEqual(many, few)

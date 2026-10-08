@@ -20,10 +20,15 @@ Three independent tasks — each with a single, well-defined responsibility:
 """
 
 import logging
+from enum import Enum
 
 from celery import shared_task
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
+
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
 
 from .imports import stripe
 from .license_service import (
@@ -31,8 +36,10 @@ from .license_service import (
     sync_teachers_under_license_to_mailerlite,
 )
 from .models import (
+    BetaProfile,
     BillingInterval,
     CreditBucket,
+    CreditBucketType,
     CreditWallet,
     LicenseBillingMethod,
     LicenseSubscription,
@@ -42,11 +49,20 @@ from .models import (
     StripeSubscriptionStatus,
     UserSubscription,
 )
-from .services import SubscriptionService
-from .stripe_service import RENEWAL_BILLING_REASONS, extract_invoice_billing_period
+from .refresh_timing import OWED_REFRESH_OVERDUE, refresh_due_by
+from .services import AnalyticsService, SubscriptionService
+from .stripe_service import (
+    RENEWAL_BILLING_REASONS,
+    _stripe_get,
+    extract_invoice_billing_period,
+)
 from .webhooks import STRIPE_EVENT_CLAIM_STALE_AFTER, STRIPE_RETRY_WINDOW
 
 logger = logging.getLogger(__name__)
+
+# Which tier the nightly Beat schedule runs. "fast" is the ~20-30 minute
+# envelope; "deep" takes hours and belongs in a weekly job.
+SCHEDULED_LIVE_QA_TIER = "fast"
 
 # How many recent paid invoices to scan when the newest one isn't the
 # renewal we're looking for (e.g. an upgrade proration landed after it).
@@ -144,6 +160,7 @@ def _find_new_period_paid_invoice(
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_license_renewals(self):
     """
     Daily fallback for license renewals.
@@ -291,7 +308,52 @@ def process_license_renewals(self):
     return summary
 
 
+def _monthly_buckets_owed_a_refresh(expired_buckets):
+    """
+    Ids of the expired buckets cleanup must leave alone: each wallet's
+    NEWEST unprocessed MONTHLY bucket, while its owner is still entitled
+    (an active subscription, or an active allocation under an active
+    licence). For them an expired monthly bucket means a refresh or renewal
+    is still owed, and that refresh is what rolls the bucket over
+    (billing/refresh_timing.py, defence 3). Older unprocessed MONTHLY
+    buckets, and everyone no longer entitled, are cleaned up as before.
+    """
+    wallet_ids = {
+        b.wallet_id
+        for b in expired_buckets
+        if b.bucket_type == CreditBucketType.MONTHLY
+    }
+    if not wallet_ids:
+        return set()
+
+    entitled_users = set(
+        UserSubscription.objects.filter(
+            is_active=True, user__credit_wallet__in=wallet_ids
+        ).values_list("user_id", flat=True)
+    ) | set(
+        SchoolCreditAllocation.objects.filter(
+            is_active=True,
+            license_subscription__is_active=True,
+            user__credit_wallet__in=wallet_ids,
+        ).values_list("user_id", flat=True)
+    )
+    newest = {}
+    for bucket_id, wallet_id in (
+        CreditBucket.objects.filter(
+            wallet_id__in=wallet_ids,
+            wallet__user_id__in=entitled_users,
+            bucket_type=CreditBucketType.MONTHLY,
+            is_processed=False,
+        )
+        .order_by("wallet_id", "-created_at")
+        .values_list("id", "wallet_id")
+    ):
+        newest.setdefault(wallet_id, bucket_id)
+    return set(newest.values())
+
+
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def cleanup_expired_credit_buckets(self):
     """
     Finds all CreditBuckets that have physically expired (expires_at <= now)
@@ -315,12 +377,28 @@ def cleanup_expired_credit_buckets(self):
         expires_at__lte=now,
         is_processed=False,
     ).select_related("wallet__user")
+    owed = _monthly_buckets_owed_a_refresh(expired_buckets)
 
     total_expired_count = 0
     total_value_lost = 0
     failed_count = 0
+    kept_for_refresh_count = 0
 
     for bucket in expired_buckets:
+        if bucket.pk in owed:
+            # The refresh or renewal still owed to this customer rolls this
+            # bucket over; writing it off first loses their carry-over.
+            kept_for_refresh_count += 1
+            if bucket.expires_at <= now - OWED_REFRESH_OVERDUE:
+                logger.error(
+                    "Monthly bucket %s (wallet %s) expired at %s and is still "
+                    "waiting for its owner's refresh or renewal; the refresh "
+                    "has stopped. Kept unexpired so it can still roll over.",
+                    bucket.id,
+                    bucket.wallet_id,
+                    bucket.expires_at,
+                )
+            continue
         try:
             value_lost = SubscriptionService.expire_bucket(bucket)
             total_expired_count += 1
@@ -339,6 +417,7 @@ def cleanup_expired_credit_buckets(self):
     summary = (
         f"Credit bucket cleanup: "
         f"{total_expired_count} buckets processed, "
+        f"{kept_for_refresh_count} monthly buckets kept for an owed refresh, "
         f"{total_value_lost} raw credits expired, "
         f"{failed_count} failed."
     )
@@ -347,6 +426,7 @@ def cleanup_expired_credit_buckets(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_annual_plan_credit_grants(self):
     """
     For ANNUAL-interval individual plans only: grants the next month's
@@ -364,40 +444,53 @@ def process_annual_plan_credit_grants(self):
     """
     now = timezone.now()
 
+    # Due up to a small tolerance past this run's start, and one "now" for
+    # the whole run (billing/refresh_timing.py): otherwise each grant fell
+    # due a moment after the next month's run started, waited a day, and
+    # the 05:00 cleanup wrote off the bucket it should have rolled over.
     due_subs = UserSubscription.objects.filter(
         is_active=True,
         is_trial=False,
         plan__interval=BillingInterval.ANNUAL,
-        next_credit_grant_at__lte=now,
-        billing_cycle_end__gt=now,
+        next_credit_grant_at__lte=refresh_due_by(now),
+        next_credit_grant_at__lt=F("billing_cycle_end"),
+        # A contract ending within the tolerance counts as ended (1a's F2):
+        # a grant then would be a month's bucket for its last minutes.
+        billing_cycle_end__gt=refresh_due_by(now),
     ).select_related("user", "plan")
 
     granted_count = 0
+    already_granted_count = 0
     failed_count = 0
 
     for sub in due_subs:
         try:
-            SubscriptionService.process_mid_cycle_credit_grant(sub)
-            granted_count += 1
+            if SubscriptionService.process_mid_cycle_credit_grant(sub, now=now) is None:
+                already_granted_count += 1
+            else:
+                granted_count += 1
         except Exception as exc:
             failed_count += 1
             logger.error(
                 "Failed mid-cycle credit grant for subscription %s (user %s): %s",
                 sub.id,
-                sub.user.email,
+                sub.user_id,
                 str(exc),
                 exc_info=True,
             )
 
     summary = (
         f"Annual plan mid-cycle credit grants: "
-        f"{granted_count} granted, {failed_count} failed."
+        f"{granted_count} granted, "
+        f"{already_granted_count} already granted by another run, "
+        f"{failed_count} failed."
     )
     logger.info(summary)
     return summary
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def reconcile_subscription_renewals(self):
     """
     Daily safety net: ensures that all active individual subscriptions
@@ -434,7 +527,28 @@ def reconcile_subscription_renewals(self):
 
                     from users.tasks import sync_user_to_mailerlite
 
-                    sync_user_to_mailerlite.delay(str(sub.user_id))
+                    # Best-effort, and deliberately isolated: the
+                    # deactivation above is already committed, so a broker
+                    # outage (`kombu.exceptions.OperationalError` out of
+                    # `.delay()`) must not travel up to the generic
+                    # per-subscription handler below. Left bare, it did —
+                    # and a Redis blip was counted and logged as a
+                    # RECONCILIATION failure for a subscription that had in
+                    # fact reconciled correctly, sending someone to
+                    # investigate a billing problem that did not exist.
+                    # This mirrors the five other dispatch sites in billing,
+                    # which all wrap `.delay()` the same way.
+                    try:
+                        sync_user_to_mailerlite.delay(str(sub.user_id))
+                    except Exception:
+                        logger.exception(
+                            "Could not queue the MailerLite sync for user %s "
+                            "after deactivating subscription %s. The "
+                            "deactivation itself succeeded and stands; only "
+                            "the marketing-list sync was lost.",
+                            sub.user_id,
+                            sub.id,
+                        )
 
                     logger.info(
                         "Subscription %s deactivated due to Stripe status: %s",
@@ -483,7 +597,7 @@ def reconcile_subscription_renewals(self):
                     "found — Stripe has not billed a new cycle yet. Skipping "
                     "rather than renewing off a previous-cycle invoice.",
                     sub.id,
-                    sub.user.email,
+                    sub.user_id,
                     invoice.get("id"),
                     sub.billing_cycle_end.isoformat(),
                 )
@@ -534,7 +648,7 @@ def reconcile_subscription_renewals(self):
                 logger.info(
                     "Reconciliation renewed subscription %s for user %s.",
                     updated_sub.id,
-                    updated_sub.user.email,
+                    updated_sub.user_id,
                 )
 
         except Exception as exc:
@@ -542,7 +656,7 @@ def reconcile_subscription_renewals(self):
             logger.error(
                 "Reconciliation failed for subscription %s (user %s): %s",
                 sub.id,
-                sub.user.email,
+                sub.user_id,
                 str(exc),
                 exc_info=True,
             )
@@ -560,6 +674,7 @@ def reconcile_subscription_renewals(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.EVERY_6_HOURS)
 def expire_active_trials(self):
     """
     Expire trials where either:
@@ -591,6 +706,7 @@ def expire_active_trials(self):
 
     expired_by_time_count = 0
     expired_by_credits_count = 0
+    already_handled_count = 0
     failed_count = 0
     skipped_still_valid = 0
 
@@ -603,12 +719,14 @@ def expire_active_trials(self):
             if trial_end and trial_end <= now:
                 # Time window expired — expire it
 
-                SubscriptionService.expire_trial(trial_sub)
+                if not SubscriptionService.expire_trial(trial_sub):
+                    already_handled_count += 1
+                    continue
                 expired_by_time_count += 1
                 logger.info(
                     "Trial expired (14-day window passed) for user %s "
                     "(subscription %s, trial_end: %s).",
-                    user.email,
+                    user.id,
                     trial_sub.id,
                     trial_end.isoformat(),
                 )
@@ -623,7 +741,7 @@ def expire_active_trials(self):
                 logger.error(
                     "Trial user %s (subscription %s) has no CreditWallet! "
                     "This should never happen. Skipping.",
-                    user.email,
+                    user.id,
                     trial_sub.id,
                 )
                 failed_count += 1
@@ -636,13 +754,15 @@ def expire_active_trials(self):
                 # User has no credits left - expire the trial immediately
                 # even if the 14-day window hasn't closed yet.
 
-                SubscriptionService.expire_trial(trial_sub, force=True)
+                if not SubscriptionService.expire_trial(trial_sub, force=True):
+                    already_handled_count += 1
+                    continue
                 expired_by_credits_count += 1
 
                 logger.info(
                     "Trial expired (credits exhausted) for user %s "
                     "(subscription %s, remaining: %d raw credits).",
-                    user.email,
+                    user.id,
                     trial_sub.id,
                     remaining_credits,
                 )
@@ -654,7 +774,7 @@ def expire_active_trials(self):
             logger.debug(
                 "Trial still valid for user %s: %d days remaining, "
                 "%d raw credits remaining.",
-                user.email,
+                user.id,
                 max(0, (trial_end - now).days) if trial_end else 0,
                 remaining_credits,
             )
@@ -665,7 +785,7 @@ def expire_active_trials(self):
             logger.error(
                 "Failed to process trial expiration for subscription %s (user %s): %s",
                 trial_sub.id,
-                trial_sub.user.email if trial_sub.user else "UNKNOWN",
+                trial_sub.user_id if trial_sub.user else "UNKNOWN",
                 str(exc),
                 exc_info=True,
             )
@@ -676,13 +796,123 @@ def expire_active_trials(self):
         f"{expired_by_time_count} expired (14-day limit), "
         f"{expired_by_credits_count} expired (credits exhausted), "
         f"{skipped_still_valid} still valid, "
+        f"{already_handled_count} already expired or converted, "
         f"{failed_count} failed."
     )
     logger.info(summary)
     return summary
 
 
+#: How many times the sweeper will re-dispatch one event whose worker died
+#: before starting. Bounded so a task that dies the same way every hour
+#: (a poison payload, an OOM on one big event) stops being retried and
+#: starts being reported to a human instead of cycling forever.
+STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS = 3
+
+
+class RecoveryOutcome(Enum):
+    """
+    What the sweeper should do with an abandoned event after trying to
+    recover it.
+
+    The three cases are genuinely different and collapsing them is a bug:
+    DEFERRED once returned the same value as DECLINED, and the sweeper
+    duly marked FAILED every event it had failed to re-queue during a
+    broker blip — stranding exactly the events this recovery exists to
+    save, since Stripe has long since had its 200 and will not redeliver.
+    """
+
+    REDISPATCHED = "redispatched"  # queued to a live worker; leave it be
+    DEFERRED = "deferred"  # try again next sweep; do NOT settle it
+    DECLINED = "declined"  # not recoverable; settle it as FAILED
+
+
+def _redispatch_abandoned_event(event) -> RecoveryOutcome:
+    """
+    Hand an abandoned-but-unstarted event back to a worker.
+
+    RACE SAFETY
+    -----------
+    The re-claim is one conditional UPDATE fenced on the OLD `claimed_at`,
+    which does three jobs at once:
+
+    * Two sweepers running concurrently: both read the same stale row, but
+      only one UPDATE matches — the loser's WHERE clause re-evaluates
+      against the winner's freshly written claimed_at and matches nothing.
+    * The original worker coming back from the dead: its terminal write in
+      `_finish_stripe_event` is fenced on ITS claim token, which no longer
+      matches, so it cannot settle a row it no longer owns.
+    * A Stripe redelivery arriving mid-recovery: the new claimed_at is
+      fresh, so `_claim_stripe_event` sees a live claim and answers 409
+      rather than starting a second concurrent run.
+
+    `handler_started_at` is left NULL and `recovery_attempts` incremented,
+    so if this attempt also dies before starting, the next sweep can try
+    again — up to the cap.
+    """
+    from .webhooks import _EVENT_HANDLERS
+
+    if event.event_type not in _EVENT_HANDLERS:
+        # Nothing to run. Settling it as SUCCEEDED would be a lie, so let
+        # the caller mark it FAILED through the normal path.
+        return RecoveryOutcome.DECLINED
+
+    new_token = timezone.now()
+    reclaimed = StripeEvent.objects.filter(
+        pk=event.pk,
+        status=StripeEventStatus.PROCESSING,
+        claimed_at=event.claimed_at,
+        handler_started_at__isnull=True,
+    ).update(
+        claimed_at=new_token,
+        recovery_attempts=F("recovery_attempts") + 1,
+        attempts=F("attempts") + 1,
+        last_error="",
+    )
+    if not reclaimed:
+        # Someone else got there first — another sweeper, a redelivery, or
+        # the original worker finally starting. All three are fine, and in
+        # all three the row now belongs to somebody else: leave it alone.
+        return RecoveryOutcome.DEFERRED
+
+    try:
+        process_stripe_event.delay(event.stripe_event_id, new_token.isoformat())
+    except Exception as exc:  # noqa: BLE001 - broker down; report, don't crash
+        # The queue is unavailable. Release the claim back to its stale
+        # state so the NEXT sweep retries, rather than leaving a fresh
+        # claim nobody is working on — that would look healthy for a full
+        # staleness window while nothing happened.
+        StripeEvent.objects.filter(
+            pk=event.pk,
+            status=StripeEventStatus.PROCESSING,
+            claimed_at=new_token,
+        ).update(
+            claimed_at=event.claimed_at,
+            last_error=f"recovery could not reach the broker: {exc!r}"[:2000],
+        )
+        logger.error(
+            "Could not re-queue abandoned Stripe event %s (%s): %r. Claim "
+            "released; the next sweep will try again.",
+            event.stripe_event_id,
+            event.event_type,
+            exc,
+        )
+        return RecoveryOutcome.DEFERRED
+
+    logger.warning(
+        "Recovered abandoned Stripe event %s (%s): its worker died before "
+        "the handler started, so no Stripe call was made and it is safe to "
+        "re-dispatch. Recovery attempt %d of %d.",
+        event.stripe_event_id,
+        event.event_type,
+        event.recovery_attempts + 1,
+        STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS,
+    )
+    return RecoveryOutcome.REDISPATCHED
+
+
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
 def sweep_stale_stripe_events(self):
     """
     Watchdog for the Stripe webhook idempotency ledger (billing/webhooks.py).
@@ -720,8 +950,60 @@ def sweep_stale_stripe_events(self):
         claimed_at__lt=stale_cutoff,
     ).iterator()
 
+    recovered_count = 0
+    exhausted_count = 0
+    deferred_count = 0
+
     for event in stale_claims:
         try:
+            # --- Recoverable? -----------------------------------------
+            # A claim with no handler_started_at means the worker died
+            # between claiming and doing ANYTHING: no Stripe call was
+            # made, no row was written. Re-dispatching is safe, and it is
+            # also the only way the event will ever run — since Item 1
+            # made dispatch asynchronous the endpoint answers Stripe 200
+            # the moment it claims, so Stripe considers the delivery
+            # successful and will never redeliver. Marking it FAILED and
+            # waiting for a retry that is never coming is how a dead
+            # worker strands an event forever.
+            if (
+                event.handler_started_at is None
+                and event.recovery_attempts < STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS
+            ):
+                outcome = _redispatch_abandoned_event(event)
+                if outcome is RecoveryOutcome.REDISPATCHED:
+                    recovered_count += 1
+                    continue
+                if outcome is RecoveryOutcome.DEFERRED:
+                    # Someone else owns it, or the broker was unreachable.
+                    # Either way this row must NOT be settled — marking it
+                    # FAILED here is what stranded events during a broker
+                    # blip, because Stripe will never redeliver them.
+                    deferred_count += 1
+                    continue
+
+            if (
+                event.handler_started_at is None
+                and event.recovery_attempts >= STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS
+            ):
+                exhausted_count += 1
+                logger.error(
+                    "Stripe event %s (%s) has been re-dispatched %d time(s) "
+                    "and each worker died before starting. Giving up on "
+                    "automatic recovery — this needs a human: "
+                    "manage.py replay_stripe_events --dry-run",
+                    event.stripe_event_id,
+                    event.event_type,
+                    event.recovery_attempts,
+                )
+
+            # --- Not recoverable: died mid-handler --------------------
+            # handler_started_at is set, so this worker may have got
+            # part-way through Stripe calls that no database rollback can
+            # undo (Refund.create, Subscription.modify). Replaying that
+            # automatically could refund a customer twice with nobody
+            # watching, so it is marked FAILED for a human instead.
+            #
             # Fenced on claimed_at, same as _finish_stripe_event: if a
             # delivery re-claimed this row between the query and now, its
             # fresh claim must not be clobbered.
@@ -732,7 +1014,13 @@ def sweep_stale_stripe_events(self):
             ).update(
                 status=StripeEventStatus.FAILED,
                 completed_at=now,
-                last_error="abandoned: processing claim went stale",
+                last_error=(
+                    "abandoned: processing claim went stale after the "
+                    "handler had started; NOT auto-replayed because it may "
+                    "have made irreversible Stripe calls"
+                    if event.handler_started_at
+                    else "abandoned: processing claim went stale"
+                ),
             )
         except Exception as exc:
             failed_count += 1
@@ -761,7 +1049,10 @@ def sweep_stale_stripe_events(self):
 
     summary = (
         f"Stripe event sweep: "
+        f"{recovered_count} abandoned claim(s) re-dispatched, "
         f"{abandoned_count} abandoned claim(s) marked FAILED, "
+        f"{deferred_count} deferred to the next sweep, "
+        f"{exhausted_count} past the recovery cap, "
         f"{failed_retriable} FAILED within Stripe's retry window, "
         f"{failed_unretriable} FAILED past it, "
         f"{failed_count} sweep error(s)."
@@ -771,6 +1062,7 @@ def sweep_stale_stripe_events(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def process_license_monthly_credit_refreshes(self):
     """
     Monthly credit refresh for teachers under active licenses.
@@ -780,15 +1072,17 @@ def process_license_monthly_credit_refreshes(self):
     now = timezone.now()
 
     # Get all active allocations that need a refresh, within active licenses.
+    # Due up to a small tolerance past this run's start, with one "now" for
+    # the whole run (billing/refresh_timing.py).
     due_allocations = SchoolCreditAllocation.objects.filter(
         is_active=True,
-        next_credit_grant_at__lte=now,
+        next_credit_grant_at__lte=refresh_due_by(now),
         license_subscription__is_active=True,
-        license_subscription__billing_cycle_end__gt=now,
+        # A contract ending within the tolerance counts as ended (1a's F2).
+        license_subscription__billing_cycle_end__gt=refresh_due_by(now),
     ).select_related("license_subscription", "user", "license_subscription__plan")
 
     refreshed_count = 0
-    # skipped_no_bucket = 0
     failed_count = 0
 
     for allocation in due_allocations:
@@ -810,11 +1104,13 @@ def process_license_monthly_credit_refreshes(self):
                     continue
 
                 # Check if next_credit_grant_at is still due (avoid race)
-                if locked_allocation.next_credit_grant_at > now:
+                if locked_allocation.next_credit_grant_at > refresh_due_by(now):
                     continue
 
                 # Perform the refresh
-                LicenseSubscriptionService._refresh_teacher_credits(locked_allocation)
+                LicenseSubscriptionService._refresh_teacher_credits(
+                    locked_allocation, now=now
+                )
                 refreshed_count += 1
 
         except Exception as exc:
@@ -836,6 +1132,7 @@ def process_license_monthly_credit_refreshes(self):
 
 
 @shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def nightly_stripe_live_qa(self):
     """
     Run the billing QA scenarios against REAL Stripe test mode.
@@ -860,24 +1157,69 @@ def nightly_stripe_live_qa(self):
     because a broken billing assumption is exactly the class of bug that
     reaches customers as lost money.
     """
+    from .models import LiveQARun, LiveQARunKind, LiveQARunStatus
     from .stripe_live_qa import LiveQAConfigurationError, LiveQARefused, live_qa_enabled
 
+    # Recorded BEFORE the enablement check, and finalised on every path.
+    #
+    # This row is the fix for a real gap: the task was scheduled correctly
+    # and had fired 20 times on the deployed worker, but wrote nothing
+    # anywhere, so "ran and passed", "ran and failed" and "did nothing
+    # because it is switched off here" were indistinguishable from the
+    # database. Scenario failures went only to worker logs — at ERROR, but
+    # nobody was watching a log line. A real-Stripe suite you cannot tell
+    # the status of is not a safety net.
+    run = LiveQARun.objects.create(
+        kind=LiveQARunKind.SCENARIO,
+        status=LiveQARunStatus.RUNNING,
+        tier=SCHEDULED_LIVE_QA_TIER,
+        celery_task_id=str(getattr(self.request, "id", "") or ""),
+        started_at=timezone.now(),
+    )
+
+    def _finish(status, summary, result_data=None):
+        run.status = status
+        run.summary = summary
+        if result_data is not None:
+            run.result_data = result_data
+        run.finished_at = timezone.now()
+        run.save(
+            update_fields=[
+                "status",
+                "summary",
+                "result_data",
+                "finished_at",
+                "updated_at",
+            ]
+        )
+        return summary
+
     if not live_qa_enabled():
-        logger.debug(
-            "Stripe live QA is not enabled in this environment; skipping. "
+        # DEBUG, as before — a normal production worker must not log noise
+        # every night. The difference is that the DB now says so out loud.
+        message = (
+            "Stripe live QA skipped: not enabled in this environment. "
             "(Needs ENABLE_STRIPE_LIVE_QA and sk_test_ Stripe keys.)"
         )
-        return "Stripe live QA skipped: not enabled in this environment."
+        logger.debug(message)
+        return _finish(LiveQARunStatus.SKIPPED, message)
 
-    from .stripe_live_qa_scenarios import run_suite
+    from .qa_console import _serialize_result
+    from .stripe_live_qa_scenarios import run_suite, scenarios_for_tier
 
     try:
-        result = run_suite()
+        result = run_suite(scenarios_for_tier(SCHEDULED_LIVE_QA_TIER))
     except (LiveQARefused, LiveQAConfigurationError) as exc:
         # Misconfiguration, not a billing bug. WARNING, not ERROR: nobody
         # should be woken for a QA environment that is not set up.
         logger.warning("Stripe live QA could not run: %s", exc)
-        return f"Stripe live QA could not run: {exc}"
+        return _finish(LiveQARunStatus.ERROR, f"Stripe live QA could not run: {exc}")
+    except Exception as exc:  # noqa: BLE001 - must not leave the row RUNNING
+        logger.exception("Stripe live QA crashed before completing.")
+        return _finish(
+            LiveQARunStatus.ERROR,
+            f"Stripe live QA crashed before completing: {exc!r}",
+        )
 
     for scenario in result.scenarios:
         if scenario.passed:
@@ -902,7 +1244,11 @@ def nightly_stripe_live_qa(self):
 
     summary = result.summary()
     logger.info(summary)
-    return summary
+    return _finish(
+        LiveQARunStatus.PASSED if result.passed else LiveQARunStatus.FAILED,
+        summary,
+        _serialize_result(result),
+    )
 
 
 @shared_task(bind=True, max_retries=0)
@@ -981,3 +1327,427 @@ def run_live_qa_console_job(self, run_id):
         )
 
     return run.summary
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
+def recalculate_conversion_probabilities(self):
+    """
+    Nightly refresh of every BetaProfile's conversion score.
+
+    AnalyticsService.calculate_conversion_probability has always carried the
+    docstring "Called by midnight", but nothing ever called it: no Beat
+    entry, no signal, no view. Meanwhile the sales-lead endpoints
+    (BetaProfileViewSet.intent_signals / intent_signal_detail) sort and
+    display `conversion_probability`, so every teacher ranked and rendered
+    at a permanent 0.0. This task is the missing trigger.
+
+    Deliberately NOT wrapped in a single transaction: the scorer saves one
+    profile at a time and a failure on profile N must not discard the
+    N-1 scores already written. Each profile is independent, so one bad row
+    is logged and skipped rather than aborting the sweep.
+
+    Pure analytics — reads counters that record_consumption/track_activity
+    already maintain and writes two float fields. Touches no credits, no
+    money and no Stripe.
+    """
+    scored_count = 0
+    failed_count = 0
+
+    # .iterator() keeps a large beta cohort off the heap; the scorer reads
+    # only BetaProfile's own columns, so no select_related is needed.
+    for profile in BetaProfile.objects.iterator():
+        try:
+            AnalyticsService.calculate_conversion_probability(profile)
+            scored_count += 1
+        except Exception as exc:
+            failed_count += 1
+            logger.error(
+                "Conversion scoring failed for BetaProfile %s (user %s): %s",
+                profile.pk,
+                profile.user_id,
+                str(exc),
+                exc_info=True,
+            )
+
+    summary = (
+        f"Conversion probability refresh: "
+        f"{scored_count} scored, {failed_count} failed."
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.PRICE_SWEEP)
+def reconcile_stripe_prices(self):
+    """
+    Nightly: does every plan still cost what this application thinks?
+
+    DETECTION ONLY. Writes nothing to Stripe and no billing state locally
+    — see billing/price_reconciliation.py. Repair stays a deliberate human
+    act via `manage.py reconcile_overage_prices --fix`; that `--fix` must
+    never be reachable from Beat, because which side of a mismatch is
+    wrong is a money decision.
+
+    Nightly rather than weekly. The whole sweep is ~18 Stripe reads for
+    the current plan set, so the cost of checking daily is negligible
+    against the cost of a wrong price standing for a week.
+    """
+    from .price_reconciliation import reconcile_prices
+
+    # Two Beat instances, or a manual run overlapping the scheduled one,
+    # would duplicate every Stripe read and write two competing result
+    # sets for the same moment. Harmless to billing (nothing here mutates)
+    # but it makes the audit trail ambiguous, which defeats the point.
+    # @single_instance (H-65) skips the second run.
+    run = reconcile_prices()
+    return run.summary
+
+
+@shared_task(bind=True, max_retries=0)
+def reconcile_overage_prices(self):
+    """
+    Daily detector for quoted-vs-charged overage price divergence.
+
+    THE SIBLING TASK DOES NOT COVER THIS
+    ------------------------------------
+    `reconcile_subscription_prices` compares a SUBSCRIPTION's Stripe price
+    against its local plan. Overage blocks are one-time `mode="payment"`
+    charges with their own price id, so nothing in that loop ever looked at
+    them — which is why six of nine plans could drift unnoticed until a
+    live-QA scenario happened to compare the two.
+
+    WHAT DRIFT COSTS
+    ----------------
+    The customer is quoted `plan.overage_block_price` and charged whatever
+    `stripe_overage_price_id` says. Measured: a school quoted 897 for three
+    blocks and charged 1200.
+
+    Detection, not repair — deliberately, and for the same reason as the
+    sibling task: which number is right is a pricing decision. The purchase
+    paths already REFUSE to quote while a plan is drifted (see
+    billing/overage_pricing.py), so this task's job is to raise the alarm
+    before a customer runs into that refusal, not to fix it.
+    """
+    from .overage_pricing import overage_price_drift
+
+    report = overage_price_drift()
+    if not report:
+        summary = "Overage price reconciliation: no plans with overage pricing."
+        logger.info(summary)
+        return summary
+
+    drifted = [row for row in report if not row["in_sync"] and not row["error"]]
+    unreadable = [row for row in report if row["error"]]
+
+    for row in drifted:
+        logger.error(
+            "OVERAGE PRICE DRIFT: plan %s quotes %s cents per block but "
+            "Stripe price %s charges %s. Purchases on this plan are being "
+            "REFUSED until the two agree.",
+            row["name"],
+            row["local_cents"],
+            row["stripe_price_id"],
+            row["stripe_cents"],
+        )
+    for row in unreadable:
+        logger.error(
+            "OVERAGE PRICE UNREADABLE: plan %s — %s",
+            row["name"],
+            row["error"],
+        )
+
+    summary = (
+        f"Overage price reconciliation: {len(report)} plan(s) checked, "
+        f"{len(drifted)} drifted, {len(unreadable)} unreadable."
+    )
+    (logger.error if (drifted or unreadable) else logger.info)(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
+def reconcile_subscription_prices(self):
+    """
+    Daily detector for local-plan / Stripe-price divergence.
+
+    WHY THIS IS A SEPARATE TASK, NOT A BRANCH IN
+    reconcile_subscription_renewals
+    ------------------------------------------------------------------
+    That task filters `billing_cycle_end__lte=now` — it only ever looks at
+    subscriptions that are OVERDUE. Price drift happens on subscriptions
+    that are perfectly CURRENT, so bolting the check onto that loop would
+    have inspected precisely the rows that cannot exhibit the problem.
+
+    WHAT IT CATCHES
+    ---------------
+    The webhook handlers are decorated `@transaction.atomic` and call out to
+    Stripe from inside the transaction. The sharp case is
+    _handle_individual_upgrade_checkout_completed, which runs
+    `stripe.Subscription.modify(...)` and THEN does substantial database
+    work (activate_subscription / apply_immediate_plan_change plus saves).
+    If that later database work raises, the transaction rolls back — but the
+    Stripe call already happened and is not undone. The customer is left
+    being billed the new price while our records still say the old plan, and
+    nothing else notices: the renewals reconciler compares billing periods
+    and subscription status, never price.
+
+    This is detection, not repair. It deliberately makes no correcting write
+    — the right correction (charge the customer for what we recorded, or
+    record what they were charged) is a money decision for a human. An ERROR
+    line per drifted subscription is the alarm.
+
+    COST
+    ----
+    One `Subscription.list` page per 100 Stripe subscriptions, not one
+    retrieve per local row, so the daily bill is a handful of API calls.
+    """
+    local_subs = list(
+        UserSubscription.objects.filter(
+            is_active=True,
+            is_trial=False,
+            stripe_subscription_id__isnull=False,
+        )
+        .exclude(stripe_subscription_id="")
+        .select_related("user", "plan")
+    )
+    if not local_subs:
+        summary = "Subscription price reconciliation: no subscriptions to check."
+        logger.info(summary)
+        return summary
+
+    # Build {stripe_subscription_id: current_price_id} in bulk.
+    stripe_prices = {}
+    try:
+        listing = stripe.Subscription.list(status="active", limit=100)
+        for stripe_sub in listing.auto_paging_iter():
+            items = _stripe_get(stripe_sub, "items") or {}
+            data = _stripe_get(items, "data") or []
+            if not data:
+                continue
+            price = _stripe_get(data[0], "price") or {}
+            price_id = _stripe_get(price, "id")
+            if price_id:
+                stripe_prices[_stripe_get(stripe_sub, "id")] = price_id
+    except stripe.error.StripeError as exc:
+        # Without the listing there is nothing to compare against. Fail
+        # loudly rather than returning a clean "0 drifted", which would read
+        # as an all-clear.
+        logger.error(
+            "Subscription price reconciliation could not list Stripe "
+            "subscriptions, so NO drift check was performed: %s",
+            str(exc),
+            exc_info=True,
+        )
+        raise
+
+    checked_count = 0
+    drifted_count = 0
+    pending_change_count = 0
+    unverified_count = 0
+    skipped_no_price_count = 0
+
+    for sub in local_subs:
+        expected_price_id = sub.plan.stripe_price_id
+        if not expected_price_id:
+            # Free/manual/offline plans have no Stripe price to diverge from.
+            skipped_no_price_count += 1
+            continue
+
+        actual_price_id = stripe_prices.get(sub.stripe_subscription_id)
+        if actual_price_id is None:
+            # Not in the active listing: cancelled, incomplete, past_due, or
+            # belonging to another Stripe account. Counted rather than
+            # ignored so the summary never overstates coverage.
+            unverified_count += 1
+            continue
+
+        checked_count += 1
+        if actual_price_id == expected_price_id:
+            continue
+
+        if sub.pending_plan_id or sub.stripe_schedule_id:
+            # A deferred change is mid-flight. Around the cycle boundary
+            # Stripe can legitimately show the new price a moment before the
+            # webhook records it locally, so this is a WARNING, not an alarm.
+            pending_change_count += 1
+            logger.warning(
+                "Subscription %s (user %s) is on Stripe price %s but plan %s "
+                "expects %s. A deferred change is pending (pending_plan=%s, "
+                "schedule=%s), so this is most likely the cycle-boundary race "
+                "and should clear on the next run.",
+                sub.id,
+                sub.user_id,
+                actual_price_id,
+                sub.plan.name,
+                expected_price_id,
+                sub.pending_plan_id,
+                sub.stripe_schedule_id,
+            )
+            continue
+
+        drifted_count += 1
+        logger.error(
+            "PRICE DRIFT: subscription %s (user %s) is being billed on Stripe "
+            "price %s, but the local plan %s expects price %s. The customer "
+            "is paying for something other than what we recorded. No "
+            "automatic correction has been made — this needs a human "
+            "decision. Stripe subscription: %s",
+            sub.id,
+            sub.user_id,
+            actual_price_id,
+            sub.plan.name,
+            expected_price_id,
+            sub.stripe_subscription_id,
+        )
+
+    summary = (
+        f"Subscription price reconciliation: "
+        f"{checked_count} checked, "
+        f"{drifted_count} drifted, "
+        f"{pending_change_count} pending-change mismatches, "
+        f"{unverified_count} not found in Stripe's active list, "
+        f"{skipped_no_price_count} skipped (no Stripe price)."
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def process_stripe_event(self, event_id, claim_token_iso):
+    """
+    Run one already-claimed Stripe webhook event's handler.
+
+    The HTTP endpoint claims the event (a committed, race-safe conditional
+    UPDATE) and returns 200 in milliseconds; this task does the slow part.
+    That split is what stops burst traffic being lost: measured on the
+    deployed environment, only 2% of `invoice.payment_succeeded` deliveries
+    survived burst hours while 100% survived quiet hours, purely because
+    the handler held the request open for seconds.
+
+    `claim_token_iso` is the fencing token — the `claimed_at` the endpoint
+    wrote. `_finish_stripe_event` only settles the row if that token still
+    matches, so a task whose claim was stolen by the stale-claim sweeper
+    (because this worker was thought dead) cannot overwrite the new
+    owner's result.
+
+    max_retries=0: a failure marks the row FAILED, which is claimable, and
+    Stripe's own redelivery is the retry mechanism. Retrying here as well
+    would run the handler twice for one delivery.
+    """
+    from datetime import datetime
+
+    from .models import StripeEvent, StripeEventStatus
+    from .webhooks import _EVENT_HANDLERS, _finish_stripe_event, _run_handler_inline
+
+    try:
+        row = StripeEvent.objects.get(stripe_event_id=event_id)
+    except StripeEvent.DoesNotExist:
+        logger.error(
+            "process_stripe_event: no StripeEvent row for %s. The claim "
+            "should have been committed before this task was queued.",
+            event_id,
+        )
+        return f"missing StripeEvent {event_id}"
+
+    handler = _EVENT_HANDLERS.get(row.event_type)
+    if handler is None:
+        # The dispatch table changed between claim and execution.
+        _finish_stripe_event(
+            event_id,
+            datetime.fromisoformat(claim_token_iso),
+            StripeEventStatus.SUCCEEDED,
+        )
+        return f"{event_id}: no handler for {row.event_type}"
+
+    # Rebuild the shape the handler expects. The row stores event["data"],
+    # so `payload["object"]` is the same object the synchronous path passed.
+    event = {"id": event_id, "type": row.event_type, "data": row.payload}
+
+    response = _run_handler_inline(
+        event,
+        handler,
+        datetime.fromisoformat(claim_token_iso),
+        log_prefix="Stripe webhook (async)",
+    )
+    return f"{event_id}: {row.event_type} -> HTTP {response.status_code}"
+
+
+@shared_task(bind=True, max_retries=0)
+def fill_billing_transaction_receipt_url(self, transaction_id):
+    """
+    Fill one BillingTransaction's Stripe receipt link, after the purchase
+    that recorded it has committed. Queued by
+    billing.receipts.schedule_receipt_url_fill; see that module for why
+    the link is never resolved inside the webhook transaction.
+
+    max_retries=0: an unresolved link is left empty for
+    sweep_missing_receipt_urls, which is the retry.
+    """
+    from .receipts import fill_receipt_url
+
+    outcome = fill_receipt_url(transaction_id)
+    return f"{transaction_id}: {outcome.value}"
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)
+def escalate_stale_licence_stripe_intents(self):
+    """
+    Every 5 minutes: escalate licence Stripe-change intents abandoned
+    mid-flight (a killed worker sends no alert), and alert a human. One
+    query, no Stripe call; see
+    billing.license_stripe_mutation.escalate_stale_intents (H-28).
+    """
+    from .license_stripe_mutation import escalate_stale_intents
+
+    escalated = escalate_stale_intents()
+    summary = f"Stale licence Stripe intents escalated: {escalated}"
+    if escalated:
+        logger.error(summary)
+    else:
+        logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
+def sweep_missing_receipt_urls(self):
+    """
+    Hourly safety net for receipt links the on_commit task never filled
+    (broker down at commit, worker lost, Stripe unavailable at the time).
+    Bounded per run; see billing.receipts.sweep_missing_receipt_urls.
+    """
+    from .receipts import sweep_missing_receipt_urls as sweep
+
+    counts = sweep()
+    summary = "Receipt link sweep: " + ", ".join(
+        f"{count} {outcome}" for outcome, count in counts.items()
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
+def replay_safe_failed_stripe_events(self):
+    """
+    Re-run FAILED Stripe webhook events for the one allow-listed flow, so a
+    customer who paid for overage credits and received nothing is credited
+    without waiting for a human.
+
+    Deliberately narrow: see billing/event_replay.py for why every other
+    event type and flow is denied, and why the allow-list cannot be widened
+    into a refund or a Subscription.modify by a single careless edit.
+    """
+    from .event_replay import replay_safe_failed_events
+
+    counts = replay_safe_failed_events()
+    summary = "Stripe auto-replay: " + ", ".join(
+        f"{count} {outcome}" for outcome, count in counts.items() if count
+    )
+    if not any(counts.values()):
+        summary = "Stripe auto-replay: nothing eligible."
+    logger.info(summary)
+    return summary

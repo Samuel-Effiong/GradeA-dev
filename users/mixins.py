@@ -7,11 +7,29 @@ from django.core.cache import cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from AutoGrader.cache_generation import SCOPE_USER, versioned_key
+
 
 class UserCacheMixin:
     """
     Mixin to handle per-user caching for List and Retrieve actions.
-    Uses naming conventions compatible with your delete_pattern signals.
+
+    Keys carry the requesting user's cache GENERATION (H-1 stage 2), so a
+    mutation invalidates them with a single INCR instead of the wildcard
+    `delete_pattern` sweep across the whole keyspace that H-1 removed. This one mixin backs
+    nine of the project's 35 cache families - every viewset that mixes it in
+    across classrooms, students and users - so migrating it moves the
+    largest single block of the cache surface at once.
+
+    Per `docs/H1_CACHE_INVALIDATION_DESIGN.md` §3, every family served here
+    depends on the requesting user alone: the queryset is already scoped to
+    that user, so anything that changes what they can see also bumps their
+    generation (see the receivers in classrooms/users signals).
+
+    The old `<model>s:user_id__<id>:...` prefix is retained ahead of the
+    generation segment. It kept these keys reachable by the legacy wildcard
+    receivers while both mechanisms ran; those were removed in H-1 step 4,
+    and the prefix stays so existing entries simply age out.
     """
 
     request: Request
@@ -23,12 +41,30 @@ class UserCacheMixin:
 
         if action == "retrieve":
             instance_id = self.kwargs.get("pk")
-            return f"{model_name}s:user_id__{user_id}:instance_id__{instance_id}"
+            base = f"{model_name}s:user_id__{user_id}:instance_id__{instance_id}"
+        else:
+            query_params = json.dumps(self.request.query_params.dict(), sort_keys=True)
+            query_hash = hashlib.md5(query_params.encode()).hexdigest()
+            base = f"{model_name}s:user_id__{user_id}:query__{query_hash}"
 
-        query_params = json.dumps(self.request.query_params.dict(), sort_keys=True)
-        query_hash = hashlib.md5(query_params.encode()).hexdigest()
+        # The MD5 of the query params is exactly why targeted key deletion
+        # was rejected for this architecture: these keys are not enumerable,
+        # so they cannot be found and deleted - only versioned past.
+        extra = list(self.extra_cache_scopes(action))
+        if extra:
+            return versioned_key(base, [(SCOPE_USER, user_id), *extra], batched=True)
+        return versioned_key(base, [(SCOPE_USER, user_id)])
 
-        return f"{model_name}s:user_id__{user_id}:query__{query_hash}"
+    def extra_cache_scopes(self, action):
+        """Generations this viewer's response depends on beyond their own.
+
+        Empty by default: a family whose payload depends on the requesting
+        user alone needs nothing more. A viewset whose payload also carries
+        data another user's write changes (CourseViewSet: a student sees
+        their classmates) overrides this, so that write can invalidate it
+        with one bump instead of one per viewer.
+        """
+        return []
 
     def list(self, request, *args, **kwargs):  # type: ignore
         cache_key = self.get_cache_key("list")

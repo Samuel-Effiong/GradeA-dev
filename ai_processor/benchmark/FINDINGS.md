@@ -723,6 +723,208 @@ closed, and the new content grades within the established accuracy
 band rather than introducing a new one — no evidence the added
 questions behave differently from the rest of the dataset.
 
+## Run 8 — answer_status feedback wording costs reproducibility, not accuracy
+
+Editing `GRADING_ASSIGNMENT_PROMPT_5.txt` to add the `answer_status`
+section (telling the grader not to accuse a student of skipping a
+question whose answer extraction actually lost — see
+`ai_processor/answer_completeness.py` for the extraction-side half of
+that fix) changes the system prompt text, which changes every
+`request_key` the tape hashes against. Every committed recording missed,
+and replay correctly refused to fall through to a live call rather than
+silently re-billing — five tests failed
+(`tests_benchmark_golden`/`tests_benchmark_history`/`tests_grading_benchmark`)
+pointing at the same root cause. This was not a choice to re-record; it
+was forced by editing a file the request key is built from.
+
+Re-recorded all 21 submissions, real endpoint, `--mode record`, 70 model
+calls, ~1,001,000 tokens.
+
+| Metric | Run 7 (old prompt) | Run 8 (new prompt) |
+|---|---|---|
+| Questions graded | 168 | 168 |
+| Exact rubric-level match | 84.5% (142/168) | **82.7% (139/168)** |
+| Within one level | 100.0% | **100.0%** |
+| Mean level error | 0.0833 | **0.0774** |
+| Deterministic tier 0 | 34/34 | **34/34** (unchanged) |
+| Evidence verified | 131/133 | **132/133** |
+| ESSAY exact | — | 78.6% (22/28) |
+| OBJECTIVE exact | — | 100.0% (35/35) |
+| SHORT-ANSWER exact | — | 78.1% (82/105) |
+
+**Initially accepted on the shape of the change rather than the headline
+number — and that acceptance was WRONG. See the isolation experiment
+below, which measured the delta properly and overturned it.** The
+original reasoning is preserved here because the way it failed is the
+lesson:
+
+> Exact-match moved down 1.8 points (3 of 168 questions), but every one
+> of those three landed on the *adjacent* rubric level —
+> `within_one_level` stayed at exactly 1.0 across every question type and
+> subject, the same as every prior run. `mean_level_error` actually
+> *improved* (0.0833→0.0774), evidence verification improved by one
+> question (131→132), and the deterministic (OBJECTIVE) tier is untouched
+> at 34/34. Nothing moved by more than one level, which is the property
+> that matters: a grade that lands one level off is a defensible
+> judgement call, not a broken grader.
+
+Every factual claim in that paragraph is TRUE and still reproduces. The
+error was in what was inferred from it. Those checks all measure
+**severity** — how badly wrong a grade is. None of them measures
+**reproducibility** — whether the same answer gets the same grade twice.
+Severity did not move. Reproducibility did, and that is the axis this
+prompt's own opening line calls decisive:
+
+    "Two graders given the same answer and the same rubric must produce
+     the same score. Consistency and reproducibility are as important as
+     fairness: a score that changes between runs is a wrong score."
+
+A single run cannot distinguish "the prompt made grading worse" from
+"this run happened to land low", and no amount of severity analysis on
+one run closes that gap. It needed repeated runs of both arms, which is
+what the isolation experiment finally did.
+
+Golden snapshot regenerated: `tests_benchmark_golden.py`'s pinned values
+now read 0.8274 / evidence 132 (was 0.8452 / evidence 131). Note that
+0.8274 is itself a single draw from a distribution whose true mean is
+≈0.8135 (see below) — it is pinned because replay must be deterministic
+against its own recordings, not because it is the arm's representative
+value.
+
+**One transient failure worth recording**, not because it's new but
+because it recurred: the blind second-opinion grader failed its evidence
+check three times on `maths/weak` and again on `maths/partial`
+(`none of the 1 evidence quote(s) appear in the student's answer`) before
+giving up — non-fatal by design (`_maybe_run_second_opinion` never
+degrades the way the primary evidence check does; grader A's score
+stands, the second opinion is simply skipped and annotated). Both
+submissions graded fine. This is the same failure shape Finding 1
+describes for long multi-step algebra answers, on the same two
+deliberately-weak/garbled fixture students where it's most likely to
+occur — consistent with, not contradicting, that finding.
+
+### The isolation experiment: the delta is real, and it is a REPRODUCIBILITY regression
+
+Comparing 0.8452 (recorded weeks ago) against 0.8274 (recorded today)
+confounds two things: the prompt edit, and ordinary run-to-run variance
+(LLM grading is not bit-reproducible at temperature 0 — OpenRouter routes
+across providers, and providers vary internally). No single-run
+comparison can separate them, however carefully the one run is analysed.
+
+So both arms were run repeatedly, today, **alternating** B,C,B,C,B,C —
+alternating because running all-B then all-C would let provider drift
+across a multi-hour window land entirely on one arm and masquerade as the
+prompt's effect.
+
+    B = OLD prompt (pre-answer_status)      n=3
+    C = NEW prompt (with answer_status)     n=3
+
+Both arms swapped **in memory** (`ai_processor.services.GRADING_ASSIGNMENT_PROMPT`
+is a module global the grading methods read at call time), never on disk,
+so no crash could leave the repository holding the wrong prompt. Runs
+used MODE_LIVE, which writes no recordings, so the committed recordings
+and golden snapshot were untouchable throughout.
+
+#### Accuracy
+
+| | old prompt (B) | new prompt (C) |
+|---|---|---|
+| exact_rate, 3 runs | 0.8333, 0.8333, 0.8393 | 0.8095, 0.8155, 0.8155 |
+| mean | **0.8353** | **0.8135** |
+| within-arm sd | 0.5 questions | 0.5 questions |
+
+    gap            = 3.7 questions (2.18 points)
+    within-arm sd  = 0.5 questions
+    gap / sd       = 7.7x
+    ranges         = B[0.8333, 0.8393]  C[0.8095, 0.8155]  -> DISJOINT
+
+Arm B's *worst* run still beats arm C's *best* run. **The delta is not
+run-to-run variance.**
+
+#### The mechanism is not "the new prompt breaks some questions"
+
+**Zero questions are reproducibly broken.** Not one question is exact
+under all three old-prompt runs and non-exact under all three new-prompt
+runs. There is no set of questions the new prompt gets wrong.
+
+What changed is stability:
+
+| | verdict changed between runs |
+|---|---|
+| old prompt | 14 of 168 (8.3%) |
+| new prompt | 19 of 168 (11.3%) |
+
+**1.36x less reproducible.** And the *character* of the errors is
+unchanged — when a grade is not exact it is almost always one adjacent
+level, in near-identical proportions under both arms:
+
+    old prompt: 27.7 non-exact/run   -1: 24%   +1: 75%   +2: 1%
+    new prompt: 31.3 non-exact/run   -1: 22%   +1: 76%   +2: 2%
+
+The new prompt does not grade *differently*. It grades *less
+consistently*, and that extra instability is what shows up in the
+aggregate as a lower exact-match rate.
+
+#### Why the original acceptance failed
+
+It checked severity — adjacent-level only, `within_one_level` ≈ 1.0,
+`mean_level_error` flat, deterministic tier untouched — and every one of
+those checks passed, and still passes today. Severity genuinely did not
+move.
+
+It never checked reproducibility, and reproducibility is the only axis
+that did move. That is the axis GRADING_ASSIGNMENT_PROMPT_5 opens by
+declaring decisive ("a score that changes between runs is a wrong
+score"), and it is worse than a small accuracy dip for a reason severity
+metrics cannot express: the same student's same answer can draw a
+different grade depending on when it happens to be marked.
+
+**Recommendation:** add a reproducibility metric to the benchmark. Every
+metric this suite currently tracks is a severity metric, which is exactly
+why a regression on this axis reached a committed acceptance unchallenged.
+The measurement is cheap once recordings exist for two runs of the same
+arm — count questions whose verdict differs between them.
+
+**Plausible mechanism, untested:** the added section is ~30 lines of
+*feedback-wording* instruction living in the same system prompt as the
+scoring policy that drives level selection. It may be competing for
+attention with the rules that decide the grade. Worth testing whether
+moving it out of the scoring path — a separate call, or the response
+schema's field descriptions — keeps the student-facing benefit (which is
+real: see Run 8's opening, a student is no longer told they skipped a
+question whose answer *we* lost) without the instability cost.
+
+**Raw data:** `benchmark/isolation_run8/` — per-run scores, per-question
+verdicts for all 6 × 168 gradings, the quarantined runs, and the harness.
+Kept in the repo because a repeated-run claim is worth nothing if the
+runs themselves cannot be inspected.
+
+#### Process notes from two failed attempts
+
+The first attempt swapped the prompt FILE on disk and restored it in a
+`finally` block. An external kill bypasses `finally` entirely, so the
+repo was found holding the OLD prompt with **no git diff to reveal it** —
+the working copy matched `HEAD` exactly, because the edit under test was
+itself uncommitted at the time. Recovered from a static pre-swap backup.
+The in-memory swap used for the successful run makes this failure mode
+structurally impossible.
+
+Two data-integrity problems were caught and are worth guarding against:
+
+* One run lost 5 submissions to a network interruption and graded
+  113/138 instead of 168. Averaging it in would have silently corrupted
+  every aggregate — a run that grades a *different question set* is not
+  comparable at all. The harness now quarantines any run that is not a
+  clean 168 questions / 0 errored submissions.
+* That quarantined run's **per-question rows shared a run id** with its
+  replacement, so arm B briefly carried 306 rows for one run and its
+  flakiness count was inflated. It was caught only because the
+  error-character figure (36.0 non-exact/run) was arithmetically
+  impossible against that arm's own exact_rate (which implies 27.7).
+  **Cross-check derived statistics against each other**; an aggregate
+  that cannot be reconciled with a second aggregate is the cheapest
+  corruption detector available.
+
 ## Deferred to v2 — post-MVP
 
 Everything above ships now. One thing is deliberately held back:

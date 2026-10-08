@@ -2,7 +2,7 @@ import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import UniqueConstraint, UUIDField
+from django.db.models import Q, UniqueConstraint, UUIDField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -191,6 +191,97 @@ class EnrollmentStatusType(models.TextChoices):
     PENDING = "PENDING", _("Pending")
 
 
+#: The enrollment states that entitle a student to READ a course's content
+#: (its assignments, their PDFs, its topics).
+#:
+#: Derived from the rules the rest of the codebase already applies, not
+#: invented here:
+#:   * ENROLLED   - the only state that receives the "new assignment posted"
+#:                  notification and the due-date reminder
+#:                  (assignments/tasks.py), so it is the state the product
+#:                  already treats as "in the class".
+#:   * COMPLETED  - finished the course; must keep their own history, and
+#:                  dashboard/views.py already groups it with ENROLLED as
+#:                  `active_enrollment_statuses`.
+#:   * PENDING    - invited but has not finished registering. Never notified
+#:                  about anything, and users/views.py promotes the row to
+#:                  ENROLLED the moment registration completes.
+#:   * WITHDRAWN  - deliberately removed from the course.
+#:
+#: Deliberately NOT expressed as `StudentCourseQuerySet.active()`, which
+#: excludes only WITHDRAWN and is used by seven dashboard aggregates whose
+#: reported numbers would silently change if it were narrowed. This is a
+#: read-authorization rule; that one is a reporting rule.
+#:
+#: THE SINGLE SOURCE OF TRUTH for what a student may read. Before this was
+#: unified, four endpoints disagreed about the same question:
+#:   * assignments   - ENROLLED + COMPLETED
+#:   * courses       - anything except WITHDRAWN (so PENDING too)
+#:   * sessions      - ENROLLED only (so a COMPLETED student could open an
+#:                     assignment but not see the session holding it)
+#:   * topics        - NO status filter at all, so a WITHDRAWN student kept
+#:                     reading the topic list of a course they were removed
+#:                     from
+#: Every student-facing read of course content now filters on this tuple.
+#: Adding a status here widens access in all four places at once, which is
+#: the point: the rule should not be re-decided per endpoint.
+#:
+#: Teacher-facing *reporting* (dashboard aggregates, "my students") is a
+#: separate question and deliberately still excludes only WITHDRAWN - a
+#: teacher counting their roster should see a pending invitee.
+COURSE_ACCESS_ENROLLMENT_STATUSES = (
+    EnrollmentStatusType.ENROLLED,
+    EnrollmentStatusType.COMPLETED,
+)
+
+
+def teacher_course_access_q(user, prefix=""):
+    """Q for the courses `user` (a teacher) may currently reach (H-38).
+
+    `course.teacher == user` is permanent, so on its own it outlives the
+    teacher's membership of the school whose session the course sits in. A
+    course in a SCHOOL session is reachable only while the teacher still
+    belongs to that school; one in an INDIVIDUAL session (or with no
+    session) is theirs regardless.
+
+    `prefix` reaches the course from another model, e.g. "course__" or
+    "enrollments__course__". Build it into ONE filter() call so multi-valued
+    relations match against the same related row.
+    """
+    own = Q(**{f"{prefix}teacher": user})
+    reachable = Q(**{f"{prefix}session__isnull": True}) | Q(
+        **{f"{prefix}session__owner_type": SessionOwnerType.INDIVIDUAL}
+    )
+    if user.school_id:
+        reachable |= Q(
+            **{
+                f"{prefix}session__owner_type": SessionOwnerType.SCHOOL,
+                f"{prefix}session__school_id": user.school_id,
+            }
+        )
+    return own & reachable
+
+
+def teacher_can_reach_course(user, course):
+    """Object-level twin of `teacher_course_access_q` (H-38).
+
+    For code that already holds a Course and asks "may this teacher act on
+    it?". Must stay in step with the Q version; the two are tested against
+    each other.
+    """
+    if course is None or user is None or course.teacher_id != user.id:
+        return False
+    session = course.session
+    if session is None or session.owner_type == SessionOwnerType.INDIVIDUAL:
+        return True
+    return bool(user.school_id) and session.school_id == user.school_id
+
+
+def reachable_courses(user):
+    """Every Course `user` (a teacher) may currently act on."""
+    return Course.objects.filter(teacher_course_access_q(user))
+
+
 class StudentCourseQuerySet(models.QuerySet):
     def active(self):
         return self.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
@@ -231,13 +322,6 @@ class StudentCourse(models.Model):
         blank=True,
         help_text="Timestamp of the last AI summary generation.",
     )
-
-    # attendance_record = models.JSONField(default=dict)
-    # participation_score = models.DecimalField(
-    #     max_digits=5,
-    #     decimal_places=2,
-    #     default=0.00
-    # )
 
     objects = StudentCourseQuerySet.as_manager()
     all_objects = models.Manager()

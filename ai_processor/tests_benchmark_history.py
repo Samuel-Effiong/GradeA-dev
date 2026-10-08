@@ -409,8 +409,17 @@ class CommandHistoryIntegrationTest(TestCase):
         self.questions_path = base / "questions.jsonl"
 
     def _run(self, *args):
+        # H2: the test runner sets DEBUG=False, so the command refuses
+        # without its explicit opt-in.
         out = StringIO()
-        call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+        call_command(
+            "grading_benchmark",
+            "--mode",
+            "replay",
+            "--allow-non-debug",
+            *args,
+            stdout=out,
+        )
         return out.getvalue()
 
     def _metrics_only(self, output):

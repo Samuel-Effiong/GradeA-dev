@@ -1,0 +1,19 @@
+baseline exit=0
+W1	H-93: a run at a licence point counts that point	KILLED	FAILED (failures=347)	True	20.1
+W2	H-93: a point within the due tolerance of the run reopens	KILLED	FAILED (failures=1)	True	13.5
+W3	H-93: the points are the licence's, not the teacher's	KILLED	FAILED (failures=1)	True	16.2
+W4	H-93: the window reopens on the points, not after a calendar month	KILLED	FAILED (failures=3)	True	16.6
+W5	H-93: a refresh inside a licence month leaves the window alone	KILLED	FAILED (failures=3)	True	15.1
+O1	H-81: the licence renewals log the owed refreshes	KILLED	FAILED (failures=3)	True	12.8
+O2	H-81: an early renewal's future refreshes are not owed	KILLED	FAILED (failures=1)	True	13.0
+O3	H-81: a due time within the snap of the end is not owed	KILLED	FAILED (failures=9)	True	12.7
+O4	H-81: every owed grant is counted	KILLED	FAILED (failures=313)	True	12.7
+O5	H-81: the renewal task reports	KILLED	FAILED (failures=1)	True	12.3
+O6	H-81: the offline renewal reports	KILLED	FAILED (failures=2)	True	12.3
+O7	H-81: the individual renewal logs the owed grants	KILLED	FAILED (failures=2)	True	12.9
+O8	H-81: the licence line names the allocation's user by id	KILLED	FAILED (failures=3)	True	12.8
+O9	H-81 (1a's mutant): a late licence renewal counts to the cycle end	KILLED	FAILED (failures=1)	True	13.9
+O10	H-81: a late individual renewal counts to the cycle end	KILLED	FAILED (failures=1)	True	12.5
+
+15/15 killed with verified restore
+exit=0 wall_s=247

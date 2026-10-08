@@ -18,7 +18,8 @@ Run with:
     python manage.py test billing.tests.test_overage_cap
 """
 
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from billing.models import CreditBucketType, CreditWallet, PlanType
 from billing.stripe_service import StripeOverageService, StripeWebhookHandler
@@ -49,12 +50,22 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
         self, mock_session_create, mock_customer
     ):
         mock_customer.return_value = "cus_test"
-        mock_session_create.return_value = MagicMock(id="cs_test", url="https://x")
+        mock_session_create.return_value = SimpleNamespace(
+            id="cs_test", url="https://x"
+        )
         self._set_blocks_used(1)
 
-        session = StripeOverageService.create_overage_checkout_session(
-            self.teacher, "https://ok", "https://cancel", quantity=2
-        )
+        # The checkout now confirms with Stripe that the price it is about
+        # to charge is the one this system quotes — see
+        # billing/overage_pricing.py. Stubbed to agree so this test stays
+        # about the block cap.
+        with patch(
+            "billing.overage_pricing.stripe.Price.retrieve",
+            return_value={"unit_amount": self.plan.overage_block_price},
+        ):
+            session = StripeOverageService.create_overage_checkout_session(
+                self.teacher, "https://ok", "https://cancel", quantity=2
+            )
 
         self.assertEqual(session.id, "cs_test")
         mock_session_create.assert_called_once()
@@ -106,11 +117,8 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
             "quantity": str(quantity),
         }
 
-    @patch("billing.stripe_service.resolve_stripe_receipt_url", return_value=None)
     @patch("billing.stripe_service.BillingTransactionService.record")
-    def test_within_cap_grants_never_expiring_overage_bucket(
-        self, mock_record, mock_receipt
-    ):
+    def test_within_cap_grants_never_expiring_overage_bucket(self, mock_record):
         self._set_blocks_used(1)
 
         StripeWebhookHandler._handle_overage_checkout_completed(
@@ -123,10 +131,9 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
         self.wallet.refresh_from_db()
         self.assertEqual(self.wallet.overage_blocks_used, 3)
 
-    @patch("billing.stripe_service.resolve_stripe_receipt_url", return_value=None)
     @patch("billing.stripe_service.BillingTransactionService.record")
     def test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund(
-        self, mock_record, mock_receipt
+        self, mock_record
     ):
         # The session was created when blocks were available, but by
         # payment-confirmation time another purchase filled the cap - the

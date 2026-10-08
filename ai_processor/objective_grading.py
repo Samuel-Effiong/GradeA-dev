@@ -3,7 +3,7 @@ Deterministic (Tier 0) grading for OBJECTIVE questions.
 
 OBJECTIVE questions carry their own ground truth on the assignment — an
 `options` array and a full-text `model_answer` — and are scored
-all-or-nothing (see GRADING_ASSIGNMENT_PROMPT_4.txt "OBJECTIVE questions
+all-or-nothing (see GRADING_ASSIGNMENT_PROMPT_5.txt "OBJECTIVE questions
 have an empty rubric array — they are scored full-points-or-zero"). For
 answers that match an option unambiguously, an LLM adds cost and a
 nonzero error rate to what is a string comparison. This module does that
@@ -366,7 +366,7 @@ def match_objective_answer(question, answer_html):
 def build_objective_evaluation(question, answer_html, match):
     """
     A question_evaluation dict shaped identically to the LLM's output
-    contract (GRADING_ASSIGNMENT_PROMPT_4.txt), so nothing downstream can
+    contract (GRADING_ASSIGNMENT_PROMPT_5.txt), so nothing downstream can
     tell the two apart. `graded_by: "deterministic"` marks provenance for
     the future eval loop.
     """

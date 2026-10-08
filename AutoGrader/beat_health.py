@@ -114,7 +114,15 @@ def check_beat_health():
     web process, not Beat), which is what actually closes that gap for an
     external uptime monitor polling /health.
     """
+    from AutoGrader.beat_locks import lock_store_problem
+
     overdue = find_overdue_tasks()
+    # H-65: Beat still dispatches a task whose lock can't be checked (so
+    # its last_run_at looks healthy above), but the task fails closed and
+    # skips. Say so here rather than let the skips go unnoticed.
+    locks = lock_store_problem()
+    if locks:
+        overdue.append(locks)
 
     if not overdue:
         return "All monitored Beat tasks are on schedule."

@@ -233,14 +233,32 @@ class BillingTransactionService:
             )
 
         if not txn:
-            logger.warning(
-                "charge.refunded for charge %s (invoice=%s, payment_intent=%s) "
-                "has no matching BillingTransaction — creating a standalone "
-                "record for manual review.",
-                charge.get("id"),
-                invoice_id,
-                payment_intent_id,
-            )
+            # Is this one of OUR compensating refunds, or genuinely
+            # unexplained money movement? Both look identical here — no
+            # matching transaction — but they need opposite responses, and
+            # treating the routine case as an alarm is how the alarm stops
+            # being read. See billing/payment_refunds.system_refund_reason.
+            from .payment_refunds import system_refund_reason
+
+            system_reason = system_refund_reason(charge)
+            if system_reason:
+                logger.info(
+                    "charge.refunded for charge %s is a compensating refund "
+                    "this system issued (%s). Recorded; no matching "
+                    "BillingTransaction is expected, because the invoice it "
+                    "reverses was never charged to the customer.",
+                    charge.get("id"),
+                    system_reason,
+                )
+            else:
+                logger.warning(
+                    "charge.refunded for charge %s (invoice=%s, "
+                    "payment_intent=%s) has no matching BillingTransaction — "
+                    "creating a standalone record for manual review.",
+                    charge.get("id"),
+                    invoice_id,
+                    payment_intent_id,
+                )
             BillingTransaction.objects.create(
                 source=BillingTransactionSource.INDIVIDUAL,
                 transaction_type=BillingTransactionType.OTHER,
@@ -258,8 +276,15 @@ class BillingTransactionService:
                 stripe_invoice_id=invoice_id,
                 receipt_url=charge.get("receipt_url"),
                 description=(
-                    "Refund received with no matching local billing "
+                    f"Compensating refund issued by this system "
+                    f"({system_reason}) — no customer charge was ever "
+                    f"recorded for the invoice it reverses."
+                    if system_reason
+                    else "Refund received with no matching local billing "
                     "transaction — needs manual reconciliation."
+                ),
+                metadata=(
+                    {"system_refund_reason": system_reason} if system_reason else {}
                 ),
                 occurred_at=timezone.now(),
             )

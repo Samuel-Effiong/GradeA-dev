@@ -1,0 +1,9 @@
+S1: 1 failing, as expected
+S2: 1 failing, as expected
+S3: 1 failing, as expected
+L1: 2 failing, as expected
+L2: 2 failing, as expected
+L3: 1 failing, as expected
+L4: 4 failing, as expected
+L5: 2 failing, as expected
+every mutant's failing set is the expected one

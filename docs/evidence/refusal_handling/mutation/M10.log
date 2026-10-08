@@ -1,0 +1,67 @@
+# M10: batch grade failure records a message
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D6BatchResultErrorTest
+# exit 1
+
+Found 1 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d6-feature-c349d2f4@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:53:33,786 services 1915655 136840986209216 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:53:33,809 services 1915655 136840986209216 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking WARNING 2026-09-17 17:53:34,085 refusals 1915655 136840986209216 [request_id=-] Background task None refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+FCannot activate automatic trial for user d6-credits-fae2b627@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:53:37,710 services 1915655 136840986209216 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:53:37,716 services 1915655 136840986209216 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking WARNING 2026-09-17 17:53:38,305 refusals 1915655 136840986209216 [request_id=-] Background task None refused: InsufficientCreditsError: Task requires ~25521 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+F
+======================================================================
+FAIL: test_refused_batch_grade_records_the_refusal_message (billing.tests.test_refusal_handling.D6BatchResultErrorTest.test_refused_batch_grade_records_the_refusal_message) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 456, in test_refused_batch_grade_records_the_refusal_message
+    self.assertTrue(entry["error"], "batch failure recorded error=None")
+AssertionError: None is not true : batch failure recorded error=None
+
+======================================================================
+FAIL: test_refused_batch_grade_records_the_refusal_message (billing.tests.test_refusal_handling.D6BatchResultErrorTest.test_refused_batch_grade_records_the_refusal_message) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 456, in test_refused_batch_grade_records_the_refusal_message
+    self.assertTrue(entry["error"], "batch failure recorded error=None")
+AssertionError: None is not true : batch failure recorded error=None
+
+----------------------------------------------------------------------
+Ran 1 test in 8.872s
+
+FAILED (failures=2)
+Preserving test database for alias 'default'...

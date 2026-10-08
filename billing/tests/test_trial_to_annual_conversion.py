@@ -49,6 +49,7 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
+from billing.refresh_timing import MONTHLY_BUCKET_GRACE
 from billing.services import SubscriptionService
 from billing.tasks import process_annual_plan_credit_grants
 from users.models import UserTypes
@@ -134,12 +135,15 @@ class StripeFinalizedAnnualConversionTests(TrialConversionBase):
         self.assertCloseTo(converted.billing_cycle_end, end, "billing_cycle_end")
 
         bucket = self._monthly_buckets().last()
+        # A month plus the 2-day grace that keeps it live until the next
+        # grant retires it (billing/refresh_timing.py): still a month's
+        # bucket, never the year.
         self.assertCloseTo(
             bucket.expires_at,
-            start + relativedelta(months=1),
-            "the MONTHLY bucket must expire in a MONTH; expiring at the "
-            "annual billing_cycle_end stretches one month's credits over a "
-            "whole year",
+            start + relativedelta(months=1) + MONTHLY_BUCKET_GRACE,
+            "the MONTHLY bucket must expire in a MONTH (plus the grace); "
+            "expiring at the annual billing_cycle_end stretches one month's "
+            "credits over a whole year",
         )
 
     def test_subscriber_receives_credits_in_every_month_of_the_year(self):

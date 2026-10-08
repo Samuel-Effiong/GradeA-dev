@@ -1,0 +1,91 @@
+{
+  "M1_logout_does_not_bump": {
+    "killed": true,
+    "failing_tests": [
+      "test_T1_access_token_stops_working_after_logout",
+      "test_logout_on_one_device_signs_out_every_device"
+    ]
+  },
+  "M2_auth_class_ignores_epoch": {
+    "killed": true,
+    "failing_tests": [
+      "test_T1_access_token_stops_working_after_logout",
+      "test_T2_access_token_stops_working_after_password_change",
+      "test_T2_access_token_stops_working_after_password_reset",
+      "test_a_password_change_signs_out_other_devices_but_not_the_changing_one",
+      "test_a_token_from_the_future_or_the_past_is_rejected",
+      "test_logout_on_one_device_signs_out_every_device",
+      "test_missing_claim_is_rejected_once_the_user_has_moved_past_epoch_zero"
+    ]
+  },
+  "M3_refresh_ignores_epoch": {
+    "killed": true,
+    "failing_tests": [
+      "test_logout_on_one_device_signs_out_every_device",
+      "test_missing_claim_is_rejected_once_the_user_has_moved_past_epoch_zero"
+    ]
+  },
+  "M4_missing_claim_is_invalid": {
+    "killed": true,
+    "failing_tests": [
+      "test_missing_claim_counts_as_epoch_zero_so_deploy_signs_nobody_out"
+    ]
+  },
+  "M5_set_password_does_not_bump": {
+    "killed": true,
+    "failing_tests": [
+      "test_T2_access_token_stops_working_after_password_change",
+      "test_T2_access_token_stops_working_after_password_reset",
+      "test_a_password_change_signs_out_other_devices_but_not_the_changing_one",
+      "test_concurrent_password_changes_do_not_lose_a_bump",
+      "test_set_password_then_full_save_bumps_once",
+      "test_set_password_with_update_fields_still_bumps"
+    ]
+  },
+  "M6_set_unusable_password_does_not_bump": {
+    "killed": true,
+    "failing_tests": [
+      "test_set_unusable_password_bumps"
+    ]
+  },
+  "M7_update_fields_skips_epoch": {
+    "killed": true,
+    "failing_tests": [
+      "test_set_password_with_update_fields_still_bumps",
+      "test_set_unusable_password_bumps"
+    ]
+  },
+  "M8_rehash_bumps_epoch": {
+    "killed": true,
+    "failing_tests": [
+      "test_hasher_upgrade_on_login_does_not_sign_the_user_out"
+    ]
+  },
+  "M9_tokens_not_stamped_with_current_epoch": {
+    "killed": true,
+    "failing_tests": [
+      "test_T2_access_token_stops_working_after_password_change",
+      "test_T2_access_token_stops_working_after_password_reset",
+      "test_a_password_change_signs_out_other_devices_but_not_the_changing_one",
+      "test_issued_tokens_carry_the_current_epoch"
+    ]
+  },
+  "M10_bump_is_read_modify_write": {
+    "killed": true,
+    "failing_tests": [
+      "test_concurrent_password_changes_do_not_lose_a_bump"
+    ]
+  },
+  "M11_stale_epoch_accepted_if_lower": {
+    "killed": true,
+    "failing_tests": [
+      "test_T1_access_token_stops_working_after_logout",
+      "test_T2_access_token_stops_working_after_password_change",
+      "test_T2_access_token_stops_working_after_password_reset",
+      "test_a_password_change_signs_out_other_devices_but_not_the_changing_one",
+      "test_a_token_from_the_future_or_the_past_is_rejected",
+      "test_logout_on_one_device_signs_out_every_device",
+      "test_missing_claim_is_rejected_once_the_user_has_moved_past_epoch_zero"
+    ]
+  }
+}

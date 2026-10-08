@@ -1,51 +1,95 @@
 import logging
+from datetime import timedelta
 
 from celery import shared_task, states
 from django.conf import settings
-from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
+from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor
-
-# from celery.exceptions import Ignore
+from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
-from classrooms.models import Course, EnrollmentStatusType, Topic
+from billing.refusals import PERMANENT_AI_REFUSALS
+from classrooms.models import (
+    EnrollmentStatusType,
+    Topic,
+    reachable_courses,
+    teacher_can_reach_course,
+)
 from students.exceptions import (
+    AssignmentNotOpenError,
     CannotAssociateStudentError,
+    SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
+    SubmissionLimitReachedError,
     TaskCancelledError,
 )
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
-from students.serializers import StudentSubmissionSerializer
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
     grade_engine,
+    update_submission_from_raw_text,
     upload_answers_engine,
 )
+from students.task_access import teacher_may_reach
 from students.task_tracking import (
     cancellable_final_save,
+    claim_processing_task_start,
     cleanup_cancelled_task_artifacts,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
-    lock_processing_task_for_final_save,
     mark_processing_task_cancelled,
     mark_processing_task_failure,
     mark_processing_task_started,
     mark_processing_task_success,
-    merge_task_meta,
     update_processing_task,
 )
 from users.models import CustomUser, UserTypes
 
+from .exceptions import InvalidUploadFileError
+from .file_uploads import sha256_of_upload_payload, upload_assignment_file
 from .models import Assignment, AssignmentStatus
-from .serializers import AssignmentSerializer
 from .services import AssignmentProcessingService
 
-# from django.db import transaction
-
-
 logger = logging.getLogger(__name__)
+
+#: H-38: stored on a grading run (and an auto-grade skip) refused because its
+#: course is not reachable by the teacher it would run as. The same plain
+#: "not found" as S7b's run-time check (SM ruling, N2): it doesn't tell the
+#: reader that they once had access.
+COURSE_NOT_FOUND = "This course wasn't found."
+
+# Final answers about one upload - never retried, always reported with the
+# exception's own (user-facing) message. See upload_answers_engine_async.
+# A STARTED extraction claim older than this was left by a dead worker and
+# may be taken over by a redelivery. Sized above the extraction's own retry
+# budget (3 attempts of a multi-minute call is still well under this).
+EXTRACTION_TASK_STALE_AFTER_SECONDS = 60 * 60
+
+
+def _refusal_code(exc):
+    """The refusal's stable code beside its sentence, when it has one
+    (H-133: the four refusals that close a submission to changes). It is
+    put in the task's return value AND in the tracked row's meta: a client
+    that polls the task-status route is served the row, not the return
+    value."""
+    code = getattr(exc, "code", None)
+    return {"code": code} if code else {}
+
+
+UPLOAD_REFUSALS = (
+    AssignmentNotOpenError,
+    CannotAssociateStudentError,
+    InvalidUploadFileError,
+    SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
+    SubmissionLimitReachedError,
+    # The plan doesn't include the feature, or the wallet can't pay: the
+    # same answer on every attempt (billing/refusals.py).
+    *PERMANENT_AI_REFUSALS,
+)
 
 
 @shared_task(bind=True)
@@ -86,8 +130,6 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             "step": "Initializing",
         },
     )
-
-    # assignment = Assignment.objects.get(id=assignment_id)
 
     for index, submission in enumerate(submissions):
         ensure_task_not_cancelled(processing_task_id)
@@ -205,37 +247,6 @@ def extract_assignment_background_task(
             processing_task_id=processing_task_id,
         )
 
-        #
-        #
-        # extraction_started_at = timezone.now()
-        # assignment_questions = ai_processor.extract_assignment_with_retry(
-        #     user, content, max_retries=3
-        # )
-        # extraction_completed_at = timezone.now()
-        #
-        # self.update_state(state="PROGRESS", meta={"step": "Saving assignment content"})
-        #
-        # assignment_questions["ai_generated"] = True
-        # ai_raw_payload = {
-        #     "title": (
-        #         assignment.title if assignment.title else assignment_questions["title"]
-        #     ),
-        #     "instructions": assignment_questions["instructions"],
-        #     "questions": assignment_questions["questions"],
-        # }
-        #
-        # print("Saving assignment content")
-        #
-        # assignment_questions["ai_raw_payload"] = ai_raw_payload
-        # assignment_questions["extraction_started_at"] = extraction_started_at
-        # assignment_questions["extraction_completed_at"] = extraction_completed_at
-        #
-        # serializer = AssignmentSerializer(
-        #     assignment, data=assignment_questions, partial=True
-        # )
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-
         print("Assignment saved successfully")
         mark_processing_task_success(
             processing_task_id,
@@ -352,77 +363,110 @@ def update_assignment_background_task(
         raise
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, max_retries=3)
 def extract_answer_background_task(
-    self, submission_id, content, processing_task_id=None
+    self, submission_id, raw_input, user_id, processing_task_id=None
 ):
+    """
+    Asynchronous twin of the raw-text edit (PATCH submissions/<pk>): the
+    edited ProseMirror text is re-extracted into answers off the request
+    thread. Dispatched by StudentSubmissionViewSet.update_async. Same
+    retry policy as upload_answers_engine_async: refusals are final and
+    recorded verbatim; anything else is retried up to max_retries and only
+    then recorded as a failure.
+    """
     try:
         ensure_task_not_cancelled(processing_task_id)
-        mark_processing_task_started(
-            processing_task_id, meta={"step": "Extracting answer content"}
-        )
+        # The tracked row is the idempotency claim (there is no RUNNING
+        # state on the submission for an extraction): a redelivery of this
+        # message while the original execution is still running must not
+        # run the billed extraction a second time.
+        # A Celery retry (retries > 0) is this same execution continuing
+        # and already holds the row; only a first delivery contends for it.
+        if self.request.retries == 0 and not claim_processing_task_start(
+            processing_task_id,
+            stale_after=timedelta(seconds=EXTRACTION_TASK_STALE_AFTER_SECONDS),
+            meta={"step": "Extracting answer content"},
+        ):
+            logger.info(
+                "Redelivered answer-extraction task %s for submission %s skipped: "
+                "the original delivery still holds tracked task %s.",
+                self.request.id,
+                submission_id,
+                processing_task_id,
+            )
+            return {
+                "status": states.SUCCESS,
+                "submission_id": str(submission_id),
+                "message": (
+                    "This submission is already being processed by another "
+                    "worker — duplicate run skipped."
+                ),
+            }
         self.update_state(state="PROGRESS", meta={"step": "Extracting answer content"})
 
-        print("Extracting answer content")
-
-        submission = StudentSubmission.objects.get(id=submission_id)
-
-        extraction_started_at = timezone.now()
-        ensure_task_not_cancelled(processing_task_id)
-        answer_json = ai_processor.extract_answer_with_retry(
-            submission.student,
-            content,
-            submission.assignment.questions,
-            assignment_model=submission.assignment,
-            max_retries=3,
-            processing_task_id=processing_task_id,
+        submission = StudentSubmission.objects.select_related("assignment").get(
+            id=submission_id
         )
-        extraction_completed_at = timezone.now()
+        user = CustomUser.objects.get(id=user_id)
 
-        self.update_state(state="PROGRESS", meta={"step": "Saving answer content"})
-        update_processing_task(
-            processing_task_id, meta={"step": "Saving answer content"}
+        submission = update_submission_from_raw_text(
+            user, submission, raw_input, processing_task_id=processing_task_id
         )
 
-        submission.answer = answer_json
-        submission.extraction_started_at = extraction_started_at
-        submission.extraction_completed_at = extraction_completed_at
-
-        serializer = StudentSubmissionSerializer(
-            submission, data=answer_json, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        with cancellable_final_save(processing_task_id):
-            serializer.save()
-
-        print("Answer saved successfully")
         mark_processing_task_success(
             processing_task_id,
             meta={
-                "step": "Answer extracted successfully",
+                "step": "Answers extracted successfully",
                 "submission_id": str(submission.id),
             },
         )
-
         return {
             "status": states.SUCCESS,
-            "submission_id": submission_id,
-            "message": "Answer extracted successfully",
+            "submission_id": str(submission.id),
+            "message": "Answers extracted successfully",
         }
     except TaskCancelledError:
         mark_processing_task_cancelled(
             processing_task_id, meta={"step": "Answer extraction cancelled"}
         )
         raise
+    except UPLOAD_REFUSALS as exc:
+        mark_processing_task_failure(
+            processing_task_id,
+            exc,
+            # The code goes on the tracked row too: the task-status route
+            # serves the row's meta, not this task's return value (H-133).
+            meta={
+                "step": "Submission edit refused",
+                "submission_id": submission_id,
+                **_refusal_code(exc),
+            },
+        )
+        return {
+            "status": states.FAILURE,
+            "message": describe_background_task_error(exc),
+            **_refusal_code(exc),
+        }
     except Exception as exc:
+        if self.request.retries < self.max_retries:
+            update_processing_task(
+                processing_task_id,
+                meta={
+                    "step": (
+                        f"Retrying ({self.request.retries + 1}/{self.max_retries})"
+                    ),
+                    "last_error": describe_background_task_error(exc),
+                },
+            )
+            raise self.retry(exc=exc, countdown=3) from exc
         mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "submission_id": submission_id},
             fallback_message=(
-                "We couldn't extract the answers from this submission. The "
-                "file may be corrupted or in an unsupported format — please "
-                "try re-uploading, or contact support if this continues."
+                "We couldn't extract the answers from this text. Please "
+                "try again, or contact support if this continues."
             ),
         )
         raise
@@ -460,6 +504,29 @@ def grade_engine_async(
             submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         user = CustomUser.objects.get(id=user_id)
+
+        # H-38: never grade - or charge - as a teacher who can no longer
+        # reach the course. This is the one chokepoint every grading route,
+        # the scheduled grading and the auto-grade beat go through, so work
+        # queued before a teacher's removal is refused too. Ids only.
+        if not teacher_may_reach(user, submission):
+            logger.warning(
+                "Grading refused (H-38): submission %s, user %s can no longer "
+                "reach its course.",
+                submission.id,
+                user.id,
+            )
+            mark_processing_task_failure(
+                processing_task_id,
+                None,
+                meta={"step": "Refused"},
+                fallback_message=COURSE_NOT_FOUND,
+            )
+            return {
+                "status": states.FAILURE,
+                "submission_id": submission_id,
+                "message": COURSE_NOT_FOUND,
+            }
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
@@ -502,17 +569,51 @@ def grade_engine_async(
         raise
     except SubmissionGradingInProgressError:
         # C3: this is a redelivered/duplicate task racing a still-running
-        # original - a clean skip, not a failure. Finish SUCCESS so Celery
+        # original - a clean skip, not a failure. Return SUCCESS so Celery
         # doesn't retry it and the user isn't shown an error for a run that
         # is, in fact, happening.
-        mark_processing_task_success(
-            processing_task_id,
-            meta={
-                "step": "Skipped — already being graded",
-                "skipped": True,
-                "submission_id": submission_id,
-            },
+        #
+        # Which tracked task to touch depends on WHO the duplicate is:
+        #
+        # * A Redis redelivery of the ORIGINAL's own message carries the
+        #   same Celery task id and the same processing_task_id. The
+        #   tracked row belongs to the run that holds the claim, so this
+        #   execution must leave it alone: marking it SUCCESS+skipped here
+        #   told the frontend "done" with no grade, and then the terminal-
+        #   status guard blocked the original's real FAILURE from ever
+        #   being recorded.
+        # * A genuinely separate dispatch (a second grade-async click, or a
+        #   task racing the synchronous grade view) has its own tracked
+        #   row, which nobody else will finish - so it is closed here as a
+        #   skip.
+        #
+        # A tracked row with no celery id yet is treated as this delivery's
+        # own: attach_celery_task runs right after publish, so an unset id
+        # means the row was created microseconds ago for this very message,
+        # and leaving a row open is recoverable while closing the wrong one
+        # is not.
+        tracked = get_processing_task_by_id(processing_task_id)
+        own_delivery = tracked is not None and (
+            tracked.celery_task_id in (None, "", str(self.request.id))
         )
+        if own_delivery:
+            logger.info(
+                "Redelivered grading task %s for submission %s skipped: the "
+                "original delivery still holds the claim; tracked task %s "
+                "left to it.",
+                self.request.id,
+                submission_id,
+                processing_task_id,
+            )
+        else:
+            mark_processing_task_success(
+                processing_task_id,
+                meta={
+                    "step": "Skipped — already being graded",
+                    "skipped": True,
+                    "submission_id": submission_id,
+                },
+            )
         return {
             "status": states.SUCCESS,
             "submission_id": submission_id,
@@ -522,14 +623,15 @@ def grade_engine_async(
             ),
         }
     except Exception as exc:
+        fallback_message = (
+            "We couldn't grade this submission. Please try again, or "
+            "contact support if this continues."
+        )
         task = mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Grading failed", "submission_id": submission_id},
-            fallback_message=(
-                "We couldn't grade this submission. Please try again, or "
-                "contact support if this continues."
-            ),
+            fallback_message=fallback_message,
         )
         if batch_id:
             session = BatchUploadSession.objects.get(id=batch_id)
@@ -542,7 +644,13 @@ def grade_engine_async(
             session.update_result(
                 file_name,
                 "FAILED",
-                error=task.error if task else None,
+                # Auto-grade and grade_batch_async dispatch with no tracked
+                # task: the batch row is the only place the reason lands.
+                error=(
+                    task.error
+                    if task
+                    else describe_background_task_error(exc, fallback_message)
+                ),
                 batch_type=BatchUploadType.GRADE,
                 submission_id=submission_id,
             )
@@ -706,7 +814,14 @@ def upload_answers_engine_async(
         )
         ensure_task_not_cancelled(processing_task_id)
         uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
-        content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
+        try:
+            content = AssignmentProcessingService.prepare_ai_content(
+                uploaded_file, prompt
+            )
+        except ParseError as exc:
+            # An unreadable or mislabelled file fails the same way on every
+            # attempt: a final refusal (UPLOAD_REFUSALS), never a retry.
+            raise InvalidUploadFileError(exc.detail) from exc
 
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
@@ -754,20 +869,48 @@ def upload_answers_engine_async(
             session = BatchUploadSession.objects.get(id=session_id)
             session.update_result(file_name, "CANCELLED", error=str(exc))
         raise
-    except CannotAssociateStudentError as exc:
-        mark_processing_task_failure(
+    except UPLOAD_REFUSALS as exc:
+        # A refusal is a final answer about THIS upload (no student to
+        # attach it to; the student is locked out of the assignment), not
+        # a transient fault - retrying it three times would only re-bill
+        # the extraction. Recorded with their user-facing message (never a
+        # credit refusal's internal text) and reported as a non-retried
+        # failure.
+        message = describe_background_task_error(exc)
+        task = mark_processing_task_failure(
             processing_task_id,
             exc,
-            meta={"step": "Student association failed", "assignment_id": assignment_id},
+            # The code on the tracked row too, for the one who polls (H-133).
+            meta={
+                "step": "Submission refused",
+                "assignment_id": assignment_id,
+                **_refusal_code(exc),
+            },
         )
-        session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(file_name, "FAILED", error=str(exc))
-        return {
-            "status": states.FAILURE,
-            "message": "Cannot Identify or Associate Student with this Paper",
-        }
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            session.update_result(
+                file_name, "FAILED", error=task.error if task else message
+            )
+        return {"status": states.FAILURE, "message": message, **_refusal_code(exc)}
     except Exception as exc:
-        mark_processing_task_failure(
+        if self.request.retries < self.max_retries:
+            # Not a failure yet. Marking FAILURE here (as this used to)
+            # made the tracked row terminal, so the retry's own success
+            # could never be recorded - the UI showed a failed upload for
+            # a submission that had in fact been created.
+            update_processing_task(
+                processing_task_id,
+                meta={
+                    "step": (
+                        f"Retrying ({self.request.retries + 1}/{self.max_retries})"
+                    ),
+                    "last_error": describe_background_task_error(exc),
+                },
+            )
+            raise self.retry(exc=exc, countdown=3) from exc
+
+        task = mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
@@ -777,11 +920,12 @@ def upload_answers_engine_async(
                 "continues."
             ),
         )
-        if self.request.retries < self.max_retries:
-            raise self.retry(exc=exc, countdown=3) from Exception
-
-        session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(file_name, "FAILED", error=str(exc))
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            # The classified, user-safe message - never the raw exception.
+            session.update_result(
+                file_name, "FAILED", error=task.error if task else None
+            )
         raise exc
 
 
@@ -855,10 +999,9 @@ def upload_assignment_async(
         mark_processing_task_started(
             processing_task_id, meta={"step": "Loading assignment context"}
         )
-        # self.update_state(state="PROGRESS", meta={"step": "Loading context"})
 
         user = CustomUser.objects.get(id=user_id)
-        course = Course.objects.get(id=course_id, teacher=user)
+        course = reachable_courses(user).get(id=course_id)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
 
         update_processing_task(
@@ -866,39 +1009,19 @@ def upload_assignment_async(
         )
         ensure_task_not_cancelled(processing_task_id)
         uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
-        content = AssignmentProcessingService.prepare_ai_content(
-            uploaded_file, prompt_text
-        )
-
-        update_processing_task(
-            processing_task_id, meta={"step": "Extracting assignment"}
-        )
-        ensure_task_not_cancelled(processing_task_id)
-        assignment_questions = AssignmentProcessingService.extract_assignment_data(
+        # Checks the file, extracts and saves it with its charges refunded if
+        # it fails, and answers a file this course already has an assignment
+        # for with that assignment instead of extracting it again.
+        outcome = upload_assignment_file(
             user,
-            content,
+            uploaded_file,
+            prompt_text,
             course=course,
             topic=topic,
-            generate_raw_input=True,
-            upload=True,
+            sha256=sha256_of_upload_payload(file_payload),
             processing_task_id=processing_task_id,
         )
-
-        # self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
-        update_processing_task(processing_task_id, meta={"step": "Saving assignment"})
-        with transaction.atomic():
-            processing_task = lock_processing_task_for_final_save(processing_task_id)
-            serializer = AssignmentSerializer(data=assignment_questions)
-            serializer.is_valid(raise_exception=True)
-            assignment = serializer.save()
-
-            if processing_task:
-                processing_task.assignment = assignment
-                processing_task.meta = merge_task_meta(
-                    processing_task.meta,
-                    {"assignment_id": str(assignment.id)},
-                )
-                processing_task.save(update_fields=["assignment", "meta", "updated_at"])
+        assignment = outcome.assignment
 
         ensure_task_not_cancelled(processing_task_id)
 
@@ -913,14 +1036,20 @@ def upload_assignment_async(
         mark_processing_task_success(
             processing_task_id,
             meta={
-                "step": "Assignment uploaded successfully",
+                "step": (
+                    "This file was already uploaded; the existing assignment was kept"
+                    if outcome.already_uploaded
+                    else "Assignment uploaded successfully"
+                ),
                 "assignment_id": str(assignment.id),
                 "file_name": file_name,
+                "already_uploaded": outcome.already_uploaded,
             },
         )
         return {
             "status": states.SUCCESS,
             "assignment_id": str(assignment.id),
+            "already_uploaded": outcome.already_uploaded,
             "message": "Assignment uploaded successfully",
         }
 
@@ -945,8 +1074,6 @@ def upload_assignment_async(
                 "continues."
             ),
         )
-        # if self.request.retries == self.max_retries:
-        #     raise self.retry(exc=e, countdown=3) from Exception
 
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "FAILED", error=str(e))
@@ -962,6 +1089,25 @@ def grade_batch_async(
     )
 
     # Clear assignment-level scheduling info and create BatchUploadSession if missing
+    # H-38: refuse the whole batch up front when the requester can no longer
+    # reach the course (grade_engine_async also refuses each item).
+    batch_user = CustomUser.objects.filter(id=user_id).first()
+    batch_assignment = (
+        Assignment.objects.select_related("course").filter(id=assignment_id).first()
+    )
+    if (
+        batch_user is not None
+        and batch_assignment is not None
+        and not teacher_may_reach(batch_user, batch_assignment)
+    ):
+        logger.warning(
+            "Batch grading refused (H-38): assignment %s, user %s can no longer "
+            "reach its course.",
+            assignment_id,
+            user_id,
+        )
+        return COURSE_NOT_FOUND
+
     try:
         assignment = Assignment.objects.get(id=assignment_id)
         if assignment.scheduled_grading_at or assignment.grading_task_name:
@@ -989,7 +1135,7 @@ def grade_batch_async(
             str(submission.id),
             batch_id=batch_id,
         )
-        print(f"Starting grading of Submission {submission.student.get_full_name}")
+        print(f"Starting grading of Submission {submission.id}")
 
 
 @shared_task(name="assignments.tasks.auto_grade_due_assignment")
@@ -1004,6 +1150,19 @@ def auto_grade_due_assignment(assignment_id):
 
         if not ungraded_submissions.exists():
             return "No ungraded submissions."
+
+        # H-38: the course's teacher (a permanent owner) may have left the
+        # school. Grading the school's students in their name - and billing
+        # them - is exactly what removal must stop. Ids only.
+        if not teacher_can_reach_course(assignment.course.teacher, assignment.course):
+            logger.warning(
+                "Auto-grade skipped (H-38): assignment %s, course %s is no "
+                "longer reachable by its teacher %s.",
+                assignment.id,
+                assignment.course_id,
+                assignment.course.teacher_id,
+            )
+            return COURSE_NOT_FOUND
 
         session = BatchUploadSession.objects.create(
             teacher=assignment.course.teacher,
@@ -1218,3 +1377,87 @@ def send_new_assignment_posted_notification(assignment_id):
         import traceback
 
         return f"Error: {str(e)} {traceback.format_exc()}"
+
+
+@shared_task(
+    bind=True,
+    name="assignments.tasks.prerender_assignment_pdfs",
+    max_retries=5,
+    default_retry_delay=60,
+)
+def prerender_assignment_pdfs(self, assignment_id):
+    """
+    Render and cache both PDF views of a freshly published assignment.
+
+    Publishing is the moment a whole class opens the same assignment at
+    once, and it is also the one moment the cache is guaranteed cold - a
+    newly published assignment has never been rendered. Warming it here
+    turns that burst into cache hits. Single-flight already cut a measured
+    30-simultaneous-request burst from 30 renders to 1; doing the render
+    before anyone asks cuts it to 0.
+
+    Best effort by design: this only warms a cache, so nothing it does is
+    required for a download to work. A failure is logged and dropped
+    rather than retried forever, with one exception - if the renderer is
+    shedding load, the work is genuinely worth deferring, so back off and
+    try again later. Pre-rendering must never compete with real users for
+    render capacity.
+    """
+    from assignments.pdf_cache import get_cached_pdf, get_or_render
+    from assignments.pdf_document import render_assignment_pdf
+    from assignments.pdf_renderer import PDFRendererBusy, PDFRendererUnavailable
+
+    try:
+        assignment = Assignment.objects.select_related("course__teacher").get(
+            id=assignment_id
+        )
+    except Assignment.DoesNotExist:
+        return "Assignment no longer exists."
+
+    if assignment.status != AssignmentStatus.PUBLISHED:
+        return "Assignment is not published."
+
+    if not assignment.questions:
+        return "Assignment has no questions to render."
+
+    warmed = []
+    for view_type, include_rubric in (("student", False), ("teacher", True)):
+        if get_cached_pdf(assignment, view_type) is not None:
+            continue
+        try:
+            get_or_render(
+                assignment,
+                view_type,
+                lambda inc=include_rubric: render_assignment_pdf(assignment, inc),
+            )
+            warmed.append(view_type)
+        except PDFRendererUnavailable as exc:
+            # This process can never render (gevent-patched threading -
+            # see pdf_renderer._gevent_patched). Retrying would just hit
+            # the same wall forever, so stop, and stop for both views.
+            logger.warning(
+                "[PDF] pre-render unavailable in this process, skipping "
+                "assignment %s: %s",
+                assignment_id,
+                exc,
+            )
+            return "Pre-render unavailable in this process (skipped)."
+        except PDFRendererBusy as exc:
+            logger.info(
+                "[PDF] pre-render deferred for assignment %s (%s view): %s",
+                assignment_id,
+                view_type,
+                exc,
+            )
+            raise self.retry(exc=exc) from Exception
+        except Exception:
+            # A broken document should not keep a Celery worker busy
+            # retrying; the download path will surface the real error to
+            # the teacher who can act on it.
+            logger.exception(
+                "[PDF] pre-render failed for assignment %s (%s view)",
+                assignment_id,
+                view_type,
+            )
+
+    return f"Pre-rendered: {', '.join(warmed) or 'nothing (already cached)'}"

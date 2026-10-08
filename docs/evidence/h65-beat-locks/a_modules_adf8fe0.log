@@ -1,0 +1,743 @@
+Creating test database for alias 'default' ('test_h65_beat_locks')...
+Found 203 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+test_a_skipped_run_leaves_the_due_grant_for_the_next_run (billing.tests.test_beat_lock_catch_up.AnnualMidCycleGrantCatchUpTests.test_a_skipped_run_leaves_the_due_grant_for_the_next_run) ... Cannot activate automatic trial for user annual-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_expired_bucket_for_the_next_run (billing.tests.test_beat_lock_catch_up.ExpiredBucketCleanupCatchUpTests.test_a_skipped_run_leaves_the_expired_bucket_for_the_next_run) ... Cannot activate automatic trial for user cleanup-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_failed_purchase_for_the_next_run (billing.tests.test_beat_lock_catch_up.FailedEventReplayCatchUpTests.test_a_skipped_run_leaves_the_failed_purchase_for_the_next_run) ... Cannot activate automatic trial for user replay-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_due_refresh_for_the_next_run (billing.tests.test_beat_lock_catch_up.LicenceMonthlyRefreshCatchUpTests.test_a_skipped_run_leaves_the_due_refresh_for_the_next_run) ... Cannot activate automatic trial for user licence-teacher-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_due_licence_for_the_next_run (billing.tests.test_beat_lock_catch_up.LicenceRenewalCatchUpTests.test_a_skipped_run_leaves_the_due_licence_for_the_next_run) ... ok
+test_a_skipped_run_leaves_the_missing_link_for_the_next_run (billing.tests.test_beat_lock_catch_up.MissingReceiptSweepCatchUpTests.test_a_skipped_run_leaves_the_missing_link_for_the_next_run) ... ok
+test_a_skipped_run_leaves_the_stale_intent_for_the_next_run (billing.tests.test_beat_lock_catch_up.StaleLicenceIntentCatchUpTests.test_a_skipped_run_leaves_the_stale_intent_for_the_next_run) ... Stale licence Stripe intents escalated: 1
+ok
+test_a_skipped_run_leaves_the_abandoned_claims_for_the_next_run (billing.tests.test_beat_lock_catch_up.StaleStripeEventSweepCatchUpTests.test_a_skipped_run_leaves_the_abandoned_claims_for_the_next_run)
+Both of the sweep's outcomes: a claim whose worker died before ... Recovered abandoned Stripe event evt_catch_up_unstarted (invoice.payment_succeeded): its worker died before the handler started, so no Stripe call was made and it is safe to re-dispatch. Recovery attempt 1 of 3.
+ok
+test_a_skipped_run_leaves_the_due_renewal_for_the_next_run (billing.tests.test_beat_lock_catch_up.SubscriptionRenewalCatchUpTests.test_a_skipped_run_leaves_the_due_renewal_for_the_next_run) ... Cannot activate automatic trial for user renewal-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_ended_trial_for_the_next_run (billing.tests.test_beat_lock_catch_up.TrialExpiryCatchUpTests.test_a_skipped_run_leaves_the_ended_trial_for_the_next_run) ... Cannot activate automatic trial for user trial-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_logs_error_and_names_the_overdue_task (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_logs_error_and_names_the_overdue_task) ... ok
+test_returns_all_clear_message_when_nothing_overdue (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_returns_all_clear_message_when_nothing_overdue) ... ok
+test_disabled_task_is_never_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_disabled_task_is_never_reported) ... ok
+test_missing_periodic_task_row_is_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_missing_periodic_task_row_is_reported) ... ok
+test_multiple_overdue_tasks_are_all_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_multiple_overdue_tasks_are_all_reported) ... ok
+test_never_run_task_uses_date_changed_as_reference (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_never_run_task_uses_date_changed_as_reference) ... ok
+test_no_expectations_configured_returns_empty (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_no_expectations_configured_returns_empty) ... ok
+test_on_schedule_task_is_not_overdue (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_on_schedule_task_is_not_overdue) ... ok
+test_overdue_task_is_reported_with_actionable_message (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_overdue_task_is_reported_with_actionable_message) ... ok
+test_days_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_days_hours_and_minutes) ... ok
+test_exact_hour_omits_zero_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_exact_hour_omits_zero_minutes) ... ok
+test_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_hours_and_minutes) ... ok
+test_minutes_only (AutoGrader.tests_beat_health.HumanizeTests.test_minutes_only) ... ok
+test_negative_delta_clamped_to_zero (AutoGrader.tests_beat_health.HumanizeTests.test_negative_delta_clamped_to_zero) ... ok
+test_singular_minute (AutoGrader.tests_beat_health.HumanizeTests.test_singular_minute) ... ok
+test_zero_renders_as_zero_minutes_not_empty (AutoGrader.tests_beat_health.HumanizeTests.test_zero_renders_as_zero_minutes_not_empty) ... ok
+test_disabled_watchdog_is_degraded (AutoGrader.test_health.BeatHealthCheckTests.test_disabled_watchdog_is_degraded) ...
+
+django.request ERROR 2026-09-30 21:46:28,941 log 28433 130926163364800 [request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+ok
+test_missing_periodic_task_row_is_degraded (AutoGrader.test_health.BeatHealthCheckTests.test_missing_periodic_task_row_is_degraded) ...
+
+django.request ERROR 2026-09-30 21:46:28,966 log 28433 130926163364800 [request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+ok
+test_never_run_falls_back_to_date_changed (AutoGrader.test_health.BeatHealthCheckTests.test_never_run_falls_back_to_date_changed) ...
+
+django.request ERROR 2026-09-30 21:46:29,000 log 28433 130926163364800 [request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+ok
+test_reachable_without_authentication (AutoGrader.test_health.BeatHealthCheckTests.test_reachable_without_authentication) ... ok
+test_stale_last_run_is_degraded (AutoGrader.test_health.BeatHealthCheckTests.test_stale_last_run_is_degraded) ...
+
+django.request ERROR 2026-09-30 21:46:29,066 log 28433 130926163364800 [request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+ok
+test_404s_when_not_enabled (AutoGrader.test_health.ClientIdentityDiagnosticTests.test_404s_when_not_enabled)
+Default off. It is a deliberately temporary surface - enabled ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h65-beat-locks/AutoGrader/health.py", line 95, in client_identity
+    raise Http404("client diagnostics are not enabled in this environment")
+django.http.response.Http404: client diagnostics are not enabled in this environment
+ok
+test_reports_remote_addr_when_no_forwarding_header (AutoGrader.test_health.ClientIdentityDiagnosticTests.test_reports_remote_addr_when_no_forwarding_header) ... ok
+test_reports_the_ident_the_throttles_key_on (AutoGrader.test_health.ClientIdentityDiagnosticTests.test_reports_the_ident_the_throttles_key_on) ... ok
+test_cache_write_that_silently_no_ops_is_reported_as_degraded (AutoGrader.test_health.HealthCheckTests.test_cache_write_that_silently_no_ops_is_reported_as_degraded)
+_check_cache round-trips (set then get) specifically to catch a ...
+
+django.request ERROR 2026-09-30 21:46:29,115 log 28433 130926163364800 [request_id=-] Service Unavailable: /api/v1/health
+
+
+ok
+test_health_is_reachable_without_authentication (AutoGrader.test_health.HealthCheckTests.test_health_is_reachable_without_authentication)
+A load balancer polling this has no token, so it must not 401. ... ok
+test_reports_503_and_names_the_failing_dependency (AutoGrader.test_health.HealthCheckTests.test_reports_503_and_names_the_failing_dependency)
+A failing dependency has to be identifiable from the response, or ...
+
+django.request ERROR 2026-09-30 21:46:29,126 log 28433 130926163364800 [request_id=-] Service Unavailable: /api/v1/health
+
+
+ok
+test_reports_the_running_commit (AutoGrader.test_health.HealthCheckTests.test_reports_the_running_commit)
+The whole point of the field: answering "is the fix deployed?" ... ok
+test_version_does_not_gate_health (AutoGrader.test_health.HealthCheckTests.test_version_does_not_gate_health)
+A missing commit SHA is a metadata gap, not an outage: it must ... ok
+test_version_is_unknown_rather_than_absent_when_unset (AutoGrader.test_health.HealthCheckTests.test_version_is_unknown_rather_than_absent_when_unset)
+A stable key shape keeps the response trivial to parse, and the ... ok
+test_a_currency_mismatch_is_reported_because_no_field_holds_it (billing.tests.test_price_reconciliation.DriftTests.test_a_currency_mismatch_is_reported_because_no_field_holds_it) ... STRIPE PRICE DRIFT_DETECTED — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1499 eur. Mismatched: currency. Plan STANDARD disagrees with Stripe price price_base_1 on currency, which cannot be synchronised automatically because it changes how customers are billed rather than what they are charged. Needs a human. (account=acct_test, run=9295784f-45a9-4000-801f-5ea4911aff63)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_a_price_that_does_not_resolve_is_INVALID_not_drift (billing.tests.test_price_reconciliation.DriftTests.test_a_price_that_does_not_resolve_is_INVALID_not_drift) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 1499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=41668bca-d1bd-472f-ba41-428830607e42)
+STRIPE PRICE INVALID_PRICE — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says None . Mismatched: -. InvalidRequestError reading price price_base_1: No such price: 'price_base_1'  (a price id that does not resolve may also mean these credentials address a different Stripe account than the one the plan was configured against) (account=acct_test, run=41668bca-d1bd-472f-ba41-428830607e42)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 0 already matching, 1 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_a_product_mismatch_SYNCHRONISES_from_stripe (billing.tests.test_price_reconciliation.DriftTests.test_a_product_mismatch_SYNCHRONISES_from_stripe) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: product. Local amount 1499 -> 1499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=efbe839d-73fa-4534-9bb1-4fb45dad1452)
+ok
+test_a_recurring_interval_COUNT_mismatch_is_drift (billing.tests.test_price_reconciliation.DriftTests.test_a_recurring_interval_COUNT_mismatch_is_drift) ... STRIPE PRICE DRIFT_DETECTED — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1499 usd. Mismatched: recurring. Plan STANDARD disagrees with Stripe price price_base_1 on recurring, which cannot be synchronised automatically because it changes how customers are billed rather than what they are charged. Needs a human. (account=acct_test, run=469f2452-50b9-4813-8ec5-67bbe2f83960)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_a_recurring_interval_mismatch_is_REPORTED_not_synchronised (billing.tests.test_price_reconciliation.DriftTests.test_a_recurring_interval_mismatch_is_REPORTED_not_synchronised)
+`plan.interval` drives credit cadence and renewal detection. ... STRIPE PRICE DRIFT_DETECTED — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1499 usd. Mismatched: recurring. Plan STANDARD disagrees with Stripe price price_base_1 on recurring, which cannot be synchronised automatically because it changes how customers are billed rather than what they are charged. Needs a human. (account=acct_test, run=904ec53d-c683-41af-911e-a4e07c8990b2)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_a_recurring_plan_whose_price_became_one_time_is_drift (billing.tests.test_price_reconciliation.DriftTests.test_a_recurring_plan_whose_price_became_one_time_is_drift) ... STRIPE PRICE DRIFT_DETECTED — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1499 usd. Mismatched: recurring. Plan STANDARD disagrees with Stripe price price_base_1 on recurring, which cannot be synchronised automatically because it changes how customers are billed rather than what they are charged. Needs a human. (account=acct_test, run=b4ba4891-e89a-4476-96e2-a5c8fad1c695)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_an_amount_mismatch_SYNCHRONISES_from_stripe (billing.tests.test_price_reconciliation.DriftTests.test_an_amount_mismatch_SYNCHRONISES_from_stripe)
+Stripe is the authority: the local row is what is wrong. ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 1999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=442c87b8-334e-4b1f-a93a-9b4bc4917567)
+ok
+test_an_inactive_price_is_its_own_status_not_generic_drift (billing.tests.test_price_reconciliation.DriftTests.test_an_inactive_price_is_its_own_status_not_generic_drift)
+An archived price does not charge the wrong amount — it refuses ... STRIPE PRICE INACTIVE_PRICE — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1499 usd. Mismatched: -. Stripe price price_base_1 for plan STANDARD is ARCHIVED. Purchases against it will fail, so its values were NOT copied into the application — the existing configuration is left untouched. (account=acct_test, run=7650aa4d-d4c1-4a17-b046-7d4d7fdd8a00)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_an_unresolvable_price_names_the_account_as_a_possible_cause (billing.tests.test_price_reconciliation.DriftTests.test_an_unresolvable_price_names_the_account_as_a_possible_cause)
+A 404 and 'wrong Stripe account' are indistinguishable from here, ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 1499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=78fa1fba-dc6a-410a-89c1-5b5b9de6c86e)
+STRIPE PRICE INVALID_PRICE — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says None . Mismatched: -. InvalidRequestError reading price price_base_1: No such price: 'price_base_1'  (a price id that does not resolve may also mean these credentials address a different Stripe account than the one the plan was configured against) (account=acct_test, run=78fa1fba-dc6a-410a-89c1-5b5b9de6c86e)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 0 already matching, 1 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_an_unsyncable_mismatch_still_reports_even_when_the_price_synced (billing.tests.test_price_reconciliation.DriftTests.test_an_unsyncable_mismatch_still_reports_even_when_the_price_synced)
+The money is now right, but something about HOW it bills is not. ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 1999 eur. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=e0cf8d5a-9b71-4ef9-a8d4-004c888ca991)
+STRIPE PRICE DRIFT_DETECTED — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1999 eur. Mismatched: amount, currency. Plan STANDARD disagrees with Stripe price price_base_1 on currency, which cannot be synchronised automatically because it changes how customers are billed rather than what they are charged. Needs a human. (account=acct_test, run=e0cf8d5a-9b71-4ef9-a8d4-004c888ca991)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 1 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_several_mismatches_are_all_recorded_not_just_the_first (billing.tests.test_price_reconciliation.DriftTests.test_several_mismatches_are_all_recorded_not_just_the_first) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount, product. Local amount 1499 -> 1 gbp. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=4565538f-3050-419f-a826-0ce73d2a58ab)
+STRIPE PRICE DRIFT_DETECTED — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 1 gbp. Mismatched: amount, product, currency. Plan STANDARD disagrees with Stripe price price_base_1 on currency, which cannot be synchronised automatically because it changes how customers are billed rather than what they are charged. Needs a human. (account=acct_test, run=4565538f-3050-419f-a826-0ce73d2a58ab)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 1 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_the_synchronisation_records_what_the_price_used_to_be (billing.tests.test_price_reconciliation.DriftTests.test_the_synchronisation_records_what_the_price_used_to_be)
+The only surviving record of what the application charged before. ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 1999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=2c766809-40f8-417d-933a-dd2966f45e6a)
+ok
+test_a_ONE_TIME_overage_price_is_not_false_drift (billing.tests.test_price_reconciliation.MatchingTests.test_a_ONE_TIME_overage_price_is_not_false_drift)
+The brief's explicit warning: an overage block is bought outright, ... ok
+test_a_recurring_price_matches_its_plan_interval (billing.tests.test_price_reconciliation.MatchingTests.test_a_recurring_price_matches_its_plan_interval) ... ok
+test_all_plans_match (billing.tests.test_price_reconciliation.MatchingTests.test_all_plans_match) ... ok
+test_both_sides_of_every_comparison_are_recorded (billing.tests.test_price_reconciliation.MatchingTests.test_both_sides_of_every_comparison_are_recorded)
+Someone reading this at 3am needs to see what we expected and what ... ok
+test_the_base_price_matches (billing.tests.test_price_reconciliation.MatchingTests.test_the_base_price_matches) ... ok
+test_the_overage_price_matches (billing.tests.test_price_reconciliation.MatchingTests.test_the_overage_price_matches) ... ok
+test_a_plan_selling_only_overage_is_fine (billing.tests.test_price_reconciliation.NotApplicableTests.test_a_plan_selling_only_overage_is_fine)
+A beta tier: free base, paid overage. Neither is a problem. ... ok
+test_a_plan_with_no_price_and_no_expectation_is_not_an_alert (billing.tests.test_price_reconciliation.NotApplicableTests.test_a_plan_with_no_price_and_no_expectation_is_not_an_alert) ... ok
+test_expecting_to_charge_with_no_price_id_IS_an_alert (billing.tests.test_price_reconciliation.NotApplicableTests.test_expecting_to_charge_with_no_price_id_IS_an_alert)
+We intend to bill and have nothing to bill with. ... STRIPE PRICE MISSING_PRICE_ID — plan STANDARD (INDIVIDUAL), base price (none). Expected 1499 usd, Stripe says None . Mismatched: -. Plan STANDARD has 1499 cents stored for its base price but no Stripe price id, so there is nothing authoritative to synchronise from. (account=acct_test, run=44ba987d-13ae-48b5-8cc2-3dfbb9f11a4e)
+STRIPE PRICE MISSING_PRICE_ID — plan STANDARD (INDIVIDUAL), overage price (none). Expected 500 usd, Stripe says None . Mismatched: -. Plan STANDARD has 500 cents stored for its overage price but no Stripe price id, so there is nothing authoritative to synchronise from. (account=acct_test, run=44ba987d-13ae-48b5-8cc2-3dfbb9f11a4e)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 0 already matching, 0 synchronised from Stripe, 2 needing attention, 0 unreadable.
+ok
+test_a_rate_limit_is_UNAVAILABLE_not_drift (billing.tests.test_price_reconciliation.OperationalFailureTests.test_a_rate_limit_is_UNAVAILABLE_not_drift) ... Stripe was unreadable for plan STANDARD base price price_base_1 (rate_limit: RateLimitError reading price price_base_1: slow down). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 9a3f029b-ce13-4f3f-a907-17d40600137d.
+ok
+test_a_timeout_is_UNAVAILABLE_not_drift (billing.tests.test_price_reconciliation.OperationalFailureTests.test_a_timeout_is_UNAVAILABLE_not_drift) ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_connection_error: APIConnectionError reading price price_base_1: timed out). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 63ef19da-c944-49ef-8c34-ee0279a6dc2d.
+ok
+test_an_api_error_is_UNAVAILABLE_not_drift (billing.tests.test_price_reconciliation.OperationalFailureTests.test_an_api_error_is_UNAVAILABLE_not_drift) ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_error: APIError reading price price_base_1: stripe is down). This is an operational failure, NOT price drift — the price may be perfectly correct. Run a5bed85d-3896-4cc3-889f-62d84164f98e.
+ok
+test_an_auth_failure_is_UNAVAILABLE_not_drift (billing.tests.test_price_reconciliation.OperationalFailureTests.test_an_auth_failure_is_UNAVAILABLE_not_drift) ... Stripe was unreadable for plan STANDARD base price price_base_1 (authentication_error: AuthenticationError reading price price_base_1: bad key). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 676f9fd2-edff-4971-ba33-c416f690ecae.
+ok
+test_an_unavailable_price_is_never_counted_as_matched (billing.tests.test_price_reconciliation.OperationalFailureTests.test_an_unavailable_price_is_never_counted_as_matched) ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_connection_error: APIConnectionError reading price price_base_1: timed out). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 6166d943-c7bd-48f6-b2b6-d1a8e2c3adea.
+ok
+test_an_unavailable_price_is_not_counted_as_an_alert (billing.tests.test_price_reconciliation.OperationalFailureTests.test_an_unavailable_price_is_not_counted_as_an_alert) ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_connection_error: APIConnectionError reading price price_base_1: timed out). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 8e808f23-29fd-461c-ac68-d86dd56f0d54.
+ok
+test_an_unidentifiable_account_does_not_end_the_run (billing.tests.test_price_reconciliation.OperationalFailureTests.test_an_unidentifiable_account_does_not_end_the_run) ... Price reconciliation could not identify the Stripe account: APIConnectionError('down')
+ok
+test_one_failing_plan_does_not_stop_the_others (billing.tests.test_price_reconciliation.OperationalFailureTests.test_one_failing_plan_does_not_stop_the_others) ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_connection_error: APIConnectionError reading price price_base_1: down). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 3bec4519-f55d-434a-b4cc-490a80c9ef48.
+ok
+test_base_differs_but_overage_matches (billing.tests.test_price_reconciliation.OverageIndependenceTests.test_base_differs_but_overage_matches) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=382d8916-663b-4935-99b8-c4e79cf61333)
+ok
+test_base_matches_but_overage_differs (billing.tests.test_price_reconciliation.OverageIndependenceTests.test_base_matches_but_overage_differs) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=d41cc379-bde9-4aae-a4a3-43a1d0a3ea31)
+ok
+test_both_differ_and_both_synchronise (billing.tests.test_price_reconciliation.OverageIndependenceTests.test_both_differ_and_both_synchronise) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=3ce335a4-b927-4f25-b078-747ed0152234)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=3ce335a4-b927-4f25-b078-747ed0152234)
+ok
+test_the_overage_price_is_fetched_separately_from_the_base (billing.tests.test_price_reconciliation.OverageIndependenceTests.test_the_overage_price_is_fetched_separately_from_the_base) ... ok
+test_the_run_is_finished_and_summarised (billing.tests.test_price_reconciliation.RunRecordTests.test_the_run_is_finished_and_summarised) ... ok
+test_the_run_records_the_api_version_actually_used (billing.tests.test_price_reconciliation.RunRecordTests.test_the_run_records_the_api_version_actually_used)
+Never pinned by this module — whatever the application uses. The ... ok
+test_the_run_records_which_stripe_account_it_talked_to (billing.tests.test_price_reconciliation.RunRecordTests.test_the_run_records_which_stripe_account_it_talked_to) ... ok
+test_the_same_price_is_fetched_once_per_run (billing.tests.test_price_reconciliation.RunRecordTests.test_the_same_price_is_fetched_once_per_run)
+Plans share prices; re-asking Stripe for the same object wastes ... ok
+test_every_run_leaves_its_own_audit_rows (billing.tests.test_price_reconciliation.SafetyTests.test_every_run_leaves_its_own_audit_rows) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=bdcea19a-4398-4776-a4de-116f39bfb071)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=bdcea19a-4398-4776-a4de-116f39bfb071)
+ok
+test_it_DOES_rewrite_the_local_plan_to_match_stripe (billing.tests.test_price_reconciliation.SafetyTests.test_it_DOES_rewrite_the_local_plan_to_match_stripe)
+The contract, inverted from the original design: Stripe is the ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=ffff6dfa-6f82-40ec-99cb-2c8dff95ac5f)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=ffff6dfa-6f82-40ec-99cb-2c8dff95ac5f)
+ok
+test_it_grants_or_revokes_no_credits (billing.tests.test_price_reconciliation.SafetyTests.test_it_grants_or_revokes_no_credits) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=f9dcdf35-196f-45a3-b64b-ff67b9658314)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=f9dcdf35-196f-45a3-b64b-ff67b9658314)
+ok
+test_it_makes_no_stripe_mutation (billing.tests.test_price_reconciliation.SafetyTests.test_it_makes_no_stripe_mutation) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=06d6211c-8962-41ff-8c8f-1a18a6b760e7)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=06d6211c-8962-41ff-8c8f-1a18a6b760e7)
+ok
+test_running_it_twice_changes_no_billing_state (billing.tests.test_price_reconciliation.SafetyTests.test_running_it_twice_changes_no_billing_state) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=aea01958-1a00-47b1-8881-daf6aad74709)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=aea01958-1a00-47b1-8881-daf6aad74709)
+ok
+test_the_first_run_synchronises_and_the_second_has_nothing_to_do (billing.tests.test_price_reconciliation.SafetyTests.test_the_first_run_synchronises_and_the_second_has_nothing_to_do) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 9999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=a3554cd5-f8a8-419d-970a-3cc1aed4bf24)
+STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=a3554cd5-f8a8-419d-970a-3cc1aed4bf24)
+ok
+test_a_differing_base_price_takes_stripes_value (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_differing_base_price_takes_stripes_value) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 2499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=5ff99ba2-0c07-4579-b187-47edabddaa26)
+ok
+test_a_differing_overage_price_takes_stripes_value (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_differing_overage_price_takes_stripes_value) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount 500 -> 400 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=fbd4b307-865e-4cbe-b570-7d28237f2f68)
+ok
+test_a_missing_base_price_is_POPULATED_from_stripe (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_missing_base_price_is_POPULATED_from_stripe)
+The PRO / PRO_ANNUAL / POWER_ANNUAL case: a live Stripe price and ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount None -> 2499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=9d8d6d89-de18-4a2b-8c58-5d700d80c651)
+ok
+test_a_missing_overage_price_is_POPULATED_from_stripe (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_missing_overage_price_is_POPULATED_from_stripe) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) overage price price_overage_1: amount. Local amount None -> 400 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=2dbc3f40-16ae-45c8-b8ec-1550df0bc91d)
+ok
+test_a_plan_with_no_price_id_is_not_zeroed (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_plan_with_no_price_id_is_not_zeroed) ... STRIPE PRICE MISSING_PRICE_ID — plan STANDARD (INDIVIDUAL), base price (none). Expected 1499 usd, Stripe says None . Mismatched: -. Plan STANDARD has 1499 cents stored for its base price but no Stripe price id, so there is nothing authoritative to synchronise from. (account=acct_test, run=3227d174-1376-4ba8-a0aa-ced5b7e628b7)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_a_populated_base_price_records_that_it_had_none_before (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_populated_base_price_records_that_it_had_none_before) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount None -> 2499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=f7ca1e06-4ffd-4215-8b05-65687452a1d6)
+ok
+test_a_synchronisation_touches_no_unrelated_plan_field (billing.tests.test_price_reconciliation.SynchronisationTests.test_a_synchronisation_touches_no_unrelated_plan_field)
+A targeted UPDATE, not a blanket save. ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 2499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=779caa3d-be6d-4315-92fd-2ad1000a56c1)
+ok
+test_an_ARCHIVED_price_is_not_adopted (billing.tests.test_price_reconciliation.SynchronisationTests.test_an_ARCHIVED_price_is_not_adopted)
+An archived Price refuses the charge. Treating it as the source of ... STRIPE PRICE INACTIVE_PRICE — plan STANDARD (INDIVIDUAL), base price price_base_1. Expected 1499 usd, Stripe says 9999 usd. Mismatched: amount. Stripe price price_base_1 for plan STANDARD is ARCHIVED. Purchases against it will fail, so its values were NOT copied into the application — the existing configuration is left untouched. (account=acct_test, run=3e91efd3-af60-4959-9e47-990fb5fb3b60)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_an_invalid_price_id_leaves_the_local_price_untouched (billing.tests.test_price_reconciliation.SynchronisationTests.test_an_invalid_price_id_leaves_the_local_price_untouched) ... STRIPE PRICE INVALID_PRICE — plan STANDARD (INDIVIDUAL), base price price_does_not_exist. Expected 1499 usd, Stripe says None . Mismatched: -. InvalidRequestError reading price price_does_not_exist: No such price: 'price_does_not_exist'  (a price id that does not resolve may also mean these credentials address a different Stripe account than the one the plan was configured against) (account=acct_test, run=e881e538-293e-4a67-8ddd-08016f99358b)
+Stripe price reconciliation: 1 plan(s), 2 price(s) checked, 1 already matching, 0 synchronised from Stripe, 1 needing attention, 0 unreadable.
+ok
+test_an_unreadable_price_does_not_CLEAR_the_local_price (billing.tests.test_price_reconciliation.SynchronisationTests.test_an_unreadable_price_does_not_CLEAR_the_local_price) ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_connection_error: APIConnectionError reading price price_base_1: timed out). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 9ba22f6a-f4fa-441c-9f99-1e7c3ce938c2.
+ok
+test_repointing_the_price_id_synchronises_to_the_NEW_price (billing.tests.test_price_reconciliation.SynchronisationTests.test_repointing_the_price_id_synchronises_to_the_NEW_price)
+The workflow the brief is really about: change the price in Stripe, ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_brand_new: amount. Local amount 1499 -> 3999 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=f599909b-14bf-4cb9-bd44-e32b5d62830a)
+ok
+test_stripe_unavailable_leaves_the_local_price_untouched (billing.tests.test_price_reconciliation.SynchronisationTests.test_stripe_unavailable_leaves_the_local_price_untouched)
+Overwriting a working price because Stripe was briefly unreachable ... Stripe was unreadable for plan STANDARD base price price_base_1 (api_connection_error: APIConnectionError reading price price_base_1: timed out). This is an operational failure, NOT price drift — the price may be perfectly correct. Run 079934cc-585f-45c5-aaa2-d247117c6000.
+ok
+test_synchronising_never_writes_to_stripe (billing.tests.test_price_reconciliation.SynchronisationTests.test_synchronising_never_writes_to_stripe) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 2499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=e2bc63f7-d4a7-404d-aebd-cab92f044580)
+ok
+test_the_two_prices_synchronise_independently (billing.tests.test_price_reconciliation.SynchronisationTests.test_the_two_prices_synchronise_independently) ... STRIPE PRICE SYNCHRONISED — plan STANDARD (INDIVIDUAL) base price price_base_1: amount. Local amount 1499 -> 2499 usd. Stripe is the source of truth, so the application now follows it. (account=acct_test, run=87ed9121-6c5b-4939-bb1e-7e9077aaaff0)
+ok
+test_a_second_run_is_skipped_while_one_holds_the_lock (billing.tests.test_price_reconciliation.TaskAndLockTests.test_a_second_run_is_skipped_while_one_holds_the_lock) ... Beat task billing.tasks.reconcile_stripe_prices: another run already holds the lock; skipping this one (key gaplus-t28433:1:beat-lock:billing.tasks.reconcile_stripe_prices, held by run another-run; this run direct:183381202b75).
+ok
+test_the_lock_carries_a_timeout_so_a_killed_worker_cannot_wedge_it (billing.tests.test_price_reconciliation.TaskAndLockTests.test_the_lock_carries_a_timeout_so_a_killed_worker_cannot_wedge_it) ... ok
+test_the_lock_is_released_even_when_the_run_raises (billing.tests.test_price_reconciliation.TaskAndLockTests.test_the_lock_is_released_even_when_the_run_raises)
+Otherwise one crash disables the nightly sweep until the TTL ... ok
+test_the_lock_is_released_when_the_run_finishes (billing.tests.test_price_reconciliation.TaskAndLockTests.test_the_lock_is_released_when_the_run_finishes) ... ok
+test_the_task_runs_the_sweep (billing.tests.test_price_reconciliation.TaskAndLockTests.test_the_task_runs_the_sweep) ... ok
+test_a_due_time_capped_at_the_cycle_end_is_not_granted_early (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_due_time_capped_at_the_cycle_end_is_not_granted_early)
+The tolerance must not grant the renewal's month mid-cycle. ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+A long batch: the row is processed minutes after the run started ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_starting_a_little_earlier_than_last_months_still_refreshes (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_run_starting_a_little_earlier_than_last_months_still_refreshes)
+Beat dispatch and worker pickup jitter from day to day: this ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_1s_unused_credits_roll_over (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_month_1s_unused_credits_roll_over) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_2_is_granted_exactly_once_in_total (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_month_2_is_granted_exactly_once_in_total) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_no_grant_for_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_no_grant_for_the_last_minutes_of_the_contract)
+1a's F2. The last grant set a due time 2 minutes BEFORE the cycle ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_customer_has_a_monthly_bucket_after_the_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_customer_has_a_monthly_bucket_after_the_scheduled_run) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_lost_months_query_finds_a_write_off_before_the_refresh (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_lost_months_query_finds_a_write_off_before_the_refresh)
+The ledger exactly as the pre-fix code left it: the cleanup wrote ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_lost_months_query_leaves_out_a_plan_with_no_carry_over (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_lost_months_query_leaves_out_a_plan_with_no_carry_over)
+1a's Q4: nothing was lost on a plan with no carry-over. ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_monthly_bucket_outlives_its_due_time_by_the_grace (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_monthly_bucket_outlives_its_due_time_by_the_grace) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_new_month_is_granted_on_its_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_new_month_is_granted_on_its_scheduled_run) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_refuses_a_due_time_capped_at_the_cycle_end (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_service_refuses_a_due_time_capped_at_the_cycle_end) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_refuses_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_service_refuses_the_last_minutes_of_the_contract) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_deactivated_licences_teacher_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_deactivated_licences_teacher_is_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_kept_bucket_is_not_spendable (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_kept_bucket_is_not_spendable) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_lapsed_subscriber_is_written_off_on_the_next_cleanup (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_lapsed_subscriber_is_written_off_on_the_next_cleanup) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_licence_teacher_is_entitled_too (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_licence_teacher_is_entitled_too) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_refresh_overdue_by_a_week_is_logged_and_still_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_refresh_overdue_by_a_week_is_logged_and_still_kept) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_teacher_removed_through_the_real_path_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_teacher_removed_through_the_real_path_is_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_entitled_owners_newest_monthly_bucket_is_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_entitled_owners_newest_monthly_bucket_is_kept) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_inactive_allocation_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_inactive_allocation_is_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_older_unprocessed_monthly_bucket_is_still_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_older_unprocessed_monthly_bucket_is_still_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_is_written_off_once_the_owner_is_no_longer_entitled (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_it_is_written_off_once_the_owner_is_no_longer_entitled) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_other_bucket_types_are_still_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_other_bucket_types_are_still_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over)
+The monthly individual renewal path: the webhook after 05:00. ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_monthly_activation_is_unchanged (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_a_monthly_activation_is_unchanged) ... Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_annual_activation_gets_the_grace (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_an_annual_activation_gets_the_grace) ... Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_annual_immediate_plan_change_gets_the_grace (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_an_annual_immediate_plan_change_gets_the_grace) ... Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+A long batch: the row is processed minutes after the run started ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_2s_early_reopens_the_consumption_window (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_2s_early_reopens_the_consumption_window) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_2s_late_reopens_the_consumption_window (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_2s_late_reopens_the_consumption_window) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_starting_a_little_earlier_than_last_months_still_refreshes (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_starting_a_little_earlier_than_last_months_still_refreshes)
+Beat dispatch and worker pickup jitter from day to day: this ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_1s_unused_credits_roll_over (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_month_1s_unused_credits_roll_over) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_2_is_granted_exactly_once_in_total (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_month_2_is_granted_exactly_once_in_total) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_no_refresh_for_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_no_refresh_for_the_last_minutes_of_the_contract)
+1a's F2, the licence path. ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_customer_has_a_monthly_bucket_after_the_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_customer_has_a_monthly_bucket_after_the_scheduled_run) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_monthly_bucket_outlives_its_due_time_by_the_grace (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_monthly_bucket_outlives_its_due_time_by_the_grace) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_new_month_is_granted_on_its_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_new_month_is_granted_on_its_scheduled_run) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_every_detection_query_is_read_only (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_every_detection_query_is_read_only) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_finds_the_double_grant_and_its_cost (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_it_finds_the_double_grant_and_its_cost) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_its_output_carries_no_email (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_its_output_carries_no_email) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_monthly_grants_a_month_apart_are_not_reported (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_monthly_grants_a_month_apart_are_not_reported) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_due_subscription_is_still_granted (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_a_due_subscription_is_still_granted)
+The control: one run, one grant. ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_overlapping_run_does_not_grant_the_month_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_an_overlapping_run_does_not_grant_the_month_again) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock)
+Every condition the task selects on, changed after the read. ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_refuses_a_stale_copy_that_is_no_longer_due (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_the_service_refuses_a_stale_copy_that_is_no_longer_due) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_single_expiry_is_not_reported (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_a_single_expiry_is_not_reported) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_trial_that_simply_expired_is_not_reported (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_a_trial_that_simply_expired_is_not_reported) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_finds_a_paid_subscription_switched_off (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_it_finds_a_paid_subscription_switched_off) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_finds_a_trial_bucket_expired_twice (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_it_finds_a_trial_bucket_expired_twice) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_legitimate_inactive_subscriptions_are_not_reported (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_legitimate_inactive_subscriptions_are_not_reported) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_checkout_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_checkout_conversion_in_between_is_not_undone)
+The production path, on the ended-trial (time) branch. ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_TRIAL_CONVERSION_CHARGE) — creating an un-deduplicated row.
+ok
+test_a_checkout_conversion_is_not_undone_on_the_credits_path (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_checkout_conversion_is_not_undone_on_the_credits_path)
+The production path, on the credits-exhausted branch, which calls ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_TRIAL_CONVERSION_CHARGE) — creating an un-deduplicated row.
+ok
+test_a_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_conversion_in_between_is_not_undone)
+Stripe's trial-end webhook converts the trial on the same row ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_trial_extended_after_the_read_is_not_expired (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_trial_extended_after_the_read_is_not_expired)
+The has-it-ended guard reads the locked row, not the stale copy. ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_ended_trial_is_still_expired (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_an_ended_trial_is_still_expired)
+The control: one run, one EXPIRE row, trial deactivated. ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_overlapping_run_does_not_expire_the_trial_again (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_an_overlapping_run_does_not_expire_the_trial_again) ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cleanup_first_does_not_write_a_second_expire_row (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_cleanup_first_does_not_write_a_second_expire_row) ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_each_trial_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_each_trial_condition_is_rechecked_under_the_lock) ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+So a hung run can never swallow the next scheduled one. ... ok
+test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t28433:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:2c81e99c90d8).
+ok
+test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t28433:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:d2a81c4840bc; this run direct:172a32db7e0d).
+ok
+test_only_one_of_two_simultaneous_tasks_performs_the_sweep (billing.tests.test_price_reconciliation.ConcurrentRunTests.test_only_one_of_two_simultaneous_tasks_performs_the_sweep) ... Beat task billing.tasks.reconcile_stripe_prices: another run already holds the lock; skipping this one (key gaplus-t28433:1:beat-lock:billing.tasks.reconcile_stripe_prices, held by run direct:405a3f887b00; this run direct:ee31f521e5cb).
+ok
+test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+The over-invalidation half, stated as a property. Under the ... ok
+test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+Not response caches in the generation scheme, deliberately. ... ok
+test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+H-1 step 4: the one family that was still raw is on generations. ... ok
+test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+The path exclusion above is only honest if production never ... ok
+test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+The exception is only safe while it is one assignment's prefix: ... ok
+test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+Guard on the guard: each form is found in a synthetic module, and ... ok
+test_it_writes_nothing (billing.tests.test_monthly_rollover_cleanup_race.LostMonthsQueryIsReadOnlyTests.test_it_writes_nothing) ... ok
+test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_expiry_blocked_behind_a_conversion_leaves_it_paid (billing.tests.test_overlapping_run_rechecks.TrialConversionRealLockTests.test_expiry_blocked_behind_a_conversion_leaves_it_paid) ... Cannot activate automatic trial for user trial-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+----------------------------------------------------------------------
+Ran 203 tests in 40.674s
+
+OK
+Destroying test database for alias 'default' ('test_h65_beat_locks')...
+ OK
+exit=0

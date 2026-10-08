@@ -1,0 +1,92 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F
+======================================================================
+FAIL: test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one)
+The transition hazard: a 31 Jan subscription whose old chain is on
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_annual_grant_anchor.py", line 194, in test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one
+    self.assertEqual(
+AssertionError: datetime.datetime(2026, 4, 28, 2, 1, 0, 3000, tzinfo=datetime.timezone.utc) != datetime.datetime(2026, 4, 30, 1, 0, tzinfo=datetime.timezone.utc)
+
+======================================================================
+FAIL: test_a_leap_february_from_the_30th (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_a_leap_february_from_the_30th)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_annual_grant_anchor.py", line 174, in test_a_leap_february_from_the_30th
+    self.assertEqual(grants, self.anchor_dates(start, range(1, 12)))
+AssertionError: Lists differ: [date[42 chars], 3, 29), datetime.date(2028, 4, 29), datetime[241 chars] 29)] != [date[42 chars], 3, 30), datetime.date(2028, 4, 30), datetime[213 chars] 30)]
+
+First differing element 1:
+datetime.date(2028, 3, 29)
+datetime.date(2028, 3, 30)
+
+First list contains 1 additional elements.
+First extra element 11:
+datetime.date(2029, 1, 29)
+
+Diff is 1298 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_subscription_from_the_31st_gets_12_grants_on_its_own_days (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_a_subscription_from_the_31st_gets_12_grants_on_its_own_days)
+1a's probe C start: 31 January, 01:00.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_annual_grant_anchor.py", line 151, in test_a_subscription_from_the_31st_gets_12_grants_on_its_own_days
+    self.assertEqual(
+AssertionError: Lists differ: [date[42 chars], 3, 28), datetime.date(2026, 4, 28), datetime[241 chars] 28)] != [date[42 chars], 3, 31), datetime.date(2026, 4, 30), datetime[213 chars] 31)]
+
+First differing element 1:
+datetime.date(2026, 3, 28)
+datetime.date(2026, 3, 31)
+
+First list contains 1 additional elements.
+First extra element 11:
+datetime.date(2027, 1, 28)
+
+Diff is 1298 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_three_month_outage_is_caught_up_one_grant_per_run (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_a_three_month_outage_is_caught_up_one_grant_per_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_annual_grant_anchor.py", line 217, in test_a_three_month_outage_is_caught_up_one_grant_per_run
+    with self.assertLogs(TASKS_LOGGER, "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.services
+
+======================================================================
+FAIL: test_no_granted_bucket_is_born_expired (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_no_granted_bucket_is_born_expired)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h66-repro/billing/tests/test_annual_grant_anchor.py", line 250, in test_no_granted_bucket_is_born_expired
+    self.assertEqual(len(self.births), 11)
+AssertionError: 9 != 11
+
+----------------------------------------------------------------------
+Ran 7 tests in 4.089s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+systemd-run failed with exit status 1.
+exit=1 wall_s=46

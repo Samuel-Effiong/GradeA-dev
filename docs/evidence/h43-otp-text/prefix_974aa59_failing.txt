@@ -1,0 +1,45 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user pending.h43@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user verified.h43@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user locked.h43@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FFF
+======================================================================
+FAIL: test_every_202_is_byte_identical_to_the_unknown_address_reply (users.tests_otp_no_oracle.OtpReplyIsNoOracleTests.test_every_202_is_byte_identical_to_the_unknown_address_reply) (branch='verification sent')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-2a-h43-otp-text/users/tests_otp_no_oracle.py", line 84, in test_every_202_is_byte_identical_to_the_unknown_address_reply
+    self.assertEqual(body, unknown)
+AssertionError: b'{"s[19 chars]ge":"An OTP has been sent if an account with t[94 chars]."}}' != b'{"s[19 chars]ge":"If an account with that email exists, an [96 chars]."}}'
+
+======================================================================
+FAIL: test_every_202_is_byte_identical_to_the_unknown_address_reply (users.tests_otp_no_oracle.OtpReplyIsNoOracleTests.test_every_202_is_byte_identical_to_the_unknown_address_reply) (branch='reset code sent')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-2a-h43-otp-text/users/tests_otp_no_oracle.py", line 84, in test_every_202_is_byte_identical_to_the_unknown_address_reply
+    self.assertEqual(body, unknown)
+AssertionError: b'{"s[19 chars]ge":"An OTP has been sent if an account with t[94 chars]."}}' != b'{"s[19 chars]ge":"If an account with that email exists, an [96 chars]."}}'
+
+======================================================================
+FAIL: test_every_202_is_byte_identical_to_the_unknown_address_reply (users.tests_otp_no_oracle.OtpReplyIsNoOracleTests.test_every_202_is_byte_identical_to_the_unknown_address_reply) (branch='reset locked')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-2a-h43-otp-text/users/tests_otp_no_oracle.py", line 84, in test_every_202_is_byte_identical_to_the_unknown_address_reply
+    self.assertEqual(body, unknown)
+AssertionError: b'{"s[19 chars]ge":"An OTP has been sent if an account with t[94 chars]."}}' != b'{"s[19 chars]ge":"If an account with that email exists, an [96 chars]."}}'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.325s
+
+FAILED (failures=3)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

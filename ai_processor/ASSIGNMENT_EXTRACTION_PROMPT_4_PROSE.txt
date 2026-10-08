@@ -348,6 +348,24 @@ For each identified question:
    - Look for verbs like "discuss," "analyze" → ESSAY
    - Look for "define," "list," "name" → SHORT-ANSWER
 
+   **If the document already STATES a question's type, use the stated
+   type and do not re-derive it.** Re-classifying is only for questions
+   whose type the document leaves implicit.
+
+   **When it is implicit, weight LENGTH over vocabulary.** A question
+   worth a small number of marks, or one answerable in a sentence or
+   two, is SHORT-ANSWER even when it opens with "explain" or "describe";
+   ESSAY is for sustained, multi-paragraph argument. Verbs alone are a
+   weak signal — "explain why a body in circular motion accelerates" is a
+   two-sentence answer, not an essay.
+
+   This distinction is not cosmetic. The grader treats ESSAY answers as a
+   single overall judgement of sustained quality and SHORT-ANSWER answers
+   as a check against specific required content, so a mislabelled
+   question is marked by the wrong standard. It also changes the
+   assignment's own type: an assignment declared SHORT-ANSWER whose
+   questions come back as ESSAY is rejected outright by validation.
+
 5. **Identify point values:**
    - Search for patterns like "(10 points)", "[5 marks]"
    - Often in strong/bold marks or separate text nodes
@@ -461,7 +479,7 @@ For each identified question:
 ```
 
 **If rubric is missing:**
-- **Generate appropriate 4-level rubric** following the framework below
+- **Generate a 4-level rubric** following the framework below (this applies ONLY when the document has no rubric for the question; a rubric that IS present is reproduced level-for-level, see Rubric Structure Standards A)
 - Create rubric descriptions as HTML strings
 - Apply educational best practices
 - **Document rubric generation in self-assessment**
@@ -639,16 +657,54 @@ Based on maximum question points:
 
 **For ESSAY and SHORT-ANSWER Questions:**
 - `options`: Empty array []
-- `rubric`: Array of 4 performance levels - **descriptions are HTML strings**
+- `rubric`: The question's performance levels - **descriptions are HTML strings**
 - Each rubric level must have: level, description (HTML), points
 - `model_answer`: **HTML string** - Converted from answer section nodes, GENERATE if not provided
 
-**Rubric Structure Standards:**
-- Always use lowercase level names: "excellent", "good", "fair", "poor"
+### Rubric Structure Standards
+
+**These standards split in two, and which half applies depends on ONE
+question: was there a rubric in the document?**
+
+**A. PRESERVING a rubric that IS in the document — the normal case**
+
+The rubric belongs to the teacher who wrote it. Reproduce it exactly.
+
+- **Emit exactly as many levels as the document contains.** If the table
+  has six rows, return six levels. If it has three, return three. There is
+  no correct number — there is only the number the teacher wrote. NEVER
+  merge two levels, NEVER drop the lowest or the middle one, and NEVER pad
+  a short rubric out to some preferred length.
+- **Keep each level's own NAME, verbatim.** "outstanding", "proficient",
+  "developing", "beginning", "absent", "distinction", "merit", "pass",
+  "band 4" — whatever the teacher wrote is what you return. Do NOT
+  translate, normalise, or map their vocabulary onto "excellent / good /
+  fair / poor". A teacher's rubric language is deliberate: it is often
+  set by a school, an exam board, or a national grading scheme, and
+  renaming it silently substitutes your judgement for theirs.
+- **Keep each level's points exactly as written**, in the document's own
+  order.
+- Convert each description to HTML, preserving its formatting and any
+  math. You may reformat the MARKUP of a description; you may not reword,
+  summarise, or shorten it.
+
+Dropping or renaming a level is not a tidy-up. The rubric is what the
+student is graded against, so a deleted level is a score a student can no
+longer be awarded, and a renamed one breaks the teacher's own marking
+scheme.
+
+**B. GENERATING a rubric where the document has NONE**
+
+Only when an ESSAY or SHORT-ANSWER question arrives with no rubric at all:
+
+- Generate **4 levels**, named "excellent", "good", "fair", "poor"
 - Points must descend: excellent (highest) → good → fair → poor (0 or lowest)
+- Excellent level points must equal the question's points value
+- Report the generation in `self_assessment` (see the notification format below)
+
+**Applying to both A and B:**
 - **Descriptions must be HTML strings** (minimum: wrapped in `<p>` tags)
 - Descriptions must be specific and measurable
-- Excellent level points must equal question points value
 
 ---
 
@@ -1337,7 +1393,7 @@ Your output must follow this exact structure with **HTML content in specified fi
       "additional_notes": "HTML string - Converted from special instruction nodes",
       "rubric": [
         {
-          "level": "string - excellent/good/fair/poor",
+          "level": "string - the level's OWN name from the document, verbatim; only excellent/good/fair/poor when YOU generated the rubric",
           "description": "HTML string - Converted from rubric nodes with formatting preserved",
           "points": "number - Point value for this level"
         }

@@ -1,0 +1,66 @@
+"""H-150: for every mutant, and at the red commit, the tests that fail
+must be the expected set and nothing else. Written on 2026-10-07 BEFORE
+any test run of H-150, by reasoning from the code and the tests; no
+mutant was applied to anything. A test is named Class.method.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of the module at the red commit>"""
+import re
+import sys
+from pathlib import Path
+
+C = "SubmissionDetailFreshnessTests"
+h1 = (C, "test_a_teachers_retitle_reaches_the_students_unreleased_document")
+h2 = (C, "test_a_teachers_retitle_does_NOT_change_a_released_students_document")
+h3 = (C, "test_the_students_answer_holds_the_three_details")
+h4 = (C, "test_an_assignment_with_no_due_date_and_no_title_sends_null")
+h5 = (C, "test_the_three_are_all_that_was_added_and_none_is_of_a_grade")
+h6 = (C, "test_a_due_date_the_teacher_saves_reaches_the_next_read")
+h7 = (C, "test_a_course_rename_reaches_the_next_read")
+h8 = (C, "test_grading_changes_none_of_the_three")
+#: green under every mutant and at the red commit (controls): the
+#: teacher's payload test, the teacher-does-not-gain-them test, the
+#: regrade test, and the module's other classes.
+
+EXPECTED = {
+    # the title is absent again: every test that reads it.
+    "T1": {h1, h2, h3, h4, h5, h8},
+    # the due date as Python's text form.
+    "T2": {h3, h6},
+    # the course's id where its name should be.
+    "T3": {h3, h7},
+    # the student is not bumped by an assignment's save: the second read
+    # is the cached first one (document, title, due date).
+    "T4": {h1, h2, h6},
+    # nor by a course's save.
+    "T5": {h7},
+}
+#: the red commit e12c1845 (tests only): the three keys are not sent.
+REPRO = {h1, h2, h3, h4, h5, h6, h7, h8}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), REPRO)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

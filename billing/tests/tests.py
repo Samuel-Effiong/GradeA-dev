@@ -1,12 +1,13 @@
-import threading
 from datetime import timedelta
 
+from django.db import IntegrityError
 from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.context import clear_license_invitation_context
 from billing.models import PlanType, SubscriptionPlan, UserSubscription
 from users.models import CustomUser, UserTypes
@@ -35,6 +36,10 @@ class SubscriptionPlanViewSetTests(APITestCase):
             overage_block_price=5.00,
             max_overage_blocks=5,
             is_active=True,
+            # Only the Stripe-priced self-service catalog is listed to
+            # non-superadmins (billing/plan_policy.py), as in production.
+            stripe_price_id="price_test_standard",
+            price_cents=1499,
         )
         self.list_url = reverse("subscription-plan-list")
         self.detail_url = reverse(
@@ -157,7 +162,9 @@ class UserSubscriptionViewSetTests(APITestCase):
         # Should see 2 subscriptions
         self.assertEqual(len(response.data["results"]), 2)
 
-    def test_create_subscription_allowed_for_teacher(self):
+    def test_create_subscription_forbidden_for_teacher(self):
+        # Direct creation grants plan credits with no payment step; it is
+        # superadmin-only (see test_free_plan_activation_security).
         self.client.force_authenticate(user=self.user_a)
         data = {
             "user": self.user_a.id,
@@ -166,7 +173,7 @@ class UserSubscriptionViewSetTests(APITestCase):
             "billing_cycle_end": timezone.now() + timezone.timedelta(days=30),
         }
         response = self.client.post(self.list_url, data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_subscription_forbidden_for_student(self):
         self.client.force_authenticate(user=self.student)
@@ -211,12 +218,21 @@ class ConcurrentRegistrationTest(TransactionTestCase):
                 user_type="TEACHER",
             )
 
-        t1 = threading.Thread(target=create_user)
-        t2 = threading.Thread(target=create_user)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        # Previously two bare threads with join() and NO timeout (a wedged
+        # worker hung the whole suite), no connection.close() (an
+        # undroppable test database), and the loser's exception died
+        # silently in its thread. The loser is now asserted on: the email is
+        # unique, so the second insert must fail on that constraint and on
+        # nothing else.
+        _, errors = run_concurrently(
+            lambda i: create_user(), 2, test=self, name="registrar"
+        )
+
+        self.assertLessEqual(len(errors), 1, f"both registrations failed: {errors!r}")
+        self.assertTrue(
+            all(isinstance(e, IntegrityError) for e in errors),
+            f"the losing registration failed for the wrong reason: {errors!r}",
+        )
 
         user = CustomUser.objects.get(email="concurrent@test.com")
         trials = user.subscriptions.filter(is_trial=True)
@@ -345,10 +361,12 @@ class ConcurrentRegistrationTest(TransactionTestCase):
         assert not trial.is_active
 
         # Check ledger has EXPIRE entry
-        from billing.models import CreditLedgerType
+        from billing.models import CreditLedger, CreditLedgerType
 
-        ledger = trial.user.credit_ledgers.filter(
-            ledger_type=CreditLedgerType.EXPIRE
+        # The ledger no longer has a `user` relation — identity is stored
+        # as a value so the row survives the account (billing/immutable.py).
+        ledger = CreditLedger.objects.filter(
+            user_id=trial.user_id, ledger_type=CreditLedgerType.EXPIRE
         ).first()
         assert ledger is not None
 
@@ -436,17 +454,3 @@ class ConcurrentRegistrationTest(TransactionTestCase):
         can_access, reason = can_user_access_ai(user)
         assert not can_access
         assert reason is not None and "inactive" in reason.lower()
-
-    # def test_celery_beat_task_configured(self):
-    #     from io import StringIO
-
-    #     from django.core.management import call_command
-
-    #     out = StringIO()
-    #     call_command("shell", stdout=out)
-    #     # Or: check celery_app.conf.beat_schedule dict directly
-
-    #     # Verify expire_active_trials is in schedule
-    #     from billing.tasks import expire_active_trials
-
-    #     # (This is mostly an ops/deployment verification)

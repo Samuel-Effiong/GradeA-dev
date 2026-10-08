@@ -6,14 +6,13 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from classrooms.models import Course, StudentCourse, Topic
+from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
+from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
-from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import (  # Rubric
     Assignment,
-    AssignmentGenerationHistory,
     AssignmentGenerationMessage,
     AssignmentGenerationRole,
     AssignmentGenerationSession,
@@ -40,7 +39,6 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     max_points = serializers.IntegerField(read_only=True, allow_null=True)
     grade_status = serializers.CharField(read_only=True)
     is_published = serializers.BooleanField(read_only=True)
-    # teacher_feedback = serializers.CharField(read_only=True, allow_null=True)
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -121,7 +119,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "extraction_started_at",
             "extraction_completed_at",
         ]
-        read_only_fields = ["created_at", "id", "submission_count"]
+        # teacher: no production path writes it, and this serializer is fed
+        # AI output, so a writable user FK was a way to point an assignment
+        # at any account (H-18).
+        read_only_fields = ["created_at", "id", "submission_count", "teacher"]
 
         extra_kwargs = {
             "title": {"required": False},
@@ -153,15 +154,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
                 "Topic must belong to the same course as the assignment"
             )
 
-        # del data['course']
-
         questions = data.get("questions", [])
-
-        # if questions and "question_count" in data:
-        #     if len(questions) != data["question_count"]:
-        #         raise serializers.ValidationError(
-        #             "Question count does not match the number of questions provided."
-        #         )
 
         assignment_type = data.get("assignment_type")
         if assignment_type and assignment_type != "HYBRID":
@@ -184,7 +177,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
         try:
             with transaction.atomic():
                 # Create the assignment instance with remaining validated data
-                # assignment = Assignment.objects.create(**validated_data)
                 assignment = super().create(validated_data)
 
                 questions = validated_data.get("questions", [])
@@ -199,11 +191,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
                         "rubric": question.get("rubric", []),
                     }
                     criteria.append(criterion)
-
-                # Rubric.objects.create(
-                #     assignment=assignment,
-                #     criteria=criteria,
-                # )
 
                 return assignment
         except Exception as e:
@@ -239,10 +226,26 @@ class AssignmentSerializer(serializers.ModelSerializer):
                 instance.overridden_at = timezone.now()
         return super().update(instance, validated_data)
 
-    def get_submission_count(self, obj):
-        if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
-            return obj.submissions.count()
-        return 0
+    def get_submission_count(self, obj) -> int:
+        """
+        Prefer the annotation the viewset attaches, falling back to a
+        per-row COUNT for callers that build this serializer by hand.
+
+        Without the annotation this was one COUNT query per row - 20 extra
+        round trips on a default page, and the single largest cost of a
+        teacher's assignment list.
+
+        The old guard read `obj.status == PUBLISHED or obj.submissions`,
+        which looks like "only count when there are submissions" but is
+        always true: a related manager is truthy whether or not it has
+        rows. Counting unconditionally is therefore what this endpoint has
+        always actually done - this stops pretending otherwise rather than
+        changing the number anyone sees.
+        """
+        annotated = getattr(obj, "annotated_submission_count", None)
+        if annotated is not None:
+            return annotated
+        return obj.submissions.count()
 
 
 class AssignmentListSerializer(serializers.ModelSerializer):
@@ -279,10 +282,26 @@ class AssignmentListSerializer(serializers.ModelSerializer):
             "is_grading_scheduled",
         ]
 
-    def get_submission_count(self, obj):
-        if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
-            return obj.submissions.count()
-        return 0
+    def get_submission_count(self, obj) -> int:
+        """
+        Prefer the annotation the viewset attaches, falling back to a
+        per-row COUNT for callers that build this serializer by hand.
+
+        Without the annotation this was one COUNT query per row - 20 extra
+        round trips on a default page, and the single largest cost of a
+        teacher's assignment list.
+
+        The old guard read `obj.status == PUBLISHED or obj.submissions`,
+        which looks like "only count when there are submissions" but is
+        always true: a related manager is truthy whether or not it has
+        rows. Counting unconditionally is therefore what this endpoint has
+        always actually done - this stops pretending otherwise rather than
+        changing the number anyone sees.
+        """
+        annotated = getattr(obj, "annotated_submission_count", None)
+        if annotated is not None:
+            return annotated
+        return obj.submissions.count()
 
     def get_is_grading_scheduled(self, obj) -> bool:
         return bool(
@@ -320,28 +339,32 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             and hasattr(request.user, "user_type")
             and request.user.user_type == UserTypes.STUDENT
         ):
+            # H-147: a caller that serialises many assignments at once (the
+            # course answer) loads the viewer's own submissions beforehand,
+            # as `viewer_submissions`; without that this is a query per
+            # field per assignment. Whatever was loaded, only the
+            # requester's own row is ever read.
+            loaded = getattr(obj, "viewer_submissions", None)
+            if loaded is not None:
+                for submission in loaded:
+                    if submission.student_id == request.user.id:
+                        return submission
+                return None
             return obj.submissions.filter(student=request.user).first()
         return None
 
     def get_status(self, obj):
         "To check if student submitted for this assignment"
-        submission = self._get_submission(obj)
-        if submission and not submission.graded_at:
-            return "SUBMITTED"
-        elif submission and submission.graded_at and submission.is_published:
-            return "GRADED"
-        if obj.due_date and obj.due_date < timezone.now():
-            return "OVERDUE"
+        from .services import get_student_assignment_status
 
-        return "PENDING"
+        submission = self._get_submission(obj)
+        return get_student_assignment_status(obj, submission)
 
     def get_score(self, obj):
         submission = self._get_submission(obj)
         if submission and submission.is_published:
             if submission.score is not None:
                 return float(submission.score)
-            # elif submission.ai_score is not None:
-            #     return float(submission.ai_score)
         return None
 
     def get_grade_letter(self, obj):
@@ -519,8 +542,6 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
-    # answers = serializers.SerializerMethodField()
-    # submissions = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
@@ -534,7 +555,9 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     def get_performance_summary(self, obj):
         submission = self._get_submission(obj)
         if submission and submission.is_published:
-            return submission.feedback or submission.ai_feedback
+            # H-127: the student projection, never the saved column. The
+            # saved result also holds what is written for the teacher.
+            return student_safe_feedback(submission.feedback or submission.ai_feedback)
         return None
 
     def get_student_submission_id(self, obj):
@@ -542,14 +565,15 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         return str(submission.id) if submission else None
 
     def get_student_submission_raw_input(self, obj):
+        # Not the stored column: before release it carries the grade
+        # (H-130). Imported here because students.services imports this
+        # app's services.
+        from students.services import answer_document_for_student
+
         submission = self._get_submission(obj)
         if submission:
-            return submission.raw_input
+            return answer_document_for_student(submission)
         return None
-
-    def get_submission(self, obj):
-        submission = self._get_submission(obj)
-        return StudentSubmissionSerializer(submission).data
 
     def get_assignment_raw_input(self, obj):
         """
@@ -661,6 +685,39 @@ class AssignmentTextSerializer(serializers.Serializer):
     def validate_due_date(self, value):
         if value and value < timezone.now():
             raise serializers.ValidationError("Due date cannot be in the past.")
+        return value
+
+    def validate_course(self, value):
+        """Reject a course the requesting teacher doesn't own (H-18).
+
+        `course` is a plain writable PK field, and the viewset's
+        get_queryset() only scopes which EXISTING assignment a teacher can
+        reach - never the course a new or edited one points at. Without
+        this, a teacher could create an assignment in another teacher's
+        course, or PATCH their own assignment into it, just by knowing the
+        course UUID. This serializer backs three doors (create/create-async,
+        PATCH, update-async), so the check lives here rather than in each.
+
+        Same rule as TopicSerializer.validate_course, with one deliberate
+        difference: with no authenticated request in context this refuses
+        instead of passing. update_async once built this serializer without
+        context, so a pass-through would have left that door open; failing
+        closed makes a caller that forgets the context break loudly.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError("You do not have access to this course.")
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return value
+
+        # teacher_can_reach_course, not `value.teacher_id != user.id`: owning
+        # the course is permanent, so the bare comparison kept accepting a
+        # course in a school the teacher has been removed from (H-38). The
+        # helper still requires ownership, so H-18 is unchanged.
+        if not teacher_can_reach_course(user, value):
+            raise serializers.ValidationError("You do not have access to this course.")
         return value
 
     def validate_raw_input(self, value):
@@ -897,111 +954,4 @@ class AssignmentGenerationSessionDetailSerializer(serializers.ModelSerializer):
             "messages",
             "created_at",
             "updated_at",
-        ]
-
-
-class AssignmentGenerationHistorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for the AssignmentGenerationHistory model.
-
-    This serializer provides a simplified view of the history entry,
-    including the prompt and a summary of the generated assignment.
-    """
-
-    assignment_title = serializers.CharField(
-        source="assignment.title",
-        read_only=True,
-        help_text="Title of the generated assignment",
-    )
-    assignment_questions_count = serializers.IntegerField(
-        source="assignment.question_count",
-        read_only=True,
-        help_text="Number of questions in the generated assignment",
-    )
-    assignment_type = serializers.CharField(
-        source="assignment.assignment_type",
-        read_only=True,
-        help_text="Type of the generated assignment",
-    )
-    course_name = serializers.CharField(
-        source="course.name", read_only=True, help_text="Name of the course"
-    )
-    topic_name = serializers.CharField(
-        source="topic.name",
-        read_only=True,
-        allow_null=True,
-        help_text="Name of the topic (if any)",
-    )
-
-    class Meta:
-        model = AssignmentGenerationHistory
-        fields = [
-            "id",
-            "prompt",
-            "assignment",
-            "assignment_title",
-            "assignment_questions_count",
-            "assignment_type",
-            "course",
-            "course_name",
-            "topic",
-            "topic_name",
-            "generation_mode",
-            "created_at",
-        ]
-        read_only_fields = [
-            "id",
-            "assignment_title",
-            "assignment_questions_count",
-            "assignment_type",
-            "course_name",
-            "topic_name",
-            "created_at",
-        ]
-
-
-class AssignmentGenerationHistoryDetailSerializer(serializers.ModelSerializer):
-    """
-    Detailed serializer for AssignmentGenerationHistory.
-
-    Includes the full assignment object alongside the prompt and metadata.
-    """
-
-    assignment = AssignmentListSerializer(read_only=True)
-    course_name = serializers.CharField(
-        source="course.name", read_only=True, help_text="Name of the course"
-    )
-    topic_name = serializers.CharField(
-        source="topic.name",
-        read_only=True,
-        allow_null=True,
-        help_text="Name of the topic (if any)",
-    )
-    user_name = serializers.CharField(
-        source="user.get_full_name",
-        read_only=True,
-        help_text="Name of the user who generated the assignment",
-    )
-
-    class Meta:
-        model = AssignmentGenerationHistory
-        fields = [
-            "id",
-            "prompt",
-            "assignment",
-            "course",
-            "course_name",
-            "topic",
-            "topic_name",
-            "user_name",
-            "generation_mode",
-            "created_at",
-        ]
-        read_only_fields = [
-            "id",
-            "assignment",
-            "course_name",
-            "topic_name",
-            "user_name",
-            "created_at",
         ]

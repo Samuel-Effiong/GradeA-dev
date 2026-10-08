@@ -8,6 +8,11 @@ resolve each one's receipt link; never touches business logic (no
 credits re-granted, no subscriptions re-activated). Idempotent: safe to
 re-run, only ever fills in rows still missing a receipt_url.
 
+New purchases do not need this: their links are filled after commit, and
+the hourly sweep_missing_receipt_urls task catches any that were missed
+within billing.receipts.RECEIPT_SWEEP_WINDOW. This command has no age
+limit, for anything older.
+
 Usage:
     python manage.py backfill_receipt_urls [--dry-run]
 """
@@ -16,9 +21,10 @@ import logging
 
 from django.core.management.base import BaseCommand
 from django.db.models import Q
+from django.utils import timezone
 
 from billing.models import BillingTransaction
-from billing.stripe_service import resolve_stripe_receipt_url
+from billing.receipts import lookup_receipt_url
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +50,7 @@ class Command(BaseCommand):
         failed_count = 0
 
         for txn in transactions:
-            receipt_url = resolve_stripe_receipt_url(
+            receipt_url = lookup_receipt_url(
                 invoice_id=txn.stripe_invoice_id,
                 charge_id=txn.stripe_charge_id,
                 payment_intent_id=txn.stripe_payment_intent_id,
@@ -56,8 +62,11 @@ class Command(BaseCommand):
 
             resolved_count += 1
             if not dry_run:
-                txn.receipt_url = receipt_url
-                txn.save(update_fields=["receipt_url", "updated_at"])
+                # Conditional, like billing.receipts.fill_receipt_url: never
+                # overwrite a link filled concurrently by the sweep.
+                BillingTransaction.objects.filter(
+                    pk=txn.pk, receipt_url__isnull=True
+                ).update(receipt_url=receipt_url, updated_at=timezone.now())
 
         self.stdout.write(
             self.style.SUCCESS(

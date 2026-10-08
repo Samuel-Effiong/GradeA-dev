@@ -56,25 +56,66 @@ class MissingRecordingError(RuntimeError):
     """Replay was asked for a prompt that was never recorded."""
 
 
+def _content_part_text(item):
+    """
+    Flatten ONE content part to a string that distinguishes it from every
+    other content part the pipeline can emit.
+
+    Text parts contribute their own text, exactly as they always have —
+    that path is deliberately byte-identical to the pre-image behaviour so
+    existing recordings of text-only prompts keep their keys.
+
+    Image parts are the reason this function exists. They carry no "text"
+    key, so the previous fallback (`item.get("type")`) hashed every image
+    in the codebase to the same four-letter string "image_url". For
+    grading that was harmless by luck: _question_image_content_blocks
+    emits a "Image for question N:" text part before each image, so the
+    surrounding text still separated the prompts. For ANSWER extraction it
+    is not harmless at all — a submission is a bare list of page images
+    plus an assignment-context string that is IDENTICAL for every student
+    sitting the same assignment. Two different students would therefore
+    collapse onto one recording key, and replay would serve student A's
+    answers as student B's. That is a silently wrong benchmark, which is
+    worse than no benchmark.
+
+    The image's URL is hashed rather than included verbatim: uploaded
+    pages arrive as base64 `data:` URIs (see
+    AssignmentProcessingService.prepare_ai_content) that run to megabytes
+    each, and a 20-page submission would otherwise build a ~10MB
+    intermediate string per key computation.
+    """
+    if not isinstance(item, dict):
+        return str(item)
+
+    text = item.get("text")
+    if text:
+        return text
+
+    part_type = item.get("type") or ""
+    if part_type == "image_url":
+        url = item.get("image_url")
+        url = url.get("url", "") if isinstance(url, dict) else str(url or "")
+        digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        return f"image_url:{digest}"
+
+    return part_type
+
+
 def _prompt_text(prompt):
     """
     Flatten a prompt argument to text for hashing.
 
-    Grading prompts are either a plain string or the OpenAI content-part
-    list ([{"type": "text", "text": ...}]); both appear in the pipeline.
+    Prompts are either a plain string or the OpenAI content-part list
+    ([{"type": "text", "text": ...}, {"type": "image_url", ...}]); both
+    appear in the pipeline. See _content_part_text for how each part is
+    reduced, and why images cannot be reduced to their type alone.
     """
     if prompt is None:
         return ""
     if isinstance(prompt, str):
         return prompt
     if isinstance(prompt, list):
-        parts = []
-        for item in prompt:
-            if isinstance(item, dict):
-                parts.append(item.get("text") or item.get("type") or "")
-            else:
-                parts.append(str(item))
-        return "\n".join(parts)
+        return "\n".join(_content_part_text(item) for item in prompt)
     return str(prompt)
 
 
@@ -134,9 +175,19 @@ class _Tape:
     def _load(self):
         path = self._path()
         if not path.exists():
+            # The command is derived from the directory rather than
+            # hard-coded: this tape is shared by the grading and
+            # extraction benchmarks, and naming the wrong one sends
+            # whoever hits this to re-record the wrong (and, for grading,
+            # far more expensive) dataset.
+            command = (
+                "extraction_benchmark"
+                if "extraction" in path.parent.name
+                else "grading_benchmark"
+            )
             raise MissingRecordingError(
                 f"No recordings at {path}. Run "
-                "`manage.py grading_benchmark --mode record` first (this makes "
+                f"`manage.py {command} --mode record` first (this makes "
                 "real, billed model calls)."
             )
         with gzip.open(path, "rt", encoding="utf-8") as handle:

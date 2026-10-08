@@ -4,18 +4,15 @@ import logging
 import re
 import uuid
 from io import BytesIO
+from urllib.parse import quote
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -36,7 +33,6 @@ from rest_framework.exceptions import (
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from weasyprint import HTML
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
@@ -45,19 +41,22 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
-
-# from ai_processor.tools import encode_image
-from classrooms.models import Course, Topic
+from classrooms.models import (
+    COURSE_ACCESS_ENROLLMENT_STATUSES,
+    Topic,
+    reachable_courses,
+    teacher_can_reach_course,
+    teacher_course_access_q,
+)
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
 from students.task_tracking import create_processing_task, launch_processing_task
 from users.mixins import UserCacheMixin
-
-# from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
 
+from .file_uploads import sha256_of_uploaded_file, upload_assignment_file
 from .models import (  # Rubric
     Assignment,
     AssignmentGenerationMessage,
@@ -65,6 +64,9 @@ from .models import (  # Rubric
     AssignmentGenerationSession,
     AssignmentStatus,
 )
+from .pdf_cache import get_or_render
+from .pdf_document import render_assignment_pdf
+from .pdf_renderer import PDFRendererBusy
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
@@ -82,7 +84,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
-from .services import AssignmentProcessingService
+from .services import AssignmentProcessingService, ai_assignment_content_only
 from .tasks import (  # grade_all_submissions,
     extract_assignment_background_task,
     grade_engine_async,
@@ -91,16 +93,6 @@ from .tasks import (  # grade_all_submissions,
 )
 
 logger = logging.getLogger(__name__)
-
-# from billing.access_control import require_ai_access
-
-
-# from students.models import StudentSubmission
-
-
-# from ai_processor.validators import AssignmentStructure
-
-# from assignments.services import PDFService
 
 
 @extend_schema_view(
@@ -303,11 +295,55 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        # select_related("course__teacher"): every action that renders a
+        # document walks both relations - render_assignment_pdf reads
+        # course.name and course.teacher.get_full_name(), and the student
+        # list serializer reads course.name per row. Without it those are
+        # separate queries per assignment (assignments.tasks
+        # .prerender_assignment_pdfs already fetches it this way, so the
+        # download path was the odd one out).
         if user.user_type == UserTypes.TEACHER:
-            return Assignment.objects.filter(course__teacher=user)
+            # annotate: AssignmentListSerializer reports submission_count
+            # per row, which was one COUNT query each - 20 extra round
+            # trips on a default page. distinct=True because the filter
+            # backend can join (?course__session=...), and a join would
+            # otherwise multiply the count.
+            return (
+                Assignment.objects.select_related("course__teacher")
+                .annotate(
+                    annotated_submission_count=Count("submissions", distinct=True)
+                )
+                .filter(teacher_course_access_q(user, prefix="course__"))
+                # order_by is REQUIRED here, not decoration. annotate()
+                # puts a GROUP BY on the query, and Django's compiler
+                # drops Meta.ordering entirely once that happens
+                # (QuerySet.ordered is False for exactly this reason) - so
+                # without this the list comes back in whatever order
+                # Postgres finds convenient, and paging through it can
+                # repeat one assignment while skipping another.
+                #
+                # "id" is a tiebreaker, not cosmetic: Assignment.title is
+                # nullable and not unique, so ordering on title alone
+                # leaves same-titled rows in an undefined order and page
+                # boundaries can shuffle between requests.
+                .order_by("title", "id")
+            )
         elif user.user_type == UserTypes.STUDENT:
-            return Assignment.objects.filter(
-                course__enrollments__student=user, status=AssignmentStatus.PUBLISHED
+            # The enrollment_status filter is the access boundary, not a
+            # tidy-up. Matching on "an enrollment row exists" alone let a
+            # WITHDRAWN student - one a teacher had deliberately removed
+            # from the course - keep listing and downloading every
+            # published assignment and its PDF indefinitely, and let a
+            # PENDING student (invited, registration unfinished) read a
+            # course they were never notified about and had not yet
+            # joined. See COURSE_ACCESS_ENROLLMENT_STATUSES for why these
+            # two states and not StudentCourseQuerySet.active().
+            return Assignment.objects.select_related("course__teacher").filter(
+                course__enrollments__student=user,
+                course__enrollments__enrollment_status__in=(
+                    COURSE_ACCESS_ENROLLMENT_STATUSES
+                ),
+                status=AssignmentStatus.PUBLISHED,
             )
         else:
             return Assignment.objects.none()
@@ -572,7 +608,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def update_async(self, request, pk=None, *args, **kwargs):
         """Async variant of partial_update. Saves metadata immediately, re-extracts AI content in background."""
         instance = self.get_object()
-        serializer = AssignmentTextSerializer(
+        # get_serializer, not a bare AssignmentTextSerializer(...): the
+        # course-ownership check needs the request in context (H-18).
+        serializer = self.get_serializer(
             instance=instance, data=request.data, partial=True
         )
         serializer.is_valid(raise_exception=True)
@@ -741,7 +779,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         # Validate course exists and user has access to it
         try:
-            course = get_object_or_404(Course, id=course_id, teacher=request.user)
+            course = get_object_or_404(reachable_courses(request.user), id=course_id)
         except (ValueError, ValidationError):
             raise ParseError(
                 "Invalid Course ID format. Must be with a valid UUID"
@@ -755,7 +793,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
 
         if topic_id:
-            topic = get_object_or_404(Topic, id=topic_id)
+            # Scoped to the course that was just confirmed to belong to
+            # this teacher. An unscoped Topic lookup here accepted ANY
+            # topic id: the assignment was created in the caller's own
+            # course but carrying another teacher's - potentially another
+            # school's - topic, whose name is then handed back through the
+            # serializers' `topic_name` field. The DRF write paths
+            # (AssignmentSerializer.validate) and associate_topic already
+            # enforce exactly this rule; these upload actions bypass the
+            # serializer, so they have to enforce it themselves.
+            topic = get_object_or_404(Topic, id=topic_id, course=course)
         else:
             topic = None
 
@@ -764,8 +811,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if not files:
             raise ParseError("No files were uploaded.")
-
-        # results = []
 
         prompt_text = """
         Analyze the image of an educational assignment and return a JSON
@@ -777,9 +822,13 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         successful = []
         failed = []
 
-        # Processing Loop
+        # Every file gets its own outcome. A file refused by
+        # prepare_ai_content used to escape this loop and turn the whole
+        # request into a 400 after earlier files had already been extracted,
+        # charged and saved - so a teacher retrying the "failed" request paid
+        # for those files again. upload_assignment_file also answers a file
+        # that was already uploaded with its existing assignment, uncharged.
         for uploaded_file in files:
-            # Check if it's an instance of UploadedFile
             file_name = getattr(uploaded_file, "name", "unknown_file")
 
             if not isinstance(uploaded_file, UploadedFile):
@@ -801,33 +850,23 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 failed.append({"file_name": file_name, "error": str(exc.detail)})
                 continue
 
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt_text
-            )
             try:
-                assignment_questions = (
-                    AssignmentProcessingService.extract_assignment_data(
-                        request.user,
-                        content,
-                        course=course,
-                        topic=topic,
-                        generate_raw_input=True,
-                        upload=True,
-                    )
+                outcome = upload_assignment_file(
+                    request.user,
+                    uploaded_file,
+                    prompt_text,
+                    course=course,
+                    topic=topic,
+                    sha256=sha256_of_uploaded_file(uploaded_file),
                 )
-
-                with transaction.atomic():
-                    serializer = AssignmentSerializer(data=assignment_questions)
-                    serializer.is_valid(raise_exception=True)
-                    assignment = serializer.save()
 
                 successful.append(
                     {
                         "file_name": file_name,
-                        "assignment": AssignmentListSerializer(assignment).data,
+                        "assignment": AssignmentListSerializer(outcome.assignment).data,
+                        "already_uploaded": outcome.already_uploaded,
                     }
                 )
-                # results.append(assignment_questions)
 
             except Exception as e:
                 logger.error(
@@ -847,12 +886,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     }
                 )
 
-        # with transaction.atomic():
-        #     serializer = AssignmentSerializer(data=results, many=True)
-        #     serializer.is_valid(raise_exception=True)
-        #     instance = serializer.save()
-        #
-        #     serializer = AssignmentListSerializer(instance, many=True)
         response_data = {
             "successful": successful,
             "failed": failed,
@@ -869,9 +902,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if successful:
             return Response(successful, status=status.HTTP_201_CREATED)
 
-        if failed:
-            return Response(failed, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # `files` is never empty here, so every file landed in one of the
+        # two lists: no successes means every file failed.
+        return Response(failed, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         tags=["Assignments"],
@@ -930,23 +963,22 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise ParseError("Course ID is required.")
 
         # Validate course exists and user has access to it
-        course = get_object_or_404(Course, id=course_id, teacher=request.user)
-        # try:
-        #     course = get_object_or_404(Course, id=course_id, teacher=request.user)
-        # except (ValueError, ValidationError):
-        #     raise ParseError(
-        #         "Invalid Course ID format. Must be with a valid UUID"
-        #     ) from Exception
-        # except Http404:
-        #     raise NotFound(
-        #         "Course not found or you don't have access to it."
-        #     ) from Http404
+        course = get_object_or_404(reachable_courses(request.user), id=course_id)
 
         topic_value = request.data.get("topic", "")
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
 
         if topic_id:
-            topic = get_object_or_404(Topic, id=topic_id)
+            # Scoped to the course that was just confirmed to belong to
+            # this teacher. An unscoped Topic lookup here accepted ANY
+            # topic id: the assignment was created in the caller's own
+            # course but carrying another teacher's - potentially another
+            # school's - topic, whose name is then handed back through the
+            # serializers' `topic_name` field. The DRF write paths
+            # (AssignmentSerializer.validate) and associate_topic already
+            # enforce exactly this rule; these upload actions bypass the
+            # serializer, so they have to enforce it themselves.
+            topic = get_object_or_404(Topic, id=topic_id, course=course)
         else:
             topic = None
 
@@ -1006,8 +1038,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
 
-            # tasks_data.append({"file_name": uploaded_file.name, "task_id": task})
-
         data = {
             "session_id": session.id,
             "message": f"Batch processing started for {len(files)} files",
@@ -1017,8 +1047,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     def _build_generated_assignment_draft(self, generated_assignment, course):
+        # Content keys only: the strict response schema is not enforced by
+        # every provider, and this dict is later saved through
+        # AssignmentSerializer, whose writable fields include status and
+        # teacher (H-18).
         assignment_data = {
-            **generated_assignment,
+            **ai_assignment_content_only(generated_assignment),
             "course": str(course.id),
             "ai_generated": True,
         }
@@ -1201,8 +1235,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         as an AI draft in the generation session until the teacher explicitly saves it.
         """
 
-        # course = Course.objects.filter(id=course_id)
-        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        course = get_object_or_404(reachable_courses(request.user), id=course_id)
         serializer = AssignmentGeneratorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         prompt = serializer.validated_data["prompt"]
@@ -1437,15 +1470,27 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
 
         with transaction.atomic():
-            draft_message = get_object_or_404(
-                AssignmentGenerationMessage.objects.select_for_update()
-                .select_related("session__course", "session__user")
-                .filter(
+            # H-38 note: `teacher_course_access_q` OR's across `Course.session`
+            # (nullable), which forces Postgres to plan a LEFT OUTER JOIN for
+            # this lookup. `SELECT ... FOR UPDATE` cannot be applied to the
+            # nullable side of an outer join, so the access check must run as
+            # its own unlocked query first; the row we actually lock is then
+            # fetched by primary key alone (a plain lookup, never an outer
+            # join) so `select_for_update()` stays valid. See
+            # docs/evidence/h38_part2/select_for_update_outer_join_regression.md.
+            access_check = get_object_or_404(
+                AssignmentGenerationMessage.objects.filter(
+                    teacher_course_access_q(request.user, prefix="session__course__"),
                     id=message_id,
                     session__user=request.user,
-                    session__course__teacher=request.user,
                     role=AssignmentGenerationRole.ASSISTANT,
                 )
+            )
+            draft_message = get_object_or_404(
+                AssignmentGenerationMessage.objects.select_for_update().select_related(
+                    "session__course", "session__user"
+                ),
+                pk=access_check.pk,
             )
 
             if draft_message.assignment_id:
@@ -1466,7 +1511,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             save_serializer.is_valid(raise_exception=True)
 
-            assignment_data = dict(draft_message.assignment_snapshot)
+            # Filter again on save (H-18): drafts generated before the
+            # allow-list existed keep the AI's raw keys in their stored
+            # snapshot, so the generate-time filter alone would not cover
+            # them. Server-set values are re-applied below.
+            assignment_data = {
+                **ai_assignment_content_only(draft_message.assignment_snapshot),
+                "ai_generated": True,
+            }
             assignment_data["course"] = str(course.id)
 
             for field, value in save_serializer.validated_data.items():
@@ -1650,7 +1702,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # (models/tasks), so importing it at module level here would create
         # an import cycle.
         from students.services import notify_student_of_graded_submission
-        from students.signals import clear_student_submission_cache
+        from students.signals import invalidate_submission_caches_bulk
 
         assignment = self.get_object()
 
@@ -1690,9 +1742,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
 
         # .update() skips post_save, so fire the submission cache
-        # invalidation once for the whole batch.
-        if newly_published:
-            clear_student_submission_cache(sender=None, instance=newly_published[0])
+        # invalidation once for the whole batch - every newly-published
+        # student, not just the first (H-1 Stage 3, gap G3).
+        invalidate_submission_caches_bulk(newly_published)
 
         total_submissions = assignment.submissions.count()
         ungraded_count = total_submissions - total_graded
@@ -1758,7 +1810,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Permission enforcement for teacher view
         if include_rubric:
             # Only the teacher who owns the course can see the teacher viersion
-            if assignment.course.teacher != request.user:
+            if not teacher_can_reach_course(request.user, assignment.course):
                 raise PermissionDenied(
                     "Only the course teacher can download the teacher version."
                 )
@@ -1770,242 +1822,33 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "You can only download published assignments."
                     )
 
-        # Prepare data for the assignment (common to both views)
-        data = {
-            "title": assignment.title,
-            "instructions": assignment.instructions,
-            "total_points": assignment.total_points,
-            "due_date": (
-                assignment.due_date.isoformat() if assignment.due_date else None
-            ),
-            "questions": assignment.questions,
-        }
-
-        # Generate the assignment HTML without hidden teacher content.
-        # include_document_header=False: the PDF template below already
-        # renders its own title/instructions/meta header, so the shared
-        # formatter shouldn't render them a second time.
-        html_body = AssignmentProcessingService.format_assignment_standard_html(
-            data, include_rubric=include_rubric, include_document_header=False
-        )
-
-        # Extract course and teacher info
-        course_name = assignment.course.name if assignment.course else "Course"
-        teacher_name = (
-            assignment.course.teacher.get_full_name()
-            if assignment.course and assignment.course.teacher
-            else "Instructor"
-        )
-
-        due_date_str = (
-            assignment.due_date.strftime("%B %d, %Y at %I:%M %p")
-            if assignment.due_date
-            else "Not set"
-        )
-        display_title = assignment.title or "Assignment"
-        # Pre-quoted/escaped for direct embedding as a CSS string literal
-        # (the @top-center content property below) — json.dumps' escaping
-        # is a safe superset of CSS string escaping for plain text, and
-        # this also closes a latent bug: a title containing a literal "
-        # would otherwise break the generated CSS.
-        title_css_literal = json.dumps(display_title)
-        instructions_html = (
-            f'<div class="instructions-box"><strong>Instructions:</strong> '
-            f"{assignment.instructions}</div>"
-            if assignment.instructions
-            else ""
-        )
-
-        # Build the full HTML with enhanced styling
-        full_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>{display_title}</title>
-            <style>
-                /* --- Page setup ---
-                   Editorial layout patterned after the ground-truth
-                   benchmark PDFs (ai_processor/benchmark/render.py):
-                   quiet serif typesetting instead of a dashboard look.
-                   The @bottom-right box is a deliberately understated
-                   brand mark, not a page-count element. */
-                @page {{
-                    size: A4;
-                    margin: 2.5cm 2cm 2.2cm 2cm;
-                    @top-center {{
-                        content: {title_css_literal};
-                        font-family: Georgia, 'Times New Roman', serif;
-                        font-style: italic;
-                        font-size: 9pt;
-                        color: #7a8188;
-                        border-bottom: 1px solid #ddd8c8;
-                        padding-bottom: 5px;
-                    }}
-                    @bottom-center {{
-                        content: "Page " counter(page) " of " counter(pages);
-                        font-size: 8.5pt;
-                        color: #7a8188;
-                        border-top: 1px solid #ddd8c8;
-                        padding-top: 5px;
-                    }}
-                    @bottom-right {{
-                        content: "Grade A+";
-                        font-family: Georgia, 'Times New Roman', serif;
-                        font-size: 7.5pt;
-                        letter-spacing: 0.5px;
-                        color: #b5ab8f;
-                        border-top: 1px solid #ddd8c8;
-                        padding-top: 5px;
-                    }}
-                }}
-
-                /* --- Global styles --- */
-                body {{
-                    font-family: 'Georgia', 'Times New Roman', serif;
-                    margin: 0;
-                    padding: 0;
-                    line-height: 1.65;
-                    color: #20242b;
-                    background: #ffffff;
-                    font-size: 11.5pt;
-                }}
-
-                .container {{
-                    max-width: 100%;
-                }}
-
-                /* --- Title block --- */
-                .assignment-header {{
-                    text-align: center;
-                    margin-bottom: 28px;
-                    padding-bottom: 18px;
-                    border-bottom: 3px double #1a3a5c;
-                }}
-                .assignment-header .course-name {{
-                    font-size: 10.5pt;
-                    font-weight: 400;
-                    letter-spacing: 1.5px;
-                    text-transform: uppercase;
-                    color: #96895f;
-                    margin-bottom: 6px;
-                }}
-                .assignment-header .assignment-title {{
-                    font-size: 25pt;
-                    font-weight: 700;
-                    color: #1a3a5c;
-                    margin: 6px 0 10px 0;
-                }}
-                .assignment-header .meta {{
-                    font-size: 10.5pt;
-                    color: #5a6472;
-                    font-style: italic;
-                }}
-                .assignment-header .meta span:not(:last-child)::after {{
-                    content: " \\00b7 ";
-                    font-style: normal;
-                    color: #b5ab8f;
-                }}
-
-                /* --- Instructions --- */
-                .instructions-box {{
-                    background: #f7f6f2;
-                    border-left: 3px solid #1a3a5c;
-                    padding: 14px 20px;
-                    margin-bottom: 28px;
-                    font-size: 11pt;
-                }}
-                .instructions-box strong {{
-                    color: #1a3a5c;
-                }}
-
-                /* --- Section heading (services.py emits "Assignment
-                   Questions" as an h2 followed by a bare hr) --- */
-                h2 {{
-                    font-size: 13.5pt;
-                    color: #1a3a5c;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    border-bottom: 1px solid #ddd8c8;
-                    padding-bottom: 6px;
-                    margin: 0 0 18px;
-                }}
-                h2 + hr {{
-                    display: none;
-                }}
-
-                /* --- Questions ---
-                   services.py renders each question as a plain div with
-                   inline styles (shared with the ProseMirror editor
-                   pipeline), so styling here targets the tags it
-                   actually emits rather than card classes. */
-                strong {{
-                    color: #1a3a5c;
-                }}
-                .container > div {{
-                    page-break-inside: avoid;
-                }}
-
-                /* Images */
-                img {{
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                    margin: 12px auto;
-                    border: 1px solid #ddd8c8;
-                }}
-                /* Tables (rubric, etc.) */
-                table {{
-                    border-collapse: collapse;
-                    width: 100%;
-                    margin: 14px 0;
-                    font-size: 10.5pt;
-                }}
-                th, td {{
-                    border: 1px solid #ddd8c8;
-                    padding: 7px 10px;
-                    text-align: left;
-                    vertical-align: top;
-                }}
-                th {{
-                    background-color: #f0eee7;
-                    font-weight: 700;
-                    color: #1a3a5c;
-                }}
-                /* Lists */
-                ul, ol {{
-                    padding-left: 25px;
-                    margin: 10px 0;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <!-- Header Block -->
-                <div class="assignment-header">
-                    <div class="course-name">{course_name}</div>
-                    <div class="assignment-title">{display_title}</div>
-                    <div class="meta">
-                        <span>{teacher_name}</span>
-                        <span>Due {due_date_str}</span>
-                        <span>{assignment.total_points or 'N/A'} marks total</span>
-                    </div>
-                </div>
-
-                <!-- Instructions -->
-                {instructions_html}
-
-                <!-- Questions -->
-                {html_body}
-            </div>
-        </body>
-        </html>
-        """
-
+        # One render per (assignment, view) even when a whole class
+        # opens the same new assignment at once - see pdf_cache.get_or_render.
+        view_type = "teacher" if include_rubric else "student"
         try:
-            # WeasyPrint automatically handles absolute image URLs (CDN)
-            base_url = request.build_absolute_uri("/")
-            pdf_bytes = HTML(string=full_html, base_url=base_url).write_pdf()
+            pdf_bytes = get_or_render(
+                assignment,
+                view_type,
+                lambda: render_assignment_pdf(assignment, include_rubric),
+            )
+        except PDFRendererBusy as e:
+            # At capacity, and nothing was attempted - so this is a
+            # "come back shortly", not a failure. 503 + Retry-After lets
+            # clients and proxies treat it as such instead of surfacing a
+            # generic error, and frees the worker thread immediately
+            # rather than parking it for the render timeout.
+            logger.warning("PDF generation shed under load: %s", e)
+            response = Response(
+                {
+                    "error": (
+                        "The server is busy generating PDFs right now. "
+                        "Please try again in a moment."
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+            response["Retry-After"] = "5"
+            return response
         except Exception as e:
             logger.error("PDF generation failed", exc_info=e)
             return Response(
@@ -2022,12 +1865,37 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # Sanitise filename
+        return self._assignment_pdf_response(assignment, pdf_bytes)
+
+    @staticmethod
+    def _assignment_pdf_response(assignment, pdf_bytes):
+        # Strip anything that isn't a word character, space or hyphen, so
+        # the name can never carry a path separator or a quote that would
+        # break out of the header value below.
         safe_title = re.sub(r"[^\w\s-]", "", assignment.title or "assignment").strip()
-        filename = f"{safe_title}.pdf"
+        filename = f"{safe_title or 'assignment'}.pdf"
 
         response = FileResponse(BytesIO(pdf_bytes), content_type="application/pdf")
-        response["Content-Disposition"] = f"attachment; filename={filename!r}"
+
+        # RFC 6266: the filename is a quoted-string, i.e. DOUBLE quotes.
+        # This used to interpolate Python's repr ({filename!r}), which
+        # emits SINGLE quotes - browsers treat those as part of the name
+        # and save the file as "'Quiz.pdf'", apostrophes and all.
+        #
+        # `\w` is Unicode-aware, so a title in any non-Latin script
+        # survives the sanitiser above and then cannot be encoded into a
+        # latin-1 header. Django MIME-encodes rather than raising, which
+        # produces an unreadable "=?utf-8?b?...?=" filename, so the
+        # RFC 5987 `filename*` form is sent alongside an ASCII-only
+        # fallback: every current browser prefers `filename*`, and
+        # anything that doesn't still gets a usable name.
+        ascii_fallback = (
+            safe_title.encode("ascii", "ignore").decode("ascii").strip() or "assignment"
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="{ascii_fallback}.pdf"; '
+            f"filename*=UTF-8''{quote(filename)}"
+        )
         return response
 
 

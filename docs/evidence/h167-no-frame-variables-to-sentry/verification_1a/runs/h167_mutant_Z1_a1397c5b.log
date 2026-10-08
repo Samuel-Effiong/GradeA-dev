@@ -1,0 +1,33 @@
+# 1a H-167 mutant Z1 at a1397c5b929d2692c0e5d8d07a8ed0270bc3c567, my probe module alone, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 2.99 3.55 4.17 3/2292 914382
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+applied Z1 to AutoGrader/settings.py
+mutated sha differs: True
+ AutoGrader/settings.py | 1 -
+ 1 file changed, 1 deletion(-)
+test_sc_the_four_new_parts_in_other_shapes (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sc_the_four_new_parts_in_other_shapes) ... ok
+test_sd_the_pattern_beside_addresses_another_name_and_an_object (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sd_the_pattern_beside_addresses_another_name_and_an_object) ... ok
+test_sa_a_real_client_with_our_values_sends_no_frame_variables (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sa_a_real_client_with_our_values_sends_no_frame_variables) ... FAIL
+test_sb_a_real_client_with_our_values_takes_no_request_body (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sb_a_real_client_with_our_values_takes_no_request_body) ... ok
+test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed) ... ok
+
+======================================================================
+FAIL: test_sa_a_real_client_with_our_values_sends_no_frame_variables (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sa_a_real_client_with_our_values_sends_no_frame_variables)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h167/AutoGrader/tests_vf1a_h167_probe.py", line 143, in test_sa_a_real_client_with_our_values_sends_no_frame_variables
+    self.assertIs(ours.options["include_local_variables"], False)
+AssertionError: True is not False
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.061s
+
+FAILED (failures=1)
+Found 5 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=4 loadavg after: 3.23 3.59 4.18 5/2288 914666
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+tracked changes after restore: 0

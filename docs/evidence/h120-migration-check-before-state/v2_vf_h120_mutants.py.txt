@@ -1,0 +1,169 @@
+"""v2 mutants for H-120 (d5), beyond d5's K1-K13.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT, with v2's probe
+copied to AutoGrader/tests_vf2_h120_probe.py), inside the rule 16/13/12
+wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h120_mutants.py check |
+baseline | (no args: every mutant).
+
+Every inner run writes its OWN file: "baseline.txt", and for a mutant
+"<mutant>_<who judged it>.txt" (the lesson of H-130's first run).
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of the mutated script's directory is deleted before each mutant
+and after each restore; `baseline` deletes it first. No database is used
+(SimpleTestCase only).
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+CK = "scripts/check_migration_safety.py"
+SCRUB = CK
+RD = CK
+D5 = ["AutoGrader.tests_migration_safety_check"]
+PROBE = ["AutoGrader.tests_vf2_h120_probe"]
+BASELINE = D5 + PROBE
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+# Written 2026-10-06 before any run of the check by v2 (rule 18 addition):
+# for each mutant, the tests of d5's module that must ALL be among the
+# failing ones. KILLED only with the run's own "Ran" line and every named
+# test failing; anything else is SURVIVED, BROKEN or KILLED_OTHER.
+EXPECTED = {
+    # decimal_places is no longer one of the limits whose shrinking is
+    # reported (d5's K5 removes the whole rule; this removes one limit).
+    "M1_fewer_decimal_places_are_not_reported": {
+        "d5's tests": (D5, ("test_a_column_made_shorter_is_reported_with_both_numbers",)),
+    },
+    # A Python default is no longer a default; a database default still is
+    # (d5's K9 is the other half, K3 the altered-column rule only). Added
+    # columns with a default are reported, so the real-file test fails too
+    # (billing/0009, 0016 and 0022 add such columns).
+    "M2_a_python_default_is_not_a_default": {
+        "d5's tests": (D5, (
+            "test_changes_that_are_additive_pass",
+            "test_columns_every_existing_row_can_get_a_value_for_pass",
+            "test_each_one",
+        )),
+    },
+}
+PREDICTED_TO_SURVIVE = set()
+
+MUTANTS = {
+    "M1_fewer_decimal_places_are_not_reported": (CK, [
+        ('SHRINKABLE = ("max_length", "max_digits", "decimal_places")\n',
+         'SHRINKABLE = ("max_length", "max_digits")\n'),
+    ]),
+    "M2_a_python_default_is_not_a_default": (CK, [
+        ('    if getattr(field, "has_default", lambda: False)():\n        return True\n',
+         '    if False:\n        return True\n'),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits)."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SCRUB)
+    clear_pycache(RD)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            # r2: one file per judgement. The first form wrote both judgements
+            # of a mutant to the same file, so the second overwrote the first.
+            slug = re.sub(r"[^a-z0-9]+", "_", who.lower()).strip("_")
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_{slug}.txt")
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif all(name in failing for name in expected):
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if name in PREDICTED_TO_SURVIVE else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

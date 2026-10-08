@@ -1,0 +1,61 @@
+{
+  "M1_helper_always_allows": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_batch_grading_run_is_refused_after_removal",
+      "test_an_unreachable_task_answers_exactly_like_a_missing_one",
+      "test_queued_grading_is_refused_and_never_charged_after_removal",
+      "test_t1_to_t4_answer_404_after_removal_and_change_nothing"
+    ]
+  },
+  "M2_status_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_unreachable_task_answers_exactly_like_a_missing_one",
+      "test_every_tasks_route_checks_reachability",
+      "test_t1_to_t4_answer_404_after_removal_and_change_nothing"
+    ]
+  },
+  "M3_cancel_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_tasks_route_checks_reachability",
+      "test_t1_to_t4_answer_404_after_removal_and_change_nothing"
+    ]
+  },
+  "M4_cancel_session_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_tasks_route_checks_reachability",
+      "test_t1_to_t4_answer_404_after_removal_and_change_nothing"
+    ]
+  },
+  "M5_session_results_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_tasks_route_checks_reachability",
+      "test_t1_to_t4_answer_404_after_removal_and_change_nothing"
+    ]
+  },
+  "M6_grading_chokepoint_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_grading_dispatch_checks_reachability",
+      "test_queued_grading_is_refused_and_never_charged_after_removal"
+    ]
+  },
+  "M7_auto_grade_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_grading_dispatch_checks_reachability",
+      "test_t5_the_auto_grade_beat_grades_nothing_after_removal"
+    ]
+  },
+  "M8_batch_grading_unguarded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_batch_grading_run_is_refused_after_removal",
+      "test_every_grading_dispatch_checks_reachability"
+    ]
+  }
+}

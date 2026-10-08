@@ -1,0 +1,38 @@
+{
+  "M1_service_names_the_role": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_role_gets_the_same_answer",
+      "test_no_route_names_the_role_of_a_staff_address",
+      "test_single_add_and_bulk_import_give_the_neutral_message",
+      "test_the_service_rule_raises_the_neutral_message_and_logs_ids_only"
+    ]
+  },
+  "M2_single_add_names_the_role": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_role_gets_the_same_answer",
+      "test_no_route_names_the_role_of_a_staff_address",
+      "test_single_add_and_bulk_import_give_the_neutral_message"
+    ]
+  },
+  "M3_direct_add_refuses_only_teachers": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_role_gets_the_same_answer"
+    ]
+  },
+  "M4_direct_add_names_the_role": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_role_gets_the_same_answer",
+      "test_no_route_names_the_role_of_a_staff_address"
+    ]
+  },
+  "M5_refusal_not_logged": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_service_rule_raises_the_neutral_message_and_logs_ids_only"
+    ]
+  }
+}

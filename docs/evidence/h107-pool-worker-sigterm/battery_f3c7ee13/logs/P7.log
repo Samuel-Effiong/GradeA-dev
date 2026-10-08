@@ -1,0 +1,12 @@
+# P7: the runner reports on the patient stream
+# file: AutoGrader/redis_test_runner.py (occurrence 1)
+# old: '        kwargs["stream"] = PatientStream(sys.stderr)\n'
+# new: ''
+# commit: f3c7ee131c29c2714afa7bab135929f6b22e4c7f
+# exit: 1
+# elapsed_s: 11.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_runner_reports_on_a_patient_stream_over_stderr (AutoGrader.tests_patient_test_stream.WiringTests.test_the_runner_reports_on_a_patient_stream_over_stderr)
+
+FAILED (failures=1)

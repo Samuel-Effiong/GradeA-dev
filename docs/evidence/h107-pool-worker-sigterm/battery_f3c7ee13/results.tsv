@@ -1,0 +1,12 @@
+f3c7ee131c29	W1	every worker gets the default action back (the pool initializer)	KILLED	FAILED (failures=1)	True	24.9
+f3c7ee131c29	W2	our suite starts its workers through our initializer	KILLED	FAILED (failures=2)	True	21.2
+f3c7ee131c29	W3	a spawned worker's setup gives the default action back too	KILLED	FAILED (failures=2)	True	11.4
+f3c7ee131c29	W4	the action is the default one (die), not ignore	KILLED	FAILED (failures=2)	True	20.8
+f3c7ee131c29	P1	a write that would block waits and carries on (no retry: it raises)	KILLED	FAILED (failures=3, errors=2)	True	11.1
+f3c7ee131c29	P2	it carries on from the byte it stopped at (nothing twice)	KILLED	FAILED (failures=3)	True	11.6
+f3c7ee131c29	P3	what the stream itself still holds goes out first	KILLED	FAILED (failures=1)	True	13.8
+f3c7ee131c29	P4	a flush that would block waits too	KILLED	FAILED (errors=1)	True	11.9
+f3c7ee131c29	P5	a reader that takes nothing ends the wait (no bound: a new hang)	KILLED	FAILED (failures=1)	True	21.3
+f3c7ee131c29	P6	the default patience is 120 seconds	KILLED	FAILED (failures=1)	True	12.5
+f3c7ee131c29	P7	the runner reports on the patient stream	KILLED	FAILED (failures=1)	True	11.7
+f3c7ee131c29	P8	a stream with no file descriptor is written to as it is	KILLED	FAILED (errors=1)	True	13.2

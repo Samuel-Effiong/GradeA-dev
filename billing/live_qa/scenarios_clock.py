@@ -84,6 +84,7 @@ from billing.stripe_live_qa_scenarios import (
 from billing.stripe_service import (
     StripeSubscriptionMutationService,
     StripeSubscriptionScheduleService,
+    resolve_invoice_payment_intent,
 )
 
 logger = logging.getLogger(__name__)
@@ -150,9 +151,8 @@ def scenario_void_or_refund_compensating_path(harness) -> CheckRecorder:
             "control failed to void it and Stripe will still try to collect it",
         )
         if status == "paid":
-            refunds = guarded_call(
-                stripe.Refund.list, payment_intent=invoice.get("payment_intent")
-            )
+            _pi_id, _pi = resolve_invoice_payment_intent(invoice)
+            refunds = guarded_call(stripe.Refund.list, payment_intent=_pi_id)
             refunded = any(
                 r.get("status") in ("succeeded", "pending")
                 for r in (refunds.get("data") or [])
@@ -381,7 +381,11 @@ def scenario_reconcile_sweep_after_missed_webhook(harness) -> CheckRecorder:
 
     from billing.tasks import reconcile_subscription_renewals
 
-    summary = reconcile_subscription_renewals()
+    # Under the simulated clock: the sweep selects on
+    # `billing_cycle_end__lte=now`, so with real wall-clock time it finds
+    # nothing to reconcile even though Stripe has moved a month on.
+    with harness.local_clock():
+        summary = reconcile_subscription_renewals()
     logger.info("[LIVE QA %s] reconcile summary: %s", harness.run_id, summary)
 
     after = sub.local()
@@ -416,15 +420,26 @@ def scenario_reconcile_sweep_after_missed_webhook(harness) -> CheckRecorder:
 
 
 def scenario_dashboard_recovers_past_due_subscription(harness) -> CheckRecorder:
-    """A support agent fixes a card and retries the SAME invoice.
+    """A support agent fixes a card and retries the failed invoice.
 
-    This produces no new-period invoice at all — it is a retry of the
-    cycle that already failed — so it is invisible to
-    reconcile_subscription_renewals (which requires a NEW-period paid
-    invoice) and to the renewal webhook (which never fires for a retry).
     Before handle_subscription_updated existed, this recovery was
     invisible to the app entirely: Stripe and the customer both knew the
     subscription was fixed, and the local row stayed stuck at past_due.
+
+    CORRECTED EXPECTATION (2026-09-07). This scenario used to assert that
+    recovery granted NO new period and NO new credits, on the premise that
+    "it is a retry of the cycle that already failed". That premise is
+    wrong. The invoice that failed is the RENEWAL invoice — it covers the
+    NEXT period, not the one already paid for. Paying it means the
+    customer has now paid for that next cycle, so the local period must
+    advance and the credits must be granted; anything else takes their
+    money and gives them nothing.
+
+    The old assertions only held while a separate harness defect kept the
+    application's clock behind Stripe's test clock, which made the renewal
+    guard skip. In other words the scenario was green because the renewal
+    was broken. With the clock fixed, the real behaviour is visible and
+    correct, and the expectations below now match it.
     """
     rec = CheckRecorder()
     plan = require_plan(tier=PlanTier.STANDARD, interval=BillingInterval.MONTHLY)
@@ -492,17 +507,17 @@ def scenario_dashboard_recovers_past_due_subscription(harness) -> CheckRecorder:
         StripeSubscriptionStatus.ACTIVE,
     )
     rec.expect(
-        "recovering the SAME cycle did not create a new billing period",
-        recovered.billing_cycle_end == before_end,
+        "paying the failed RENEWAL invoice advances the local period",
+        recovered.billing_cycle_end > before_end,
         f"before={before_end.isoformat()}, after="
-        f"{recovered.billing_cycle_end.isoformat()} — a change here means "
-        "some other path also reacted to this event, not just the status "
-        "sync",
+        f"{recovered.billing_cycle_end.isoformat()} — the recovered invoice "
+        "covers the next period, so the customer has now paid for it",
     )
     rec.expect_equal(
-        "recovering the SAME cycle granted no extra credits",
+        "paying the failed RENEWAL invoice grants exactly one new cycle of "
+        "credits — not zero (paid and got nothing) and not two",
         sub.monthly_bucket_count(),
-        before_buckets,
+        before_buckets + 1,
     )
     return rec
 

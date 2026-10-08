@@ -1,0 +1,20 @@
+# M4: the chain is computed from the anchor, not the served due
+# file: billing/license_service.py (occurrence 1)
+# old: '            anchor, served_due, license_sub.billing_cycle_end\n'
+# new: '            served_due, served_due, license_sub.billing_cycle_end\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 18.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_leap_february_from_the_30th (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_leap_february_from_the_30th)
+FAIL: test_a_mid_cycle_enrolment_is_anchored_to_its_own_day (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_mid_cycle_enrolment_is_anchored_to_its_own_day)
+FAIL: test_a_renewal_mid_chain_restarts_the_teachers_month (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_renewal_mid_chain_restarts_the_teachers_month)
+FAIL: test_a_teacher_enrolled_on_the_31st_gets_11_refreshes_on_their_days (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_a_teacher_enrolled_on_the_31st_gets_11_refreshes_on_their_days)
+FAIL: test_the_consumption_window_reopens_at_every_months_refresh (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_the_consumption_window_reopens_at_every_months_refresh)
+FAIL: test_a_catch_up_at_the_cycle_end_never_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_a_catch_up_at_the_cycle_end_never_outlives_the_contract)
+FAIL: test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_no_refreshed_bucket_is_born_expired_or_outlives_the_contract)
+FAIL: test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_a_drifted_row_moves_to_the_next_anchor_period_not_back_to_this_one)
+FAIL: test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_an_outage_to_the_contract_end_is_reported_by_the_offline_renewal)
+
+FAILED (failures=9)

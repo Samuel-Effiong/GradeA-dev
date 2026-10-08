@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 from celery.result import AsyncResult
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from AutoGrader.celery import app as celery_app
@@ -16,6 +17,7 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
+from billing.refusals import is_permanent_refusal, log_refusal
 
 from .exceptions import TaskCancelledError
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
@@ -164,6 +166,43 @@ def update_processing_task(
         return task
 
 
+def claim_processing_task_start(processing_task_id, *, stale_after, meta=None):
+    """
+    Idempotency claim for tasks that have no domain-level claim of their
+    own (answer extraction, unlike grading, has no RUNNING state on the
+    row it writes). One conditional UPDATE: PENDING → STARTED, or a STARTED
+    row whose started_at is older than `stale_after` (a worker that died
+    holding it) → STARTED again with a fresh started_at. Returns True when
+    this execution won. A Redis redelivery of the same message while the
+    original is still running loses, and must skip the billed work rather
+    than run it a second time.
+
+    Without a processing_task_id there is nothing to claim; the caller
+    proceeds (untracked flows keep today's behaviour).
+    """
+    if not processing_task_id:
+        return True
+
+    now = timezone.now()
+    with transaction.atomic():
+        won = (
+            BackgroundProcessingTask.objects.filter(id=processing_task_id)
+            .filter(
+                Q(status=BackgroundTaskStatus.PENDING)
+                | Q(
+                    status=BackgroundTaskStatus.STARTED,
+                    started_at__lt=now - stale_after,
+                )
+            )
+            .update(status=BackgroundTaskStatus.STARTED, started_at=now, updated_at=now)
+        )
+        if won and meta:
+            task = BackgroundProcessingTask.objects.get(id=processing_task_id)
+            task.meta = merge_task_meta(task.meta, meta)
+            task.save(update_fields=["meta", "updated_at"])
+    return bool(won)
+
+
 def mark_processing_task_started(processing_task_id, meta=None):
     return update_processing_task(
         processing_task_id,
@@ -186,7 +225,9 @@ def mark_processing_task_success(processing_task_id, meta=None):
 def mark_processing_task_failure(
     processing_task_id, error, meta=None, *, fallback_message=None
 ):
-    if isinstance(error, BaseException):
+    if is_permanent_refusal(error):
+        log_refusal(logger, f"Background task {processing_task_id}", error)
+    elif isinstance(error, BaseException):
         logger.error(
             "Background task %s failed",
             processing_task_id,
@@ -285,21 +326,19 @@ def cleanup_cancelled_task_artifacts(processing_task):
     if not processing_task.assignment_id:
         return None
 
-    from assignments.models import Assignment
+    # The assignment row belongs to the assignments app; asking its service
+    # layer (rather than locking and deleting its model from here) keeps
+    # the app boundary intact. Imported lazily because assignments.services
+    # imports this module.
+    from assignments.services import lock_placeholder_assignment_for_cleanup
 
-    assignment = (
-        Assignment.objects.select_for_update()
-        .filter(id=processing_task.assignment_id)
-        .first()
-    )
-    if not assignment:
-        return None
-
-    if assignment.submissions.exists():
+    assignment = lock_placeholder_assignment_for_cleanup(processing_task.assignment_id)
+    if assignment is None:
         logger.warning(
-            "Skipping cleanup for cancelled task %s because assignment %s has submissions.",
+            "Skipping cleanup for cancelled task %s: assignment %s is missing "
+            "or already has submissions.",
             processing_task.id,
-            assignment.id,
+            processing_task.assignment_id,
         )
         return None
 
@@ -347,15 +386,28 @@ def cancel_processing_task(processing_task):
         cleanup_cancelled_task_artifacts(processing_task)
 
     if processing_task.celery_task_id:
-        AsyncResult(processing_task.celery_task_id, app=celery_app).revoke(
-            terminate=True,
-            signal="SIGTERM",
-        )
-        celery_app.control.revoke(
-            processing_task.celery_task_id,
-            terminate=True,
-            signal="SIGTERM",
-        )
+        # The revoke is an accelerator, not the cancellation itself: the
+        # CANCELLED row above is already committed, and every task observes
+        # it cooperatively through ensure_task_not_cancelled /
+        # cancellable_final_save. So an unreachable broker here must not
+        # turn an already-recorded cancellation into a 500 for the user.
+        try:
+            # One broadcast. AsyncResult.revoke() is literally
+            # app.control.revoke(id, ...) - this used to send both.
+            celery_app.control.revoke(
+                processing_task.celery_task_id,
+                terminate=True,
+                signal="SIGTERM",
+            )
+        except BROKER_UNAVAILABLE_ERRORS:
+            logger.error(
+                "Could not revoke celery task %s for cancelled processing task %s "
+                "- broker unavailable; the worker will observe the cancellation "
+                "at its next cooperative check",
+                processing_task.celery_task_id,
+                processing_task.id,
+                exc_info=True,
+            )
 
     return processing_task
 
@@ -367,7 +419,24 @@ def normalize_processing_task_status(processing_task):
     if not processing_task.celery_task_id:
         return processing_task.status
 
-    state = AsyncResult(processing_task.celery_task_id, app=celery_app).state
+    # This runs inside status-poll GET views. The result backend is Redis,
+    # so a broker outage here used to surface as a raw connection traceback
+    # (a 500) on every poll, even though the DB row still holds a perfectly
+    # good answer. The tracked status is the source of truth; the Celery
+    # state is only consulted to notice a worker that died without
+    # reporting back, so when it can't be read we fall back to the row.
+    try:
+        state = AsyncResult(processing_task.celery_task_id, app=celery_app).state
+    except BROKER_UNAVAILABLE_ERRORS:
+        logger.warning(
+            "Could not read celery state for processing task %s (celery id %s) "
+            "- result backend unavailable; reporting tracked status %s",
+            processing_task.id,
+            processing_task.celery_task_id,
+            processing_task.status,
+            exc_info=True,
+        )
+        return processing_task.status
 
     if state == "REVOKED":
         processing_task = mark_processing_task_cancelled(

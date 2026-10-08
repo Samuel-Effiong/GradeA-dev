@@ -1,0 +1,30 @@
+"""1a's H-65 mutants @ 51fbb0e (sha-checked restore)."""
+import hashlib, pathlib, subprocess
+W = pathlib.Path(__file__).resolve().parent / "vf_h65"
+PY = "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python"
+LOGS = W.parent / "vf_h65_logs"
+M = [
+    ("Z1 a weekly email task loses its lock", "dashboard/tasks.py",
+     "@shared_task(bind=True)\n@single_instance(max_hold=beat_locks.WEEKLY)\ndef send_weekly_course_summaries(self):\n",
+     "@shared_task(bind=True)\ndef send_weekly_course_summaries(self):\n"),
+    ("Z3 the heartbeat is never stopped", "AutoGrader/beat_locks.py",
+     "            finally:\n                heartbeat.stop()\n",
+     "            finally:\n                pass\n"),
+]
+for name, f, a, b in M:
+    p = W / f; text = p.read_text(); h = hashlib.sha256(text.encode()).hexdigest()
+    assert text.count(a) == 1, name
+    p.write_text(text.replace(a, b))
+    try:
+        r = subprocess.run(["nice", "-n", "10", "timeout", "-k", "60", "1800", PY, "manage.py", "test",
+                            "--settings=settings_worktree_mut", "--noinput", "-v", "2",
+                            "AutoGrader.tests_beat_locks", "billing.tests.test_beat_lock_catch_up"],
+                           cwd=W, capture_output=True, text=True)
+        out = r.stdout + r.stderr
+        (LOGS / f"h65_mutant_{name.split()[0]}.log").write_text(out)
+        keep = [l for l in out.splitlines() if l.startswith(("Ran ", "OK", "FAILED", "FAIL:", "ERROR:"))]
+        print(name, "KILLED" if r.returncode else "SURVIVED", "\n  " + "\n  ".join(keep), flush=True)
+    finally:
+        p.write_text(text)
+        assert hashlib.sha256(p.read_text().encode()).hexdigest() == h
+print("restored ok")

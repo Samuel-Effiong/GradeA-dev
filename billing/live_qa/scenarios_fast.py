@@ -38,12 +38,25 @@ from __future__ import annotations
 import logging
 
 from billing.imports import stripe
-from billing.models import BillingInterval, BillingTransaction, PlanTier
+from billing.models import (
+    BillingInterval,
+    BillingTransaction,
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditLedgerType,
+    PlanTier,
+)
 from billing.stripe_live_qa import CARD_OK, CheckRecorder, guarded_call, require_plan
 from billing.stripe_live_qa_scenarios import (
     TIER_FAST,
     _establish_subscriber,
     register_scenarios,
+)
+from billing.stripe_service import (
+    INVOICE_PAYMENT_INTENT_EXPAND,
+    StripeWebhookHandler,
+    resolve_invoice_payment_intent,
 )
 
 logger = logging.getLogger(__name__)
@@ -222,11 +235,15 @@ def scenario_charge_refund_flow(harness) -> CheckRecorder:
     ):
         return rec
 
+    # expand=["payment_intent"] is a silent no-op from API 2025-03-31 on:
+    # the field was removed from the Invoice object, so this harness was
+    # asserting against None and failing for the wrong reason.
     invoice = guarded_call(
-        stripe.Invoice.retrieve, paid[0]["id"], expand=["payment_intent"]
+        stripe.Invoice.retrieve,
+        paid[0]["id"],
+        expand=INVOICE_PAYMENT_INTENT_EXPAND,
     )
-    payment_intent = invoice.get("payment_intent")
-    pi_id = payment_intent["id"] if isinstance(payment_intent, dict) else payment_intent
+    pi_id, payment_intent = resolve_invoice_payment_intent(invoice)
     if not rec.expect(
         "the paid invoice has a PaymentIntent",
         bool(pi_id),
@@ -261,7 +278,9 @@ def scenario_charge_refund_flow(harness) -> CheckRecorder:
     harness.drain_events(customer_id=sub.customer_id)
 
     refreshed = guarded_call(
-        stripe.Invoice.retrieve, paid[0]["id"], expand=["payment_intent"]
+        stripe.Invoice.retrieve,
+        paid[0]["id"],
+        expand=INVOICE_PAYMENT_INTENT_EXPAND,
     )
     rec.expect_equal(
         "Stripe now reports the invoice as fully refunded",
@@ -395,8 +414,114 @@ def scenario_discount_flow_through(harness) -> CheckRecorder:
     return rec
 
 
+def scenario_overage_purchase_grant(harness) -> CheckRecorder:
+    """A real overage payment must grant exactly one block, exactly once.
+
+    The credit-granting path (`handle_payment_intent_succeeded`, flow=
+    "overage_block_purchase") had NO real-Stripe coverage at all — every
+    other overage test in the repo mocks the PaymentIntent. That matters
+    because both financial bugs this audit found were in credit-granting
+    code that looked correct under mocks.
+
+    This drives a genuine PaymentIntent through Stripe, confirms it with
+    the saved card, and lets the real webhook payload reach the real
+    handler. Then it redelivers the SAME event to prove the idempotency
+    guard holds against Stripe's own retries rather than against a
+    hand-written duplicate.
+    """
+    rec = CheckRecorder()
+    plan = require_plan(tier=PlanTier.STANDARD, interval=BillingInterval.MONTHLY)
+    if not rec.expect(
+        "the plan has an overage block configured",
+        bool(plan.overage_block_size),
+        f"overage_block_size={plan.overage_block_size!r}",
+    ):
+        return rec
+
+    sub = _establish_subscriber(harness, rec, plan=plan, label="overage")
+    harness.drain_events(customer_id=sub.customer_id)
+
+    wallet = sub.wallet()
+    if not rec.expect("the subscriber has a wallet", wallet is not None):
+        return rec
+
+    def overage_buckets():
+        return CreditBucket.objects.filter(
+            wallet=wallet, bucket_type=CreditBucketType.OVERAGE
+        )
+
+    before = overage_buckets().count()
+
+    # A real off-session charge carrying exactly the metadata our checkout
+    # code snapshots at purchase time.
+    customer = guarded_call(stripe.Customer.retrieve, sub.customer_id)
+    default_pm = (customer.get("invoice_settings") or {}).get("default_payment_method")
+    if not rec.expect(
+        "the customer has a default payment method to charge",
+        bool(default_pm),
+        f"invoice_settings.default_payment_method={default_pm!r}",
+    ):
+        return rec
+
+    intent = guarded_call(
+        stripe.PaymentIntent.create,
+        amount=int(plan.overage_block_price * 100) or 100,
+        currency="usd",
+        customer=sub.customer_id,
+        payment_method=default_pm,
+        off_session=True,
+        confirm=True,
+        metadata={
+            "flow": "overage_block_purchase",
+            "user_id": str(getattr(sub.user, "id", "")),
+            "wallet_id": str(wallet.id),
+            "plan_id": str(plan.id),
+        },
+    )
+    rec.expect_equal(
+        "Stripe actually took the overage payment", intent.get("status"), "succeeded"
+    )
+
+    harness.drain_events(customer_id=sub.customer_id)
+
+    granted = overage_buckets().count() - before
+    rec.expect_equal("exactly one overage bucket was granted", granted, 1)
+
+    bucket = overage_buckets().order_by("-created_at").first()
+    if bucket is not None:
+        rec.expect_equal(
+            "the block is the plan's size, not the amount paid",
+            bucket.total_credits,
+            plan.overage_block_size,
+        )
+        rec.expect(
+            "a purchased block never expires",
+            bucket.expires_at is None,
+            f"expires_at={bucket.expires_at!r} — paid-for value would be forfeited",
+        )
+        rec.expect_equal(
+            "the grant is recorded in the append-only ledger",
+            CreditLedger.objects.filter(
+                bucket=bucket, ledger_type=CreditLedgerType.PURCHASE
+            ).count(),
+            1,
+        )
+
+    # Stripe's own redelivery, against the real handler.
+    StripeWebhookHandler.handle_payment_intent_succeeded(intent)
+    StripeWebhookHandler.handle_payment_intent_succeeded(intent)
+
+    rec.expect_equal(
+        "redelivering the SAME real PaymentIntent grants nothing further",
+        overage_buckets().count() - before,
+        1,
+    )
+    return rec
+
+
 register_scenarios(
     {
+        "overage_purchase_grant": scenario_overage_purchase_grant,
         "payment_method_lifecycle": scenario_payment_method_lifecycle,
         "upgrade_proration_quote": scenario_upgrade_proration_quote,
         "charge_refund_flow": scenario_charge_refund_flow,

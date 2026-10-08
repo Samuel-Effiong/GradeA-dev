@@ -72,8 +72,10 @@ from billing.stripe_live_qa_scenarios import (
     _stripe_period_end,
 )
 from billing.stripe_service import (
+    INVOICE_PAYMENT_INTENT_EXPAND,
     StripeSubscriptionMutationService,
     StripeSubscriptionScheduleService,
+    resolve_invoice_payment_intent,
 )
 
 from .harness import ConcurrentLiveQAHarness
@@ -224,10 +226,11 @@ def _action_partial_refund_latest_invoice(ctx: ChaosContext) -> str:
     if not paid:
         return "skipped: no paid invoice to refund"
     invoice = guarded_call(
-        stripe.Invoice.retrieve, paid[0]["id"], expand=["payment_intent"]
+        stripe.Invoice.retrieve,
+        paid[0]["id"],
+        expand=INVOICE_PAYMENT_INTENT_EXPAND,
     )
-    payment_intent = invoice.get("payment_intent")
-    pi_id = payment_intent["id"] if isinstance(payment_intent, dict) else payment_intent
+    pi_id, payment_intent = resolve_invoice_payment_intent(invoice)
     if not pi_id:
         return "skipped: paid invoice has no PaymentIntent"
     amount = int(invoice.get("amount_paid") or 0)

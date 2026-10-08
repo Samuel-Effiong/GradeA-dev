@@ -1,0 +1,9 @@
+S1_no_seats_not_refused {'killed': True, 'failing_tests': ['test_omitted_max_seats_is_a_400', 'test_stripe_checkout_without_max_seats_is_refused_before_payment', 'test_the_shared_seat_check_refuses_no_seats']}
+S2_listed_teachers_not_deduplicated {'killed': True, 'failing_tests': ['test_stripe_checkout_counts_a_repeated_teacher_once', 'test_the_refusal_counts_distinct_teachers', 'test_the_same_teacher_listed_twice_takes_one_seat']}
+S3_listed_teachers_not_lower_cased {'killed': True, 'failing_tests': ['test_stripe_checkout_counts_a_repeated_teacher_once', 'test_the_refusal_counts_distinct_teachers', 'test_the_same_teacher_listed_twice_takes_one_seat']}
+S4_carried_teachers_not_lower_cased {'killed': True, 'failing_tests': ['test_a_carried_over_teacher_listed_again_takes_one_seat', 'test_stripe_checkout_matches_a_carried_over_teacher_by_any_case']}
+S5_add_teachers_not_normalized {'killed': True, 'failing_tests': ['test_the_same_teacher_listed_twice_takes_one_seat']}
+S6_account_lookup_exact_only {'killed': True, 'failing_tests': ['test_an_account_stored_with_capitals_is_not_duplicated']}
+S7_invite_lookup_exact {'killed': True, 'failing_tests': ['test_an_account_stored_with_capitals_is_not_duplicated']}
+S8_add_teachers_active_check_exact {'killed': True, 'failing_tests': ['test_an_active_teacher_stored_with_capitals_takes_no_seat']}
+SURVIVORS: []

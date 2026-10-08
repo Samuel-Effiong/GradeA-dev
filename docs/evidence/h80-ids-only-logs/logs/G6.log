@@ -1,0 +1,13 @@
+# G6: guard (1a's P2): an address formatted into the message with %
+# file: billing/license_service.py (occurrence 1)
+# old: 'logger.info("Created CreditWallet for teacher %s", teacher.id)'
+# new: 'logger.info("Created CreditWallet for teacher %s" % teacher.email)'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest
+# exit: 1
+# elapsed_s: 3.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address)
+
+FAILED (failures=1)

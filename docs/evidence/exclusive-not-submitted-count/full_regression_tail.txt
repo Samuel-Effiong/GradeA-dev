@@ -1,0 +1,70 @@
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-exclusive-not-submitted/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-exclusive-not-submitted/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+....
+[scale] 30-file batch (24 good, 6 bad) took 3.89s
+
+[scale] 6 concurrent 30-file batches took 4.38s; provider calls=24
+{'user_id': '02b7a168-c376-45cf-9d3a-50b51a22746e', 'assignment_id': 'fce797b3-1c8d-440f-870b-2d5ec3e2eca0', 'keep_existing_title': True}
+Extracting assignment content
+{'user_id': '02b7a168-c376-45cf-9d3a-50b51a22746e', 'assignment_id': 'fce797b3-1c8d-440f-870b-2d5ec3e2eca0', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': '794b5827-809e-4d34-a870-bece9dec31da', 'assignment_id': 'fb98be76-daa5-4c07-97d4-007acbb0432e', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': '794b5827-809e-4d34-a870-bece9dec31da', 'assignment_id': 'fb98be76-daa5-4c07-97d4-007acbb0432e', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+
+[H18/H19 scale] query counts small(60 students)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 22} large(600)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 22}
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+scanned            : 1
+repaired           : 1 assignment(s)
+questions cleaned  : 1
+done
+scanned  : 1
+repaired : 1 assignment(s)
+done
+
+course payload query counts: roster=2 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7} roster=6 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7}
+
+----------------------------------------------------------------------
+Ran 4623 tests in 512.791s
+
+OK (skipped=28)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...

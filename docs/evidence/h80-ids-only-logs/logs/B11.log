@@ -1,0 +1,14 @@
+# B11: the trial-check signal line names the user by id
+# file: users/signals.py (occurrence 1)
+# old: 'logger.debug("Checking if user %s needs trial activation", user.id)'
+# new: 'logger.debug("Checking if user %s needs trial activation", user.email)'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest
+# exit: 1
+# elapsed_s: 4.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_enrolling_and_inviting_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_enrolling_and_inviting_logs_no_address)
+FAIL: test_creating_a_user_logs_no_address (billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest.test_creating_a_user_logs_no_address)
+
+FAILED (failures=2)

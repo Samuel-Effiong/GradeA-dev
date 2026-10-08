@@ -1,0 +1,220 @@
+{
+  "R1_the_student_is_given_the_whole_roster": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_roster_is_the_students_own_entry_on_every_course_route",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_a_classmate_of_any_enrolment_status_is_absent",
+      "AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first",
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_list_differs_between_teacher_and_student",
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_my_courses_stays_filtered",
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_retrieve_differs_between_teacher_and_student",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_student_list_hides_drafts_and_classmate_emails",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_student_my_courses_hides_drafts_and_classmate_emails",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_student_retrieve_hides_drafts_and_classmate_emails",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_unpublished_assignment_is_hidden_from_students_too",
+      "classrooms.tests_course_payload_student_exposure.StudentInTwoCourses.test_each_course_carries_its_own_filtered_data",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_a_classmate_of_any_enrolment_status_is_absent",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_class_size_is_sent_as_a_bare_number",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_roster_is_the_students_own_entry_on_every_course_route"
+    ],
+    "pycache_left": 0
+  },
+  "R2_the_own_entry_is_every_enrolment": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_roster_is_the_students_own_entry_on_every_course_route",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_a_classmate_of_any_enrolment_status_is_absent"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_list_differs_between_teacher_and_student",
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_my_courses_stays_filtered",
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_retrieve_differs_between_teacher_and_student",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_student_list_hides_drafts_and_classmate_emails",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_student_my_courses_hides_drafts_and_classmate_emails",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_student_retrieve_hides_drafts_and_classmate_emails",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_unpublished_assignment_is_hidden_from_students_too",
+      "classrooms.tests_course_payload_student_exposure.StudentInTwoCourses.test_each_course_carries_its_own_filtered_data",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_a_classmate_of_any_enrolment_status_is_absent",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_class_size_is_sent_as_a_bare_number",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_roster_is_the_students_own_entry_on_every_course_route"
+    ],
+    "pycache_left": 0
+  },
+  "R3_no_class_size_is_sent": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_class_size_is_sent_as_a_bare_number",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_teacher_still_sees_the_whole_roster_and_the_class_size"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_withdrawn_classmate_is_still_excluded",
+      "classrooms.tests_course_payload_student_exposure.TeacherAndAdminPayloadUnchanged.test_teacher_list_still_has_drafts_and_emails",
+      "classrooms.tests_course_payload_student_exposure.TeacherAndAdminPayloadUnchanged.test_teacher_retrieve_still_has_drafts_and_emails",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_class_size_is_sent_as_a_bare_number",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_teacher_still_sees_the_whole_roster_and_the_class_size"
+    ],
+    "pycache_left": 0
+  },
+  "R4_the_teacher_is_answered_as_a_student": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_teacher_still_sees_the_whole_roster_and_the_class_size",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_teacher_still_gets_the_teachers_assignment_list"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_list_differs_between_teacher_and_student",
+      "classrooms.tests_course_payload_student_exposure.CachedCoursePayloadIsPerRole.test_cached_retrieve_differs_between_teacher_and_student",
+      "classrooms.tests_course_payload_student_exposure.TeacherAndAdminPayloadUnchanged.test_teacher_list_still_has_drafts_and_emails",
+      "classrooms.tests_course_payload_student_exposure.TeacherAndAdminPayloadUnchanged.test_teacher_retrieve_still_has_drafts_and_emails",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesOnlyTheirOwnEntryTest.test_the_teacher_still_sees_the_whole_roster_and_the_class_size",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_teacher_still_gets_the_teachers_assignment_list"
+    ],
+    "pycache_left": 0
+  },
+  "A1_the_student_is_given_the_teachers_assignment_list": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_nested_assignments_are_the_students_own_view",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_students_own_status_on_an_assignment_is_shown",
+      "AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first",
+      "classrooms.tests_course_payload_student_exposure.StudentCoursePayloadExposure.test_payload_shape_for_students",
+      "classrooms.tests_student_sees_no_classmates.StudentCourseAnswerQueryCountTest.test_the_count_stays_flat_as_the_assignments_grow",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_a_classmates_paper_changes_nothing_the_student_reads",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_students_own_paper_shows_as_submitted",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_nested_assignments_are_the_students_own_view",
+      "classrooms.tests_student_sees_no_classmates.StudentSeesTheirOwnViewOfTheAssignmentsTest.test_the_students_own_status_on_an_assignment_is_shown"
+    ],
+    "pycache_left": 0
+  },
+  "A2_the_view_does_not_load_the_viewers_submissions": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentCourseAnswerQueryCountTest.test_the_count_stays_flat_as_the_assignments_grow",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_view_loads_only_the_viewers_own_submissions"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentCourseAnswerQueryCountTest.test_the_count_stays_flat_as_the_assignments_grow",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_view_loads_only_the_viewers_own_submissions"
+    ],
+    "pycache_left": 0
+  },
+  "A3_the_serializer_does_not_use_what_was_loaded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentCourseAnswerQueryCountTest.test_the_count_stays_flat_as_the_assignments_grow"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentCourseAnswerQueryCountTest.test_the_count_stays_flat_as_the_assignments_grow"
+    ],
+    "pycache_left": 0
+  },
+  "A4_the_view_loads_everyones_submissions": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_view_loads_only_the_viewers_own_submissions"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_view_loads_only_the_viewers_own_submissions"
+    ],
+    "pycache_left": 0
+  },
+  "A5_the_serializer_reads_any_loaded_submission": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded"
+    ],
+    "pycache_left": 0
+  },
+  "A6_the_loaded_submission_is_never_found": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_students_own_paper_shows_as_submitted",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_a_classmates_paper_changes_nothing_the_student_reads",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_a_classmates_paper_changes_nothing_the_student_reads",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_serializer_reads_only_the_requesters_own_of_what_was_loaded",
+      "classrooms.tests_student_sees_no_classmates.StudentReadsOnlyTheirOwnSubmissionTest.test_the_students_own_paper_shows_as_submitted"
+    ],
+    "pycache_left": 0
+  },
+  "S1_the_schools_id_is_sent": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_a_student_is_sent_neither_id"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_a_student_is_sent_neither_id"
+    ],
+    "pycache_left": 0
+  },
+  "S2_the_creators_id_is_sent": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_a_student_is_sent_neither_id"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_a_student_is_sent_neither_id"
+    ],
+    "pycache_left": 0
+  },
+  "S3_the_teacher_loses_the_ids_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 36,
+    "expected": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_the_teacher_still_sees_who_created_their_session"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_student_sees_no_classmates.StudentSeesNoStaffIdsOnASessionTest.test_the_teacher_still_sees_who_created_their_session"
+    ],
+    "pycache_left": 0
+  }
+}

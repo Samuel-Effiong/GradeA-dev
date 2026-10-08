@@ -1,0 +1,5 @@
+users.tests_activation_email_domain.SendUserActivationEmailDomainTests.test_school_admin_never_gets_the_generic_activation_email ... ok
+users.tests_activation_email_domain.SendUserActivationEmailDomainTests.test_student_gets_student_frontend_domain ... ok
+users.tests_activation_email_domain.SendUserActivationEmailDomainTests.test_teacher_gets_frontend_domain ... ok
+Ran 3 tests in 0.128s
+OK

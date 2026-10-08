@@ -53,7 +53,7 @@ from billing.serializers import LicenseSubscriptionSerializer
 
 # ---------------------------------------------------------------------------
 # 1. checkout
-# POST /api/v1/subscription/checkout
+# HTTP POST to /api/v1/subscription/checkout
 # ---------------------------------------------------------------------------
 CHECKOUT_SCHEMA = extend_schema(
     tags=["Subscription — Stripe"],
@@ -165,7 +165,7 @@ webhook — not when this endpoint is called.
 
 # ---------------------------------------------------------------------------
 # 2. upgrade
-# POST /api/v1/subscription/upgrade
+# HTTP POST to /api/v1/subscription/upgrade
 # ---------------------------------------------------------------------------
 UPGRADE_SCHEMA = extend_schema(
     tags=["Subscription — Stripe"],
@@ -302,7 +302,7 @@ is actually cheaper (use downgrade) → subscription has no
 
 # ---------------------------------------------------------------------------
 # 3. downgrade
-# POST /api/v1/subscription/downgrade
+# HTTP POST to /api/v1/subscription/downgrade
 # ---------------------------------------------------------------------------
 DOWNGRADE_SCHEMA = extend_schema(
     tags=["Subscription — Stripe"],
@@ -374,7 +374,7 @@ Resume button".
 
 # ---------------------------------------------------------------------------
 # 4. cancel
-# POST /api/v1/subscription/cancel
+# HTTP POST to /api/v1/subscription/cancel
 # ---------------------------------------------------------------------------
 CANCEL_SCHEMA = extend_schema(
     tags=["Subscription — Stripe"],
@@ -446,7 +446,7 @@ too, so trial users would be shown a bogus "cancelled" state.
 
 # ---------------------------------------------------------------------------
 # 5. purchase_overage
-# POST /api/v1/subscription/credits/overage/purchase
+# HTTP POST to /api/v1/subscription/credits/overage/purchase
 # ---------------------------------------------------------------------------
 
 
@@ -456,7 +456,7 @@ too, so trial users would be shown a bogus "cancelled" state.
 
 # ---------------------------------------------------------------------------
 # 6. create (license)
-# POST /api/v1/license-subscriptions
+# HTTP POST to /api/v1/license-subscriptions
 # ---------------------------------------------------------------------------
 LICENSE_CREATE_SCHEMA = extend_schema(
     tags=["License Subscriptions"],
@@ -484,8 +484,9 @@ superadmin panel.
 **Teacher enrollment at creation**
 Pass `teacher_emails` to enroll teachers immediately. Teachers not yet on
 the platform receive an invitation email with an activation link.
-Teachers with an existing active individual subscription cannot be enrolled
-until that subscription is cancelled.
+A teacher who cannot be enrolled is listed in the result's errors with a
+short message for the admin. It never says why in terms of the teacher's
+own account (for example a plan they pay for themselves).
 """,
     request=inline_serializer(
         name="LicenseCreateRequest",
@@ -519,8 +520,8 @@ until that subscription is cancelled.
                 required=False,
                 help_text=(
                     "Optional list of teacher emails to enroll on creation. "
-                    "New accounts receive an activation email. Teachers with "
-                    "active individual subscriptions must cancel first."
+                    "New accounts receive an activation email. A teacher who "
+                    "cannot be enrolled is reported in the result's errors."
                 ),
             ),
             "custom_price_cents": serializers.IntegerField(
@@ -625,7 +626,7 @@ until that subscription is cancelled.
 
 # ---------------------------------------------------------------------------
 # 7. add_teachers (unchanged logic, schema added for completeness)
-# POST /api/v1/license-subscriptions/{id}/add-teachers
+# HTTP POST to /api/v1/license-subscriptions/{id}/add-teachers
 # ---------------------------------------------------------------------------
 ADD_TEACHERS_SCHEMA = extend_schema(
     tags=["License Subscriptions"],
@@ -693,7 +694,10 @@ before the cap is hit are still enrolled successfully.
                         "errors": [
                             {
                                 "teacher_email": "teacher@gmail.com",
-                                "error": "Individual subscription conflict or invalid email domain.",
+                                "error": (
+                                    "This teacher can't be added to your school "
+                                    "yet. Please ask them to contact support."
+                                ),
                             }
                         ],
                     },
@@ -715,7 +719,7 @@ before the cap is hit are still enrolled successfully.
 
 # ---------------------------------------------------------------------------
 # 10. remove_teachers
-# POST /api/v1/license-subscriptions/{id}/remove-teachers
+# HTTP POST to /api/v1/license-subscriptions/{id}/remove-teachers
 # ---------------------------------------------------------------------------
 REMOVE_TEACHERS_SCHEMA = extend_schema(
     tags=["License Subscriptions"],
@@ -778,7 +782,7 @@ fresh credit allocation but lose any credits that expired on removal.
 
 # ---------------------------------------------------------------------------
 # 11. process_renewal (superadmin-only manual trigger)
-# POST /api/v1/license-subscriptions/{id}/process-renewal
+# HTTP POST to /api/v1/license-subscriptions/{id}/process-renewal
 # ---------------------------------------------------------------------------
 PROCESS_RENEWAL_SCHEMA = extend_schema(
     tags=["License Subscriptions"],
@@ -837,7 +841,7 @@ regardless.
 
 # ---------------------------------------------------------------------------
 # 12. renewal_info
-# GET /api/v1/license-subscriptions/{id}/renewal-info
+# HTTP GET to /api/v1/license-subscriptions/{id}/renewal-info
 # ---------------------------------------------------------------------------
 RENEWAL_INFO_SCHEMA = extend_schema(
     tags=["License Subscriptions"],

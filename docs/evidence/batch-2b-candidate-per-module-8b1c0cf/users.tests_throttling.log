@@ -1,0 +1,10 @@
+users.tests_throttling.AuthThrottlingTests.test_login_is_throttled ... ok
+users.tests_throttling.AuthThrottlingTests.test_otp_requests_are_throttled ... ok
+users.tests_throttling.AuthThrottlingTests.test_registration_is_throttled ... ok
+users.tests_throttling.AuthThrottlingTests.test_verify_is_throttled ... ok
+users.tests_throttling.PasswordResetOTPLockoutTests.test_brute_force_locks_out_even_with_correct_code ... ok
+users.tests_throttling.PasswordResetOTPLockoutTests.test_correct_code_still_works_within_attempt_budget ... ok
+users.tests_throttling.PasswordResetOTPLockoutTests.test_generate_code_after_the_lock_expires_refills_the_budget ... ok
+users.tests_throttling.PasswordResetOTPLockoutTests.test_generate_code_does_not_clear_an_active_lockout ... ok
+Ran 8 tests in 0.626s
+OK

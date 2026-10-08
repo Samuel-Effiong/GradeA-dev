@@ -1,0 +1,23 @@
+users.tests_activity_services.CleanupExpiredUsersTests.test_bytes_members_are_decoded_before_use ... ok
+users.tests_activity_services.CleanupExpiredUsersTests.test_members_whose_heartbeat_expired_are_removed ... ok
+users.tests_activity_services.CleanupExpiredUsersTests.test_members_with_a_live_heartbeat_are_kept ... ok
+users.tests_activity_services.CleanupExpiredUsersTests.test_only_the_expired_members_are_removed ... ok
+users.tests_activity_services.CleanupExpiredUsersTests.test_returns_zero_and_does_nothing_on_an_empty_set ... ok
+users.tests_activity_services.ConcurrentUserReportingTests.test_peak_is_the_highest_recorded_value ... ok
+users.tests_activity_services.ConcurrentUserReportingTests.test_peak_is_zero_when_nothing_has_been_recorded ... ok
+users.tests_activity_services.ConcurrentUserReportingTests.test_peak_respects_the_time_window ... ok
+users.tests_activity_services.ConcurrentUserReportingTests.test_peak_time_of_day_averages_within_the_hour ... ok
+users.tests_activity_services.ConcurrentUserReportingTests.test_peak_time_of_day_reports_the_busiest_hour_with_a_label ... ok
+users.tests_activity_services.ConcurrentUserReportingTests.test_peak_time_of_day_with_no_data_says_so ... ok
+users.tests_activity_services.CurrentConcurrentUsersTests.test_a_missing_set_is_zero ... ok
+users.tests_activity_services.CurrentConcurrentUsersTests.test_an_empty_set_is_zero_not_none ... ok
+users.tests_activity_services.CurrentConcurrentUsersTests.test_counts_the_members_of_the_online_set ... ok
+users.tests_activity_services.OptedInSchoolAdminTests.test_does_not_leak_admins_from_another_school ... ok
+users.tests_activity_services.OptedInSchoolAdminTests.test_inactive_admins_are_excluded ... ok
+users.tests_activity_services.OptedInSchoolAdminTests.test_no_school_returns_an_empty_queryset_rather_than_everyone ... ok
+users.tests_activity_services.OptedInSchoolAdminTests.test_non_admin_roles_are_excluded ... ok
+users.tests_activity_services.OptedInSchoolAdminTests.test_returns_only_opted_in_admins_for_that_school ... ok
+users.tests_activity_services.TimeRangeTests.test_an_unknown_range_is_rejected ... ok
+users.tests_activity_services.TimeRangeTests.test_known_ranges_span_the_expected_number_of_days ... ok
+Ran 21 tests in 0.300s
+OK

@@ -5,20 +5,42 @@ from html import escape
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Value
+from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from ai_processor.services import ai_processor
+from ai_processor.services import REPLY_CORRECTED, ai_processor, is_readable_answer
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
+from AutoGrader.celery import app as celery_app
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
-from .exceptions import CannotAssociateStudentError, SubmissionGradingInProgressError
-from .models import BackgroundTaskType, GradingState, StudentSubmission
+from .exceptions import (
+    SUBMISSION_BUSY_FOR_STUDENT,
+    SUBMISSION_CLOSED_FOR_STUDENT,
+    AssignmentNotOpenError,
+    CannotAssociateStudentError,
+    SubmissionAlreadyGradedError,
+    SubmissionAnswersUnreadableError,
+    SubmissionBeingGradedError,
+    SubmissionGradingInProgressError,
+    SubmissionLimitReachedError,
+    SubmissionProcessingInProgressError,
+)
+from .feedback_projection import grading_result_for_formatter
+from .models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    GradingState,
+    StudentSubmission,
+)
+from .signals import invalidate_submission_caches
 from .task_tracking import (
     cancellable_final_save,
     create_processing_task,
@@ -26,16 +48,77 @@ from .task_tracking import (
     launch_processing_task,
 )
 
-# from .serializers import StudentSubmissionSerializer
-
-
 logger = logging.getLogger(__name__)
 
+# How many times a student may submit their own answers to one assignment.
+MAX_STUDENT_SUBMISSION_ATTEMPTS = 3
 
-def student_submission_to_html(submission) -> str:
+
+# H-165. `answers` is a JSON column and takes any JSON; the answer document
+# and grading read it as a list of objects, one per question. What a stored
+# value holds that is not that cannot be printed or graded. It is never an
+# error to READ such a row: the document says, in one fixed line of ours,
+# that something was left out. The lines are fixed text, never anything
+# from the row, and say nothing of grading: a student reads them too.
+ANSWERS_NOT_DISPLAYED = "This submission's answers could not be displayed."
+SOME_ANSWERS_NOT_DISPLAYED = "Some of this submission's answers could not be displayed."
+ANSWERS_UNREADABLE = "answers_unreadable"
+ALL_LEFT_OUT = "all"
+ANSWERS_UNREADABLE_FOR_TEACHER = (
+    "This submission's answers could not be read. Upload the paper again "
+    "or re-enter its answers, then grade it."
+)
+
+
+def printable_answers(answers) -> tuple[list, int | str]:
+    """The entries of a stored `answers` value that can be printed, and
+    what was left out: 0, a count, or ALL_LEFT_OUT when the value is not
+    empty and nothing of it can be printed.
+
+    An empty value of any kind leaves nothing out: there was nothing.
+    """
+    if not answers:
+        return [], 0
+    if not isinstance(answers, list):
+        return [], ALL_LEFT_OUT
+    printable = [entry for entry in answers if is_readable_answer(entry)]
+    if not printable:
+        return [], ALL_LEFT_OUT
+    return printable, len(answers) - len(printable)
+
+
+def is_a_list_of_objects(answers) -> bool:
+    """What both writers of `answers` accept. Until H-165 a list holding
+    anything else was kept out only by the document builder raising inside
+    them; the builder no longer raises, so they refuse it themselves."""
+    return isinstance(answers, list) and all(
+        is_readable_answer(entry) for entry in answers
+    )
+
+
+def unreadable_answers_log_line(submission, left_out) -> tuple:
+    """The one log line for a row whose answers were not all readable: ids
+    and the kind of value, never the value. Logged where a document or a
+    grade is stored for such a row, not in the builder, which runs on
+    every read of an unreleased paper by its student."""
+    return (
+        "Unreadable answers: submission=%s answers=%s left_out=%s",
+        submission.pk,
+        type(submission.answers).__name__,
+        left_out,
+    )
+
+
+def student_submission_to_html(submission, *, show_grade=True) -> str:
     """
     Converts student submission JSON into a globally standard HTML format
     suitable for rich-text editors (ProseMirror, TinyMCE, Quill, CKEditor, etc).
+
+    `show_grade=False` writes the header exactly as a newly submitted row
+    has it, whatever the row holds: no grading time, and the score
+    column's own default, printed by the same lines below. It is the form
+    a student reads until the grade is released (see
+    `answer_document_for_student`).
 
     Two different escapes are used on purpose. `safe()` escapes plain values
     that must never be markup. `rich()` runs the allowlist over the fields that
@@ -53,6 +136,13 @@ def student_submission_to_html(submission) -> str:
         return AssignmentProcessingService.sanitize_ai_html(val) if val else ""
 
     student_name = submission.student.get_full_name()
+    if show_grade:
+        graded_at, score = submission.graded_at, submission.score
+    else:
+        # Not `None`: a new row's score is the column's default (zero), and
+        # the document of a submitted row is printed from that.
+        graded_at = None
+        score = StudentSubmission._meta.get_field("score").get_default()
 
     meta_html = f"""
     <section>
@@ -68,17 +158,20 @@ def student_submission_to_html(submission) -> str:
         <h3>Submission Metadata</h3>
         <p><strong>Submitted At:</strong> {safe(submission.submission_date.strftime("%Y-%m-%d"))}</p>
         <p><strong>Graded At:</strong>
-        {safe(submission.graded_at.strftime("%Y-%m-%d")) if submission.graded_at else "Not graded yet"}</p>
+        {safe(graded_at.strftime("%Y-%m-%d")) if graded_at else "Not graded yet"}</p>
         <p><strong>Score:</strong>
-        {safe(submission.score) if submission.score is not None else "Not graded yet"}</p>
+        {safe(score) if score is not None else "Not graded yet"}</p>
     </section>
     <hr/><br/>
     """
 
     questions_html = "<section><h3>Student Responses</h3>"
 
-    if submission.answers:
-        for ans in submission.answers:
+    # Never raises on the shape of `answers` (H-165). The two levels of
+    # indentation are kept: the text below is part of the document.
+    printable, left_out = printable_answers(submission.answers)
+    if printable:
+        for ans in printable:
             status = "Answered" if ans.get("answer_html") else "Skipped"
 
             questions_html += f"""
@@ -97,19 +190,15 @@ def student_submission_to_html(submission) -> str:
             </article>
             """
 
-    questions_html += "</section>"
+    if left_out:
+        line = (
+            ANSWERS_NOT_DISPLAYED
+            if left_out == ALL_LEFT_OUT
+            else SOME_ANSWERS_NOT_DISPLAYED
+        )
+        questions_html += f"<p><em>{escape(line, quote=False)}</em></p>"
 
-    # feedback_html = ""
-    # if submission.get("feedback"):
-    #     feedback_html = f"""
-    #     <hr/>
-    #     <section>
-    #         <h3>Grading Feedback</h3>
-    #         <div style="padding:12px; border:1px solid #ddd;">
-    #             {submission.get("feedback")}
-    #         </div>
-    #     </section>
-    #     """
+    questions_html += "</section>"
 
     return f"""
     <article class="student-submission">
@@ -117,6 +206,38 @@ def student_submission_to_html(submission) -> str:
         {questions_html}
     </article>
     """
+
+
+def answer_document_for_student(submission):
+    """The answer document as a student may read it.
+
+    The one place a student-facing reader gets `raw_input` from (H-130). A
+    student must not learn that a grade exists before the teacher releases
+    it, and the stored document says so in its header ("Graded At",
+    "Score") from the moment grading saves it.
+
+    So until release the student always gets the document rebuilt from the
+    row in its ungraded form, and after release the stored one. Always,
+    not "once it is graded": there is then no reading of the row's grading
+    columns to get wrong (a new row already has a score, the default
+    zero), and since the rebuild happens before grading as well as after,
+    grading changes nothing the student reads.
+
+    Nothing stored is rewritten, and staff read the stored document as
+    before. Rebuilding loses no text: every writer of `raw_input` builds
+    it from the row with `student_submission_to_html` (upload, grading,
+    the raw-text edit, the lazy rebuild on a read). What it gives up:
+    before release the header follows the assignment's current title and
+    due date and the student's current name, not those at upload time.
+
+    A row with no stored document is served as it is: nothing is made up
+    for a submission that is still being processed.
+    """
+    if submission.is_published or not submission.raw_input:
+        return submission.raw_input
+    return AssignmentProcessingService.html_to_prosemirror_text(
+        student_submission_to_html(submission, show_grade=False)
+    )
 
 
 # Celery's hard kill point for one grading run - grade_engine_async sets
@@ -160,6 +281,18 @@ def _claim_submission_for_grading(submission_id):
         )
         .update(grading_state=GradingState.RUNNING, grading_started_at=now)
     )
+    if claimed:
+        # H-1 Stage 3 (pre-existing staleness P1): .update() bypasses
+        # post_save, and only the FAILED release path below invalidated -
+        # a successful claim left the teacher's cached submission list
+        # showing the pre-grading state for the whole run.
+        submission = (
+            StudentSubmission.objects.select_related("assignment__course__teacher")
+            .filter(pk=submission_id)
+            .first()
+        )
+        if submission is not None:
+            invalidate_submission_caches(submission)
     return bool(claimed)
 
 
@@ -169,24 +302,45 @@ def _mark_grading_claim_failed(submission_id):
     StudentSubmission.objects.filter(pk=submission_id).update(
         grading_state=GradingState.FAILED
     )
-    # .update() bypasses post_save, so the cache-invalidation signal
-    # (students.signals.clear_student_submission_cache) never fires —
+    # .update() bypasses post_save, so the cache-invalidation receiver
+    # (students.signals.clear_student_submission_cache) never fires -
     # without this a failed submission keeps serving its cached
     # pre-failure detail (grading_state RUNNING) for up to CACHE_TTL, and
-    # nobody sees that the run needs retrying. Imported lazily: signals is
-    # loaded at app-ready and importing it at module scope here would pull
-    # this module (and ai_processor) into that path.
-    from .signals import delete_cache_patterns
-
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "courses:*",
-        "assignments:*",
-        "studentsubmissions:*",
+    # nobody sees that the run needs retrying. Uses the receiver's own
+    # helper so the generation bumps can't drift from what a normal save()
+    # would have invalidated.
+    submission = (
+        StudentSubmission.objects.select_related("assignment__course__teacher")
+        .filter(pk=submission_id)
+        .first()
     )
+    if submission is not None:
+        invalidate_submission_caches(submission)
+
+
+# Every column the grading pipeline is allowed to write. The final save is
+# restricted to these (not a full-row save) because a run takes minutes,
+# and the in-memory instance was loaded before it started: a full save
+# would write back the stale copy of every OTHER column - a re-upload's
+# `answers`/`attempt_count`, a publish's `is_published`, a formatter's
+# `formatted_grade` - silently reverting whatever landed in between.
+GRADING_RESULT_FIELDS = (
+    "ai_graded_at",
+    "ai_grading_completed_at",
+    "score",
+    "ai_score",
+    "max_points",
+    "score_percentage",
+    "feedback",
+    "grading_confidence",
+    "graded_at",
+    "grading_state",
+    "needs_review",
+    "review_reasons",
+    "review_severity",
+    "review_tier",
+    "raw_input",
+)
 
 
 # Review-queue ordering. review_severity used to store the raw
@@ -234,6 +388,14 @@ def _worst_tier(tiers):
     return max(ranked)[1]
 
 
+def _whole_count(value):
+    """A count read back out of a saved grading result: never raises."""
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _coerce_confidence(value):
     """Clamp a model-reported 0-100 confidence to a safe int; the DB field
     is non-nullable, and the model can emit null or junk here."""
@@ -244,7 +406,39 @@ def _coerce_confidence(value):
     return min(100, max(0, confidence))
 
 
+def _refuse_unreadable_answers(submission):
+    """Put a paper whose answers hold nothing readable in the teacher's
+    review queue and refuse to grade it (H-165). Before the claim and
+    before any paid call. An instance save, not a queryset update: the
+    queue is read through caches that a save's signal refreshes."""
+    row = StudentSubmission.objects.get(pk=submission.pk)
+    kept = [
+        reason
+        for reason in row.review_reasons or []
+        if not (isinstance(reason, dict) and reason.get("type") == ANSWERS_UNREADABLE)
+    ]
+    row.needs_review = True
+    row.review_reasons = kept + [{"type": ANSWERS_UNREADABLE, "left_out": ALL_LEFT_OUT}]
+    row.review_severity = max(
+        row.review_severity or 0.0, _review_sort_key("critical", 1.0)
+    )
+    row.review_tier = _worst_tier([row.review_tier, "critical"])
+    row.save(
+        update_fields=[
+            "needs_review",
+            "review_reasons",
+            "review_severity",
+            "review_tier",
+        ]
+    )
+    logger.warning(*unreadable_answers_log_line(row, ALL_LEFT_OUT))
+    raise SubmissionAnswersUnreadableError(ANSWERS_UNREADABLE_FOR_TEACHER)
+
+
 def grade_engine(user, submission, processing_task_id=None):
+    if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:
+        _refuse_unreadable_answers(submission)
+
     if not _claim_submission_for_grading(submission.id):
         raise SubmissionGradingInProgressError(
             f"Submission {submission.id} is already being graded."
@@ -314,13 +508,40 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
     # agree must clear a stale flag from an earlier run. (Second-opinion
     # failures/skips deliberately do NOT flag — see
     # AIProcessor._maybe_run_second_opinion.)
+    #
+    # There are now two INDEPENDENT sources of review, and they are
+    # accumulated rather than chained: a submission can perfectly well
+    # have both a missing answer and a grader disagreement, and an
+    # if/elif would have silently reported only one of them.
+    reasons: list = []
+    sort_keys: list = []
+    tiers: list = []
+
+    # Source 1: we graded a question without having the student's answer.
+    # ALWAYS critical, and always sorted to the very top of the queue.
+    # Every other review reason is a judgement call about a grade we are
+    # confident is at least *about* the right work; this one says we may
+    # not have the student's work at all, which is a data-integrity
+    # failure, not a marking disagreement. Scoring it 0 may still be
+    # correct — but that is a conclusion for a human to reach, not one
+    # the system is entitled to reach silently.
+    for missing in grading.get("answers_not_found") or []:
+        tiers.append("critical")
+        sort_keys.append(_review_sort_key("critical", 1.0))
+        reasons.append(
+            {
+                "type": "answer_not_found",
+                "question_number": missing.get("question_number"),
+                "answer_status": missing.get("answer_status"),
+                "score_awarded": missing.get("score_awarded"),
+                "max_points": missing.get("max_points"),
+            }
+        )
+
+    # Source 2: the blind second grader disagreed with grader A.
     second_opinion = grading.get("second_opinion") or {}
     disagreements = second_opinion.get("disagreements") or []
     if disagreements:
-        submission.needs_review = True
-        reasons = []
-        sort_keys = []
-        tiers = []
         for d in disagreements:
             severity = d.get("severity") or {}
             # An unmeasurable gap (unknown points) is never treated as
@@ -339,9 +560,6 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
                     "gap_fraction": gap_fraction,
                 }
             )
-        submission.review_reasons = reasons
-        submission.review_severity = max(sort_keys)
-        submission.review_tier = _worst_tier(tiers)
     elif second_opinion.get("needs_review"):
         # The second opinion couldn't run for a reason the teacher needs to
         # know about — currently only "out of credits" (see
@@ -350,17 +568,63 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
         # unverified rather than passing as silently confirmed. Treated as
         # moderate: unknowable, and _severity's own rule is to never
         # downgrade what we can't measure.
-        submission.needs_review = True
-        submission.review_reasons = [
+        tiers.append("moderate")
+        sort_keys.append(_review_sort_key("moderate", None))
+        reasons.append(
             {
                 "type": second_opinion.get(
                     "review_reason", "second_opinion_unavailable"
                 ),
                 "detail": second_opinion.get("skipped"),
             }
+        )
+
+    # Source 3 (H-154): the AI's reply did not hold exactly one evaluation
+    # per question, and the arithmetic authority left a repeat or a stray
+    # out of the sum (AIProcessor._finalize_grading_result). The grade is
+    # the cautious one, but it was made from a reply that was wrong in
+    # shape, so a teacher looks at it. Moderate: nothing measures how far
+    # off it may be. Numbers and counts only.
+    note = grading.get("score_calculation_verification")
+    if isinstance(note, dict) and note.get("verification_status") == REPLY_CORRECTED:
+        repeated = [
+            item
+            for item in note.get("repeated_evaluations_dropped") or []
+            if isinstance(item, dict)
         ]
-        submission.review_severity = _review_sort_key("moderate", None)
-        submission.review_tier = "moderate"
+        tiers.append("moderate")
+        sort_keys.append(_review_sort_key("moderate", None))
+        reasons.append(
+            {
+                "type": "ai_reply_corrected",
+                "repeated_questions": [
+                    item.get("question_number") for item in repeated
+                ],
+                "repeated_dropped": sum(
+                    _whole_count(item.get("dropped")) for item in repeated
+                ),
+                "unmatched_dropped": _whole_count(
+                    note.get("unmatched_evaluations_dropped")
+                ),
+            }
+        )
+
+    # Source 4 (H-165): the stored answers were not all readable. What
+    # could not be read was not graded and is not in the document, so a
+    # teacher looks at the paper. Critical, as an answer that was not
+    # found: the grade may not be about all of the student's work.
+    left_out = printable_answers(submission.answers)[1]
+    if left_out:
+        tiers.append("critical")
+        sort_keys.append(_review_sort_key("critical", 1.0))
+        reasons.append({"type": ANSWERS_UNREADABLE, "left_out": left_out})
+        logger.warning(*unreadable_answers_log_line(submission, left_out))
+
+    if reasons:
+        submission.needs_review = True
+        submission.review_reasons = reasons
+        submission.review_severity = max(sort_keys)
+        submission.review_tier = _worst_tier(tiers)
     else:
         submission.needs_review = False
         submission.review_reasons = None
@@ -375,12 +639,21 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
     )
 
     with cancellable_final_save(processing_task_id):
-        submission.save()
+        submission.save(update_fields=GRADING_RESULT_FIELDS)
+
+
+# The formatted-grade follow-up lives in assignments.tasks, which imports
+# this module. Dispatching by registered name (a Celery signature) instead
+# of importing the function removes the students.services <-> assignments.
+# tasks import cycle: nothing here needs the task object, only its name.
+FORMATTED_GRADE_TASK_NAME = "assignments.tasks.formatted_grade_async"
+
+
+def _formatted_grade_task():
+    return celery_app.signature(FORMATTED_GRADE_TASK_NAME)
 
 
 def _run_grading_pipeline(user, submission, processing_task_id):
-    from assignments.tasks import formatted_grade_async
-
     ensure_task_not_cancelled(processing_task_id)
     answer_json = submission.get_answer()
     submission.ai_graded_at = timezone.now()
@@ -422,7 +695,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
 
     Grading Result:
 
-    {grading}
+    {grading_result_for_formatter(grading)}
 
     Return a formatted response
     """
@@ -437,7 +710,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 meta={"step": "Queued for formatted grade generation"},
             )
             launch_processing_task(
-                formatted_grade_async,
+                _formatted_grade_task(),
                 formatted_processing_task,
                 str(submission.id),
                 user_prompt,
@@ -579,41 +852,6 @@ def notify_teacher_of_student_submission(submission):
         f"for {submission.assignment.course.name}."
     )
 
-    # content = f"""
-    # {submission.student.get_full_name()} has submitted work for {submission.assignment.title or 'an assignment'}
-    # for {submission.assignment.course.name}.
-    #
-    # <b>Submission Detail</b>
-    #
-    # <ul>
-    #     <li><strong>Student:</strong> {submission.student.get_full_name()}</li>
-    #     <li><strong>Course:</strong> {submission.assignment.course.name}</li>
-    #     <li><strong>Assignment:</strong> {submission.assignment.title}</li>
-    #     <li><strong>Submitted At:</strong> {submission.submission_date}</li>
-    # </ul>
-    #
-    # You can review the submission from your Grade A+ Dashboard.
-    # """
-
-    # merge_data = {
-    #     "name": f"{teacher.first_name}",
-    #     "content": content,
-    #     "support_email": settings.SUPPORT_EMAIL,
-    #     "current_year": timezone.now().year,
-    # }
-
-    # html_content = render_to_string("email/token_activation.html", context=context)
-
-    # return send_email_task.delay(
-    #     subject="Verify your email and get started with faster, smarter grading",
-    #     message="",
-    #     from_email=settings.DEFAULT_FROM_EMAIL,
-    #     recipient_list=[user.email],
-    #     html_message=None,
-    #     template_id="ynrw7gy0ye2l2k8e",
-    #     merge_data=merge_data,
-    # )
-
     try:
         html_content = render_to_string(
             "email/student_submission_notification.html", context=context
@@ -732,9 +970,11 @@ def notify_students_of_assignment_edit(assignment):
     Modeled directly on notify_student_of_graded_submission: same opt-in
     guard, same synthetic-account exclusion, same Celery dispatch.
     """
+    # student__settings too: the opt-in check below reads it per student,
+    # which was one extra query per submitter on an assignment-wide loop.
     submissions = StudentSubmission.objects.filter(
         assignment=assignment
-    ).select_related("student")
+    ).select_related("student", "student__settings")
 
     for submission in submissions:
         student = submission.student
@@ -801,6 +1041,13 @@ def upload_answers_engine(
     {assignment.questions}
     """
 
+    # Refuse BEFORE the billed extraction call when the student is already
+    # locked out (graded, or out of attempts). Not the authoritative check
+    # - that is under the row lock further down - but a submission that
+    # can never be accepted must not cost the student's teacher a credit.
+    if request_user.user_type == UserTypes.STUDENT and not is_proxy_upload:
+        ensure_student_may_submit(assignment, request_user)
+
     ensure_task_not_cancelled(processing_task_id)
     student_submission = ai_processor.extract_answer_with_retry(
         request_user,
@@ -812,38 +1059,47 @@ def upload_answers_engine(
     )
 
     if student_submission is not None:
+        # StudentSubmission.answers is NOT nullable, and both write paths
+        # below read this key. Before this guard, an extraction that came
+        # back without it (or with a non-list under it) reached the DB as
+        # SQL NULL and died there with a bare IntegrityError - AFTER the
+        # teacher had been billed for the call, and with no indication of
+        # what was actually wrong. Validated here, at the boundary, so the
+        # failure is legible and the enclosing refund scope can reclaim
+        # the charge.
+        extracted_answers = student_submission.get("answers")
+        if not is_a_list_of_objects(extracted_answers):
+            raise ValueError(
+                "Answer extraction returned no usable `answers` list "
+                f"(got {type(extracted_answers).__name__}); refusing to "
+                "persist an unusable submission."
+            )
+
         target_student = request_user
 
         if is_proxy_upload:
-            identified_name = student_submission.get("student_name")
-            if not identified_name:
-                raise CannotAssociateStudentError(
-                    "Student name cannot be found in the submission"
-                )
-
-            name_parts = identified_name.split(" ", 1)
-            first_name = name_parts[0]
-            last_name = name_parts[1] if len(name_parts) > 1 else ""
-
-            target_student = CustomUser.objects.filter(
-                enrollments__course=assignment.course,
-                enrollments__enrollment_status="ENROLLED",
-                first_name__icontains=first_name,
-                last_name__icontains=last_name,
-            ).first()
-
-            if not target_student:
-                raise CannotAssociateStudentError(
-                    "Student not among the enrolled students in the course"
-                )
+            target_student = _match_enrolled_student(
+                assignment.course, student_submission.get("student_name")
+            )
+        else:
+            # Post-extraction re-check. The authoritative check is under
+            # the row lock below; this one exists because the extraction
+            # above took real time, and a grade can have landed meanwhile.
+            ensure_student_may_submit(assignment, request_user)
 
         # ----------------------------------------------------------------
         # Atomic submission limit enforcement + get-or-create + increment.
         #
-        # Uses select_for_update() to prevent a TOCTOU race condition where
-        # concurrent uploads from the same student could both pass the
-        # attempt_count >= 3 guard simultaneously, each increment the
-        # counter, and together bypass the 3-submission limit.
+        # select_for_update() on the student's row prevents the TOCTOU race
+        # where two concurrent uploads from the same student both pass the
+        # attempt_count guard, each increment the counter, and together
+        # bypass the submission limit. For that to hold, the lock has to
+        # stay held until the increment is COMMITTED - so the save is
+        # inside this block. (It used to be outside: the block released
+        # the lock with the new count only in memory, the second upload
+        # then read the old count from the DB, and both passed the guard.)
+        # What sits under the lock besides the save is CPU-only HTML
+        # rendering, milliseconds, and never a network call.
         #
         # attempt_count tracks *total submissions ever made*, starting at 1
         # on the very first upload and increasing on every subsequent one.
@@ -853,22 +1109,24 @@ def upload_answers_engine(
         )
 
         with transaction.atomic():
-            # Lock the existing row (if any) for the duration of this block.
             existing_submission = (
                 StudentSubmission.objects.select_for_update()
                 .filter(assignment=assignment, student=target_student)
                 .first()
             )
 
-            if is_student_self_upload and existing_submission:
-                current_count = existing_submission.attempt_count or 0
-                if current_count >= 3:
-                    raise ValueError(
-                        "You have reached the maximum of 3 submissions for this assignment"
-                    )
+            if existing_submission:
+                # Authoritative: the row is locked, so this decision cannot
+                # race a concurrent upload, a grading claim, or a grade
+                # landing on the row. Applies to proxy uploads too.
+                _check_submission_open(
+                    existing_submission,
+                    student_upload=is_student_self_upload,
+                    told_to_student=is_student_self_upload,
+                )
 
             if existing_submission:
-                # Re-submission — update answers and increment counter.
+                # Re-submission - update answers and increment counter.
                 created = False
                 submission = existing_submission
                 ensure_task_not_cancelled(processing_task_id)
@@ -879,7 +1137,7 @@ def upload_answers_engine(
                 if is_student_self_upload:
                     submission.attempt_count = (submission.attempt_count or 0) + 1
             else:
-                # First submission — create the row and set counter to 1.
+                # First submission - create the row and set counter to 1.
                 # submission_date is set explicitly here (rather than left
                 # to auto_now_add) because student_submission_to_html()
                 # below renders this instance before it's ever saved, and
@@ -893,28 +1151,312 @@ def upload_answers_engine(
                     submission_date=timezone.now(),
                 )
 
-        # ----------------------------------------------------------------
-        # Build raw_input outside the lock (it's CPU-only, no DB writes
-        # needed during construction), then persist everything in one save.
-        # ----------------------------------------------------------------
-        ensure_task_not_cancelled(processing_task_id)
-        answer_html = student_submission_to_html(submission)
-        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-            answer_html
-        )
-        # Persist the extractor's confidence - the dashboard threshold-flags
-        # low-confidence extractions, which stayed 0 forever while this
-        # field was silently dropped on the upload path.
-        submission.extraction_confidence = _coerce_confidence(
-            student_submission.get("extraction_confidence")
-        )
-        with cancellable_final_save(processing_task_id):
-            submission.save()
+            ensure_task_not_cancelled(processing_task_id)
+            answer_html = student_submission_to_html(submission)
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                answer_html
+            )
+            # Persist the extractor's confidence - the dashboard
+            # threshold-flags low-confidence extractions, which stayed 0
+            # forever while this field was silently dropped on the upload
+            # path.
+            submission.extraction_confidence = _coerce_confidence(
+                student_submission.get("extraction_confidence")
+            )
+            with cancellable_final_save(processing_task_id):
+                if created:
+                    submission.save()
+                else:
+                    # Only the columns this path owns. A full-row save here
+                    # would write back the stale copy of every other column
+                    # (score, feedback, is_published, grading_state...)
+                    # from an instance loaded before the AI extraction ran.
+                    submission.save(
+                        update_fields=[
+                            "answers",
+                            "attempt_count",
+                            "raw_input",
+                            "extraction_confidence",
+                        ]
+                    )
 
         if created and request_user.user_type == UserTypes.STUDENT:
             notify_teacher_of_student_submission(submission)
 
     return submission
+
+
+def _grading_claim_is_live(submission, now=None):
+    """A RUNNING claim younger than the staleness window: a worker is (or
+    must be assumed to be) grading this row right now. An older RUNNING
+    claim was left by a dead worker and does not count - see
+    _claim_submission_for_grading, which uses the same cutoff."""
+    now = now or timezone.now()
+    return (
+        submission.grading_state == GradingState.RUNNING
+        and submission.grading_started_at is not None
+        and submission.grading_started_at > now - GRADING_CLAIM_STALE_AFTER
+    )
+
+
+def _check_submission_open(existing_submission, *, student_upload, told_to_student):
+    """
+    The server-side rules that close a submission row to uploads, checked
+    in this order. The first two apply to EVERY upload path - the
+    student's own and a teacher's proxy upload alike (owner, 2026-09-14:
+    a graded row is immutable through the ordinary upload paths; a
+    correction after grading needs an explicit replace/re-grade workflow).
+    The third is the student's own attempt allowance.
+
+    1. Graded: `graded_at` set - the only path that sets it is the grade
+       persisting in _populate_and_save_grade, and it is what publish keys
+       on too. Closed for good.
+    2. Being graded (H-13, decided 2026-09-14): a live grading claim. The
+       upload is refused rather than accepted, so a row can never carry
+       answers newer than the grade that closes it.
+    3. The attempt limit (MAX_STUDENT_SUBMISSION_ATTEMPTS), students only.
+    """
+    # H-133: `told_to_student` says who reads the refusal. A student is
+    # given a sentence that does not name grading; a teacher (a proxy
+    # upload, an edit) the reason in words. It has no default, so every
+    # caller of this one check decides.
+    if existing_submission.graded_at is not None:
+        raise SubmissionAlreadyGradedError(
+            SUBMISSION_CLOSED_FOR_STUDENT
+            if told_to_student
+            else "This assignment has already been graded, so it can no longer "
+            "be submitted again."
+        )
+    if _grading_claim_is_live(existing_submission):
+        raise SubmissionBeingGradedError(
+            SUBMISSION_BUSY_FOR_STUDENT
+            if told_to_student
+            else "This submission is being graded right now, so it cannot be "
+            "replaced. Please try again once grading has finished."
+        )
+    if (
+        student_upload
+        and (existing_submission.attempt_count or 0) >= MAX_STUDENT_SUBMISSION_ATTEMPTS
+    ):
+        raise SubmissionLimitReachedError(
+            "You have reached the maximum of "
+            f"{MAX_STUDENT_SUBMISSION_ATTEMPTS} submissions for this assignment"
+        )
+
+
+def remaining_student_attempts(submission):
+    """How many more times the student may submit: 0 once graded (product
+    rule), otherwise what the attempt limit leaves. None (no submission
+    yet) means the full allowance."""
+    if submission is None:
+        return MAX_STUDENT_SUBMISSION_ATTEMPTS
+    if submission.graded_at is not None:
+        return 0
+    return max(0, MAX_STUDENT_SUBMISSION_ATTEMPTS - (submission.attempt_count or 0))
+
+
+def ensure_student_may_submit(assignment, student):
+    """
+    Cheap, lock-free pre-check of _check_submission_open for the
+    request path and for the moment before a billed extraction call:
+    raises SubmissionAlreadyGradedError / SubmissionLimitReachedError when
+    the student is already locked out of `assignment`. Scoped to exactly
+    (student, assignment): another student's grade, or this student's
+    grade on another assignment, has no effect.
+    """
+    existing = (
+        StudentSubmission.objects.filter(assignment=assignment, student=student)
+        .only("graded_at", "attempt_count", "grading_state", "grading_started_at")
+        .first()
+    )
+    if existing is not None:
+        _check_submission_open(existing, student_upload=True, told_to_student=True)
+
+
+def ensure_submission_open(submission, *, told_to_student):
+    """Refuse-if-closed for an existing row (the raw-text edit path): graded
+    or being graded. The attempt allowance is not consumed by an edit.
+    `told_to_student`: whether the one editing is the student (H-133)."""
+    _check_submission_open(
+        submission, student_upload=False, told_to_student=told_to_student
+    )
+
+
+ACTIVE_TASK_STATUSES = (BackgroundTaskStatus.PENDING, BackgroundTaskStatus.STARTED)
+
+# The prompt the raw-text edit path sends alongside the edited ProseMirror
+# text. Kept here (not in the view) so the synchronous and asynchronous
+# routes cannot drift.
+RAW_TEXT_EXTRACTION_PROMPT = """
+Analyze the content of an educational assignment that is sent to you in PROSEMIRROR FORMAT and return a JSON
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+"""
+
+
+def ensure_no_active_extraction(
+    *, submission=None, assignment=None, student=None, told_to_student
+):
+    """
+    Refuse a second answer-extraction while one is still running for the
+    same target. A client that timed out and retried must not queue a
+    second billed run: the first task is still going to land. Callers hold
+    a row lock (the submission, or the student's user row for a first
+    upload) so two simultaneous requests cannot both pass this check.
+    """
+    active = BackgroundProcessingTask.objects.filter(
+        task_type__in=(
+            BackgroundTaskType.ANSWER_EXTRACTION,
+            BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+        ),
+        status__in=ACTIVE_TASK_STATUSES,
+    )
+    if submission is not None:
+        active = active.filter(submission=submission)
+    else:
+        active = active.filter(assignment=assignment, requested_by=student)
+    if active.exists():
+        # H-133: for a student this is the SAME sentence as "being graded",
+        # so the two cannot be told apart.
+        raise SubmissionProcessingInProgressError(
+            SUBMISSION_BUSY_FOR_STUDENT
+            if told_to_student
+            else "This submission is still being processed from an earlier "
+            "request. Please wait for it to finish before sending it again."
+        )
+
+
+def update_submission_from_raw_text(
+    user, submission, raw_input, processing_task_id=None
+):
+    """
+    Re-extract a submission's answers from edited raw (ProseMirror) text and
+    persist them. The single implementation behind both the synchronous
+    PATCH route and extract_answer_background_task.
+
+    Order matters: the closure rules are checked BEFORE the billed
+    extraction (a graded or in-grading row can never accept the edit, so
+    it must not cost a credit), then again under the row lock before the
+    write, because a grade or a claim can land during the extraction. The
+    extraction and the write share one refund scope, so a failure after the
+    charge - a malformed result, a refusal under the lock, the save itself -
+    reclaims the credit rather than charging for an edit that never landed.
+    """
+    assignment = submission.assignment
+    if assignment.status != AssignmentStatus.PUBLISHED:
+        raise AssignmentNotOpenError(
+            "This assignment is not currently open for submissions."
+        )
+    if not raw_input or not str(raw_input).strip():
+        raise ValueError("There is no text to extract answers from.")
+
+    told_to_student = user.user_type == UserTypes.STUDENT
+    ensure_submission_open(submission, told_to_student=told_to_student)
+    ensure_task_not_cancelled(processing_task_id)
+
+    assignment_context = f"""
+    This is the Assignment Context to use in properly extracting the student submissions
+    {assignment.questions}
+    """
+    content = [
+        {"type": "text", "text": RAW_TEXT_EXTRACTION_PROMPT},
+        {"type": "text", "text": raw_input},
+    ]
+
+    with billing_refund_scope(
+        reason="submission edit failed before the new answers were persisted"
+    ):
+        extracted = ai_processor.extract_answer_with_retry(
+            user,
+            content,
+            assignment_context,
+            assignment_model=assignment,
+            max_retries=3,
+            processing_task_id=processing_task_id,
+        )
+        answers = extracted.get("answers") if isinstance(extracted, dict) else None
+        if not is_a_list_of_objects(answers):
+            raise ValueError(
+                "Answer extraction returned no usable `answers` list "
+                f"(got {type(answers).__name__}); refusing to persist it."
+            )
+
+        with transaction.atomic():
+            locked = StudentSubmission.objects.select_for_update().get(pk=submission.pk)
+            _check_submission_open(
+                locked, student_upload=False, told_to_student=told_to_student
+            )
+            ensure_task_not_cancelled(processing_task_id)
+            locked.answers = answers
+            locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                student_submission_to_html(locked)
+            )
+            locked.extraction_confidence = _coerce_confidence(
+                extracted.get("extraction_confidence")
+            )
+            with cancellable_final_save(processing_task_id):
+                # Only what this path owns - never a full-row save from an
+                # instance that predates the extraction.
+                locked.save(
+                    update_fields=["answers", "raw_input", "extraction_confidence"]
+                )
+    return locked
+
+
+def _match_enrolled_student(course, identified_name):
+    """
+    Resolve the student name the extractor read off a teacher-uploaded
+    submission to exactly one ENROLLED student on the course.
+
+    Exact (case-insensitive) first+last match wins. Only if there is no
+    exact match do we fall back to substring matching, and in either case
+    a match is accepted ONLY when it is unique: the previous `.first()`
+    silently attributed the upload to an arbitrary student whenever the
+    name was ambiguous - "Sam" matched Samuel and Samantha, a single-token
+    name matched every student whose first name contained it - so one
+    student's work and grade landed on another student's record with no
+    error anywhere. Refusing is the only safe answer; the teacher can
+    upload for that student directly.
+    """
+    name = " ".join((identified_name or "").split())
+    if not name:
+        raise CannotAssociateStudentError(
+            "Student name cannot be found in the submission"
+        )
+
+    enrolled = CustomUser.objects.filter(
+        enrollments__course=course,
+        enrollments__enrollment_status="ENROLLED",
+    ).distinct()
+
+    # Exact: the whole name against "first last", so multi-word first names
+    # ("Mary Ann Smith") match without guessing where the split is.
+    exact = enrolled.annotate(
+        full_name=Concat("first_name", Value(" "), "last_name")
+    ).filter(full_name__iexact=name)
+    # Two rows are enough to know it's ambiguous; never load a whole roster.
+    matches = list(exact[:2])
+    if not matches:
+        first_name, _, last_name = name.partition(" ")
+        fuzzy = enrolled.filter(
+            first_name__icontains=first_name, last_name__icontains=last_name
+        )
+        matches = list(fuzzy[:2])
+
+    if not matches:
+        raise CannotAssociateStudentError(
+            "Student not among the enrolled students in the course"
+        )
+    if len(matches) > 1:
+        # Teacher-facing text: literal double quotes, not !r (see the same
+        # choice in notify_school_admins_of_grading_complete).
+        raise CannotAssociateStudentError(
+            f'The name "{name}" matches more than one enrolled student in this '  # noqa: B907
+            "course, so the submission could not be attributed safely. Please "
+            "upload it for the right student directly."
+        )
+    return matches[0]
 
 
 def get_grade_details(percentage):
@@ -960,3 +1502,41 @@ def get_grade_details(percentage):
         return {"letter_grade": "D", "gpa": 1.0, "remark": "Poor"}
     else:
         return {"letter_grade": "F", "gpa": 0.0, "remark": "Fail"}
+
+
+# Reverse of the quality-point column above: a cumulative/overall GPA
+# (averaged across courses in quality-point space, see
+# dashboard.views.StudentAdminDashboardView.overview) mapped back to a
+# letter grade and remark. A+ and A share 4.0 quality points in the table
+# above - that distinction is percentage-only (97-100 vs 93-96) and isn't
+# recoverable from a GPA value alone, so a GPA of 4.0 here reports as "A".
+# Ordered highest to lowest; GPA_SCALE[i][0] is the inclusive lower bound.
+GPA_SCALE = (
+    (4.0, "A", "Excellent"),
+    (3.7, "A-", "Very Good"),
+    (3.3, "B+", "Good"),
+    (3.0, "B", "Good"),
+    (2.7, "B-", "Satisfactory"),
+    (2.3, "C+", "Satisfactory"),
+    (2.0, "C", "Pass"),
+    (1.7, "C-", "Pass"),
+    (1.3, "D+", "Poor"),
+    (1.0, "D", "Poor"),
+    (0.0, "F", "Fail"),
+)
+
+
+def get_letter_grade_from_gpa(gpa):
+    """
+    Returns {letter_grade, remark} for a cumulative GPA value, using the
+    same quality-point scale get_grade_details() assigns per percentage
+    bracket (see GPA_SCALE above). Use this - not get_grade_details() - to
+    label an *overall* GPA that was itself computed by averaging several
+    courses' quality points, so the letter grade shown always agrees with
+    the GPA number next to it.
+    """
+    value = float(gpa)
+    for threshold, letter, remark in GPA_SCALE:
+        if value >= threshold:
+            return {"letter_grade": letter, "remark": remark}
+    return {"letter_grade": "F", "remark": "Fail"}

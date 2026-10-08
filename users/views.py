@@ -10,21 +10,20 @@ profile.
 """
 
 import logging
+import math
+import time
 from datetime import timedelta
+from datetime import timezone as dt_timezone
 
-from celery.result import AsyncResult
 from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -41,9 +40,11 @@ from google.oauth2 import id_token
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action  # , api_view
 from rest_framework.exceptions import (
+    AuthenticationFailed,
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -60,18 +61,24 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
-from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.models import (
+    EnrollmentStatusType,
+    StudentCourse,
+    teacher_course_access_q,
+)
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import (
     SchoolAdminRegistrationCompletionSerializer,
     StudentRegistrationCompletionSerializer,
 )
 from students.models import BackgroundTaskStatus, BatchUploadSession
+from students.task_access import teacher_may_reach
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
     TERMINAL_TASK_STATUSES,
@@ -79,12 +86,14 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
     BetaWhitelist,
     CustomUser,
     PasswordChangeOTP,
     PasswordResetOTP,
+    RegistrationMethod,
     Settings,
     UserGoogleCredentials,
     UserTypes,
@@ -97,6 +106,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
+    EpochTokenRefreshSerializer,
     GoogleUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
@@ -106,7 +116,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     VerifyCustomUserSerializer,
     WaitlistSerializer,
 )
-from users.services import send_user_activation_email
+from users.services import send_user_activation_email, stamp_last_login
 from users.tasks import sync_user_to_mailerlite
 from users.throttling import (
     GoogleAuthThrottle,
@@ -115,9 +125,34 @@ from users.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
     VerifyEmailThrottle,
+    clear_verify_failures,
+    lock_verify_address,
+    log_register_student_refused_by_budget,
+    record_register_student_failure,
+    register_student_budget_retry_after,
+    register_student_failure_budget_spent,
+    reserve_verify_attempt,
+    verify_attempt_over_budget,
+    verify_budget_spent,
+    verify_lock_until,
 )
+from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
+
+# H-43: the ONE reply /auth/otp gives for every 202 - an unknown address, a
+# sent code, and a locked reset alike - so its text says nothing about
+# whether an account exists.
+OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
+
+# Founder-approved wording (2026-09-28) for the password-reset email.
+# Wording only: no link.
+RESET_EMAIL_WARNING = (
+    "Didn't ask for this? Someone may be trying to get into your account. "
+    "Don't share this code with anyone, including Grade A+ staff. Your "
+    "password hasn't been changed. If you didn't request this, you can ignore "
+    "this email."
+)
 
 # Create your views here.
 
@@ -128,25 +163,6 @@ USER_EXAMPLE = {
     "user_type": "TEACHER",
     "username": "john.doe",
 }
-
-
-class BaseUserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
-    permission_classes = (IsAuthenticated,)
-    pagination_class = StandardPageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
-
-    filterset_fields = {
-        "user_type": ["exact"],
-        "enrollments__course": ["exact", "isnull"],
-        "enrollments__course__session": ["exact"],
-        "enrollments__enrollment_status": ["exact", "in"],
-    }
-    search_fields = ["username", "first_name", "last_name", "email"]
-    ordering_fields = ["first_name", "last_name", "email", "username"]
-
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
 
 @extend_schema_view(
@@ -249,28 +265,14 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
-    filterset_fields = {
-        "user_type": ["exact"],
-        "school__name": ["exact"],
-        "enrollments__course": ["exact", "isnull"],
-        "enrollments__course__session": ["exact"],
-        "enrollments__enrollment_status": ["exact", "in"],
-    }
+    # Not filterset_fields: the enrollments__* lookups joined every
+    # enrollment an account had, other teachers' included, and get_object()
+    # applies filters too - a yes/no oracle on other tenants' enrollments.
+    filterset_class = UserEnrollmentFilter
     search_fields = ["first_name", "last_name", "email"]
     ordering_fields = ["first_name", "last_name", "email", "username"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-
-    # class Meta:
-    #     """Meta configuration describing model and exposed fields for the viewset.
-    #
-    #     Although DRF's ModelViewSet does not require an inner Meta normally,
-    #     this inner class documents which model and fields are intended to be
-    #     surfaced by this viewset for clarity and tooling.
-    #     """
-    #
-    #     model = CustomUser
-    #     fields = ["id", "username", "email", "user_type"]
 
     def get_permissions(self):
         """
@@ -321,7 +323,8 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if user.user_type == UserTypes.TEACHER:
             return queryset.filter(
-                Q(pk=user.pk) | Q(enrollments__course__teacher=user)
+                Q(pk=user.pk)
+                | teacher_course_access_q(user, prefix="enrollments__course__")
             ).distinct()
 
         return queryset.filter(pk=user.pk)
@@ -393,7 +396,11 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         - 401: Unauthorized - If user is not authenticated
         """
 
-        cache_key = f"user:user_id__{request.user.id}"
+        # `usr` alone: this payload is the user's own row and nothing else,
+        # and a CustomUser save bumps exactly that generation.
+        cache_key = versioned_key(
+            f"user:user_id__{request.user.id}", [(SCOPE_USER, request.user.id)]
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -530,6 +537,11 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
     serializer_class = SettingsSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = StandardPageNumberPagination
+    # No "post"/"delete": a Settings row is created by the post_save signal
+    # on CustomUser and lives as long as the account, so both are refused
+    # here with a 405. This list is what performs that refusal - overriding
+    # create()/destroy() to return 405 as well was unreachable code, since
+    # DRF rejects the method before dispatch ever reaches them.
     http_method_names = ["get", "head", "patch", "options"]
 
     filterset_fields = {
@@ -567,7 +579,10 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         user = self.request.user
 
-        if user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN:
+        # Both flags, as IsSuperAdmin requires (H-19). `or` let a
+        # createsuperuser account - is_superuser but user_type TEACHER -
+        # read and edit every user's settings.
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return Settings.objects.all()
 
         return Settings.objects.filter(user=user)
@@ -614,7 +629,12 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Retrieve the currently authenticated user's settings.
         Returns the complete settings profile for the logged-in user with caching support.
         """
-        cache_key = f"settings:user_id__{request.user.id}:view__my_settings"
+        # `usr` alone: a Settings save bumps its owner's generation (see
+        # users.signals.clear_user_cache, which reads instance.user_id).
+        cache_key = versioned_key(
+            f"settings:user_id__{request.user.id}:view__my_settings",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -629,33 +649,64 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(data)
 
-    def create(self, request, *args, **kwargs):
-        """
-        Disable direct creation of settings via API.
 
-        Settings are automatically created for each user via Django signals.
-        """
-        return Response(
-            {
-                "detail": "Settings cannot be created directly. "
-                "They are automatically created for each user."
-            },
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+def _reset_locked_response(otp_obj):
+    """429 for POST /auth/reset-password while the reset code is locked.
 
-    def destroy(self, request, *args, **kwargs):
-        """
-        Disable deletion of settings via API.
+    Informative by founder decision (2026-09-28): the person resetting is
+    usually the owner, so they're told why, when and that nothing changed.
+    /auth/otp stays generic while locked (anti-enumeration).
+    """
+    locked_until = otp_obj.locked_until.astimezone(dt_timezone.utc)
+    retry_after = max(1, math.ceil((locked_until - timezone.now()).total_seconds()))
+    minutes = max(1, math.ceil(retry_after / 60))
+    message = (
+        "For your security, password reset is paused on this account because "
+        f"the code was entered incorrectly {PasswordResetOTP.MAX_ATTEMPTS} times. "
+        f"You can request a new code after {locked_until:%H:%M} UTC "
+        f"(in {minutes} minute{'' if minutes == 1 else 's'}). "
+        "Your password has not been changed, and you can still sign in with "
+        "your current password. If you didn't try to reset your password, "
+        "someone else may have. Your account is still safe."
+    )
+    response = Response(
+        {
+            "code": "RESET_LOCKED",
+            "message": message,
+            "locked_until": locked_until.isoformat(),
+            "retry_after_seconds": retry_after,
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+    response["Retry-After"] = str(retry_after)
+    return response
 
-        Settings should persist for the lifetime of the user account.
-        """
-        return Response(
-            {
-                "detail": "Settings cannot be deleted. "
-                "They are tied to user accounts."
-            },
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+
+# --- OpenAPI documentation for the public auth code flows -------------------
+# Every response goes through users.renderers.APIJSONRenderer, so the frontend
+# sees {"success", "message", "data"} on success and {"success": false,
+# "message", "error": {"field_errors": {...}}} on failure. The examples below
+# show the rendered (on-the-wire) bodies, not the raw view payloads.
+
+
+def _auth_error_example(name, message, summary=None):
+    return OpenApiExample(
+        name,
+        summary=summary or message,
+        value={
+            "success": False,
+            "message": message,
+            "error": {"field_errors": {"detail": message}},
+        },
+        response_only=True,
+    )
+
+
+_THROTTLED_EXAMPLE = _auth_error_example(
+    "Throttled",
+    "Request was throttled. Expected available in 3599 seconds.",
+    summary="Per-IP rate limit hit (also sets the Retry-After header)",
+)
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -667,10 +718,81 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Verify email and activate account",
-        description="""Verify the email address of a user.""",
+        summary="Verify email and activate account (signs the user in)",
+        description="""
+Activates an account with the 6-digit code from the activation email and
+returns a JWT pair, so the user is signed in straight away.
+
+**Frontend flow**
+1. The activation email links to `<frontend>/verify-email?email=<email>&token=<6 digits>`.
+   Read both query parameters and POST them here unchanged.
+2. On **202**, store `data.access` / `data.refresh` and treat the user as signed in
+   (`data.user` is the full user object, same shape as `GET /users/me`).
+3. On **400** show `message`. If it is "Activation link has expired.", offer
+   "Send a new link", which calls `POST /auth/otp` with `otp_type: "VERIFY_EMAIL"`.
+
+**Values**
+- `email`: the address from the link (string, required).
+- `token`: the 6-digit code from the link, sent as a **string** (keep leading zeros).
+- The code from a self-registration email is valid for **15 minutes**; requesting a
+  new one (`/auth/otp`) replaces the old code.
+- Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+""",
         request=VerifyCustomUserSerializer,
-        responses=VerifyCustomUserSerializer,
+        examples=[
+            OpenApiExample(
+                "Verify request",
+                value={"email": "teacher@example.com", "token": "048213"},
+                request_only=True,
+            ),
+        ],
+        responses={
+            202: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Account activated; JWT pair issued (user is signed in).",
+                examples=[
+                    OpenApiExample(
+                        "Activated",
+                        value={
+                            "success": True,
+                            "message": "Request Successful",
+                            "data": {
+                                "refresh": "<jwt refresh token>",
+                                "access": "<jwt access token>",
+                                "user": {
+                                    "id": "<uuid>",
+                                    "email": "teacher@example.com",
+                                    "...": "...",
+                                },
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Missing fields, wrong code or email, or an expired code. Show `message`.",
+                examples=[
+                    _auth_error_example(
+                        "Missing fields", "Email and Token are required."
+                    ),
+                    _auth_error_example(
+                        "Wrong email or code", "Invalid email or token."
+                    ),
+                    _auth_error_example(
+                        "Expired code",
+                        "Activation link has expired.",
+                        summary="Expired: offer a resend via POST /auth/otp (VERIFY_EMAIL)",
+                    ),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Too many attempts from this IP (5/hour). Wait for `Retry-After` seconds.",
+                examples=[_THROTTLED_EXAMPLE],
+            ),
+        },
     )
     @action(
         detail=False,
@@ -686,32 +808,64 @@ class AuthViewSet(viewsets.ViewSet):
         throttle_classes=[VerifyEmailThrottle],
     )
     def verify(self, request, **kwargs):
-        email = request.data.get("email").strip()
-        token = request.data.get("token").strip()
+        email = (request.data.get("email") or "").strip()
+        token = (request.data.get("token") or "").strip()
 
         if not email or not token:
             raise ParseError("Email and Token are required.")
 
+        # H-53: a per-address budget of attempts. While locked, every
+        # attempt is refused - a correct code and a re-sent one included - and
+        # the answer is the same whether or not the address has an account.
+        # The attempt is spent before the code is checked, so simultaneous
+        # guesses from many IPs cannot all slip in before the lock.
+        lock_until = verify_lock_until(email)
+        attempt = None if lock_until else reserve_verify_attempt(email)
+        if lock_until or verify_attempt_over_budget(attempt):
+            wait = (
+                lock_until - time.time()
+                if lock_until
+                else settings.VERIFY_EMAIL_LOCK_SECONDS
+            )
+            raise Throttled(
+                wait=max(1, int(wait)),
+                detail=(
+                    "Too many incorrect codes for this email address. Please "
+                    "wait, then request a new verification email."
+                ),
+            )
+
+        def refuse(message):
+            if verify_budget_spent(attempt):
+                # The stored code is left alone: activation_token also holds
+                # student (24 h) and school-admin (7 d) invitations, and
+                # clearing it would let anyone destroy an invitation with a
+                # few wrong guesses. A sign-up code (15 min) expires during
+                # the lock anyway.
+                lock_verify_address(email)
+            raise ParseError(message)
+
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
-            raise ParseError("Invalid email or token.")
+            refuse("Invalid email or token.")
 
         user = user.first()
 
         if user.activation_expires and timezone.now() > user.activation_expires:
-            raise ParseError("Activation link has expired.")
+            refuse("Activation link has expired.")
 
         user.email_verified_at = timezone.now()
         user.activation_token = None
         user.activation_expires = None
         user.is_active = True
         user.save()
+        clear_verify_failures(email)
 
         safe_delay(sync_user_to_mailerlite, str(user.id))
 
         user_data = CustomUserSerializer(user).data
 
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -727,19 +881,84 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Send verification email",
-        description="""Send a verification email to the specified email address.""",
+        summary="Send a verification link or a password-reset code",
+        description="""
+Sends one of two emails, chosen by `otp_type`:
+
+| `otp_type` | Sends | Next call |
+|---|---|---|
+| `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
+| `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
+
+**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
+"If an account exists for that address, we've sent an email") for every 202 and
+never branch on `message`: its wording can differ between cases. The two 400s
+below only happen for existing accounts in the wrong state.
+
+**Values**
+- `email`: string, required, must be a valid email address.
+- `otp_type`: exactly `"VERIFY_EMAIL"` or `"RESET_PASSWORD"` (upper case).
+
+**400 cases** (show `message`):
+- invalid `otp_type` or email → "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
+- `VERIFY_EMAIL` for an account that is already active → "Email already verified. Please login."
+  (send the user to sign in)
+- `RESET_PASSWORD` for an account that never verified its email → "Email not verified."
+  (offer `VERIFY_EMAIL` instead)
+
+While a password reset is locked after 5 wrong codes, this endpoint still answers
+202 but sends no code; the lock is reported by `POST /auth/reset-password` (429
+`RESET_LOCKED`).
+
+Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+""",
         request=OTPSerializer,
+        examples=[
+            OpenApiExample(
+                "Resend verification link",
+                value={"email": "teacher@example.com", "otp_type": "VERIFY_EMAIL"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request password-reset code",
+                value={"email": "teacher@example.com", "otp_type": "RESET_PASSWORD"},
+                request_only=True,
+            ),
+        ],
         responses={
             202: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Verification email sent successfully",
+                description="Accepted. Show one neutral confirmation for every 202; don't branch on `message`.",
                 examples=[
                     OpenApiExample(
-                        "Verification Email Sent",
-                        value={"Detail": "Verification email sent successfully"},
+                        "Accepted",
+                        value={
+                            "success": True,
+                            "message": OTP_SENT_DETAIL,
+                            "data": {"detail": OTP_SENT_DETAIL},
+                        },
+                        response_only=True,
                     )
                 ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Bad input, or the account is in the wrong state for this otp_type.",
+                examples=[
+                    _auth_error_example(
+                        "Invalid otp_type or email",
+                        "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
+                    ),
+                    _auth_error_example(
+                        "Already verified", "Email already verified. Please login."
+                    ),
+                    _auth_error_example("Email not verified", "Email not verified."),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Too many requests from this IP (5/hour). Wait for `Retry-After` seconds.",
+                examples=[_THROTTLED_EXAMPLE],
             ),
         },
     )
@@ -767,10 +986,7 @@ class AuthViewSet(viewsets.ViewSet):
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             return Response(
-                {
-                    "detail": "If an account with that email exists, an OTP has been sent."
-                },
-                status=status.HTTP_202_ACCEPTED,
+                {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
             )
 
         if otp_type == "VERIFY_EMAIL":
@@ -778,7 +994,10 @@ class AuthViewSet(viewsets.ViewSet):
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
-            send_user_activation_email(user)
+            # H-53: a locked address gets no new code (it could not be used
+            # until the lock ends), and the same reply as a send.
+            if not verify_lock_until(user.email):
+                send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
             if not user.email_verified_at:
@@ -786,6 +1005,12 @@ class AuthViewSet(viewsets.ViewSet):
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
+            if otp_code is None:
+                # Locked out (AUTHZ-L2): no new code and no email, but the
+                # same reply as a send, so this is not an enumeration signal.
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             message = f"""
 Hello {user.first_name},
@@ -794,8 +1019,9 @@ We received a request to reset your Grade A+ password
 
 Your Password reset code is: {otp_code}
 
-Enter this code in the app to continue. If you did not request a password reset,
-you can ignore this email and your account will remain secure.
+Enter this code in the app to continue.
+
+{RESET_EMAIL_WARNING}
 
 The Grade A+ Team
 
@@ -811,21 +1037,121 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         return Response(
-            {"detail": "An OTP has been sent if an account with that email exists."},
+            {"detail": OTP_SENT_DETAIL},
             status=status.HTTP_202_ACCEPTED,
         )
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Reset the password using an OTP",
+        summary="Reset the password with the emailed code (signs the user in)",
         description="""
-        Resets a user's password after a valid OTP has been provided via the `forgot-password` endpoint.
-        This endpoint is public and does not require authentication.
-        """,
+Sets a new password using the 6-digit code from `POST /auth/otp`
+(`otp_type: "RESET_PASSWORD"`), signs the user out of every other device and
+returns a fresh JWT pair.
+
+**Values**
+- `email`: string, required.
+- `otp`: the 6-digit code from the email, sent as a **string** (keep leading zeros).
+- `new_password`: string, must pass the password rules (errors come back under
+  `error.field_errors.new_password`).
+- The code is valid for **15 minutes**.
+
+**Wrong code handling.** Every wrong email / code / expired code gives the same
+400 "Invalid email, OTP code, or new password." After **5 wrong codes** the reset
+is locked for **30 minutes**: the answer becomes **429** with
+`error.field_errors.code == "RESET_LOCKED"`, plus `locked_until` (UTC ISO time),
+`retry_after_seconds` and a `Retry-After` header. Show `message` as is; it tells
+the user their password was not changed. Requesting a new code during the lock
+sends nothing.
+
+**Telling the two 429s apart:** `RESET_LOCKED` has `error.field_errors.code`;
+the plain rate limit (10 requests/hour per IP) does not.
+""",
         request=ResetPasswordSerializer,
+        examples=[
+            OpenApiExample(
+                "Reset request",
+                value={
+                    "email": "teacher@example.com",
+                    "otp": "731904",
+                    "new_password": "a-new-strong-passphrase",  # pragma: allowlist secret
+                },
+                request_only=True,
+            ),
+        ],
         responses={
-            200: {"description": "Password has been reset successfully."},
-            400: {"description": "Invalid email, OTP code, or new password."},
+            200: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Password changed; other sessions revoked; JWT pair issued.",
+                examples=[
+                    OpenApiExample(
+                        "Reset done",
+                        value={
+                            "success": True,
+                            "message": "Password has been reset successfully. You are now logged in.",
+                            "data": {
+                                "detail": "Password has been reset successfully. You are now logged in.",
+                                "access": "<jwt access token>",
+                                "refresh": "<jwt refresh token>",
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Wrong or expired code (one generic message), or a password-rule failure.",
+                examples=[
+                    _auth_error_example(
+                        "Wrong or expired code",
+                        "Invalid email, OTP code, or new password.",
+                    ),
+                    OpenApiExample(
+                        "Weak password",
+                        value={
+                            "success": False,
+                            "message": "New password: This password is too common.",
+                            "error": {
+                                "field_errors": {
+                                    "new_password": ["This password is too common."]
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="RESET_LOCKED after 5 wrong codes (30 min), or the plain per-IP rate limit.",
+                examples=[
+                    OpenApiExample(
+                        "Reset locked",
+                        value={
+                            "success": False,
+                            "message": (
+                                "For your security, password reset is paused on this account because "
+                                "the code was entered incorrectly 5 times. You can request a new code "
+                                "after 14:32 UTC (in 30 minutes). Your password has not been changed, "
+                                "and you can still sign in with your current password. If you didn't "
+                                "try to reset your password, someone else may have. Your account is "
+                                "still safe."
+                            ),
+                            "error": {
+                                "field_errors": {
+                                    "code": "RESET_LOCKED",
+                                    "message": "For your security, password reset is paused … (same text)",
+                                    "locked_until": "2026-09-30T14:32:05+00:00",
+                                    "retry_after_seconds": 1800,
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                    _THROTTLED_EXAMPLE,
+                ],
+            ),
         },
     )
     @action(
@@ -856,9 +1182,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         if otp_obj.is_locked():
-            raise ParseError(
-                "Too many incorrect codes. Request a new code and try again later."
-            )
+            return _reset_locked_response(otp_obj)
 
         if not otp_obj.is_valid():
             otp_obj.delete()
@@ -870,6 +1194,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # / password was the wrong one.
         if not constant_time_compare(str(otp_obj.code), str(otp)):
             otp_obj.register_failure()
+            # The guess that spends the budget gets the lockout answer
+            # straight away, not one more generic 400.
+            if otp_obj.is_locked():
+                return _reset_locked_response(otp_obj)
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -881,7 +1209,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         for token in tokens:
             BlacklistedToken.objects.get_or_create(token=token)
 
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -950,14 +1278,20 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Change password using an OTP",
+        summary="Change password (optionally with an OTP)",
         description="""
-        Changes the authenticated user's password after a valid OTP has been provided.
+        Changes the authenticated user's password.
+
+        `current_password` is always required. `otp` is OPTIONAL: if the
+        client sends one, it must be the code issued by
+        `auth/request-change-password` and still be within its validity
+        window, or the request is rejected. If the client omits it, the
+        change proceeds on `current_password` alone.
         """,
         request=ChangePasswordSerializer,
         responses={
             200: {"description": "Password changed successfully"},
-            400: {"description": "Invalid OTP or expired OTP"},
+            400: {"description": "Incorrect current password, or invalid/expired OTP"},
         },
     )
     @action(detail=False, methods=["post", "options"], url_path="change-password")
@@ -966,25 +1300,51 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        # otp = serializer.validated_data.get("otp")
         current_password = serializer.validated_data.get("current_password")
         new_password = serializer.validated_data.get("new_password")
+        otp = (serializer.validated_data.get("otp") or "").strip()
 
         if not user.check_password(current_password):
             raise ParseError("Incorrect current password. Please try again.")
 
-        # try:
-        #     otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
-        # except PasswordChangeOTP.DoesNotExist:
-        #     raise ParseError(
-        #         "Invalid OTP or expired OTP. Please try again."
-        #     ) from Exception
+        # Dual-mode by design: the frontend does not send `otp` yet, so a
+        # request without one must keep working exactly as it did. When one
+        # IS sent it is fully verified, so the day the frontend starts
+        # collecting the code from request-change-password, no backend
+        # deploy is needed to make it count.
+        #
+        # This is deliberately NOT an enforcement point: a caller can still
+        # omit `otp` entirely. Making the second factor mandatory is a
+        # separate, breaking change (drop this `if otp:` guard and require
+        # the field on the serializer) that has to land together with the
+        # frontend sending it.
+        if otp:
+            otp_obj = PasswordChangeOTP.objects.filter(user=user).first()
 
-        # if not otp_obj.is_valid():
-        #     otp_obj.delete()
-        #     raise ParseError("Invalid OTP or expired OTP. Please try again.")
+            if otp_obj is None:
+                raise ParseError(
+                    "No password change code has been requested for this "
+                    "account. Request one and try again."
+                )
+
+            if not otp_obj.is_valid():
+                otp_obj.delete()
+                raise ParseError(
+                    "This password change code has expired. Request a new one "
+                    "and try again."
+                )
+
+            # Constant-time, for the same reason reset_password does it: a
+            # plain == leaks how much of the code was correct via timing.
+            if not constant_time_compare(str(otp_obj.code), str(otp)):
+                raise ParseError("Invalid password change code. Please try again.")
+
+            # Single-use: a code that has completed a change must not be
+            # replayable for a second one.
+            otp_obj.delete()
 
         user.set_password(new_password)
+        user.must_change_password = False
         user.save()
 
         tokens = OutstandingToken.objects.filter(user=user)
@@ -992,7 +1352,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             BlacklistedToken.objects.get_or_create(token=token)
 
         # 2. Generate new tokens for the current device
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -1004,10 +1364,6 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 "refresh": str(refresh),
             }
         )
-
-        # otp_obj.delete()
-
-        # return Response({"detail": "Password changed successfully"})
 
     @extend_schema(
         tags=["Authentication"],
@@ -1095,6 +1451,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         except TokenError:
             raise ParseError("Invalid or expired token") from TokenError
 
+        # AUTHZ-T1: blacklisting the refresh token never touched the access
+        # token, which stayed valid for up to a day. Bumping the session epoch
+        # kills the access token AND every other device's tokens at once
+        # (logging out anywhere signs the user out everywhere).
+        request.user.revoke_all_sessions()
+
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
     @extend_schema(
@@ -1177,6 +1539,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
+        # Outside the try below: its catch-all would turn Throttled into a 500.
+        if register_student_failure_budget_spent():
+            log_register_student_refused_by_budget()
+            # `wait` sets Retry-After and appends "Expected available in N
+            # seconds." to the message.
+            raise Throttled(
+                wait=register_student_budget_retry_after(),
+                detail=(
+                    "Student registration is paused for a short while because "
+                    "of too many invalid activation codes. Please try again "
+                    "later; if your code has expired by then, ask for a new one."
+                ),
+            )
         try:
             with transaction.atomic():
                 serializer = StudentRegistrationCompletionSerializer(data=request.data)
@@ -1186,15 +1561,26 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 token = serializer.validated_data["token"]
 
-                # Find user by activation token
+                # H-47: the token is the only thing identifying the row, so
+                # it must only ever match a student's invitation. A pending
+                # teacher's 6-digit verification code lives in the same
+                # column and used to complete that teacher's account here,
+                # with a password chosen by whoever sent the code.
                 user = CustomUser.objects.filter(
-                    activation_token=token, is_active=False
+                    activation_token=token,
+                    is_active=False,
+                    user_type=UserTypes.STUDENT,
                 ).first()
 
                 if not user:
+                    record_register_student_failure("no_match")
                     raise ParseError("Invalid or expired activation token")
 
-                if user.activation_expires < timezone.now():
+                if (
+                    not user.activation_expires
+                    or user.activation_expires < timezone.now()
+                ):
+                    record_register_student_failure("expired")
                     renewal_url = request.build_absolute_uri(
                         "/course/student/renew-student-token"
                     )
@@ -1349,7 +1735,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
-            refresh = RefreshToken.for_user(user)
+            refresh = EpochRefreshToken.for_user(user)
 
             # Track activity
             AnalyticsService.track_activity(user)
@@ -1495,20 +1881,37 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 if not user:
                     # create the user with
+                    # registration_method / email_verified_at / is_active are
+                    # deliberately NOT in this dict. None of them are in
+                    # CustomUserSerializer.Meta.fields, so DRF silently
+                    # dropped them - which meant every Google signup was
+                    # stored as registration_method=EMAIL with a null
+                    # email_verified_at, and (because
+                    # CustomUserSerializer.create() sends an activation email
+                    # whenever registration_method is EMAIL) was mailed a
+                    # "verify your email" link it had no reason to receive.
+                    # They are passed through save() below instead.
                     data = {
                         "email": email,
                         "first_name": first_name,
                         "last_name": last_name,
                         "middle_name": middle_name,
                         "profile_image_url": profile_image_url,
-                        "registration_method": "GOOGLE",
-                        "is_active": True,
-                        "email_verified_at": timezone.now(),
                     }
 
                     serializer = GoogleUserSerializer(data=data)
                     if serializer.is_valid():
-                        user = serializer.save()
+                        # Server-controlled values, injected via save() rather
+                        # than declared on the serializer: this serializer also
+                        # backs /auth/register, so a writable email_verified_at
+                        # would let any caller mark their own address verified.
+                        # They must be set HERE rather than patched on after
+                        # save, because create() reads registration_method to
+                        # decide whether to send the activation email.
+                        user = serializer.save(
+                            registration_method=RegistrationMethod.GOOGLE,
+                            email_verified_at=timezone.now(),
+                        )
 
                         user.is_active = True
                         user.set_unusable_password()
@@ -1532,6 +1935,91 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                             )
                         raise ValidationError(serializer.errors)
 
+                else:
+                    # An account already exists for this address. Google has
+                    # just proven the person controls that mailbox, which is
+                    # strictly STRONGER evidence than the 6-digit code the
+                    # email flow sends - so an account that simply never
+                    # finished email verification is completed here instead
+                    # of dead-ending. (It used to dead-end: this endpoint
+                    # answered 200 with tokens, but the account stayed
+                    # is_active=False, so SimpleJWT rejected those very
+                    # tokens with "User is inactive" on the next request.)
+                    #
+                    # The carve-out: an account that WAS verified and is now
+                    # inactive was switched off deliberately. Proving mailbox
+                    # ownership says nothing about whether that decision
+                    # should be reversed, so this must NOT reverse it -
+                    # activating there would turn Google sign-in into a way
+                    # round a deactivation.
+                    if not user.is_active and user.email_verified_at is not None:
+                        raise AuthenticationFailed(
+                            "This account has been deactivated. Please "
+                            "contact support.",
+                            "account_deactivated",
+                        )
+
+                    resurrected_fields = []
+                    if user.email_verified_at is None:
+                        user.email_verified_at = timezone.now()
+                        resurrected_fields.append("email_verified_at")
+                    if not user.is_active:
+                        user.is_active = True
+                        resurrected_fields.append("is_active")
+
+                        # This row may carry a password an attacker chose
+                        # while it sat dormant (POST /auth/register creates
+                        # is_active=False rows with a real, caller-supplied
+                        # password). Google has only proven mailbox
+                        # ownership here, not which password belongs to the
+                        # rightful owner, so activating the row must not
+                        # leave any existing password usable - the
+                        # rightful owner can always get a fresh one through
+                        # the reset-password flow.
+                        user.set_unusable_password()
+                        resurrected_fields.append("password")
+
+                    if resurrected_fields:
+                        user.save(update_fields=resurrected_fields)
+                        # Only now does this account become a real, usable
+                        # one, so this is the first point it should reach
+                        # the mailing list (queue_sync no-ops on inactive).
+                        safe_delay(sync_user_to_mailerlite, str(user.id))
+
+                        # Finishing registration is what promotes a
+                        # teacher's invitation from PENDING to ENROLLED,
+                        # and register_student (the emailed-link flow)
+                        # does exactly this. A student invited to a course
+                        # who signs in with Google instead of using that
+                        # link completed registration by a different door,
+                        # so the same promotion has to happen here or
+                        # their enrollments stay PENDING forever - which,
+                        # now that PENDING is not an access-granting state
+                        # (see classrooms.models
+                        # COURSE_ACCESS_ENROLLMENT_STATUSES), would lock
+                        # them out of the very course they were invited to.
+                        #
+                        # Gated on `resurrected_fields` deliberately: this
+                        # only fires for an account that was still
+                        # unverified/inactive, i.e. one that had genuinely
+                        # not finished registering. It never touches the
+                        # PENDING rows of an already-established account,
+                        # and Google has just proven mailbox ownership of
+                        # the exact address the teacher invited - strictly
+                        # stronger evidence than the emailed code.
+                        promoted = StudentCourse.objects.filter(
+                            student=user,
+                            enrollment_status=EnrollmentStatusType.PENDING,
+                        ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+                        if promoted:
+                            logger.info(
+                                "Promoted %s pending enrollment(s) to ENROLLED "
+                                "after Google sign-in completed registration "
+                                "for user %s",
+                                promoted,
+                                user.id,
+                            )
+
                 expiry = timezone.now() + timedelta(seconds=expires_in)
                 credentials, _ = UserGoogleCredentials.objects.update_or_create(
                     user=user,
@@ -1542,10 +2030,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         **({"refresh_token": refresh_token} if refresh_token else {}),
                     },
                 )
-                # if access_token or refresh_token:
-                #     user.save(update_fields=["google_access_token", "google_refresh_token"])
 
-            refresh = RefreshToken.for_user(user)
+            # A Google sign-in is a sign-in too (has_signed_in), and it mints
+            # tokens here rather than through the login serializer.
+            stamp_last_login(user)
+            refresh = EpochRefreshToken.for_user(user)
 
             return Response(
                 {
@@ -1627,7 +2116,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
     },
 )
 class TokenRefreshView(BaseTokenRefreshView):
-    pass
+    serializer_class = EpochTokenRefreshSerializer
 
 
 class TaskViewSet(viewsets.ViewSet):
@@ -1640,55 +2129,6 @@ class TaskViewSet(viewsets.ViewSet):
 
     http_method_names = ["get", "post", "options"]
     permission_classes = [IsAuthenticated]
-
-    def _serialize_task_status(self, task_id, processing_task=None):
-        if processing_task:
-            normalize_processing_task_status(processing_task)
-            processing_task.refresh_from_db()
-
-            meta = dict(processing_task.meta or {})
-            if processing_task.error:
-                meta.setdefault("error", processing_task.error)
-
-            if processing_task.status == "SUCCESS":
-                status_value = "completed"
-            elif processing_task.status == "FAILURE":
-                status_value = "failed"
-            elif processing_task.status == "CANCELLED":
-                status_value = "cancelled"
-            else:
-                status_value = "processing"
-
-            return {
-                "task_id": task_id,
-                "status": status_value,
-                "meta": str(meta) if meta else None,
-            }
-
-        task = AsyncResult(task_id)
-
-        data = {
-            "task_id": task_id,
-            "status": task.state,
-            "meta": (
-                task.info
-                if isinstance(task.info, dict)
-                else {"result": task.info} if task.info else None
-            ),
-        }
-
-        data["meta"] = str(data["meta"])
-
-        if task.state == "REVOKED":
-            data["status"] = "cancelled"
-        elif task.successful():
-            data["status"] = "completed"
-        elif task.failed():
-            data["status"] = "failed"
-        else:
-            data["status"] = "processing"
-
-        return data
 
     @extend_schema(
         tags=["Tasks"],
@@ -1731,40 +2171,42 @@ class TaskViewSet(viewsets.ViewSet):
     def task_status(self, request, task_id=None):
         """
         Retrieve the status of a background task by its ID, enriched with context.
+
+        Scoped to tasks the caller actually started. This used to fall back
+        to a bare `AsyncResult(task_id)` whenever no tracked task matched -
+        which, because `get_processing_task` filters on `requested_by`, is
+        exactly what happens when the task belongs to somebody else. That
+        made another user's task state and return value readable to anyone
+        holding the id (`send_email_task`, for instance, returns a string
+        containing the recipient's address). A Celery id has no owner to
+        check, so there is no way to serve that fallback safely; every
+        user-facing async endpoint now creates a tracked task, so nothing
+        legitimate needs it.
         """
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if processing_task:
-            normalize_processing_task_status(processing_task)
-            processing_task.refresh_from_db()
-            meta = dict(processing_task.meta or {})
-            if processing_task.error:
-                meta.setdefault("error", processing_task.error)
-            status_value = self._map_status(processing_task.status)
+        # H-38: a task whose course its owner can no longer reach answers
+        # exactly like a missing one.
+        if not processing_task or not teacher_may_reach(request.user, processing_task):
+            raise NotFound("Tracked task not found for this user.")
 
-            # Get context
-            context = get_task_context(processing_task)
+        normalize_processing_task_status(processing_task)
+        processing_task.refresh_from_db()
+        meta = dict(processing_task.meta or {})
+        if processing_task.error:
+            meta.setdefault("error", processing_task.error)
+        status_value = self._map_status(processing_task.status)
 
-            data = {
-                "task_id": task_id,
-                "status": status_value,
-                "meta": str(meta) if meta else None,
-                "resource_type": context["resource_type"],
-                "resource_id": context["resource_id"],
-                "action": context["action"],
-                "additional_ids": context["additional_ids"],
-            }
-        else:
-            # Fallback to Celery AsyncResult (less context)
-            task = AsyncResult(task_id)
-            data = {
-                "task_id": task_id,
-                "status": self._map_celery_state(task.state),
-                "meta": str(task.info) if task.info else None,
-                "resource_type": None,
-                "resource_id": None,
-                "action": None,
-                "additional_ids": {},
-            }
+        context = get_task_context(processing_task)
+
+        data = {
+            "task_id": task_id,
+            "status": status_value,
+            "meta": str(meta) if meta else None,
+            "resource_type": context["resource_type"],
+            "resource_id": context["resource_id"],
+            "action": context["action"],
+            "additional_ids": context["additional_ids"],
+        }
 
         serializer = TaskStatusSerializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1780,18 +2222,6 @@ class TaskViewSet(viewsets.ViewSet):
             "CANCELLED": "cancelled",
         }
         return mapping.get(db_status, "processing")
-
-    def _map_celery_state(self, state):
-        """Map Celery state to frontend-friendly status string."""
-        if state == "REVOKED":
-            return "cancelled"
-        if state == "SUCCESS":
-            return "completed"
-        if state == "FAILURE":
-            return "failed"
-        if state in ("PENDING", "STARTED", "RETRY"):
-            return "processing"
-        return "processing"
 
     @extend_schema(
         tags=["Tasks"],
@@ -1825,7 +2255,9 @@ class TaskViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="cancel/(?P<task_id>[^/.]+)")
     def cancel(self, request, task_id=None):
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if not processing_task:
+        # H-38: a task whose course its owner can no longer reach answers
+        # exactly like a missing one.
+        if not processing_task or not teacher_may_reach(request.user, processing_task):
             raise NotFound("Tracked task not found for this user.")
 
         already_terminal = processing_task.status in TERMINAL_TASK_STATUSES
@@ -1882,6 +2314,10 @@ class TaskViewSet(viewsets.ViewSet):
         session = get_object_or_404(
             BatchUploadSession, id=session_id, teacher=request.user
         )
+        # H-38: a session whose course its teacher can no longer reach
+        # answers exactly like a missing one.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
 
         cancellable_tasks = list(
             session.processing_tasks.exclude(
@@ -2026,6 +2462,10 @@ class TaskViewSet(viewsets.ViewSet):
         session = get_object_or_404(
             BatchUploadSession, id=session_id, teacher=request.user
         )
+        # H-38: a session whose course its teacher can no longer reach
+        # answers exactly like a missing one.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
 
         tracked_tasks = list(
             session.processing_tasks.select_related(

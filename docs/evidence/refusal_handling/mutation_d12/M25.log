@@ -1,0 +1,140 @@
+# M25: the withheld reason is still logged server-side (D12)
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1 @ 1848a935379e9c5f0757aee29d8dbc0048c9c5d6
+# labels: billing.tests.test_refusal_handling_gates.RefusalIsolationTest
+# exit 1
+
+Found 7 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user g9-a-828cf3f6@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-1e078452@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+.Cannot activate automatic trial for user g9-a-d4f69370@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-bd87ca82@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 20:05:42,231 views 2056753 124686570515392 [request_id=92cb0d20a2fa438f9736776148760d9a] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+.Cannot activate automatic trial for user g9-a-34a0545f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-dcba85f0@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22328 credits, but you only have 1000 credits. Please refill your wallet to continue
+.Cannot activate automatic trial for user g9-a-2aada020@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-f851b7b7@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-plan-337b44fc@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 20:05:57,693 views 2056753 124686570515392 [request_id=7d97807ee957454b8067c1e8b30d9d51] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 4425, in execute_graded_task
+    raise AIFeatureNotAvailableError(STUDENT_AI_UNAVAILABLE_MESSAGE)
+billing.access_control.AIFeatureNotAvailableError: AI features aren't available for this assignment right now. Please ask your teacher to check their account.
+.Cannot activate automatic trial for user g9-a-87f6b946@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-86d1cac5@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-empty-bcc92a32@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+.Cannot activate automatic trial for user g9-a-e7621d78@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-fad7ef84@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-own-e7bd32ef@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+.Cannot activate automatic trial for user g9-a-accaceb8@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-b-e025dcc8@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user g9-log-a12c8c67@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 20:06:22,693 views 2056753 124686570515392 [request_id=a96b77b84e5e47059d451cc76188a971] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 4425, in execute_graded_task
+    raise AIFeatureNotAvailableError(STUDENT_AI_UNAVAILABLE_MESSAGE)
+billing.access_control.AIFeatureNotAvailableError: AI features aren't available for this assignment right now. Please ask your teacher to check their account.
+F
+======================================================================
+FAIL: test_the_withheld_reason_is_still_recorded_server_side (billing.tests.test_refusal_handling_gates.RefusalIsolationTest.test_the_withheld_reason_is_still_recorded_server_side)
+Operators must not lose the diagnosis the student no longer sees.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling_gates.py", line 509, in test_the_withheld_reason_is_still_recorded_server_side
+    self.assertGreaterEqual(record.levelno, logging.WARNING)
+AssertionError: 10 not greater than or equal to 30
+
+----------------------------------------------------------------------
+Ran 7 tests in 53.080s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...

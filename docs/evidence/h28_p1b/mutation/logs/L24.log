@@ -1,0 +1,12 @@
+# L24: the worker closes its own connections
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '            connections.close_all()\n'
+# new: '            pass\n'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 42.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_worker_thread_leaves_no_database_connection_open (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_the_worker_thread_leaves_no_database_connection_open)
+
+FAILED (failures=1)

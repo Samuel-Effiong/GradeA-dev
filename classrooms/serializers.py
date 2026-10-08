@@ -11,7 +11,11 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
-from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from assignments.serializers import (
+    AssignmentListSerializer,
+    AssignmentListStudentSerializer,
+)
+from assignments.services import get_student_assignment_status
 from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,
@@ -22,6 +26,7 @@ from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 
+from .final_grade import released_final_grade
 from .models import (
     Course,
     CourseCategory,
@@ -31,6 +36,7 @@ from .models import (
     SessionOwnerType,
     StudentCourse,
     Topic,
+    teacher_can_reach_course,
 )
 
 
@@ -63,6 +69,18 @@ class SessionSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+    #: H-147: what a student is sent in place of the ids of the school
+    #: that owns a session and of the staff account that created it.
+    STUDENT_FIELD_VALUES = {"school": None, "created_by": None}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if getattr(user, "user_type", None) == UserTypes.STUDENT:
+            data.update(self.STUDENT_FIELD_VALUES)
+        return data
+
 
 class TopicSerializer(serializers.ModelSerializer):
     """Serializer for Topic"""
@@ -82,12 +100,6 @@ class TopicSerializer(serializers.ModelSerializer):
             "course": {"write_only": True},
         }
 
-        def validate_name(self, value):
-            """Validate that name is not empty."""
-            if not value.strip():
-                raise serializers.ValidationError("Name cannot be empty.")
-            return value
-
         validators = [
             UniqueTogetherValidator(
                 queryset=Topic.objects.all(),
@@ -95,6 +107,35 @@ class TopicSerializer(serializers.ModelSerializer):
                 message="This Course already has this topic",
             )
         ]
+
+    def validate_name(self, value):
+        """Validate that name is not empty."""
+        if not value.strip():
+            raise serializers.ValidationError("Name cannot be empty.")
+        return value
+
+    def validate_course(self, value):
+        """Reject a course the requesting teacher doesn't own.
+
+        `course` is a plain writable PK field, so without this a caller
+        could attach a topic to any course in the system just by knowing
+        (or enumerating) its UUID - the viewset's get_queryset() only
+        scopes reads and edits of existing rows, never the course a NEW
+        topic points at.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            # Fail closed (H-18 hardening): a caller that builds this
+            # serializer without the request must not skip the check.
+            raise serializers.ValidationError("You do not have access to this course.")
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return value
+
+        if not teacher_can_reach_course(user, value):
+            raise serializers.ValidationError("You do not have access to this course.")
+        return value
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -115,7 +156,10 @@ class CourseSerializer(serializers.ModelSerializer):
         allow_empty=True,
     )
     assignment_count = serializers.SerializerMethodField()
-    assignments = AssignmentListSerializer(many=True, read_only=True)
+    # A method field rather than a nested serializer so a student's payload
+    # can be filtered to published work - see get_assignments. The schema
+    # and every teacher's output are unchanged.
+    assignments = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -146,7 +190,9 @@ class CourseSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
         if user is None or not user.is_authenticated:
-            return value
+            # Fail closed (H-18 hardening): a caller that builds this
+            # serializer without the request must not skip the check.
+            raise serializers.ValidationError("You do not have access to this session.")
 
         if value.owner_type == SessionOwnerType.INDIVIDUAL:
             if user.is_under_license() or value.teacher_id != user.id:
@@ -188,13 +234,9 @@ class CourseSerializer(serializers.ModelSerializer):
         return course
 
     def get_student_count(self, obj) -> int:
-        # return (
-        #     StudentCourse.objects.filter(course=obj)
-        #     .exclude(enrollment_status__iexact="withdrawn")
-        #     .distinct()
-        #     .count()
-        # )
-
+        # H-147: a student is sent this too. The founder's representative
+        # allowed the size of the class, as a bare number, and nothing else
+        # about classmates (2026-10-06).
         if hasattr(obj, "student_count"):
             return obj.student_count
 
@@ -204,23 +246,65 @@ class CourseSerializer(serializers.ModelSerializer):
             .count()
         )
 
+    def _requesting_student(self):
+        """The requester when they are a student, otherwise None.
+
+        Only a student's course payload is filtered. Teachers, school
+        admins and superadmins keep exactly what they have always received.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if getattr(user, "user_type", None) == UserTypes.STUDENT:
+            return user
+        return None
+
+    def _visible_assignments(self, obj):
+        """Every assignment for staff; only PUBLISHED ones for a student.
+
+        Drafts and unpublished work are the teacher's, and the assignments
+        endpoints already hide them from students by the same rule. Filtered
+        in Python: calling .filter() would discard the view's prefetch and
+        issue a query per course.
+        """
+        assignments = obj.assignments.all()
+        if self._requesting_student() is None:
+            return assignments
+        return [a for a in assignments if a.status == AssignmentStatus.PUBLISHED]
+
+    @extend_schema_field(AssignmentListSerializer(many=True))
+    def get_assignments(self, obj):
+        if self._requesting_student() is not None:
+            # H-147: the student's own view of each assignment, the shape
+            # the assignment list route gives them. The teacher's list
+            # carries `submission_count` (how many classmates have handed
+            # in) and the scheduling of a grading run (H-133's rule).
+            return AssignmentListStudentSerializer(
+                many=True, context=self.context
+            ).to_representation(self._visible_assignments(obj))
+        return AssignmentListSerializer(
+            many=True, context=self.context
+        ).to_representation(self._visible_assignments(obj))
+
     def get_assignment_count(self, obj):
+        if self._requesting_student() is not None:
+            # Must agree with the filtered `assignments` list. An annotated
+            # count, if one is ever added, would include drafts.
+            return len(self._visible_assignments(obj))
+
         if hasattr(obj, "assignment_count"):
             return obj.assignment_count
 
-        return obj.assignments.distinct().count()
+        # len() of the prefetch cache. `.distinct().count()` discarded it and
+        # issued a fresh COUNT for every course on the page; distinct() was
+        # pointless anyway, since assignments is a plain reverse FK and the
+        # query has no join that could duplicate a row.
+        return len(obj.assignments.all())
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
-        # # TODO: Add users, to ensure that it is by the teacher
-        # enrolled_students = (
-        #     CustomUser.objects.filter(enrollments__course=obj)
-        #     .exclude(
-        #         enrollments__course=obj,
-        #         enrollments__enrollment_status__iexact="withdrawn",
-        #     )
-        #     .distinct()
-        # )
+        viewer = self._requesting_student()
+        if viewer is not None:
+            return self._own_entry(obj, viewer)
 
         if hasattr(obj, "active_enrollments"):
             enrolled_students = [
@@ -234,11 +318,47 @@ class CourseSerializer(serializers.ModelSerializer):
                 ).select_related("student")
             ]
 
+        # The enrollment status each student holds in THIS course, passed
+        # down so StudentSerializer.get_enrollment_status can read it
+        # instead of issuing its own query per student.
+        if hasattr(obj, "active_enrollments"):
+            status_by_student = {
+                enrollment.student_id: enrollment.enrollment_status
+                for enrollment in obj.active_enrollments
+            }
+        else:
+            status_by_student = None
+
         serializer = StudentSerializer(
-            enrolled_students, many=True, context={"course": obj}
+            enrolled_students,
+            many=True,
+            context={"course": obj, "enrollment_status_by_student": status_by_student},
         )
 
         return serializer.data
+
+    def _own_entry(self, obj, viewer):
+        """H-147: a student sees nothing of their classmates. Their roster
+        is their own entry and no other: built from the one enrolment that
+        is theirs, not from the roster with the others taken out."""
+        if hasattr(obj, "active_enrollments"):
+            own = [e for e in obj.active_enrollments if e.student_id == viewer.pk]
+        else:
+            own = list(
+                obj.enrollments.exclude(
+                    enrollment_status=EnrollmentStatusType.WITHDRAWN
+                ).filter(student=viewer)
+            )
+        return StudentSerializer(
+            [e.student for e in own],
+            many=True,
+            context={
+                "course": obj,
+                "enrollment_status_by_student": {
+                    e.student_id: e.enrollment_status for e in own
+                },
+            },
+        ).data
 
 
 class StudentCourseSerializer(serializers.ModelSerializer):
@@ -273,10 +393,48 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "grade_letter",
             "auto_added",
         ]
-        read_only_fields = ["id", "created_at", "auto_added"]
+        # `student` and `course` are read-only. The viewset exposes no POST
+        # (see StudentCourseViewSet.http_method_names), so the only thing
+        # their writability ever achieved was letting a PATCH re-point an
+        # enrollment the teacher legitimately owns at ANOTHER teacher's
+        # course, or at a different student - get_queryset() scopes which
+        # row you may edit, not what you may write into it.
+        read_only_fields = ["id", "created_at", "auto_added", "student", "course"]
 
     def get_teacher(self, obj):
         return obj.course.teacher.get_full_name()
+
+    # H-130. The stored `final_grade` counts every graded submission,
+    # released or not: it is the staff figure. A student must not learn
+    # that a grade exists before the teacher releases it, so anyone who is
+    # not staff gets the figure that released work alone implies, by the
+    # same arithmetic. "Not staff" rather than "a student": a reader this
+    # cannot identify is treated as one. Staff here means a teacher: the
+    # viewset serves enrollments to teachers and students and to nobody
+    # else (StudentCourseViewSet.get_queryset).
+
+    def _reader_is_staff(self):
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        return getattr(user, "user_type", None) == UserTypes.TEACHER
+
+    def _final_grade_for_reader(self, obj):
+        if self._reader_is_staff():
+            return obj.final_grade
+        # The viewset's own prefetch (student__submissions, each with its
+        # assignment): no query per enrollment.
+        return released_final_grade(obj.student.submissions.all(), obj.course_id)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self._reader_is_staff():
+            grade = self._final_grade_for_reader(instance)
+            data["final_grade"] = (
+                None
+                if grade is None
+                else self.fields["final_grade"].to_representation(grade)
+            )
+        return data
 
     def validate_final_grade(self, value):
         """Validate that final_grade is between 0 and 100."""
@@ -292,22 +450,55 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             )
         return value
 
+    # The three counts below all read from the caches the viewset already
+    # populates (prefetch_related("course__assignments") and the scoped
+    # "student__submissions" Prefetch), rather than issuing their own
+    # queries. `.count()` and `.filter()` both bypass a prefetch cache, so
+    # the previous versions cost four extra round trips PER ROW - a 100-row
+    # page of /student-course was ~400 avoidable queries.
+
+    def _course_assignments(self, obj):
+        # This viewset serves both the owning teacher and the enrolled
+        # student (see StudentCourseViewSet.get_queryset). A teacher sees
+        # every assignment they authored, drafts included - see
+        # test_the_counts_are_still_correct. A student must not learn a
+        # draft exists at all, so their counts have to agree with the
+        # PUBLISHED-only filter get_assignments applies below, or the
+        # stats and the assignment table disagree (the bug this fixes).
+        assignments = obj.course.assignments.all()
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if getattr(user, "user_type", None) != UserTypes.STUDENT:
+            return list(assignments)
+        return [a for a in assignments if a.status == AssignmentStatus.PUBLISHED]
+
+    def _submitted_assignment_ids(self, obj):
+        return {
+            submission.assignment_id
+            for submission in obj.student.submissions.all()
+            if submission.assignment.course_id == obj.course_id
+        }
+
     def get_total_no_of_assignment(self, obj):
-        return obj.course.assignments.count()
+        return len(self._course_assignments(obj))
 
     def get_total_assignment_submitted(self, obj):
-        return obj.course.assignments.filter(submissions__student=obj.student).count()
+        submitted = self._submitted_assignment_ids(obj)
+        return sum(1 for a in self._course_assignments(obj) if a.id in submitted)
 
     def get_submitted_assignment_percentage(self, obj):
-        if obj.course.assignments.count():
-            return (
-                obj.course.assignments.filter(submissions__student=obj.student).count()
-                / obj.course.assignments.count()
-            ) * 100
-        return 0
+        total = self.get_total_no_of_assignment(obj)
+        if not total:
+            return 0
+        return (self.get_total_assignment_submitted(obj) / total) * 100
 
     def get_grade_letter(self, obj):
-        return get_grade_details(obj.final_grade) if obj.final_grade else None
+        # `is not None`, not truthiness: a genuine 0.00 is a grade (an F),
+        # not the absence of one.
+        grade = self._final_grade_for_reader(obj)
+        if grade is None:
+            return None
+        return get_grade_details(grade)
 
 
 class StudentCourseDetailSerializer(StudentCourseSerializer):
@@ -321,11 +512,9 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         # the prefetched .all() would discard the prefetch cache and issue
         # a fresh query per enrollment row — the exact N+1 the view's
         # prefetch_related("course__assignments") exists to prevent.
-        assignments = [
-            a
-            for a in obj.course.assignments.all()
-            if a.status == AssignmentStatus.PUBLISHED
-        ]
+        # Shares _course_assignments with the stats fields above so the
+        # table and the header counts can never disagree again.
+        assignments = self._course_assignments(obj)
 
         # Filter pre-fetched submissions for this specific student
 
@@ -340,20 +529,11 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         for assignment in assignments:
             submission = submissions.get(assignment.id)
 
-            # Logic: status and score
-            if not submission:
-                now = timezone.now()
-
-                if assignment.due_date and assignment.due_date < now:
-                    status = "OVERDUE"
-                else:
-                    status = "PENDING"
-                score = None
-            elif submission.graded_at and submission.is_published:
-                status = "GRADED"
+            # Status and score for this assignment
+            status = get_student_assignment_status(assignment, submission)
+            if submission and submission.graded_at and submission.is_published:
                 score = submission.score
             else:
-                status = "SUBMITTED"
                 score = None
 
             result.append(
@@ -382,20 +562,57 @@ class AddStudentToCourseSerializer(serializers.Serializer):
         1. Is not associated with a teacher account
         2. Is a valid email format (handled by EmailField)
         """
-        existing_user = CustomUser.objects.filter(email=value).first()
+        from .services import (
+            NOT_A_STUDENT_MESSAGE,
+            find_account_by_email,
+            is_placeholder_email,
+            normalize_email,
+        )
 
-        if existing_user and existing_user.user_type == UserTypes.TEACHER:
-            raise serializers.ValidationError(
-                "This email belongs to a teacher account and cannot be added as a student."
-            )
+        value = normalize_email(value)
+        # H-99: a placeholder address is the server's key to a roster-only
+        # student, never something a caller may supply.
+        if is_placeholder_email(value):
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
+        existing_user = find_account_by_email(value)
 
+        # H-71: one neutral answer for every non-student role, so the form
+        # doesn't tell a teacher which addresses belong to staff.
         if existing_user and existing_user.user_type != UserTypes.STUDENT:
-            raise serializers.ValidationError(
-                "This email already exists in the system and cannot be added as a "
-                f"{existing_user.get_user_type_display().lower()}."
-            )
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
 
         return value
+
+
+def _create_placeholder_student(**fields):
+    """Create a roster-only student under a fresh placeholder address (H-99).
+
+    Only ever creates. An address that is already in use is skipped, not
+    attached: this row is a new student, whoever else has the same name.
+    The check and the insert are not one statement, so two requests could
+    still pick the same token; the unique `email` column refuses the second
+    insert, and that request takes another address.
+    """
+    from .services import (
+        PLACEHOLDER_EMAIL_ATTEMPTS,
+        find_account_by_email,
+        new_placeholder_email,
+    )
+
+    for _ in range(PLACEHOLDER_EMAIL_ATTEMPTS):
+        email = new_placeholder_email(fields["first_name"], fields["last_name"])
+        if find_account_by_email(email) is not None:
+            continue
+        try:
+            with transaction.atomic():
+                return CustomUser.objects.create(email=email, **fields)
+        except IntegrityError:
+            continue
+    # The views' own fallback sentence: no new wording for a case that
+    # needs several 64-bit collisions in a row.
+    raise serializers.ValidationError(
+        "We couldn't add this student to the course. Please try again."
+    )
 
 
 class DirectAddStudentSerializer(serializers.Serializer):
@@ -419,13 +636,25 @@ class DirectAddStudentSerializer(serializers.Serializer):
         if not value:
             return value
 
-        if CustomUser.objects.filter(
-            email=value,
-            user_type=UserTypes.TEACHER,
-        ).exists():
-            raise serializers.ValidationError(
-                "This email belongs to a teacher account and cannot be added as a student."
-            )
+        from .services import (
+            NOT_A_STUDENT_MESSAGE,
+            find_account_by_email,
+            is_placeholder_email,
+            normalize_email,
+        )
+
+        value = normalize_email(value)
+        # H-99: a placeholder address is the server's key to a roster-only
+        # student, never something a caller may supply.
+        if is_placeholder_email(value):
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
+        existing_user = find_account_by_email(value)
+
+        # H-71: every non-student role, not just teachers, and the same
+        # neutral answer as single add. An admin address used to pass here
+        # and fail later as a 500, so the status code told the roles apart.
+        if existing_user and existing_user.user_type != UserTypes.STUDENT:
+            raise serializers.ValidationError(NOT_A_STUDENT_MESSAGE)
 
         return value
 
@@ -464,15 +693,13 @@ class DirectAddStudentSerializer(serializers.Serializer):
         if not course:
             raise serializers.ValidationError("Course context is required.")
 
-        # Generate a tracked backend email if not provided
-        if not email:
-            unique_suffix = secrets.randbelow(10000)
-            safe_first = "".join(c for c in first_name.lower() if c.isalnum())
-            safe_last = "".join(c for c in last_name.lower() if c.isalnum())
-            email = f"{safe_first}.{safe_last}{unique_suffix}@student.local"
-
         with transaction.atomic():
-            student = CustomUser.objects.filter(email=email).first()
+            from .services import find_account_by_email
+
+            # H-99: only an address the CALLER supplied can name an existing
+            # account. With no address the student is always new: the
+            # placeholder generated below is never looked up to attach.
+            student = find_account_by_email(email) if email else None
 
             if student:
                 # Check if already enrolled
@@ -483,6 +710,22 @@ class DirectAddStudentSerializer(serializers.Serializer):
                         "Student is already enrolled in this course."
                     )
 
+                # This path attaches an EXISTING account, so it needs the
+                # same gate as single-add and bulk import. It is reachable
+                # with a caller-supplied email, so without this a teacher
+                # could pull another school's student in through the
+                # "direct add" form even after the other two routes were
+                # closed.
+                # Imported here, not at module scope: services.roster_import
+                # imports this module for DirectAddStudentSerializer, so a
+                # top-level import the other way is a genuine cycle.
+                from .services import EnrollmentError, check_existing_account_may_join
+
+                try:
+                    check_existing_account_may_join(student, course)
+                except EnrollmentError as exc:
+                    raise serializers.ValidationError(str(exc)) from exc
+
                 StudentCourse.objects.create(
                     student=student,
                     course=course,
@@ -490,17 +733,29 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     auto_added=True,
                 )
             else:
-                student = CustomUser.objects.create(
-                    email=email,
-                    first_name=first_name,
-                    middle_name=middle_name,
-                    last_name=last_name,
-                    profile_image=validated_data.get("profile_image"),
-                    user_type=UserTypes.STUDENT,
-                    school=course.teacher.school,
-                    is_active=True,
-                )
-                student.set_password("student123!")
+                fields = {
+                    "first_name": first_name,
+                    "middle_name": middle_name,
+                    "last_name": last_name,
+                    "profile_image": validated_data.get("profile_image"),
+                    "user_type": UserTypes.STUDENT,
+                    "school": course.teacher.school,
+                    "is_active": True,
+                }
+                if email:
+                    student = CustomUser.objects.create(email=email, **fields)
+                else:
+                    student = _create_placeholder_student(**fields)
+                # No password, rather than a shared literal. Every student
+                # created this way used to get the SAME known password, on
+                # an active account whose address followed a guessable
+                # pattern (first.last<0-9999>@student.local) - so anyone
+                # who learned the literal could sign in as any of them.
+                # These are teacher-managed roster entries that are never
+                # meant to be signed into directly; a student who later
+                # needs real access goes through the invitation flow, which
+                # sets a password of their own.
+                student.set_unusable_password()
                 student.save()
 
                 StudentCourse.objects.create(
@@ -572,32 +827,82 @@ class SchoolSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-def _send_school_admin_invitation_email(user, school):
+def _generate_school_admin_password(user):
+    """A random password meeting AUTH_PASSWORD_VALIDATORS, never logged.
+
+    Same approach as billing/license_service.py's
+    _generate_teacher_password - kept as a separate copy rather than a
+    shared import since the two invite flows (license teacher, school
+    admin) live in different apps with no existing dependency between
+    them.
+    """
+    from django.utils.crypto import get_random_string
+
+    alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+    for _ in range(10):
+        candidate = get_random_string(20, allowed_chars=alphabet)
+        try:
+            validate_password(candidate, user=user)
+        except Exception:
+            continue
+        return candidate
+    # Astronomically unlikely with a 20-char/66-symbol alphabet, but never
+    # fall through to a weaker password.
+    raise RuntimeError("Failed to generate a password passing validation.")
+
+
+def _send_school_admin_invitation_email(user, school, generated_password=None):
     """Queue the invitation email for a newly created school admin.
 
-    The admin has no usable password yet; the email links to a registration
-    page where they set their own password using the activation token.
-    """
-    frontend_domain = settings.FRONTEND_DOMAIN
-    activation_url = (
-        f"https://{frontend_domain}/register/school-admin"
-        f"?email={user.email}&token={user.activation_token}"
-    )
+    generated_password is set for the current creation path
+    (SchoolWithAdminSerializer.create()): the admin is active immediately
+    with a temporary password and the email links straight to /login.
 
-    merge_data = {
-        "title": f"You've been added as the admin for {school.name}",
-        "name": user.get_full_name() or user.first_name,
-        "top_content": (
-            f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
-            "Complete your registration to set up your password and start managing your school."
-        ),
-        "bottom_content": "This invitation link expires in 7 days.",
-        "activation_url": activation_url,
-        "current_year": timezone.now().year,
-        "support_email": settings.SUPPORT_EMAIL,
-    }
+    generated_password is left None for resend_school_admin_invitation(),
+    which still serves admin rows created before this change under the old
+    is_active=False/activation_token lifecycle - those still complete via
+    /auth/register/school-admin, so that email keeps linking there with the
+    (freshly reissued) activation token instead of a password.
+    """
+    frontend_domain = settings.SCHOOL_ADMIN_FRONTEND_DOMAIN
+
+    if generated_password is not None:
+        activation_url = f"https://{frontend_domain}/login"
+        merge_data = {
+            "title": f"You've been added as the admin for {school.name}",
+            "name": user.get_full_name() or user.first_name,
+            "top_content": (
+                f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
+                "Your account is ready - log in below with your email and the "
+                f"temporary password: {generated_password}\n\n"
+                "You'll be asked to choose your own password the first time "
+                "you log in."
+            ),
+            "bottom_content": "",
+            "activation_url": activation_url,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+    else:
+        activation_url = (
+            f"https://{frontend_domain}/register/school-admin"
+            f"?email={user.email}&token={user.activation_token}"
+        )
+        merge_data = {
+            "title": f"You've been added as the admin for {school.name}",
+            "name": user.get_full_name() or user.first_name,
+            "top_content": (
+                f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
+                "Complete your registration to set up your password and start managing your school."
+            ),
+            "bottom_content": "This invitation link expires in 7 days.",
+            "activation_url": activation_url,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
 
     user_email = user.email
+    user_id = user.id
     school_name = school.name
 
     def _dispatch():
@@ -613,12 +918,39 @@ def _send_school_admin_invitation_email(user, school):
             )
         except Exception:
             logger.exception(
-                "Failed to queue school admin invitation email to %s for school %s.",
-                user_email,
+                "Failed to queue school admin invitation email to user %s for "
+                "school %s.",
+                user_id,
                 school_name,
             )
 
     transaction.on_commit(_dispatch)
+
+
+def resend_school_admin_invitation(user):
+    """Issue a fresh 7-day invitation token and re-send the school-admin
+    invite email for a still-pending admin.
+
+    `SchoolWithAdminSerializer.create()` no longer produces is_active=False
+    admins - new admins are active immediately with a temporary password
+    (see its own comment). This function now only serves admin rows still
+    pending from before that change, so they can still be reached with a
+    working invite, rather than being routed through the generic
+    self-registration activation flow, which has no password step and
+    would silently overwrite this same `activation_token` field with one
+    that leads nowhere useful (H-42).
+    """
+    if not user.school:
+        logger.error(
+            "Cannot resend school admin invitation for user %s: no school attached.",
+            user.id,
+        )
+        return
+
+    user.activation_token = secrets.token_urlsafe(32)
+    user.activation_expires = timezone.now() + timezone.timedelta(days=7)
+    user.save(update_fields=["activation_token", "activation_expires"])
+    _send_school_admin_invitation_email(user, user.school)
 
 
 class SchoolWithAdminSerializer(serializers.Serializer):
@@ -683,10 +1015,10 @@ class SchoolWithAdminSerializer(serializers.Serializer):
                     website=validated_data.get("school_website", ""),
                 )
 
-                # 2. Create Admin User with an invitation token and no usable
-                # password. The admin sets their own password when they
-                # complete registration via the emailed invite link — no
-                # secret ever has to travel through an email template.
+                # 2. Create Admin User, active immediately with a temporary
+                # password - they log straight in instead of clicking an
+                # activation link first (same pattern as a license-invited
+                # teacher; see billing/license_service.py).
                 admin_data = {
                     "email": validated_data["admin_email"],
                     "first_name": validated_data["admin_first_name"],
@@ -695,29 +1027,42 @@ class SchoolWithAdminSerializer(serializers.Serializer):
                     "profile_image": validated_data.get("admin_profile_image"),
                     "user_type": UserTypes.SCHOOL_ADMIN,
                     "school": school,
-                    "is_active": False,
-                    # A high-entropy token, not the 6-digit OTP used for the
-                    # short-lived (15 min) email-verification flow — this link
-                    # stays valid for 7 days and needs a much bigger keyspace
-                    # to resist brute-forcing over that window.
-                    "activation_token": secrets.token_urlsafe(32),
-                    "activation_expires": timezone.now() + timezone.timedelta(days=7),
+                    "is_active": True,
+                    # Unlike the license-teacher path (which leaves this
+                    # unset - its generic /auth/verify completion doesn't
+                    # gate on is_active), leaving this None here would let
+                    # POST /auth/otp (VERIFY_EMAIL) reach this now-active
+                    # admin and resend a dead activation-token link via
+                    # resend_school_admin_invitation() - that link's own
+                    # completion endpoint (/auth/register/school-admin)
+                    # filters on is_active=False, which this admin no
+                    # longer satisfies. Marking the email verified here
+                    # (a superadmin just handed them working credentials
+                    # directly, the same trust level as a self-verified
+                    # link) makes /auth/otp short-circuit to "already
+                    # verified, please login" instead.
+                    "email_verified_at": timezone.now(),
                 }
 
                 try:
                     # Set license context so the post_save signal skips trial activation
                     set_license_invitation_context(True)
-                    # No password kwarg is passed, so CustomUser.objects.create_user()
-                    # calls set_password(None), which Django resolves to an unusable
-                    # password — equivalent to calling set_unusable_password().
                     user = CustomUser.objects.create_user(**admin_data)
+                    # Generate a real password so the admin can log in (and
+                    # so the forced-change flow below has something to
+                    # force them off of), instead of set_unusable_password()
+                    # leaving them with no way to ever authenticate.
+                    generated_password = _generate_school_admin_password(user)
+                    user.set_password(generated_password)
+                    user.must_change_password = True
+                    user.save(update_fields=["password", "must_change_password"])
                 finally:
                     clear_license_invitation_context()
 
                 # 3. Send the invitation email only after the transaction commits,
                 # so a rollback can never leave a queued email referencing a
                 # school/admin that doesn't exist.
-                _send_school_admin_invitation_email(user, school)
+                _send_school_admin_invitation_email(user, school, generated_password)
 
                 return {
                     "school": school,

@@ -1,0 +1,7 @@
+baseline exit=0
+X1	an assignment's save bumps the students enrolled in its course	KILLED	FAILED (failures=1)	True	11.6
+X2	the stored document is materialised once, not on every read	KILLED	FAILED (failures=2)	True	15.0
+X3	after release a student reads the stored document	KILLED	FAILED (failures=1)	True	15.8
+
+3/3 killed with verified restore
+exit=0 wall_s=75

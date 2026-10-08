@@ -1,0 +1,18 @@
+"""Plain Python, not a test run, starts no driver: what does
+sync_playwright().__enter__ do when the driver's start is refused?
+(H-118: the red tests and mutant P8 rely on it raising, not hanging.)"""
+import asyncio, sys
+
+for exc in (OSError("refused"), AssertionError("refused")):
+    async def refuse(*a, _exc=exc, **k):
+        raise _exc
+    real = asyncio.create_subprocess_exec
+    asyncio.create_subprocess_exec = refuse
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            print("ENTERED (unexpected)")
+    except BaseException as got:
+        print(type(exc).__name__, "->", type(got).__name__, "same object:", got is exc)
+    finally:
+        asyncio.create_subprocess_exec = real

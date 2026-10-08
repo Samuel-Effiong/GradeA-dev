@@ -1,0 +1,12 @@
+# Y9: Sentry: a failure to import the hooks is not swallowed
+# file: AutoGrader/settings.py (occurrence 1)
+# old: '        _SENTRY_SDK_INSTALLED = True\n    except ImportError:'
+# new: '        from AutoGrader.sentry_scrubbing import scrub_event  # noqa: F401\n\n        _SENTRY_SDK_INSTALLED = True\n    except ImportError:'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 12.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_failure_to_import_the_hooks_is_not_swallowed (AutoGrader.tests_sentry_scrubbing.WiringTests.test_a_failure_to_import_the_hooks_is_not_swallowed)
+
+FAILED (failures=1)

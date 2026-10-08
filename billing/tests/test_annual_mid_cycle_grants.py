@@ -46,6 +46,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
+from billing.immutable import allow_unsafe_mutation
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -109,7 +110,11 @@ class AnnualMidCycleGrantTests(TestCase):
         UserSubscription.objects.filter(user=self.user).delete()
         self.wallet, _ = CreditWallet.objects.get_or_create(user=self.user)
         self.wallet.buckets.all().delete()
-        CreditLedger.objects.filter(user=self.user).delete()
+        # The ledger is append-only (billing/immutable.py), so clearing
+        # signal-created rows needs the explicit test escape hatch. This
+        # is fabricating a starting state, not editing history.
+        with allow_unsafe_mutation():
+            CreditLedger.objects.filter(user_id=self.user.id).delete()
 
         self.t0 = timezone.now().replace(microsecond=0)
         self.subscription = UserSubscription.objects.create(
@@ -231,7 +236,7 @@ class AnnualMidCycleGrantTests(TestCase):
 
         amounts = list(
             CreditLedger.objects.filter(
-                user=self.user,
+                user_id=self.user.id,
                 ledger_type=CreditLedgerType.GRANT,
                 reference__startswith="Mid-cycle rollover",
             )

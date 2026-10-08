@@ -1,0 +1,263 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2468, in session_results
+    raise Http404("No BatchUploadSession matches the given query.")
+django.http.response.Http404: No BatchUploadSession matches the given query.
+
+
+django.request WARNING 2026-09-30 19:33:53,496 log 4046503 126210620578752 [request_id=-] Not Found: /api/v1/tasks/session-results/fd03849c-1b4d-4d3f-9b41-8aad2a1a5c55
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2190, in task_status
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+
+
+django.request WARNING 2026-09-30 19:33:53,510 log 4046503 126210620578752 [request_id=-] Not Found: /api/v1/tasks/status/b84b16d8-1d5e-4e1e-add7-63d306f1efa7
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2261, in cancel
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+
+
+django.request WARNING 2026-09-30 19:33:53,524 log 4046503 126210620578752 [request_id=-] Not Found: /api/v1/tasks/cancel/b84b16d8-1d5e-4e1e-add7-63d306f1efa7
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2320, in cancel_session
+    raise Http404("No BatchUploadSession matches the given query.")
+django.http.response.Http404: No BatchUploadSession matches the given query.
+
+
+django.request WARNING 2026-09-30 19:33:53,530 log 4046503 126210620578752 [request_id=-] Not Found: /api/v1/tasks/cancel-session/fd03849c-1b4d-4d3f-9b41-8aad2a1a5c55
+
+
+Grading refused (H-38): submission 9ee3a7ac-33bd-4631-9ac8-c7a455d20b93, user d783de83-30a5-4e70-a7f6-b6708829fec5 can no longer reach its course.
+Auto-grade skipped (H-38): assignment f9b61380-62e9-4377-9f61-d688f2c63afb, course c9dc4b25-498b-4cb7-bdd8-9d6870661a42 is no longer reachable by its teacher d783de83-30a5-4e70-a7f6-b6708829fec5.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user colleague@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user colleague@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user colleague@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FFFFFCannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+Batch grading refused (H-38): assignment 3c059aa1-a589-4532-8dd6-41adddad9d46, user 84724a98-0ce6-4a0a-87b6-d8dce9e38140 can no longer reach its course.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2468, in session_results
+    raise Http404("No BatchUploadSession matches the given query.")
+django.http.response.Http404: No BatchUploadSession matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2190, in task_status
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2261, in cancel
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2320, in cancel_session
+    raise Http404("No BatchUploadSession matches the given query.")
+django.http.response.Http404: No BatchUploadSession matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2462, in session_results
+    session = get_object_or_404(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No BatchUploadSession matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2190, in task_status
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2261, in cancel
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.BatchUploadSession.DoesNotExist: BatchUploadSession matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2314, in cancel_session
+    session = get_object_or_404(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No BatchUploadSession matches the given query.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+Grading refused (H-38): submission d0ab9968-f50a-4cd4-8ed7-904fafc1f99e, user 0ed19bd8-ca5e-4e03-a793-b304e9540cd5 can no longer reach its course.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2468, in session_results
+    raise Http404("No BatchUploadSession matches the given query.")
+django.http.response.Http404: No BatchUploadSession matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2190, in task_status
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2261, in cancel
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2320, in cancel_session
+    raise Http404("No BatchUploadSession matches the given query.")
+django.http.response.Http404: No BatchUploadSession matches the given query.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+Auto-grade skipped (H-38): assignment 38598bcc-4cbd-46dd-a22f-88d1c089b26e, course 910b2ae0-4d0d-4329-a739-914ba7cf9523 is no longer reachable by its teacher 4c665905-4182-4d79-b193-6a6e88c3c178.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+FAIL: test_queued_grading_does_not_run_as_the_ex_owner (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_queued_grading_does_not_run_as_the_ex_owner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 266, in test_queued_grading_does_not_run_as_the_ex_owner
+    self.grade().assert_not_called()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'grade_engine' to not have been called. Called 1 times.
+Calls: [call(<CustomUser: Teacher H38>, <StudentSubmission: StudentSubmission object (b05703c5-c442-424b-8d6d-5317053ccab0)>, processing_task_id='d3ac38c0-5af6-4d21-a8f2-77cf62d9e71e')].
+
+======================================================================
+FAIL: test_the_ex_owner_regains_no_route (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_ex_owner_regains_no_route) (route='T1 session-results')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 259, in test_the_ex_owner_regains_no_route
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Request Successful","data":{"progress":"0 / 1","percent":0,"is_complete":false,"success_count":0,"failure_count":0,"cancelled_count":0,"pending_count":1,"resource_type":"gra'
+
+======================================================================
+FAIL: test_the_ex_owner_regains_no_route (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_ex_owner_regains_no_route) (route='T2 status')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 259, in test_the_ex_owner_regains_no_route
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Request Successful","data":{"task_id":"67120c20-e0bf-4726-b16d-86c8f9d6b958","status":"processing","meta":"{\'student_name\': \'Vfsentinelpupil Hthirtyeight\'}","resource_type":'
+
+======================================================================
+FAIL: test_the_ex_owner_regains_no_route (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_ex_owner_regains_no_route) (route='T3 cancel')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 259, in test_the_ex_owner_regains_no_route
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Background task cancellation requested successfully.","data":{"task_id":"67120c20-e0bf-4726-b16d-86c8f9d6b958","status":"cancelled","message":"Background task cancellation r'
+
+======================================================================
+FAIL: test_the_ex_owner_regains_no_route (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_ex_owner_regains_no_route) (route='T4 cancel-session')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 259, in test_the_ex_owner_regains_no_route
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Batch session cancellation requested successfully.","data":{"session_id":"6ccb8a1d-51ee-4837-8131-ab0240e37f4c","cancelled_count":0,"message":"Batch session cancellation req'
+
+======================================================================
+FAIL: test_the_ex_owner_regains_no_route (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_ex_owner_regains_no_route)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 262, in test_the_ex_owner_regains_no_route
+    self.assertEqual(self.task.status, BackgroundTaskStatus.STARTED)
+AssertionError: 'CANCELLED' != BackgroundTaskStatus.STARTED
+
+----------------------------------------------------------------------
+Ran 12 tests in 3.748s
+
+FAILED (failures=6)
+Destroying test database for alias 'default'...
+Found 12 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

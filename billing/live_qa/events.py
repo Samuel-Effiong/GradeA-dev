@@ -142,7 +142,18 @@ class CustomerEventStream:
                 # loop here would mask it.
                 self.dispatched_event_ids.add(event_id)
 
-                response = _record_and_dispatch(event, log_prefix=self.log_prefix)
+                # inline=True, for the same reason the single-threaded
+                # harness passes it: production claims the event and hands
+                # the handler to a Celery worker, but a scenario asserts on
+                # the handler's effects the moment drain() returns and
+                # there is no worker here. Without it every event is
+                # claimed and never run — which looks exactly like a
+                # billing bug: cycles that never advance, credits never
+                # granted, statuses never synced, and a pile of events
+                # stuck holding a PROCESSING claim.
+                response = _record_and_dispatch(
+                    event, log_prefix=self.log_prefix, inline=True
+                )
                 dispatched.append((event["type"], response.status_code))
                 self.bus.stats.dispatched[event["type"]] = (
                     self.bus.stats.dispatched.get(event["type"], 0) + 1

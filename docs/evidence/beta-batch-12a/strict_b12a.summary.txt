@@ -1,0 +1,20 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+bundle b12a strict full run start 2026-10-07 17:09:36 WAT sha=2adc1bb3 load=3.51 3.98 3.97
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=0 end 2026-10-07 17:18:18 WAT wall=522s
+load at end: 10.72 11.51 7.90
+Ran 6047 tests in 492.106s
+OK (skipped=28)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 852
+  assignments 663
+  AutoGrader 669
+  billing 2109
+  classrooms 434
+  dashboard 270
+  students 396
+  users 654
+FAIL/ERROR headers: 0
+suspends during run: 0

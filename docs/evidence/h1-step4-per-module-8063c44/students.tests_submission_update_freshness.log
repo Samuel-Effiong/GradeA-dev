@@ -1,0 +1,6 @@
+students.tests_submission_update_freshness.SubmissionUpdatePathFreshnessTest.test_failed_grading_claim_refreshes_the_cached_detail ... ok
+students.tests_submission_update_freshness.SubmissionUpdatePathFreshnessTest.test_mark_reviewed_refreshes_the_cached_detail ... ok
+students.tests_submission_update_freshness.SubmissionUpdatePathFreshnessTest.test_no_wildcard_sweep_runs_on_a_mutation ... ok
+students.tests_submission_update_freshness.SubmissionUpdatePathFreshnessTest.test_publish_refreshes_the_cached_detail ... ok
+Ran 4 tests in 3.913s
+OK

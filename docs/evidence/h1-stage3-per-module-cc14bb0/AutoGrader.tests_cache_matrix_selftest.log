@@ -1,0 +1,23 @@
+AutoGrader.tests_cache_matrix_selftest.MatrixDetectsStalenessTests.test_a_bump_without_a_data_change_is_unaffected_not_spurious ... ok
+AutoGrader.tests_cache_matrix_selftest.MatrixDetectsStalenessTests.test_a_payload_that_changes_on_every_read_is_refused ... ok
+AutoGrader.tests_cache_matrix_selftest.MatrixDetectsStalenessTests.test_an_uninvalidated_write_is_reported_stale ... FAIL
+AutoGrader.tests_cache_matrix_selftest.MatrixDetectsStalenessTests.test_expect_changed_fails_when_the_mutation_moves_nothing ... ok
+AutoGrader.tests_cache_matrix_selftest.MatrixDetectsStalenessTests.test_invalidating_exactly_the_affected_viewers_is_reported_fresh ... ok
+AutoGrader.tests_cache_matrix_selftest.ScanSpyCountsLegacyWildcardsTests.test_routed_course_rename_is_counted_by_the_scan_spy ... ok
+FAIL: test_an_uninvalidated_write_is_reported_stale (AutoGrader.tests_cache_matrix_selftest.MatrixDetectsStalenessTests.test_an_uninvalidated_write_is_reported_stale)
+Ran 6 tests in 5.410s
+FAILED (failures=1)
+
+# The failure's verdict table, from the full log:
+AssertionError: {'stu[15 chars]t': 'FRESH', 'teacher course list': 'STALE', '[36 chars]TED'} != {'stu[15 chars]t': 'STALE', 'teacher course list': 'STALE', '[36 chars]TED'}
+  {'other teacher course list': 'UNAFFECTED',
+-  'student course list': 'FRESH',
+?                          ^^ --
+
++  'student course list': 'STALE',
+?                          ^^^^
+
+   'teacher course list': 'STALE'} : mutation: withdraw via .update(), no bump  (SCANs during mutation: 0)
+  student course list        FRESH       status 200 -> cached 200 / truth 200
+  teacher course list        STALE       status 200 -> cached 200 / truth 200
+  other teacher course list  UNAFFECTED  status 200 -> cached 200 / truth 200

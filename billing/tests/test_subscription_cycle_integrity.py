@@ -238,8 +238,11 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
             "proration_amount": "500",
         }
 
+    @patch("stripe.PaymentIntent")
     @patch("stripe.Subscription")
-    def test_webhook_preserves_cycle_for_same_interval(self, mock_subscription):
+    def test_webhook_preserves_cycle_for_same_interval(
+        self, mock_subscription, mock_payment_intent
+    ):
         sub = self._make_sub(self.standard_plan)
         mock_subscription.modify.return_value = None
 
@@ -249,18 +252,29 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
             "currency": "usd",
             "payment_intent": "pi_test_1",
         }
-        StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
-            session, self._webhook_metadata(sub, self.pro_plan)
-        )
+        with patch(
+            "billing.stripe_service.schedule_receipt_url_fill", return_value=None
+        ) as schedule_receipt:
+            StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
+                session, self._webhook_metadata(sub, self.pro_plan)
+            )
 
         sub.refresh_from_db()
         self.assertEqual(sub.plan_id, self.pro_plan.id)
         self.assertEqual(sub.billing_cycle_end, self.cycle_end)
+        # H-62: the handler makes no Stripe call inside its transaction; the
+        # receipt link is queued for a fill after commit (billing.receipts).
+        mock_payment_intent.retrieve.assert_not_called()
+        schedule_receipt.assert_called_once()
+        self.assertEqual(
+            schedule_receipt.call_args.args[0].stripe_payment_intent_id, "pi_test_1"
+        )
 
+    @patch("stripe.PaymentIntent")
     @patch("stripe.Invoice")
     @patch("stripe.Subscription")
     def test_webhook_resets_cycle_for_interval_crossing(
-        self, mock_subscription, mock_invoice
+        self, mock_subscription, mock_invoice, mock_payment_intent
     ):
         sub = self._make_sub(self.standard_plan)
         mock_subscription.modify.return_value = None
@@ -276,9 +290,12 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
             "payment_intent": "pi_test_2",
         }
         before = timezone.now()
-        StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
-            session, self._webhook_metadata(sub, self.annual_plan)
-        )
+        with patch(
+            "billing.stripe_service.schedule_receipt_url_fill", return_value=None
+        ) as schedule_receipt:
+            StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
+                session, self._webhook_metadata(sub, self.annual_plan)
+            )
         after = timezone.now()
 
         # Interval-crossing genuinely resets Stripe's cycle, so (like
@@ -292,6 +309,13 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
         self.assertGreaterEqual(new_sub.billing_cycle_start, before)
         self.assertLessEqual(new_sub.billing_cycle_start, after)
         self.assertGreater(new_sub.billing_cycle_end, self.cycle_end)
+        # H-62: the handler makes no Stripe call inside its transaction; the
+        # receipt link is queued for a fill after commit (billing.receipts).
+        mock_payment_intent.retrieve.assert_not_called()
+        schedule_receipt.assert_called_once()
+        self.assertEqual(
+            schedule_receipt.call_args.args[0].stripe_payment_intent_id, "pi_test_2"
+        )
 
 
 class DowngradeAfterUpgradeDateIntegrityTestCase(TestCase):

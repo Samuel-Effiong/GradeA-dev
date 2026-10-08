@@ -1,4 +1,3 @@
-# import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -37,11 +36,6 @@ class ClassroomBaseAPITest(APITestCase):
     def setUp(self):
         # Clear cache before each test
         cache.clear()
-
-        # Mock delete_pattern since it's a django-redis specific method
-        # and might not be available in the test cache backend.
-        if not hasattr(cache, "delete_pattern"):
-            cache.delete_pattern = lambda x: None
 
         # Create a superuser
         self.superadmin = User.objects.create_superuser(
@@ -92,7 +86,7 @@ class ClassroomBaseAPITest(APITestCase):
             total_credits=amount,
             used_credits=amount,
         )
-        return CreditUsageLog.objects.create(
+        return CreditUsageLog.record(
             wallet=teacher.credit_wallet,
             bucket=bucket,
             amount=amount,
@@ -106,8 +100,11 @@ class SchoolViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.superadmin)
         url = reverse("school-list")
 
-        # Mock cache.delete_pattern to simulate invalidation
-        with patch.object(cache, "delete_pattern") as mock_delete:
+        # H-1 step 4: invalidation is a generation bump, never a pattern
+        # delete, and the cached list refreshes with no manual clear.
+        with patch.object(
+            cache, "delete_pattern", create=True, side_effect=AssertionError
+        ) as mock_delete:
             # First call caches the response
             response1 = self.client.get(url)
             self.assertEqual(len(response1.data["results"]), 1)
@@ -115,15 +112,10 @@ class SchoolViewSetTest(ClassroomBaseAPITest):
             # Create a new school via API
             self.client.post(url, {"name": "New API School"})
 
-            # Check if delete_pattern was called
-            mock_delete.assert_called()
-
-            # Manually clear cache to simulate invalidation effect
-            cache.clear()
-
-            # Second call should reflect the new school
+            # Second call reflects the new school, from the cache path
             response2 = self.client.get(url)
             self.assertEqual(len(response2.data["results"]), 2)
+            mock_delete.assert_not_called()
 
     def test_list_schools_teacher_denied(self):
         # SchoolViewSet is superadmin-only: teachers (and school admins)
@@ -553,8 +545,11 @@ class SessionViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("session-list")
 
-        # Mock cache.delete_pattern to simulate invalidation
-        with patch.object(cache, "delete_pattern") as mock_delete:
+        # H-1 step 4: invalidation is a generation bump, never a pattern
+        # delete, and the cached list refreshes with no manual clear.
+        with patch.object(
+            cache, "delete_pattern", create=True, side_effect=AssertionError
+        ) as mock_delete:
             # First GET call
             response1 = self.client.get(url)
             self.assertEqual(len(response1.data["results"]), 0)
@@ -564,15 +559,10 @@ class SessionViewSetTest(ClassroomBaseAPITest):
             create_response = self.client.post(url, new_session_data)
             self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
-            # Check if delete_pattern was called
-            mock_delete.assert_called()
-
-            # Manually clear cache to simulate invalidation effect
-            cache.clear()
-
-            # Second GET call should reflect new session
+            # Second GET call reflects the new session, from the cache path
             response2 = self.client.get(url)
             self.assertEqual(len(response2.data["results"]), 1)
+            mock_delete.assert_not_called()
 
     def test_session_isolation(self):
         # Teacher 1 creates a session
@@ -604,8 +594,11 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("course-list")
 
-        # Mock cache.delete_pattern to simulate invalidation
-        with patch.object(cache, "delete_pattern") as mock_delete:
+        # H-1 step 4: invalidation is a generation bump, never a pattern
+        # delete, and the cached list refreshes with no manual clear.
+        with patch.object(
+            cache, "delete_pattern", create=True, side_effect=AssertionError
+        ) as mock_delete:
             # First GET call
             response1 = self.client.get(url)
             self.assertEqual(len(response1.data["results"]), 0)
@@ -615,15 +608,10 @@ class CourseViewSetTest(ClassroomBaseAPITest):
             create_response = self.client.post(url, new_course_data)
             self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
-            # Check if delete_pattern was called
-            mock_delete.assert_called()
-
-            # Manually clear cache to simulate invalidation
-            cache.clear()
-
-            # Second GET call should reflect the new course
+            # Second GET call reflects the new course, from the cache path
             response2 = self.client.get(url)
             self.assertEqual(len(response2.data["results"]), 1)
+            mock_delete.assert_not_called()
 
     def test_hacker_enroll_same_student_twice(self):
         course = Course.objects.create(
@@ -641,7 +629,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("already enrolled", str(response.data.get("detail", "")))
 
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_teacher_can_invite_multiple_pending_students_by_email(
         self, mock_send_email
     ):
@@ -662,7 +650,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_new_student_invite_link_uses_student_frontend_domain(
         self, mock_send_email
     ):
@@ -685,7 +673,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_existing_inactive_student_invite_link_uses_student_frontend_domain(
         self, mock_send_email
     ):
@@ -717,7 +705,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_existing_active_student_added_login_link_uses_student_frontend_domain(
         self, mock_send_email
     ):
@@ -731,6 +719,9 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         )
         student.user_type = UserTypes.STUDENT
         student.is_active = True
+        # Has signed in before: an existing student who hasn't is re-sent
+        # credentials instead (enrollment.has_signed_in).
+        student.last_login = timezone.now()
         student.save()
 
         course = Course.objects.create(
@@ -746,7 +737,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.assertIn("student.example.test", merge_data["content"])
         self.assertNotIn("teacher.example.test", merge_data["content"])
 
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_teacher_cannot_remove_student_from_another_teachers_course(
         self, mock_send_email
     ):

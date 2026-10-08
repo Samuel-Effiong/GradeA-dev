@@ -1,0 +1,114 @@
+# 1a H-110 mutant Y13 at c10ee47dff146655b0bf9c4aafd0ffccff95d1de, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 1.80 2.68 5.58 2/2647 1102886
+pycache dirs under AutoGrader and assignments after clear: 0
+applied Y13
+mutated sha differs: True
+ assignments/pdf_renderer.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+test_b1_chromium_does_not_launch_ten_times (assignments.tests_vf1a_h110_probe.H110FailedStartProbe.test_b1_chromium_does_not_launch_ten_times) ... ok
+test_b2_the_driver_does_not_start_ten_times (assignments.tests_vf1a_h110_probe.H110FailedStartProbe.test_b2_the_driver_does_not_start_ten_times) ... ok
+test_c1_a_character_split_across_two_writes_arrives_whole (assignments.tests_vf1a_h110_probe.H110ReaderProbe.test_c1_a_character_split_across_two_writes_arrives_whole) ... ok
+test_c2_one_driver_line_stays_one_log_line (assignments.tests_vf1a_h110_probe.H110ReaderProbe.test_c2_one_driver_line_stays_one_log_line) ... ok
+test_c3_a_line_of_400_000_bytes_is_logged_once (assignments.tests_vf1a_h110_probe.H110ReaderProbe.test_c3_a_line_of_400_000_bytes_is_logged_once)
+However the reader's reads fall, 400,000 bytes pass the bound on ... FAIL
+test_a1_what_a_real_driver_writes_arrives_in_the_log (assignments.tests_vf1a_h110_probe.H110RealDriverProbe.test_a1_what_a_real_driver_writes_arrives_in_the_log) ... ok
+test_a2_control_without_the_hand_over_the_defect_is_seen (assignments.tests_vf1a_h110_probe.H110RealDriverProbe.test_a2_control_without_the_hand_over_the_defect_is_seen) ... ok
+test_a3_a_normal_exit_ends_the_process_and_the_driver (assignments.tests_vf1a_h110_probe.H110RealDriverProbe.test_a3_a_normal_exit_ends_the_process_and_the_driver) ... ok
+test_the_driver_is_started_with_what_the_hook_returns (assignments.tests_pdf_renderer_driver_stderr.PlaywrightStderrHookPinTest.test_the_driver_is_started_with_what_the_hook_returns) ... ok
+test_the_hook_exists (assignments.tests_pdf_renderer_driver_stderr.PlaywrightStderrHookPinTest.test_the_hook_exists) ... ok
+test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking)
+Before the fix a SIGKILLed driver left the pipe non-blocking for ... ok
+test_playwright_took_our_pipe_and_its_hook_is_put_back (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_playwright_took_our_pipe_and_its_hook_is_put_back) ... ok
+test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_while_the_driver_is_alive_the_stderr_pipe_stays_blocking) ... ok
+test_close_ends_the_reader_and_closes_both_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_ends_the_reader_and_closes_both_ends) ... ok
+test_close_twice_is_harmless (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_twice_is_harmless) ... ok
+test_repeated_starts_leak_no_descriptor (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_repeated_starts_leak_no_descriptor) ... ok
+test_the_reader_outlives_our_write_end_while_the_driver_has_one (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_the_reader_outlives_our_write_end_while_the_driver_has_one)
+close_write_end() is what the renderer calls right after the ... ok
+test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_burst_larger_than_the_pipe_arrives_whole_with_a_slow_logger)
+The reader is on the render path: while the log is slow the ... ok
+test_a_last_line_with_no_newline_is_not_lost (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_last_line_with_no_newline_is_not_lost) ... ok
+test_a_line_is_scrubbed_like_any_log_line (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_is_scrubbed_like_any_log_line)
+The driver can print URLs and page text. Its lines go through ... ok
+test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_longer_than_the_pipe_is_logged_once_and_the_rest_dropped) ... ok
+test_a_line_split_across_writes_is_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_split_across_writes_is_one_warning) ... ok
+test_a_line_that_never_ends_is_logged_before_it_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_that_never_ends_is_logged_before_it_ends)
+What is held of an unfinished line is bounded: after one pipe's ... FAIL
+test_a_logger_that_raises_does_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_logger_that_raises_does_not_stop_the_reader) ... ok
+test_a_long_line_is_cut (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_long_line_is_cut) ... ok
+test_blank_lines_are_not_logged (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_blank_lines_are_not_logged) ... ok
+test_bytes_that_are_not_utf8_do_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_bytes_that_are_not_utf8_do_not_stop_the_reader) ... ok
+test_control_characters_are_replaced (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_control_characters_are_replaced) ... ok
+test_each_line_becomes_one_warning (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_each_line_becomes_one_warning) ... ok
+test_a_second_start_waits_and_restores_the_real_hook (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_a_second_start_waits_and_restores_the_real_hook)
+Two starts must not overlap: the second would save the first's ... ok
+test_inside_playwright_is_given_our_write_end (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_inside_playwright_is_given_our_write_end) ... ok
+test_the_hook_is_put_back_when_the_start_fails (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_the_hook_is_put_back_when_the_start_fails) ... ok
+test_without_the_hook_the_start_still_goes_ahead (assignments.tests_pdf_renderer_driver_stderr_reader.HookHandOverTest.test_without_the_hook_the_start_still_goes_ahead) ... ok
+test_nothing_is_said_when_playwright_takes_the_pipe (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_nothing_is_said_when_playwright_takes_the_pipe) ... ok
+test_the_renderer_starts_and_says_so_once_per_process (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_the_renderer_starts_and_says_so_once_per_process) ... ok
+
+======================================================================
+FAIL: test_c3_a_line_of_400_000_bytes_is_logged_once (assignments.tests_vf1a_h110_probe.H110ReaderProbe.test_c3_a_line_of_400_000_bytes_is_logged_once)
+However the reader's reads fall, 400,000 bytes pass the bound on
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h110/assignments/tests_vf1a_h110_probe.py", line 475, in test_c3_a_line_of_400_000_bytes_is_logged_once
+    self.assertEqual(
+AssertionError: Lists differ: ['[PD[2066 chars]err: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv[4044 chars]ext'] != ['[PD[2066 chars]err: next']
+
+First differing element 1:
+'[PDF[23 chars]err: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv[1961 chars]cut]'
+'[PDF[23 chars]err: next'
+
+First list contains 2 additional elements.
+First extra element 2:
+'[PDF] Playwright driver stderr: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv [cut]'
+
+Diff is 6214 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_line_that_never_ends_is_logged_before_it_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_line_that_never_ends_is_logged_before_it_ends)
+What is held of an unfinished line is bounded: after one pipe's
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h110/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 220, in test_a_line_that_never_ends_is_logged_before_it_ends
+    self.assertEqual(
+AssertionError: Lists differ: ['[PD[2066 chars]err: wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww[2002 chars]ext'] != ['[PD[2066 chars]err: next']
+
+First differing element 1:
+'[PDF[23 chars]err: wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww[1961 chars]cut]'
+'[PDF[23 chars]err: next'
+
+First list contains 1 additional elements.
+First extra element 2:
+'[PDF] Playwright driver stderr: next'
+
+Diff is 4157 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 35 tests in 29.926s
+
+FAILED (failures=2)
+Found 35 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+
+VF1A_H110_B1 the real driver starts, Chromium does not, 10 times: descriptors 4 -> 4, no renderer thread, no child process, the hook the original
+
+VF1A_H110_B2 Playwright's start raises, 10 times: descriptors 4 -> 4, no renderer thread
+
+VF1A_H110_C1 a 2-, 3- and 4-byte character split across two writes: whole
+
+VF1A_H110_C2 CR, VT, FF, FS, GS, RS, NEL, LS, PS and NUL: one line, replaced
+
+VF1A_H110_A1 a real driver with its debug output on: {'driver_lines': 109, 'lines_naming_the_browser_channel': 4, 'lines_naming_the_protocol_channel': 104, 'lines_cut': 5, 'longest_line': 2006, 'lines_with_a_control_character': 0}; bytes on the process's own stderr: 0
+
+VF1A_H110_A2 control, hand-over off: the pipe was non-blocking, 9 debug lines on the process's own stderr, the ERROR logged once
+
+VF1A_H110_A3 normal exit after one render: status 0 in 0.1 s, 6 processes of the driver's tree gone; 0 bytes on stderr at exit: ''
+systemd-run failed with exit status 1.
+exit=1 wall_s=37
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader and assignments after clear: 0
+tracked changes after restore: 0

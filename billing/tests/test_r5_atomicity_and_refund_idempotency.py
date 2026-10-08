@@ -130,10 +130,16 @@ class RefundIdempotencyKeyTests(TestCase):
                 "sub_dup_1"
             )
 
-        mock_refund.create.assert_called_once_with(
-            payment_intent="pi_dup_1",
-            idempotency_key="interval-change-refund-pi_dup_1",
-        )
+        # The key is what makes a replay a no-op on Stripe's side; the
+        # metadata is what stops the resulting `charge.refunded` being
+        # filed as unexplained money movement (see
+        # test_refund_reconciliation_classification). Asserted on the
+        # fields that matter rather than on the exact call, so adding a
+        # field does not fail a test about idempotency.
+        mock_refund.create.assert_called_once()
+        kwargs = mock_refund.create.call_args.kwargs
+        self.assertEqual(kwargs["payment_intent"], "pi_dup_1")
+        self.assertEqual(kwargs["idempotency_key"], "interval-change-refund-pi_dup_1")
 
     @patch("stripe.Invoice")
     @patch("stripe.Subscription")

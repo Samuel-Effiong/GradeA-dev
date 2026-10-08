@@ -1,0 +1,21 @@
+live_pg_database_rows_before 0
+started_utc 2026-09-14T20:00:35Z
+exit 0
+ended_utc 2026-09-14T20:06:15Z
+elapsed_seconds 340
+log_lines 561
+log_sha256 d5c08cc261f975b4b97b4075286ed95d940572c3a7b540cd5b1f9adaf2490173
+ran_line Ran 7 tests in 302.767s
+result_line OK
+fail_error_lines 0
+other_sessions_lines 0
+live_pg_database_rows_after 0
+live_pg_stat_activity_connections_after 0
+per_test_outcomes (resolved from the complete log; billed tests print 'ok' on a later line after their log output)
+  ok LiveAnswerExtractionBenchmarkTest.test_live_corpus (log line 389)
+  ok LiveEndToEndGradingTest.test_extraction_through_real_grading (log line 541)
+  ok RealAssignmentExtractionTest.test_a_real_extraction_from_a_PDF_upload (log line 544)
+  ok LiveCorpusShapeTest x4 (log lines 545-548)
+  totals: 7 ok, 0 skipped, 0 failed
+note: 'Cannot activate automatic trial ... Free trial plan not found' is a logged warning from the test fixture (no free-trial plan in the test DB); the tests create their own subscription
+ran_after_full_suite_start: no (live 20:00:35Z-20:06:15Z; full suite started 20:07:10Z)

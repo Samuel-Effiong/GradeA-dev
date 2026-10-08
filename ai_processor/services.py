@@ -3,27 +3,25 @@ import json
 import logging
 import math
 import os
+import re
 import shutil
 import tempfile
 import uuid
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import fitz
 import tiktoken
-
-# import numpy as np
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from environ import Env
-from openai import OpenAI
-
-# from paddleocr import PaddleOCR
+from openai import OpenAI, OpenAIError
 from pdf2image import convert_from_bytes, convert_from_path
+from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
 
-# from ai_processor.models import ChatMessage, ChatSession
 from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
 from billing.access_control import (
     NO_CREDITS_REMAINING_REASON,
@@ -41,7 +39,21 @@ from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
 from . import grading_cache
+from .answer_completeness import MODE_LOG as ANSWER_MODE_LOG
+from .answer_completeness import MODE_OFF as ANSWER_MODE_OFF
+from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
+from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
+from .extraction_schemas import (
+    ANSWER_EXTRACTION_RESPONSE_SCHEMA,
+    ANSWER_STATUSES,
+    ANSWERED,
+    BLANK,
+    BLANK_VERIFICATION_RESPONSE_SCHEMA,
+    ILLEGIBLE,
+    NOT_FOUND_IN_DOCUMENT,
+    REVIEW_REQUIRED_STATUSES,
+)
 from .grading_schemas import (
     GRADING_BATCH_RESPONSE_SCHEMA,
     GRADING_SINGLE_PASS_RESPONSE_SCHEMA,
@@ -60,12 +72,6 @@ from .second_opinion import (
 )
 from .tools import safe_sort_key
 
-# from billing.services import SubscriptionService
-
-# from PIL import Image
-# from pytesseract import pytesseract
-
-
 env = Env()
 env.read_env(".env")
 
@@ -73,56 +79,58 @@ OPENROUTER_API_KEY: str = env.str(
     "OPENROUTER_API_KEY",
 )
 
-# PERSONAL_OPENROUTER = env.str("PERSONAL_OPENROUTER")
-#
-# DEEPSEEK_API_KEY: str = env.str(
-#     "DEEPSEEK_API_KEY",
-# )
-#
-# HF_TOKEN_API_KEY: str = env.str(
-#     "HF_TOKEN_API_KEY",
-# )
-
 AI_CONFIDENCE_THRESHOLD = 80
 
-with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt", "r") as file:
-    ASSIGNMENT_EXTRACTION_PROMPT = file.read()
+# Prompts live beside this module. Anchored to __file__ rather than the
+# process's working directory: these are read at IMPORT time, so a
+# CWD-relative path makes the whole app unimportable from anywhere but
+# the project root (a management command run from elsewhere, a worker
+# with a different working directory, a test runner invoked by path).
+PROMPT_DIR = Path(__file__).resolve().parent
 
-with open(
-    "ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt", "r"
-) as file:
-    ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS = file.read()
 
-with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
-    RUBRIC_EXTRACTION_PROMPT = file.read()
+def _load_prompt(filename: str) -> str:
+    return (PROMPT_DIR / filename).read_text(encoding="utf-8")
 
-with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt", "r") as file:
-    ANSWERS_EXTRACTION_PROMPT = file.read()
 
-# v4 replaces v3's open-ended "leniency"/"Holistic Uplift" system (which
+ASSIGNMENT_EXTRACTION_PROMPT = _load_prompt("ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt")
+
+ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS = _load_prompt(
+    "ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt"
+)
+
+RUBRIC_EXTRACTION_PROMPT = _load_prompt("RUBRIC_EXTRACTION_PROMPT.txt")
+
+ANSWERS_EXTRACTION_PROMPT = _load_prompt("ANSWERS_EXTRACTION_PROMPT_HTML_4.txt")
+
+# v5 is the live grading prompt. It replaced v3's open-ended "leniency"/"Holistic Uplift" system (which
 # invited scores above and between rubric levels, making grades both
 # inflated and non-reproducible) with rubric-anchored discrete scoring and
 # a single bounded Borderline Rule. It also fixes the input contract to
 # match what the pipeline actually sends (answer_html, not answer_text).
-with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_5.txt", "r") as file:
-    GRADING_ASSIGNMENT_PROMPT = file.read()
+GRADING_ASSIGNMENT_PROMPT = _load_prompt("GRADING_ASSIGNMENT_PROMPT_5.txt")
 
-with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_6.txt", "r") as file:
-    GENERATE_ASSIGNMENT_PROMPT = file.read()
+GENERATE_ASSIGNMENT_PROMPT = _load_prompt("ASSIGNMENT_GENERATION_PROMPT_6.txt")
 
-with open("ai_processor/GRADE_FORMATTER_2.txt", "r") as file:
-    GRADE_FORMATTER = file.read()
+GRADE_FORMATTER = _load_prompt("GRADE_FORMATTER_2.txt")
 
-with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
-    STUDENT_SUMMARY_PROMPT = file.read()
+STUDENT_SUMMARY_PROMPT = _load_prompt("STUDENT_SUMMARY_PROMPT.txt")
 
-with open("ai_processor/WEEKLY_COURSE_SUMMARY_PROMPT.txt", "r") as file:
-    WEEKLY_COURSE_SUMMARY_PROMPT = file.read()
+WEEKLY_COURSE_SUMMARY_PROMPT = _load_prompt("WEEKLY_COURSE_SUMMARY_PROMPT.txt")
 
-with open("ai_processor/WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt", "r") as file:
-    WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = file.read()
+WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = _load_prompt(
+    "WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt"
+)
 
 logger = logging.getLogger(__name__)
+
+# Shown to a STUDENT when their teacher's plan or wallet blocks the AI call.
+# Deliberately says nothing about the teacher's subscription, balance or any
+# internal failure - see the student branch of execute_graded_task.
+STUDENT_AI_UNAVAILABLE_MESSAGE = (
+    "AI features aren't available for this assignment right now. "
+    "Please ask your teacher to check their account."
+)
 
 
 class GradingEvidenceError(ValueError):
@@ -148,6 +156,44 @@ class GradingCompletenessError(ValueError):
     """
 
 
+#: H-128: what is saved as `second_opinion["error"]` when a second opinion
+#: fails. The grading result is saved whole as the submission's feedback, so
+#: the error's own text must not be in it: that text can be the teacher's
+#: credit balance, the reason their plan was refused, or the AI provider's
+#: whole error body (the provider library's message is "Error code: <status>
+#: - <the response body>"). The text goes to the log, which is scrubbed.
+#: A closed list; ai_processor/tests_second_opinion_error_code.py names it.
+SECOND_OPINION_ERROR_CODES = (
+    "out_of_credits",
+    "access_refused",
+    "provider_error",
+    "evidence_rejected",
+    "incomplete_response",
+    "other",
+)
+
+
+def _second_opinion_error_code(exc) -> str:
+    """The code for a failed second opinion: the first failure of a known
+    kind in the exception's chain of causes, else "other". Never any of
+    the exception's text."""
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, InsufficientCreditsError):
+            return "out_of_credits"
+        if isinstance(exc, AIFeatureNotAvailableError):
+            return "access_refused"
+        if isinstance(exc, GradingEvidenceError):
+            return "evidence_rejected"
+        if isinstance(exc, GradingCompletenessError):
+            return "incomplete_response"
+        if isinstance(exc, OpenAIError):
+            return "provider_error"
+        exc = exc.__cause__
+    return "other"
+
+
 CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
 CHUNK_SIZE = 2
 
@@ -168,6 +214,215 @@ PROSEMIRROR_TOKEN_BUDGET_PER_CHUNK = 3000
 # (~6.5s/page vs ~13.7s/page at 1/chunk) - not tested above 3, re-benchmark
 # before raising further.
 ANSWERS_EXTRACTION_PAGES_PER_CHUNK = 3
+
+
+# How much a chunk's verdict about one question is WORTH when merging.
+#
+# A chunk only ever sees its own pages, so NOT_FOUND_IN_DOCUMENT from a
+# chunk does not mean "absent from the submission" - it means "not on the
+# pages I was given", which is no information at all about the rest of the
+# document. Any chunk that actually HELD the page knows more, whatever it
+# found there.
+#
+# Merging on emptiness alone missed this: a deliberate BLANK and a
+# NOT_FOUND are both empty, so the first chunk's no-information verdict
+# beat the page-owning chunk's real one, and every blank on a page after
+# the first chunk was reported as NOT_FOUND_IN_DOCUMENT. That direction is
+# safe (it over-routes to human review rather than scoring a silent zero)
+# but it defeats the blank/not-found distinction the schema exists to
+# provide, and on a long script it floods the review queue with questions
+# the student simply chose to skip.
+_MERGE_PRECEDENCE: Dict[Any, int] = {
+    NOT_FOUND_IN_DOCUMENT: 1,  # this chunk had nothing to say
+    BLANK: 2,  # this chunk held the page and it was empty
+    ILLEGIBLE: 2,  # this chunk held the page and could not read it
+    ANSWERED: 3,  # this chunk held the page and transcribed work
+}
+
+
+_NO_INFORMATION_RANK = _MERGE_PRECEDENCE[NOT_FOUND_IN_DOCUMENT]
+_LOCATED_EMPTY_RANK = _MERGE_PRECEDENCE[BLANK]
+_CONTINUABLE_STATUSES = (ANSWERED, ILLEGIBLE)
+
+
+def _located_in_chunk(source_page, page_start, page_end, chunk_length) -> bool:
+    """
+    Whether `source_page` says the model actually found the question on a
+    page this chunk was given.
+
+    Both numbering conventions are accepted: the chunk note gives the model
+    absolute page numbers, but nothing forces it to use them rather than
+    counting the images it was handed from 1. Either is a positive claim
+    that the question was located; null is the prompt's explicit "never
+    located".
+    """
+    if isinstance(source_page, bool) or not isinstance(source_page, int):
+        return False
+    return page_start <= source_page <= page_end or 1 <= source_page <= chunk_length
+
+
+def _merge_rank(entry, page_start, page_end, chunk_length) -> int:
+    """
+    How informative one chunk's entry for a question is.
+
+    A BLANK or ILLEGIBLE only outranks "not found" when the chunk says WHERE
+    it saw the question. Without that, an empty verdict is no better
+    evidence than "not on my pages" - and the last chunk's note asks the
+    model to "mark any question that was not found in any chunk as
+    genuinely skipped", which a model can satisfy by writing BLANK for a
+    question it never saw. Trusting that would turn an absent answer into a
+    silent zero, the one direction this merge must never go.
+    """
+    if not isinstance(entry, dict):
+        return 0
+    rank = _MERGE_PRECEDENCE.get(entry.get("answer_status"), _NO_INFORMATION_RANK)
+    if rank == _LOCATED_EMPTY_RANK and not _located_in_chunk(
+        entry.get("source_page"), page_start, page_end, chunk_length
+    ):
+        return _NO_INFORMATION_RANK
+    return rank
+
+
+def _merge_chunk_answer(existing, existing_origin, new, new_origin):
+    """
+    Reconcile two chunks' entries for the same question.
+
+    `*_origin` is (chunk_index, rank). Returns the (entry, origin) to keep.
+
+    1. Both chunks transcribed writing, from different chunks: the answer
+       runs across the chunk seam. The halves are JOINED in page order.
+       Keeping only the first - the previous rule - graded the student on
+       the opening of their answer and silently discarded the rest.
+       Pages never overlap between chunks, so the two halves cannot be the
+       same writing read twice; a later half already contained in the
+       earlier one is still skipped rather than repeated. If either half
+       was ILLEGIBLE the joined answer stays ILLEGIBLE, so it keeps its
+       route to a human.
+    2. Otherwise the better-informed entry wins (see _merge_rank).
+    3. On a tie, a transcription beats an empty entry, and between two
+       empty entries NOT_FOUND_IN_DOCUMENT wins. That last rule makes the
+       result independent of chunk order, and it errs towards review
+       rather than towards a zero.
+    """
+    existing_html = (existing.get("answer_html") or "").strip()
+    new_html = (new.get("answer_html") or "").strip()
+    existing_chunk, existing_rank = existing_origin
+    new_chunk, new_rank = new_origin
+
+    if (
+        existing_html
+        and new_html
+        and new_chunk != existing_chunk
+        and existing.get("answer_status") in _CONTINUABLE_STATUSES
+        and new.get("answer_status") in _CONTINUABLE_STATUSES
+    ):
+        if new_html in existing_html:
+            return existing, existing_origin
+        merged = dict(existing)
+        merged["answer_html"] = f"{existing_html}\n{new_html}"
+        if ILLEGIBLE in (existing.get("answer_status"), new.get("answer_status")):
+            merged["answer_status"] = ILLEGIBLE
+        notes = " | ".join(
+            part
+            for part in (
+                (existing.get("transcription_notes") or "").strip(),
+                (new.get("transcription_notes") or "").strip(),
+            )
+            if part
+        )
+        merged["transcription_notes"] = (
+            (notes + " | " if notes else "")
+            + "Answer continues across a page-chunk boundary; the parts were "
+            "joined in page order."
+        )
+        return merged, (new_chunk, max(existing_rank, new_rank))
+
+    if new_rank > existing_rank:
+        return new, new_origin
+    if new_rank == existing_rank:
+        if not existing_html and new_html:
+            return new, new_origin
+        if (
+            not existing_html
+            and not new_html
+            and new.get("answer_status") == NOT_FOUND_IN_DOCUMENT
+            and existing.get("answer_status") != NOT_FOUND_IN_DOCUMENT
+        ):
+            return new, new_origin
+    return existing, existing_origin
+
+
+_QUESTION_LABEL_PREFIX = re.compile(r"^q(?:uestion)?[\s.:#-]*(\d+)$", re.IGNORECASE)
+
+
+def _canonical_question_key(value):
+    """
+    One key for every way a model writes the same question number.
+
+    The model is not consistent about labels. On the live benchmark it wrote
+    `1` in one chunk and `Q1` in the next for the same question, sometimes
+    both inside one response. The merge used the raw label, so those became
+    two questions, and the completeness gate saw numbering drift and paid
+    for a full re-read of the whole script, up to three times (AE-912: 12
+    calls for a 4-chunk document). `3`, `"3"`, `"Q3"`, `"q 3"` and
+    `"Question 3"` all mean question 3; any other label (`"1(a)"`) is kept
+    exactly as written.
+    """
+    text = str(value).strip()
+    if text.isdigit():
+        return int(text)
+    match = _QUESTION_LABEL_PREFIX.match(text)
+    return int(match.group(1)) if match else text
+
+
+def is_readable_answer(entry) -> bool:
+    """One entry of a stored `answers` list that the system can read: an
+    object (H-165). The column takes any JSON, so a list can hold a
+    string, a number or a list. The answer document
+    (students.services.printable_answers), both writers and the grading
+    steps below all ask THIS function, so that what is printed, what is
+    stored and what is graded cannot drift apart."""
+    return isinstance(entry, dict)
+
+
+def _declared_question_labels(questions) -> dict:
+    """
+    Canonical key -> the label the assignment itself uses for that question.
+
+    A key shared by two declared questions (an assignment that numbers both
+    `1` and `Q1`) is left out, so two genuinely different questions are
+    never merged into one.
+    """
+    labels: dict = {}
+    ambiguous = set()
+    for question in questions or []:
+        if not isinstance(question, dict) or question.get("question_number") is None:
+            continue
+        label = question["question_number"]
+        key = _canonical_question_key(label)
+        if key in labels and labels[key] != label:
+            ambiguous.add(key)
+        labels.setdefault(key, label)
+    for key in ambiguous:
+        labels.pop(key, None)
+    return labels
+
+
+def _relabel_answer(answer, labels):
+    """
+    The answer under the assignment's own label for its question, when the
+    model wrote that number differently. Otherwise the answer, unchanged.
+    """
+    if not isinstance(answer, dict) or not labels:
+        return answer
+    raw = answer.get("question_number")
+    if raw is None:
+        return answer
+    key = _canonical_question_key(raw)
+    if key in labels and labels[key] != raw:
+        return dict(answer, question_number=labels[key])
+    return answer
+
 
 # Raised from 5 to 10 on 2026-08-21 based on a 10-run-per-config
 # live-endpoint test (50 real runs total) that found grading accuracy at
@@ -206,6 +461,12 @@ def _strip_markdown_fences(raw: str) -> str:
 
 def _int_if_whole(value):
     return int(value) if float(value).is_integer() else value
+
+
+#: What the saved arithmetic note says instead of "PASS" when the reply did
+#: not hold exactly one evaluation per question and something was left out
+#: of the sum (H-154). students.services reads it to flag the paper.
+REPLY_CORRECTED = "CORRECTED"
 
 
 # fetch_url_content pulls text from a page the model chose based on
@@ -452,21 +713,6 @@ class AIProcessor:
             api_key=OPENROUTER_API_KEY,
         )
 
-        # self.client = OpenAI(
-        #     base_url="https://openrouter.ai/api/v1",
-        #     api_key=PERSONAL_OPENROUTER,
-        # )
-
-        # self.client = OpenAI(
-        #     base_url="https://api.deepseek.com",
-        #     api_key=DEEPSEEK_API_KEY
-        # )
-        #
-        # self.client = OpenAI(
-        #     base_url="https://router.huggingface.co/v1",
-        #     api_key=HF_TOKEN_API_KEY
-        # )
-
     def __ai_model(
         self,
         system_prompt=None,
@@ -498,6 +744,10 @@ class AIProcessor:
                 model=main_model,
                 extra_body={
                     "models": sub_models,
+                    # Refuse any upstream provider (e.g. DeepSeek) that may
+                    # retain or train on this request. Student names and
+                    # submission content pass through this call.
+                    "provider": {"data_collection": "deny"},
                 },
                 messages=messages
                 or [
@@ -515,7 +765,10 @@ class AIProcessor:
                     "X-Title": "GradeA+",
                 },
                 model=main_model,
-                extra_body={"models": sub_models},
+                extra_body={
+                    "models": sub_models,
+                    "provider": {"data_collection": "deny"},
+                },
                 messages=messages
                 or [
                     {"role": "system", "content": system_prompt},
@@ -529,15 +782,6 @@ class AIProcessor:
 
     def get_ai_model_function(self):
         return self.__ai_model
-
-    def create_file(self, uploaded_file):
-        # file_bytes = uploaded_file.read()
-        # uploaded_file.seek(0)
-        encoded_file = encode_image(uploaded_file)
-        file_tuple = (uploaded_file.name, encoded_file, uploaded_file.content_type)
-
-        result = self.client.files.upload(file=file_tuple, purpose="user_data")
-        return result["id"]
 
     def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -582,6 +826,11 @@ Do not include any explanatory text before or after the JSON
 
             content = response.choices[0].message.content
 
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # A refusal must keep its type: extract_assignment_with_retry
+            # fails fast on exactly these, and a bare Exception made it
+            # retry them (billing/refusals.py).
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 
@@ -635,6 +884,9 @@ Do not include any explanatory text before or after the JSON
             )
 
             content = response.choices[0].message.content
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # See extract_assignment: never rewrap a refusal.
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 
@@ -647,6 +899,16 @@ Do not include any explanatory text before or after the JSON
         return json_data
 
     def _split_into_chunks(self, items: list, chunk_size: int) -> list:
+        # A size below 1 has no meaningful split, and each failed differently
+        # and badly: 0 raised an opaque range() error, and a negative size
+        # returned [] - every page silently dropped, so an "extraction" would
+        # have sent the model nothing and reported whatever came back. Every
+        # caller passes a positive constant today; this makes that a checked
+        # contract rather than an assumption.
+        if isinstance(chunk_size, bool) or not isinstance(chunk_size, int):
+            raise ValueError(f"chunk_size must be an integer, got {chunk_size!r}")
+        if chunk_size < 1:
+            raise ValueError(f"chunk_size must be at least 1, got {chunk_size}")
         chunks = [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
 
         return chunks
@@ -748,7 +1010,7 @@ Do not include any explanatory text before or after the JSON
                 }
             ]
 
-            last_chunk_error = None
+            last_chunk_error: Optional[Exception] = None
             chunk_result = None
 
             # Retry each individual chuk up to 3 times before failing
@@ -785,6 +1047,14 @@ Do not include any explanatory text before or after the JSON
                     # a generic Exception below before ever reaching the
                     # outer extract_assignment_with_retry wrapper.
                     raise
+                except TaskCancelledError:
+                    # The teacher cancelled. execute_graded_task raises this
+                    # from its own ensure_task_not_cancelled, i.e. from
+                    # INSIDE this try - so without this the generic handler
+                    # below logs it as "AI call failed" and retries, making
+                    # two more billed calls per chunk before reporting a
+                    # generic failure rather than a cancellation.
+                    raise
                 except json.JSONDecodeError as e:
                     last_chunk_error = e
                     logger.warning(
@@ -792,6 +1062,7 @@ Do not include any explanatory text before or after the JSON
                         f"attempt {attempt + 1}: JSON decode failed - {str(e)}"
                     )
                 except Exception as e:
+                    last_chunk_error = e
                     logger.warning(
                         f"[Chunked Extraction] ProseMirror chunk {chunk_index + 1}, "
                         f"attempt {attempt + 1}: AI call failed — {str(e)}"
@@ -864,7 +1135,7 @@ Do not include any explanatory text before or after the JSON
             user: The authenticated user (for billing).
             image_contents: A flat list of image_url content items, one per page.
             upload: Whether to use the uploads prompt or the prose prompt.
-            pages_per_chunk: How many pages to process per AI call (default 4).
+            pages_per_chunk: How many pages to process per AI call.
 
         Returns:
             dict: The merged assignment JSON with all questions.
@@ -874,12 +1145,13 @@ Do not include any explanatory text before or after the JSON
         else:
             system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
-        # Split image list into chunks of `pages_per_chunk`
-        chunks = self._split_into_chunks(image_contents, CHUNK_SIZE)
-        # chunks = [
-        #     image_contents[i : i + pages_per_chunk]
-        #     for i in range(0, len(image_contents), pages_per_chunk)
-        # ]
+        # ONE source of truth for the chunk size. This used to split on
+        # CHUNK_SIZE while the chunk note and the log line below both
+        # reported `pages_per_chunk`, so the model was told a page range
+        # that did not match the pages it was actually given - and the two
+        # drifted further apart with every chunk.
+        pages_per_chunk = max(1, int(pages_per_chunk or CHUNK_SIZE))
+        chunks = self._split_into_chunks(image_contents, pages_per_chunk)
 
         logger.info(
             f"[Chunked Extraction] {len(image_contents)} pages → "
@@ -896,9 +1168,11 @@ Do not include any explanatory text before or after the JSON
             )
 
             # Build a context note so the AI knows this is a partial document
+            page_start = chunk_index * pages_per_chunk + 1
+            page_end = page_start + len(chunk) - 1
             chunk_note = (
-                f"NOTE: You are processing pages {chunk_index * pages_per_chunk + 1} to "
-                f"{min((chunk_index + 1) * pages_per_chunk, len(image_contents))} of a "
+                f"NOTE: You are processing pages {page_start} to "
+                f"{page_end} of a "
                 f"{len(image_contents)}-page document. Extract ONLY the questions visible "
                 f"on these pages. Continue sequential question numbering from question "
                 f"{len(merged_questions) + 1}. Do not repeat questions from previous pages."
@@ -942,6 +1216,11 @@ Do not include any explanatory text before or after the JSON
                     chunk_result = json.loads(raw)
                     break
                 except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                    raise
+                except TaskCancelledError:
+                    # See _extract_prosemirror_chunked: a cancellation
+                    # raised inside execute_graded_task must not be
+                    # retried as if it were a transient AI failure.
                     raise
                 except json.JSONDecodeError as e:
                     last_chunk_error = e
@@ -1028,7 +1307,6 @@ Do not include any explanatory text before or after the JSON
                 for item in content
                 if isinstance(item, dict) and item.get("type") == "image_url"
             ]
-            # text_items = [item for item in content if item.get("type") != "image_url"]
 
             logger.info(
                 f"[Chunked Extraction] Large document detected: {len(image_items)} pages. "
@@ -1129,14 +1407,30 @@ Do not include any explanatory text before or after the JSON
         ]
 
         if already_found_question_numbers:
-            found_str = ". ".join(
+            found_str = ", ".join(
                 str(n)
                 for n in sorted(already_found_question_numbers, key=safe_sort_key)
             )
+            # An answer found on an earlier page can CONTINUE on these pages -
+            # a student's answer written across the chunk seam. The previous
+            # wording told the model these questions "do NOT need to be
+            # extracted again", and the real model obeyed: the continuation on
+            # page 4 was reported "not found in this page range" and the
+            # student was graded on the first half of their answer (benchmark
+            # AE-905). _merge_chunk_answer joins the parts in page order, but
+            # it can only join what the model returns, so the note must ask
+            # for the continuation. The list is also rendered plainly now; it
+            # used to print a doubled prefix ("QQ1").
             note_lines += [
-                "The following question answers were already extracted from previous "
-                f"pages and do NOT need to be extracted again: Q{found_str}. "
-                "Focus on finding answers to all remaining questions in these pages."
+                "Answers to these questions were already found on earlier "
+                f"pages: {found_str}. "
+                "If an answer to any of those questions CONTINUES on these "
+                "pages, transcribe only the continuation visible here, under "
+                "the same question_number, with answer_status ANSWERED and "
+                "source_page set to the page it is on. If one of those "
+                "questions has nothing on these pages, report it as not found "
+                "in this page range. "
+                "Also find the answers to all remaining questions on these pages."
             ]
         else:
             note_lines.append(
@@ -1245,9 +1539,10 @@ Do not include any explanatory text before or after the JSON
         tells the model which questions were already found in previous chunks so
         it focuses on the remaining ones.
 
-        Merge strategy: for each question number, keep the first non-empty
-        answer found across all chunks. This handles the case where a student
-        writes an answer across a page boundary.
+        Merge strategy: see _merge_chunk_answer. A chunk that actually
+        located a question outranks one reporting it "not on my pages", and
+        an answer transcribed in two chunks is joined in page order rather
+        than truncated to its first half.
 
         Args:
             user: The authenticated user (for billing).
@@ -1297,6 +1592,13 @@ Do not include any explanatory text before or after the JSON
         # Track all answers found so far keyed by question number
         # Used to tell each subsequent chunk what has already been found
         found_answers: dict = {}
+        # The assignment's own labels, so every chunk's answers are merged -
+        # and listed back to the model - under one spelling per question.
+        declared_labels = _declared_question_labels(
+            getattr(assignment_model, "questions", None)
+        )
+        # (chunk_index, merge rank) for each kept entry - see _merge_chunk_answer.
+        found_origins: dict = {}
 
         # Student identity comes from the first chunk only
         student_name = ""
@@ -1316,7 +1618,17 @@ Do not include any explanatory text before or after the JSON
                 f"(pages {page_start}–{page_end})..."
             )
 
-            already_found = list(found_answers.keys())
+            # Only questions with a real transcription. Every chunk returns an
+            # entry for EVERY question (the prompt requires it), so listing
+            # all keys told chunk 2 onward that every question "was already
+            # extracted" and "does NOT need to be extracted again" - an
+            # instruction to skip exactly the answers on its own pages.
+            already_found = [
+                entry.get("question_number")
+                for entry in found_answers.values()
+                if entry.get("answer_status") in _CONTINUABLE_STATUSES
+                and (entry.get("answer_html") or "").strip()
+            ]
 
             chunk_note = self._build_answer_chunk_note(
                 chunk_index=chunk_index,
@@ -1342,7 +1654,7 @@ Do not include any explanatory text before or after the JSON
                 },
             ]
 
-            last_chunk_error = None
+            last_chunk_error: Optional[Exception] = None
             chunk_result = None
 
             for attempt in range(3):
@@ -1355,6 +1667,17 @@ Do not include any explanatory text before or after the JSON
                         messages=messages,
                         assignment=assignment_model,
                         processing_task_id=processing_task_id,
+                        # The SAME contract the single-call path uses. Without
+                        # it the model is not required to emit answer_status,
+                        # _stamp_answer_provenance falls back to
+                        # infer_answer_status(), and that returns BLANK and
+                        # never NOT_FOUND_IN_DOCUMENT - so an answer this
+                        # pipeline LOST becomes a legitimate-looking zero that
+                        # no human is ever shown. Chunking starts at
+                        # ANSWERS_EXTRACTION_PAGES_PER_CHUNK pages, i.e. on
+                        # exactly the multi-page handwritten submissions where
+                        # a dropped answer is most likely.
+                        response_schema=self._answer_extraction_schema(),
                     )
 
                     raw = response.choices[0].message.content
@@ -1372,6 +1695,11 @@ Do not include any explanatory text before or after the JSON
                     break
                 except (AIFeatureNotAvailableError, InsufficientCreditsError):
                     raise
+                except TaskCancelledError:
+                    # See _extract_prosemirror_chunked: a cancellation
+                    # raised inside execute_graded_task must not be
+                    # retried as if it were a transient AI failure.
+                    raise
                 except json.JSONDecodeError as e:
                     last_chunk_error = e
                     logger.warning(
@@ -1379,16 +1707,20 @@ Do not include any explanatory text before or after the JSON
                         f"attempt {attempt + 1}: JSON decode failed — {str(e)}"
                     )
                 except Exception as e:
+                    last_chunk_error = e
                     logger.warning(
                         f"[Answer Extraction] Chunk {chunk_index + 1}, "
                         f"attempt {attempt + 1}: AI call failed — {str(e)}"
                     )
 
             if chunk_result is None:
+                # `from last_chunk_error`: without it the chain ends at this
+                # bare Exception, and classify_infra_error cannot tell the
+                # teacher that the provider timed out rather than failed.
                 raise Exception(
                     f"[Answer Extraction] Chunk {chunk_index + 1} failed after 3 attempts. "
                     f"Last error: {last_chunk_error}"
-                )
+                ) from last_chunk_error
 
             # Extract student identity from the first chunk only
             if chunk_index == 0:
@@ -1396,29 +1728,43 @@ Do not include any explanatory text before or after the JSON
                 student_name_raw = chunk_result.get("student_name_raw")
                 student_id = chunk_result.get("student_id", "")
 
-            # Merge answers: keep first non-empty answer found per question number
+            # Merge this chunk's answers into the running result. The rule
+            # lives in _merge_chunk_answer so it can be tested on its own.
             ensure_task_not_cancelled(processing_task_id)
             for answer in chunk_result.get("answers", []):
-                q_num = answer.get("question_number")
-                if q_num is None:
+                if not isinstance(answer, dict):
+                    continue
+                answer = _relabel_answer(answer, declared_labels)
+                if answer.get("question_number") is None:
+                    continue
+                # Keyed on the normalised number: 3 and "3" - and, through the
+                # relabel above, "Q3" on a Q-numbered assignment - are one
+                # question here rather than two.
+                q_num = self._question_number_key(answer.get("question_number"))
+
+                origin = (
+                    chunk_index,
+                    _merge_rank(answer, page_start, page_end, len(chunk)),
+                )
+                if q_num not in found_answers:
+                    found_answers[q_num] = answer
+                    found_origins[q_num] = origin
                     continue
 
-                if q_num not in found_answers:
-                    # First time seeing this question — always store it
-                    found_answers[q_num] = answer
-                else:
-                    existing = found_answers[q_num]
-                    existing_html = existing.get("answer_html", "").strip()
-                    new_html = answer.get("answer_html", "").strip()
-
-                    # Upgrade an empty/not-found answer if a real answer appears
-                    # in a later chunk (student wrote answer on a later page)
-                    if not existing_html and new_html:
-                        found_answers[q_num] = answer
-                        logger.info(
-                            f"[Answer Extraction] Q{q_num}: upgraded from empty to "
-                            f"answer found in chunk {chunk_index + 1}."
-                        )
+                existing = found_answers[q_num]
+                kept, kept_origin = _merge_chunk_answer(
+                    existing, found_origins[q_num], answer, origin
+                )
+                if kept is not existing:
+                    logger.info(
+                        "[Answer Extraction] Q%s: %s -> %s after chunk %s.",
+                        q_num,
+                        existing.get("answer_status"),
+                        kept.get("answer_status"),
+                        chunk_index + 1,
+                    )
+                found_answers[q_num] = kept
+                found_origins[q_num] = kept_origin
 
             chunk_feedback = chunk_result.get("feedback", "")
             if chunk_feedback:
@@ -1442,7 +1788,7 @@ Do not include any explanatory text before or after the JSON
         # This is conservative — a question marked empty by ALL chunks is
         # genuinely unanswered, not an extraction failure.
         empty_count = sum(
-            1 for a in merged_answers if not a.get("answer_html", "").strip()
+            1 for a in merged_answers if not (a.get("answer_html") or "").strip()
         )
         total_q = len(merged_answers)
         derived_confidence = (
@@ -1466,38 +1812,6 @@ Do not include any explanatory text before or after the JSON
         )
 
         return merged_result
-
-    def extract_answer(self, user, text):
-        system_prompt = ANSWERS_EXTRACTION_PROMPT
-
-        user_prompt = f"""
-Please analyze the following extracted text from an educational assignment and answers and return a JSON
-
-EXTRACTED TEXT:
-{text}
-
-IMPORTANT: Return only valid JSON matching the required structure.
-Do not include any explanatory text before or after the JSON
-
-"""
-
-        response = self.execute_graded_task(
-            user=user,
-            feature="Answer Extraction",
-            task_type="extract_answer",
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-        )
-
-        content = response.choices[0].message.content
-
-        try:
-            json_data = json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {str(e)}")
-            raise Exception(f"Error decoding JSON: {str(e)}") from e
-
-        return json_data
 
     def extract_answer_image(
         self,
@@ -1544,7 +1858,6 @@ Do not include any explanatory text before or after the JSON
             )
 
         # Get all the student in this assignment course
-        # enrolled_student_names = ""
         student_names = []
         if assignment_model and hasattr(assignment_model, "course"):
 
@@ -1564,8 +1877,6 @@ Do not include any explanatory text before or after the JSON
         )
         student_roster += "\n\n".join(student_names)
 
-        # roster = {"role": "user", "content": student_roster}
-
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": assignment},
@@ -1574,9 +1885,6 @@ Do not include any explanatory text before or after the JSON
         ]
 
         try:
-            # response = self.__ai_model(system_prompt, user_prompt=content)
-            # response = self.__ai_model(messages=messages)
-
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
                 user=user,
@@ -1585,10 +1893,22 @@ Do not include any explanatory text before or after the JSON
                 messages=messages,
                 assignment=assignment_model,
                 processing_task_id=processing_task_id,
+                response_schema=self._answer_extraction_schema(),
             )
 
             content = response.choices[0].message.content
 
+        except (
+            AIFeatureNotAvailableError,
+            InsufficientCreditsError,
+            TaskCancelledError,
+        ):
+            # Re-raised with their type intact, as the chunked path already
+            # does. Wrapped in a bare Exception, an out-of-credits teacher
+            # was retried three times by extract_answer_with_retry and then
+            # shown a generic failure, because describe_user_error only
+            # passes these messages through when it can see their type.
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 
@@ -1598,6 +1918,243 @@ Do not include any explanatory text before or after the JSON
             logger.error(f"Error decoding JSON: {str(e)}")
             raise Exception(f"Error decoding JSON: {str(e)}") from e
         return json_data
+
+    @staticmethod
+    def _answer_extraction_schema():
+        """
+        The json_schema contract for an answer-extraction call, or None to
+        fall back to free-form json_object.
+
+        Unlike _grading_response_schema's silent equivalent, turning this
+        off is LOGGED. This schema is a safety check, and a safety check
+        that can be disabled without leaving a trace is one that stops
+        existing the moment somebody sets an env var and forgets.
+        """
+        if getattr(settings, "ANSWER_EXTRACTION_SCHEMA_ENABLED", True):
+            return ANSWER_EXTRACTION_RESPONSE_SCHEMA
+        logger.warning(
+            "[AnswerExtraction] ANSWER_EXTRACTION_SCHEMA_ENABLED is off - "
+            "falling back to free-form JSON. answer_status will be inferred "
+            "rather than reported, so a lost answer cannot be told apart "
+            "from a blank one."
+        )
+        return None
+
+    def _verify_blank_answers(
+        self,
+        user,
+        content,
+        answers,
+        assignment_model=None,
+        processing_task_id=None,
+    ):
+        """
+        Re-read the pages for the questions extraction reported as empty.
+
+        WHY ONLY THE BLANKS. A lost answer can only ever hide inside a
+        claimed blank - an answer that WAS transcribed is by definition not
+        lost. And a full verification pass is not available to us: the
+        submission is read from page images by the vision model directly,
+        so there is no independent OCR transcript to diff a transcription
+        against. Asking one narrow question about the specific questions
+        that came back empty is therefore both the cheapest check and the
+        only one aimed at the failure that actually matters.
+
+        THE ONE TRANSITION IT CAN MAKE. If the re-read finds writing where
+        the extractor found none, that question moves BLANK ->
+        NOT_FOUND_IN_DOCUMENT. That is deliberately the whole of it:
+          * BLANK means "the student chose not to answer". We now have
+            positive evidence against that, so the claim must be withdrawn.
+          * NOT_FOUND_IN_DOCUMENT means "we may not have the student's
+            work" - which is exactly true, and which already routes the
+            submission to a human through the existing review path.
+        It NEVER writes the fragment into answer_html. A fragment is proof
+        that something is there, not a transcription of it, and promoting
+        it to "the student's answer" would grade a student on a scrap.
+
+        Entirely non-fatal: any failure here leaves the extraction exactly
+        as it was. A verification step that can lose a submission would
+        cost more than it saves.
+        """
+        if not getattr(settings, "ANSWER_BLANK_VERIFICATION_ENABLED", True):
+            return answers
+        if not isinstance(answers, list):
+            return answers
+
+        blanks = [
+            entry
+            for entry in answers
+            if isinstance(entry, dict)
+            and entry.get("answer_status") in (BLANK, NOT_FOUND_IN_DOCUMENT)
+        ]
+        if not blanks:
+            # The common case, and the reason this is affordable: a fully
+            # answered submission costs nothing at all.
+            return answers
+
+        cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", 12)
+        if len(blanks) > cap:
+            logger.info(
+                "[BlankVerification] %s blank(s) exceeds the cap of %s - "
+                "skipping the re-read; the completeness flags already route "
+                "this submission for review.",
+                len(blanks),
+                cap,
+            )
+            return answers
+
+        images = [
+            item
+            for item in (content or [])
+            if isinstance(item, dict) and item.get("type") == "image_url"
+        ]
+        if not images:
+            return answers
+
+        # Extraction itself reads at ANSWERS_EXTRACTION_PAGES_PER_CHUNK
+        # pages per call; this sends the WHOLE submission in one, because a
+        # missing answer could be on any page and a partial view would just
+        # miss it. That is affordable for an ordinary script and not for a
+        # 40-page one, so past the cap the re-read is skipped rather than
+        # attempted and failed.
+        #
+        # Skipping is safe in the one direction that matters: this step can
+        # only ever move a question BLANK -> NOT_FOUND_IN_DOCUMENT, so not
+        # running it can cost a recovery but can never produce a wrong
+        # flag. The completeness flags from the extraction still stand
+        # either way.
+        page_cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_PAGES", 10)
+        if len(images) > page_cap:
+            logger.info(
+                "[BlankVerification] %s page(s) exceeds the cap of %s - "
+                "skipping the re-read.",
+                len(images),
+                page_cap,
+            )
+            return answers
+
+        numbers = [entry.get("question_number") for entry in blanks]
+        instruction = (
+            "You are re-checking ONE narrow thing about a scanned student "
+            "submission. A first pass reported that the student wrote "
+            f"nothing for question(s) {numbers}.\n\n"
+            "For EACH of those question numbers, look at the pages and say "
+            "whether there is ANY student writing responding to it - any "
+            "mark, working, crossing-out, marginal note or continuation "
+            "elsewhere on the page counts.\n\n"
+            "Describe what you can see in `observed` BEFORE you decide "
+            "`content_found`. If you do find writing, quote a short "
+            "verbatim fragment of it in `verbatim_fragment` and give the "
+            "page in `page`; otherwise set both to null.\n\n"
+            "Do not transcribe the full answer and do not grade anything. "
+            "Answer only the question of whether something is there.\n\n"
+            "Be honest in both directions: saying content exists when it "
+            "does not sends a teacher on a pointless hunt, and saying it "
+            "does not exist when it does leaves a student wrongly scored "
+            "zero."
+        )
+
+        override_model = (
+            getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
+        )
+
+        try:
+            ensure_task_not_cancelled(processing_task_id)
+            response = self.execute_graded_task(
+                user=user,
+                feature="Answer Extraction",
+                task_type="extract_answer",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": instruction}] + images,
+                    }
+                ],
+                assignment=assignment_model,
+                processing_task_id=processing_task_id,
+                response_schema=BLANK_VERIFICATION_RESPONSE_SCHEMA,
+                override_model=override_model,
+            )
+            findings = json.loads(response.choices[0].message.content).get(
+                "findings", []
+            )
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # A verification the teacher cannot afford is not a reason to
+            # fail the extraction they already paid for.
+            logger.info("[BlankVerification] Skipped - feature or credits unavailable.")
+            return answers
+        except Exception:
+            logger.exception(
+                "[BlankVerification] Re-read failed; the extraction is "
+                "unchanged and its own blank/not-found flags still stand."
+            )
+            return answers
+
+        found_by_key = {}
+        for finding in findings:
+            if not isinstance(finding, dict) or not finding.get("content_found"):
+                continue
+            found_by_key[self._question_number_key(finding.get("question_number"))] = (
+                finding
+            )
+
+        if not found_by_key:
+            logger.info(
+                "[BlankVerification] Re-read confirmed %s blank(s).", len(blanks)
+            )
+            return answers
+
+        verified = []
+        for entry in answers:
+            key = (
+                self._question_number_key(entry.get("question_number"))
+                if isinstance(entry, dict)
+                else None
+            )
+            finding = found_by_key.get(key)
+            if finding is None or entry.get("answer_status") not in (
+                BLANK,
+                NOT_FOUND_IN_DOCUMENT,
+            ):
+                verified.append(entry)
+                continue
+
+            fragment = (finding.get("verbatim_fragment") or "").strip()
+            updated = dict(entry)
+            updated["answer_status"] = NOT_FOUND_IN_DOCUMENT
+            updated["blank_verification"] = {
+                "content_found": True,
+                "observed": finding.get("observed"),
+                "verbatim_fragment": fragment or None,
+                "page": finding.get("page"),
+            }
+            updated["transcription_notes"] = (
+                (entry.get("transcription_notes") or "").strip()
+                + " | RE-READ FOUND WRITING here that the first pass did "
+                "not transcribe" + (f": {fragment!r}" if fragment else ".")
+            ).strip()
+            verified.append(updated)
+
+        logger.warning(
+            "[BlankVerification] Re-read found writing for %s question(s) "
+            "reported empty (%s). Flagged for review.",
+            len(found_by_key),
+            ", ".join(str(k) for k in found_by_key),
+        )
+        return verified
+
+    @staticmethod
+    def _answer_completeness_mode():
+        mode = getattr(settings, "ANSWER_COMPLETENESS_ENFORCEMENT", ANSWER_MODE_STRICT)
+        if mode not in (ANSWER_MODE_STRICT, ANSWER_MODE_LOG, ANSWER_MODE_OFF):
+            logger.warning(
+                "[AnswerExtraction] Unrecognised "
+                "ANSWER_COMPLETENESS_ENFORCEMENT=%r; using %r.",
+                mode,
+                ANSWER_MODE_STRICT,
+            )
+            return ANSWER_MODE_STRICT
+        return mode
 
     def extract_answer_with_retry(
         self,
@@ -1610,17 +2167,97 @@ Do not include any explanatory text before or after the JSON
     ):
         last_error = None
 
+        # The assignment's own questions are the only thing that can say
+        # what a COMPLETE extraction looks like. Without them (no
+        # assignment_model passed, or an assignment whose extraction never
+        # produced questions) there is nothing to check against, so the
+        # gate stays off rather than guessing.
+        questions = getattr(assignment_model, "questions", None) or []
+        mode = self._answer_completeness_mode() if questions else ANSWER_MODE_OFF
+
+        # Nothing to read means nothing to extract. Without this the model was
+        # still called - and billed - for an empty submission, and the empty
+        # answer list that came back was returned as a success. A text-only
+        # submission (a typed answer) is NOT empty and still goes through.
+        if not content:
+            raise ValueError(
+                "Answer extraction was given no submission content; refusing "
+                "to make a billed call for it."
+            )
+
         for attempt in range(max_retries):
             ensure_task_not_cancelled(processing_task_id)
             try:
-                return self.extract_answer_image(
+                result = self.extract_answer_image(
                     user,
                     content,
                     assignment,
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
                 )
+
+                # THE GATE RUNS INSIDE THE LOOP, ON PURPOSE. An incomplete
+                # payload is exactly the kind of failure a re-ask usually
+                # fixes, and validating after the loop (as assignment
+                # extraction still does - see
+                # AssignmentProcessingService.update_assignment_from_extraction)
+                # burns the whole run and the teacher's credit on a fault
+                # that one more attempt would have cleared.
+                #
+                # LAST ATTEMPT DEGRADES TO "log" INSTEAD OF FAILING, the
+                # same trade already proven for the grading evidence check
+                # in _grade_question_batch: rejecting on the final attempt
+                # destroys the submission and the student gets no grade at
+                # all. A repaired payload whose gaps are explicitly marked
+                # NOT_FOUND_IN_DOCUMENT and routed to a human is strictly
+                # better than that - and, unlike the behaviour this
+                # replaced, it is not silent.
+                is_final_attempt = attempt == max_retries - 1
+                effective_mode = mode
+                if is_final_attempt and mode == ANSWER_MODE_STRICT:
+                    effective_mode = ANSWER_MODE_LOG
+
+                # The same relabelling the chunked merge applies. Without it a
+                # model that writes "1" for the assignment's "Q1" is rejected
+                # as numbering drift and re-billed - and on the final attempt
+                # the gate drops that real answer and inserts a NOT_FOUND
+                # placeholder in its place.
+                if isinstance(result, dict) and isinstance(result.get("answers"), list):
+                    labels = _declared_question_labels(questions)
+                    result["answers"] = [
+                        _relabel_answer(entry, labels) for entry in result["answers"]
+                    ]
+
+                if isinstance(result, dict) and effective_mode != ANSWER_MODE_OFF:
+                    result["answers"] = enforce_answer_completeness(
+                        result.get("answers"),
+                        questions,
+                        mode=effective_mode,
+                        key_fn=self._question_number_key,
+                    )
+
+                # Runs AFTER the completeness gate, so it sees the full,
+                # repaired set - including the placeholders inserted for
+                # questions extraction omitted entirely, which are exactly
+                # the ones most worth re-reading. Non-fatal by
+                # construction: on any failure it returns `answers`
+                # untouched.
+                if isinstance(result, dict):
+                    result["answers"] = self._verify_blank_answers(
+                        user,
+                        content,
+                        result.get("answers"),
+                        assignment_model=assignment_model,
+                        processing_task_id=processing_task_id,
+                    )
+                return result
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
+            except TaskCancelledError:
+                # A cancellation is the user's decision, not a transient
+                # fault. Retrying it can only re-check a flag that is already
+                # set - or, if a check were ever skipped, bill again for work
+                # nobody wants.
                 raise
             except Exception as e:
                 last_error = e
@@ -1628,7 +2265,11 @@ Do not include any explanatory text before or after the JSON
 
                 if attempt < max_retries - 1:
                     logger.info("Retrying...")
-        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+        # `from last_error` keeps the real failure on __cause__, which is what
+        # classify_infra_error walks to tell a timeout from a corrupt file.
+        raise Exception(
+            f"All {max_retries} attempts failed. Last error: {last_error}"
+        ) from last_error
 
     @staticmethod
     def _question_number_key(value):
@@ -1772,10 +2413,32 @@ Do not include any explanatory text before or after the JSON
         missing/malformed/too thin to define a ladder
         (_rubric_level_points).
 
-        An evaluation whose question_number matches no rubric question has
-        no known cap, so only the >= 0 floor applies to it (reconciling
-        stray evaluations against the rubric is the completeness check's
-        job, not this function's).
+        ONE evaluation per question goes into the sum (H-154). A reply is
+        a list, and nothing upstream makes it hold each question once: the
+        completeness checks look for a MISSING question, never a repeated
+        or an invented one. So, here, where every path passes:
+
+          * of several evaluations for one question, one is kept. An
+            evaluation the system already holds (graded against the answer
+            key, or reused from the saved-answer store) stands against
+            anything a model returned for that question: the model was not
+            asked it. Among the model's own repeats the LOWEST corrected
+            score is kept, the first of equals - never inflate a grade on
+            a coin-flip;
+          * an evaluation whose question_number matches no question is
+            dropped. It has no cap, and no question to belong to.
+
+        Whatever was dropped is counted in the verification note, which
+        then says CORRECTED and not PASS, and in one warning line (numbers
+        and counts only). No retry: the kept grade is the cautious one and
+        the caller flags the paper for the teacher.
+
+        With no usable `questions` at all there is nothing to match
+        against, so nothing is dropped as unmatched; repeats are still
+        folded.
+
+        `kept_source_evaluations` in the return value is internal: the
+        caller's own objects that survived, for the saved-answer store.
         """
         points_by_question = {}
         levels_by_question = {}
@@ -1787,9 +2450,11 @@ Do not include any explanatory text before or after the JSON
                 )
                 levels_by_question[key] = self._rubric_level_points(question)
 
-        corrected_evaluations = []
-        individual_scores = []
-        snapped_count = 0
+        # key -> (corrected, the caller's own object, snapped in this
+        # pass), in first-seen order
+        chosen: dict = {}
+        repeated_dropped: dict = {}
+        unmatched_dropped = 0
         for evaluation in evaluations:
             if not isinstance(evaluation, dict):
                 continue
@@ -1804,14 +2469,18 @@ Do not include any explanatory text before or after the JSON
                 cap = points_by_question[key]
                 score = min(score, cap)
                 corrected["max_points"] = _int_if_whole(cap)
+            elif points_by_question:
+                unmatched_dropped += 1
+                continue
 
+            was_snapped = False
             levels = levels_by_question.get(key) or []
             if levels and corrected.get("graded_by") != "deterministic":
                 snapped = self._snap_to_rubric_level(score, levels)
                 if snapped != score:
                     corrected["snapped_from"] = _int_if_whole(score)
                     score = snapped
-                    snapped_count += 1
+                    was_snapped = True
 
             score = _int_if_whole(score)
             corrected["score_awarded"] = score
@@ -1831,8 +2500,18 @@ Do not include any explanatory text before or after the JSON
                 else "clear"
             )
 
-            corrected_evaluations.append(corrected)
-            individual_scores.append(score)
+            held = chosen.get(key)
+            if held is None:
+                chosen[key] = (corrected, evaluation, was_snapped)
+                continue
+            repeated_dropped[key] = repeated_dropped.get(key, 0) + 1
+            if self._outranks(corrected, held[0]):
+                chosen[key] = (corrected, evaluation, was_snapped)
+
+        corrected_evaluations = [kept[0] for kept in chosen.values()]
+        kept_sources = [kept[1] for kept in chosen.values()]
+        individual_scores = [ev["score_awarded"] for ev in corrected_evaluations]
+        snapped_count = sum(1 for kept in chosen.values() if kept[2])
 
         total_score = _int_if_whole(sum(individual_scores))
         max_total_points = _int_if_whole(sum(points_by_question.values()))
@@ -1840,16 +2519,17 @@ Do not include any explanatory text before or after the JSON
             round((total_score / max_total_points) * 100, 2) if max_total_points else 0
         )
 
+        calculation_notes = (
+            "Score arithmetic calculated by the system from the clamped "
+            "per-question scores: "
+            f"{' + '.join(str(s) for s in individual_scores) or '0'} "
+            f"= {total_score}. Model-reported totals are not used."
+        )
         verification = {
             "individual_scores": individual_scores,
             "manual_sum": total_score,
             "verification_status": "PASS",
-            "calculation_notes": (
-                "Score arithmetic calculated by the system from the clamped "
-                "per-question scores: "
-                f"{' + '.join(str(s) for s in individual_scores) or '0'} "
-                f"= {total_score}. Model-reported totals are not used."
-            ),
+            "calculation_notes": calculation_notes,
         }
         if snapped_count:
             verification["snapped_to_rubric_level_count"] = snapped_count
@@ -1864,13 +2544,107 @@ Do not include any explanatory text before or after the JSON
                 len(corrected_evaluations),
             )
 
+        if repeated_dropped or unmatched_dropped:
+            repeated = [
+                {
+                    "question_number": chosen[key][0].get("question_number"),
+                    "dropped": count,
+                }
+                for key, count in repeated_dropped.items()
+            ]
+            verification["verification_status"] = REPLY_CORRECTED
+            verification["repeated_evaluations_dropped"] = repeated
+            verification["unmatched_evaluations_dropped"] = unmatched_dropped
+            # Its own field, not a sentence added to calculation_notes:
+            # the arithmetic line is sent on to the feedback formatter,
+            # whose wording a student reads, and this is for the teacher
+            # (students.feedback_projection.grading_result_for_formatter).
+            verification["correction_note"] = (
+                "The reply did not hold exactly one evaluation per question: "
+                f"{sum(repeated_dropped.values())} repeated evaluation(s) and "
+                f"{unmatched_dropped} evaluation(s) matching no question were "
+                "left out of the sum. Of a question's repeats the one the "
+                "system already held, or else the lowest score, was kept."
+            )
+            # Numbers and counts only: nothing of the answers or feedback.
+            logger.warning(
+                "[Grading] reply_corrected repeated_questions=%s "
+                "repeated_dropped=%s unmatched_dropped=%s kept=%s",
+                [item["question_number"] for item in repeated],
+                sum(repeated_dropped.values()),
+                unmatched_dropped,
+                len(corrected_evaluations),
+            )
+
         return {
             "total_score": total_score,
             "max_total_points": max_total_points,
             "percentage": percentage,
             "question_evaluations": corrected_evaluations,
             "score_calculation_verification": verification,
+            "kept_source_evaluations": kept_sources,
         }
+
+    @staticmethod
+    def _held_by_the_system(evaluation) -> bool:
+        """Graded against the answer key, or reused from the saved-answer
+        store: not something a model returned in this reply."""
+        return bool(
+            evaluation.get("graded_by") == "deterministic"
+            or evaluation.get("from_cache")
+        )
+
+    @staticmethod
+    def _stamp_as_a_models(evaluations, model_name) -> None:
+        """Mark a REPLY's evaluations as a model's, in place.
+
+        The system knows its own evaluations by two fields
+        (_held_by_the_system), and a reply is free text: it can carry
+        either. So `graded_by` is ASSIGNED here, not defaulted, and
+        `from_cache` is removed. Without this a reply's repeat carrying
+        the mark and a higher score would outrank an honest one, a
+        returned evaluation carrying it could lower a grade the model was
+        never asked about, and the same mark would skip the snap to a
+        rubric level and keep the evaluation out of the saved-answer
+        store (H-154; found by Verifier 2). The response schema refuses
+        extra fields where a provider honours it; this does not lean on
+        that.
+        """
+        for evaluation in evaluations:
+            if isinstance(evaluation, dict):
+                evaluation.pop("from_cache", None)
+                evaluation["graded_by"] = model_name or "llm"
+
+    def _outranks(self, candidate, held) -> bool:
+        """Whether `candidate` replaces `held` as a question's ONE
+        evaluation (both already corrected). See _finalize_grading_result."""
+        candidate_system = self._held_by_the_system(candidate)
+        held_system = self._held_by_the_system(held)
+        if candidate_system != held_system:
+            return candidate_system
+        return candidate["score_awarded"] < held["score_awarded"]
+
+    @staticmethod
+    def _carry_reply_corrections(verification, earlier) -> None:
+        """The long-paper path sums twice: on the joined parts, and again
+        inside the summary step on a list that is clean by then. Put what
+        the first sum dropped into the note that is saved."""
+        if earlier.get("verification_status") != REPLY_CORRECTED:
+            return
+        for field in (
+            "verification_status",
+            "repeated_evaluations_dropped",
+            "unmatched_evaluations_dropped",
+            "correction_note",
+        ):
+            verification[field] = earlier[field]
+
+    @staticmethod
+    def _kept_among(evaluations, finalized) -> list:
+        """Those of the caller's `evaluations` (the same objects) that
+        _finalize_grading_result kept."""
+        kept = {id(source) for source in finalized["kept_source_evaluations"]}
+        return [evaluation for evaluation in evaluations if id(evaluation) in kept]
 
     def _pair_question_with_answers(self, rubric_json, answer_json) -> list:
         """
@@ -1918,6 +2692,12 @@ Do not include any explanatory text before or after the JSON
                     "question_text": question.get("question_text", ""),
                     "answer_html": "",
                     "notes": "No answer found for this question.",
+                    # NOT_FOUND_IN_DOCUMENT, never BLANK. This placeholder
+                    # is fabricated by US because extraction produced no
+                    # entry at all - we have no evidence the student left
+                    # it blank, and labelling it BLANK here is precisely
+                    # the silent zero this field exists to prevent.
+                    "answer_status": NOT_FOUND_IN_DOCUMENT,
                 },
             )
             pairs.append({"question": question, "answer": answer})
@@ -2134,9 +2914,7 @@ Do not include any explanatory text before or after the JSON
                 )
                 # Provenance marker for the future eval loop.
                 batch_model = self._response_model_name(response)
-                for ev in evaluations:
-                    if isinstance(ev, dict):
-                        ev.setdefault("graded_by", batch_model or "llm")
+                self._stamp_as_a_models(evaluations, batch_model)
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -2179,10 +2957,12 @@ Do not include any explanatory text before or after the JSON
                     f"[Grading] Batch {batch_number}, attempt {attempt + 1}: "
                     f"AI call failed — {str(e)}"
                 )
+        # `from last_error`: the caller of a second opinion saves a code for
+        # the KIND of failure (H-128), and reads it from this chain.
         raise Exception(
             f"[Grading] Batch {batch_number}/{total_batches} failed after 3 attempts. "
             f"Last error: {last_error}"
-        )
+        ) from last_error
 
     def _build_overall_grading_summary(
         self,
@@ -2218,7 +2998,7 @@ Do not include any explanatory text before or after the JSON
 
         Returns:
             dict: The complete final grading JSON matching the output schema
-                  defined in GRADING_ASSIGNMENT_PROMPT_2.txt.
+                  defined in GRADING_ASSIGNMENT_PROMPT_5.txt.
         """
         system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
             assignment_model
@@ -2348,7 +3128,7 @@ Do not include any explanatory text before or after the JSON
         no rubric question, preserving the existing pipeline's behavior
         for them.
         """
-        answers = [a for a in (answers or []) if isinstance(a, dict)]
+        answers = [a for a in (answers or []) if is_readable_answer(a)]
         answer_by_key = {
             self._question_number_key(a.get("question_number")): a for a in answers
         }
@@ -2428,7 +3208,7 @@ Do not include any explanatory text before or after the JSON
         answer_by_key = {
             self._question_number_key(a.get("question_number")): a
             for a in (answers or [])
-            if isinstance(a, dict)
+            if is_readable_answer(a)
         }
         assignment_id = getattr(assignment_model, "id", None)
 
@@ -2454,10 +3234,15 @@ Do not include any explanatory text before or after the JSON
             else:
                 remaining_questions.append(question)
 
+        # H-165: an entry that is not an object is left out here, as the
+        # tier-0 step leaves it out. With GRADING_DETERMINISTIC_OBJECTIVE
+        # off that step does not run and this one meets the stored list
+        # as it is; `.get` on such an entry failed the whole grading.
         remaining_answers = [
             a
             for a in (answers or [])
-            if self._question_number_key(a.get("question_number")) not in claimed_keys
+            if is_readable_answer(a)
+            and self._question_number_key(a.get("question_number")) not in claimed_keys
         ]
 
         if cached_evaluations:
@@ -2899,17 +3684,20 @@ Do not include any explanatory text before or after the JSON
             # subsequent submission with nothing to tell them. Flag it for
             # review instead: grader A's grade still stands (as always),
             # but it now surfaces in the queue as unverified.
+            # The refusal's text names the teacher's balance. It goes to
+            # the log; what is saved is a code (H-128).
             logger.warning(
                 "[Grading] Second opinion skipped: out of credits. "
                 "Grader A's result stands, flagged for review. "
-                "processing_task_id=%s",
+                "processing_task_id=%s - %s",
                 processing_task_id,
+                e,
             )
             result["second_opinion"] = {
                 "skipped": "insufficient credits",
                 "skipped_reason": "insufficient_credits",
                 "selected": selected_readable,
-                "error": str(e),
+                "error": _second_opinion_error_code(e),
                 "needs_review": True,
                 "review_reason": "second_opinion_unavailable",
             }
@@ -2918,7 +3706,9 @@ Do not include any explanatory text before or after the JSON
                 "[Grading] Second-opinion pass failed — grader A's result "
                 "stands unflagged."
             )
-            result["second_opinion"] = {"error": str(e)}
+            # logger.exception above has the text; the saved result gets a
+            # code only (H-128).
+            result["second_opinion"] = {"error": _second_opinion_error_code(e)}
         return result
 
     def grade_student_submission(
@@ -2946,7 +3736,7 @@ Do not include any explanatory text before or after the JSON
         independently.
         """
         with billing_refund_scope(reason="grading run failed"):
-            return self._grade_student_submission_impl(
+            result = self._grade_student_submission_impl(
                 user=user,
                 rubric_json=rubric_json,
                 answer_json=answer_json,
@@ -2954,6 +3744,114 @@ Do not include any explanatory text before or after the JSON
                 processing_task_id=processing_task_id,
                 final_attempt=final_attempt,
             )
+        # Stamped HERE, outside the impl, because this is the one choke
+        # point every grading path returns through - the deterministic-only
+        # short-circuit, the single-pass call and the batched loop all have
+        # their own `return` inside the impl, and a provenance marker that
+        # only some of them carried would be worse than none at all.
+        return self._stamp_answer_provenance(result, rubric_json, answer_json)
+
+    @staticmethod
+    def _coerce_json_list(value):
+        """Tolerant list-or-JSON-string parse; [] for anything unusable."""
+        try:
+            parsed = json.loads(value) if isinstance(value, str) else value
+        except (json.JSONDecodeError, TypeError):
+            return []
+        if isinstance(parsed, dict):
+            parsed = parsed.get("questions", parsed.get("answers", []))
+        return parsed if isinstance(parsed, list) else []
+
+    def _stamp_answer_provenance(self, result, rubric_json, answer_json):
+        """
+        Record, on every evaluation, whether we actually HAD the student's
+        answer for that question.
+
+        THE FAILURE THIS CLOSES. Grading scores an absent answer 0 as
+        `not_attempted`, and until now that was indistinguishable from a
+        student who chose to skip the question - both arrived as an empty
+        string. So a student who answered question 7, whose answer was
+        dropped somewhere in extraction, got a silent zero that no human
+        was ever told about. Distinguishing the two is the entire point:
+        the score may well still be 0, but "we could not find your work"
+        is a conclusion the system is not entitled to reach on its own.
+
+        Deliberately NON-FATAL and side-effect free on the grade. It only
+        ever ADDS keys - `answer_status` per evaluation and
+        `answers_not_found` on the result - so a fault in here can never
+        change a score or lose a grade. students/services.py reads
+        `answers_not_found` to route the submission to the review queue.
+        """
+        if not isinstance(result, dict):
+            return result
+
+        try:
+            # rubric_json is accepted (and kept in the signature) for
+            # symmetry with every other stage of the pipeline, but this
+            # function never needs the assignment's own question list -
+            # by the time it runs, _finalize_grading_result has already
+            # guaranteed one evaluation per question, so iterating
+            # `result["question_evaluations"]` below already covers every
+            # question there is.
+            answers = self._coerce_json_list(answer_json)
+
+            status_by_key = {}
+            for entry in answers:
+                if not isinstance(entry, dict):
+                    continue
+                key = self._question_number_key(entry.get("question_number"))
+                status = entry.get("answer_status")
+                if status not in ANSWER_STATUSES:
+                    # No status on the payload at all: the schema is
+                    # disabled, or this is a pre-schema submission being
+                    # re-graded. Infer conservatively - an empty answer
+                    # becomes BLANK, never NOT_FOUND_IN_DOCUMENT, because
+                    # without the model's own account of the page there is
+                    # no evidence to tell those apart, and guessing would
+                    # flag every genuinely skipped question in the class.
+                    status = infer_answer_status(entry)
+                status_by_key[key] = status
+
+            not_found = []
+            for evaluation in result.get("question_evaluations") or []:
+                if not isinstance(evaluation, dict):
+                    continue
+                key = self._question_number_key(evaluation.get("question_number"))
+                # A question with no answer entry AT ALL is the case the
+                # single-pass path can produce: it never calls
+                # _pair_question_with_answers, so nothing fabricated a
+                # placeholder and the model simply saw fewer answers than
+                # questions.
+                status = status_by_key.get(key, NOT_FOUND_IN_DOCUMENT)
+                evaluation["answer_status"] = status
+                if status in REVIEW_REQUIRED_STATUSES:
+                    not_found.append(
+                        {
+                            "question_number": evaluation.get("question_number"),
+                            "answer_status": status,
+                            "score_awarded": evaluation.get("score_awarded"),
+                            "max_points": evaluation.get("max_points"),
+                        }
+                    )
+
+            if not_found:
+                logger.warning(
+                    "[Grading] %s question(s) graded without a confirmed "
+                    "student answer (%s). Flagging for review.",
+                    len(not_found),
+                    ", ".join(str(item["question_number"]) for item in not_found),
+                )
+            result["answers_not_found"] = not_found
+            # Recorded even when empty, so a consumer can tell "checked,
+            # nothing missing" apart from "this result predates the check".
+            result["answer_provenance_checked"] = True
+        except Exception:
+            # Never let provenance bookkeeping cost a student their grade.
+            logger.exception(
+                "[Grading] Answer-provenance stamping failed; the grade is "
+                "unaffected but this submission carries no provenance."
+            )
+        return result
 
     def _grade_student_submission_impl(
         self,
@@ -3205,9 +4103,7 @@ Do not include any explanatory text before or after the JSON
             # Provenance marker for the future eval loop: which grader
             # produced each evaluation.
             model_name = self._response_model_name(response)
-            for ev in evaluations:
-                if isinstance(ev, dict):
-                    ev.setdefault("graded_by", model_name or "llm")
+            self._stamp_as_a_models(evaluations, model_name)
 
             # Captured before the merge below: exactly the questions this
             # call freshly graded (excludes deterministic and cache-hit
@@ -3220,6 +4116,9 @@ Do not include any explanatory text before or after the JSON
             # recompute every number from the per-question evaluations.
             # `questions` (the FULL rubric) so totals cover the merged set.
             finalized = self._finalize_grading_result(evaluations, questions)
+            # H-154: only what the sum kept may be stored - a dropped
+            # repeat or stray must not become a later paper's grade.
+            fresh_evaluations = self._kept_among(fresh_evaluations, finalized)
             json_data["question_evaluations"] = finalized["question_evaluations"]
             json_data["grading_summary"] = {
                 "total_score": finalized["total_score"],
@@ -3316,9 +4215,10 @@ Do not include any explanatory text before or after the JSON
 
         # Step 4: Clamp and correct the merged evaluations BEFORE the summary
         # call, so the model summarises the same numbers that get persisted.
-        all_evaluations = self._finalize_grading_result(all_evaluations, questions)[
-            "question_evaluations"
-        ]
+        finalized = self._finalize_grading_result(all_evaluations, questions)
+        # H-154: only what the sum kept may be stored.
+        fresh_evaluations = self._kept_among(fresh_evaluations, finalized)
+        all_evaluations = finalized["question_evaluations"]
 
         # Step 5: Build the overall summary from all evaluations
         summary = self._build_overall_grading_summary(
@@ -3335,6 +4235,11 @@ Do not include any explanatory text before or after the JSON
             **summary,
             "question_evaluations": all_evaluations,
         }
+        # H-154: the summary step summed a list that was already clean.
+        self._carry_reply_corrections(
+            final_result["score_calculation_verification"],
+            finalized["score_calculation_verification"],
+        )
 
         logger.info(
             f"[Grading] Complete. Score: {summary['grading_summary']['total_score']}/"
@@ -3429,7 +4334,7 @@ Do not include any explanatory text before or after the JSON
                 ),
             }
 
-        print("Model requested a web search...")
+        logger.info("[AssignmentGeneration] Model requested a web fetch.")
         search_result = perform_search(urls)
         wrapped_result = {
             url: _wrap_fetched_content_as_untrusted(url, text)
@@ -3493,7 +4398,6 @@ Now, respond to the following teacher's instruction using the rules above
         """
 
         messages.append({"role": "user", "content": user_prompt})
-        # messages.append({"role": "user", "content": json_structure})
 
         additional_instruction = {
             "role": "system",
@@ -3564,7 +4468,9 @@ Now, respond to the following teacher's instruction using the rules above
         if not content:
             raise Exception("AI response did not include any content to parse.")
 
-        print(f"Received response of length {len(content)}")
+        logger.debug(
+            "[AssignmentGeneration] Received response of length %s", len(content)
+        )
 
         try:
             json_data = json.loads(content)
@@ -3608,8 +4514,6 @@ Now, respond to the following teacher's instruction using the rules above
         system_prompt = GRADE_FORMATTER
 
         try:
-            # response = self.__ai_model(system_prompt, user_prompt)
-
             user_prompts = [{"type": "text", "text": user_prompt}]
             system_prompts = [{"type": "text", "text": system_prompt}]
 
@@ -3709,9 +4613,20 @@ Now, respond to the following teacher's instruction using the rules above
                 assignment, feature=feature
             )
             if not can_access:
-                raise AIFeatureNotAvailableError(
-                    f"AI access denied for this assignment's teacher: {reason}"
+                # The caller here is the STUDENT, but the access decision is
+                # about their TEACHER. `reason` states that teacher's billing
+                # posture verbatim ("No active subscription", "Trial period
+                # has expired", "No credits remaining...") or, for the
+                # Internal Error variants, our own failure detail - none of
+                # which is the student's to learn. The reason stays in the
+                # log; the student gets a message they can act on.
+                logger.warning(
+                    "AI access denied for assignment %s (teacher %s): %s",
+                    getattr(assignment, "id", None),
+                    getattr(target_teacher, "id", None),
+                    reason,
                 )
+                raise AIFeatureNotAvailableError(STUDENT_AI_UNAVAILABLE_MESSAGE)
 
             wallet = target_teacher.credit_wallet
 
@@ -3736,6 +4651,17 @@ Now, respond to the following teacher's instruction using the rules above
                 raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
 
             wallet = user.credit_wallet
+
+        elif user.user_type == UserTypes.SUPER_ADMIN and not user.is_superuser:
+            # Both flags, as IsSuperAdmin requires (H-19). user_type alone
+            # used to buy the unmetered branch below, so an account with
+            # is_superuser unticked ran free, unlimited billed AI. It has
+            # no wallet of its own to bill, so refuse - with the
+            # user-facing refusal type, not the ValueError further down,
+            # which views would report as a server fault.
+            raise AIFeatureNotAvailableError(
+                "AI access denied: this super admin account is not fully " "privileged."
+            )
 
         elif user.user_type == UserTypes.SUPER_ADMIN:
             # Unmetered, unrestricted internal tooling - no tier gating,
@@ -3774,7 +4700,6 @@ Now, respond to the following teacher's instruction using the rules above
                         total_prompt += prompt["text"]
                     elif prompt["type"] == "image_url":
                         image_bytes.append(prompt.get("bytes"))
-            # total_prompt += user_prompt
 
         if system_prompt:
             if isinstance(system_prompt, str):
@@ -3929,16 +4854,15 @@ Now, respond to the following teacher's instruction using the rules above
             )
 
         if role == UserTypes.SUPER_ADMIN:
-            system_prompt_file = "ai_processor/SUPERADMIN_CUSTOM_PROMPT_2.txt"
+            system_prompt_file = "SUPERADMIN_CUSTOM_PROMPT_2.txt"
         elif role == UserTypes.SCHOOL_ADMIN:
-            system_prompt_file = "ai_processor/SCHOOLADMIN_CUSTOM_PROMPT.txt"
+            system_prompt_file = "SCHOOLADMIN_CUSTOM_PROMPT.txt"
         elif role == UserTypes.TEACHER:
-            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT_2.txt"
+            system_prompt_file = "TEACHER_CUSTOM_PROMPT_2.txt"
         else:
             raise ValueError(f"Invalid role: {role}")
 
-        with open(system_prompt_file, "r") as file:
-            system_prompt = file.read()
+        system_prompt = _load_prompt(system_prompt_file)
 
         user_prompt = (
             f"{_wrap_dashboard_context_as_untrusted(context)}\n\n"
@@ -4275,8 +5199,6 @@ class PDFService:
     EXTRACT_CHUNK_SIZE = 50
 
     def __init__(self, uploaded_file: UploadedFile = None):
-        # self.ocr_service = OCRService()
-
         self.uploaded_file = uploaded_file
 
         self.extracted_data = {
@@ -4322,8 +5244,20 @@ class PDFService:
         try:
             with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
                 page_count = pdf.page_count
+                is_pdf = pdf.is_pdf
         except Exception as e:
             raise ValueError(f"Could not read this PDF: {e}") from e
+
+        # filetype="pdf" is only a hint: PyMuPDF sniffs the bytes and opens a
+        # PNG or JPEG as a one-page document. The Content-Type checked above
+        # is the client's claim, so without this a photo labelled
+        # application/pdf passed every check here and then crashed pdftoppm -
+        # a 500 for what is an ordinary bad upload.
+        if not is_pdf:
+            raise ValueError(
+                "This file is not a PDF. If it is a photo or scan, upload it "
+                "as an image instead."
+            )
 
         if page_count == 0:
             raise ValueError("This PDF has no pages.")
@@ -4346,13 +5280,19 @@ class PDFService:
 
             for chunk_start in range(1, page_count + 1, self.EXTRACT_CHUNK_SIZE):
                 chunk_end = min(chunk_start + self.EXTRACT_CHUNK_SIZE - 1, page_count)
-                page_paths = convert_from_path(
-                    pdf_path,
-                    first_page=chunk_start,
-                    last_page=chunk_end,
-                    output_folder=rendered_dir,
-                    paths_only=True,
-                )
+                try:
+                    page_paths = convert_from_path(
+                        pdf_path,
+                        first_page=chunk_start,
+                        last_page=chunk_end,
+                        output_folder=rendered_dir,
+                        paths_only=True,
+                    )
+                except (PDFPageCountError, PDFSyntaxError) as e:
+                    # A document PyMuPDF could open but poppler cannot: the
+                    # file's fault, so a client error. A missing poppler
+                    # install or a timeout is ours, and is left to propagate.
+                    raise ValueError(f"Could not read this PDF: {e}") from e
                 for page_path in page_paths:
                     try:
                         with Image.open(page_path) as page_image:
@@ -4372,18 +5312,6 @@ class PDFService:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
         return images_byte
-
-        # First, try to extract text directly from the PDF
-        # self.__extract_text_based(pdf_bytes)
-
-        # If no text was extracted, it's likely a scanned PDF
-        # if not self.extracted_data["questions"]:
-        #     self.__extract_text_with_ocr(pdf_bytes)
-        #
-        # self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
-        # self.extracted_data["title"] = Path(self.uploaded_file.name).stem
-        #
-        # return self.extracted_data
 
     def __get_page_count(self, pdf_bytes):
         """Helper to get the number of pages"""
@@ -4423,8 +5351,6 @@ class PDFService:
 
             for image in images:
                 image_byte.append(image.tobytes())
-                # text = ocr_service.extract_with_paddle(image)
-                # full_text += text
 
             self.extracted_data["questions"] = full_text
         except Exception as e:
@@ -4439,7 +5365,10 @@ class PDFService:
             with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
                 return pdf.page_count
         except Exception as e:
-            print(f"PDF page count extraction failed: {e}")
+            # Logged, not printed: this value feeds the pre-flight cost
+            # estimate, so a silent fallback to a made-up page count
+            # skews the balance check with nothing in the logs to say so.
+            logger.warning("PDF page count extraction failed: %s", e)
             return 2
 
 
@@ -4455,42 +5384,8 @@ class OCRService:
             with Image.open(BytesIO(image_bytes)) as img:
                 return img.size
         except Exception as e:
-            print(f"Image dimension extraction failed: {e}")
+            logger.warning("Image dimension extraction failed: %s", e)
             return (1920, 1000)
-
-    # def __init__(self):
-    #     if OCRService._paddle_ocr_model is None:
-    #         from paddleocr import PaddleOCR
-
-    #         OCRService._paddle_ocr_model = PaddleOCR(
-    #             use_doc_orientation_classify=True,
-    #             use_doc_unwarping=True,
-    #             use_textline_orientation=True,
-    #         )
-
-    # def extract_with_paddle(self, image):
-    #     model = OCRService._paddle_ocr_model
-    #     img_np = np.array(image.convert("RGB"))
-    #     result = model.predict(img_np)
-
-    #     text = ""
-    #     for res in result:
-    #         text = res.json["res"]["rec_texts"]
-    #     return "\n".join(text)
-
-    # def extract_with_pytessaract(self, image):
-    #     """
-
-    #     :param image: PIL Image
-    #     :return:
-    #     """
-    #     text = pytesseract.image_to_string(image)
-    #     return text
-
-
-_ocr_instance = None
-_pdf_instance = None
-_ai_processor_instance = None
 
 
 ocr_service = OCRService()

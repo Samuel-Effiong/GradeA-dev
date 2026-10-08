@@ -4,6 +4,16 @@ Fails CI if a new Django migration file contains an operation that is not
 safely additive (rename, drop, type change, non-nullable add-without-default)
 and does not carry an explicit expand-contract acknowledgement.
 
+A change to an existing column (AlterField) is judged against what the
+column was BEFORE the migration, read from the migration files themselves
+(no database): it is reported only when the column becomes NOT NULL with
+nothing to fill the rows that are NULL, when its type changes, or when it
+gets shorter. A change of choices, help text or a wider length on a column
+is additive and passes (H-120).
+
+Not judged: RunSQL and RunPython. Raw SQL and data migrations are for a
+reviewer to read.
+
 This enforces the house rule in docs/MIGRATIONS.md: additive-only migrations
 auto-apply on deploy; anything else must be a reviewed, deliberate step of a
 three-step expand -> migrate -> contract rollout, marked as such in the file.
@@ -25,6 +35,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+from django.db.models.fields import NOT_PROVIDED
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -95,13 +107,111 @@ def has_ack(path_str):
     return bool(ACK_MARKER.search(Path(REPO_ROOT / path_str).read_text()))
 
 
+def has_a_default(field):
+    """Python-side `default=` or database-side `db_default=`: either one
+    gives existing rows a value without a human picking it."""
+    if getattr(field, "has_default", lambda: False)():
+        return True
+    return getattr(field, "db_default", NOT_PROVIDED) is not NOT_PROVIDED
+
+
 def field_is_safe_add(field):
     """A field being added is safe on an existing, populated table only if
     every existing row can get a value without a human picking one at
-    migration time: nullable, or backed by a real default."""
-    null = getattr(field, "null", False)
-    has_default = getattr(field, "has_default", lambda: False)()
-    return null or has_default
+    migration time: nullable, or backed by a real default. A many-to-many
+    field adds no column to the table at all (it makes a table of its own)."""
+    if getattr(field, "many_to_many", False):
+        return True
+    return getattr(field, "null", False) or has_a_default(field)
+
+
+#: Limits whose shrinking can refuse or cut values already stored.
+SHRINKABLE = ("max_length", "max_digits", "decimal_places")
+
+
+def alter_field_findings(old, new):
+    """What an AlterField from `old` to `new` does that is not additive.
+    `old` is the field as it stood before the migration, or None if it
+    could not be found."""
+    if old is None:
+        return [
+            "AlterField on a field whose previous state could not be found "
+            "- it cannot be shown to be additive"
+        ]
+    findings = []
+    if old.null and not new.null and not has_a_default(new):
+        findings.append(
+            "AlterField making a nullable column NOT NULL without a default "
+            "- existing NULL rows will fail the migration outright, "
+            "or silently need a backfill that isn't this operation"
+        )
+    old_type, new_type = old.get_internal_type(), new.get_internal_type()
+    if old_type != new_type:
+        findings.append(
+            f"AlterField changing a column's type ({old_type} to {new_type}) "
+            "- the table is rewritten or locked, and a worker on the "
+            "previous release reads and writes the old type"
+        )
+    for limit in SHRINKABLE:
+        before, after = getattr(old, limit, None), getattr(new, limit, None)
+        if before is not None and after is not None and after < before:
+            findings.append(
+                f"AlterField shrinking {limit} from {before} to {after} "
+                "- values already stored that no longer fit will fail the "
+                "migration or be cut"
+            )
+    return findings
+
+
+def field_before(state, app_label, op):
+    try:
+        return state.models[app_label, op.model_name_lower].fields[op.name]
+    except (AttributeError, KeyError):
+        return None
+
+
+def operation_findings(op, state, app_label):
+    op_name = type(op).__name__
+
+    if op_name in UNCONDITIONALLY_RISKY_OPS:
+        return [f"{op_name} - {UNCONDITIONALLY_RISKY_OPS[op_name]}"]
+
+    if op_name == "AddField":
+        field = getattr(op, "field", None)
+        if field is not None and not field_is_safe_add(field):
+            return [
+                "AddField without null=True or a default - Django "
+                "would have prompted for a one-off value interactively; "
+                "that value does not become a reviewable backfill, and "
+                "a worker on the previous release doesn't know this "
+                "column exists"
+            ]
+
+    elif op_name == "AlterField":
+        field = getattr(op, "field", None)
+        if field is not None:
+            return alter_field_findings(field_before(state, app_label, op), field)
+
+    elif op_name == "SeparateDatabaseAndState":
+        # What reaches the database is what matters to the rows and to a
+        # worker on the previous release. Each database operation is judged
+        # against the state as the ones before it left it.
+        return findings_for(op.database_operations, state.clone(), app_label)
+
+    return []
+
+
+def findings_for(operations, state, app_label):
+    """Human-readable risk descriptions for a migration's operations, empty
+    if they are additive only. `state` is the project state just before the
+    migration and `app_label` the migration's app; it is moved forward
+    operation by operation, so each one is judged against what the ones
+    before it left."""
+    findings = []
+    for op in operations:
+        findings.extend(operation_findings(op, state, app_label))
+        op.state_forwards(app_label, state)
+    return findings
 
 
 def classify(path_str):
@@ -109,38 +219,19 @@ def classify(path_str):
     migration is additive-only."""
     mod_name = module_name_for(path_str)
     module = importlib.import_module(mod_name)
-    migration = getattr(module, "Migration", None)
-    if migration is None:
+    if getattr(module, "Migration", None) is None:
         raise ImportError(f"{mod_name} has no Migration class")
 
-    findings = []
-    for op in migration.operations:
-        op_name = type(op).__name__
+    # The state just before this migration, from the migration files alone:
+    # a loader with no connection reads the disk and never a database.
+    from django.db.migrations.loader import MigrationLoader
 
-        if op_name in UNCONDITIONALLY_RISKY_OPS:
-            findings.append(f"{op_name} - {UNCONDITIONALLY_RISKY_OPS[op_name]}")
-
-        elif op_name == "AddField":
-            field = getattr(op, "field", None)
-            if field is not None and not field_is_safe_add(field):
-                findings.append(
-                    "AddField without null=True or a default - Django "
-                    "would have prompted for a one-off value interactively; "
-                    "that value does not become a reviewable backfill, and "
-                    "a worker on the previous release doesn't know this "
-                    "column exists"
-                )
-
-        elif op_name == "AlterField":
-            field = getattr(op, "field", None)
-            if field is not None and not field_is_safe_add(field):
-                findings.append(
-                    "AlterField making a column NOT NULL without a default "
-                    "- existing NULL rows will fail the migration outright, "
-                    "or silently need a backfill that isn't this operation"
-                )
-
-    return findings
+    app_label, _, name = mod_name.partition(".migrations.")
+    app_label = app_label.split(".")[-1]
+    loader = MigrationLoader(None)
+    migration = loader.graph.nodes[(app_label, name)]
+    state = loader.project_state(nodes=[(app_label, name)], at_end=False)
+    return findings_for(migration.operations, state, app_label)
 
 
 def main():

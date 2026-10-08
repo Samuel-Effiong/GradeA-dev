@@ -19,6 +19,7 @@ Two layers are covered deliberately:
 """
 
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from celery import Celery
 from celery.contrib.testing.worker import start_worker
@@ -101,6 +102,20 @@ class TaskPrerunPostrunHandlerTests(SimpleTestCase):
         celery_signals._clear_request_id_on_postrun(task_id="t1")
         self.assertIsNone(get_request_id())
 
+    def test_prerun_does_not_raise_when_sentry_sdk_not_installed(self):
+        request = SimpleNamespace(request_id="worker-id", headers={})
+        task = SimpleNamespace(request=request)
+
+        with patch.dict("sys.modules", {"sentry_sdk": None}):
+            celery_signals._restore_request_id_on_prerun(
+                task_id="t-no-sentry", task=task
+            )
+
+        try:
+            self.assertEqual(get_request_id(), "worker-id")
+        finally:
+            celery_signals._clear_request_id_on_postrun(task_id="t-no-sentry")
+
     def test_prerun_is_noop_when_task_has_no_request_id(self):
         request = SimpleNamespace(headers={})
         task = SimpleNamespace(request=request)
@@ -109,8 +124,52 @@ class TaskPrerunPostrunHandlerTests(SimpleTestCase):
         self.assertIsNone(get_request_id())
         self.assertNotIn("t2", celery_signals._tokens_by_task_id)
 
+    def test_prerun_without_task_id_still_sets_contextvar_but_tracks_no_token(self):
+        # Defensive: task_prerun always provides a task_id in real Celery,
+        # but the `if task_id:` guard exists specifically so a falsy one
+        # doesn't crash - it should just mean nothing is stored for
+        # task_postrun to look up later.
+        request = SimpleNamespace(request_id="worker-id", headers={})
+        task = SimpleNamespace(request=request)
+
+        celery_signals._restore_request_id_on_prerun(task_id=None, task=task)
+
+        try:
+            self.assertEqual(get_request_id(), "worker-id")
+            self.assertNotIn(None, celery_signals._tokens_by_task_id)
+        finally:
+            # No token was returned to us (task_id was falsy, so
+            # _restore_request_id_on_prerun stored nothing to reset with) -
+            # clear the contextvar directly so this doesn't leak into
+            # whatever test runs next in this process.
+            from AutoGrader.request_context import _request_id_var
+
+            _request_id_var.set(None)
+
     def test_postrun_with_unknown_task_id_does_not_raise(self):
         celery_signals._clear_request_id_on_postrun(task_id="never-seen")
+
+    def test_postrun_logs_a_warning_instead_of_raising_on_cross_context_token(self):
+        """
+        reset_request_id() raises ValueError if the token wasn't created in
+        the current contextvars.Context. The module docstring says this
+        "should be unreachable in practice" since prerun/postrun always run
+        on the same worker thread - but _clear_request_id_on_postrun still
+        guards it, and that guard is worth pinning down: a foreign token
+        must be logged, not allowed to crash task_postrun (which would
+        break the *next* task's teardown too).
+        """
+        import contextvars
+
+        foreign_context = contextvars.Context()
+        foreign_token = foreign_context.run(lambda: set_request_id("foreign-id"))
+        celery_signals._tokens_by_task_id["cross-context"] = foreign_token
+
+        with self.assertLogs("AutoGrader.celery_signals", level="WARNING") as logs:
+            celery_signals._clear_request_id_on_postrun(task_id="cross-context")
+
+        self.assertIn("cross-context", logs.output[0])
+        self.assertNotIn("cross-context", celery_signals._tokens_by_task_id)
 
     def test_sequential_tasks_do_not_leak_request_id(self):
         # Simulates a prefork worker process handling task A (which has a

@@ -1,0 +1,34 @@
+=== async post-commit bump probe on 6f2099125ca5b055b314dbd4404db2fc25e26973, 2026-09-18T13:08:32+01:00
+load_before=12.24 11.91 8.68
+Preparing worktree (detached HEAD 6f20991)
+HEAD is now at 6f20991 Measure the double-bump cost with a design that cancels order effects
+blob_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1
+
+--- variant async_0ms
+applied
+variant_sha256=6f890d392d8a3403ea21d4c2a80b6d91bcdfc302c46506385984bd150e67325b
+test_exit=1
+FAIL: test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump
+FAIL: test_both_bumps_failing_leaves_staleness_bounded_by_the_ttl
+FAIL: test_both_bumps_failing_leaves_staleness_bounded_by_the_ttl
+Ran 13 tests in 166.737s
+FAILED (failures=3)
+restored_sha256 MATCHES blob
+
+--- variant async_50ms
+applied
+variant_sha256=f3eaad6ab13587479f1c7068cce301abf55c345964d31497023b61647092ccf1
+test_exit=1
+FAIL: test_a_nested_caller_with_a_rolled_back_savepoint_is_not_served_stale
+FAIL: test_a_read_in_the_pre_commit_window_is_not_served_stale
+FAIL: test_only_the_writers_scopes_move_and_the_commit_exactly_repeats_them
+FAIL: test_a_committed_transaction_bumps_before_and_after_commit
+FAIL: test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump
+FAIL: test_nested_committed_savepoints_bump_once_after_the_outer_commit
+FAIL: test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump
+FAIL: test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump
+Ran 13 tests in 133.545s
+FAILED (failures=8)
+restored_sha256 MATCHES blob
+load_after=10.61 11.76 9.78
+=== finished 2026-09-18T13:14:42+01:00; disposable worktree removed

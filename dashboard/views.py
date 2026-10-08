@@ -2,7 +2,7 @@ import logging
 from datetime import date, timedelta
 
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.db.models import (
     Avg,
@@ -12,8 +12,11 @@ from django.db.models import (
     ExpressionWrapper,
     F,
     FloatField,
+    IntegerField,
+    OuterRef,
     Prefetch,
     Q,
+    Subquery,
     Sum,
     Value,
     Variance,
@@ -37,26 +40,34 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
+from assignments.services import get_student_assignment_status
+from AutoGrader.cache_generation import (
+    SCOPE_ANY_SCHOOL,
+    SCOPE_ANY_USER,
+    SCOPE_GLOBAL,
+    SCOPE_SCHOOL,
+    SCOPE_USER,
+    versioned_key,
+)
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from billing.models import CreditUsageLog
+from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
-
-# from assignments.services import AssignmentProcessingService
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
     School,
     Session,
+    SessionOwnerType,
     StudentCourse,
+    reachable_courses,
+    teacher_course_access_q,
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
-
-# from dashboard.services import analyze_question_difficulty
 from dashboard.models import SchoolAtRiskSnapshot
-from dashboard.rigor import build_rigor_by_teacher, build_rigor_for_teacher
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
-from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
+from dashboard.serializers import (
     AssignmentActivityOverTimeChartSerializer,
     ConcurrencySerializer,
     CourseAnalyticsSerializer,
@@ -66,6 +77,7 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     CustomAIPrompt,
     CustomAIReply,
     DashboardChatSessionSerializer,
+    PaginatedTeacherStudentAnalyticsSerializer,
     PlatformAdoptionSerializer,
     PlatformAIPerformanceSerializer,
     PlatformUsageSerializer,
@@ -75,6 +87,7 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     SchoolAnalyticsSerializer,
     SchoolAtRiskTrendSerializer,
     StudentAssignmentListSerializer,
+    StudentAssignmentStatusSummarySerializer,
     StudentDashboardOverviewSerializer,
     SuperAdminStudentPerformanceSerializer,
     TeacherAssignmentAnalyticsSerializer,
@@ -86,10 +99,17 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     TeacherStudentAnalyticsSerializer,
     UnitPerformanceSerializer,
 )
-from dashboard.services import SchoolAdminWeeklySummaryService
+from dashboard.services import (
+    SchoolAdminAIContextService,
+    SchoolAdminWeeklySummaryService,
+    TeacherAIContextService,
+    TeacherPerformanceStatsService,
+    dashboard_context_json,
+)
 from dashboard.throttling import CustomAIPromptThrottle
+from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
-from students.services import get_grade_details
+from students.services import get_grade_details, get_letter_grade_from_gpa
 from users.models import CustomUser, UserTypes
 from users.services import (
     get_peak_concurrent_users,
@@ -99,7 +119,18 @@ from users.services import (
 
 logger = logging.getLogger(__name__)
 
-# from dashboard.services import DashboardService
+#: TTL for the superadmin analytics dashboards (H-1 families 15-21).
+#:
+#: 24 hours, not the project's usual 15 minutes, and the reasoning is the
+#: point: once a generation counter is embedded in the key, freshness is
+#: guaranteed by the counter, so the TTL is no longer a staleness bound. It
+#: becomes a pure memory/garbage-collection knob for superseded entries.
+#:
+#: Measured: these dashboards see ~6.5 relevant mutations/day in production,
+#: while a 900s TTL expired them 96 times/day - so the TTL, not real change,
+#: was causing ~94% of rebuilds. At 24h that falls to ~7.5/day, a ~14x
+#: reduction, with NO staleness because versioning handles it.
+SUPERADMIN_DASHBOARD_TTL_SECONDS = 60 * 60 * 24
 
 
 def get_or_create_dashboard_chat_session(user, assistant_type):
@@ -116,6 +147,88 @@ def append_dashboard_chat_message(session, role, content):
         role=role,
         content=content,
     )
+
+
+#: Told to the model in place of a section that failed to load, so it says
+#: the data is unavailable instead of reasoning over an empty `{}`.
+UNAVAILABLE_SECTION = (
+    "UNAVAILABLE: this section could not be loaded because of an internal "
+    "error. Do not guess its contents; tell the user this data is "
+    "temporarily unavailable."
+)
+
+
+def dashboard_context_section(title, build, *, user, task_type):
+    """One titled block of AI chat context.
+
+    A section that fails is LOGGED with enough context to trace it, and the
+    model is told explicitly that the data is missing. These sections used
+    to be built inside `except Exception: section = {}`, which hid real
+    defects: the school-admin chat called a view method that no longer
+    existed, and every request for months sent the model an empty teachers
+    section without a single log line.
+    """
+    try:
+        body = dashboard_context_json(build())
+    except Exception:
+        logger.exception(
+            "Dashboard AI context section failed to load",
+            extra={"section": title, "user_id": str(user.id), "task_type": task_type},
+        )
+        body = UNAVAILABLE_SECTION
+    return f"### {title}\n{body}"
+
+
+def run_dashboard_ai_chat(
+    request, prompt, *, assistant_type, role, context, feature, task_type
+):
+    """Ask the model, then record the exchange.
+
+    THE PROVIDER CALL IS MADE OUTSIDE ANY DATABASE TRANSACTION. It used to run
+    inside `transaction.atomic()`, holding a transaction - and, under
+    retries, up to three provider round trips - open on the connection for
+    the whole call. Now the chat turn is written afterwards, in one short
+    transaction, and only when there is a reply: a failed or refused call
+    still leaves no orphaned user message behind, which is what the atomic
+    block was protecting.
+    """
+    user = request.user
+    try:
+        ai_feedback = ai_processor.custom_ai_prompt_retry(
+            user,
+            context,
+            prompt,
+            role,
+            feature=feature,
+            task_type=task_type,
+        )
+    except PERMANENT_AI_REFUSALS as e:
+        log_refusal(logger, "Custom AI prompt", e, user_id=str(user.id))
+        return refusal_response(e)
+    except Exception as e:
+        logger.error(
+            "Custom AI prompt failed",
+            exc_info=e,
+            extra={"user_id": str(user.id), "task_type": task_type},
+        )
+        return Response(
+            {
+                "error": describe_user_error(
+                    e,
+                    fallback_message=(
+                        "We couldn't generate a response right now. Please try again."
+                    ),
+                )
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    with transaction.atomic():
+        chat_session = get_or_create_dashboard_chat_session(user, assistant_type)
+        append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
+        append_dashboard_chat_message(chat_session, RoleType.ASSISTANT, ai_feedback)
+
+    return Response(CustomAIReply({"response": ai_feedback}).data)
 
 
 class SuperAdminDashboardView(viewsets.ViewSet):
@@ -136,11 +249,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformAdoptionSerializer},
     )
-    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:adoption"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/adoption")
     def platform_adoption(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__adoption"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__adoption",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -204,7 +318,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = PlatformAdoptionSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -222,11 +336,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformUsageSerializer},
     )
-    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:usage"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/usage")
     def platform_usage(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__usage"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__usage",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -319,7 +434,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = PlatformUsageSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
         return Response(data)
 
     @extend_schema(
@@ -335,13 +450,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformAIPerformanceSerializer},
     )
-    # @method_decorator(
-    #     cache_page(60 * 30, key_prefix="superadmin:dashboard:performance")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/ai_performance")
     def platform_ai_performance(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__ai_performance"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__ai_performance",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -443,15 +557,13 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     "regrade_rate": regrade_rate,
                     "avg_assignment_processing_time": avg_assignment_processing_time,
                     "avg_grading_processing_time": avg_grading_time,
-                    # "queue_backlog": None,
-                    # "error_rate": None,
                 },
             }
 
             serializer = PlatformAIPerformanceSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
         return Response(data)
 
     @extend_schema(
@@ -468,10 +580,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: ScalingSignalsSerializer},
     )
-    # @method_decorator(
-    #     cache_page(60 * 30, key_prefix="superadmin:dashboard:scaling_signals")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/scaling_signals")
     def scaling_signals(self, request, *args, **kwargs):
         """
@@ -479,7 +587,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         Tracks how the platform is moving from individual use to institutional adoption.
         """
 
-        cache_key = f"superadmins:user_id__{request.user.id}:view__scaling_signals"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__scaling_signals",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -555,13 +666,11 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = ScalingSignalsSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
     @extend_schema(tags=["Super Admin"])
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     def summary(self, request, *args, **kwargs):
         # Implementation for summary endpoint
 
@@ -678,78 +787,83 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: SchoolAnalyticsSerializer(many=True)},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:schools"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/schools")
     def schools(self, request, *args, **kwargs):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        cache_key = versioned_key(
             f"superadmins:user_id__{request.user.id}:view__schools"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            # Depends on the School table alone - NOT on global activity.
+            [(SCOPE_ANY_SCHOOL, None)],
         )
         data = cache.get(cache_key)
 
         if data is None:
 
-            schools = (
-                School.objects.all()
-                .annotate(
-                    teacher_count=Count(
-                        "users",
-                        filter=Q(
-                            users__user_type=UserTypes.TEACHER, users__is_active=True
-                        ),
-                        distinct=True,
-                    ),
-                    student_count=Count(
-                        "users",
-                        filter=Q(
-                            users__user_type=UserTypes.STUDENT, users__is_active=True
-                        ),
-                        distinct=True,
-                    ),
-                    course_count=Count("users__courses", distinct=True),
-                    performance=Avg(
-                        "users__courses__enrollments__final_grade",
-                        filter=Q(users__user_type=UserTypes.TEACHER),
-                    ),
-                    total_assignments=Count(
-                        "users__courses__assignments", distinct=True
-                    ),
-                    # total_completed_assignments=Count("users__courses__assignments__submissions",
-                    #                                   filter=Q(users__courses__assignments__submission__is_completed=True),
-                    #                                   distinct=True),
-                )
-                .order_by("name")
+            # Explicit order: an unordered queryset pages non-deterministically.
+            schools = paginator.paginate_queryset(
+                School.objects.order_by("name", "id"), request, view=self
             )
+            school_ids = [school.id for school in schools]
 
-            schools = paginator.paginate_queryset(schools, request, view=self)
-
-            result = []
-            for school in schools:
-                # completion_rate = (
-                #     (school.total_completed_assignments / school.total_assignments) * 100
-                #     if school.total_assignments else 0
-                # )
-
-                result.append(
-                    {
-                        "school_id": school.id,
-                        "school_name": school.name,
-                        "teachers": school.teacher_count,
-                        "students": school.student_count,
-                        "courses": school.course_count,
-                        "average_performance": round(float(school.performance or 0), 2),
-                        # "assignment_completion_rate": round(completion_rate, 2),
-                    }
+            # One grouped query per figure, each over a single relation. The
+            # previous single annotate() joined users -> courses -> enrolments
+            # and users -> courses -> assignments at once, so every enrolment
+            # grade was repeated once per assignment and the average was
+            # weighted by assignment count - measured: a school whose two
+            # enrolments averaged 50.0 was reported as 83.33. Five queries per
+            # page, however large the schools are.
+            teacher_counts = _count_by(
+                CustomUser.objects.filter(
+                    school_id__in=school_ids,
+                    user_type=UserTypes.TEACHER,
+                    is_active=True,
+                ),
+                "school_id",
+            )
+            student_counts = _count_by(
+                CustomUser.objects.filter(
+                    school_id__in=school_ids,
+                    user_type=UserTypes.STUDENT,
+                    is_active=True,
+                ),
+                "school_id",
+            )
+            course_counts = _count_by(
+                Course.objects.filter(teacher__school_id__in=school_ids),
+                "teacher__school_id",
+            )
+            performance_by_school = {
+                row["course__teacher__school_id"]: row["average"]
+                for row in StudentCourse.objects.filter(
+                    course__teacher__school_id__in=school_ids,
+                    course__teacher__user_type=UserTypes.TEACHER,
                 )
+                .values("course__teacher__school_id")
+                .annotate(average=Avg("final_grade"))
+                .order_by()
+            }
+
+            result = [
+                {
+                    "school_id": school.id,
+                    "school_name": school.name,
+                    "teachers": teacher_counts.get(school.id, 0),
+                    "students": student_counts.get(school.id, 0),
+                    "courses": course_counts.get(school.id, 0),
+                    "average_performance": round(
+                        float(performance_by_school.get(school.id) or 0), 2
+                    ),
+                }
+                for school in schools
+            ]
 
             serializer = SchoolAnalyticsSerializer(result, many=True)
             data = paginator.get_paginated_response(serializer.data).data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -782,8 +896,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherPerformanceSerializer(many=True)},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:teachers"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
     def teachers(self, request, *args, **kwargs):
         """
@@ -797,43 +909,80 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        cache_key = versioned_key(
             f"superadmins:user_id__{request.user.id}:view__teachers"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            # Depends on the CustomUser table alone.
+            [(SCOPE_ANY_USER, None)],
         )
         data = cache.get(cache_key)
 
         if data is None:
 
-            teacher_queryset = CustomUser.objects.filter(
-                user_type=UserTypes.TEACHER, is_active=True
+            # Explicit order: an unordered queryset pages non-deterministically.
+            teachers = paginator.paginate_queryset(
+                CustomUser.objects.filter(
+                    user_type=UserTypes.TEACHER, is_active=True
+                ).order_by("first_name", "last_name", "id"),
+                request,
+                view=self,
             )
+            teacher_ids = [teacher.id for teacher in teachers]
 
-            teachers = teacher_queryset.annotate(
-                course_count=Count("courses"),
-                student_count=Count("courses__enrollments__student", distinct=True),
-                average_grade=Avg("courses__enrollments__final_grade"),
-                total_possible_submissions=Count("courses__enrollments", distinct=True)
-                * Count("courses__assignments", distinct=True),
-                actual_submissions=Count(
-                    "courses__assignments__submissions", distinct=True
+            # Grouped queries over single relations, replacing one annotate()
+            # that joined courses to enrolments AND to assignments ->
+            # submissions. That join repeated each course once per
+            # (enrolment x submission), so a teacher with ONE course was
+            # reported as having 18, and the average grade was weighted by
+            # submission volume. It also ran two more aggregates per teacher.
+            course_counts = _count_by(
+                Course.objects.filter(teacher_id__in=teacher_ids), "teacher_id"
+            )
+            enrolment_stats = {
+                row["course__teacher_id"]: row
+                for row in StudentCourse.objects.filter(
+                    course__teacher_id__in=teacher_ids
+                )
+                .values("course__teacher_id")
+                .annotate(
+                    students=Count("student", distinct=True),
+                    average_grade=Avg("final_grade"),
+                )
+                .order_by()
+            }
+            submission_counts = _count_by(
+                StudentSubmission.objects.filter(
+                    assignment__course__teacher_id__in=teacher_ids
                 ),
+                "assignment__course__teacher_id",
             )
 
-            teachers = paginator.paginate_queryset(teachers, request, view=self)
+            # Expected submissions are summed PER COURSE. The previous
+            # formula multiplied a teacher's total assignments by their total
+            # enrolments across all courses, so a course with 10 assignments
+            # and no students plus a course with 30 students and no
+            # assignments "expected" 300 submissions instead of 0.
+            expected_by_teacher: dict = {}
+            for (
+                teacher_id,
+                assignment_total,
+                enrolment_total,
+            ) in _with_assignment_and_enrolment_counts(
+                Course.objects.filter(teacher_id__in=teacher_ids)
+            ).values_list(
+                "teacher_id", "assignment_total", "enrolment_total"
+            ):
+                expected_by_teacher[teacher_id] = (
+                    expected_by_teacher.get(teacher_id, 0)
+                    + assignment_total * enrolment_total
+                )
 
             performance_data = []
             for teacher in teachers:
-                total_assignments = (
-                    teacher.courses.aggregate(count=Count("assignments"))["count"] or 0
-                )
-                total_enrollments = (
-                    teacher.courses.aggregate(count=Count("enrollments"))["count"] or 0
-                )
-                expected_submissions = total_assignments * total_enrollments
-
+                enrolments = enrolment_stats.get(teacher.id) or {}
+                expected_submissions = expected_by_teacher.get(teacher.id, 0)
                 completion_rate = (
-                    (teacher.actual_submissions / expected_submissions * 100)
+                    (submission_counts.get(teacher.id, 0) / expected_submissions * 100)
                     if expected_submissions > 0
                     else 0
                 )
@@ -842,10 +991,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     {
                         "teacher_id": teacher.id,
                         "teacher_name": f"{teacher.first_name} {teacher.last_name}",
-                        "number_of_courses": teacher.course_count,
-                        "number_of_students": teacher.student_count,
+                        "number_of_courses": course_counts.get(teacher.id, 0),
+                        "number_of_students": enrolments.get("students") or 0,
                         "average_student_performance": round(
-                            float(teacher.average_grade or 0), 2
+                            float(enrolments.get("average_grade") or 0), 2
                         ),
                         "assignment_completion_rate": round(
                             min(float(completion_rate), 100), 2
@@ -856,7 +1005,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = TeacherPerformanceSerializer(performance_data, many=True)
             data = paginator.get_paginated_response(serializer.data).data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
         return Response(data)
 
     @extend_schema(
@@ -873,11 +1022,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SuperAdminStudentPerformanceSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:students"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__students"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__students",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -887,12 +1037,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 total_assignments=Count("course__assignments", distinct=True),
             )
 
-            # total_students = CustomUser.objects.filter(user_type=UserTypes.STUDENT, is_active=True).count()
             actual_submissions = StudentSubmission.objects.count()
 
-            expected_submissions = sum(
-                c.assignments.count() * c.enrollments.count()
-                for c in Course.objects.filter(is_active=True)
+            expected_submissions = _expected_submission_total(
+                Course.objects.filter(is_active=True)
             )
 
             completion_rate = (
@@ -946,7 +1094,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = SuperAdminStudentPerformanceSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -967,39 +1115,41 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: ConcurrencySerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:concurrency"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/concurrency")
     def concurrency(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__concurrency"
-        data = cache.get(cache_key)
+        # DELIBERATELY UNCACHED (H-1 family 22).
+        #
+        # This endpoint reads the Redis presence set, not the database, so
+        # there is no model mutation to hang a generation counter off - and
+        # presence is defined over a 300-second window, so the previous
+        # 900-second TTL could serve a "live" concurrency figure three
+        # windows out of date.
+        #
+        # Measured before removing the cache: 18ms cold vs 6.9ms warm, a
+        # 3x saving on an endpoint that already costs 5 queries and 4ms of
+        # SQL. That does not justify a cache, and certainly not one that
+        # makes a real-time number stale. Every other superadmin dashboard
+        # measured 6x-199x, which is what a cache is for.
+        range_key: str = request.query_params.get("range", "daily")
 
-        if data is None:
-            range_key: str = request.query_params.get("range", "daily")
+        start, end = get_time_range(range_key)
+        pcu = get_peak_concurrent_users(start, end)
+        peak_time = get_peak_time_of_day(start, end)
 
-            start, end = get_time_range(range_key)
-            pcu = get_peak_concurrent_users(start, end)
-            peak_time = get_peak_time_of_day(start, end)
-
-            payload = {
+        serializer = ConcurrencySerializer(
+            {
                 "time_range": range_key,
                 "start": start,
                 "end": end,
                 "peak_concurrent_users": pcu,
                 "peak_time_of_day": peak_time,
             }
-
-            serializer = ConcurrencySerializer(payload)
-            data = serializer.data
-
-            cache.set(cache_key, data, 60 * 15)
-
-        return Response(data)
+        )
+        return Response(serializer.data)
 
     @extend_schema(
         tags=["Super Admin"],
         summary="Get AI detailed information about analytics ",
-        # description="Retrieve user activity statistics within a specified time range",
         request=CustomAIPrompt,
         responses={200: CustomAIReply},
     )
@@ -1014,124 +1164,41 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         prompt = serializer.validated_data["prompt"]
-        chat_session = get_or_create_dashboard_chat_session(
-            request.user,
-            AssistantType.SUPER_ADMIN_ANALYTICS,
+        task_type = "custom_ai_prompt:superadmin"
+
+        def section(title, method):
+            return dashboard_context_section(
+                title,
+                lambda: method(request, *args, **kwargs).data,
+                user=request.user,
+                task_type=task_type,
+            )
+
+        context = "\n\n".join(
+            [
+                section("PLATFORM ADOPTION METRICS", self.platform_adoption),
+                section("PLATFORM USAGE METRICS", self.platform_usage),
+                section(
+                    "PLATFORM AI PERFORMANCE METRICS", self.platform_ai_performance
+                ),
+                section("SCALING SIGNALS METRICS", self.scaling_signals),
+                section("SUMMARY METRICS", self.summary),
+                section("SCHOOLS METRICS", self.schools),
+                section("TEACHERS METRICS", self.teachers),
+                section("STUDENTS METRICS", self.students),
+                section("CONCURRENCY METRICS", self.concurrency),
+            ]
         )
 
-        try:
-            platform_adoption = self.platform_adoption(request, *args, **kwargs).data
-        except Exception:
-            platform_adoption = {}
-
-        try:
-            platform_usage = self.platform_usage(request, *args, **kwargs).data
-        except Exception:
-            platform_usage = {}
-
-        try:
-            platform_ai_performance = self.platform_ai_performance(
-                request, *args, **kwargs
-            ).data
-        except Exception:
-            platform_ai_performance = {}
-
-        try:
-            scaling_signals = self.scaling_signals(request, *args, **kwargs).data
-        except Exception:
-            scaling_signals = {}
-
-        try:
-            summary = self.summary(request, *args, **kwargs).data
-        except Exception:
-            summary = {}
-
-        try:
-            schools = self.schools(request, *args, **kwargs).data
-        except Exception:
-            schools = {}
-
-        try:
-            teachers = self.teachers(request, *args, **kwargs).data
-        except Exception:
-            teachers = {}
-
-        try:
-            students = self.students(request, *args, **kwargs).data
-        except Exception:
-            students = {}
-
-        try:
-            concurrency = self.concurrency(request, *args, **kwargs).data
-        except Exception:
-            concurrency = {}
-
-        context_template = f"""
-        ### PLATFORM ADOPTION METRICS
-        {platform_adoption}
-
-        ### PLATFORM USAGE METRICS
-        {platform_usage}
-
-        ### PLATFORM AI PERFORMANCE METRICS
-        {platform_ai_performance}
-
-        ### SCALING SIGNALS METRICS
-        {scaling_signals}
-
-        ### SUMMARY METRICS
-        {summary}
-
-        ### SCHOOLS METRICS
-        {schools}
-
-        ### TEACHERS METRICS
-        {teachers}
-
-        ### STUDENTS METRICS
-        {students}
-
-        ### CONCURRENCY METRICS
-        {concurrency}
-        """
-
-        try:
-            with transaction.atomic():
-                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
-                ai_feedback = ai_processor.custom_ai_prompt_retry(
-                    request.user,
-                    context_template,
-                    prompt,
-                    UserTypes.SUPER_ADMIN,
-                    feature="Superadmin Custom AI Prompt",
-                    task_type="custom_ai_prompt:superadmin",
-                )
-                append_dashboard_chat_message(
-                    chat_session,
-                    RoleType.ASSISTANT,
-                    ai_feedback,
-                )
-
-                data = {
-                    "response": ai_feedback,
-                }
-                serializer = CustomAIReply(data)
-
-                return Response(serializer.data)
-        except Exception as e:
-            logger.error("Custom AI prompt failed", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "We couldn't generate a response right now. "
-                            "Please try again."
-                        ),
-                    )
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return run_dashboard_ai_chat(
+            request,
+            prompt,
+            assistant_type=AssistantType.SUPER_ADMIN_ANALYTICS,
+            role=UserTypes.SUPER_ADMIN,
+            context=context,
+            feature="Superadmin Custom AI Prompt",
+            task_type=task_type,
+        )
 
     @extend_schema(
         tags=["Super Admin"],
@@ -1155,124 +1222,152 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-def compute_teacher_performance_stats(teacher, now, six_months_ago, rigor=None):
-    """
-    Per-teacher performance stats shared by SchoolAdminDashboardView's
-    teacher_performance (list) and teacher_detail (single-teacher) actions,
-    so the two can never drift apart on these fields.
+#: Upper bound on any caller-supplied list length on the dashboards, matching
+#: StandardPageNumberPagination.max_page_size.
+MAX_DASHBOARD_LIMIT = 100
 
-    `rigor` accepts a prebuilt payload from dashboard.rigor so a list view can
-    resolve every teacher on the page in two queries and hand each row its
-    slice, instead of paying two more queries per teacher. Left as None (the
-    single-teacher case) it is computed here.
-    """
-    # --- Basic counts ---
-    courses = teacher.courses.all()
-    course_ids = [c.id for c in courses]
-    courses_count = len(course_ids)
 
-    # Students: distinct students enrolled in these courses (excluding withdrawn)
-    students_count = (
-        StudentCourse.objects.filter(course_id__in=course_ids)
-        .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-        .values("student")
-        .distinct()
-        .count()
+def _bounded_int_param(request, name, default):
+    """A positive integer query parameter, capped at MAX_DASHBOARD_LIMIT."""
+    raw = request.query_params.get(name)
+    if raw in (None, ""):
+        return default
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} must be a whole number.") from None
+    if value < 1:
+        raise ValueError(f"{name} must be at least 1.")
+    return min(value, MAX_DASHBOARD_LIMIT)
+
+
+def _percentage_param(request, name, default):
+    """A 0-100 percentage query parameter."""
+    raw = request.query_params.get(name)
+    if raw in (None, ""):
+        return default
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} must be a number.") from None
+    # `value != value` rejects NaN, which float() accepts and every comparison
+    # against it silently fails.
+    if value != value or not 0 <= value <= 100:
+        raise ValueError(f"{name} must be between 0 and 100.")
+    return value
+
+
+def _expected_assignments_q():
+    """Assignments a student can fairly be expected to have submitted by now.
+
+    The same definition SchoolAdminWeeklySummaryService._at_risk_students
+    uses, and the one StudentRiskEvaluator's own wording assumes ("no
+    submitted work for assignments due so far"). Drafts were never shown to
+    students, and published work that is not yet due is not missing.
+    """
+    return Q(status=AssignmentStatus.PUBLISHED) & (
+        Q(due_date__isnull=True) | Q(due_date__lte=timezone.now())
     )
 
-    # --- Growth: % change in student count over last 6 months ---
-    # Current students (enrolled in courses created in last 6 months)
-    current_enrollments = StudentCourse.objects.filter(
-        course_id__in=course_ids,
-        course__created_at__gte=six_months_ago,
-    ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-    current_students = current_enrollments.values("student").distinct().count()
 
-    # Past students (enrolled in courses created before that)
-    past_enrollments = StudentCourse.objects.filter(
-        course_id__in=course_ids,
-        course__created_at__lt=six_months_ago,
-    ).exclude(enrollment_status="WITHDRAWN")
-    past_students = past_enrollments.values("student").distinct().count()
-
-    if past_students > 0:
-        growth = ((current_students - past_students) / past_students) * 100
-    elif current_students > 0:
-        growth = 100.0  # started from zero
-    else:
-        growth = None
-
-    # --- Assignments ---
-    assignments = Assignment.objects.filter(course_id__in=course_ids)
-    assignments_count = assignments.count()
-
-    # Assignments per week: over lifetime since first assignment
-    first_assignment = assignments.order_by("created_at").first()
-    if first_assignment and assignments_count > 0:
-        weeks = (now - first_assignment.created_at).days / 7
-        assignments_per_week = assignments_count / weeks if weeks > 0 else 0
-    else:
-        assignments_per_week = None
-
-    # --- Turnaround (avg days from submission to grading) ---
-    submissions = StudentSubmission.objects.filter(
-        assignment__course_id__in=course_ids, graded_at__isnull=False
-    )
-    graded_count = submissions.count()
-    if graded_count > 0:
-        # Average duration in days
-        total_days = submissions.aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F("graded_at") - F("submission_date"),
-                    output_field=DurationField(),
-                )
-            )
-        )["total"]
-        if total_days:
-            turnaround = total_days.total_seconds() / (graded_count * 86400)
-        else:
-            turnaround = None
-    else:
-        turnaround = None
-
-    # --- AI Confidence (average grading_confidence) ---
-    ai_confidence = submissions.aggregate(avg_conf=Avg("grading_confidence"))[
-        "avg_conf"
-    ]
-
-    # --- Rigor (see dashboard/rigor.py and assignments/rigor.py) ---
-    # Composite of cognitive demand (Bloom's level per question, points
-    # weighted), achieved outcomes, and rubric coverage. Replaces the former
-    # avg(total_points)/max(total_points) ratio, which measured how uniform a
-    # teacher's point values were rather than how demanding their work was.
-    if rigor is None:
-        rigor = build_rigor_for_teacher(teacher.id)
-
+def _count_by(queryset, key):
+    """{key value: row count}, as one grouped query."""
     return {
-        "id": teacher.id,
-        "name": teacher.get_full_name(),
-        "email": teacher.email,
-        "courses": courses_count,
-        "students": students_count,
-        "growth": round(growth, 1) if growth is not None else None,
-        "assignments_per_week": (
-            round(assignments_per_week, 1) if assignments_per_week is not None else None
-        ),
-        "turnaround": round(turnaround, 1) if turnaround is not None else None,
-        "ai_confidence": round(ai_confidence, 1) if ai_confidence is not None else None,
-        # `rigor` stays a plain 0-5 float so every existing consumer of this
-        # payload keeps working unchanged; the diagnostic components that make
-        # the number actionable ride alongside it in `rigor_breakdown`.
-        "rigor": rigor["score"],
-        "rigor_breakdown": rigor,
-        "status": teacher.is_active,
+        row[key]: row["n"]
+        for row in queryset.values(key).annotate(n=Count("id")).order_by()
     }
+
+
+def _with_assignment_and_enrolment_counts(courses):
+    """Annotate each course with its own assignment and enrolment counts.
+
+    As correlated subqueries rather than Count() over joins: joining a
+    course to both its assignments and its enrolments at once multiplies
+    the rows (every assignment repeated per enrolment), so the join is
+    O(assignments x enrolments) per course before anything is counted.
+    """
+    assignment_total = (
+        Assignment.objects.filter(course=OuterRef("pk"))
+        .values("course")
+        .annotate(n=Count("id"))
+        .values("n")
+    )
+    enrolment_total = (
+        StudentCourse.objects.filter(course=OuterRef("pk"))
+        .values("course")
+        .annotate(n=Count("id"))
+        .values("n")
+    )
+    return courses.annotate(
+        assignment_total=Coalesce(
+            Subquery(assignment_total, output_field=IntegerField()), Value(0)
+        ),
+        enrolment_total=Coalesce(
+            Subquery(enrolment_total, output_field=IntegerField()), Value(0)
+        ),
+    )
+
+
+def _expected_submission_total(courses):
+    """Sum over courses of (assignments x enrolments), in ONE query.
+
+    Replaces `sum(c.assignments.count() * c.enrollments.count() for c in
+    courses)`, which ran two queries per course - measured +20 queries for
+    ten more courses. The population is unchanged: every assignment and
+    every enrolment on each course, exactly as before.
+    """
+    return (
+        _with_assignment_and_enrolment_counts(courses).aggregate(
+            total=Sum(F("assignment_total") * F("enrolment_total"))
+        )["total"]
+        or 0
+    )
+
+
+#: Shared OpenAPI doc for the optional `session_id` param every session-aware
+#: school-admin dashboard endpoint below accepts.
+SESSION_ID_PARAMETER = OpenApiParameter(
+    name="session_id",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    required=False,
+    description=(
+        "Restrict the results to one of the school's sessions (terms). "
+        "Omit to see the school's whole history across every session, "
+        "same as before this parameter existed."
+    ),
+)
+
+
+def _resolve_school_session(request, school):
+    """Validate an optional `?session_id=` against the requesting school.
+
+    Returns `(session_or_none, error_response_or_none)`. `session` is
+    `None` when the parameter was omitted, meaning "no scoping - report
+    across the school's whole history", which is the behaviour every one
+    of these endpoints had before this parameter existed. A `session_id`
+    that isn't a real session, isn't a SCHOOL-owned session, or belongs to
+    a different school is rejected rather than silently ignored or
+    silently returning another school's data.
+    """
+    session_id = request.query_params.get("session_id")
+    if not session_id:
+        return None, None
+
+    try:
+        session = Session.objects.get(
+            id=session_id, owner_type=SessionOwnerType.SCHOOL, school=school
+        )
+    except (Session.DoesNotExist, ValueError, ValidationError):
+        return None, Response(
+            {"detail": "No session with that ID exists for this school."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return session, None
 
 
 class SchoolAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSchoolAdmin]
-    # http_method_names = ["get", "head", "options"]
 
     AT_RISK_TREND_WINDOW_WEEKS = 8
     AT_RISK_TREND_MAX_WINDOW_WEEKS = 52
@@ -1287,11 +1382,16 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         - School identification (Name).
         - User Depth: Counts of active teachers and students in the school.
         - Institutional Activity: Total active courses, assignments, and submissions.
+
+        Pass `session_id` to scope everything except `teachers` and
+        `at_risk_students` to one of the school's sessions instead of its
+        whole history. `teachers` (active teacher count) and
+        `at_risk_students` (a live risk state, not a per-term figure) are
+        always school-wide.
         """,
+        parameters=[SESSION_ID_PARAMETER],
         responses={200: SchoolAdminSummarySerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         user = request.user
@@ -1303,7 +1403,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = f"schooladmins:user_id__{user.id}:view__summary"
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
+        cache_key = versioned_key(
+            f"schooladmins:user_id__{user.id}:view__summary"
+            f":session__{session.id if session else 'all'}",
+            [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -1315,32 +1423,35 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     {"detail": "User is not associated with any school"},
                 )
 
-            active_teachers = CustomUser.objects.filter(
+            active_teachers_qs = CustomUser.objects.filter(
                 school=school,
                 user_type=UserTypes.TEACHER,
                 is_active=True,
-            ).count()
-
-            # active_students = CustomUser.objects.filter(
-            #     school=school,
-            #     user_type=UserTypes.STUDENT,
-            #     is_active=True,
-            # ).count()
-
-            active_students = (
-                CustomUser.objects.filter(
-                    enrollments__course__teacher__school=school,
-                    is_active=True,
-                    user_type=UserTypes.STUDENT,
-                )
-                .distinct()
-                .count()
             )
+            active_students_qs = CustomUser.objects.filter(
+                enrollments__course__teacher__school=school,
+                is_active=True,
+                user_type=UserTypes.STUDENT,
+            )
+            if session is not None:
+                # Scoping active_teachers to a session would mean "teachers
+                # who taught in this session" - not what "active teachers"
+                # means anywhere else in this endpoint, so it stays
+                # school-wide; only the session's own activity is scoped.
+                active_students_qs = active_students_qs.filter(
+                    enrollments__course__session=session
+                )
+            active_teachers = active_teachers_qs.count()
+            active_students = active_students_qs.distinct().count()
 
             courses = Course.objects.filter(teacher__school=school, is_active=True)
+            if session is not None:
+                courses = courses.filter(session=session)
             courses_count = courses.count()
 
             assignments = Assignment.objects.filter(course__teacher__school=school)
+            if session is not None:
+                assignments = assignments.filter(course__session=session)
             assignments_created = assignments.count()
 
             # Assignments graded: att least one submission with graded_at not null
@@ -1371,6 +1482,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             submissions = StudentSubmission.objects.filter(
                 assignment__course__teacher__school=school
             )
+            if session is not None:
+                submissions = submissions.filter(assignment__course__session=session)
             graded_submissions = submissions.filter(graded_at__isnull=False)
             total_graded_submissions = graded_submissions.count()
 
@@ -1406,10 +1519,14 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             )
             avg_grading_confidence = round(avg_grading_confidence, 1)
 
-            # Flagged for review: submissions with grading_confidence < 70
-            flagged_threshold = 70
+            # Flagged for review: graded submissions below the canonical
+            # AI_CONFIDENCE_THRESHOLD (80) - the same line the teacher overview,
+            # course analytics and super-admin AI performance dashboards use.
+            # This was a bare 70, so the school dashboard flagged fewer
+            # submissions than every other view of the same data. Product
+            # decision (§8 review): use the canonical threshold.
             flagged_submissions = graded_submissions.filter(
-                grading_confidence__lt=flagged_threshold
+                grading_confidence__lt=AI_CONFIDENCE_THRESHOLD
             )
 
             flagged_count = flagged_submissions.count()
@@ -1426,7 +1543,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             # (dashboard/services.py) so this endpoint, the weekly digest, and
             # the daily at-risk alert task all agree on one definition
             # (dashboard/risk.py) instead of maintaining separate, drifting
-            # copies of the same query.
+            # copies of the same query. It's a live risk state, not a
+            # per-term figure, so it stays school-wide regardless of
+            # `session_id` - same call as before this parameter existed.
             at_risk_students = (
                 SchoolAdminWeeklySummaryService()._build_at_risk_students(school)[1]
             )
@@ -1434,23 +1553,29 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             # Student growth rate: % change in distinct enrolled students,
             # comparing courses created in the last 180 days ("current") to
             # courses created before that ("past"), school-wide. Same window
-            # and formula as compute_teacher_performance_stats's per-teacher
-            # "growth" (line ~1197), just aggregated across the whole school
-            # instead of per-teacher.
+            # and formula as TeacherPerformanceStatsService's per-teacher
+            # "growth" (dashboard/services.py), just aggregated across the
+            # whole school instead of per-teacher.
             six_months_ago = timezone.now() - timedelta(days=180)
 
             current_student_enrollments = StudentCourse.objects.filter(
                 course__teacher__school=school,
                 course__created_at__gte=six_months_ago,
             ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-            current_growth_students = (
-                current_student_enrollments.values("student").distinct().count()
-            )
-
             past_student_enrollments = StudentCourse.objects.filter(
                 course__teacher__school=school,
                 course__created_at__lt=six_months_ago,
             ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            if session is not None:
+                current_student_enrollments = current_student_enrollments.filter(
+                    course__session=session
+                )
+                past_student_enrollments = past_student_enrollments.filter(
+                    course__session=session
+                )
+            current_growth_students = (
+                current_student_enrollments.values("student").distinct().count()
+            )
             past_growth_students = (
                 past_student_enrollments.values("student").distinct().count()
             )
@@ -1599,9 +1724,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = (
+        cache_key = versioned_key(
             f"schooladmins:user_id__{user.id}:view__at_risk_trend"
-            f":{window_start.isoformat()}:{window_end.isoformat()}"
+            f":{window_start.isoformat()}:{window_end.isoformat()}",
+            [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
         )
         data = cache.get(cache_key)
 
@@ -1644,99 +1770,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
             cache.set(cache_key, data, 60 * 60)
         return Response(data)
-
-    # @extend_schema(
-    #     tags=["School Admin"],
-    #     summary="School Teachers Performance",
-    #     description="""
-    #     Retrieve performance and engagement metrics for all teachers within the school.
-
-    #     Metrics for each teacher include:
-    #     - Basic identification (Teacher ID, Name).
-    #     - Course Load: Total number of courses assigned.
-    #     - Student Reach: Total number of unique students enrolled in their courses.
-    #     - Academic Performance: Average student performance (final grades) across all their courses.
-    #     - Engagement: Assignment completion rates (actual submissions vs. expected based on enrollments).
-    #     """,
-    #     responses={200: SchoolAdminTeacherPerformanceSerializer(many=True)},
-    # )
-    # # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
-    # # @method_decorator(vary_on_headers("Authorization"))
-    # @action(detail=False, methods=["get"], url_path="dashboard/teachers")
-    # def teachers(self, request, *args, **kwargs):
-    #     """
-    #     Returns performance metrics for all teachers in the admin's school:
-    #     - Number of courses per teacher
-    #     - Number of students per teacher
-    #     - Average student performance per teacher
-    #     - Assignment completion rates per teacher
-    #     """
-
-    #     user = request.user
-    #     cache_key = f"schooladmins:user_id__{user.id}:view__teachers"
-    #     data = cache.get(cache_key)
-
-    #     if data is None:
-    #         school = user.school
-
-    #         if not school:
-    #             return Response(
-    #                 {
-    #                     "detail": "User is not associated with any school",
-    #                 },
-    #                 status=400,
-    #             )
-
-    #         teacher_queryset = CustomUser.objects.filter(
-    #             school=school, user_type=UserTypes.TEACHER, is_active=True
-    #         ).annotate(
-    #             course_count=Count("courses", distinct=True),
-    #             student_count=Count("courses__enrollments__student", distinct=True),
-    #             average_grade=Avg("courses__enrollments__final_grade"),
-    #             actual_submissions=Count(
-    #                 "courses__assignments__submissions", distinct=True
-    #             ),
-    #         )
-
-    #         performance_data = []
-    #         for teacher in teacher_queryset:
-    #             stats = teacher.courses.aggregate(
-    #                 total_assignments=Count("assignments", distinct=True),
-    #                 total_enrollments=Count("enrollments", distinct=True),
-    #             )
-
-    #             expected_submissions = (stats["total_assignments"] or 0) * (
-    #                 stats["total_enrollments"] or 0
-    #             )
-
-    #             completion_rate = (
-    #                 (teacher.actual_submissions / expected_submissions * 100)
-    #                 if expected_submissions > 0
-    #                 else 0
-    #             )
-
-    #             performance_data.append(
-    #                 {
-    #                     "teacher_id": teacher.id,
-    #                     "teacher_name": f"{teacher.first_name} {teacher.last_name}",
-    #                     "number_of_courses": teacher.course_count,
-    #                     "number_of_students": teacher.student_count,
-    #                     "average_student_performance": round(
-    #                         float(teacher.average_grade or 0), 2
-    #                     ),
-    #                     "assignment_completion_rate": round(
-    #                         min(float(completion_rate), 100), 2
-    #                     ),
-    #                 }
-    #             )
-
-    #         serializer = SchoolAdminTeacherPerformanceSerializer(
-    #             performance_data, many=True
-    #         )
-    #         data = serializer.data
-
-    #         cache.set(cache_key, data, 60 * 15)
-    #     return Response(data)
 
     @extend_schema(
         tags=["School Admin"],
@@ -1808,6 +1841,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page (max 100).",
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={
             200: OpenApiResponse(
@@ -1842,45 +1876,37 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = f"teacher_performance_{school.id}_{page_number}_{page_size}"
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}"
+            f":view__teacher_performance:{page_number}:{page_size}"
+            f":session__{session.id if session else 'all'}",
+            [(SCOPE_SCHOOL, school.id)],
+        )
         data = cache.get(cache_key)
 
         if data is not None:
             return Response(data)
 
-        # Get all teachers in this school
-        teachers = CustomUser.objects.filter(
-            school=school, user_type=UserTypes.TEACHER
-        ).distinct()
+        # Explicit order: an unordered queryset pages non-deterministically.
+        teachers = paginator.paginate_queryset(
+            CustomUser.objects.filter(
+                school=school, user_type=UserTypes.TEACHER
+            ).order_by("first_name", "last_name", "id"),
+            request,
+            view=self,
+        )
 
-        # NOTE: no prefetch here on purpose. compute_teacher_performance_stats
-        # works entirely through fresh manager queries and aggregates — a
-        # prefetch of courses/enrollments/assignments/submissions loaded
-        # every submission row for the page into memory and was then never
-        # read, pure overhead on top of the helper's own queries.
-        teachers = paginator.paginate_queryset(teachers, request, view=self)
-
-        result = []
-
-        now = timezone.now()
-        six_months_ago = now - timedelta(days=180)
-
-        # Resolve rigor for the whole page in two queries rather than two per
-        # teacher, then hand each row its own slice.
-        rigor_by_teacher = build_rigor_by_teacher([teacher.id for teacher in teachers])
-
-        for teacher in teachers:
-            result.append(
-                compute_teacher_performance_stats(
-                    teacher,
-                    now,
-                    six_months_ago,
-                    rigor=rigor_by_teacher.get(teacher.id),
-                )
-            )
+        # A fixed number of queries for the whole page - see
+        # TeacherPerformanceStatsService. Previously ~8 per teacher.
+        stats = TeacherPerformanceStatsService().build(teachers, session=session)
+        result = [stats[teacher.id] for teacher in teachers]
 
         serializer = TeacherPerformanceDashboardSerializer(result, many=True)
         response = paginator.get_paginated_response(serializer.data)
@@ -1914,7 +1940,20 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     `credits_used`, each with a raw `amount` and a `percent` of the total.
     "other" covers any AI feature not mapped to one of the first three
     (e.g. custom AI chat, weekly summaries).
+    - **credits_remaining** — Live (unexpired) credits left, by source:
+    `monthly` (current plan allocation), `carry_over` (rolled over from a
+    prior cycle), `overage` (purchased overage blocks plus any manual
+    grants), and `total` (the three summed). Excludes TRIAL, which a
+    school-license teacher never has.
+
+    Pass `session_id` to scope the performance/rigor figures (courses,
+    students, assignments, turnaround, rigor) to one of the school's
+    sessions instead of the teacher's whole history. Credit figures
+    (`credits_used`, `credits_used_percentage`, `daily_usage`,
+    `credits_remaining`, feature mix) are wallet-based, not tied to any
+    one session, and are unaffected by this parameter.
         """,
+        parameters=[SESSION_ID_PARAMETER],
         responses={
             200: OpenApiResponse(
                 response=TeacherDetailSerializer,
@@ -1955,20 +1994,30 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         # Scoped by school on the lookup itself, so a school admin can't
         # pull another school's teacher by guessing a UUID.
         teacher = get_object_or_404(
             CustomUser, id=teacher_id, school=school, user_type=UserTypes.TEACHER
         )
 
-        cache_key = f"teacher_detail_{school.id}_{teacher.id}"
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}"
+            f":view__teacher_detail:{teacher.id}"
+            f":session__{session.id if session else 'all'}",
+            [(SCOPE_SCHOOL, school.id), (SCOPE_USER, teacher.id)],
+        )
         data = cache.get(cache_key)
         if data is not None:
             return Response(data)
 
         now = timezone.now()
-        six_months_ago = now - timedelta(days=180)
-        result = compute_teacher_performance_stats(teacher, now, six_months_ago)
+        result = TeacherPerformanceStatsService().build(
+            [teacher], now=now, session=session
+        )[teacher.id]
 
         # --- Feature mix, live from CreditUsageLog, net of refunds ---
         category_by_field = {
@@ -1991,7 +2040,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         divisor = credits_used or 1
         for category, amount in category_totals.items():
             result[category] = {
-                "amount": amount,
+                "amount": amount // CONVERSION_FACTOR,
                 "percent": round((amount / divisor) * 100, 1),
             }
 
@@ -2013,10 +2062,47 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         remaining = wallet.plan_remaining_credits() if wallet else 0
         current_used = wallet.plan_used_credits() if wallet else 0
         denominator = current_used + remaining
-        result["credits_used"] = credits_used
+        result["credits_used"] = credits_used // CONVERSION_FACTOR
         result["credits_used_percentage"] = (
             round((current_used / denominator) * 100, 1) if denominator else 0.0
         )
+
+        # --- Remaining credits by source ---
+        # TRIAL is deliberately excluded, not just zeroed: a teacher added
+        # via a school license never gets one (see the license-invitation
+        # guard in users/signals.py), so there is nothing to fold in for
+        # the audience this view is for. MANUAL_GRANT is folded into
+        # "overage" — both are credits outside the fixed plan allocation,
+        # the same distinction plan_remaining_credits() already draws.
+        if wallet:
+            live_bucket_totals = {
+                row["bucket_type"]: row["remaining"] or 0
+                for row in wallet.buckets.filter(
+                    Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+                )
+                .values("bucket_type")
+                .annotate(remaining=Sum(F("total_credits") - F("used_credits")))
+            }
+        else:
+            live_bucket_totals = {}
+        credits_remaining_monthly = live_bucket_totals.get(CreditBucketType.MONTHLY, 0)
+        credits_remaining_carry_over = live_bucket_totals.get(
+            CreditBucketType.CARRY_OVER, 0
+        )
+        credits_remaining_overage = live_bucket_totals.get(
+            CreditBucketType.OVERAGE, 0
+        ) + live_bucket_totals.get(CreditBucketType.MANUAL_GRANT, 0)
+        result["credits_remaining"] = {
+            "monthly": credits_remaining_monthly // CONVERSION_FACTOR,
+            "carry_over": credits_remaining_carry_over // CONVERSION_FACTOR,
+            "overage": credits_remaining_overage // CONVERSION_FACTOR,
+            "total": (
+                credits_remaining_monthly
+                + credits_remaining_carry_over
+                + credits_remaining_overage
+            )
+            // CONVERSION_FACTOR,
+        }
 
         # --- Days active + daily usage (last 60 days) ---
         window_start = now.date() - timedelta(days=60)
@@ -2035,7 +2121,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         daily_usage = [
             {
                 "date": window_start + timedelta(days=i),
-                "credits": usage_dict.get(window_start + timedelta(days=i), 0),
+                "credits": usage_dict.get(window_start + timedelta(days=i), 0)
+                // CONVERSION_FACTOR,
             }
             for i in range(61)
         ]
@@ -2069,8 +2156,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     Draft/unpublished assignments (never shown to students) are excluded.
     - **avg_grade** — Points-weighted average final grade
     (`sum(score) / sum(max_points) * 100`) across `enrolled`/`completed`
-    students, on a 0-100 scale. `null` if none of them has a graded
-    submission yet. Pending/withdrawn students never contribute.
+    students, on a 0-100 scale. `0` if none of them has a graded
+    submission yet (never `null` — see "students" to tell "no data" from
+    "graded at 0%"). Pending/withdrawn students never contribute.
     - **distribution** — Grade-letter breakdown (`A`/`B`/`C`/`D`/`F`) of
     `enrolled`/`completed` students' final grades.
 
@@ -2118,6 +2206,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 description="Number of results per page. Defaults to 10, max 100.",
                 required=False,
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={
             200: OpenApiResponse(
@@ -2184,14 +2273,25 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         # Set up pagination
         paginator = pagination.PageNumberPagination()
-        paginator.page_size = request.query_params.get("page_size", 10)
+        # A fixed integer default. This used to be the raw query-string value,
+        # and DRF falls back to `page_size` when `?page_size=` fails its own
+        # validation - so `?page_size=abc` reached Django's Paginator as the
+        # string "abc" and crashed the request with a 500. DRF still honours
+        # a valid `?page_size=` below, capped at max_page_size.
+        paginator.page_size = 10
         paginator.page_size_query_param = "page_size"
         paginator.max_page_size = 100
 
         # Base queryset: courses taught by teachers in this school
         qs = Course.objects.filter(teacher__school=school).select_related("teacher")
+        if session is not None:
+            qs = qs.filter(session=session)
 
         # A course's grade average/distribution should reflect students who
         # actually engaged with the course - not enrollments still pending
@@ -2234,9 +2334,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 filter=Q(assignments__status=AssignmentStatus.PUBLISHED),
                 distinct=True,
             ),
-            avg_grade=Avg(
-                "enrollments__final_grade",
-                filter=Q(enrollments__enrollment_status__in=active_enrollment_statuses),
+            avg_grade=Coalesce(
+                Avg(
+                    "enrollments__final_grade",
+                    filter=Q(
+                        enrollments__enrollment_status__in=active_enrollment_statuses
+                    ),
+                ),
+                Value(0.0),
+                output_field=FloatField(),
             ),
         )
 
@@ -2360,6 +2466,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 description="Mastery threshold below which reteach is recommended (default: 75.0)",
                 required=False,
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={200: UnitPerformanceSerializer},
     )
@@ -2372,14 +2479,27 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Parse query parameters
-        hardest_limit = int(request.query_params.get("hardest_limit", 5))
-        reteach_limit = int(request.query_params.get("reteach_limit", 5))
-        mastery_threshold = float(request.query_params.get("mastery_threshold", 70.0))
-        reteach_threshold = float(request.query_params.get("reteach_threshold", 75.0))
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
+        # Parse query parameters. Validated rather than cast blindly: a bare
+        # int()/float() turned `?hardest_limit=abc` into a 500, a negative
+        # limit into Django's "Negative indexing is not supported" 500, and
+        # left the limits unbounded. Bad input is the caller's error, so it
+        # is a 400 naming the parameter.
+        try:
+            hardest_limit = _bounded_int_param(request, "hardest_limit", 5)
+            reteach_limit = _bounded_int_param(request, "reteach_limit", 5)
+            mastery_threshold = _percentage_param(request, "mastery_threshold", 70.0)
+            reteach_threshold = _percentage_param(request, "reteach_threshold", 75.0)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         # Base queryset: assignments belonging to courses in this school
         assignments = Assignment.objects.filter(course__teacher__school=school)
+        if session is not None:
+            assignments = assignments.filter(course__session=session)
 
         # Annotate performance metrics
         assignments = assignments.annotate(
@@ -2451,31 +2571,39 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         - Grade Distribution: School-wide count of students in each grade tier (A, B, C, D, F).
         - Active Enrollments: Total count of active student-course pairings in the school.
         """,
+        parameters=[SESSION_ID_PARAMETER],
         responses={200: SchoolAdminStudentPerformanceSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:students"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         user = request.user
+        school = user.school
 
-        cache_key = f"schooladmins:user_id__{user.id}:view__students"
+        if not school:
+            return Response(
+                {"detail": "User is not associated with any school"},
+                status=400,
+            )
+
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
+        cache_key = versioned_key(
+            f"schooladmins:user_id__{user.id}:view__students"
+            f":session__{session.id if session else 'all'}",
+            [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
-            school = user.school
-
-            if not school:
-                return Response(
-                    {
-                        "detail": "User is not associated with any school",
-                    },
-                    status=400,
-                )
-
             school_student_courses = StudentCourse.objects.filter(
                 course__teacher__school=school
             )
+            if session is not None:
+                school_student_courses = school_student_courses.filter(
+                    course__session=session
+                )
 
             stats = school_student_courses.aggregate(
                 avg_grade=Avg("final_grade"),
@@ -2507,14 +2635,22 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     ),
                 }
 
-            actual_submissions = StudentSubmission.objects.filter(
+            actual_submissions_qs = StudentSubmission.objects.filter(
                 assignment__course__teacher__school=school
-            ).count()
-            active_courses = Course.objects.filter(
+            )
+            expected_submissions_courses = Course.objects.filter(
                 teacher__school=school, is_active=True
             )
-            expected_submissions = sum(
-                c.assignments.count() * c.enrollments.count() for c in active_courses
+            if session is not None:
+                actual_submissions_qs = actual_submissions_qs.filter(
+                    assignment__course__session=session
+                )
+                expected_submissions_courses = expected_submissions_courses.filter(
+                    session=session
+                )
+            actual_submissions = actual_submissions_qs.count()
+            expected_submissions = _expected_submission_total(
+                expected_submissions_courses
             )
 
             completion_rate = (
@@ -2569,6 +2705,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     "(e.g. 2026). If omitted, activity from all years is aggregated."
                 ),
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={
             200: OpenApiResponse(
@@ -2600,15 +2737,26 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         year = request.query_params.get("year")
 
-        # Cache per school and optional year
-        cache_key = f"assignment_activity_{school.id}_{year or 'all'}"
+        # Cache per school, optional year, and optional session
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}"
+            f":view__assignment_activity:{year or 'all'}"
+            f":session__{session.id if session else 'all'}",
+            [(SCOPE_SCHOOL, school.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
             # Base queryset for assignments belonging to the school
             base_qs = Assignment.objects.filter(course__teacher__school=school)
+            if session is not None:
+                base_qs = base_qs.filter(course__session=session)
 
             # CREATED ASSIGNMENTS PER MONTH
 
@@ -2698,6 +2846,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 description="You do not have permission to access this resource."
             ),
         },
+        parameters=[SESSION_ID_PARAMETER],
     )
     @action(detail=False, methods=["GET"], url_path="dashboard/course-overview-chart")
     def course_overview_chart(self, request, *args, **kwargs):
@@ -2709,18 +2858,32 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = f"department_overview_{school.id}"
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}:view__department_overview"
+            f":session__{session.id if session else 'all'}",
+            [(SCOPE_SCHOOL, school.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
+            courses_qs = Course.objects.filter(teacher__school=school)
+            if session is not None:
+                courses_qs = courses_qs.filter(session=session)
             courses = (
-                Course.objects.filter(teacher__school=school)
-                .values("name")
+                courses_qs.values("name")
                 .annotate(
                     teacher_count=Count("teacher", distinct=True),
-                    avg_grade=Avg(
-                        "enrollments__final_grade",
-                        filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                    avg_grade=Coalesce(
+                        Avg(
+                            "enrollments__final_grade",
+                            filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                        ),
+                        Value(0.0),
+                        output_field=FloatField(),
                     ),
                 )
                 .order_by("name")
@@ -2731,11 +2894,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     {
                         "name": item["name"],
                         "teachers": item["teacher_count"],
-                        "avg_grade": (
-                            round(item["avg_grade"], 1)
-                            if item["avg_grade"] is not None
-                            else None
-                        ),
+                        # 0, never null, when no non-withdrawn enrollment has
+                        # a graded final_grade yet - see course-performance's
+                        # avg_grade for why (dashboard/views.py course_peformance).
+                        "avg_grade": round(item["avg_grade"], 1),
                     }
                     for item in courses
                 ]
@@ -2761,74 +2923,46 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         prompt = serializer.validated_data["prompt"]
-        chat_session = get_or_create_dashboard_chat_session(
-            request.user,
-            AssistantType.SCHOOL_ADMIN_ANALYTICS,
+        task_type = "custom_ai_prompt:schooladmin"
+        user = request.user
+
+        # TEACHERS used to come from `self.teachers(...)`, a method that no
+        # longer exists on this view (the endpoint became
+        # `teacher_performance`). The AttributeError was swallowed, so the
+        # model received `{}` for teachers on every request. It is now built
+        # directly, for every teacher in the school - not one page of them.
+        context = "\n\n".join(
+            [
+                dashboard_context_section(
+                    "SUMMARY METRICS",
+                    lambda: self.summary(request, *args, **kwargs).data,
+                    user=user,
+                    task_type=task_type,
+                ),
+                dashboard_context_section(
+                    "TEACHERS METRICS",
+                    lambda: SchoolAdminAIContextService().teachers(user.school),
+                    user=user,
+                    task_type=task_type,
+                ),
+                dashboard_context_section(
+                    "STUDENTS METRICS",
+                    lambda: self.students(request, *args, **kwargs).data,
+                    user=user,
+                    task_type=task_type,
+                ),
+            ]
         )
 
-        try:
-            summary = self.summary(request, *args, **kwargs).data
-        except Exception:
-            summary = {}
-
-        try:
-            teachers = self.teachers(request, *args, **kwargs).data
-        except Exception:
-            teachers = {}
-
-        try:
-            students = self.students(request, *args, **kwargs).data
-        except Exception:
-            students = {}
-
-        context_template = f"""
-        ### SUMMARY METRICS
-        {summary}
-
-        ### TEACHERS METRICS
-        {teachers}
-
-        ### STUDENTS METRICS
-        {students}
-        """
-
-        try:
-            with transaction.atomic():
-                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
-                ai_feedback = ai_processor.custom_ai_prompt_retry(
-                    request.user,
-                    context_template,
-                    prompt,
-                    UserTypes.SCHOOL_ADMIN,
-                    feature="Schooladmin Custom AI Prompt",
-                    task_type="custom_ai_prompt:schooladmin",
-                )
-                append_dashboard_chat_message(
-                    chat_session,
-                    RoleType.ASSISTANT,
-                    ai_feedback,
-                )
-
-                data = {
-                    "response": ai_feedback,
-                }
-                serializer = CustomAIReply(data)
-
-                return Response(serializer.data)
-        except Exception as e:
-            logger.error("Custom AI prompt failed", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "We couldn't generate a response right now. "
-                            "Please try again."
-                        ),
-                    )
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return run_dashboard_ai_chat(
+            request,
+            prompt,
+            assistant_type=AssistantType.SCHOOL_ADMIN_ANALYTICS,
+            role=UserTypes.SCHOOL_ADMIN,
+            context=context,
+            feature="Schooladmin Custom AI Prompt",
+            task_type=task_type,
+        )
 
     @extend_schema(
         tags=["School Admin"],
@@ -2854,7 +2988,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
 class TeacherAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsTeacher]
-    # http_method_names = ["get", "options", "head"]
 
     risk_evaluator = StudentRiskEvaluator()
 
@@ -2883,8 +3016,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherDashboardOverviewSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:overview"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -2892,7 +3023,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     )
     def overview(self, request, session_id, *args, **kwargs):
         teacher = request.user
-        cache_key = f"teacheradmins:user_id__{teacher.id}:instance__id__{session_id}:view__overview"
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{teacher.id}"
+            f":instance__id__{session_id}:view__overview",
+            [(SCOPE_USER, teacher.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3083,10 +3218,16 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             )
 
             at_risk_students = []
-            # Map course to its total assigned assignments for fast lookup
+            # Map course to the assignments a student is expected to have
+            # submitted by now. Previously every assignment in the course,
+            # drafts and not-yet-due work included, which flagged strong
+            # students at-risk for "missing" work they could not have done -
+            # measured: a 95% student with one real assignment and two drafts
+            # was reported at_risk=True.
             course_totals = {
                 c["course_id"]: c["total_assigned"]
                 for c in Assignment.objects.filter(course__session=session)
+                .filter(_expected_assignments_q())
                 .values("course_id")
                 .annotate(total_assigned=Count("id"))
             }
@@ -3189,19 +3330,28 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherCourseAnalyticsSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:courses"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
         url_path=r"dashboard/courses/(?P<course_id>[-\w]+)",
     )
     def courses(self, request, course_id, *args, **kwargs):
-        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}:view__courses"
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{request.user.id}"
+            f":instance_id__{course_id}:view__courses",
+            # `usr` alone. A `crs` scope was tried here and removed: every
+            # SCOPE_COURSE bump in the project is accompanied by the
+            # teacher's SCOPE_USER bump (verified across all three signal
+            # modules), so adding `crs` to a key that already carries that
+            # teacher's generation narrows nothing and costs one extra
+            # Redis GET per request. Mutation-proved: removing `crs` broke
+            # no test, because it was doing no work.
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
-            course = get_object_or_404(Course, id=course_id, teacher=request.user)
+            course = get_object_or_404(reachable_courses(request.user), id=course_id)
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()
             submissions = StudentSubmission.objects.filter(assignment__course=course)
@@ -3321,22 +3471,25 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherAssignmentAnalyticsSerializer},
     )
-    # @method_decorator(
-    #     cache_page(60 * 3, key_prefix="teacheradmin:dashboard:assignments")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
         url_path=r"dashboard/assignments/(?P<assignment_id>[-\w]+)",
     )
     def assignments(self, request, assignment_id, *args, **kwargs):
-        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{assignment_id}:view__assignments"
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{request.user.id}"
+            f":instance_id__{assignment_id}:view__assignments",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
             assignment = get_object_or_404(
-                Assignment, id=assignment_id, course__teacher=self.request.user
+                Assignment.objects.filter(
+                    teacher_course_access_q(self.request.user, prefix="course__")
+                ),
+                id=assignment_id,
             )
             submissions = StudentSubmission.objects.filter(assignment=assignment)
             total_submissions = submissions.count()
@@ -3363,20 +3516,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 "ai_grading_confidence": round(float(avg_grading_confidence), 2),
             }
 
-            # FIXME: Implement the hardest and easiest questions
-            # hardest, easiest = analyze_question_difficulty(submissions)
-
-            # assignment_metrics.update(
-            #     {
-            #         # "hardest_questions": hardest,
-            #         # "easiest_questions": easiest,
-            #         "custom_ai_prompt": {
-            #             "enabled": False,
-            #             "scope": "assignment",
-            #             "prompt": assignment.custom_ai_prompt,
-            #         }
-            #     }
-            # )
+            # Not implemented: hardest/easiest questions per assignment.
 
             serializer = TeacherAssignmentAnalyticsSerializer(assignment_metrics)
             data = serializer.data
@@ -3428,10 +3568,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 description="Number of results per page (max 100)",
             ),
         ],
-        responses={200: TeacherStudentAnalyticsSerializer(many=True)},
+        responses={200: PaginatedTeacherStudentAnalyticsSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:students"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -3441,18 +3579,26 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}"
-            f":view__students:{page_number}:{page_size}"
+            f":view__students:{page_number}:{page_size}",
+            # `usr` alone - same reasoning as view__courses above.
+            [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
 
         if data is None:
             teacher = request.user
-            course = get_object_or_404(Course, id=course_id, teacher=teacher)
+            course = get_object_or_404(reachable_courses(teacher), id=course_id)
 
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()
+            # Risk is judged against work a student could have submitted by
+            # now - see _expected_assignments_q. `total_assigned` above is
+            # still what the response reports as `assignment_assigned`.
+            expected_assignment_count = assignments.filter(
+                _expected_assignments_q()
+            ).count()
 
             # Pre-fetch submissions for all students in this course to avoid N+1
             course_submissions_qs = (
@@ -3481,10 +3627,22 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                         to_attr="course_submissions",
                     )
                 )
+                # Stable order, so a student can never appear on two pages.
+                .order_by("student__first_name", "student__last_name", "id")
             )
 
-            data = []
-            for enrollment in enrollments:
+            # PAGINATED. This endpoint documented `page` / `page_size` and put
+            # them in its cache key, but returned every student in the course
+            # regardless - so a 300-student course built and serialized 300
+            # full submission histories per request. It now follows the
+            # project's StandardPageNumberPagination contract: a
+            # {count, next, previous, results} envelope, 20 per page by
+            # default, `page_size` capped at 100, 404 for a page that does not
+            # exist.
+            page = paginator.paginate_queryset(enrollments, request, view=self)
+
+            rows = []
+            for enrollment in page:
                 student = enrollment.student
                 # Use prefetched submissions
                 student_course_submissions = student.course_submissions
@@ -3506,7 +3664,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 ]
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
-                        expected_assignment_count=total_assigned,
+                        expected_assignment_count=expected_assignment_count,
                         submitted_count=submitted_count,
                         graded_scores=dated_scores,
                     )
@@ -3527,11 +3685,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     for s in student_course_submissions
                 ]
 
-                # student_summary_task_id = student_summary_async(
-                #     str(student.id), str(request.user.id), str(course.id)
-                # )
-
-                data.append(
+                rows.append(
                     {
                         "student_id": student.id,
                         "student_name": student.get_full_name(),
@@ -3565,8 +3719,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     }
                 )
 
-            serializer = TeacherStudentAnalyticsSerializer(data, many=True)
-            data = serializer.data
+            serializer = TeacherStudentAnalyticsSerializer(rows, many=True)
+            data = paginator.get_paginated_response(serializer.data).data
 
             cache.set(cache_key, data, 60 * 15)
 
@@ -3587,93 +3741,27 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
         prompt = serializer.validated_data["prompt"]
-        chat_session = get_or_create_dashboard_chat_session(
-            request.user,
-            AssistantType.TEACHER_ADMIN_ANALYTICS,
+        task_type = "custom_ai_prompt:teacher"
+
+        # Built by TeacherAIContextService in a fixed number of queries with
+        # stated limits, instead of calling four dashboard endpoints in loops
+        # (one of them per assignment) and pasting every response in whole.
+        context = dashboard_context_section(
+            "TEACHING DATA",
+            lambda: TeacherAIContextService().build(request.user),
+            user=request.user,
+            task_type=task_type,
         )
 
-        # Get all sessions for the teacher
-        sessions = Session.objects.filter(teacher=request.user)
-        # overview_data = [
-        #     self.overview(request, session.id, *args, **kwargs).data for session in sessions
-        # ]
-        overview_data = {
-            session.name: self.overview(request, session.id, *args, **kwargs).data
-            for session in sessions
-        }
-
-        # Get all the courses offered by the teacher
-        courses = Course.objects.filter(teacher=request.user)
-
-        course_data = {
-            course.name: self.courses(request, course.id, *args, **kwargs).data
-            for course in courses
-        }
-
-        # Get all the assignment created by this teacher
-        assignments = Assignment.objects.filter(course__teacher=request.user)
-
-        assignment_data = [
-            self.assignments(request, assignment.id, *args, **kwargs).data
-            for assignment in assignments
-        ]
-
-        student_data = [
-            self.students(request, course.id, *args, **kwargs).data
-            for course in courses
-        ]
-
-        context_template = f"""
-        ### Overview Metrics
-        {overview_data}
-
-        ### Course Metrics
-        {course_data}
-
-        ### Assignment Metrics
-        {assignment_data}
-
-        ### Student Metrics
-        {student_data}
-        """
-
-        try:
-            with transaction.atomic():
-                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
-                ai_feedback = ai_processor.custom_ai_prompt_retry(
-                    request.user,
-                    context_template,
-                    prompt,
-                    UserTypes.TEACHER,
-                    feature="Teacher Custom AI Prompt",
-                    task_type="custom_ai_prompt:teacher",
-                )
-                append_dashboard_chat_message(
-                    chat_session,
-                    RoleType.ASSISTANT,
-                    ai_feedback,
-                )
-
-                data = {"response": ai_feedback}
-
-                serializer = CustomAIReply(data)
-
-                return Response(serializer.data)
-
-        except Exception as e:
-            logger.error("Custom AI prompt failed", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "We couldn't generate a response right now. "
-                            "Please try again."
-                        ),
-                    )
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return run_dashboard_ai_chat(
+            request,
+            prompt,
+            assistant_type=AssistantType.TEACHER_ADMIN_ANALYTICS,
+            role=UserTypes.TEACHER,
+            context=context,
+            feature="Teacher Custom AI Prompt",
+            task_type=task_type,
+        )
 
     @extend_schema(
         tags=["Teacher Admin"],
@@ -3697,9 +3785,60 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
+def _assignment_status_counts(student, assignments, now):
+    """The four assignment-status counts (Submitted / Not Submitted /
+    Graded / Overdue) for `student` over `assignments` - an already
+    course-scoped queryset, either every active course combined or a
+    single one. Shared by StudentAdminDashboardView.overview (all courses),
+    .status_summary (all courses or one, via ?course=) and .summary (one
+    course) so none of the three ever compute this differently from each
+    other.
+
+    The four counts partition the student's assignments: they are mutually
+    exclusive and sum to `assignments.count()`.
+      * Graded: a submission whose grade is released to the student.
+      * Submitted: a submission whose grade the student cannot see yet
+        (not graded, or graded but unpublished). Graded work is NOT also
+        counted here (founder decision 2026-09-30, reversing 7246b65, which
+        kept Graded as a subset of Submitted).
+      * Overdue: no submission, due date passed.
+      * Not Submitted: no submission, not overdue.
+    """
+    submissions = StudentSubmission.objects.filter(
+        student=student, assignment__in=assignments
+    )
+    with_a_submission = submissions.count()
+
+    submitted_assignment_ids = submissions.values_list("assignment_id", flat=True)
+    pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
+
+    # Mutually exclusive with assignments_due_no_submission (Overdue): a
+    # pending assignment is one or the other, never both, so the four
+    # tiles this feeds (Submitted/Not Submitted/Graded/Overdue) sum to the
+    # total assignment count.
+    assignments_due_no_submission = pending_assignments.filter(due_date__lt=now).count()
+    assignments_not_submitted = pending_assignments.exclude(due_date__lt=now).count()
+
+    # Graded = released to the student, not merely scored - matches the
+    # "released" pattern used for grade figures elsewhere in this view
+    # (see StudentAdminDashboardView.summary).
+    assignments_graded = submissions.filter(
+        is_published=True, score_percentage__isnull=False
+    ).count()
+    # One submission per student per assignment (a unique constraint), so
+    # the submissions not yet released are the rest.
+    assignments_submitted = with_a_submission - assignments_graded
+
+    return {
+        "assignments_submitted": assignments_submitted,
+        "assignments_not_submitted": assignments_not_submitted,
+        "assignments_graded": assignments_graded,
+        "assignments_due_no_submission": assignments_due_no_submission,
+    }
+
+
 class StudentAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsStudent]
-    # http_method_names = ["get", "options", "head"]
 
     @extend_schema(
         tags=["Student Admin"],
@@ -3732,11 +3871,21 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/summary/(?P<course_id>[-\w]+)",
     )
     def summary(self, request, course_id, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__summary"
+        # H-1 Stage 3 (gap G2): versioned on the student. These keys were
+        # unversioned, so only the legacy `*studentadmin*` wildcard cleared
+        # them; without it a withdrawn student's cached summary would keep
+        # returning course data after the access check below starts to 404.
+        # usr(student) is bumped by every change this summary reads.
+        cache_key = versioned_key(
+            f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}"
+            ":view__summary",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
             student = request.user
+            now = timezone.now()
 
             # 1. Validate course
             course = get_object_or_404(
@@ -3747,38 +3896,50 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 StudentCourse.objects.active(), student=student, course=course
             )
 
-            # 3. Assignments in this course
-            assignments = Assignment.objects.filter(course=course)
+            # 3. Assignments in this course. Published only: a student never
+            # sees drafts, so counting them made work the student could not
+            # see appear as assigned, missing and overdue.
+            assignments = Assignment.objects.filter(
+                course=course, status=AssignmentStatus.PUBLISHED
+            )
             total_assigned = assignments.count()
 
             # 4. Student submissions for this course
             submissions = StudentSubmission.objects.filter(
-                student=student, assignment__course=course
+                student=student, assignment__in=assignments
             )
-            submitted_count = submissions.count()
 
-            # 5. Completion rate
+            # GRADE VISIBILITY. Only grades the teacher has released. Every
+            # grade-bearing figure below (average, trend, best, worst) used to
+            # read `submissions` directly, so a score the teacher had not yet
+            # published reached the student through this dashboard even
+            # though students/serializers.py hides it everywhere else.
+            released = submissions.filter(
+                is_published=True, score_percentage__isnull=False
+            )
+
+            # 5. Submitted / Not Submitted / Graded / Overdue counts - shared
+            # with .overview and .status_summary so this course-scoped view
+            # can never drift from those again (it used to hand-roll its own
+            # copy of this exact logic).
+            status_counts = _assignment_status_counts(student, assignments, now)
+            submitted_count = status_counts["assignments_submitted"]
+            not_submitted_count = status_counts["assignments_not_submitted"]
+            overdue_count = status_counts["assignments_due_no_submission"]
+
+            # 6. Completion rate: every assignment with a submission, graded
+            # or not. Submitted no longer includes Graded (the tiles
+            # partition the total), so both are counted here.
+            completed_count = submitted_count + status_counts["assignments_graded"]
             completion_rate = (
-                (submitted_count / total_assigned) * 100 if total_assigned > 0 else 0
+                (completed_count / total_assigned) * 100 if total_assigned > 0 else 0
             )
-
-            # 6. Missing / Overdue assignments
-            submitted_assignment_ids = submissions.values_list(
-                "assignment_id", flat=True
-            )
-            missing_assignments = assignments.exclude(id__in=submitted_assignment_ids)
-
-            overdue_count = missing_assignments.filter(
-                due_date__lt=timezone.now()
-            ).count()
 
             # 7. Average grade (course)
-            average_grade = (
-                submissions.aggregate(avg=Avg("score_percentage"))["avg"] or 0
-            )
+            average_grade = released.aggregate(avg=Avg("score_percentage"))["avg"] or 0
 
             recent_scores = list(
-                submissions.order_by("-submission_date").values_list(
+                released.order_by("-submission_date").values_list(
                     "score_percentage", flat=True
                 )[:5]
             )
@@ -3796,12 +3957,18 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                     trend = "declining"
 
             # 9. Best & Worst assignments
-            best_assignments = submissions.order_by("-score_percentage")[:3]
-            worst_assignments = submissions.order_by("score_percentage")[:3]
+            best_assignments = released.select_related("assignment").order_by(
+                "-score_percentage"
+            )[:3]
+            worst_assignments = released.select_related("assignment").order_by(
+                "score_percentage"
+            )[:3]
 
             data = {
                 "course": course.id,
                 "assignment_submitted": submitted_count,
+                "assignment_not_submitted": not_submitted_count,
+                "assignment_graded": status_counts["assignments_graded"],
                 "assignment_assigned": total_assigned,
                 "completion_rate": completion_rate,
                 "missing_or_overdue": overdue_count,
@@ -3815,91 +3982,6 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
             cache.set(cache_key, data, 60 * 15)
         return Response(data)
-
-    # @extend_schema(
-    #     tags=["Student Admin"],
-    #     summary="Student Course Assignments List",
-    #     description="""
-    #     Retrieve a list of all assignments for a student within a specific course,
-    #     including their submission details, scores, and feedback.
-
-    #     This endpoint returns:
-    #     - Assignment identification (ID and Title)
-    #     - Deadlines (Due Date)
-    #     - Student performance (Score and Feedback)
-    #     - Timestamps (Submission Date)
-    #     - Status tracking (Submitted, Late, etc.)
-    #     """,
-    #     parameters=[
-    #         OpenApiParameter(
-    #             name="course_id",
-    #             type=OpenApiTypes.UUID,
-    #             location=OpenApiParameter.PATH,
-    #             description=_(
-    #                 "The unique identifier (UUID) of the course to retrieve assignments for"
-    #             ),
-    #         )
-    #     ],
-    #     responses={200: StudentAssignmentListSerializer(many=True)},
-    # )
-    # # @method_decorator(
-    # #     cache_page(60 * 5, key_prefix="studentadmin:dashboard:assignments")
-    # # )
-    # # @method_decorator(vary_on_headers("Authorization"))
-    # @action(
-    #     detail=False,
-    #     methods=["get"],
-    #     url_path=r"dashboard/assignments/(?P<course_id>[-\w]+)",
-    # )
-    # def assignments(self, request, course_id, *args, **kwargs):
-    #     cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__assignments"
-    #     data = cache.get(cache_key)
-
-    #     if data is None:
-    #         student = request.user
-    #         get_object_or_404(Course, id=course_id, is_active=True)
-
-    #         # Filter assignments for student's course
-    #         assignments = Assignment.objects.filter(course__id=course_id)
-    #         submissions = StudentSubmission.objects.filter(
-    #             student=student, assignment__in=assignments
-    #         ).select_related("assignment")
-
-    #         submissions_map = {s.assignment_id: s for s in submissions}
-
-    #         data = []
-    #         for a in assignments:
-    #             s = submissions_map.get(a.id)
-
-    #             if s:
-    #                 submission_status = (
-    #                     "late"
-    #                     if a.due_date and s.submission_date > a.due_date
-    #                     else "submitted"
-    #                 )
-
-    #                 submission_date = a.submissions.first().submission_date
-    #                 data.append(
-    #                     {
-    #                         "course": a.course.name,
-    #                         "teacher": a.course.teacher.get_full_name(),
-    #                         "assignment": a,
-    #                         "title": a.title,
-    #                         "due_date": a.due_date,
-    #                         "submission_date": submission_date,
-    #                         "score": s.score,
-    #                         "score_percentage": s.score_percentage,
-    #                         "total_score": a.total_points,
-    #                         "feedback": s.feedback,
-    #                         "submission_status": submission_status,
-    #                     }
-    #                 )
-
-    #         serializer = StudentAssignmentListSerializer(data, many=True)
-    #         data = serializer.data
-
-    #         cache.set(cache_key, data, 60 * 15)
-    #     return Response(data)
 
     @extend_schema(
         tags=["Student Admin"],
@@ -3940,49 +4022,57 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        # H-1 Stage 3 (gap G2): see the summary action above - same
+        # unversioned-key gap, same fix.
+        cache_key = versioned_key(
             f"studentadmins:user_id__{request.user.id}:view__assignments"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
 
         if data is None:
             student = request.user
 
-            # Filter assignments for student's course
-            assignments = Assignment.objects.filter(
-                course__enrollments__student=student
-            ).order_by("-created_at")
+            # Published assignments in courses the student is actively
+            # enrolled in. Previously any assignment in any course the student
+            # had EVER been enrolled in, drafts included - so draft titles and
+            # due dates reached students, and so did withdrawn courses' work.
+            # A course-id subquery rather than a join through enrollments,
+            # which also cannot produce duplicate rows.
+            active_course_ids = (
+                StudentCourse.objects.active()
+                .filter(student=student)
+                .values("course_id")
+            )
+            assignments = (
+                Assignment.objects.filter(
+                    course_id__in=active_course_ids,
+                    status=AssignmentStatus.PUBLISHED,
+                )
+                # Every row reads course.name and course.teacher; without this
+                # each row cost two extra queries (measured +30 for 10 rows).
+                .select_related("course", "course__teacher").order_by("-created_at")
+            )
 
             assignments = paginator.paginate_queryset(assignments, request, view=self)
 
             submissions = StudentSubmission.objects.filter(
                 student=student, assignment__in=assignments
-            ).select_related("assignment")
+            )
 
             submissions_map = {s.assignment_id: s for s in submissions}
 
             data = []
             for a in assignments:
                 s = submissions_map.get(a.id)
+                # Mirrors students/serializers.py: a student sees a grade, and
+                # the fact that grading happened, only once it is released.
+                # The submission itself when its grade is released, else None,
+                # so every grade read below is gated on the same object.
+                released = s if s is not None and s.is_published else None
 
-                if not s:
-                    if a.due_date and a.due_date < timezone.now():
-                        submission_status = "OVERDUE"
-                    else:
-                        submission_status = "NOT SUBMITTED"
-                else:
-                    if s.graded_at:
-                        submission_status = "GRADED"
-                    else:
-                        submission_status = "SUBMITTED"
-
-                # submission_status = (
-                #     "OVERDUE" if a.due_date and a.due_date < timezone.now() else "NOT SUBMITTED"
-                #     if not s
-                #     else "SUBMITTED" if s and not s.graded_at else "GRADED"
-                # )
-                submission_date = a.submissions.first().submission_date if s else None
+                submission_status = get_student_assignment_status(a, s)
 
                 stats = {
                     "course": a.course.name,
@@ -3990,11 +4080,20 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                     "assignment_id": str(a.id),
                     "title": a.title,
                     "due_date": a.due_date,
-                    "submission_date": submission_date,
-                    "score": s.score if s else None,
-                    "score_percentage": s.score_percentage if s else None,
+                    # THIS student's submission. `a.submissions.first()` took
+                    # whichever student's submission sorted first, and cost a
+                    # query per row.
+                    "submission_date": s.submission_date if s else None,
+                    "score": released.score if released else None,
+                    "score_percentage": (
+                        released.score_percentage if released else None
+                    ),
                     "total_score": a.total_points,
-                    "feedback": s.feedback if s else None,
+                    # H-127: the student projection, never the saved
+                    # column (it also holds what is written for the teacher).
+                    "feedback": (
+                        student_safe_feedback(released.feedback) if released else None
+                    ),
                     "submission_status": submission_status,
                 }
 
@@ -4025,7 +4124,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path="dashboard/overview",
     )
     def overview(self, request, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:view__overview"
+        # H-1 Stage 3 (gap G2): see the summary action above - same
+        # unversioned-key gap, same fix.
+        cache_key = versioned_key(
+            f"studentadmins:user_id__{request.user.id}:view__overview",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -4054,21 +4158,13 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 assignment__in=assignments,
             ).select_related("assignment__course")
 
-            assignments_submitted = submissions.count()
-
-            # 4. Pending assignment buckets
-            submitted_assignment_ids = submissions.values_list(
-                "assignment_id", flat=True
-            )
-            pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
-
-            assignments_pending_not_due = pending_assignments.filter(
-                Q(due_date__gte=now) | Q(due_date__isnull=True)
-            ).count()
-
-            assignments_due_no_submission = pending_assignments.filter(
-                due_date__lt=now
-            ).count()
+            status_counts = _assignment_status_counts(student, assignments, now)
+            assignments_submitted = status_counts["assignments_submitted"]
+            assignments_not_submitted = status_counts["assignments_not_submitted"]
+            assignments_due_no_submission = status_counts[
+                "assignments_due_no_submission"
+            ]
+            assignments_graded = status_counts["assignments_graded"]
 
             # 5. Per-course grade breakdown
             # Group graded submissions by course for efficient computation
@@ -4079,8 +4175,9 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
             for sub in submissions:
                 course_id = sub.assignment.course_id
+                # Released grades only - see StudentAdminDashboardView.summary.
                 if course_id in course_submissions:
-                    if sub.score_percentage is not None:
+                    if sub.is_published and sub.score_percentage is not None:
                         course_submissions[course_id].append(sub)
 
             courses_grades = []
@@ -4115,9 +4212,15 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 if course_subs:
                     graded_course_gpas.append(grade_details["gpa"])
 
-            # 6. Overall grade standing (averaged per graded course, not per
-            # submission, and GPA averaged in quality-point space rather than
-            # re-derived from a flattened average percentage)
+            # 6. Overall grade standing. overall_percentage is a separate,
+            # independent stat (the student's average percentage
+            # performance, per graded course not per submission) - it does
+            # NOT feed overall_grade/overall_remark. Those instead follow
+            # the course percentage -> course letter grade -> course GPA ->
+            # overall GPA -> overall letter grade -> overall remark chain,
+            # so the letter grade and GPA shown together always agree with
+            # each other and with the school's own GPA scale (see
+            # get_letter_grade_from_gpa).
             if all_percentages:
                 overall_percentage = round(
                     sum(all_percentages) / len(all_percentages), 2
@@ -4125,19 +4228,20 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             else:
                 overall_percentage = 0.0
 
-            overall_grade_details = get_grade_details(overall_percentage)
-            overall_grade = overall_grade_details["letter_grade"]
             overall_gpa = (
                 round(sum(graded_course_gpas) / len(graded_course_gpas), 2)
                 if graded_course_gpas
                 else 0.0
             )
+            overall_grade_details = get_letter_grade_from_gpa(overall_gpa)
+            overall_grade = overall_grade_details["letter_grade"]
             overall_remark = overall_grade_details["remark"]
 
             overview_data = {
                 "total_courses": total_courses,
                 "assignments_submitted": assignments_submitted,
-                "assignments_pending_not_due": assignments_pending_not_due,
+                "assignments_not_submitted": assignments_not_submitted,
+                "assignments_graded": assignments_graded,
                 "assignments_due_no_submission": assignments_due_no_submission,
                 # Grade standing
                 "overall_percentage": overall_percentage,
@@ -4154,20 +4258,92 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
         return Response(data)
 
-    # @extend_schema(tags=["Student Admin"])
-    # @action(
-    #     detail=False,
-    #     methods=["get"],
-    #     url_path=r"dashboard/strength/(?P<course_id>[-\w]+)",
-    # )
-    # def strengths(self, request, *args, **kwargs):
-    #     pass
+    @extend_schema(
+        tags=["Student Admin"],
+        summary="Student Assignment Status Summary",
+        description="""
+        The four assignment-status counts alone - Submitted, Not
+        Submitted, Graded, Overdue - the same values and the same
+        computation as the dashboard overview, without the grade/GPA
+        figures.
 
-    # @extend_schema(tags=["Student Admin"])
-    # @action(
-    #     detail=False,
-    #     methods=["get"],
-    #     url_path=r"dashboard/ai_summary/(?P<course_id>[-\w]+)",
-    # )
-    # def ai_summary(self, request, *args, **kwargs):
-    #     pass
+        Omit the `course` query param for the combined count across every
+        active course (what the "All Assignments" page shows). Pass
+        `?course=<course_id>` to scope the same four counts to just that
+        one course (what a course's own page shows) - the student must be
+        actively enrolled in it, or this returns 404.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="course",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Optional course id to scope the counts to a single "
+                    "course. Omit for all active courses combined."
+                ),
+            ),
+        ],
+        responses={200: StudentAssignmentStatusSummarySerializer},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="dashboard/status-summary",
+    )
+    def status_summary(self, request, *args, **kwargs):
+        student = request.user
+        now = timezone.now()
+        course_id = request.query_params.get("course")
+
+        # H-1 step 4: versioned on the student, exactly like the sibling
+        # overview/summary/assignments keys above (gap G2). These keys were
+        # raw, so only the legacy `*studentadmin*` wildcard ever cleared
+        # them. The counts read published assignments, the student's own
+        # submissions and their active enrolments; every write to any of
+        # those bumps usr(student) (assignment fan-out G1, submission and
+        # publish-all receivers G3, enrolment and course receivers G5), so
+        # usr(student) is the whole dependency.
+        #
+        # The `?course=` access check stays BEFORE the cache lookup: a
+        # student who lost access gets a live 404, never a cached body.
+        if course_id:
+            course = get_object_or_404(
+                Course.objects.filter(
+                    enrollments__student=student,
+                    enrollments__in=StudentCourse.objects.active(),
+                    is_active=True,
+                ),
+                id=course_id,
+            )
+            cache_key = versioned_key(
+                f"studentadmins:user_id__{student.id}"
+                f":view__status_summary:course__{course.id}",
+                [(SCOPE_USER, student.id)],
+            )
+            assignments = Assignment.objects.filter(
+                course=course, status=AssignmentStatus.PUBLISHED
+            )
+        else:
+            cache_key = versioned_key(
+                f"studentadmins:user_id__{student.id}:view__status_summary:all",
+                [(SCOPE_USER, student.id)],
+            )
+            active_courses = Course.objects.filter(
+                enrollments__student=student,
+                enrollments__in=StudentCourse.objects.active(),
+                is_active=True,
+            ).distinct()
+            assignments = Assignment.objects.filter(
+                course__in=active_courses, status=AssignmentStatus.PUBLISHED
+            )
+
+        data = cache.get(cache_key)
+        if data is None:
+            status_counts = _assignment_status_counts(student, assignments, now)
+            serializer = StudentAssignmentStatusSummarySerializer(status_counts)
+            data = serializer.data
+            cache.set(cache_key, data, 60 * 15)
+
+        return Response(data)

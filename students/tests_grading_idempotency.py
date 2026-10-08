@@ -24,6 +24,7 @@ Run with:
 """
 
 import threading
+import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -53,6 +54,7 @@ from students.services import (
     _mark_grading_claim_failed,
     grade_engine,
 )
+from students.task_tracking import mark_processing_task_failure
 from users.models import CustomUser, UserTypes
 
 
@@ -319,23 +321,38 @@ class GradeEngineAsyncSkipHandlingTest(GradingClaimFixtureMixin, TestCase):
     """
 
     @patch("students.services.ai_processor")
-    def test_redelivered_task_skips_cleanly_when_original_still_running(self, mock_ai):
+    def test_redelivered_task_skips_without_finishing_the_originals_tracked_task(
+        self, mock_ai
+    ):
+        """A Redis redelivery is the SAME message: same Celery task id, same
+        processing_task_id. The duplicate must skip the billed pipeline and
+        must NOT mark the shared tracked task finished - the original
+        delivery still holds the claim and will finish (or fail) it.
+        The previous version of this test asserted SUCCESS+skipped here,
+        which enshrined the bug: a premature "done" with no grade, after
+        which the original's real FAILURE could never be recorded."""
         teacher, submission = self._make_submission()
-        # Simulate the original (still-running) worker holding a live claim.
+        # The original (still-running) delivery holds a live claim and has
+        # marked the tracked task STARTED.
         StudentSubmission.objects.filter(pk=submission.pk).update(
             grading_state=GradingState.RUNNING, grading_started_at=timezone.now()
         )
+        celery_task_id = str(uuid.uuid4())
         processing_task = BackgroundProcessingTask.objects.create(
             requested_by=teacher,
             task_type=BackgroundTaskType.SUBMISSION_GRADING,
             submission=submission,
+            celery_task_id=celery_task_id,
+            status=BackgroundTaskStatus.STARTED,
+            started_at=timezone.now(),
         )
 
-        # Run the task exactly as Celery would (self-binding included),
-        # with no real broker needed.
+        # Run the task exactly as a redelivery would reach a worker: the
+        # same task id as the tracked row, self-binding included.
         result = grade_engine_async.apply(
             args=(str(teacher.id), str(submission.id)),
             kwargs={"processing_task_id": str(processing_task.id)},
+            task_id=celery_task_id,
         ).get()
 
         self.assertEqual(result["status"], "SUCCESS")
@@ -343,8 +360,42 @@ class GradeEngineAsyncSkipHandlingTest(GradingClaimFixtureMixin, TestCase):
         mock_ai.extract_grade_with_retry.assert_not_called()
 
         processing_task.refresh_from_db()
-        self.assertEqual(processing_task.status, BackgroundTaskStatus.SUCCESS)
-        self.assertTrue(processing_task.meta.get("skipped"))
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.STARTED)
+        self.assertIsNone(processing_task.finished_at)
+        self.assertFalse(processing_task.meta.get("skipped"))
+
+        # ...so when the original then FAILS, the failure is recordable.
+        mark_processing_task_failure(processing_task.id, RuntimeError("model exploded"))
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.FAILURE)
+
+    @patch("students.services.ai_processor")
+    def test_separately_dispatched_duplicate_is_closed_as_a_skip(self, mock_ai):
+        """A second grade-async click creates its OWN tracked task and its
+        own Celery message. Nobody else will ever finish that row, so the
+        skip closes it - SUCCESS with skipped=True - exactly as before."""
+        teacher, submission = self._make_submission()
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            grading_state=GradingState.RUNNING, grading_started_at=timezone.now()
+        )
+        duplicate = BackgroundProcessingTask.objects.create(
+            requested_by=teacher,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            submission=submission,
+            celery_task_id=str(uuid.uuid4()),
+        )
+
+        result = grade_engine_async.apply(
+            args=(str(teacher.id), str(submission.id)),
+            kwargs={"processing_task_id": str(duplicate.id)},
+            task_id=str(uuid.uuid4()),  # a different delivery
+        ).get()
+
+        self.assertEqual(result["status"], "SUCCESS")
+        mock_ai.extract_grade_with_retry.assert_not_called()
+        duplicate.refresh_from_db()
+        self.assertEqual(duplicate.status, BackgroundTaskStatus.SUCCESS)
+        self.assertTrue(duplicate.meta.get("skipped"))
 
     @patch("students.services.ai_processor")
     def test_first_delivery_grades_normally(self, mock_ai):

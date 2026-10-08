@@ -218,9 +218,8 @@ def new_customer_test_clock_kwargs(email, label=None) -> dict:
         )
 
     logger.warning(
-        "[QA TIME TRAVEL] Created Test Clock %s for new Stripe customer (%s).",
+        "[QA TIME TRAVEL] Created Test Clock %s for a new Stripe customer.",
         clock_id,
-        email,
     )
     return {"test_clock": clock_id}
 
@@ -539,7 +538,7 @@ class QATimeTravelService:
             "[QA TIME TRAVEL] Individual subscription %s (user %s) rewound. "
             "mode=%s target=%s before=%s after=%s",
             user_sub.id,
-            user_sub.user.email,
+            user_sub.user_id,
             mode,
             target.isoformat(),
             before,
@@ -646,7 +645,16 @@ class QATimeTravelService:
             for allocation in allocations:
                 before_val = allocation.next_credit_grant_at
                 allocation.next_credit_grant_at = target
-                allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+                # The anchor goes with the due time (H-88): the refresh
+                # resolves a new one from wherever the due time now sits.
+                allocation.grant_anchor_at = None
+                allocation.save(
+                    update_fields=[
+                        "next_credit_grant_at",
+                        "grant_anchor_at",
+                        "updated_at",
+                    ]
+                )
                 affected.append(
                     {
                         "teacher_id": str(allocation.user_id),
@@ -1030,7 +1038,7 @@ class BillingTimeTravelView(APIView):
         logger.warning(
             "[QA TIME TRAVEL] Executed by superadmin %s: type=%s id=%s "
             "mode=%s warnings=%s",
-            request.user.email,
+            request.user.id,
             d["subscription_type"],
             d["subscription_id"],
             d["mode"],

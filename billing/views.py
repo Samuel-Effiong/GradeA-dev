@@ -3,8 +3,6 @@ import time
 from datetime import timedelta
 
 from django.core.cache import cache
-
-# from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
@@ -12,14 +10,8 @@ from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
-
-# from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (  # inline_serializer,
+from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
@@ -30,8 +22,6 @@ from drf_spectacular.utils import (  # inline_serializer,
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-
-# from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -39,7 +29,7 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
-from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
+from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from dashboard.serializers import (
     CustomAIPrompt,
     CustomAIReply,
@@ -57,11 +47,15 @@ from .models import (
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    LicenseSubscription,
     PlanCategory,
     PlanTier,
+    SchoolCreditAllocation,
     SubscriptionPlan,
     UserSubscription,
 )
+from .plan_policy import self_service_plans
+from .refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from .serializers import (
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
@@ -110,8 +104,6 @@ from .subscription_resolver import (
 )
 
 logger = logging.getLogger(__name__)
-
-# from rest_framework.generics import GenericAPIView
 
 
 def get_or_create_dashboard_chat_session(user, assistant_type):
@@ -204,8 +196,18 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return queryset
 
-        # Everyone else only sees INDIVIDUAL plans
-        return queryset.filter(category=PlanCategory.INDIVIDUAL)
+        # Everyone else sees only the self-service catalog: a plan is not
+        # listable just because it is active and INDIVIDUAL (BETA, TRIAL
+        # and internal plans are too). A retrieve may additionally read
+        # the plan the caller is currently on or has pending, which is
+        # already visible to them through /subscription/me.
+        visible = Q(pk__in=self_service_plans().values("pk"))
+        if self.action == "retrieve":
+            own = UserSubscription.objects.filter(user=user, is_active=True)
+            visible |= Q(pk__in=own.values("plan_id")) | Q(
+                pk__in=own.exclude(pending_plan__isnull=True).values("pending_plan_id")
+            )
+        return queryset.filter(visible)
 
     @extend_schema(
         tags=["Subscription Plans"],
@@ -316,10 +318,10 @@ class UserSubscriptionViewSet(viewsets.ModelViewSet):
         """
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
-        elif self.action == "create":
-            # Allows users to subscribe as long as they are not students
-            permission_classes = [IsAuthenticated, IsTeacher]
         else:
+            # Includes create: it activates a plan and grants its credits
+            # with no payment step, so it is an administrative tool.
+            # Users subscribe through POST /subscription/select-plan.
             permission_classes = [IsAuthenticated, IsSuperAdmin]
         return [permission() for permission in permission_classes]
 
@@ -476,67 +478,42 @@ class CreditBucketViewSet(viewsets.ModelViewSet):
         summary="Retrieve a credit ledger entry",
         description="Retrieve a specific ledger entry by its ID.",
     ),
-    create=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Create a new credit ledger entry",
-        description="Create a new credit ledger entry. This action is restricted "
-        "to super administrators.",
-    ),
-    update=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Update a credit ledger entry",
-        description="Update an existing credit ledger entry. This action is restricted "
-        "to super administrators.",
-    ),
-    partial_update=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Partially update a credit ledger entry",
-        description="Partially update an existing credit ledger entry. This action is "
-        "restricted to super administrators.",
-    ),
-    destroy=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Delete a credit ledger entry",
-        description="Delete a credit ledger entry. This action is restricted to "
-        "super administrators.",
-    ),
 )
-class CreditLedgerViewSet(viewsets.ModelViewSet):
+class CreditLedgerViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Viewset for viewing credit ledger entries.
     Provides an immutable audit trail of all grants, consumptions, and expirations.
+
+    Read-only, and previously not: this was a ModelViewSet exposing POST,
+    PATCH and DELETE to superadmins, two lines below a docstring calling
+    the ledger immutable. That was a live HTTP path to forge or erase
+    billing history. The ledger is written by the service layer only.
     """
 
     queryset = CreditLedger.objects.all()
     serializer_class = CreditLedgerSerializer
     permission_classes = [IsAuthenticated, IsNotStudent]
-    http_method_names = ["get", "head", "post", "patch", "delete", "options"]
+    http_method_names = ["get", "head", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ["ledger_type", "bucket"]
     search_fields = ["reference"]
     ordering_fields = ["created_at"]
 
-    def get_permissions(self):
-        """
-        Reads: any authenticated non-student (scoped to their own entries by
-        get_queryset). Writes: superadmin only - the ledger is the immutable
-        audit trail of every grant/consumption/refund; letting users create
-        or delete rows makes billing history forgeable.
-        """
-        if self.action in ["list", "retrieve"]:
-            permission_classes = [IsAuthenticated, IsNotStudent]
-        else:
-            permission_classes = [IsAuthenticated, IsSuperAdmin]
-        return [permission() for permission in permission_classes]
-
     def get_queryset(self):
+        """
+        Any authenticated non-student may read, scoped to their own
+        entries; superadmins see everything. There is no write path: the
+        ledger is the audit trail of every grant/consumption/refund, and
+        letting anyone create or delete rows over HTTP makes billing
+        history forgeable.
+        """
         queryset = super().get_queryset()
         if not (
             self.request.user.is_superuser
             and self.request.user.user_type == UserTypes.SUPER_ADMIN
         ):
-            queryset = queryset.filter(user=self.request.user)
+            queryset = queryset.filter(user_id=self.request.user.id)
         return queryset
 
 
@@ -569,13 +546,30 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["created_at"]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        # select_related("bucket") because CreditUsageLogSerializer exposes
+        # `bucket_type` via source="bucket.bucket_type", so serializing a
+        # page walked the relation once per row: a 20-row page measured 24
+        # queries, and this is the endpoint that grows without bound as a
+        # teacher consumes credits.
+        queryset = super().get_queryset().select_related("bucket")
         if not (
             self.request.user.is_superuser
             and self.request.user.user_type == UserTypes.SUPER_ADMIN
         ):
             queryset = queryset.filter(wallet__user=self.request.user)
         return queryset
+
+
+def _none_subscription_response():
+    """
+    Payload for GET /subscription/me when the caller has no subscription of
+    any kind, ever — no UserSubscription row (active OR expired) and no
+    license context.
+    """
+    return {
+        "status": "NONE",
+        "message": "You don't have a subscription yet.",
+    }
 
 
 class SubscriptionManagementViewSet(viewsets.GenericViewSet):
@@ -595,18 +589,41 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         return UserSubscription.objects.filter(user=self.request.user, is_active=True)
 
+    def get_permissions(self):
+        # create activates a plan and grants its credits with no payment
+        # step, so only a superadmin may call it. Every other action keeps
+        # its class-level or @action-level permissions untouched.
+        if self.action == "create":
+            return [IsAuthenticated(), IsSuperAdmin()]
+        return super().get_permissions()
+
     @extend_schema(
         tags=["Subscription"],
         summary="Get my subscription",
         description=(
             "Resolves the caller's current billing context regardless of "
-            "track. An INDIVIDUAL subscriber gets the existing "
-            "UserSubscription-shaped payload (unchanged). A teacher "
-            "actively enrolled under a school LICENSE gets a "
-            "LICENSE_TEACHER-shaped payload. A school admin managing an "
-            "active LICENSE gets a LICENSE_ADMIN-shaped payload. Check "
-            "`subscription_source` in the response to know which shape "
-            "was returned."
+            "track. Always returns 200; check `status` (ACTIVE / EXPIRED / "
+            "NONE) and `subscription_source` to know what was resolved. "
+            "ACTIVE: an INDIVIDUAL subscriber gets the existing "
+            "UserSubscription-shaped payload, a teacher actively enrolled "
+            "under a school LICENSE gets a LICENSE_TEACHER-shaped payload, "
+            "a school admin managing an active LICENSE gets a "
+            "LICENSE_ADMIN-shaped payload. EXPIRED: the caller has no "
+            "active subscription/license context, but does have lapsed "
+            "history on exactly one of the three tracks, checked in the "
+            "same priority order as the ACTIVE case (individual, then "
+            "license-admin, then license-teacher) — same per-track shape "
+            "as ACTIVE, with renewal-countdown fields "
+            "(next_renewal_date/days_until_renewal/"
+            "days_until_next_credit_grant) null instead of a misleading "
+            "clamped 0 (see `cancellation`/`stripe_status` or "
+            "`is_license_active` for why it lapsed). A license teacher's "
+            "`is_license_active` reflects the real parent-license state "
+            "even when only the license itself lapsed and the teacher's "
+            "own allocation row was never touched. NONE: no subscription "
+            "or license history exists for this user on ANY track — a "
+            "flat placeholder payload with the same field names as the "
+            "INDIVIDUAL shape, everything null/false/0 except `status`."
         ),
         responses={
             200: OpenApiResponse(
@@ -614,19 +631,97 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     "One of MySubscriptionSerializer, "
                     "MyLicenseTeacherSubscriptionSerializer, or "
                     "MyLicenseAdminSubscriptionSerializer — discriminated "
-                    "by `subscription_source`."
-                )
-            ),
-            404: OpenApiResponse(
-                description="No active subscription found",
+                    "by `subscription_source`, with `status` ACTIVE, "
+                    "EXPIRED, or NONE."
+                ),
                 examples=[
                     OpenApiExample(
-                        name="No active subscription found",
+                        name="Active individual subscription",
                         value={
-                            "status": "inactive",
-                            "message": "No active subscription found",
+                            "status": "ACTIVE",
+                            "subscription_type": "INDIVIDUAL",
+                            "is_active": True,
+                            "plan": {"id": "3fd8...", "name": "PRO_MONTHLY"},
+                            "billing_cycle_start": "2026-09-01T00:00:00Z",
+                            "billing_cycle_end": "2026-10-01T00:00:00Z",
+                            "next_renewal_date": "2026-10-01T00:00:00Z",
+                            "days_until_renewal": 5,
+                            "auto_renew": True,
+                            "stripe_status": "active",
+                            "cancellation": {
+                                "cancelled_at": None,
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": None,
+                            },
                         },
-                    )
+                    ),
+                    OpenApiExample(
+                        name="Expired individual subscription",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_type": "INDIVIDUAL",
+                            "is_active": False,
+                            "plan": {"id": "3fd8...", "name": "PRO_MONTHLY"},
+                            "billing_cycle_start": "2026-07-01T00:00:00Z",
+                            "billing_cycle_end": "2026-08-01T00:00:00Z",
+                            "next_renewal_date": None,
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": "canceled",
+                            "cancellation": {
+                                "cancelled_at": "2026-07-15T00:00:00Z",
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": (
+                                    "You cancelled this subscription on "
+                                    "2026-07-15. You keep your current "
+                                    "plan and credits until 2026-08-01, "
+                                    "and it won't renew after that."
+                                ),
+                            },
+                        },
+                    ),
+                    OpenApiExample(
+                        name="Expired license (school admin)",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_source": "LICENSE_ADMIN",
+                            "is_active": False,
+                            "plan": {"id": "9ac1...", "name": "SCHOOL_LICENSE"},
+                            "billing_cycle_start": "2026-06-01T00:00:00Z",
+                            "billing_cycle_end": "2026-09-01T00:00:00Z",
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": "canceled",
+                            "teacher_count": 12,
+                            "max_seats": 20,
+                            "managed_license_count": 0,
+                            "has_other_managed_licenses": False,
+                        },
+                    ),
+                    OpenApiExample(
+                        name="Expired license (teacher)",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_source": "LICENSE_TEACHER",
+                            "school_name": "Lincoln High School",
+                            "is_license_active": False,
+                            "license_billing_cycle_start": "2026-06-01T00:00:00Z",
+                            "license_billing_cycle_end": "2026-09-01T00:00:00Z",
+                            "monthly_allocation": 1000000,
+                            "display_monthly_allocation": 1000,
+                            "next_credit_grant_at": None,
+                            "days_until_next_credit_grant": None,
+                        },
+                    ),
+                    OpenApiExample(
+                        name="No subscription ever existed",
+                        value={
+                            "status": "NONE",
+                            "message": "You don't have a subscription yet.",
+                        },
+                    ),
                 ],
             ),
         },
@@ -637,12 +732,15 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
         if context.source == SOURCE_INDIVIDUAL:
             serializer = MySubscriptionSerializer(
-                context.user_subscription, context={"request": request}
+                context.user_subscription,
+                context={"request": request, "status": "ACTIVE"},
             )
             return Response(serializer.data)
 
         if context.source == SOURCE_LICENSE_TEACHER:
-            serializer = MyLicenseTeacherSubscriptionSerializer(context.allocation)
+            serializer = MyLicenseTeacherSubscriptionSerializer(
+                context.allocation, context={"status": "ACTIVE"}
+            )
             return Response(serializer.data)
 
         if context.source == SOURCE_LICENSE_ADMIN:
@@ -651,14 +749,85 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 context={
                     "admin_user": request.user,
                     "managed_license_count": context.managed_license_count,
+                    "status": "ACTIVE",
                 },
             )
             return Response(serializer.data)
 
-        return Response(
-            {"detail": "No active subscription found"},
-            status=status.HTTP_404_NOT_FOUND,
+        # No active context on ANY track. Walk the exact same priority
+        # order resolve_user_billing_context uses for the active case —
+        # individual, then license-admin, then license-teacher — so a
+        # user with lapsed history on more than one track (e.g. an old
+        # individual subscriber who later became a license teacher whose
+        # license also lapsed) gets whichever the active path would have
+        # picked, not an arbitrary one. Only truly NONE if none of the
+        # three has any history at all.
+        last_sub = (
+            UserSubscription.objects.filter(user=request.user, is_active=False)
+            .select_related("plan", "pending_plan")
+            .order_by("-billing_cycle_end")
+            .first()
         )
+        if last_sub:
+            serializer = MySubscriptionSerializer(
+                last_sub, context={"request": request, "status": "EXPIRED"}
+            )
+            return Response(serializer.data)
+
+        last_managed_license = (
+            LicenseSubscription.objects.filter(admin_user=request.user, is_active=False)
+            .select_related("plan", "school")
+            .order_by("-billing_cycle_end")
+            .first()
+        )
+        if last_managed_license:
+            serializer = MyLicenseAdminSubscriptionSerializer(
+                last_managed_license,
+                context={
+                    "admin_user": request.user,
+                    # By construction there is no ACTIVE license here,
+                    # so 0 rather than the ACTIVE-path default of 1 —
+                    # otherwise the frontend would be told this admin
+                    # still manages one currently-live license.
+                    "managed_license_count": 0,
+                    "status": "EXPIRED",
+                },
+            )
+            return Response(serializer.data)
+
+        # Broadened past the SM's literal "is_active=False" spec on
+        # purpose: an allocation can also stop being truly active
+        # because its PARENT LICENSE lapsed while the allocation row
+        # itself was never touched (is_active still True). This is the
+        # exact complement of resolve_user_billing_context's ACTIVE
+        # teacher condition (is_active=True AND
+        # license_subscription__is_active=True) — catching only the
+        # allocation-side flag would silently miss that second shape and
+        # send that teacher to NONE despite having real history.
+        # is_license_active on the serializer reports the real state
+        # either way, off the allocation's actual (possibly-inactive)
+        # parent license.
+        last_allocation = (
+            SchoolCreditAllocation.objects.filter(
+                user=request.user, is_admin_allocation=False
+            )
+            .exclude(is_active=True, license_subscription__is_active=True)
+            .select_related(
+                "license_subscription",
+                "license_subscription__plan",
+                "license_subscription__school",
+                "license_subscription__admin_user",
+            )
+            .order_by("-updated_at")
+            .first()
+        )
+        if last_allocation:
+            serializer = MyLicenseTeacherSubscriptionSerializer(
+                last_allocation, context={"status": "EXPIRED"}
+            )
+            return Response(serializer.data)
+
+        return Response(_none_subscription_response())
 
     @extend_schema(
         tags=["Subscription"],
@@ -691,7 +860,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="plan", url_name="plan")
     def plan(self, request, *args, **kwargs):
-        plans = SubscriptionPlan.objects.all()
+        user = request.user
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            plans = SubscriptionPlan.objects.all()
+        else:
+            plans = self_service_plans()
         serializer = SubscriptionPlanSerializer(plans, many=True)
         return Response(serializer.data)
 
@@ -773,8 +946,20 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
                 had_pending_change = bool(user_subscription.pending_plan_id)
                 had_stripe_schedule = bool(user_subscription.stripe_schedule_id)
+                # H-174: "already" needs a cancellation that was recorded
+                # (or a trial, whose auto_renew is False by design). A paid
+                # row with auto_renew False and NO date was never cancelled
+                # through here: it is a trial converted before the
+                # conversions set auto_renew, and Stripe was never told.
+                # For it this request IS the cancellation, and says so.
+                cancellation_never_recorded = (
+                    not user_subscription.auto_renew
+                    and not user_subscription.is_trial
+                    and user_subscription.cancelled_at is None
+                )
                 was_already_not_renewing = (
                     not user_subscription.auto_renew
+                    and not cancellation_never_recorded
                     and not had_pending_change
                     and not user_subscription.stripe_schedule_id
                 )
@@ -839,6 +1024,9 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     # happened) never gets a fabricated one.
                     user_subscription.cancelled_at = timezone.now()
                     update_fields += ["auto_renew", "cancelled_at"]
+                elif cancellation_never_recorded:
+                    user_subscription.cancelled_at = timezone.now()
+                    update_fields.append("cancelled_at")
 
                 if had_pending_change:
                     user_subscription.pending_plan = None
@@ -997,7 +1185,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 "Subscription %s resumed for user %s. stripe_changed=%s "
                 "local_changed=%s is_trial=%s.",
                 sub.id,
-                request.user.email,
+                request.user.id,
                 stripe_changed,
                 local_changed,
                 sub.is_trial,
@@ -1021,8 +1209,26 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                         "its scheduled end date unless you subscribe to a "
                         "paid plan before then."
                     )
+            elif result.scheduled_at_provider:
+                # H-174: Stripe has a cancellation this request does not
+                # undo. Saying "already active and set to renew" would be
+                # false; so would "never scheduled to cancel".
+                message = (
+                    "A cancellation of this subscription is scheduled with "
+                    "our payment provider and could not be undone here. "
+                    "Nothing was changed. Please contact support if you "
+                    "want to keep your subscription."
+                )
             elif not stripe_changed and not local_changed:
                 message = "Your subscription is already active and set to renew — nothing to resume."
+            elif not stripe_changed:
+                # H-174: nothing was scheduled to cancel at Stripe; only
+                # our own record said so, and it has just been corrected.
+                message = (
+                    "Your subscription was never scheduled to cancel with "
+                    "our payment provider. Our record showed otherwise and "
+                    "has been corrected — it will renew normally."
+                )
             else:
                 message = "Your subscription has been resumed and will renew normally."
 
@@ -1031,7 +1237,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     "status": (
                         "resumed"
                         if (stripe_changed or local_changed)
-                        else "already_active"
+                        else (
+                            "cancellation_scheduled"
+                            if result.scheduled_at_provider and not sub.is_trial
+                            else "already_active"
+                        )
                     ),
                     "message": message,
                     "warnings": warnings,
@@ -1131,7 +1341,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         except Exception:
             logger.exception(
                 "Unexpected error during overage purchase for user %s",
-                request.user.email,
+                request.user.id,
             )
             return Response(
                 {"detail": "An unexpected error occurred. Please try again later."},
@@ -1224,7 +1434,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     def wallet(self, request, *args, **kwargs):
         wallet = request.user.credit_wallet
 
-        # wallet_total_remaining_credits = wallet.total_remaining_credits
         wallet.active_buckets_count = wallet.buckets.filter(
             expires_at__gt=timezone.now()
         ).count()
@@ -1348,7 +1557,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         url_path="credits/ledger",
     )
     def credit_ledger(self, request, *args, **kwargs):
-        queryset = CreditLedger.objects.filter(user=request.user).order_by(
+        queryset = CreditLedger.objects.filter(user_id=request.user.id).order_by(
             "-created_at"
         )
 
@@ -2075,8 +2284,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "p90_credit_used": p90_credits,
             "average_days_to_reach_cap": avg_days_to_reach_cap,
             "percent_unused_credits": round(unused_credits_pct, 2),
-            # "usage_distribution": usage_distribution,
-            # "daily_time_series": daily_time_series,
         }
 
         serializer = BetaCohortStatsSerializer(data)
@@ -2163,28 +2370,13 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         seven_days_ago = timezone.now() - timedelta(days=7)
 
-        # 1. Build the "Power User" Filter
-        # Each 'Q' object represents one of your four core business rules
-        # power_user_query = (
-        #     Q(
-        #         # Trigger 1: High consumption (>= 80% of their 20M grant)
-        #         has_hit_80_percent=True
-        #     )
-        #     | Q(
-        #         # Trigger 2: High frequency (Logged in >=8 distinct days)
-        #         distinct_login_days__gte=8
-        #     )
-        #     | Q(
-        #         # Trigger 3: Sticky behavior (Active in the final week of Beta)
-        #         last_active_at__gte=seven_days_ago
-        #     )
-        #     | Q(
-        #         # Trigger 4: Core value (Uses Grading more than Assignment Creation)
-        #         credits_used_grading__gt=F("credits_used_creation")
-        #     )
-        # )
+        # The four "power user" rules - at least 80% of the beta credit grant
+        # used, logins on 8 or more distinct days, activity in the last 7 days,
+        # and more grading than assignment creation - were once applied here as
+        # a filter. The endpoint now ranks every teacher lead instead, and the
+        # same signals are reported per lead under "flags" below.
 
-        # 2. Fetch the leads with their conversion probability score
+        # 1. Fetch the leads with their conversion probability score
         queryset = self.get_queryset().filter(user__user_type=UserTypes.TEACHER)
 
         search_query = request.query_params.get("search")
@@ -2196,18 +2388,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(user__email__icontains=search_query)
             )
 
-        leads = (
-            queryset
-            # .filter(power_user_query)
-            .select_related("user").order_by(
-                "-conversion_probability", "-total_credits_used"
-            )
+        leads = queryset.select_related("user").order_by(
+            "-conversion_probability", "-total_credits_used"
         )
 
         page = self.paginate_queryset(leads)
         leads = page if page is not None else leads
 
-        # 3. Structure the response for the Sales Team
+        # 2. Structure the response for the Sales Team
         data = []
         for p in leads:
             data.append(
@@ -2218,8 +2406,16 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                     "score": round(p.conversion_probability, 1),
                     "metrics": {
                         "credit_usage": p.total_credits_used,
+                        # `or 1` matches intent_signal_detail below and
+                        # beta_dashboard above. This was the one site of the
+                        # four that divided by the raw field: a BetaProfile
+                        # seeded from a plan whose monthly_credits is still
+                        # the 0 default made the whole sales-leads endpoint
+                        # 500 — not just that row.
                         "usage_percentage": round(
-                            (p.total_credits_used / p.initial_beta_credits) * 100, 1
+                            (p.total_credits_used / (p.initial_beta_credits or 1))
+                            * 100,
+                            1,
                         ),
                         "login_days": p.distinct_login_days,
                         "last_active": (
@@ -2240,7 +2436,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                         ),
                         "is_power_grader": p.credits_used_grading
                         > p.credits_used_creation,
-                        # "grading_heavy": p.credits_used_grading > p.credits_used_creation,
                         "frequent_user": p.distinct_login_days >= 8,
                     },
                 }
@@ -2519,6 +2714,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 serializer = CustomAIReply(data)
                 return Response(serializer.data)
 
+        except PERMANENT_AI_REFUSALS as e:
+            # Leaving the atomic block by exception already rolled back the
+            # user's chat message, same as any other failure.
+            log_refusal(logger, "Superadmin custom AI prompt", e)
+            return refusal_response(e)
         except Exception as e:
             logger.error("Custom AI prompt failed", exc_info=e)
             return Response(

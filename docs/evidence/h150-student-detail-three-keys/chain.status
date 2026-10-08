@@ -1,0 +1,12 @@
+14:57:04 (r) start: loadavg 5.19 4.11 4.33 14/2131 548861
+14:57:51 (r) end: loadavg 6.92 4.75 4.54 11/2128 550654
+14:57:51 (r) exit=1 (1 is the expected one)
+14:57:52 (r) the red set is the expected one
+14:57:52 (a) start: loadavg 6.92 4.75 4.54 24/2129 550676
+15:00:57 (a) end: loadavg 6.43 5.66 4.96 8/2097 554158
+15:00:57 (a) exit=0
+15:00:57 (b) start: loadavg 6.43 5.66 4.96 7/2097 554165
+15:02:49 (b) end: loadavg 5.54 5.64 5.04 12/2104 557104
+15:02:49 (b) exit=0
+15:02:49 expected failing sets: every mutant's failing set is the expected one
+15:02:49 H-150 CHAIN END: (c) needs its own GRANT

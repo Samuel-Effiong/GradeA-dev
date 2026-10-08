@@ -1,0 +1,16 @@
+# M15: 1a's F1: a stored anchor is used only while the due time is on its chain
+# file: billing/refresh_timing.py (occurrence 1)
+# old: '    candidate = stored_anchor if stored_anchor is not None else fallback_anchor\n'
+# new: '    if stored_anchor is not None:\n        return stored_anchor\n    candidate = fallback_anchor\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 14.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_due_time_moved_off_its_stored_anchor_becomes_the_anchor (billing.tests.test_licence_grant_anchor.MovedDueTimeTests.test_a_due_time_moved_off_its_stored_anchor_becomes_the_anchor)
+FAIL: test_a_stale_anchor_heals_at_the_next_refresh_and_then_holds (billing.tests.test_licence_grant_anchor.MovedDueTimeTests.test_a_stale_anchor_heals_at_the_next_refresh_and_then_holds)
+FAIL: test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor) (fallback=datetime.datetime(2026, 1, 5, 1, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor) (fallback=datetime.datetime(2026, 2, 28, 1, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor (billing.tests.test_allocation_anchor.AllocationAnchorTests.test_a_due_time_moved_off_the_stored_anchor_is_its_own_anchor)
+
+FAILED (failures=5)

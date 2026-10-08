@@ -1,0 +1,4 @@
+V1_the_students_detail_is_never_served_from_the_cache | v2's probe | KILLED | Ran 4 tests in 1.443s | FAILED (failures=2) | expected ('test_q2_a_write_with_no_signal_is_not_seen_until_the_key_runs_out', 'test_q3_an_assignment_moved_to_another_course') | failing ['test_q2_a_write_with_no_signal_is_not_seen_until_the_key_runs_out', 'test_q3_an_assignment_moved_to_another_course']
+  restore students/views.py ok | __pycache__ cleared
+V2_the_key_hangs_on_a_counter_nothing_moves | v2's probe | KILLED | Ran 4 tests in 1.478s | FAILED (failures=1) | expected ('test_q1_a_released_paper_follows_the_due_date_and_the_course_name',) | failing ['test_q1_a_released_paper_follows_the_due_date_and_the_course_name']
+  restore students/views.py ok | __pycache__ cleared

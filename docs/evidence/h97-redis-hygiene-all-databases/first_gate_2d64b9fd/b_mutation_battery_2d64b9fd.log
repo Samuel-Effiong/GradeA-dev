@@ -1,0 +1,7 @@
+baseline exit=0
+D1	the database is set after the URL is parsed	KILLED	FAILED (failures=24)	True	10.9
+D2	the clients are not built with from_url(location, db=db)	KILLED	FAILED (failures=16)	True	11.0
+D3	all 16 databases are visited	KILLED	FAILED (failures=1, errors=7)	True	5.3
+
+3/3 killed with verified restore
+exit=0 wall_s=37

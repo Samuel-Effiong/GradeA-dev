@@ -1,0 +1,13 @@
+16:39:37 repro exit=1 (red expected)
+16:40:42 (a) exit=0
+16:44:03 (b) exit=0
+16:44:03 PAUSED before (c)
+17:29:42 classrooms modules + guard exit=0
+17:41:49 (c) exit=1
+17:41:49 FINAL END
+17:45:41 (c) re-run START
+17:57:17 (c) re-run exit=134
+17:57:17 STOP: not green
+17:57:17 RERUN END
+12:49:36 c_apps_guards_b6fbdbea_1005 wt=Grade-Automator-Plus-h91-ids-only-logs-everywhere@b6fbdbea parallel=2 stalled=1 ok=3763 [] [] exit=134 wall_s=1046
+13:37:37 c_apps_guards_b6fbdbea_file wt=Grade-Automator-Plus-h91-ids-only-logs-everywhere@b6fbdbea parallel=2 stalled=0 ok=3855 [Ran 3878 tests in 628.126s] [OK (skipped=19)] exit=0 output=file wall_s=669

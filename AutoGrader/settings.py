@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 love God
 """
 
-# import logging
 import os
 import sys
 from datetime import timedelta
@@ -93,6 +92,17 @@ LOGGING = {
     },
 }
 
+# H-89: no email address and no URL password in anything this process logs.
+# The scrubbing itself is a log record factory that the AutoGrader package
+# installs when it is imported (AutoGrader/__init__.py, log_scrubbing.py);
+# this is only its switch. On in every environment; off only while tests
+# run, so that the tests which prove log lines carry ids and not addresses
+# read what the code really logged. No environment variable switches it off.
+# (Nothing is imported from the project here: this file must still load on
+# its own, by path, as the frontend-domain setting tests load it.)
+_TESTS_ARE_RUNNING = "test" in sys.argv or "pytest" in sys.modules
+LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -104,6 +114,14 @@ FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
 # back to FRONTEND_DOMAIN (the teacher app) when unset so existing
 # deployments keep working until the student app's domain is provisioned.
 STUDENT_FRONTEND_DOMAIN = env.str("STUDENT_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN)
+# Separate frontend app for school admins (a genuinely different app from
+# the teacher one, and it refuses other roles). Falls back to
+# FRONTEND_DOMAIN (the teacher app) when unset so existing deployments keep
+# working until the school-admin app's domain is provisioned - same
+# reasoning as STUDENT_FRONTEND_DOMAIN above.
+SCHOOL_ADMIN_FRONTEND_DOMAIN = env.str(
+    "SCHOOL_ADMIN_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ENVIRONMENT = env.str("ENVIRONMENT")
@@ -150,6 +168,24 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
 
+        _SENTRY_SDK_INSTALLED = True
+    except ImportError:  # pragma: no cover - depends on deploy state
+        import logging
+
+        _SENTRY_SDK_INSTALLED = False
+        logging.getLogger(__name__).warning(
+            "SENTRY_DSN is set but sentry-sdk is not installed; "
+            "error reporting is disabled. Run `pip install -r requirements.txt`."
+        )
+
+    if _SENTRY_SDK_INSTALLED:
+        # Outside the try above on purpose (H-89): that except is for a
+        # missing sentry-sdk package. If our own hooks module failed to
+        # import, the process must fail at start, not run with Sentry
+        # silently off. The hooks go to init in the same call, so Sentry is
+        # never initialised without them.
+        from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
+
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             environment=ENVIRONMENT,
@@ -169,19 +205,31 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # These carry student work, grades, and billing identifiers.
             # Keep them out of the error reports.
             send_default_pii=False,
+            # H-167: no frame's local variables. The SDK's default sends
+            # each frame's locals as text with every error: whatever the
+            # code held (a name, an address, an answer, a temporary
+            # password in a queued email's arguments, the queue's own
+            # password in a connection pool's printed form).
+            include_local_variables=False,
+            # H-167: and no request body. The default ("medium") sends the
+            # failing request's parsed body up to 10,000 bytes, whatever
+            # send_default_pii says.
+            max_request_body_size="never",
+            # H-89: and no address in the TEXT of what is sent either. The
+            # logging integration builds events from a record's raw parts
+            # and the exception's own text, which the log record factory
+            # above does not reach (AutoGrader/sentry_scrubbing.py).
+            before_send=scrub_event,
+            # A sampled transaction is sent without passing before_send.
+            before_send_transaction=scrub_event,
+            before_breadcrumb=scrub_breadcrumb,
+            before_send_log=scrub_log,
             # Set profile_session_sample_rate to 1.0 to profile 100%
             # of profile sessions.
             profile_session_sample_rate=1.0,
             # Set profile_lifecycle to "trace" to automatically
             # run the profiler on when there is an active transaction
             profile_lifecycle="trace",
-        )
-    except ImportError:  # pragma: no cover - depends on deploy state
-        import logging
-
-        logging.getLogger(__name__).warning(
-            "SENTRY_DSN is set but sentry-sdk is not installed; "
-            "error reporting is disabled. Run `pip install -r requirements.txt`."
         )
 
 # Host-header allowlist. Gated by ENVIRONMENT like the CORS settings below -
@@ -323,8 +371,6 @@ INSTALLED_APPS = [
     "classrooms",
     "assignments",
     "students",
-    "grading",
-    "ocr_processor",
     "ai_processor",
     "dashboard",
     "billing",
@@ -497,7 +543,8 @@ CELERY_TIMEZONE = TIME_ZONE
 # duplicate execution — this setting just keeps ordinary redeliveries rare
 # in the first place, since even a caught duplicate wastes a worker slot and
 # an API round trip before being skipped.
-CELERY_BROKER_TRANSPORT_OPTIONS = {
+#: `int | str` because the test branch below adds a string `global_keyprefix`.
+CELERY_BROKER_TRANSPORT_OPTIONS: dict[str, int | str] = {
     "visibility_timeout": 3600,  # 1 hour
 }
 
@@ -533,6 +580,73 @@ GRADING_RESPONSE_SCHEMA_ENABLED = env.bool(
 #   "log"    — verify + annotate evaluations, never reject
 #   "off"    — evidence is not inspected at all
 GRADING_EVIDENCE_ENFORCEMENT = env.str("GRADING_EVIDENCE_ENFORCEMENT", default="strict")
+
+# Structured output for ANSWER EXTRACTION calls: enforce the json_schema
+# contract in ai_processor/extraction_schemas.py instead of free-form
+# json_object. Answer extraction is upstream of grading, so a dropped or
+# mis-numbered answer here becomes a zero no amount of grading rigour can
+# recover — see ai_processor/answer_completeness.py's module docstring.
+# Kill switch in case a routed fallback model rejects json_schema; unlike
+# the grading equivalent, turning this off LOGS (see
+# AIProcessor._answer_extraction_schema), because a silent downgrade of a
+# safety check is how the check stops existing without anyone noticing.
+ANSWER_EXTRACTION_SCHEMA_ENABLED = env.bool(
+    "ANSWER_EXTRACTION_SCHEMA_ENABLED", default=True
+)
+
+# Mechanical completeness checking for extracted answers
+# (ai_processor/answer_completeness.py): every question in the assignment
+# must be positively accounted for by the extraction — answered, blank,
+# illegible, or explicitly not found.
+#   "strict" — an incomplete payload is rejected and re-extracted. The
+#              FINAL attempt degrades to "log" rather than destroying the
+#              submission (same rule as the evidence check).
+#   "log"    — repair + flag for review, never reject
+#   "off"    — answers are not inspected at all (pre-hardening behaviour)
+ANSWER_COMPLETENESS_ENFORCEMENT = env.str(
+    "ANSWER_COMPLETENESS_ENFORCEMENT", default="strict"
+)
+
+# Targeted re-read of questions the extractor reported as empty
+# (ai_processor/services.py::_verify_blank_answers). A claimed blank is the
+# ONLY shape a lost answer can hide in - an answer that WAS transcribed is
+# by definition not lost - so rather than trying to verify every answer
+# against a source text we do not have (submissions are read from page
+# images by the vision model directly, with no separate OCR transcript to
+# diff against), this re-reads the pages asking one narrow question about
+# just those questions.
+#
+# Cost is bounded and self-limiting: zero extra calls on a fully answered
+# submission, and the more blanks there are - i.e. the higher the risk one
+# of them is a miss - the more the single extra call earns its keep.
+ANSWER_BLANK_VERIFICATION_ENABLED = env.bool(
+    "ANSWER_BLANK_VERIFICATION_ENABLED", default=True
+)
+
+# Above this many blanks, skip the re-read. A submission where almost
+# nothing was answered is either a genuinely near-empty paper or a wholesale
+# extraction failure; in both cases a per-question re-read is the wrong
+# instrument, and the completeness flags already route it to a human.
+ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS = env.int(
+    "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", default=12
+)
+
+# The re-read sends the WHOLE submission in one call (a missing answer
+# could be on any page, and a partial view would simply miss it), so long
+# submissions are skipped rather than attempted and failed. Safe in the
+# only direction that matters: the re-read can only move a question
+# BLANK -> NOT_FOUND_IN_DOCUMENT, so skipping costs a possible recovery
+# and can never produce a wrong flag.
+ANSWER_BLANK_VERIFICATION_MAX_PAGES = env.int(
+    "ANSWER_BLANK_VERIFICATION_MAX_PAGES", default=10
+)
+
+# Model for the re-read. A DIFFERENT model than the extractor is preferable
+# for the same reason the grading second opinion uses one (see
+# second_opinion.pick_second_model): a second read from the model that just
+# missed the answer tends to miss it again. Empty = use default routing,
+# which still asks a far narrower question than the extraction did.
+ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", default="")
 
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
@@ -649,6 +763,68 @@ GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
     "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
 )
 
+# Rendered-PDF cache (assignments/pdf_cache.py): a downloaded assignment
+# PDF costs a full headless-Chromium render to produce and is identical
+# for everyone downloading the same unchanged assignment in the same
+# view, so the bytes are cached and reused. The cache key includes the
+# assignment's updated_at, so an edit can never serve a stale PDF - see
+# that module's docstring. Kill switch: False renders every download
+# fresh.
+ASSIGNMENT_PDF_CACHE_ENABLED = env.bool("ASSIGNMENT_PDF_CACHE_ENABLED", default=True)
+ASSIGNMENT_PDF_CACHE_TTL_SECONDS = env.int(
+    "ASSIGNMENT_PDF_CACHE_TTL_SECONDS", default=60 * 60 * 24  # 1 day
+)
+# Renders above this are served but never cached, so a few image-heavy
+# assignments can't hold hundreds of MB of Redis for a full TTL and evict
+# everything else. A typical assignment PDF measured ~43KB. 0 disables.
+ASSIGNMENT_PDF_CACHE_MAX_BYTES = env.int(
+    "ASSIGNMENT_PDF_CACHE_MAX_BYTES", default=5 * 1024 * 1024  # 5 MB
+)
+
+# How long a caller waiting on someone else's in-progress render of the
+# same PDF (assignments/pdf_cache.py get_or_render) waits before giving up
+# and rendering for itself. Must stay comfortably above a normal render -
+# the renderer's own bound is 30s plus queue slack - or waiters routinely
+# bail out and re-render exactly what they were waiting for, which is the
+# stampede single-flight exists to prevent. pdf_cache.py already read this
+# name; it was only ever reachable via its hardcoded fallback until it was
+# declared here.
+ASSIGNMENT_PDF_SINGLEFLIGHT_TIMEOUT_SECONDS = env.float(
+    "ASSIGNMENT_PDF_SINGLEFLIGHT_TIMEOUT_SECONDS", default=60.0
+)
+
+# How many PDFs one warm Chromium instance renders before
+# assignments/pdf_renderer.py closes it and starts a fresh one; 0 disables
+# recycling. A 120-render soak measured ~0.02 MB/render of growth, still
+# decelerating (cache warm-up, not a leak), so this is a bound against a
+# future Chromium that does leak - and against callers with no
+# process-level recycling of their own - rather than a fix for observed
+# growth. gunicorn's --max-requests already recycles whole workers.
+PDF_RENDERER_MAX_RENDERS_PER_BROWSER = env.int(
+    "PDF_RENDERER_MAX_RENDERS_PER_BROWSER", default=500
+)
+
+# How many PDFs one worker process renders at the same time in its warm
+# Chromium. Renders run concurrently on the renderer's event loop, so this
+# is what bounds peak memory: an open page measured ~20MB on top of the
+# browser's ~165MB baseline, making the default roughly baseline + 80MB
+# under a burst. Raising it trades memory for tail latency when many
+# *uncached* assignments are requested at once; 1 restores fully
+# serialized rendering.
+PDF_RENDERER_MAX_CONCURRENT_RENDERS = env.int(
+    "PDF_RENDERER_MAX_CONCURRENT_RENDERS", default=4
+)
+
+# Load shedding: renders queued or running per worker before further ones
+# are refused with 503 instead of queueing. Default None = 4x the
+# concurrency above; 0 disables shedding entirely. Measured under 300
+# concurrent callers without it, renders sat ~35s and 89 of 3000 died at
+# the 45s timeout, each pinning a request thread for the whole wait -
+# refusing fast keeps those threads free for work the process can serve.
+PDF_RENDERER_MAX_QUEUED_RENDERS = env.int(
+    "PDF_RENDERER_MAX_QUEUED_RENDERS", default=None
+)
+
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
@@ -700,6 +876,44 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.reconcile_subscription_renewals",
         "schedule": crontab(minute=0, hour=4),
     },
+    # Detects local-plan / Stripe-price divergence: a customer being billed
+    # one price while our records say another. The renewals reconciler above
+    # cannot find this — it only examines subscriptions whose cycle has
+    # already lapsed, and drift sits on perfectly current ones. Detection
+    # only; it makes no corrective write. Hour 4:30 keeps it just after the
+    # renewals sweep, so anything that sweep fixes is already fixed.
+    "reconcile-subscription-prices-daily": {
+        "task": "billing.tasks.reconcile_subscription_prices",
+        "schedule": crontab(minute=30, hour=4),
+    },
+    # Nightly plan-price reconciliation: every active plan's BASE and
+    # OVERAGE Stripe Price, checked against what the application believes
+    # it costs. The sibling task above compares a SUBSCRIPTION's price to
+    # its plan; this one compares the PLAN ROW to Stripe, which is a
+    # different question and the one that catches a price edited in the
+    # dashboard.
+    #
+    # Nightly, not weekly: the whole sweep is ~18 Stripe reads, so daily
+    # detection costs nothing measurable and a wrong price cannot stand for
+    # a week. Detection only — it makes no corrective write, and the
+    # `--fix` path stays a deliberate human command.
+    #
+    # 02:30 puts it in the quiet window, clear of the 00:00 renewals sweep
+    # and the 04:30 subscription-price check.
+    "reconcile-stripe-prices-nightly": {
+        "task": "billing.tasks.reconcile_stripe_prices",
+        "schedule": crontab(minute=30, hour=2),
+    },
+    # The BetaProfile scoring engine. Its docstring has always said "Called
+    # by midnight"; until now nothing called it, so the sales-lead endpoints
+    # ranked every teacher at a permanent 0.0. Runs at 00:30 rather than
+    # midnight exactly to stay clear of process-license-renewals at 00:00 —
+    # it is pure analytics and has no reason to contend with the billing
+    # jobs.
+    "recalculate-conversion-probabilities": {
+        "task": "billing.tasks.recalculate_conversion_probabilities",
+        "schedule": crontab(minute=30, hour=0),
+    },
     # Watchdog over the Stripe webhook ledger: settles claims abandoned by
     # killed workers and raises an ERROR log for failures about to fall out
     # of Stripe's ~3-day retry window. Hourly, so a failure is always seen
@@ -707,6 +921,28 @@ CELERY_BEAT_SCHEDULE = {
     "sweep-stale-stripe-events": {
         "task": "billing.tasks.sweep_stale_stripe_events",
         "schedule": crontab(minute=15),
+    },
+    # Fills Stripe receipt links the post-commit task missed (broker down,
+    # worker lost, Stripe unavailable). Links are never resolved inside a
+    # webhook transaction - see billing/receipts.py.
+    "sweep-missing-receipt-urls": {
+        "task": "billing.tasks.sweep_missing_receipt_urls",
+        "schedule": crontab(minute=40),
+    },
+    # Escalates licence Stripe changes abandoned mid-flight (a killed worker
+    # sends no alert) and alerts a human. One query, no Stripe call - see
+    # billing/license_stripe_mutation.py (H-28).
+    "escalate-stale-licence-stripe-intents": {
+        "task": "billing.tasks.escalate_stale_licence_stripe_intents",
+        "schedule": crontab(minute="*/5"),
+    },
+    # Re-runs FAILED webhook events for the ONE allow-listed flow (paid
+    # overage purchases), so a customer who paid and got nothing is
+    # credited without waiting for a human. Every other event type and
+    # flow is denied - see billing/event_replay.py.
+    "replay-safe-failed-stripe-events": {
+        "task": "billing.tasks.replay_safe_failed_stripe_events",
+        "schedule": crontab(minute=50),
     },
     "cleanup-expired-credit-buckets": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
@@ -801,17 +1037,27 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # routine few-minutes scheduling delay never fires a false alarm - see the
 # task docstring for exactly what "overdue" means.
 BEAT_HEALTH_EXPECTATIONS = {
-    # name: (expected_interval, alert_threshold)
+    # Each entry: task name -> (expected interval, alert threshold)
     "record-concurrent-users-every-minute": (
         timedelta(minutes=1),
         timedelta(minutes=10),
     ),
     "sweep-stale-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
+    "sweep-missing-receipt-urls": (timedelta(hours=1), timedelta(hours=3)),
+    "escalate-stale-licence-stripe-intents": (
+        timedelta(minutes=5),
+        timedelta(minutes=30),
+    ),
+    "replay-safe-failed-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
     "expire-active-trials": (timedelta(hours=6), timedelta(hours=15)),
     "process-license-renewals": (timedelta(days=1), timedelta(days=2)),
     "process-annual_plan-credit-grants": (timedelta(days=1), timedelta(days=2)),
     "process-license-monthly-credit-refreshes": (timedelta(days=1), timedelta(days=2)),
     "reconcile-subscriptions-daily": (timedelta(days=1), timedelta(days=2)),
+    # Registered here, not just in the schedule: this task is itself a
+    # watchdog, and a watchdog nobody watches is one that can stop
+    # reporting without anyone noticing it went quiet.
+    "reconcile-stripe-prices-nightly": (timedelta(days=1), timedelta(days=2)),
     "cleanup-expired-credit-buckets": (timedelta(days=1), timedelta(days=2)),
     "nightly-stripe-live-qa": (timedelta(days=1), timedelta(days=2)),
     "nightly-grading-benchmark-replay": (timedelta(days=1), timedelta(days=2)),
@@ -832,20 +1078,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-#
-# STORAGES = {
-#     "default": {
-#         "BACKEND": "django.core.files.storage.FileSystemStorage",
-#     },
-#     # ManifestStaticFilesStorage is recommended in production, to prevent
-#     # outdated JavaScript / CSS assets being served from cache
-#     # (e.g. after a Wagtail upgrade).
-#     # See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
-#     "staticfiles": {
-#         "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
-#     },
-# }
-
+# Production uses ManifestStaticFilesStorage so outdated JavaScript and CSS
+# assets are never served from a cache after a deploy.
+# See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
 if ENVIRONMENT == "prod":
     STORAGES = {
         "default": {
@@ -890,7 +1125,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "users.authentication.MustChangePasswordJWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -908,6 +1143,31 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
     ),
+    # How many reverse proxies sit between the client and Django. WITHOUT
+    # this, every rate limit below is trivially bypassable and was in fact
+    # not working at all in production.
+    #
+    # DRF keys an anonymous throttle on BaseThrottle.get_ident(). With
+    # NUM_PROXIES unset it returns the X-Forwarded-For header with all of its
+    # whitespace removed, and falls back to REMOTE_ADDR only when that header
+    # is absent - i.e. the key is the ENTIRE X-Forwarded-For chain. Railway's edge
+    # APPENDS to that header rather than replacing it, so the caller owns
+    # its left-hand portion: each fake value invents a fresh bucket.
+    # Measured against the live beta service before this was set - 14
+    # rapid logins (limit 10/min) returned 401 fourteen times and never
+    # 429; 7 reset-password OTP requests (limit 5/hour) all returned 202.
+    #
+    # Set to an integer, DRF instead reads `addrs[-min(num_proxies, ...)]`
+    # - counting from the RIGHT, where the edge writes the address it
+    # actually observed and which the client cannot forge.
+    #
+    # 1 = a single Railway edge hop. Env-overridable because the correct
+    # value is a property of the deployment, not the code, and getting it
+    # too HIGH is its own bug: it reads an internal proxy's address, which
+    # is identical for everyone, collapsing all callers into one shared
+    # bucket. users/tests_throttle_client_identity.py covers both
+    # directions. Verify after deploy per docs/ops/rate-limiting.md.
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=2),
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",
         # Named buckets, attached per-view via users/throttling.py.
@@ -934,6 +1194,20 @@ REST_FRAMEWORK = {
     },
 }
 
+# H-47: global (all-IP) budget of failed POST /auth/register/student attempts
+# per window; see users.throttling.register_student_failure_budget_spent.
+REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT = env.int(
+    "REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT", default=100
+)
+REGISTER_STUDENT_FAILURE_WINDOW_SECONDS = env.int(
+    "REGISTER_STUDENT_FAILURE_WINDOW_SECONDS", default=3600
+)
+
+# H-53: per-address budget of attempts on POST /auth/verify; see
+# users.throttling.reserve_verify_attempt.
+VERIFY_EMAIL_MAX_FAILURES = env.int("VERIFY_EMAIL_MAX_FAILURES", default=5)
+VERIFY_EMAIL_LOCK_SECONDS = env.int("VERIFY_EMAIL_LOCK_SECONDS", default=1800)
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
@@ -944,6 +1218,10 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    # UPDATE_LAST_LOGIN stays OFF. simplejwt stamps it with save(), which
+    # fires post_save -> clear_user_cache and bumps the global cache
+    # generation on every login. last_login is stamped instead by
+    # users.services.stamp_last_login, a queryset update that sends no signal.
 }
 
 DJOSER = {
@@ -956,19 +1234,9 @@ DJOSER = {
     "ACTIVATION_URL": "activate/{uid}/{token}",
     "USERNAME_CHANGED_EMAIL_CONFIRMATION": False,
     "LOGOUT_ON_PASSWORD_CHANGE": True,
-    # Override the default Djoser serializers:
-    # "SERIALIZERS": {
-    #     "user_create": "users.serializers.CustomUserCreateSerializer",
-    #     "user": "users.serializers.CustomUserSerializer",
-    #     "current_user": "users.serializers.CustomUserSerializer",
-    # },
-    "EMAIL": {
-        # "activation": "home.emails.ActivationEmail",
-        # "confirmation": "home.emails.ConfirmationEmail",
-        # "password_reset": "home.emails.PasswordResetEmail",
-    },
-    # NOTE: djoser's URLs are not wired up (see the commented include in
-    # AutoGrader/urls.py) - authentication is served by users.views.AuthViewSet
+    "EMAIL": {},
+    # NOTE: djoser's URLs are not wired up - AutoGrader/urls.py never includes
+    # them - so authentication is served by users.views.AuthViewSet
     # instead. A commented-out "PERMISSIONS" block used to sit here and read
     # like live access control, including an AllowAny entry; it was removed
     # because nothing in it was ever in effect. Authorization for the real
@@ -1003,34 +1271,21 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_SETTINGS": {
         "defaultModelsExpandDepth": -1,
         "defaultModelExpandDepth": -1,
-        # "docExpansion": "none",
     },
     "EXTENSIONS": {
         "polymorphic_assignment": "assignments.schema.PolymorphicAssignmentExtension",
     },
 }
 
-# EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
-# DEFAULT_FROM_EMAIL = "Grade A+ <samueleffiong80@gmail.com>"
-# SUPPORT_EMAIL = "GradeA+@gmail.com"
-
 EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
-# DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
-# SUPPORT_EMAIL = "support@test-65qngkdjmm3lwr12.mlsender.net"
 SUPPORT_EMAIL = "support@gradeautomator.com"
 
 
 # This must match the domain in your screenshot
 DEFAULT_FROM_EMAIL = "Grade A+ <support@gradeautomator.com>"
-# DEFAULT_FROM_EMAIL = "Grade A+ <support@test-65qngkdjmm3lwr12.mlsender.net>"
-
-# ANYMAIL = {
-#     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
-# }
 
 ANYMAIL = {
     "MAILERSEND_API_TOKEN": env.str("MAILSEND_API_KEY"),
-    # "MAILERSEND_API_TOKEN": env.str("MAILSEND_LOCAL_API"),
 }
 
 CACHES = {
@@ -1048,17 +1303,83 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
-        # Namespaces cache keys so wildcard delete_pattern calls (e.g.
-        # "*user*") can only ever match cache entries — never Celery
-        # broker/result keys living in the same Redis instance.
+        # Namespaces cache keys so the one remaining pattern delete (the PDF
+        # cache's exact-prefix clear, assignments/pdf_cache.py) can only
+        # ever match cache entries — never Celery broker/result keys living
+        # in the same Redis instance.
         "KEY_PREFIX": "gaplus",
     }
 }
 
+# H-9: under `manage.py test`, isolate the cache PER PROCESS.
+#
+# django-redis implements `cache.clear()` as a raw FLUSHDB, which ignores
+# KEY_PREFIX. Test setUp/tearDown methods call it constantly, so two
+# concurrent test processes sharing this Redis destroy each other's cache,
+# H-1 generation counters, locks, throttle buckets and presence keys. That
+# produced a real, hard-to-diagnose regression failure in an unrelated
+# PDF-cache assertion.
+#
+# The fix is a per-process key prefix plus a `clear()` scoped to that
+# prefix (see AutoGrader/test_cache.py for why a prefix is used rather than
+# one of Redis's 16 database slots). Only `clear()` differs from the
+# production backend, and no production code path calls it.
+#
+# The Celery broker and result backend share the same Redis, so they get the
+# same per-process namespace. kombu's `global_keyprefix` prefixes EVERY broker
+# key: queues, exchange bindings, and the global `unacked` hash and index that
+# acks_late redelivery relies on. Without it, two concurrent real-worker test
+# runs share those structures. A per-run queue name alone isolates the task
+# messages, not the rest. Production transport options (visibility_timeout)
+# are kept; only the prefix is added.
+if "test" in sys.argv:
+    _TEST_REDIS_PREFIX = f"gaplus-t{os.getpid()}"
+    CACHES["default"] = {
+        **CACHES["default"],
+        "BACKEND": "AutoGrader.test_cache.PrefixScopedRedisCache",
+        "KEY_PREFIX": _TEST_REDIS_PREFIX,
+    }
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        **CELERY_BROKER_TRANSPORT_OPTIONS,
+        "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
+    }
+    CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+        "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
+    }
+    # The two `global_keyprefix` values above are baked in right here, in
+    # THIS process - fine for a normal test run, but under
+    # `manage.py test --parallel`, every forked worker inherits this exact
+    # string via copy-on-write, so all of them would use the same prefix
+    # (AutoGrader/test_broker.py has the full account, including how this
+    # was actually reproduced and fixed). These two settings swap in a
+    # broker Transport and a result Backend that resolve the prefix live,
+    # per-process, instead of trusting the value baked in above.
+    CELERY_BROKER_TRANSPORT = "AutoGrader.test_broker:PrefixScopedRedisTransport"
+    CELERY_RESULT_BACKEND = (
+        f"AutoGrader.test_broker.PrefixScopedRedisBackend+{CELERY_RESULT_BACKEND}"
+    )
+
+    # The real hasher (PBKDF2, ~100ms/hash) is deliberately slow so a
+    # stolen password database resists cracking - a property no test
+    # needs. create_user() runs 480+ times across the suite's fixture
+    # setup; at production cost that alone is minutes of wall time spent
+    # proving nothing about the code under test. A couple of test files
+    # already override this locally (users/tests_login_lockout.py,
+    # docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py)
+    # - this makes it the default everywhere instead of opt-in per file.
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+
+# Removes this run's Redis keys when it ends and sweeps dead runs' keys when it
+# starts, so the shared test Redis cannot fill up and slow every invalidation.
+TEST_RUNNER = "AutoGrader.redis_test_runner.RedisHygieneRunner"
+
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
-# ~10 keys when delete_pattern walks the keyspace. Signal handlers call
-# delete_pattern on every user/course/enrollment save, so on a remote Redis
-# that default turns each save into seconds of scanning.
+# ~10 keys when delete_pattern walks the keyspace. The legacy wildcard
+# receivers that ran it on every save were removed (H-1 step 4); the PDF
+# cache's exact-prefix clear on an assignment save still walks it, so on a
+# remote Redis the default would still turn that save into seconds of
+# scanning.
 DJANGO_REDIS_SCAN_ITERSIZE = 100_000
 
 CACHE_TTL = 60 * 5
@@ -1073,6 +1394,12 @@ FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 # MailerLite (https://developers.mailerlite.com) - syncs activated users to
 # mailing list groups segmented by user_type. API key is optional; when
 # unset, MailerLiteService silently no-ops so signup/activation never breaks.
+# Exposes /api/v1/health/client, which echoes the caller's own proxy
+# headers and the client identity DRF derives from them. Off by default;
+# turn it on only long enough to read the value, set NUM_PROXIES, and
+# turn it back off. See docs/ops/rate-limiting.md.
+EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
+
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
 MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")
@@ -1093,7 +1420,7 @@ else:
 # --- Personal vs business email rules ---------------------------------------
 #
 # The canonical consumer-provider and disposable-provider lists live in
-# users/utils.py (PERSONAL_EMAIL_DOMAINS / DISPOSABLE_EMAIL_DOMAINS). They
+# users/utils.py, as PERSONAL_EMAIL_DOMAINS and DISPOSABLE_EMAIL_DOMAINS. They
 # used to be duplicated here, which meant the settings copy silently won and
 # the module copy was dead code waiting to drift. The settings below only
 # EXTEND those lists, so an environment can add domains without having to
@@ -1129,7 +1456,7 @@ ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=Fals
 # checkout flow. Only takes effect when ENABLE_BILLING_TIME_TRAVEL is on
 # AND the Stripe key is a test key. Empty (the default) means no customer
 # ever gets one. Use "*" to cover every customer in a dedicated QA
-# environment. Example: BILLING_TEST_CLOCK_EMAIL_DOMAINS=yopmail.com
+# environment. For example, set BILLING_TEST_CLOCK_EMAIL_DOMAINS to yopmail.com.
 BILLING_TEST_CLOCK_EMAIL_DOMAINS = env.list(
     "BILLING_TEST_CLOCK_EMAIL_DOMAINS", default=[]
 )
@@ -1148,6 +1475,13 @@ ENABLE_STRIPE_LIVE_QA = env.bool("ENABLE_STRIPE_LIVE_QA", default=False)
 # only check that can detect the model provider changing behaviour, since
 # the nightly replay serves recorded responses by design.
 ENABLE_AI_LIVE_QA = env.bool("ENABLE_AI_LIVE_QA", default=False)
+
+# The grading benchmark creates its own teacher, plan, subscription and a
+# 5,000,000-credit bucket in whatever database it runs against (H2). Outside
+# DEBUG it refuses unless this is set (the scheduled jobs) or the command is
+# given --allow-non-debug. Separate from ENABLE_AI_LIVE_QA, which gates real
+# spend: the weekly live job needs both.
+ENABLE_GRADING_BENCHMARK = env.bool("ENABLE_GRADING_BENCHMARK", default=False)
 
 # ── Benchmark run archive (Tier 3 of the run history) ────────────────────
 #
@@ -1185,3 +1519,34 @@ BENCHMARK_ARCHIVE_ENABLED = env.bool(
 STRIPE_LIVE_QA_EMAIL_DOMAIN = env.str(
     "STRIPE_LIVE_QA_EMAIL_DOMAIN", default="stripe-live-qa.invalid"
 )
+
+# ── tiktoken cache (ai_processor token counting: services.py, the
+# extraction benchmark's chunk-threshold guard) ───────────────────────────
+#
+# tiktoken has no bundled BPE file; tiktoken.get_encoding("cl100k_base")
+# fetches it over HTTPS on first use and caches it by
+# sha1(blob_url).hexdigest() under TIKTOKEN_CACHE_DIR (default: a
+# tempdir shared by whatever else runs on the box, and gone the next
+# time /tmp is cleared). Two problems follow from the default: a
+# sandbox/CI runner with no outbound HTTPS to
+# openaipublic.blob.core.windows.net fails every token-counting test, and
+# even where the fetch works, every fresh /tmp repeats it.
+#
+# This points TIKTOKEN_CACHE_DIR at a directory inside the repo
+# (ai_processor/tiktoken_cache/) that carries a COMMITTED copy of the
+# cache file, named by tiktoken's own cache_key convention
+# (sha1(blob_url).hexdigest() -- see tiktoken.load.read_file_cached),
+# so token counting works with no outbound network at all, on any
+# machine that has the repo. It does not disable the live fetch: if a
+# future encoding's cache file isn't vendored yet, tiktoken downloads
+# and writes it into this same directory, same as it would anywhere
+# else -- it is just no longer required to. See
+# ai_processor/tiktoken_cache/README.md for what is vendored, why, and
+# how to verify or add to it.
+# TIKTOKEN_CACHE_DIR only gets a value if nothing else already set one,
+# so a session that deliberately sets its own (e.g. TIKTOKEN_CACHE_DIR
+# or DATA_GYM_CACHE_DIR in its own env) is left alone.
+TIKTOKEN_CACHE_DIR = os.environ.get("TIKTOKEN_CACHE_DIR") or str(
+    BASE_DIR / "ai_processor" / "tiktoken_cache"
+)
+os.environ.setdefault("TIKTOKEN_CACHE_DIR", TIKTOKEN_CACHE_DIR)

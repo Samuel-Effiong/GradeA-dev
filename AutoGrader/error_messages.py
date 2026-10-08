@@ -24,26 +24,62 @@ def _user_facing_exception_types():
     # can be imported early/anywhere without pulling in the full import
     # chains of billing/students, and without caring which app happens to
     # finish loading first.
+    from assignments.exceptions import (
+        InvalidUploadFileError,
+        UploadAlreadyInProgressError,
+    )
     from billing.access_control import AIFeatureNotAvailableError
     from billing.errors import InsufficientCreditsError
-    from billing.license_service import IndividualSubscriptionConflictError
-    from students.exceptions import CannotAssociateStudentError
+    from billing.license_service import (
+        IndividualSubscriptionConflictError,
+        LicenseRequestError,
+    )
+    from students.exceptions import (
+        AssignmentNotOpenError,
+        CannotAssociateStudentError,
+        SubmissionAlreadyGradedError,
+        SubmissionAnswersUnreadableError,
+        SubmissionBeingGradedError,
+        SubmissionLimitReachedError,
+    )
 
     return (
+        InvalidUploadFileError,
+        UploadAlreadyInProgressError,
         CannotAssociateStudentError,
+        SubmissionAlreadyGradedError,
+        SubmissionBeingGradedError,
+        SubmissionLimitReachedError,
+        SubmissionAnswersUnreadableError,
+        AssignmentNotOpenError,
         AIFeatureNotAvailableError,
         InsufficientCreditsError,
         IndividualSubscriptionConflictError,
+        # Written to be shown: a licence request the caller can fix.
+        LicenseRequestError,
     )
 
 
 def _passthrough_message(error):
-    """The verbatim message for a known user-authored exception, or None."""
+    """The verbatim message for a known user-authored exception, or None.
+    InsufficientCreditsError is the exception: its text can carry internal
+    billing state, so every one gets the same fixed message."""
+    from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+
+    if isinstance(error, InsufficientCreditsError):
+        return INSUFFICIENT_CREDITS_MESSAGE
     if isinstance(error, _user_facing_exception_types()):
         message = str(error).strip()
         if message:
             return message
     return None
+
+
+def is_user_facing_error(error):
+    """True when `error` is one of the exceptions written to be shown to a
+    user - i.e. a refusal of the request, not a server fault. Views use
+    this to answer 4xx instead of 500."""
+    return isinstance(error, _user_facing_exception_types())
 
 
 def describe_user_error(error, fallback_message=None):
@@ -71,7 +107,6 @@ def _infra_error_categories():
         RateLimitError,
     )
     from pdf2image.exceptions import (
-        PDFInfoNotInstalledError,
         PDFPageCountError,
         PDFPopplerTimeoutError,
         PDFSyntaxError,
@@ -122,11 +157,19 @@ def _infra_error_categories():
                 UnidentifiedImageError,
                 PDFSyntaxError,
                 PDFPageCountError,
-                PopplerNotInstalledError,
-                PDFInfoNotInstalledError,
             ),
             "We couldn't read this file — it may be corrupted, "
             "password-protected, or in an unsupported format.",
+        ),
+        (
+            # PDFInfoNotInstalledError subclasses PopplerNotInstalledError, so
+            # this one tuple covers both. Unlike the file-reading category
+            # above, this means the server is missing the poppler binary —
+            # not a fault in the uploaded file — so it gets its own message
+            # that doesn't blame the file.
+            (PopplerNotInstalledError,),
+            "We couldn't process this file due to a temporary issue on our "
+            "end. Please try again, or contact support if this continues.",
         ),
         (
             (CloudinaryError, OSError),

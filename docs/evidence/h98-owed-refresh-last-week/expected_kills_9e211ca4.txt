@@ -1,0 +1,12 @@
+R1: 5 failing, as expected
+R2: 1 failing, as expected
+R3: 1 failing, as expected
+R4: 2 failing, as expected
+R5: 3 failing, as expected
+R6: 2 failing, as expected
+R7: 1 failing, as expected
+C1: 1 failing, as expected
+C2: 2 failing, as expected
+C3: 1 failing, as expected
+C4: 1 failing, as expected
+every mutant's failing set is the expected one

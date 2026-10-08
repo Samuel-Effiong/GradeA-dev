@@ -1,0 +1,4 @@
+AutoGrader.tests_cache_matrix_concurrency.ConcurrentEnrollmentConcurrencyTests.test_concurrent_enrollments_settle_fresh_with_no_lost_bump ... ok
+AutoGrader.tests_cache_matrix_concurrency.PublishAllGradesConcurrencyTests.test_publish_all_settles_fresh_for_every_student_under_concurrent_reads ... ok
+Ran 2 tests in 8.440s
+OK

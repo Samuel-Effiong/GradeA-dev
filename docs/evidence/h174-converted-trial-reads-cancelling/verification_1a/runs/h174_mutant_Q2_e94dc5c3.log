@@ -1,0 +1,502 @@
+# 1a H-174 mutant Q2 at e94dc5c30aa937a024f9ead07ba58396d35f5a94, the three modules, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 3.87 4.24 4.06 4/2323 163490
+pycache dirs under AutoGrader and billing after clear: 0
+applied Q2 to billing/stripe_service.py
+mutated sha differs: True
+ billing/stripe_service.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+Creating test database for alias 'default' ('test_vf_h174_mut')...
+Found 48 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_pc_a_trial_keeps_its_trial_answer_beside_a_dated_cancellation (billing.tests.test_vf1a_h174_probe.ATrialWithADatedCancellation.test_pc_a_trial_keeps_its_trial_answer_beside_a_dated_cancellation) ... ok
+test_pa_a_cancel_date_already_passed_is_still_a_cancellation (billing.tests.test_vf1a_h174_probe.PastDateAndPendingChange.test_pa_a_cancel_date_already_passed_is_still_a_cancellation) ... FAIL
+test_pb_a_pending_plan_change_survives_a_scheduled_cancellation (billing.tests.test_vf1a_h174_probe.PastDateAndPendingChange.test_pb_a_pending_plan_change_survives_a_scheduled_cancellation) ... FAIL
+test_a_stray_date_of_cancellation_is_cleared (billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_a_stray_date_of_cancellation_is_cleared) ... ok
+test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending (billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending) ... ok
+test_a_second_cancel_still_says_already_and_keeps_the_date (billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_a_second_cancel_still_says_already_and_keeps_the_date) ... ok
+test_it_says_what_it_did_and_records_when (billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_it_says_what_it_did_and_records_when)
+The record already read as "not renewing", but Stripe had never ... ok
+test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away)
+Stripe can schedule a cancellation for a DATE (`cancel_at`, for ... FAIL
+test_a_cancellation_stripe_has_recorded_is_not_corrected_away (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_cancellation_stripe_has_recorded_is_not_corrected_away)
+The same for an answer that carries the time a cancellation was ... FAIL
+test_a_real_cancellation_is_still_undone_at_stripe (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_real_cancellation_is_still_undone_at_stripe)
+The road that already worked, on a record made the same way. ... ok
+test_a_record_converted_before_the_fix_is_corrected (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected) ... ok
+test_a_stale_date_goes_with_it (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it)
+Our record says cancelled on a date; Stripe says not cancelling. ... ok
+test_a_trial_is_never_corrected_into_a_renewing_plan (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_trial_is_never_corrected_into_a_renewing_plan)
+A trial's mark is false by design. Even with a Stripe id on it ... ok
+test_an_answer_whose_two_dates_are_empty_is_still_corrected (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_an_answer_whose_two_dates_are_empty_is_still_corrected)
+Stripe's real answer carries both keys, empty, when nothing is ... ok
+test_it_does_not_guess_when_stripe_does_not_say (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_it_does_not_guess_when_stripe_does_not_say)
+An answer WITHOUT the flag is not "not cancelling" (the same ... ok
+test_right_after_the_purchase_the_answer_does_not_contradict_itself (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_right_after_the_purchase_the_answer_does_not_contradict_itself)
+What the user did: bought, saw the banner, pressed the button. ... ok
+test_a_stray_date_of_cancellation_on_the_trial_is_cleared (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared) ... ok
+test_an_annual_plan_the_same (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_an_annual_plan_the_same)
+The one that would otherwise read so for a year. ... ok
+test_the_page_is_not_told_a_cancellation_is_pending (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_page_is_not_told_a_cancellation_is_pending) ... ok
+test_the_plan_is_set_to_renew (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_plan_is_set_to_renew) ... ok
+test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation)
+select_plan calls the same core first. It must not tell the ... ok
+test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing) ... FAIL
+test_it_reports_a_local_correction_and_no_change_at_stripe (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_local_correction_and_no_change_at_stripe) ... ok
+test_auto_resumed_subscription_keeps_renewing_across_multiple_cycles (billing.tests.test_subscription_reactivation.AutoResumeThenRenewalTestCase.test_auto_resumed_subscription_keeps_renewing_across_multiple_cycles)
+Guards against a narrower bug: auto_renew flipping True once but ... Free trial plan not found: no trial activated for user 9b23688f-e498-49e8-9128-c35af2684445.
+Cannot activate automatic trial for user 9b23688f-e498-49e8-9128-c35af2684445 (validation): ValueError
+Invoice in_renewal_1791399695.921145 for subscription 9f44f0f2-3327-4aa8-9401-78a32de0a660 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_renewal_1791399695.953747 for subscription 16f071ec-7e2a-4d6e-81c8-a8df9129b5db carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+ok
+test_auto_resumed_subscription_renews_on_next_cycle (billing.tests.test_subscription_reactivation.AutoResumeThenRenewalTestCase.test_auto_resumed_subscription_renews_on_next_cycle) ... Free trial plan not found: no trial activated for user 584033c8-8196-42c5-b9e8-6aac927da034.
+Cannot activate automatic trial for user 584033c8-8196-42c5-b9e8-6aac927da034 (validation): ValueError
+Invoice in_renewal_1791399696.023124 for subscription e6080a27-8625-43f7-83e2-668f45cc2188 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+ok
+test_resume_via_endpoint_then_renewal_succeeds (billing.tests.test_subscription_reactivation.AutoResumeThenRenewalTestCase.test_resume_via_endpoint_then_renewal_succeeds)
+End-to-end from the actual user-facing `resume` endpoint (not just ... Free trial plan not found: no trial activated for user ab1a0a2f-ebce-4654-9539-178d26530125.
+Cannot activate automatic trial for user ab1a0a2f-ebce-4654-9539-178d26530125 (validation): ValueError
+Invoice in_renewal_1791399696.108261 for subscription 4b8ac918-4c2c-41ed-b042-ea9679f4d2bc carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+ok
+test_downgrade_auto_resumes_and_note_stays_clean (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_downgrade_auto_resumes_and_note_stays_clean) ... Free trial plan not found: no trial activated for user f0f2bebb-2012-4324-b045-53966cf815c2.
+Cannot activate automatic trial for user f0f2bebb-2012-4324-b045-53966cf815c2 (validation): ValueError
+ok
+test_downgrade_blocked_when_fully_canceled (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_downgrade_blocked_when_fully_canceled) ... Free trial plan not found: no trial activated for user 58b643e5-8f7a-49c8-9f52-dfc1b4c1c16b.
+Cannot activate automatic trial for user 58b643e5-8f7a-49c8-9f52-dfc1b4c1c16b (validation): ValueError
+ok
+test_lateral_scheduled_auto_resumes (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_lateral_scheduled_auto_resumes) ... Free trial plan not found: no trial activated for user 3cc6e4f4-b91a-4534-9d06-39fc8a4d4a5b.
+Cannot activate automatic trial for user 3cc6e4f4-b91a-4534-9d06-39fc8a4d4a5b (validation): ValueError
+ok
+test_upgrade_auto_resumes (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_upgrade_auto_resumes) ... Free trial plan not found: no trial activated for user 5a67efc3-3745-4e7d-8b1e-a37b3a1197d5.
+Cannot activate automatic trial for user 5a67efc3-3745-4e7d-8b1e-a37b3a1197d5 (validation): ValueError
+ok
+test_upgrade_scheduled_auto_resumes (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_upgrade_scheduled_auto_resumes) ... Free trial plan not found: no trial activated for user acf9f3c5-186c-413d-ab94-9756ee720c7f.
+Cannot activate automatic trial for user acf9f3c5-186c-413d-ab94-9756ee720c7f (validation): ValueError
+ok
+test_blocks_fully_canceled (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_blocks_fully_canceled) ... Free trial plan not found: no trial activated for user 3dea4295-a85a-431d-aace-f0a304ee125c.
+Cannot activate automatic trial for user 3dea4295-a85a-431d-aace-f0a304ee125c (validation): ValueError
+ok
+test_clears_and_flips_auto_renew (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_clears_and_flips_auto_renew) ... Free trial plan not found: no trial activated for user 6a737c1b-2a9e-4e50-9bd8-d480043d0c7e.
+Cannot activate automatic trial for user 6a737c1b-2a9e-4e50-9bd8-d480043d0c7e (validation): ValueError
+ok
+test_compensating_rollback_on_save_failure (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_compensating_rollback_on_save_failure) ... Free trial plan not found: no trial activated for user 069e1bbb-69d4-4ebe-a0b7-04de2e251060.
+Cannot activate automatic trial for user 069e1bbb-69d4-4ebe-a0b7-04de2e251060 (validation): ValueError
+Reactivation: local save failed for subscription 4a9bfdb4-55ba-48da-8e88-7d6f81903998 after Stripe was already updated. Attempting compensating revert.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/stripe_service.py", line 1014, in reactivate_if_cancelling
+    locked_sub.save(
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: db boom
+ok
+test_local_record_is_corrected_when_stripe_is_not_cancelling (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_local_record_is_corrected_when_stripe_is_not_cancelling)
+H-174 reverses the old "noop when not cancelling" (Senior ... Free trial plan not found: no trial activated for user 83235dc2-c139-4c33-9f85-023d7c8f0451.
+Cannot activate automatic trial for user 83235dc2-c139-4c33-9f85-023d7c8f0451 (validation): ValueError
+ok
+test_noop_when_no_stripe_subscription_id (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_noop_when_no_stripe_subscription_id) ... Free trial plan not found: no trial activated for user bbefb7c8-919b-44e1-ad13-e844c228f6e3.
+Cannot activate automatic trial for user bbefb7c8-919b-44e1-ad13-e844c228f6e3 (validation): ValueError
+ok
+test_noop_when_stripe_and_the_local_record_agree (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_noop_when_stripe_and_the_local_record_agree) ... Free trial plan not found: no trial activated for user e05cb19e-072f-4be8-90cf-444cea42355a.
+Cannot activate automatic trial for user e05cb19e-072f-4be8-90cf-444cea42355a (validation): ValueError
+ok
+test_raises_expired_during_request_when_row_superseded (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_raises_expired_during_request_when_row_superseded) ... Free trial plan not found: no trial activated for user 6756fbfb-ed95-4034-a02b-6fbe497bd6ea.
+Cannot activate automatic trial for user 6756fbfb-ed95-4034-a02b-6fbe497bd6ea (validation): ValueError
+ok
+test_surfaces_past_due_warning (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_surfaces_past_due_warning) ... Free trial plan not found: no trial activated for user c4fc4310-e24a-44aa-b551-97728c3b69f9.
+Cannot activate automatic trial for user c4fc4310-e24a-44aa-b551-97728c3b69f9 (validation): ValueError
+ok
+test_already_active_noop (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_already_active_noop) ... Free trial plan not found: no trial activated for user dac4b8cf-daef-4c8c-bb7f-16786c15b10b.
+Cannot activate automatic trial for user dac4b8cf-daef-4c8c-bb7f-16786c15b10b (validation): ValueError
+ok
+test_already_renewed_race (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_already_renewed_race) ... Free trial plan not found: no trial activated for user 53727ed9-a3a6-45a5-b503-118741e57559.
+Cannot activate automatic trial for user 53727ed9-a3a6-45a5-b503-118741e57559 (validation): ValueError
+ok
+test_billing_period_already_ended (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_billing_period_already_ended) ... Free trial plan not found: no trial activated for user 72d7227b-08cd-4ef0-8e81-a50c326f985d.
+Cannot activate automatic trial for user 72d7227b-08cd-4ef0-8e81-a50c326f985d (validation): ValueError
+ok
+test_fully_canceled_rejection (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_fully_canceled_rejection) ... Free trial plan not found: no trial activated for user 0dffb2f6-dbbf-4c50-8dd1-167ad850cd55.
+Cannot activate automatic trial for user 0dffb2f6-dbbf-4c50-8dd1-167ad850cd55 (validation): ValueError
+ok
+test_no_active_subscription (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_no_active_subscription) ... Free trial plan not found: no trial activated for user 6f6ce873-5869-4eed-9716-ad601d4fc31c.
+Cannot activate automatic trial for user 6f6ce873-5869-4eed-9716-ad601d4fc31c (validation): ValueError
+ok
+test_past_due_warning_surfaces (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_past_due_warning_surfaces) ... Free trial plan not found: no trial activated for user 103474b9-b976-416b-a759-b943570f16ba.
+Cannot activate automatic trial for user 103474b9-b976-416b-a759-b943570f16ba (validation): ValueError
+ok
+test_successful_resume (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_successful_resume) ... Free trial plan not found: no trial activated for user 8fea54fc-b584-43e5-9f4f-12fd7b5a5968.
+Cannot activate automatic trial for user 8fea54fc-b584-43e5-9f4f-12fd7b5a5968 (validation): ValueError
+ok
+test_trial_cancelling_message (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_trial_cancelling_message) ... Free trial plan not found: no trial activated for user a86ca09b-c74f-4d98-9ca9-0591ec6a44d4.
+Cannot activate automatic trial for user a86ca09b-c74f-4d98-9ca9-0591ec6a44d4 (validation): ValueError
+ok
+test_trial_not_cancelling_message (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_trial_not_cancelling_message) ... Free trial plan not found: no trial activated for user 01e05f43-3001-4198-9cb0-bbbc2f69b8ec.
+Cannot activate automatic trial for user 01e05f43-3001-4198-9cb0-bbbc2f69b8ec (validation): ValueError
+ok
+
+======================================================================
+FAIL: test_pa_a_cancel_date_already_passed_is_still_a_cancellation (billing.tests.test_vf1a_h174_probe.PastDateAndPendingChange.test_pa_a_cancel_date_already_passed_is_still_a_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_vf1a_h174_probe.py", line 52, in test_pa_a_cancel_date_already_passed_is_still_a_cancellation
+    self.assertIs(after.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_pb_a_pending_plan_change_survives_a_scheduled_cancellation (billing.tests.test_vf1a_h174_probe.PastDateAndPendingChange.test_pb_a_pending_plan_change_survives_a_scheduled_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_vf1a_h174_probe.py", line 81, in test_pb_a_pending_plan_change_survives_a_scheduled_cancellation
+    self.assertIs(after.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away)
+Stripe can schedule a cancellation for a DATE (`cancel_at`, for
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_converted_trial_is_not_cancelling.py", line 381, in test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away
+    self.assert_left_alone_and_told_so(sub, response, stripe_subscription)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_converted_trial_is_not_cancelling.py", line 354, in assert_left_alone_and_told_so
+    self.assertIs(sub.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_a_cancellation_stripe_has_recorded_is_not_corrected_away (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_cancellation_stripe_has_recorded_is_not_corrected_away)
+The same for an answer that carries the time a cancellation was
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_converted_trial_is_not_cancelling.py", line 395, in test_a_cancellation_stripe_has_recorded_is_not_corrected_away
+    self.assert_left_alone_and_told_so(sub, response, stripe_subscription)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_converted_trial_is_not_cancelling.py", line 354, in assert_left_alone_and_told_so
+    self.assertIs(sub.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h174/billing/tests/test_converted_trial_is_not_cancelling.py", line 485, in test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing
+    self.assertTrue(result.scheduled_at_provider)
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 48 tests in 3.518s
+
+FAILED (failures=5)
+Destroying test database for alias 'default' ('test_vf_h174_mut')...
+ OK
+systemd-run failed with exit status 1.
+exit=1 wall_s=25 loadavg after: 3.73 4.17 4.04 5/2285 164443
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader and billing after clear: 0
+tracked changes after restore: 0

@@ -1,0 +1,24 @@
+13:24:59 tools: record bdbd2e3d5b0e4b70 moved e67da7daee9d8fa0 first f1b124bfca081c7a tip 9705d1214627e8b6
+13:24:59 probe on record (EXPECT=RECORD) start: loadavg 7.91 8.22 8.28 6/2147 362384
+13:25:00 probe on record exit=0
+13:25:00 probe on first (EXPECT=FIRST) start: loadavg 7.91 8.22 8.28 17/2146 362395
+13:25:00 probe on first exit=1
+13:25:00 probe on tip (EXPECT=CURED) start: loadavg 8.32 8.30 8.30 5/2148 362411
+13:25:01 probe on tip exit=1
+13:25:01 scan of d7143538 by record start: loadavg 8.32 8.30 8.30 8/2158 362441
+13:25:55 scan of d7143538 by record exit=0 lines=1106
+13:25:55 scan of d7143538 by moved start: loadavg 8.13 8.26 8.29 3/2140 363557
+13:26:39 scan of d7143538 by moved exit=0 lines=1106
+13:26:39 scan of d7143538 by tip start: loadavg 6.02 7.71 8.10 3/2102 364759
+13:27:26 scan of d7143538 by tip exit=0 lines=1284
+13:27:26 compare d7143538 record against moved (must be the same text) exit=0
+13:27:26 compare d7143538 record against tip (no row lost) exit=0
+13:27:26 scan of 1d47223b by record start: loadavg 5.46 7.29 7.93 4/2122 365457
+13:28:16 scan of 1d47223b by record exit=0 lines=1106
+13:28:16 scan of 1d47223b by moved start: loadavg 5.53 7.04 7.81 4/2140 366349
+13:29:02 scan of 1d47223b by moved exit=0 lines=1106
+13:29:02 scan of 1d47223b by tip start: loadavg 5.97 6.95 7.75 4/2114 367221
+13:29:43 scan of 1d47223b by tip exit=0 lines=1284
+13:29:43 compare 1d47223b record against moved (must be the same text) exit=0
+13:29:43 compare 1d47223b record against tip (no row lost) exit=0
+13:29:43 end: loadavg 4.78 6.53 7.57 4/2118 367830 fail=1

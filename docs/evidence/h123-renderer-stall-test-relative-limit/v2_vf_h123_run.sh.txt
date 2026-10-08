@@ -1,0 +1,32 @@
+#!/bin/bash
+# v2's one slot for H-123: baseline (stall test, wiring test, arithmetic
+# tests), then mutants W1-W5. Rules 12, 13, 16 wrap each step; rule 17 is in
+# the runner (PYTHONDONTWRITEBYTECODE=1, __pycache__ cleared); rule 18: every
+# test run writes straight to a file, stdin from /dev/null. Real-browser
+# tests with wall-clock assertions: does not start at a 1-minute load over
+# 4, and records the load at the start and end of each step.
+# Usage: vf_h123_run.sh <tip-sha8>      (only after the Release Engineer's GRANT)
+set -uo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export COMMIT=$TIP MUTANT_LOGS=$H/runs/h123_${TIP}_mutant_logs EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/h123_${TIP}.status
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+[ ! -e $MUTANT_LOGS ] && [ ! -e $H/runs/h123_${TIP}_baseline.log ] || { echo "logs of $TIP exist already"; exit 9; }
+L=$(cut -d" " -f1 /proc/loadavg)
+awk -v l="$L" 'BEGIN{exit !(l<=4)}' || { echo "NOT STARTED: 1-minute load average $L is over 4"; exit 8; }
+say "baseline start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h123_mutants.py baseline > $H/runs/h123_${TIP}_baseline.log 2>&1 < /dev/null || rc=$?
+say "baseline end exit=$rc: loadavg $(cat /proc/loadavg)"
+[ $rc -eq 0 ] || { echo "baseline red (exit $rc): no mutant is run"; exit 1; }
+say "mutants start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h123_mutants.py > $H/runs/h123_${TIP}_mutants.log 2>&1 < /dev/null || rc=$?
+say "mutants end exit=$rc: loadavg $(cat /proc/loadavg)"
+[ -z "$(git status --porcelain)" ] && [ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && say "tree is the frozen tip again" || say "WARNING: tree not the frozen tip at exit"
+echo "done: see $ST"

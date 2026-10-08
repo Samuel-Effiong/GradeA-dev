@@ -37,6 +37,34 @@ def _pct(value):
     return "n/a" if value is None else f"{value * 100:.1f}%"
 
 
+class BenchmarkRefused(CommandError):
+    """H2: the benchmark won't run against this database without an opt-in."""
+
+
+def ensure_benchmark_allowed(allow_non_debug=False):
+    """H2: refuse outside DEBUG unless explicitly opted in.
+
+    _resolve_user creates a teacher, a plan, a subscription and a
+    5,000,000-credit bucket in whatever database it runs against, and the
+    nightly beat job calls it too. So it may run only at DEBUG, with the
+    command's --allow-non-debug, or where ENABLE_GRADING_BENCHMARK is set
+    (the scheduled jobs' switch; the weekly live job also needs
+    ENABLE_AI_LIVE_QA).
+    """
+    if (
+        settings.DEBUG
+        or allow_non_debug
+        or getattr(settings, "ENABLE_GRADING_BENCHMARK", False)
+    ):
+        return
+    raise BenchmarkRefused(
+        "Refusing to run the grading benchmark outside DEBUG: it creates a "
+        "teacher with 5,000,000 credits in this database. Pass "
+        "--allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the "
+        "scheduled jobs."
+    )
+
+
 class Command(BaseCommand):
     help = "Run the ground-truth grading benchmark and report accuracy."
 
@@ -84,6 +112,12 @@ class Command(BaseCommand):
             help="Write this run's metrics to the given path.",
         )
         parser.add_argument(
+            "--allow-non-debug",
+            action="store_true",
+            help="Run outside DEBUG anyway. This creates (or tops up) a "
+            "benchmark teacher with 5,000,000 credits in THIS database.",
+        )
+        parser.add_argument(
             "--no-history",
             action="store_true",
             help="Skip recording this run to the history files, the database "
@@ -106,7 +140,11 @@ class Command(BaseCommand):
             self._render_pdfs(options["out"])
 
         mode = options["mode"]
-        user = self._resolve_user(mode, options.get("teacher_email"))
+        user = self._resolve_user(
+            mode,
+            options.get("teacher_email"),
+            allow_non_debug=options.get("allow_non_debug", False),
+        )
 
         run = runner.execute_benchmark(
             user,
@@ -265,14 +303,18 @@ class Command(BaseCommand):
         written = render_all(out_dir)
         self.stdout.write(self.style.SUCCESS(f"Wrote {len(written)} PDFs to {out_dir}"))
 
-    def _resolve_user(self, mode, teacher_email):
+    def _resolve_user(self, mode, teacher_email, allow_non_debug=False):
         """
         The teacher billed for the run.
 
         Replay makes no billed calls, but execute_graded_task still walks
         the access-control and wallet path, so a valid teacher is needed
         in every mode.
+
+        H2: the command and both beat jobs come through here, so the
+        production guard sits at its top, before anything is written.
         """
+        ensure_benchmark_allowed(allow_non_debug)
         from datetime import timedelta
 
         from billing.models import (

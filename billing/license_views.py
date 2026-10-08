@@ -31,6 +31,7 @@ from classrooms.models import School
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from users.models import CustomUser, UserTypes
 
+from . import license_stripe_mutation
 from .imports import stripe
 from .license_service import LicenseSubscriptionService
 from .models import (  # SubscriptionPlan,
@@ -64,6 +65,32 @@ from .stripe_view_schemas import (  # PROCESS_RENEWAL_SCHEMA,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _not_recorded_response(exc):
+    """A licence change Stripe applied but the application couldn't record
+    (H-28's LicenceStripeChangeNotRecorded). It used to fall through to a
+    500 whose log line carried the chained Stripe text.
+
+    - Escalated (the change is live at Stripe, flagged for a human): 409,
+      no Retry-After. A retry can't succeed, because the licence stays
+      guarded until a human reconciles it.
+    - Compensated (undone at Stripe, nothing changed): 503 + Retry-After.
+
+    The body is the exception's own fixed text. The log carries ids only,
+    with no traceback, so no chained Stripe text.
+    """
+    if exc.intent is not None:
+        license_stripe_mutation.log_provider_error(exc.intent, exc)
+    else:
+        logger.warning("Licence change not recorded (%s)", type(exc).__name__)
+    if exc.escalated:
+        return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+    response = Response(
+        {"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+    )
+    response["Retry-After"] = "30"
+    return response
 
 
 class IsSchoolAdminOrSuperAdmin(IsAuthenticated):
@@ -468,8 +495,6 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         """
         license_sub = self.get_object()
 
-        # from datetime import timedelta
-
         from django.utils import timezone
 
         now = timezone.now()
@@ -583,27 +608,6 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         new_plan = serializer.validated_data["plan"]
 
-        # # plan_id = request.data.get("plan")
-        # # if not plan_id:
-        # #     return Response(
-        # #         {"detail": "The 'plan' field is required."},
-        # #         status=status.HTTP_400_BAD_REQUEST,
-        # #     )
-
-        # # try:
-        # #     new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        # # except SubscriptionPlan.DoesNotExist:
-        # #     return Response(
-        # #         {"detail": "Plan not found or inactive."},
-        # #         status=status.HTTP_404_NOT_FOUND,
-        # #     )
-
-        # if new_plan.category != PlanCategory.LICENSE:
-        #     return Response(
-        #         {"detail": "Selected plan is not a LICENSE plan."},
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
-
         # Handle custom_price_cents
         if "custom_price_cents" in serializer.validated_data:
             remove_custom_price = (
@@ -624,6 +628,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except license_stripe_mutation.LicenceStripeChangeNotRecorded as e:
+            return _not_recorded_response(e)
         except Exception as e:
             logger.exception("Unexpected error changing license plan: %s", e)
             return Response(
@@ -675,6 +681,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except license_stripe_mutation.LicenceStripeChangeNotRecorded as e:
+            return _not_recorded_response(e)
         except Exception as e:
             logger.exception("Unexpected error updating seats: %s", e)
             return Response(
@@ -879,6 +887,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except license_stripe_mutation.LicenceStripeChangeNotRecorded as exc:
+            return _not_recorded_response(exc)
 
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 
@@ -913,6 +923,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except license_stripe_mutation.LicenceStripeChangeNotRecorded as exc:
+            return _not_recorded_response(exc)
 
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 

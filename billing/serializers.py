@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from users.models import CustomUser, UserTypes
 
-from .license_service import LicenseSubscriptionService
+from .license_service import LicenseRequestError, LicenseSubscriptionService
 from .models import (
     CONVERSION_FACTOR,
     BetaProfile,
@@ -28,7 +28,6 @@ from .models import (
     LicenseSubscription,
     PendingChangeType,
     PlanCategory,
-    PlanType,
     SchoolCreditAllocation,
     StripeSubscriptionStatus,
     SubscriptionPlan,
@@ -176,32 +175,27 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         here so both keep working without changing the request payload
         shape (still just {"plan": "<uuid>"}, not "plan_id").
         """
+        from .plan_policy import admin_assignable_lookup
+
         ret = super().to_internal_value(data)
         plan_id = data.get("plan")
         if plan_id is not None:
             try:
-                ret["plan"] = SubscriptionPlan.objects.get(pk=plan_id)
+                # Never an unfiltered lookup: internal, license and other
+                # non-assignable plans must not be resolvable by id.
+                ret["plan"] = admin_assignable_lookup().get(pk=plan_id)
             except (SubscriptionPlan.DoesNotExist, ValueError, TypeError) as exc:
                 raise serializers.ValidationError({"plan": "Invalid plan id."}) from exc
         return ret
 
     def validate(self, attrs):
-        user = attrs.get("user")
-        plan = attrs.get("plan")
-
-        if user and plan and plan.name == "BETA" and not user.is_beta_eligible():
-            raise serializers.ValidationError(
-                {"plan": "The Beta plan can only be assigned to teachers."}
-            )
-
-        # create() delegates straight to SubscriptionService.activate_
-        # subscription, which activates the plan AND grants its full
-        # monthly credit bucket with no payment step. Self-service through
-        # this serializer is therefore only ever legitimate for free plans
-        # (e.g. BETA onboarding) targeting the requester themselves - paid
-        # plans must go through the Stripe checkout flow
-        # (subscription/select-plan), and only a superadmin may activate a
-        # subscription on another user's behalf.
+        # create() activates a plan AND grants its full monthly credit
+        # bucket with no payment step, so this is an administrative
+        # assignment tool only. Ordinary users subscribe through
+        # POST /subscription/select-plan (Stripe Checkout); BETA and the
+        # TRIAL are granted automatically at signup (users/signals.py).
+        # The views restrict create to superadmins too; this check keeps
+        # the serializer safe if it is ever wired to another view.
         request = self.context.get("request")
         requester = getattr(request, "user", None)
         is_superadmin = bool(
@@ -211,19 +205,20 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             and requester.user_type == UserTypes.SUPER_ADMIN
         )
         if not is_superadmin:
-            if user is not None and requester is not None and user != requester:
-                raise serializers.ValidationError(
-                    {"user": "You can only create a subscription for yourself."}
-                )
-            if plan is not None and (plan.price_cents or 0) > 0:
-                raise serializers.ValidationError(
-                    {
-                        "plan": (
-                            "Paid plans must be purchased through the "
-                            "checkout flow, not activated directly."
-                        )
-                    }
-                )
+            raise serializers.ValidationError(
+                "Only a superadmin can activate a subscription directly. "
+                "Use the plan selection flow to subscribe."
+            )
+
+        plan = attrs.get("plan")
+        if plan is None:
+            raise serializers.ValidationError({"plan": "This field is required."})
+
+        from .plan_policy import admin_assignment_error
+
+        plan_error = admin_assignment_error(plan)
+        if plan_error:
+            raise serializers.ValidationError({"plan": plan_error})
 
         return attrs
 
@@ -321,10 +316,17 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         return trial_bucket.remaining_credits // CONVERSION_FACTOR
 
     def create(self, validated_data):
-        # Delegate all business logic to the Service Layer
-        return SubscriptionService.activate_subscription(
-            user=validated_data["user"], plan=validated_data["plan"]
-        )
+        # Delegate all business logic to the Service Layer. The stateful
+        # rules (one-time entitlements, live Stripe subscriptions, license
+        # track) are enforced there, under a per-user lock.
+        from .plan_policy import PlanAssignmentRefused
+
+        try:
+            return SubscriptionService.activate_plan_without_payment(
+                user=validated_data["user"], plan=validated_data["plan"]
+            )
+        except PlanAssignmentRefused as exc:
+            raise serializers.ValidationError({"detail": str(exc)}) from exc
 
     @extend_schema_field(serializers.DateTimeField(allow_null=True))
     def get_pending_plan_effective_date(self, obj):
@@ -487,10 +489,13 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
     Adds renewal info, plan display details, and credit wallet summary.
     """
 
+    # /subscription/me's discriminator across all three response shapes.
+    # ACTIVE by default; the view passes context={"status": "EXPIRED"} for
+    # the caller's most recent lapsed individual subscription.
+    status = serializers.SerializerMethodField()
+
     # Renewal fields (some already in base, we override to ensure they appear)
-    next_renewal_date = serializers.DateTimeField(
-        source="billing_cycle_end", read_only=True
-    )
+    next_renewal_date = serializers.SerializerMethodField()
     days_until_renewal = serializers.SerializerMethodField()
     stripe_status = serializers.CharField(read_only=True)  # added from model
 
@@ -503,11 +508,11 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
     # Credit wallet summary
     current_balance_display = serializers.SerializerMethodField()
     credit_percentage_remaining = serializers.SerializerMethodField()
-    # monthly_credit_total_display = serializers.SerializerMethodField()
     monthly_credit_remaining_display = serializers.SerializerMethodField()
 
     class Meta(UserSubscriptionSerializer.Meta):
         fields = UserSubscriptionSerializer.Meta.fields + [
+            "status",
             "next_renewal_date",
             "days_until_renewal",
             "stripe_status",
@@ -519,6 +524,7 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             "monthly_credit_remaining_display",
         ]
         read_only_fields = UserSubscriptionSerializer.Meta.read_only_fields + [
+            "status",
             "next_renewal_date",
             "days_until_renewal",
             "stripe_status",
@@ -530,7 +536,22 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             "monthly_credit_remaining_display",
         ]
 
+    def get_status(self, obj):
+        return self.context.get("status", "ACTIVE")
+
+    def get_next_renewal_date(self, obj):
+        # EXPIRED: this cycle already ended and nothing is renewing it —
+        # a renewal date would be misleading, not just stale.
+        if self.context.get("status") == "EXPIRED":
+            return None
+        return obj.billing_cycle_end
+
     def get_days_until_renewal(self, obj):
+        # Same guard as get_next_renewal_date: for an EXPIRED sub,
+        # billing_cycle_end - now is already negative and "days until
+        # renewal" has no meaning, so return None instead of clamping.
+        if self.context.get("status") == "EXPIRED":
+            return None
         now = timezone.now()
         delta = obj.billing_cycle_end - now
         return max(0, delta.days)
@@ -566,9 +587,6 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
         except (CreditWallet.DoesNotExist, AttributeError):
             return 0.0
 
-    # def get_monthly_credit_total_display(self, obj):
-    #     return obj.plan.display_monthly_credits
-
     def get_monthly_credit_remaining_display(self, obj):
         try:
             wallet = obj.user.credit_wallet
@@ -596,6 +614,13 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
     """
 
     subscription_source = serializers.CharField(default="LICENSE_TEACHER")
+    # ACTIVE by default; the view passes context={"status": "EXPIRED"}
+    # when instantiated with the teacher's most recent allocation that
+    # is no longer truly active (either the allocation itself was
+    # deactivated, or it's still flagged active but its parent license
+    # lapsed — see is_license_active below, which reports the real
+    # state either way) — same pattern as MySubscriptionSerializer.status.
+    status = serializers.SerializerMethodField()
 
     # License-level (shared, read-only — the teacher does not manage this)
     license_id = serializers.UUIDField(source="license_subscription.id")
@@ -629,6 +654,9 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
     # Wallet — fully personal, never shared with other teachers
     wallet_summary = serializers.SerializerMethodField()
 
+    def get_status(self, obj) -> str:
+        return self.context.get("status", "ACTIVE")
+
     def get_plan_display_name(self, obj) -> str:
         plan = obj.license_subscription.plan
         return plan.display_name or plan.name
@@ -637,7 +665,10 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
         return obj.license_subscription.admin_user.get_full_name()
 
     def get_days_until_next_credit_grant(self, obj) -> int | None:
-        if not obj.next_credit_grant_at:
+        # EXPIRED: a stale next_credit_grant_at is no longer coming —
+        # same "don't clamp a negative delta to a misleading 0" guard
+        # as the other renewal-derived fields.
+        if not obj.next_credit_grant_at or self.context.get("status") == "EXPIRED":
             return None
         delta = obj.next_credit_grant_at - timezone.now()
         return max(0, delta.days)
@@ -659,6 +690,11 @@ class MyLicenseAdminSubscriptionSerializer(serializers.Serializer):
     """
 
     subscription_source = serializers.CharField(default="LICENSE_ADMIN")
+    # ACTIVE by default; the view passes context={"status": "EXPIRED"}
+    # when instantiated with the admin's most recent INACTIVE
+    # LicenseSubscription instead — same pattern as
+    # MySubscriptionSerializer.status.
+    status = serializers.SerializerMethodField()
 
     license_id = serializers.UUIDField(source="id")
     school_name = serializers.CharField(source="school.name")
@@ -682,10 +718,18 @@ class MyLicenseAdminSubscriptionSerializer(serializers.Serializer):
 
     wallet_summary = serializers.SerializerMethodField()
 
+    def get_status(self, obj) -> str:
+        return self.context.get("status", "ACTIVE")
+
     def get_plan_display_name(self, obj) -> str:
         return obj.plan.display_name or obj.plan.name
 
-    def get_days_until_renewal(self, obj) -> int:
+    def get_days_until_renewal(self, obj) -> int | None:
+        # EXPIRED: same guard as MySubscriptionSerializer — a lapsed
+        # license's billing_cycle_end - now is negative, and clamping to
+        # 0 would misleadingly read as "renews today".
+        if self.context.get("status") == "EXPIRED":
+            return None
         delta = obj.billing_cycle_end - timezone.now()
         return max(0, delta.days)
 
@@ -897,21 +941,6 @@ class CreditWalletSerializer(serializers.ModelSerializer):
           - >= 20%  → Amber  (warning)
           -  < 20%  → Red    (critical)
         """
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-        # remaining = self.get_monthly_credit_remaining(obj)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-
-        # remaining = getattr(obj, "display_balance", obj.display_balance)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
         now = timezone.now()
 
         active_buckets_query = obj.buckets.filter(
@@ -990,8 +1019,6 @@ class CreditWalletSerializer(serializers.ModelSerializer):
         return breakdown
 
     def get_feature_usage_breakdown(self, obj) -> Optional[Dict[str, int]]:
-        # subscription = obj.user.subscriptions.filter(is_active=True).first()
-
         subscription = obj.active_subscription
 
         if not subscription:
@@ -1015,7 +1042,6 @@ class CreditWalletSerializer(serializers.ModelSerializer):
 
         for item in by_feature:
             core_features[item["feature"]] = item["total"]
-        # feature_map = {item["feature"]: item["total"] for item in by_feature}
 
         return core_features
 
@@ -1039,7 +1065,8 @@ class CreditLedgerSerializer(serializers.ModelSerializer):
         model = CreditLedger
         fields = [
             "id",
-            "user",
+            "user_id",
+            "user_email",
             "bucket",
             "ledger_type",
             "amount",
@@ -1070,11 +1097,6 @@ class CreditUsageLogSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["created_at"]
-
-
-class SubscriptionSerializer(serializers.Serializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
-    plan = serializers.PrimaryKeyRelatedField(queryset=SubscriptionPlan.objects.all())
 
 
 class CreditWalletSummarySerializer(serializers.ModelSerializer):
@@ -1155,21 +1177,6 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
           - >= 20%  → Amber  (warning)
           -  < 20%  → Red    (critical)
         """
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-        # remaining = self.get_monthly_credit_remaining(obj)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-
-        # remaining = getattr(obj, "display_balance", obj.display_balance)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
         now = timezone.now()
 
         active_buckets_query = obj.buckets.filter(
@@ -1306,7 +1313,6 @@ class OverageCheckoutRequestSerializer(serializers.Serializer):
 
 
 class OverageStatusSerializer(serializers.ModelSerializer):
-    # max_blocks = serializers.SerializerMethodField()
     block_size = serializers.SerializerMethodField()
     block_remaining = serializers.SerializerMethodField()
     current_overage_balance = serializers.SerializerMethodField()
@@ -1701,8 +1707,6 @@ class BetaFeatureMixSerializer(serializers.Serializer):
     total_analytics_views = serializers.IntegerField()
     views_per_user = serializers.FloatField()
     primary_driver = serializers.CharField()
-    # engagement_quality = serializers.CharField()
-    # consumption_time_series = FeatureConsumptionTimeSeriesSerializer(many=True)
 
 
 class PeakUsageHourSerializer(serializers.Serializer):
@@ -1718,13 +1722,6 @@ class WeeklyGrowthSerializer(serializers.Serializer):
 class InfrastructureInsightSerializer(serializers.Serializer):
     peak_hour = serializers.IntegerField(allow_null=True)
     current_week_velocity = serializers.IntegerField()
-
-
-# class BetaUsageTrendSerializer(serializers.Serializer):
-# daily_time_series = DailyTimeSeriesSerializer(many=True)
-# peak_usage_hours = PeakUsageHourSerializer(many=True)
-# weekly_growth = WeeklyGrowthSerializer(many=True)
-# infrastructure_insight = InfrastructureInsightSerializer()
 
 
 class UsageQuintileBreakdownSerializer(serializers.Serializer):
@@ -1780,7 +1777,6 @@ class ConversionLeadFlagsSerializer(serializers.Serializer):
     at_80_percent = serializers.BooleanField()
     active_last_week = serializers.BooleanField()
     is_power_grader = serializers.BooleanField()
-    # grading_heavy = serializers.BooleanField()
     frequent_user = serializers.BooleanField()
 
 
@@ -1922,6 +1918,39 @@ class SchoolCreditAllocationSerializer(serializers.ModelSerializer):
         # Return the raw monthly_allocation in the response
         ret["monthly_allocation"] = instance.monthly_allocation
         return ret
+
+
+#: Fields a PATCH to a licence would otherwise accept and silently drop:
+#: update() applies only auto_renew and custom_price_cents. A CHANGED value is
+#: refused, naming the route that does make the change (H-57). An unchanged
+#: value, as a client echoing the whole object back sends, is accepted.
+LICENCE_NOT_PATCHABLE = {
+    "max_seats": "Seats can't be changed here. Use the update_seats action.",
+    "plan": "The plan can't be changed here. Use the change_plan action.",
+    "billing_method": (
+        "The billing method can't be changed here. Use the convert-to-offline "
+        "or convert-to-stripe action."
+    ),
+    "contract_months": "The contract length can't be changed after creation.",
+    "school": "A licence's school can't be changed after creation.",
+    "admin_user": "The licence admin can't be changed here.",
+    "stripe_subscription_id": "The Stripe subscription can't be changed here.",
+}
+
+
+STRIPE_PRICE_NOT_PATCHABLE = (
+    "The price of a Stripe-billed licence can't be changed here. Use the "
+    "change_plan action with custom_price_cents."
+)
+
+
+def _stored_differs(instance, field, value) -> bool:
+    """True when a PATCH `value` for `field` is not what `instance` holds."""
+    stored = getattr(instance, field)
+    if hasattr(value, "pk") or hasattr(stored, "pk"):
+        return getattr(value, "pk", value) != getattr(stored, "pk", stored)
+    # A blank and a null Stripe id are the same "none".
+    return (value or None) != (stored or None)
 
 
 class LicenseSubscriptionSerializer(serializers.ModelSerializer):
@@ -2091,6 +2120,37 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         """
         attrs = super().validate(attrs)
 
+        if self.instance is not None:
+            refused = {
+                field: message
+                for field, message in LICENCE_NOT_PATCHABLE.items()
+                if field in attrs
+                and _stored_differs(self.instance, field, attrs[field])
+            }
+            # The price of a Stripe-billed licence is Stripe's too: a local-only
+            # change would diverge from what Stripe charges (v2's note 3, the
+            # divergence H-28 removed from change_plan). Offline licences
+            # keep a PATCHable price.
+            if (
+                "custom_price_cents" in attrs
+                and self.instance.billing_method == LicenseBillingMethod.STRIPE
+                and _stored_differs(
+                    self.instance, "custom_price_cents", attrs["custom_price_cents"]
+                )
+            ):
+                refused["custom_price_cents"] = STRIPE_PRICE_NOT_PATCHABLE
+            # A non-empty list is a caller who believes teachers were added.
+            # Empty or absent is ignored, as an echoed create form sends it.
+            # carry_forward_teachers is ignored: it defaults to True and only
+            # governs a replacement licence's creation.
+            if attrs.get("teacher_emails"):
+                refused["teacher_emails"] = (
+                    "Teachers can't be added here. Use the add_teachers action."
+                )
+            if refused:
+                # Nothing in the request is applied: the whole PATCH fails.
+                raise serializers.ValidationError(refused)
+
         explicit_admin = attrs.get("admin_user")
         school = attrs.get("school") or getattr(self.instance, "school", None)
 
@@ -2148,18 +2208,23 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             k: v for k, v in validated_data.items() if k in ["is_active", "auto_renew"]
         }
 
-        license_sub = LicenseSubscriptionService.create_license_subscription(
-            school=school,
-            plan=plan,
-            admin_user=admin_user,
-            teacher_emails=teacher_emails,
-            contract_months=contract_months,
-            max_seats=max_seats,
-            custom_price_cents=custom_price_cents,
-            billing_method=billing_method,
-            carry_forward_teachers=carry_forward_teachers,
-            **extra_kwargs,
-        )
+        # Only the service's user-input refusals become a 400 (seat count,
+        # plan, admin). A bare ValueError is a bug and stays a loud 500.
+        try:
+            license_sub = LicenseSubscriptionService.create_license_subscription(
+                school=school,
+                plan=plan,
+                admin_user=admin_user,
+                teacher_emails=teacher_emails,
+                contract_months=contract_months,
+                max_seats=max_seats,
+                custom_price_cents=custom_price_cents,
+                billing_method=billing_method,
+                carry_forward_teachers=carry_forward_teachers,
+                **extra_kwargs,
+            )
+        except LicenseRequestError as exc:
+            raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
 
         return license_sub
 
@@ -2400,19 +2465,19 @@ class LicenseOveragePurchaseResultSerializer(serializers.Serializer):
     )
     message = serializers.CharField()
 
-    # action == "checkout"
+    # Present when action is "checkout"
     checkout_url = serializers.URLField(required=False, allow_null=True)
     checkout_session_id = serializers.CharField(required=False, allow_null=True)
     intent_id = serializers.UUIDField(required=False, allow_null=True)
     amount_cents = serializers.IntegerField(required=False, allow_null=True)
 
-    # action == "offline_request_pending"
+    # Present when action is "offline_request_pending"
     request_id = serializers.UUIDField(required=False, allow_null=True)
 
     # both actions
     total_blocks = serializers.IntegerField(required=False)
 
-    # action == "granted"
+    # Present when action is "granted"
     allocations = serializers.ListField(required=False)
 
 
@@ -2566,20 +2631,24 @@ class SelectIndividualPlanSerializer(serializers.Serializer):
                 "(school/license) billing is managed separately by school admins."
             )
 
-        # TRIAL is granted automatically on registration, never user-selectable.
-        # BETA / CUSTOM are assigned out-of-band (internal eligibility rules /
-        # negotiated contracts) and must never be reachable through self-serve
-        # plan selection.
-        if plan.name in (PlanType.TRIAL, PlanType.BETA, PlanType.CUSTOM):
+        # An explicit allow-list, not a block-list: TRIAL is granted
+        # automatically on registration, BETA / CUSTOM are assigned
+        # out-of-band, and internal plans (e.g. the grading benchmark plan)
+        # must never be reachable through self-serve plan selection. A
+        # block-list silently admitted every new internal plan.
+        from .plan_policy import SELF_SERVICE_PLAN_NAMES
+
+        if plan.name not in SELF_SERVICE_PLAN_NAMES:
             raise serializers.ValidationError(
                 f"The {plan.get_name_display()} plan cannot be selected directly."
             )
 
-        # if plan.is_contact_sales:
-        #     raise serializers.ValidationError(
-        #         "This plan requires contacting our sales team and can't be "
-        #         "selected directly."
-        #     )
+        if (plan.price_cents or 0) <= 0:
+            # Extra refusal, not the eligibility rule: an allow-listed plan
+            # saved without a price must not become a free self-serve plan.
+            raise serializers.ValidationError(
+                "This plan has no price configured and cannot be selected."
+            )
 
         if not plan.is_active:
             raise serializers.ValidationError(
@@ -2622,14 +2691,14 @@ class PlanChangeResultSerializer(serializers.Serializer):
         help_text="Human-readable summary of what happened, safe to show directly to the user."
     )
 
-    # action == "checkout"
+    # Present when action is "checkout"
     checkout_url = serializers.URLField(required=False, allow_null=True)
     checkout_session_id = serializers.CharField(required=False, allow_null=True)
 
-    # action == "upgraded" | "downgrade_cancelled"
+    # Present when action is "upgraded" or "downgrade_cancelled"
     subscription = UserSubscriptionSerializer(required=False, allow_null=True)
 
-    # action == "downgrade_scheduled"
+    # Present when action is "downgrade_scheduled"
     pending_plan = SubscriptionPlanSerializer(required=False, allow_null=True)
     effective_date = serializers.DateTimeField(required=False, allow_null=True)
     recommended_plan = SubscriptionPlanSerializer(required=False, allow_null=True)

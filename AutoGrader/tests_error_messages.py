@@ -8,7 +8,7 @@ from AutoGrader.error_messages import (
     describe_user_error,
 )
 from billing.access_control import AIFeatureNotAvailableError
-from billing.errors import InsufficientCreditsError
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from students.exceptions import CannotAssociateStudentError
 
 
@@ -17,11 +17,18 @@ class DescribeUserErrorTest(SimpleTestCase):
         cases = [
             CannotAssociateStudentError("Student not among the enrolled students"),
             AIFeatureNotAvailableError("Upgrade your plan to unlock this feature"),
-            InsufficientCreditsError("Refill your wallet to continue"),
         ]
         for exc in cases:
             with self.subTest(exc_type=type(exc).__name__):
                 self.assertEqual(describe_user_error(exc), str(exc))
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
+        self.assertEqual(
+            describe_user_error(
+                InsufficientCreditsError("Refill your wallet to continue")
+            ),
+            INSUFFICIENT_CREDITS_MESSAGE,
+        )
 
     def test_unknown_exception_never_leaks_raw_technical_detail(self):
         exc = KeyError("grading_summary")
@@ -80,6 +87,28 @@ class ClassifyInfraErrorTest(SimpleTestCase):
         self.assertIn("storage issue", message)
         self.assertNotIn("disk full", message)
 
+    def test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault(self):
+        # PopplerNotInstalledError means the server is missing the poppler
+        # binary - never something wrong with the uploaded file - so it must
+        # not collapse into the "couldn't read this file" message and must
+        # not blame the file.
+        from pdf2image.exceptions import PopplerNotInstalledError
+
+        message = classify_infra_error(PopplerNotInstalledError("poppler not found"))
+        self.assertNotIn("couldn't read this file", message)
+        self.assertNotIn("corrupted", message)
+        self.assertIn("our end", message)
+
+    def test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault(self):
+        # PDFInfoNotInstalledError subclasses PopplerNotInstalledError; both
+        # must land in the same non-file-blaming category.
+        from pdf2image.exceptions import PDFInfoNotInstalledError
+
+        message = classify_infra_error(PDFInfoNotInstalledError("pdfinfo not found"))
+        self.assertNotIn("couldn't read this file", message)
+        self.assertNotIn("corrupted", message)
+        self.assertIn("our end", message)
+
     def test_walks_cause_chain_through_generic_wrapper_exception(self):
         # Mirrors the ai_processor pattern of catching a typed exception and
         # re-raising `raise Exception(str(e)) from e` — the wrapper itself
@@ -103,8 +132,12 @@ class ClassifyInfraErrorTest(SimpleTestCase):
 
 class DescribeBackgroundTaskErrorTest(SimpleTestCase):
     def test_known_user_facing_exception_still_passes_through_verbatim(self):
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
         exc = InsufficientCreditsError("Refill your wallet to continue")
-        self.assertEqual(describe_background_task_error(exc), str(exc))
+        self.assertEqual(
+            describe_background_task_error(exc), INSUFFICIENT_CREDITS_MESSAGE
+        )
 
     def test_infra_failure_gets_distinct_message_over_generic_fallback(self):
         message = describe_background_task_error(
@@ -141,4 +174,6 @@ class DescribeStripeErrorTest(SimpleTestCase):
     def test_falls_back_to_generic_classifier_for_known_exceptions(self):
         exc = InsufficientCreditsError("Refill your wallet to continue")
 
-        self.assertEqual(describe_stripe_error(exc), "Refill your wallet to continue")
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
+        self.assertEqual(describe_stripe_error(exc), INSUFFICIENT_CREDITS_MESSAGE)

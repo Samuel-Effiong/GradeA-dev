@@ -8,7 +8,10 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
 from AutoGrader.tasks import send_email_task
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import Course, School
 from dashboard.models import (
     SchoolAtRiskSnapshot,
@@ -44,6 +47,7 @@ def record_concurrent_users():
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def send_weekly_course_summaries(self):
     service = WeeklyCourseSummaryService()
     as_of = timezone.now()
@@ -62,6 +66,7 @@ def send_weekly_course_summaries(self):
     emails_queued = 0
     courses_processed = 0
     courses_skipped = 0
+    narration_refused = 0
 
     for course in eligible_courses:
         if not course.teacher or not course.teacher.email:
@@ -76,6 +81,17 @@ def send_weekly_course_summaries(self):
                     course.teacher,
                     course,
                     summary,
+                )
+            except PERMANENT_AI_REFUSALS as exc:
+                # The teacher's plan or wallet says no: the summary still
+                # goes out, just without the AI narration.
+                narration_refused += 1
+                log_refusal(
+                    logger,
+                    "Weekly course summary AI narration",
+                    exc,
+                    course_id=str(course.id),
+                    teacher_id=str(course.teacher_id),
                 )
             except Exception:
                 logger.exception(
@@ -127,11 +143,13 @@ def send_weekly_course_summaries(self):
 
     return (
         f"Queued {emails_queued} weekly course summary email(s). "
-        f"Processed {courses_processed} course(s), skipped {courses_skipped}."
+        f"Processed {courses_processed} course(s), skipped {courses_skipped}. "
+        f"AI narration refused for {narration_refused} course(s)."
     )
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def send_weekly_student_summaries(self):
     service = StudentWeeklySummaryService()
     as_of = timezone.now()
@@ -197,6 +215,7 @@ def send_weekly_student_summaries(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.WEEKLY)
 def send_weekly_school_admin_summaries(self):
     service = SchoolAdminWeeklySummaryService()
     as_of = timezone.now()
@@ -217,6 +236,7 @@ def send_weekly_school_admin_summaries(self):
     emails_queued = 0
     admins_processed = 0
     admins_skipped = 0
+    narration_refused = 0
 
     for admin in eligible_admins:
         if not admin.school or not admin.email:
@@ -233,6 +253,16 @@ def send_weekly_school_admin_summaries(self):
                         admin.school,
                         summary,
                     )
+                )
+            except PERMANENT_AI_REFUSALS as exc:
+                # See send_weekly_course_summaries: sent without narration.
+                narration_refused += 1
+                log_refusal(
+                    logger,
+                    "Weekly school admin summary AI narration",
+                    exc,
+                    school_id=str(admin.school_id),
+                    admin_id=str(admin.id),
                 )
             except Exception:
                 logger.exception(
@@ -284,11 +314,13 @@ def send_weekly_school_admin_summaries(self):
 
     return (
         f"Queued {emails_queued} weekly school admin summary email(s). "
-        f"Processed {admins_processed} admin(s), skipped {admins_skipped}."
+        f"Processed {admins_processed} admin(s), skipped {admins_skipped}. "
+        f"AI narration refused for {narration_refused} admin(s)."
     )
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def send_at_risk_student_alerts(self):
     """
     Daily scan across every school with at least one active school admin:
@@ -337,31 +369,36 @@ def send_at_risk_student_alerts(self):
                 for state in StudentRiskAlertState.objects.filter(school=school)
             }
 
-            newly_at_risk = []
+            # ALERT OBLIGATION. A student owes the school's admins one alert
+            # per at-risk episode, and the obligation is discharged only once
+            # that alert has been queued. It used to be discharged up front -
+            # the state was marked alerted before the email was queued - so a
+            # queue outage on the day a student first became at-risk lost the
+            # alert for good: the next run saw a student who was "already at
+            # risk" and sent nothing. Measured before the fix: run 1 with the
+            # broker down queued 0; run 2 after recovery also queued 0.
+            owed = []
             for student in current_students:
                 state = existing_states.get(student.id)
-                is_new = state is None or not state.is_at_risk
-
-                obj, created = StudentRiskAlertState.objects.get_or_create(
-                    student_id=student.id,
-                    school=school,
-                    defaults={
-                        "is_at_risk": True,
-                        "average_score": student.avg_score,
-                        "last_alerted_at": now,
-                    },
-                )
-                if not created:
-                    obj.is_at_risk = True
-                    obj.average_score = student.avg_score
+                if state is None:
+                    state = StudentRiskAlertState.objects.create(
+                        student_id=student.id,
+                        school=school,
+                        is_at_risk=True,
+                        average_score=student.avg_score,
+                        alert_pending=True,
+                    )
+                else:
                     update_fields = ["is_at_risk", "average_score"]
-                    if is_new:
-                        obj.last_alerted_at = now
-                        update_fields.append("last_alerted_at")
-                    obj.save(update_fields=update_fields)
-
-                if is_new:
-                    newly_at_risk.append(student)
+                    if not state.is_at_risk:
+                        # A new episode after a recovery.
+                        state.alert_pending = True
+                        update_fields.append("alert_pending")
+                    state.is_at_risk = True
+                    state.average_score = student.avg_score
+                    state.save(update_fields=update_fields)
+                if state.alert_pending:
+                    owed.append((student, state))
 
             recovered_ids = [
                 student_id
@@ -369,11 +406,14 @@ def send_at_risk_student_alerts(self):
                 if state.is_at_risk and student_id not in current_ids
             ]
             if recovered_ids:
+                # Recovery also discharges an undelivered alert: sending it
+                # now would announce a risk that no longer exists.
                 StudentRiskAlertState.objects.filter(
                     school=school, student_id__in=recovered_ids
-                ).update(is_at_risk=False, average_score=None)
+                ).update(is_at_risk=False, average_score=None, alert_pending=False)
 
-            if newly_at_risk:
+            if owed:
+                owed_students = [student for student, _ in owed]
                 context = {
                     "school": school,
                     "newly_at_risk_students": [
@@ -385,17 +425,18 @@ def send_at_risk_student_alerts(self):
                                 else None
                             ),
                         }
-                        for student in newly_at_risk
+                        for student in owed_students
                     ],
                 }
                 html_message = render_to_string(
                     "email/school_admin_at_risk_alert.html", context=context
                 )
-                names = ", ".join(student.get_full_name() for student in newly_at_risk)
+                names = ", ".join(student.get_full_name() for student in owed_students)
                 message = (
-                    f"{len(newly_at_risk)} student(s) newly flagged as at-risk "
+                    f"{len(owed_students)} student(s) newly flagged as at-risk "
                     f"at {school.name}: {names}"
                 )
+                queued_for_every_admin = True
                 for admin in admins:
                     try:
                         send_email_task.delay(
@@ -407,13 +448,25 @@ def send_at_risk_student_alerts(self):
                         )
                         emails_queued += 1
                     except Exception:
+                        queued_for_every_admin = False
                         logger.exception(
-                            "Failed to queue at-risk admin email",
+                            "Failed to queue at-risk admin email; the alert "
+                            "stays pending and is retried on the next run",
                             extra={
                                 "admin_id": str(admin.id),
                                 "school_id": str(school.id),
                             },
                         )
+
+                # Discharged only when EVERY opted-in admin's email was
+                # queued. On a partial failure the whole alert is retried, so
+                # an admin whose copy did queue may receive it twice. That is
+                # deliberate: a duplicate alert is recoverable, a lost one is
+                # not.
+                if queued_for_every_admin:
+                    StudentRiskAlertState.objects.filter(
+                        pk__in=[state.pk for _, state in owed]
+                    ).update(alert_pending=False, last_alerted_at=now)
 
             schools_processed += 1
         except Exception:
@@ -430,6 +483,7 @@ def send_at_risk_student_alerts(self):
 
 
 @shared_task(bind=True)
+@single_instance(max_hold=beat_locks.DAILY)
 def send_teacher_inactivity_alerts(self):
     """
     Daily scan: for each school with at least one opted-in admin, flags

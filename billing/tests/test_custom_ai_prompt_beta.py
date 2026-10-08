@@ -86,7 +86,9 @@ class BetaAnalyticsCustomAIPromptViewTest(APITestCase):
 
         response = self.client.post(self.url, {"prompt": "anything"})
 
-        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # A refusal, not a server fault (REFUSAL_HANDLING_EVIDENCE.md D3; was 500).
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["code"], "ai_feature_not_available")
         self.assertEqual(
             response.data["error"],
             "The AI analytics assistant is temporarily unavailable. "

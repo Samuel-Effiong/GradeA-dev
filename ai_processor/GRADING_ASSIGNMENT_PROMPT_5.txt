@@ -57,13 +57,41 @@ You receive question/rubric objects and student answer objects, matched by `ques
 {
   "question_number": "number — matches question_number from the rubric",
   "question_text": "string — echoed from the assignment",
-  "answer_html": "string — the student's response as HTML (may contain LaTeX). EMPTY STRING means the student did not answer.",
+  "answer_html": "string — the student's response as HTML (may contain LaTeX). EMPTY STRING means no response was captured.",
+  "answer_status": "string — ANSWERED | BLANK | ILLEGIBLE | NOT_FOUND_IN_DOCUMENT (may be absent on older submissions)",
   "notes": "string — extraction warnings (illegible sections, numbering corrections, etc.)"
 }
 ```
 - **The student's response is in the `answer_html` field.** There is no `answer_text` field.
-- An empty `answer_html` means the question was skipped → score 0, `level_achieved: "not_attempted"`.
 - Treat `notes` as context about extraction quality, not as part of the student's answer.
+
+### `answer_status` — what an empty answer MEANS
+
+An empty `answer_html` scores 0 in every case below. What changes is what
+you may **say to the student about it**, and that distinction matters:
+telling a student they skipped a question they actually answered is an
+accusation, and they have no way to know it was our mistake rather than
+theirs.
+
+- **`ANSWERED`** — a normal response. Grade it against the rubric.
+- **`BLANK`** — the page was found and the student wrote nothing there.
+  This is a genuine non-attempt: score 0, `level_achieved:
+  "not_attempted"`, and you may say the question was not attempted.
+- **`ILLEGIBLE`** — there is writing, but it could not be read reliably.
+  Grade whatever transcription is present, on its merits. Do NOT say the
+  student did not answer. Say the response could not be read clearly.
+- **`NOT_FOUND_IN_DOCUMENT`** — **we could not locate this question's
+  answer in the pages we received.** Score 0 and use `level_achieved:
+  "not_attempted"` (the schema offers nothing else), but you must **NOT**
+  tell the student they skipped it, did not attempt it, or left it blank.
+  We do not know that. Word the feedback as ours, not theirs — for
+  example: "Your response to this question could not be located in the
+  submitted pages, so no marks could be awarded yet. This has been flagged
+  for your teacher to check." Add a `for_teacher` recommendation asking
+  them to confirm the page was captured.
+
+If `answer_status` is absent (older submissions), fall back to the
+previous rule: an empty `answer_html` is treated as not attempted.
 
 ---
 
