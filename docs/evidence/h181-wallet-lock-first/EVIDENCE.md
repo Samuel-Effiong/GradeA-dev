@@ -108,3 +108,12 @@ Raw files named by the tip: `modules_and_guards_5286ccea.txt.gz` (raw sha ca2a26
 - **Step 1 modules and guards**: Ran 591, OK, 0 FAIL or ERROR (589 plus the two new tests).
 - **Step 2 mutants: KILLED 10 of 10**; SURVIVED [], KILLED_NOT_AS_EXPECTED [], BROKEN []; every inner run Ran 11; **every failing set is exactly the written one** (checked from the JSON: failing == expected for all ten). **M9 and M10, the two that survived the first gate, are each killed by exactly one test** (the licence helper order test, the rollover order test). M4 failed 2, M7 failed 4, M8 failed the original nine (not the two order tests, as written); M1-M3, M5, M6 failed 1 each. Source clean after the mutants; database dropped.
 - Not yet run: step 3 (the billing app). Not shown by any run: behaviour in production (pgbouncer in transaction mode, the role's lock timeout) and any path outside the nine functions.
+
+## RESULTS: step 3, the billing app, at 6c985cef (run_h181_gate.sh c25c7dda986ddee5, APPS=billing; started 13:46:41, ended 13:51:42 WAT, 2026-10-08)
+
+Raw log `regression_6c985cef.txt.gz` (raw sha256 starts 241e182f77f697f5; the gzip decompresses to the same bytes, checked with cmp before the raw file was removed); console `gate_console_step3_6c985cef.txt.gz` (rc=0). The whole script ran under ONE `systemd-inhibit`. Load at start 0.97 3.77 4.25 (the pre-start check, alone, read 1.05; no other test run on the machine), at end 3.48 3.13 3.79.
+- **billing app, one serial run: Ran 2141 tests in 282.716s, OK.** 0 FAIL or ERROR lines, 0 skipped (counted from the full raw log; the Ran and OK lines are at lines 33727 and 33729). This includes the eleven new tests of `test_wallet_lock_first` (real threads) and every older billing test, with the wallet lock now taken first in the nine functions.
+- 6c985cef differs from the gated 5286ccea only under `docs/` (checked: no file outside docs differs). Credential patterns: 0 lines; no NUL bytes.
+- Rule 20 (the cache payload test) is not needed: no serializer or answer changes.
+
+Not shown: behaviour in production (pgbouncer in transaction mode, the role's lock timeout), a path outside the nine functions, or the licence-row cycle with a charge (that is H-182's).
