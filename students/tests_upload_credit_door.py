@@ -38,7 +38,6 @@ from rest_framework.test import APITestCase
 from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
-from assignments.upload_door import upload_refusal_if_unaffordable
 from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
@@ -348,6 +347,10 @@ class AssignmentUploadDoorTest(APITestCase):
 
 class TheDoorFunctionTest(TestCase):
     def test_a_super_admin_is_never_refused_and_a_poor_teacher_is(self):
+        # Imported here so this file still loads on code without the door:
+        # the other tests then fail or pass on their own.
+        from assignments.upload_door import upload_refusal_if_unaffordable
+
         # The control comes first: with the same poor wallet and file, the
         # function DOES refuse a teacher, so the None for the super admin
         # below is a decision, not an absence of one.
