@@ -137,6 +137,18 @@ MUTANTS = {
         "                str(exc),\n",
         [R6],
     ),
+    "N11_the_charge_registers_its_roll_up_twice": (
+        MODELS,
+        CHARGE_CALL,
+        CHARGE_CALL + CHARGE_CALL,
+        [R1, R2, R4, R6, R7],
+    ),
+    "N12_the_refund_registers_its_roll_up_twice": (
+        SERVICES,
+        REFUND_CALL,
+        REFUND_CALL + REFUND_CALL,
+        [R4],
+    ),
     "N9_the_roll_up_adds_nothing": (
         ROLLUP,
         '                figure = F("total_credits_consumed") + delta\n            else:\n',
