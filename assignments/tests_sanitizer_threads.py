@@ -122,6 +122,7 @@ class TheSanitizerKeepsEachCallersTextToItself(SimpleTestCase):
         hostile = [(i, got) for i, got in results if i % 3 == 0]
         self.assertTrue(hostile)
         for i, got in hostile:
+            self.assertEqual(got, self.expected[i])
             self.assertIn(f"HOSTILE-{i:02d}", got)
             self.assertNotIn("<script", got.lower())
             self.assertNotIn("onerror", got.lower())
