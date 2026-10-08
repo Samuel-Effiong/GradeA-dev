@@ -38,6 +38,22 @@ class RubricMissingError(CodedError):
     status_code = REASON_CODES[ReasonCode.RUBRIC_MISSING].http_status
 
 
+# H-133. A student is not told that a grade exists before the teacher
+# releases it (founder's rule, 2026-10-06). The rules that close a paper to
+# changes stay; these are the two sentences a STUDENT is given for them.
+# Neither names grading. A teacher is still told the reason in words.
+#   * closed for good (the paper is graded, released or not);
+#   * closed for now (it is being graded, or an earlier upload of it is
+#     still being processed: a student cannot tell the two apart).
+SUBMISSION_CLOSED_FOR_STUDENT = "This submission can no longer be changed."
+SUBMISSION_BUSY_FOR_STUDENT = (
+    "This submission can't be changed right now. Please try again later."
+)
+# Each of the four refusals also carries a stable `code` (below), sent
+# beside the sentence, so a client need not match on words. The names say
+# what the caller can do, never why.
+
+
 class SubmissionAlreadyGradedError(Exception):
     """
     Product rule (owner, 2026-09-13): once a student's submission for an
@@ -48,7 +64,7 @@ class SubmissionAlreadyGradedError(Exception):
     User-facing: AutoGrader.error_messages passes the message through.
     """
 
-    pass
+    code = "submission_closed"
 
 
 class SubmissionBeingGradedError(Exception):
@@ -60,7 +76,7 @@ class SubmissionBeingGradedError(Exception):
     grade that then closed it. User-facing.
     """
 
-    pass
+    code = "submission_busy"
 
 
 class SubmissionLimitReachedError(ValueError):
@@ -73,11 +89,24 @@ class SubmissionLimitReachedError(ValueError):
     submission" fallback.
     """
 
-    pass
+    code = "submission_attempts_used"
 
 
 class TaskCancelledError(Exception):
     pass
+
+
+class SubmissionAnswersUnreadableError(Exception):
+    """
+    The submission's stored answers hold nothing the system can read (H-165:
+    a value that is not a list of objects), so it is not sent for grading:
+    no paid call, no charge. Raised by students.services.grade_engine,
+    which puts the paper in the teacher's review queue first. The way
+    round is readable answers: a new upload, or the edit by text.
+    User-facing: AutoGrader.error_messages passes the message through.
+    """
+
+    code = "submission_answers_unreadable"
 
 
 class SubmissionGradingInProgressError(Exception):
@@ -107,7 +136,7 @@ class SubmissionProcessingInProgressError(Exception):
     must not queue a second billed extraction. User-facing.
     """
 
-    pass
+    code = "submission_busy"
 
 
 class InsufficientCreditsMidBatchError(CodedError, InsufficientCreditsError):

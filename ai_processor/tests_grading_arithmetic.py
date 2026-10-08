@@ -82,10 +82,10 @@ class FinalizeGradingResultTest(SimpleTestCase):
         self.assertEqual(result["total_score"], 7)
         self.assertEqual(result["percentage"], 70)
 
-    def test_evaluation_with_no_matching_question_is_floored_but_uncapped(self):
+    def test_evaluation_with_no_matching_question_is_left_out_of_the_sum(self):
         questions = [{"question_number": 1, "points": 10}]
-        # question_number 99 doesn't exist in the rubric — there's no known
-        # cap to clamp against, so only the floor (>= 0) applies.
+        # question_number 99 doesn't exist in the rubric: no cap to clamp
+        # against, and no question for its points to belong to.
         evaluations = [
             {"question_number": 1, "score_awarded": 5},
             {"question_number": 99, "score_awarded": 1000},
@@ -93,14 +93,19 @@ class FinalizeGradingResultTest(SimpleTestCase):
 
         result = self.processor._finalize_grading_result(evaluations, questions)
 
-        # max_total_points comes only from the real rubric (10), so the
-        # stray evaluation inflates total_score without a matching cap —
-        # exactly why H2 (reconciling evaluations against the rubric by
-        # question_number) is a separate, still-open issue. This test
-        # locks today's documented behavior for that case, not a claim
-        # that it's fully solved here.
+        # Until H-154 this test locked the opposite, "floored but
+        # uncapped", as a known open issue: the stray added 1000 to a
+        # paper of 10. It is dropped now, and the note says so
+        # (tests_reply_repeated_evaluation holds the rest).
         self.assertEqual(result["max_total_points"], 10)
-        self.assertEqual(result["total_score"], 1005)
+        self.assertEqual(result["total_score"], 5)
+        self.assertEqual(
+            [ev["question_number"] for ev in result["question_evaluations"]], [1]
+        )
+        self.assertEqual(
+            result["score_calculation_verification"]["unmatched_evaluations_dropped"],
+            1,
+        )
 
     def test_percentage_reflects_clamped_total_not_models_claim(self):
         # Two questions worth 10 each; model over-awards one to 20.

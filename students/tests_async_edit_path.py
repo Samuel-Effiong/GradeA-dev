@@ -214,14 +214,14 @@ class UpdateAsyncRouteTest(APITestCase):
         )
         response = self._post()
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn("being graded", response.data["error"])
+        self.assertIn("can't be changed right now", response.data["error"])
 
         StudentSubmission.objects.filter(pk=self.submission.pk).update(
             grading_state=GradingState.DONE, graded_at=timezone.now(), score=8
         )
         response = self._post()
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn("already been graded", response.data["error"])
+        self.assertIn("can no longer be changed", response.data["error"])
         mock_launch.assert_not_called()
         self.assertFalse(BackgroundProcessingTask.objects.exists())
 
@@ -239,7 +239,7 @@ class UpdateAsyncRouteTest(APITestCase):
                 BackgroundProcessingTask.objects.update(status=state)
                 response = self._post("a different edit")
                 self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-                self.assertIn("still being processed", response.data["error"])
+                self.assertIn("can't be changed right now", response.data["error"])
         self.assertEqual(BackgroundProcessingTask.objects.count(), 1)
         self.assertEqual(mock_launch.call_count, 1)
 
@@ -270,7 +270,7 @@ class UpdateAsyncRouteTest(APITestCase):
         self.assertEqual(upload().status_code, status.HTTP_200_OK)
         response = upload()
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn("still being processed", response.data["error"])
+        self.assertIn("can't be changed right now", response.data["error"])
         self.assertEqual(BackgroundProcessingTask.objects.count(), 1)
         BackgroundProcessingTask.objects.update(status=BackgroundTaskStatus.FAILURE)
         self.assertEqual(upload().status_code, status.HTTP_200_OK)
@@ -376,11 +376,11 @@ class ExtractionTaskTest(TestCase):
         result = self._run(tracked)
 
         self.assertEqual(result["status"], "FAILURE")
-        self.assertIn("already been graded", result["message"])
+        self.assertIn("can no longer be changed", result["message"])
         self.assertEqual(mock_ai.extract_answer_with_retry.call_count, 1)
         tracked.refresh_from_db()
         self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
-        self.assertIn("already been graded", tracked.error)
+        self.assertIn("can no longer be changed", tracked.error)
         self.submission.refresh_from_db()
         self.assertEqual(self.submission.answers[0]["answer_html"], "original")
 

@@ -24,7 +24,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, ParseError
+from rest_framework.exceptions import NotAcceptable, ParseError, PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -73,6 +73,7 @@ from .exceptions import (
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
 )
+from .feedback_projection import grading_result_for_formatter
 from .grading_gates import ensure_gradable
 from .models import (
     BackgroundTaskType,
@@ -92,6 +93,7 @@ from .serializers import (
     StudentSubmissionUpdateAsyncSerializer,
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
+    StudentUploadAnswerSerializer,
 )
 from .services import (
     SUBMITTED_TEXT,
@@ -101,7 +103,9 @@ from .services import (
     ensure_submission_open,
     grade_engine,
     notify_student_of_graded_submission,
+    printable_answers,
     student_submission_to_html,
+    unreadable_answers_log_line,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -126,7 +130,12 @@ SUBMISSION_CLOSED_ERRORS = (
 
 
 def _submission_closed_response(exc):
-    return Response({"error": str(exc)}, status=HTTP_409_CONFLICT)
+    """409 with the refusal's sentence and its stable code (H-133). The
+    sentence was chosen where the refusal was raised, by who is told."""
+    return Response(
+        {"error": str(exc), "code": getattr(exc, "code", None)},
+        status=HTTP_409_CONFLICT,
+    )
 
 
 def _failure_response(exc, fallback_message):
@@ -274,7 +283,30 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     ordering_fields = ["student__first_name", "student__last_name", "review_severity"]
     ordering = ["student__first_name"]
 
+    #: H-127: the review queue is the teacher's. A student who could filter
+    #: or order their own list by it would learn, from which rows come
+    #: back, that the two graders disagreed and how badly - the very thing
+    #: the list serializer hides from them.
+    # H-133: `grading_state` too. Before release a student is shown IDLE
+    # whatever the state is, and a filter on the real value would tell.
+    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier", "grading_state")
+    TEACHER_ONLY_ORDERINGS = ("review_severity",)
+
+    def _refuse_review_queue_query_from_a_student(self):
+        if self.request.user.user_type != UserTypes.STUDENT:
+            return
+        params = self.request.query_params
+        ordering = params.get(api_settings.ORDERING_PARAM) or ""
+        ordered_by = {term.strip().lstrip("-") for term in ordering.split(",")}
+        if any(name in params for name in self.TEACHER_ONLY_FILTERS) or (
+            ordered_by & set(self.TEACHER_ONLY_ORDERINGS)
+        ):
+            raise PermissionDenied(
+                "This filter or ordering is not available for your account."
+            )
+
     def filter_queryset(self, queryset):
+        self._refuse_review_queue_query_from_a_student()
         queryset = super().filter_queryset(queryset)
         # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
         # ?ordering=-review_severity returned every un-flagged submission
@@ -307,13 +339,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission = self.get_object()
         # `usr` ALONE, and this was corrected by a test rather than
         # reasoned: `global` was added here first, on the assumption that
-        # the payload renders the teacher-owned assignment live. It does
-        # not. `assignment` is serialised as a bare UUID and `raw_input` is
-        # a snapshot materialised ONCE and persisted on the submission row,
-        # so a teacher retitling the assignment provably does not change
-        # this response. Everything this payload does reflect - score,
-        # feedback, grade status, raw_input - belongs to the submission,
-        # whose save bumps its student's generation.
+        # the payload renders the teacher-owned assignment live. For staff
+        # it does not: `assignment` is serialised as a bare UUID and
+        # `raw_input` is a snapshot materialised ONCE and persisted on the
+        # submission row, so a teacher retitling the assignment does not
+        # change a staff response. Everything that payload reflects -
+        # score, feedback, grade status, raw_input - belongs to the
+        # submission, whose save bumps its student's generation.
+        #
+        # Since H-130 a STUDENT's response before release does follow the
+        # assignment: the document is rebuilt from the row at read time
+        # (students.services.answer_document_for_student), with the
+        # assignment's current title and due date. `usr` is still enough,
+        # because an assignment's save bumps every enrolled student's
+        # generation (assignments/signals.py); the test
+        # test_a_rename_the_teacher_saves_refreshes_the_students_cached_document
+        # holds that link.
         cache_key = versioned_key(
             f"studentsubmissions:user_id__{request.user.id}"
             f":instance_id__{submission.id}",
@@ -340,6 +381,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             StudentSubmission.objects.filter(pk=submission.pk).update(
                 raw_input=submission.raw_input
             )
+            # H-165: a document was just stored for a row whose answers
+            # were not all readable. Ids and the kind of value only.
+            left_out = printable_answers(submission.answers)[1]
+            if left_out:
+                logger.warning(*unreadable_answers_log_line(submission, left_out))
 
         if request.user.user_type == UserTypes.STUDENT:
             serializer = StudentSubmissionDetailStudentVersionSerializer(
@@ -455,7 +501,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
         responses={
             201: OpenApiResponse(
-                response=StudentSubmissionDetailSerializer,
+                response=StudentUploadAnswerSerializer,
                 description="Answer processed successfully",
             ),
             400: OpenApiResponse(
@@ -557,7 +603,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 },
             )
 
-            serializer = StudentSubmissionDetailSerializer(submission)
+            # H-141: the student's own serializer, not the teacher's. With
+            # the context, as every serializer a student's route builds;
+            # this one does not need the request to be safe.
+            serializer = StudentUploadAnswerSerializer(
+                submission, context=self.get_serializer_context()
+            )
 
             return Response(serializer.data, status=HTTP_201_CREATED)
         except SUBMISSION_CLOSED_ERRORS as exc:
@@ -646,7 +697,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 CustomUser.objects.select_for_update().get(pk=request.user.pk)
-                ensure_no_active_extraction(assignment=assignment, student=request.user)
+                ensure_no_active_extraction(
+                    assignment=assignment, student=request.user, told_to_student=True
+                )
                 processing_task = create_processing_task(
                     requested_by=request.user,
                     task_type=BackgroundTaskType.ANSWER_EXTRACTION,
@@ -719,7 +772,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 e, "We couldn't save your update. Please try again."
             )
 
-        serializer = StudentSubmissionListSerializer(submission)
+        # With the request, so the serializer knows a student is asking
+        # (H-127: it hides the unreleased score and the review fields).
+        serializer = StudentSubmissionListSerializer(
+            submission, context=self.get_serializer_context()
+        )
         return Response(serializer.data, status=HTTP_201_CREATED)
 
     @extend_schema(
@@ -762,8 +819,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 locked = StudentSubmission.objects.select_for_update().get(
                     pk=submission.pk
                 )
-                ensure_submission_open(locked)
-                ensure_no_active_extraction(submission=locked)
+                told_to_student = request.user.user_type == UserTypes.STUDENT
+                ensure_submission_open(locked, told_to_student=told_to_student)
+                ensure_no_active_extraction(
+                    submission=locked, told_to_student=told_to_student
+                )
                 processing_task = create_processing_task(
                     requested_by=request.user,
                     task_type=BackgroundTaskType.ANSWER_EXTRACTION,
@@ -1003,7 +1063,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 Grading Result:
 
-                {grading}
+                {grading_result_for_formatter(grading)}
 
                 Return a formatted response
                 """
@@ -1175,7 +1235,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         Grading Result:
 
-        {submission.feedback}
+        {grading_result_for_formatter(submission.feedback)}
 
         Return a formatted response
         """

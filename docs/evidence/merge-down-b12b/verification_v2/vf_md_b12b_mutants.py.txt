@@ -1,0 +1,236 @@
+"""v2 mutants for the merge-down of beta batches 8 to 12b into phase2/epic-a
+(0b, merge 79ab843c; the SM's seven requirements and the conflict
+resolutions in docs/evidence/merge-down-b12b/RESOLUTIONS.md).
+
+Run from the vf2-s1 scratch worktree detached at COMMIT (the merge tip),
+inside the rule 16/13/12 wrappers (the caller's script), output to a file,
+stdin from /dev/null (rule 18). Usage:
+  COMMIT=<sha> MUTANT_LOGS=<dir> python vf_md_b12b_mutants.py check |
+  baseline | (no args: every mutant) | <mutant name>...
+
+Every mutant is one resolved place of the merge taken out, judged by the
+EXISTING modules that should guard it. No probe of v2's is needed for
+these: each module is the merge's own guard, and a mutant that no module
+catches is a finding for the merge (a resolution nothing holds).
+
+Written 2026-10-08 BEFORE any run of this row, from reading the merge
+blobs and the test lists of the judged modules. Honest limit: the judged
+modules are large; for each mutant the tests that MUST be among the
+failing ones are named where reading the test showed it ("must"); where
+reading could not name them the expectation is only "some test of the
+judged modules fails" ("weak"). KILLED = rc != 0, a "Ran" line, and every
+"must" test among the failing ones. KILLED_WEAK = the same without a named
+set. The full failing set of each run is printed beside the expectation, so
+a reader sees what else fell. Rule 17: PYTHONDONTWRITEBYTECODE=1, __pycache__
+of the mutated module's directory cleared before each mutant and after each
+restore; restore is verified by sha256 against the commit's own blob.
+Database tests: --keepdb (database test_vf2_s1).
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+AI = "ai_processor/services.py"
+SS = "students/services.py"
+SX = "students/exceptions.py"
+SV = "students/views.py"
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+
+PIPE = "ai_processor.tests_grading_run_pipeline"
+CHECK = "ai_processor.tests_grading_run_checker"
+LABEL = "ai_processor.tests_grading_run_label"
+E2E = "students.tests_grading_label_end_to_end"
+UNREAD = "students.tests_answers_unreadable"
+CORR = "students.tests_ai_reply_corrected_review"
+RUBRIC = "students.tests_s6d_rubric_gate"
+NOTELL = "students.tests_no_grade_tell_before_release"
+AUDIT = "students.tests_epic_a_submission_upload_audit"
+BASELINE = [PIPE, CHECK, LABEL, E2E, UNREAD, CORR, RUBRIC, NOTELL, AUDIT]
+
+# name -> (judged modules, must-fail test method names ([] = weak))
+EXPECTED = {
+    # requirement 2, single-pass route: the reply is kept and votes
+    "MD1_single_pass_keeps_no_answers": (
+        [PIPE, E2E],
+        [
+            "test_marked_by_the_main_model",
+            "test_marked_by_a_backup_model",
+            "test_marked_by_a_model_the_provider_did_not_name",
+            "test_a_grader_named_inside_the_reply_does_not_reach_the_label",
+            "test_one_call_marking_three_answers_votes_three_times",
+        ],
+    ),
+    # requirement 2, parts route: the reply is kept and votes
+    "MD2_parts_route_keeps_no_answers": (
+        [PIPE],
+        [
+            "test_a_backup_marking_one_part_is_seen",
+            "test_the_part_with_the_most_answers_names_the_model",
+        ],
+    ),
+    # requirement 2, parts route: a second opinion is recorded apart
+    "MD3_parts_route_keeps_no_second_opinion": ([PIPE, CHECK], []),
+    # conflict 6: the rubric refusal at the head of grade_engine
+    "MD4_grade_engine_has_no_rubric_refusal": (
+        [RUBRIC],
+        ["test_t1_auto_grade_refuses_when_it_runs"],
+    ),
+    # conflict 6: the unreadable-answers refusal before the claim
+    "MD5_grade_engine_has_no_unreadable_refusal": (
+        [UNREAD],
+        [
+            "test_no_paid_call_is_made",
+            "test_the_paper_is_put_in_the_review_queue",
+        ],
+    ),
+    # conflict 7: the upload's writer checks a list is all objects
+    "MD6_upload_checks_only_for_a_list": (
+        [UNREAD],
+        ["test_the_upload_refuses_a_list_that_is_not_all_objects"],
+    ),
+    # conflict 7: who reads the refusal on the locked check
+    "MD7_upload_never_tells_the_student": ([NOTELL], []),
+    # requirement 3: the third review source survives the merge
+    "MD8_no_review_reason_for_a_corrected_reply": (
+        [CORR],
+        [
+            "test_a_dropped_repeat_flags_the_paper",
+            "test_a_dropped_stray_flags_the_paper",
+        ],
+    ),
+    # conflict 1: the busy refusal's code
+    "MD9_the_busy_refusal_has_no_code": ([NOTELL], []),
+    # conflict 3: the audit event of a student's upload
+    "MD10_the_student_upload_emits_no_audit_event": ([AUDIT], []),
+}
+
+MUTANTS = {
+    "MD1_single_pass_keeps_no_answers": (AI, [
+        ("            run.keep_answers(model_name, len(evaluations))\n",
+         "            pass\n"),
+    ]),
+    "MD2_parts_route_keeps_no_answers": (AI, [
+        ("                        run.keep_answers(batch_model, len(evaluations))\n",
+         "                        pass\n"),
+    ]),
+    "MD3_parts_route_keeps_no_second_opinion": (AI, [
+        ("                        run.keep_second_opinion(batch_model)\n",
+         "                        pass\n"),
+    ]),
+    "MD4_grade_engine_has_no_rubric_refusal": (SS, [
+        ("    ensure_gradable(submission.assignment)\n\n    if printable_answers",
+         "    if printable_answers"),
+    ]),
+    "MD5_grade_engine_has_no_unreadable_refusal": (SS, [
+        ("    if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:\n"
+         "        _refuse_unreadable_answers(submission)\n",
+         ""),
+    ]),
+    "MD6_upload_checks_only_for_a_list": (SS, [
+        ("not is_a_list_of_objects(extracted_answers)",
+         "not isinstance(extracted_answers, list)"),
+    ]),
+    "MD7_upload_never_tells_the_student": (SS, [
+        ("told_to_student=is_student_self_upload",
+         "told_to_student=False"),
+    ]),
+    "MD8_no_review_reason_for_a_corrected_reply": (SS, [
+        ('"type": "ai_reply_corrected",', '"type": "ai_reply_fixed",'),
+    ]),
+    "MD9_the_busy_refusal_has_no_code": (SX, [
+        ('    """\n\n    code = "submission_busy"\n\n\nclass InsufficientCreditsMidBatchError',
+         '    """\n\n    pass\n\n\nclass InsufficientCreditsMidBatchError'),
+    ]),
+    "MD10_the_student_upload_emits_no_audit_event": (SV, [
+        ("            emit(\n                AuditAction.SUBMISSION_UPLOAD,",
+         "            (lambda *a, **kw: None)(\n                AuditAction.SUBMISSION_UPLOAD,"),
+    ]),
+}
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name, (path, edits) in MUTANTS.items():
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    for p in (AI, SS, SX, SV):
+        clear_pycache(p)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    path, edits = MUTANTS[name]
+    src = open(path).read()
+    counts = [src.count(old) for old, _ in edits]
+    if counts != [1] * len(edits):
+        print(name, "APPLY_FAILED", path, counts, flush=True)
+        continue
+    for old, new in edits:
+        src = src.replace(old, new, 1)
+    ast.parse(src)
+    labels, must = EXPECTED[name]
+    try:
+        clear_pycache(path)
+        open(path, "w").write(src)
+        rc, ran, summary, failing, _ = run(labels, f"{name}.txt")
+        if rc == 0:
+            status = "SURVIVED"
+        elif ran == "Ran ?" or not failing:
+            status = "BROKEN"
+        elif not must:
+            status = "KILLED_WEAK"
+        elif all(t in failing for t in must):
+            status = "KILLED"
+        else:
+            status = "KILLED_OTHER"
+        print(name, "|", status, "|", ran, "|", summary,
+              "| must", must or "(weak: any failure)", "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True)
+        clear_pycache(path)
+        ok = sha(open(path, "rb").read()) == sha(
+            subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+        )
+        print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

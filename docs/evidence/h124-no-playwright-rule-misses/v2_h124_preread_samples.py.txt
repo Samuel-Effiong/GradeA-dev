@@ -1,0 +1,91 @@
+"""v2's pre-read samples for H-124 (d5), written 2026-10-06 BEFORE evaluating
+any of them. Not a test run: the rule is a pure function of a source
+string; this loads only the rule's functions from a git blob (no Django,
+no test runner, no browser) and calls it on each sample.
+
+Each row: name, source, v2's prediction for the NEW rule (True = the rule
+names a line, False = it names none), and what the code would really do at
+import (STARTS = it would start Playwright in the importing process).
+A row with prediction False and STARTS is a miss.
+
+Usage: python3 h124_preread_samples.py <repo> <old-rev> <new-rev>
+"""
+import ast
+import subprocess
+import sys
+
+MODULE = "AutoGrader/tests_no_playwright_at_import.py"
+STARTS, NOT = "STARTS", "starts nothing"
+
+SAMPLES = [
+    # --- shapes that start a driver at import and that I predict are NOT seen
+    ("M1 a class whose __init__ starts one, made at import",
+     "class B:\n    def __init__(self):\n        self.p = sync_playwright().start()\nBROWSER = B()\n", False, STARTS),
+    ("M2 a decorator applied without brackets",
+     "def needs(fn):\n    sync_playwright()\n    return fn\n@needs\ndef test_it():\n    pass\n", False, STARTS),
+    ("M3 a lambda bound to a name",
+     "available = lambda: bool(sync_playwright())\nOK = available()\n", False, STARTS),
+    ("M4 a starter passed as an argument",
+     "def call(f):\n    return f()\nX = call(sync_playwright)\n", False, STARTS),
+    ("M5 functools.partial bound to a name, called later",
+     "import functools\nstart = functools.partial(sync_playwright)\nX = start()\n", False, STARTS),
+    ("M6 bound in a tuple assignment",
+     "start, n = sync_playwright, 1\nX = start()\n", False, STARTS),
+    ("M7 bound by := on a line of its own",
+     "(start := sync_playwright)\nX = start()\n", False, STARTS),
+    ("M8 bound through a conditional expression",
+     "import os\nstart = sync_playwright if os.environ.get('X') else None\nX = start()\n", False, STARTS),
+    ("M9 a property read at import",
+     "class T:\n    @property\n    def ok(self):\n        return bool(sync_playwright())\nX = T().ok\n", False, STARTS),
+    ("M10 a starter as a parameter's default value",
+     "def f(s=sync_playwright):\n    return s()\nX = f()\n", False, STARTS),
+    ("M11 __enter__ of an object used in a with at import",
+     "class B:\n    def __enter__(self):\n        return sync_playwright().start()\n    def __exit__(self, *a):\n        pass\nwith B() as p:\n    pass\n", False, STARTS),
+    ("M12 bound by a for loop",
+     "for start in (sync_playwright,):\n    X = start()\n", False, STARTS),
+    # --- the behaviour change d5 asks me to try
+    ("C1 d5's stated give-up: the module's own function asked of the module",
+     "import sys\nme = sys.modules[__name__]\ndef available():\n    return sync_playwright()\nX = me.available()\n", False, STARTS),
+    ("C2 a module function wrapped as a static method under its own name",
+     "def available():\n    return sync_playwright()\nclass T:\n    available = staticmethod(available)\nX = T.available()\n", False, STARTS),
+    ("C3 a module function bound in a class body under another name",
+     "def available():\n    return sync_playwright()\nclass T:\n    check = available\nX = T.check()\n", True, STARTS),
+    # --- things I predict ARE seen
+    ("S1 a nested function inside a helper",
+     "def outer():\n    def inner():\n        return sync_playwright()\n    return inner()\nX = outer()\n", True, STARTS),
+    ("S2 a star import",
+     "from playwright.sync_api import *\np = sync_playwright().start()\n", True, STARTS),
+    ("S3 := inside the call itself",
+     "X = (start := sync_playwright)()\n", True, STARTS),
+    # --- false alarms (safe side)
+    ("F1 d5's unpinned sentence: a name bound inside one function counts everywhere",
+     "def helper():\n    start = sync_playwright\n    return 1\ndef start():\n    return 1\nX = start()\n", True, NOT),
+    ("F2 a common method name: a thread started at import beside a method start() that reaches one",
+     "import threading\nclass T:\n    def start(self):\n        return sync_playwright()\nt = threading.Thread(target=print)\nt.start()\n", True, NOT),
+]
+
+
+def rule_at(repo, rev):
+    src = subprocess.run(["git", "-C", repo, "show", f"{rev}:{MODULE}"],
+                         capture_output=True, text=True, check=True).stdout
+    tree = ast.parse(src)
+    keep = [n for n in tree.body
+            if isinstance(n, ast.FunctionDef)
+            or (isinstance(n, ast.Assign) and any(
+                isinstance(t, ast.Name) and t.id in ("STARTERS", "FUNCTIONS", "DECORATED") for t in n.targets))]
+    space = {"ast": ast}
+    exec(compile(ast.Module(body=keep, type_ignores=[]), f"{rev}:{MODULE}", "exec"), space)
+    return space["playwright_started_at_import"]
+
+
+if __name__ == "__main__":
+    repo, old_rev, new_rev = sys.argv[1:4]
+    old, new = rule_at(repo, old_rev), rule_at(repo, new_rev)
+    wrong = 0
+    for name, source, predicted, really in SAMPLES:
+        compile(source, name, "exec")
+        was, now = bool(old(source)), bool(new(source))
+        wrong += now != predicted
+        print(f"{'as predicted' if now == predicted else 'NOT AS PREDICTED'} | old rule {'names it' if was else 'silent'} "
+              f"| new rule {'names it' if now else 'silent'} | {really} | {name}")
+    print(f"{len(SAMPLES)} samples, {wrong} not as predicted")

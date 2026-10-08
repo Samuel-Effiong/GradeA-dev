@@ -11,7 +11,10 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
-from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from assignments.serializers import (
+    AssignmentListSerializer,
+    AssignmentListStudentSerializer,
+)
 from assignments.services import get_student_assignment_status
 from AutoGrader.tasks import send_email_task
 from billing.context import (
@@ -23,6 +26,7 @@ from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 
+from .final_grade import released_final_grade
 from .models import (
     Course,
     CourseCategory,
@@ -64,6 +68,18 @@ class SessionSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
         ]
+
+    #: H-147: what a student is sent in place of the ids of the school
+    #: that owns a session and of the staff account that created it.
+    STUDENT_FIELD_VALUES = {"school": None, "created_by": None}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if getattr(user, "user_type", None) == UserTypes.STUDENT:
+            data.update(self.STUDENT_FIELD_VALUES)
+        return data
 
 
 class TopicSerializer(serializers.ModelSerializer):
@@ -218,6 +234,9 @@ class CourseSerializer(serializers.ModelSerializer):
         return course
 
     def get_student_count(self, obj) -> int:
+        # H-147: a student is sent this too. The founder's representative
+        # allowed the size of the class, as a bare number, and nothing else
+        # about classmates (2026-10-06).
         if hasattr(obj, "student_count"):
             return obj.student_count
 
@@ -254,6 +273,14 @@ class CourseSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(AssignmentListSerializer(many=True))
     def get_assignments(self, obj):
+        if self._requesting_student() is not None:
+            # H-147: the student's own view of each assignment, the shape
+            # the assignment list route gives them. The teacher's list
+            # carries `submission_count` (how many classmates have handed
+            # in) and the scheduling of a grading run (H-133's rule).
+            return AssignmentListStudentSerializer(
+                many=True, context=self.context
+            ).to_representation(self._visible_assignments(obj))
         return AssignmentListSerializer(
             many=True, context=self.context
         ).to_representation(self._visible_assignments(obj))
@@ -275,6 +302,10 @@ class CourseSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
+        viewer = self._requesting_student()
+        if viewer is not None:
+            return self._own_entry(obj, viewer)
+
         if hasattr(obj, "active_enrollments"):
             enrolled_students = [
                 enrollment.student for enrollment in obj.active_enrollments
@@ -304,16 +335,30 @@ class CourseSerializer(serializers.ModelSerializer):
             context={"course": obj, "enrollment_status_by_student": status_by_student},
         )
 
-        data = serializer.data
-        viewer = self._requesting_student()
-        if viewer is not None:
-            # A student may see who their classmates are, never how to
-            # email them. Their own address stays: it is their own data.
-            for student, entry in zip(enrolled_students, data, strict=True):
-                if student.pk != viewer.pk:
-                    entry["email"] = None
+        return serializer.data
 
-        return data
+    def _own_entry(self, obj, viewer):
+        """H-147: a student sees nothing of their classmates. Their roster
+        is their own entry and no other: built from the one enrolment that
+        is theirs, not from the roster with the others taken out."""
+        if hasattr(obj, "active_enrollments"):
+            own = [e for e in obj.active_enrollments if e.student_id == viewer.pk]
+        else:
+            own = list(
+                obj.enrollments.exclude(
+                    enrollment_status=EnrollmentStatusType.WITHDRAWN
+                ).filter(student=viewer)
+            )
+        return StudentSerializer(
+            [e.student for e in own],
+            many=True,
+            context={
+                "course": obj,
+                "enrollment_status_by_student": {
+                    e.student_id: e.enrollment_status for e in own
+                },
+            },
+        ).data
 
 
 class StudentCourseSerializer(serializers.ModelSerializer):
@@ -358,6 +403,38 @@ class StudentCourseSerializer(serializers.ModelSerializer):
 
     def get_teacher(self, obj):
         return obj.course.teacher.get_full_name()
+
+    # H-130. The stored `final_grade` counts every graded submission,
+    # released or not: it is the staff figure. A student must not learn
+    # that a grade exists before the teacher releases it, so anyone who is
+    # not staff gets the figure that released work alone implies, by the
+    # same arithmetic. "Not staff" rather than "a student": a reader this
+    # cannot identify is treated as one. Staff here means a teacher: the
+    # viewset serves enrollments to teachers and students and to nobody
+    # else (StudentCourseViewSet.get_queryset).
+
+    def _reader_is_staff(self):
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        return getattr(user, "user_type", None) == UserTypes.TEACHER
+
+    def _final_grade_for_reader(self, obj):
+        if self._reader_is_staff():
+            return obj.final_grade
+        # The viewset's own prefetch (student__submissions, each with its
+        # assignment): no query per enrollment.
+        return released_final_grade(obj.student.submissions.all(), obj.course_id)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self._reader_is_staff():
+            grade = self._final_grade_for_reader(instance)
+            data["final_grade"] = (
+                None
+                if grade is None
+                else self.fields["final_grade"].to_representation(grade)
+            )
+        return data
 
     def validate_final_grade(self, value):
         """Validate that final_grade is between 0 and 100."""
@@ -418,9 +495,10 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     def get_grade_letter(self, obj):
         # `is not None`, not truthiness: a genuine 0.00 is a grade (an F),
         # not the absence of one.
-        if obj.final_grade is None:
+        grade = self._final_grade_for_reader(obj)
+        if grade is None:
             return None
-        return get_grade_details(obj.final_grade)
+        return get_grade_details(grade)
 
 
 class StudentCourseDetailSerializer(StudentCourseSerializer):

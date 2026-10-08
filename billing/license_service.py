@@ -3879,12 +3879,22 @@ class LicenseSubscriptionService:
             due = allocation.next_credit_grant_at
             if due is None:
                 continue
+            stored = allocation.grant_anchor_at
             anchor = allocation_anchor(
-                allocation.grant_anchor_at,
+                stored,
                 max(allocation.created_at, license_sub.billing_cycle_start),
                 due,
             )
-            owed = grants_owed(anchor, due, until)
+            # H-98: only a due time on the STORED anchor's chain is trusted
+            # inside the cycle's last week. `allocation_anchor` returns the
+            # stored anchor only while the due time is near one of its
+            # points; a fallback, or the due time itself, is not one.
+            owed = grants_owed(
+                anchor,
+                due,
+                until,
+                on_stored_anchor=stored is not None and anchor == stored,
+            )
             if owed:
                 logger.error(
                     "License %s renewal: allocation %s (user %s) is owed %d "

@@ -1,0 +1,69 @@
+"""1a's mutants R1 to R6 for H-133 (rule 19: each of my probes is seen red).
+Usage, in the checkout: python -B h133_mutants_R.py <R1|R2|R3|R4|R5|R6>. Applied
+in place; restore with git checkout. Expected failing probes: see
+h133_expected_kills.txt.
+
+R1: a student is told the teacher's sentence for a graded paper.
+R2: a student is told the teacher's sentence for a paper being graded.
+R3: the teacher is given the student's neutral sentence for a graded paper.
+R4: the student's list shows the real grading state before release.
+R5: the refusal's code is not put on the tracked row (upload and edit task).
+R6: a student is shown the paper's own stored maximum before release.
+"""
+
+import sys
+
+MUTANTS = {
+    "R1": (
+        "students/services.py",
+        "            SUBMISSION_CLOSED_FOR_STUDENT\n"
+        "            if told_to_student\n",
+        "            SUBMISSION_CLOSED_FOR_STUDENT\n"
+        "            if False\n",
+        1,
+    ),
+    "R2": (
+        "students/services.py",
+        "        raise SubmissionBeingGradedError(\n"
+        "            SUBMISSION_BUSY_FOR_STUDENT\n"
+        "            if told_to_student\n",
+        "        raise SubmissionBeingGradedError(\n"
+        "            SUBMISSION_BUSY_FOR_STUDENT\n"
+        "            if False\n",
+        1,
+    ),
+    "R3": (
+        "students/services.py",
+        "            SUBMISSION_CLOSED_FOR_STUDENT\n"
+        "            if told_to_student\n",
+        "            SUBMISSION_CLOSED_FOR_STUDENT\n"
+        "            if True\n",
+        1,
+    ),
+    "R4": (
+        "students/serializers.py",
+        "                else GradingState.IDLE.value\n",
+        "                else instance.grading_state\n",
+        1,
+    ),
+    "R5": (
+        "assignments/tasks.py",
+        "                **_refusal_code(exc),\n",
+        "",
+        2,
+    ),
+    "R6": (
+        "students/serializers.py",
+        '    if request and request.user.user_type == "STUDENT" and not submission.is_published:\n'
+        "        return submission.assignment.total_points\n",
+        "    if False:\n"
+        "        return submission.assignment.total_points\n",
+        1,
+    ),
+}
+
+path, old, new, times = MUTANTS[sys.argv[1]]
+s = open(path, encoding="utf-8").read()
+assert s.count(old) == times, (sys.argv[1], s.count(old))
+open(path, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied", sys.argv[1], "to", path)

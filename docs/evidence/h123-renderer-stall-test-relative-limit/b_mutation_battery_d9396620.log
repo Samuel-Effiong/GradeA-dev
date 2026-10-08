@@ -1,0 +1,12 @@
+baseline exit=0
+S1	the stall itself put back: a recycle waits for in-flight renders under the swap lock	KILLED	FAILED (failures=1)	True	29.9
+S2	a machine too loaded to judge is a failure, not a pass	KILLED	FAILED (failures=1)	True	6.5
+S3	the hung render really runs beside the healthy ones	KILLED	FAILED (failures=1)	True	22.5
+L1	the hung render's timeout never goes under the floor	KILLED	FAILED (failures=4)	True	6.6
+L2	the timeout is four times the baseline	KILLED	FAILED (failures=2)	True	6.7
+L3	the stretch has an end	KILLED	FAILED (failures=1)	True	6.8
+L4	the limit is under the hung render's timeout	KILLED	FAILED (failures=12)	True	6.8
+L5	exactly the ceiling is still judged	KILLED	FAILED (errors=2)	True	6.7
+
+8/8 killed with verified restore
+exit=0 wall_s=123

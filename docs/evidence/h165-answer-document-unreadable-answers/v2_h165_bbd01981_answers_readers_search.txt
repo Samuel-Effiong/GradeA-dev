@@ -1,0 +1,38 @@
+bbd01981:ai_processor/benchmark/answers/harness.py:78:            for answer in self.answers
+bbd01981:ai_processor/benchmark/answers/harness.py:85:            for answer in self.answers
+bbd01981:ai_processor/benchmark/answers/harness.py:90:        return [str(answer.get("question_number")) for answer in self.answers]
+bbd01981:ai_processor/benchmark/answers/harness.py:467:    for answer in run.answers:
+bbd01981:ai_processor/benchmark/answers/mutations.py:7:    python -m ai_processor.benchmark.answers.mutations \\
+bbd01981:ai_processor/benchmark/submissions.py:1661:    """The JSON that would live in StudentSubmission.answers."""
+bbd01981:ai_processor/management/commands/answer_extraction_benchmark.py:23:from ai_processor.benchmark.answers.report import REPORT_DIR, build_report, write_report
+bbd01981:assignments/prosemirror_converter.py:6:``students.services.student_submission_to_html``) and only then converted into
+bbd01981:assignments/serializers.py:571:        from students.services import answer_document_for_student
+bbd01981:assignments/serializers.py:575:            return answer_document_for_student(submission)
+bbd01981:dashboard/services.py:42:        It read `submission.answers.items()` and pulled a "score" off each
+bbd01981:students/models.py:242:    def get_answer(self):
+bbd01981:students/models.py:243:        return self.answers
+bbd01981:students/serializers.py:17:    answer_document_for_student,
+bbd01981:students/serializers.py:541:        return answer_document_for_student(obj)
+bbd01981:students/serializers.py:708:        return answer_document_for_student(obj)
+bbd01981:students/services.py:107:        type(submission.answers).__name__,
+bbd01981:students/services.py:112:def student_submission_to_html(submission, *, show_grade=True) -> str:
+bbd01981:students/services.py:121:    `answer_document_for_student`).
+bbd01981:students/services.py:172:    printable, left_out = printable_answers(submission.answers)
+bbd01981:students/services.py:211:def answer_document_for_student(submission):
+bbd01981:students/services.py:228:    it from the row with `student_submission_to_html` (upload, grading,
+bbd01981:students/services.py:239:        student_submission_to_html(submission, show_grade=False)
+bbd01981:students/services.py:439:    if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:
+bbd01981:students/services.py:616:    left_out = printable_answers(submission.answers)[1]
+bbd01981:students/services.py:636:    answer_html = student_submission_to_html(submission)
+bbd01981:students/services.py:658:    answer_json = submission.get_answer()
+bbd01981:students/services.py:1062:        # StudentSubmission.answers is NOT nullable, and both write paths
+bbd01981:students/services.py:1133:                submission.answers = student_submission.get(
+bbd01981:students/services.py:1134:                    "answers", submission.answers
+bbd01981:students/services.py:1142:                # to auto_now_add) because student_submission_to_html()
+bbd01981:students/services.py:1155:            answer_html = student_submission_to_html(submission)
+bbd01981:students/services.py:1391:            locked.answers = answers
+bbd01981:students/services.py:1393:                student_submission_to_html(locked)
+bbd01981:students/views.py:100:    student_submission_to_html,
+bbd01981:students/views.py:340:        # (students.services.answer_document_for_student), with the
+bbd01981:students/views.py:357:            answer_html = student_submission_to_html(submission)
+bbd01981:students/views.py:374:            left_out = printable_answers(submission.answers)[1]

@@ -1,0 +1,21 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+slice-c r1 full run start 2026-10-07 14:28:28 WAT sha=0eaa97c4 load=3.47 4.07 4.77
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=0 end 2026-10-07 14:37:15 WAT wall=527s
+load at end: 7.00 7.05 6.00
+Ran 6632 tests in 488.842s
+OK (skipped=30)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 996
+  assignments 663
+  audit 367
+  AutoGrader 613
+  billing 2139
+  classrooms 434
+  dashboard 270
+  students 452
+  users 698
+FAIL/ERROR headers: 0
+suspends during run: 0

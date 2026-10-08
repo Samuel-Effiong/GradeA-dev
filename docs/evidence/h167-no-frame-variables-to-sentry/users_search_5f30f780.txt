@@ -1,0 +1,104 @@
+git grep on 5f30f780, 2026-10-07 17:19:11 WAT, 0b's GRANT of 17:18:21: every tracked file, outside docs/
+
+=== log_scrubbing
+AutoGrader/__init__.py:4:from .log_scrubbing import install as _install_log_scrubbing
+AutoGrader/__init__.py:6:_install_log_scrubbing()
+AutoGrader/sentry_scrubbing.py:3:to Sentry. H-167: nor a value written as `password=...` (log_scrubbing's
+AutoGrader/sentry_scrubbing.py:10:variables), so the log record factory in log_scrubbing.py, which scrubs
+AutoGrader/sentry_scrubbing.py:33:from AutoGrader.log_scrubbing import scrub
+AutoGrader/settings.py:97:# installs when it is imported (AutoGrader/__init__.py, log_scrubbing.py);
+AutoGrader/tests_log_scrubbing.py:7:or a third-party library's line. AutoGrader/log_scrubbing.py scrubs every
+AutoGrader/tests_log_scrubbing.py:30:from AutoGrader import log_scrubbing
+AutoGrader/tests_log_scrubbing.py:377:    The first version of H-89 imported log_scrubbing from settings.py and
+AutoGrader/tests_log_scrubbing.py:402:        self.assertEqual(calls, ["_install_log_scrubbing()"])
+AutoGrader/tests_log_scrubbing.py:411:        self.addCleanup(log_scrubbing.set_enabled, log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:414:        log_scrubbing.set_enabled(None)
+AutoGrader/tests_log_scrubbing.py:419:            self.assertTrue(log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:425:        log_scrubbing.set_enabled(None)
+AutoGrader/tests_log_scrubbing.py:427:        self.assertIs(log_scrubbing.is_enabled(), settings.LOG_SCRUB_ADDRESSES)
+AutoGrader/tests_log_scrubbing.py:429:            self.assertTrue(log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:430:        self.assertFalse(log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:449:from AutoGrader import log_scrubbing
+AutoGrader/tests_log_scrubbing.py:450:print(log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:474:        self.addCleanup(log_scrubbing.set_enabled, log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:479:        log_scrubbing.install(False)
+AutoGrader/tests_log_scrubbing.py:480:        log_scrubbing.install(False)
+AutoGrader/tests_log_scrubbing.py:487:        log_scrubbing.install(True)
+AutoGrader/tests_log_scrubbing.py:488:        self.assertTrue(log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:489:        log_scrubbing.install(False)
+AutoGrader/tests_log_scrubbing.py:490:        self.assertFalse(log_scrubbing.is_enabled())
+AutoGrader/tests_log_scrubbing.py:504:        log_scrubbing.install(True)
+AutoGrader/tests_log_scrubbing.py:526:        log_scrubbing.install(True)
+AutoGrader/tests_log_scrubbing.py:534:        self.assertIn(log_scrubbing.MESSAGE_WITHHELD, record.getMessage())
+AutoGrader/tests_log_scrubbing.py:537:        log_scrubbing.install(True)
+AutoGrader/tests_log_scrubbing.py:540:            log_scrubbing.traceback, "format_exception", side_effect=RuntimeError
+AutoGrader/tests_log_scrubbing.py:550:            record.exc_text, f"ValueError: {log_scrubbing.EXCEPTION_WITHHELD}"
+AutoGrader/tests_log_scrubbing.py:560:        self.assertIs(log_scrubbing.scrub(text), text)
+AutoGrader/tests_log_scrubbing.py:580:                    log_scrubbing.scrub(f"<{address}>, ({address})"),
+AutoGrader/tests_log_scrubbing.py:586:            log_scrubbing.scrub("Key (email)=(o'brien@school.edu) already exists."),
+AutoGrader/tests_log_scrubbing.py:590:            log_scrubbing.scrub("invite failed: email=o'brien@school.edu, row=7"),
+AutoGrader/tests_log_scrubbing.py:604:                self.assertEqual(log_scrubbing.scrub(text), expected)
+AutoGrader/tests_log_scrubbing.py:616:                    log_scrubbing.scrub(f"<left{character}right@school.edu>"),
+AutoGrader/tests_sentry_scrubbing.py:7:(AutoGrader/log_scrubbing.py), which scrubs what handlers print, does not
+AutoGrader/tests_sentry_sends_no_variables.py:325:        self.scrub = importlib.import_module("AutoGrader.log_scrubbing").scrub
+AutoGrader/tests_sentry_sends_no_variables.py:405:            importlib.import_module("AutoGrader.log_scrubbing").is_installed()
+billing/tests/test_log_scrubbing_end_to_end.py:4:The scrubber is off under the test runner (AutoGrader/log_scrubbing.py says
+
+=== sentry_scrubbing
+AutoGrader/log_scrubbing.py:22:anything that reads them directly. (Sentry does: see sentry_scrubbing.)
+AutoGrader/settings.py:187:        from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
+AutoGrader/settings.py:221:            # above does not reach (AutoGrader/sentry_scrubbing.py).
+AutoGrader/tests_sentry_scrubbing.py:8:change what Sentry receives. AutoGrader/sentry_scrubbing.py does, through
+AutoGrader/tests_sentry_scrubbing.py:78:        self.hooks = importlib.import_module("AutoGrader.sentry_scrubbing")
+AutoGrader/tests_sentry_scrubbing.py:411:            and node.module == "AutoGrader.sentry_scrubbing"
+AutoGrader/tests_sentry_sends_no_variables.py:31:    its test in tests_sentry_scrubbing.py is changed with this row.)
+AutoGrader/tests_sentry_sends_no_variables.py:234:        self.hooks = importlib.import_module("AutoGrader.sentry_scrubbing")
+AutoGrader/tests_sentry_sends_no_variables.py:440:        self.hooks = importlib.import_module("AutoGrader.sentry_scrubbing")
+
+=== sentry_sdk
+AutoGrader/celery_signals.py:99:        import sentry_sdk
+AutoGrader/celery_signals.py:101:        sentry_sdk.set_tag("request_id", request_id)
+AutoGrader/middleware.py:49:        # Guarded the same way settings.py guards Sentry init: sentry_sdk
+AutoGrader/middleware.py:54:            import sentry_sdk
+AutoGrader/middleware.py:56:            sentry_sdk.set_tag("request_id", request_id)
+AutoGrader/sentry_scrubbing.py:12:hooks do; settings pass them to sentry_sdk.init:
+AutoGrader/sentry_scrubbing.py:81:    """sentry_sdk's before_send and before_send_transaction."""
+AutoGrader/sentry_scrubbing.py:86:    """sentry_sdk's before_breadcrumb."""
+AutoGrader/sentry_scrubbing.py:91:    """sentry_sdk's before_send_log."""
+AutoGrader/settings.py:166:        import sentry_sdk
+AutoGrader/settings.py:167:        from sentry_sdk.integrations.celery import CeleryIntegration
+AutoGrader/settings.py:168:        from sentry_sdk.integrations.django import DjangoIntegration
+AutoGrader/settings.py:169:        from sentry_sdk.integrations.logging import LoggingIntegration
+AutoGrader/settings.py:189:        sentry_sdk.init(
+AutoGrader/tests_celery_signals.py:105:    def test_prerun_does_not_raise_when_sentry_sdk_not_installed(self):
+AutoGrader/tests_celery_signals.py:109:        with patch.dict("sys.modules", {"sentry_sdk": None}):
+AutoGrader/tests_middleware.py:98:    def test_sets_sentry_tag_when_sentry_sdk_available(self):
+AutoGrader/tests_middleware.py:102:        with patch("sentry_sdk.set_tag") as mock_set_tag:
+AutoGrader/tests_middleware.py:108:    def test_does_not_raise_when_sentry_sdk_not_installed(self):
+AutoGrader/tests_middleware.py:112:        with patch.dict("sys.modules", {"sentry_sdk": None}):
+AutoGrader/tests_sentry_scrubbing.py:9:three hooks passed to sentry_sdk.init: before_send (events),
+AutoGrader/tests_sentry_scrubbing.py:30:    """The shape sentry_sdk's EventHandler builds for
+AutoGrader/tests_sentry_scrubbing.py:382:            and ast.unparse(node.func) == "sentry_sdk.init"
+AutoGrader/tests_sentry_scrubbing.py:417:            and ast.unparse(node.func) == "sentry_sdk.init"
+AutoGrader/tests_sentry_sends_no_variables.py:7:`sentry_sdk.init` was called without `include_local_variables`, whose
+AutoGrader/tests_sentry_sends_no_variables.py:75:from sentry_sdk.consts import DEFAULT_OPTIONS
+AutoGrader/tests_sentry_sends_no_variables.py:76:from sentry_sdk.integrations._wsgi_common import request_body_within_bounds
+AutoGrader/tests_sentry_sends_no_variables.py:77:from sentry_sdk.utils import event_from_exception
+AutoGrader/tests_sentry_sends_no_variables.py:126:    """The keywords of the one `sentry_sdk.init(...)` call in settings.py,
+AutoGrader/tests_sentry_sends_no_variables.py:133:        if isinstance(node, ast.Call) and ast.unparse(node.func) == "sentry_sdk.init"
+
+=== include_local_variables
+AutoGrader/sentry_scrubbing.py:24:(include_local_variables=False, max_request_body_size="never") and
+AutoGrader/settings.py:213:            include_local_variables=False,
+AutoGrader/tests_sentry_sends_no_variables.py:7:`sentry_sdk.init` was called without `include_local_variables`, whose
+AutoGrader/tests_sentry_sends_no_variables.py:24:1.  `include_local_variables=False`.
+AutoGrader/tests_sentry_sends_no_variables.py:176:        self.assertIn("include_local_variables", keywords)
+AutoGrader/tests_sentry_sends_no_variables.py:177:        self.assertIs(ast.literal_eval(keywords["include_local_variables"]), False)
+
+=== max_request_body_size
+AutoGrader/sentry_scrubbing.py:24:(include_local_variables=False, max_request_body_size="never") and
+AutoGrader/settings.py:217:            max_request_body_size="never",
+AutoGrader/tests_sentry_sends_no_variables.py:17:It was also called without `max_request_body_size`, whose default
+AutoGrader/tests_sentry_sends_no_variables.py:25:1b. `max_request_body_size="never"`.
+AutoGrader/tests_sentry_sends_no_variables.py:182:        self.assertIn("max_request_body_size", keywords)
+AutoGrader/tests_sentry_sends_no_variables.py:183:        self.assertEqual(ast.literal_eval(keywords["max_request_body_size"]), "never")

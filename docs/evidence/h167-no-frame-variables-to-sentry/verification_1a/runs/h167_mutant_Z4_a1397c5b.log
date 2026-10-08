@@ -1,0 +1,45 @@
+# 1a H-167 mutant Z4 at a1397c5b929d2692c0e5d8d07a8ed0270bc3c567, my probe module alone, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 3.45 3.63 4.19 4/2289 915047
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+applied Z4 to AutoGrader/log_scrubbing.py
+mutated sha differs: True
+ AutoGrader/log_scrubbing.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+test_sc_the_four_new_parts_in_other_shapes (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sc_the_four_new_parts_in_other_shapes) ... FAIL
+test_sd_the_pattern_beside_addresses_another_name_and_an_object (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sd_the_pattern_beside_addresses_another_name_and_an_object) ... FAIL
+test_sa_a_real_client_with_our_values_sends_no_frame_variables (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sa_a_real_client_with_our_values_sends_no_frame_variables) ... ok
+test_sb_a_real_client_with_our_values_takes_no_request_body (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sb_a_real_client_with_our_values_takes_no_request_body) ... ok
+test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed) ... ok
+
+======================================================================
+FAIL: test_sc_the_four_new_parts_in_other_shapes (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sc_the_four_new_parts_in_other_shapes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h167/AutoGrader/tests_vf1a_h167_probe.py", line 203, in test_sc_the_four_new_parts_in_other_shapes
+    self.assertNotIn(piece, text)
+AssertionError: 'mvC9z' unexpectedly found in '{"tags": [["mode", "password=[secret]"], ["region", "eu"]], "contexts": {"queue": {"pool": "Pool<host=q,password=[secret]", "depth": 3, "nested": ["token=mvC9z", null, true]}}, "user": {"id": 7, "username": "secret=[secret]"}, "request": {"url": "https://school.invalid/a", "query_string": "next=1&token=mvE2r", "headers": {"X-Note": "passwd=[secret]"}}, "release": "r1", "level": "error"}'
+
+======================================================================
+FAIL: test_sd_the_pattern_beside_addresses_another_name_and_an_object (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sd_the_pattern_beside_addresses_another_name_and_an_object)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h167/AutoGrader/tests_vf1a_h167_probe.py", line 233, in test_sd_the_pattern_beside_addresses_another_name_and_an_object
+    self.assertEqual(
+AssertionError: 'see [email] token=mvA7x mid password=[secret]\nkept line' != 'see [email] token=[secret]\nkept line'
+- see [email] token=mvA7x mid password=[secret]
++ see [email] token=[secret]
+  kept line
+
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.068s
+
+FAILED (failures=2)
+Found 5 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=4 loadavg after: 3.66 3.67 4.20 6/2283 915114
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+tracked changes after restore: 0

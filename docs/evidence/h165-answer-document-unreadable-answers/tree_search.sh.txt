@@ -1,0 +1,43 @@
+#!/bin/bash
+# H-165: one whole-tree search of ONE commit's test files with `git grep`
+# (git objects only; no working tree is touched, no test is run). Needs
+# the Release Engineer's grant. Two purposes (rules 15 and 20):
+#  (1) tests that pin the behaviour this row replaces, or that would now
+#      meet the refusal: a submission whose answers are a non-empty value
+#      that is not a list of objects, sent through grading or a writer;
+#  (2) the existing test modules of every route and function this row
+#      touches, for the chain's modules step, their fixtures to be read.
+# Usage: tree_search.sh <commit>
+set -u
+C=$1
+P=/home/bond-servant-in-training/Documents/Projects
+OUT=$P/GAP-d5-runs/h165/tree_search_$C.txt
+[ ! -e $OUT ] || { echo "$OUT exists already"; exit 9; }
+cd $P/Grade-Automator-Plus
+term() { # what a hit means, pattern
+  local hits
+  echo "## $1"
+  echo "pattern: $2"
+  hits=$(git grep -n -E -e "$2" $C -- '*test*.py' | sed "s/^$C://")
+  echo "files with a hit (count per file):"
+  echo "$hits" | grep -v '^$' | cut -d: -f1 | sort | uniq -c | sed 's/^/  /'
+  echo "lines:"
+  echo "$hits" | cut -c1-200 | sed 's/^/  /'
+  echo
+}
+{
+echo "tree search at $C, started $(date '+%Y-%m-%d %H:%M:%S')"
+echo "test files searched: $(git ls-tree -r --name-only $C | grep -c 'test.*\.py$')"
+echo
+term "a fixture whose answers are a non-empty object, a string or a list of non-objects" 'answers=\{"|answers=\{'"'"'|answers="|answers='"'"'|answers=\["|answers=\['"'"'|"answers": \{"|"answers": "|"answers": \["'
+term "the document builder called or patched" 'student_submission_to_html'
+term "grading's entry point or its save called or patched" 'grade_engine\(|_populate_and_save_grade|students\.services\.grade_engine|views\.grade_engine'
+term "the two writers" 'upload_answers_engine|update_submission_from_raw_text'
+term "the grade routes" 'student-submission-grade'
+term "the read routes that carry the document" 'student-submission-detail|student_submission_raw_input|assignment-detail'
+term "the errors shown to a user" 'is_user_facing_error|_user_facing_exception_types|describe_user_error'
+term "review reasons asserted on" 'review_reasons|review_tier'
+term "the old error text of the writers" 'no usable .answers. list'
+echo "ended $(date '+%H:%M:%S')"
+} > $OUT 2>&1
+echo "written: $OUT ($(wc -l < $OUT) lines)"

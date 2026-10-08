@@ -1,0 +1,202 @@
+"""H-130: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-06 BEFORE any test run of H-130, by
+reasoning from the code and the tests; no mutant was applied to anything
+but a parser (the anchors-only check). A test is named Class.method,
+because two classes of part B share method names. Subtests are not told
+apart here: a test fails if any of its samples fails.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of part A's module at 5e08d9ca>
+       python expected_kills.py --repro-b <log of part B's module at its red commit>"""
+import re
+import sys
+from pathlib import Path
+
+# part A, classrooms.tests_student_final_grade_released_only
+T = "TheStudentsNumberDoesNotMoveBeforeRelease"
+R = "ReleaseIsWhatMovesTheStudentsNumber"
+H = "WhichRowsCountForTheStudent"
+S = "StaffStillSeeEveryGradedItem"
+O = "OneFormula"
+# classrooms.tests_final_grade_zero_score
+P = "TheApiReportsAZeroFinalGradeAsAGrade"
+T_ALL = {
+    (T, "test_graded_but_unreleased_work_reads_like_submitted_work_on_the_detail"),
+    (T, "test_graded_but_unreleased_work_reads_like_submitted_work_on_the_list"),
+    (T, "test_an_unreleased_grade_does_not_move_a_number_already_shown"),
+    (T, "test_a_number_cached_before_grading_is_the_number_after_it"),
+}
+R_ONE = (R, "test_releasing_one_submission_adds_it")
+R_ALL = (R, "test_releasing_a_whole_assignment_adds_it")
+R_H33 = (R, "test_released_work_with_no_stored_maximum_uses_the_assignments_points")
+H_OTHER = (H, "test_another_courses_released_work_is_not_counted")
+H_NO_TIME = (H, "test_a_released_row_with_a_score_and_no_grading_time_is_left_out")
+H_TABLE = (H, "test_the_student_route_chooses_rows_as_the_stored_figure_does")
+H_NO_REQUEST = (H, "test_a_reader_the_serializer_cannot_identify_gets_the_students_figure")
+S_TEACHER = (S, "test_the_teacher_reads_the_stored_number")
+S_DIFFER = (S, "test_the_teacher_and_the_student_differ_only_while_something_is_held_back")
+O_EQUAL = (O, "test_with_everything_released_the_two_figures_are_equal")
+P_TEACHER_ZERO = (P, "test_teacher_sees_zero_and_an_f")
+#: every test in which something is graded and held back while a student reads
+HELD_BACK = T_ALL | {R_ONE, R_ALL, S_DIFFER}
+
+# part B, students.tests_answer_document_before_release
+U = "ASubmittedDocumentIsUnchangedByThisRow"
+G = "GradingChangesNothingTheStudentReads"
+W = "WhatIsGivenUp"
+N = "NothingElseChanges"
+C = "TheCachedResponse"
+E = "EveryReaderOfTheDocumentIsNamed"
+OWN, ASSIGNMENT = "test_on_the_students_own_submission", "test_on_the_students_view_of_the_assignment"
+G_REGRADE = (G, "test_a_regrade_changes_nothing_either")
+#: added 2026-10-06 after the second stopped chain, before any run of it: a
+#: grade of zero, read on both student routes
+G_ZERO = (G, "test_a_grade_of_zero_changes_nothing_either")
+G_HALF = (G, "test_a_half_graded_row_reads_the_same_too")
+G_LOST = (G, "test_a_graded_row_whose_stored_document_was_lost")
+W_RENAME = (W, "test_a_rename_shows_when_it_happens_and_not_when_grading_happens")
+#: added 2026-10-06 after v2's second pre-read, still before any run: the
+#: rename read on the assignment route too
+W_RENAME_ASSIGNMENT = (W, "test_the_same_on_the_students_view_of_the_assignment")
+#: added 2026-10-06 after v2's line-by-line read, before any run of them:
+#: a rename the teacher SAVES, read from the cache; and the upload route's
+#: own answer (class TheUploadRoutesOwnAnswer)
+W_RENAME_SAVED = (W, "test_a_rename_the_teacher_saves_refreshes_the_students_cached_document")
+UP = "TheUploadRoutesOwnAnswer"
+UP_FIRST = (UP, "test_a_first_upload_answers_with_the_submitted_document")
+N_AFTER = (N, "test_after_release_the_student_reads_what_the_teacher_reads")
+N_NOTHING = (N, "test_a_row_with_no_stored_document_is_served_as_it_is")
+C_GRADING = (C, "test_a_response_cached_before_grading_is_not_the_graded_form_after_it")
+C_RELEASE = (C, "test_a_response_cached_before_release_is_not_served_after_it")
+C_RELEASE_ALL = (C, "test_nor_after_the_release_of_the_whole_assignment")
+E_METHOD = (E, "test_a_student_facing_serializer_does_not_return_the_stored_column")
+E_SOURCE = (E, "test_the_students_assignment_serializer_does_not_read_the_stored_column")
+#: every test in which a student reads the document of a graded, unreleased
+#: row and compares it with the submitted one, on the submission route...
+GRADED_ON_THE_SUBMISSION = {(G, OWN), G_REGRADE, G_HALF, G_LOST, C_GRADING, C_RELEASE, C_RELEASE_ALL}
+#: ...and the rename test, whose last line is the same comparison
+SEES_THE_GRADE = GRADED_ON_THE_SUBMISSION | {(G, ASSIGNMENT), W_RENAME, W_RENAME_ASSIGNMENT}
+
+EXPECTED = {
+    # unreleased work counted: every held-back test; the table's unreleased
+    # row; the reader with no request (it has a held-back item)
+    "A1": HELD_BACK | {H_TABLE, H_NO_REQUEST},
+    # a student reads the stored number: every held-back test; and wherever
+    # the stored number is not the released arithmetic: rows written past
+    # the receiver (H-33's row, the table), the agreement test (its third
+    # row is written past the receiver, so the stored 80.00 is not 73.33),
+    # and the reader with no request
+    "A2": HELD_BACK | {R_H33, O_EQUAL, H_TABLE, H_NO_REQUEST},
+    # the letter from the stored number: as A2 wherever a letter is
+    # checked. The table and the agreement test check the number only.
+    "A3": HELD_BACK | {R_H33, H_NO_REQUEST},
+    # the number from the stored number (the letter stays right): as A2
+    "A4": HELD_BACK | {R_H33, O_EQUAL, H_TABLE, H_NO_REQUEST},
+    # no fallback to the assignment's points
+    "A5": {R_H33, O_EQUAL, H_TABLE},
+    # another course's work counted
+    "A6": {H_OTHER},
+    # a row with no grading time counted
+    "A7": {H_NO_TIME, H_TABLE},
+    # a teacher reads the released-only figure
+    "A8": {S_TEACHER, S_DIFFER, P_TEACHER_ZERO},
+    # a reader that cannot be identified reads the stored figure
+    "A9": {H_NO_REQUEST},
+    # released rows rebuilt too: the student never gets the stored document
+    "B1": {N_AFTER, C_RELEASE, C_RELEASE_ALL},
+    # a row with no stored document gets one made up (on the assignment
+    # route; the submission route's own lazy rebuild fills the column first)
+    "B2": {N_NOTHING},
+    # always the stored document: everything that reads a graded, unreleased
+    # row. The rename test fails earlier, at "differs after the rename".
+    # (v2's read) also the saved rename: the stored document keeps the old
+    # title, so the student's read does not change
+    "B3": SEES_THE_GRADE | {G_ZERO, W_RENAME_SAVED},
+    # the ungraded form shows the grading date. A new row has none, so
+    # "unchanged by this row" passes.
+    "B4": SEES_THE_GRADE | {G_ZERO},
+    # the ungraded form shows the row's score. A new row's score is the
+    # default, so "unchanged by this row" passes; and a grade of zero prints
+    # as the default does (nothing), so the zero test passes too.
+    "B5": SEES_THE_GRADE,
+    # the ungraded form says "Not graded yet" for the score (my first
+    # version): it is no longer the document the upload engine stored.
+    # Tests that compare one rebuilt read with another still pass (the
+    # rename test, the cached ones).
+    # (v2's read) also the first upload through the route: its last line
+    # compares the student's read with the stored document
+    "B6": {(U, OWN), (U, ASSIGNMENT), (G, OWN), (G, ASSIGNMENT), G_REGRADE, G_HALF, G_LOST, G_ZERO, UP_FIRST},
+    # the submission serializer returns the stored column
+    "B7": GRADED_ON_THE_SUBMISSION | {W_RENAME, G_ZERO, W_RENAME_SAVED},
+    # the assignment serializer returns the stored column
+    "B8": {(G, ASSIGNMENT), C_RELEASE_ALL, E_SOURCE, W_RENAME_ASSIGNMENT, G_ZERO},
+    # the submission serializer carries the plain column again
+    "B9": GRADED_ON_THE_SUBMISSION | {W_RENAME, E_METHOD, G_ZERO, W_RENAME_SAVED},
+}
+#: the first red commit, 5e08d9ca (the stored number and the stored document
+#: are what a student reads). Its tests are the first versions.
+REPRO = {
+    (T, "test_graded_but_unreleased_work_reads_like_submitted_work_on_the_detail"),
+    (T, "test_graded_but_unreleased_work_reads_like_submitted_work_on_the_list"),
+    (T, "test_an_unreleased_grade_does_not_move_a_number_already_shown"),
+    (T, "test_a_number_cached_before_grading_is_the_number_after_it"),
+    R_ONE,
+    R_ALL,
+    R_H33,
+    S_DIFFER,
+    O_EQUAL,
+}
+#: part B's tests AS THEY ARE AT THE TIP, on the code of the first fix of
+#: part B, 564a903c: that fix rebuilt the header with "Not graded yet" for
+#: the score and made up a document for a row that has none. It is B6's set
+#: and the no-document test.
+#: History, kept: the first early chain (15:37 on 2026-10-06, tip e8315419)
+#: ran the tests of their own red commit 1c5313ff and STOPPED here: 12 tests
+#: failed, not these 8. Cause: two faults in the tests. The fixture's student
+#: was PENDING, so every read of the assignment route answered 404 (three
+#: tests failed that should pass, two failed for the wrong reason); and one
+#: guard test stripped the indentation of the source it parsed. Both are
+#: corrected in the tip's tests; this set is unchanged because it was
+#: reasoned for tests that work.
+#: The second chain (16:44, tip c20e9a4a) showed this set red exactly as
+#: written (8 tests), then STOPPED in step (a) on one test of mine whose
+#: second assertion was wrong about existing behaviour (the stored document
+#: prints a score as "7.0" when grading wrote it and "7.00" when a read
+#: rebuilt it). That assertion is corrected; no set changes for it (the
+#: test's first assertion is the one every set was reasoned from). G_ZERO
+#: is new since, so it joins this set (the first fix printed "Not graded
+#: yet" for the score) and six mutants' sets, marked above.
+#: After v2's line-by-line read of 5d195a9e three more tests came: the
+#: first upload through the route joins this set and B6's (its last line
+#: compares the student's read with the stored document); the saved rename
+#: joins B3, B7 and B9; the refused upload is in no set (it pins a refusal
+#: this row does not change).
+REPRO_B = {(U, OWN), (U, ASSIGNMENT), (G, OWN), (G, ASSIGNMENT), G_REGRADE, G_HALF, G_LOST, N_NOTHING, G_ZERO, UP_FIRST}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] in ("--repro", "--repro-b"):
+    wanted = REPRO if sys.argv[1] == "--repro" else REPRO_B
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), wanted)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

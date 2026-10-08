@@ -10,6 +10,8 @@ Split into two layers:
     ai_processor/benchmark/render.py for the same reason.
 """
 
+import subprocess
+import sys
 import threading
 import time
 import unittest
@@ -20,25 +22,133 @@ from django.test import SimpleTestCase, override_settings
 
 from assignments import pdf_renderer
 
+#: What the probe's child runs: one real launch of headless Chromium.
+_CHROMIUM_PROBE = """
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(args=["--no-sandbox"])
+    browser.close()
+"""
+
 
 def _chromium_available():
     """
     Probe once whether a real headless Chromium launch succeeds, so the
     real-rendering tests can skip cleanly in an environment without a
     matching browser installed, rather than failing the whole suite.
+
+    The launch runs in a child interpreter whose stdin, stdout and stderr
+    are the null device (H-118). Playwright hands its Node driver the
+    stderr of the process that starts it, and Node leaves a pipe it is
+    given in non-blocking mode for every process that holds it. This
+    module is imported by the test runner's parent at discovery; started
+    here, the driver would do that to the whole run's output pipe for the
+    length of the probe (H-107).
     """
     try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(args=["--no-sandbox"])
-            browser.close()
-        return True
-    except Exception:
+        child = subprocess.run(
+            [sys.executable, "-c", _CHROMIUM_PROBE],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired):
         return False
+    return child.returncode == 0
 
 
 _CHROMIUM_AVAILABLE = _chromium_available()
+
+
+class TooLoadedToJudge(Exception):
+    """The machine is too slow right now for the stall test to mean anything."""
+
+
+#: The hung render's timeout is never shorter than this (seconds). On a
+#: quiet machine it is the timeout the stall test has always used.
+HUNG_TIMEOUT_FLOOR = 5.0
+#: ...and it is this many times the slowest healthy render measured alone.
+HUNG_TIMEOUT_PER_BASELINE = 4
+#: Past this the machine is too loaded to judge: the test fails and says so.
+HUNG_TIMEOUT_CEILING = 30.0
+#: Healthy renders beside the hung one must finish within this share of
+#: its timeout. A render pinned to the hung one takes the whole timeout.
+HEALTHY_SHARE = 0.8
+
+
+def stall_limits(baseline):
+    """(the hung render's timeout, the limit for healthy renders beside it)
+    for a machine on which the slowest healthy render, alone, took
+    `baseline` seconds (H-123).
+
+    A fixed 4-second limit failed on a busy machine with no stall at all
+    (2026-10-05: 7.2 s under a load average of 22). The limit now
+    stretches with the machine, and the property it guards does not
+    change: a render pinned to the hung one takes at least the hung
+    render's whole timeout, which is always above the limit. A stretched
+    limit must not become a test that cannot fail, so past the ceiling
+    this raises instead.
+    """
+    hung_timeout = max(HUNG_TIMEOUT_FLOOR, HUNG_TIMEOUT_PER_BASELINE * baseline)
+    if hung_timeout > HUNG_TIMEOUT_CEILING:
+        raise TooLoadedToJudge(
+            f"the slowest healthy render took {baseline:.1f} s on its own, so "
+            f"the hung render would need a {hung_timeout:.0f} s timeout (over "
+            f"{HUNG_TIMEOUT_CEILING:.0f} s): this machine is too loaded to judge "
+            "whether one slow render stalls the others. Run it again on a "
+            "quiet machine."
+        )
+    return hung_timeout, hung_timeout * HEALTHY_SHARE
+
+
+class StallLimitsTest(SimpleTestCase):
+    """H-123: the stall test's limit comes from the machine it runs on.
+    No browser here: only the arithmetic."""
+
+    def test_on_a_quiet_machine_they_are_the_numbers_the_test_always_used(self):
+        for baseline in (0.0, 0.2, 1.0, 1.25):
+            with self.subTest(baseline=baseline):
+                self.assertEqual(stall_limits(baseline), (5.0, 4.0))
+
+    def test_on_a_slower_machine_they_stretch_with_the_baseline(self):
+        hung_timeout, limit = stall_limits(2.0)
+
+        self.assertEqual(hung_timeout, 8.0)
+        self.assertAlmostEqual(limit, 6.4)
+
+    def test_the_load_that_failed_the_fixed_limit_is_judged_fairly(self):
+        """2026-10-05: no stall, a load average of 22, the slowest healthy
+        render beside the hung one took 7.2 s. With a baseline as slow as
+        that the limit is far above it."""
+        _hung_timeout, limit = stall_limits(5.6)
+
+        self.assertGreater(limit, 7.2)
+
+    def test_a_pinned_render_is_over_the_limit_whatever_the_machine(self):
+        """A render pinned to the hung one takes at least its whole
+        timeout: that must always count as a stall."""
+        for baseline in (0.0, 0.5, 1.25, 1.3, 3.0, 7.5):
+            with self.subTest(baseline=baseline):
+                hung_timeout, limit = stall_limits(baseline)
+
+                self.assertLess(limit, hung_timeout)
+                self.assertGreater(limit, baseline)
+
+    def test_the_stretch_has_an_end(self):
+        self.assertEqual(stall_limits(7.5), (30.0, 24.0))
+        with self.assertRaises(TooLoadedToJudge) as raised:
+            stall_limits(7.6)
+
+        self.assertIn("too loaded to judge", str(raised.exception))
+        self.assertIn("7.6 s", str(raised.exception))
+
+    def test_too_loaded_is_a_failure_with_its_reason_not_a_pass(self):
+        """The real test turns it into a failure: a machine too slow to
+        judge must not read as green."""
+        self.assertFalse(issubclass(TooLoadedToJudge, unittest.SkipTest))
+        self.assertFalse(issubclass(TooLoadedToJudge, AssertionError))
 
 
 class KaTeXInjectionTest(SimpleTestCase):
@@ -515,6 +625,34 @@ class ConcurrentRenderingTest(SimpleTestCase):
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         return "\n".join(page.get_text() for page in doc)
 
+    def _time_healthy(self, count, beside=None):
+        """Render `count` healthy documents from `count` threads and time
+        each one; `beside`, if given, runs in a thread of its own, started
+        first. Returns ({i: seconds}, errors)."""
+        durations = {}
+        errors = []
+        lock = threading.Lock()
+
+        def render_healthy(i):
+            started = time.perf_counter()
+            try:
+                pdf_renderer.render_html_to_pdf(self._full_html(f"<p>FAST{i}</p>"))
+                with lock:
+                    durations[i] = time.perf_counter() - started
+            except Exception as exc:  # pragma: no cover - failure path only
+                with lock:
+                    errors.append((i, repr(exc)))
+
+        threads = [threading.Thread(target=beside)] if beside else []
+        threads += [
+            threading.Thread(target=render_healthy, args=(i,)) for i in range(count)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=120)
+        return durations, errors
+
     def _render_many(self, count):
         """Render `count` uniquely-marked documents from `count` threads."""
         outputs = {}
@@ -633,8 +771,30 @@ class ConcurrentRenderingTest(SimpleTestCase):
         timeout. Healthy renders alongside it must still finish promptly -
         they may be slowed by sharing a concurrency slot, but must not be
         pinned to the hung render's timeout.
+
+        "Promptly" is measured against this machine in this run: see
+        stall_limits().
         """
-        hung_timeout = 5.0
+        # The limit comes from this run, not from a fixed number (H-123):
+        # first the same six healthy documents alone, on a fresh worker.
+        baseline_durations, errors = self._time_healthy(6)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(baseline_durations), 6)
+        baseline = max(baseline_durations.values())
+        try:
+            hung_timeout, limit = stall_limits(baseline)
+        except TooLoadedToJudge as too_loaded:
+            self.fail(str(too_loaded))
+        print(
+            f"[stall test] slowest healthy render alone: {baseline:.2f} s; "
+            f"hung render's timeout: {hung_timeout:.2f} s; "
+            f"limit for healthy renders beside it: {limit:.2f} s",
+            flush=True,
+        )
+        # A fresh worker again, so the renders below meet the browser's
+        # render bound exactly as they would with no baseline before them.
+        pdf_renderer.reset_worker_for_tests()
+
         hung_html = (
             "<!doctype html><html><head><meta charset='utf-8'><title>t</title>"
             "</head><body><p>HUNG</p><script>"
@@ -643,43 +803,34 @@ class ConcurrentRenderingTest(SimpleTestCase):
             "</script></body></html>"
         )
 
-        durations = {}
-        errors = []
-        lock = threading.Lock()
+        hung = {}
 
         def render_hung():
             try:
                 pdf_renderer.render_html_to_pdf(hung_html, timeout=hung_timeout)
+                hung["outcome"] = "finished"
             except pdf_renderer.PDFRenderError:
-                pass  # expected: it never finishes typesetting
+                # expected: it never finishes typesetting
+                hung["outcome"] = "gave up"
 
-        def render_healthy(i):
-            started = time.perf_counter()
-            try:
-                pdf_renderer.render_html_to_pdf(self._full_html(f"<p>FAST{i}</p>"))
-                with lock:
-                    durations[i] = time.perf_counter() - started
-            except Exception as exc:  # pragma: no cover - failure path only
-                with lock:
-                    errors.append((i, repr(exc)))
+        durations, errors = self._time_healthy(6, beside=render_hung)
 
-        threads = [threading.Thread(target=render_hung)]
-        threads += [
-            threading.Thread(target=render_healthy, args=(i,)) for i in range(6)
-        ]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=120)
-
+        # Without a hung render beside them the healthy ones prove nothing.
+        self.assertEqual(
+            hung.get("outcome"),
+            "gave up",
+            "the hung render did not run, or did not hang: nothing was tested",
+        )
         self.assertEqual(errors, [])
         self.assertEqual(len(durations), 6)
         # Comfortably under the hung render's timeout: if the stall
         # regressed, these would all sit at ~hung_timeout.
         self.assertLess(
             max(durations.values()),
-            hung_timeout * 0.8,
-            f"healthy renders were dragged out by the hung one: {durations}",
+            limit,
+            f"healthy renders were dragged out by the hung one: {durations} "
+            f"(alone, the slowest took {baseline:.2f} s; the hung render's "
+            f"timeout was {hung_timeout:.2f} s)",
         )
 
     @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=2)
@@ -758,6 +909,27 @@ class ConcurrentRenderingTest(SimpleTestCase):
         self.assertLessEqual(
             peak["n"], 2, f"in-flight renders exceeded the bound of 2 (saw {peak['n']})"
         )
+
+
+class StallTestWiringTest(SimpleTestCase):
+    """How the stall test uses stall_limits(). No render and no browser:
+    the stall test's body is called directly, with its timing replaced, so
+    this runs where the browser tests are skipped too."""
+
+    def test_a_machine_too_loaded_to_judge_fails_the_stall_test_and_says_why(self):
+        """The healthy renders "took" nine seconds alone, which is past
+        what the stall test will stretch to."""
+        stall_test = ConcurrentRenderingTest(
+            "test_one_slow_render_does_not_stall_the_others"
+        )
+        slow = ({i: 9.0 for i in range(6)}, [])
+
+        with patch.object(stall_test, "_time_healthy", return_value=slow) as timed:
+            with self.assertRaises(AssertionError) as raised:
+                stall_test.test_one_slow_render_does_not_stall_the_others()
+
+        timed.assert_called_once_with(6)
+        self.assertIn("too loaded to judge", str(raised.exception))
 
 
 class WorkerSingletonTest(SimpleTestCase):

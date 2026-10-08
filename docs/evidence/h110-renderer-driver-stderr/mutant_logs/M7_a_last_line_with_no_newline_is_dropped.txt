@@ -1,0 +1,27 @@
+..........F................
+======================================================================
+FAIL: test_a_last_line_with_no_newline_is_not_lost (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_last_line_with_no_newline_is_not_lost)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 169, in test_a_last_line_with_no_newline_is_not_lost
+    self.assertEqual(
+AssertionError: Lists differ: ['[PD[18 chars]er stderr: done'] != ['[PD[18 chars]er stderr: done', '[PDF] Playwright driver stderr: last words']
+
+Second list contains 1 additional elements.
+First extra element 1:
+'[PDF] Playwright driver stderr: last words'
+
+- ['[PDF] Playwright driver stderr: done']
+?                                        ^
+
++ ['[PDF] Playwright driver stderr: done',
+?                                        ^
+
++  '[PDF] Playwright driver stderr: last words']
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.434s
+
+FAILED (failures=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).
