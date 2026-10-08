@@ -1,6 +1,6 @@
 # H-202: switched off means out (SECURITY; Senior Manager's ruling 2026-10-08 19:15-19:20)
 
-Branch `task/h202-switched-off-means-out`, stacked on H-164 (base 79010e43, whose `_holds_admin_power` and guards it extends). **Everything below is "by reading, not shown by a run" until the Results section says otherwise.**
+Branch `task/h202-switched-off-means-out`, stacked on H-164 (branch point 79010e43; H-164's final tip e11a0083 merged in at fcbd360d; whose `_holds_admin_power` and guards it extends). **Everything below is "by reading, not shown by a run" until the Results section says otherwise.**
 
 ## What production allows today (by reading)
 - **Who switches a verified user off:** only the Django admin: the bulk action "Mark selected users as inactive" (users/admin.py 100-105, a `queryset.update`) and the admin edit form (users/admin.py 44). No API, no school-admin or teacher action, no account deletion, no lock-out, no licence-seat revoke sets a user's `is_active` False (those switch subscription or allocation rows). Nothing sets `email_verified_at` back to None. So the verified-and-inactive accounts that exist are those a super admin switched off in the admin.
@@ -22,7 +22,7 @@ Branch `task/h202-switched-off-means-out`, stacked on H-164 (base 79010e43, whos
 | Why | H-164 pinned today's behaviour for a verified, switched-off account | A switched-off person must not set a password on the account, nor be told it worked (Senior Manager) |
 
 ## Written expectations, before any run
-- **Step 0** (H-164's `users/views.py` and `users/admin.py` at 79010e43 under the two modules): **Ran 74, THIRTEEN red**, each for its written reason (rule 22; the runner's (r) step looks for the fragment inside that test's own failure block):
+- **Step 0** (H-164's FINAL `users/views.py` and `users/admin.py`, from e11a0083, under the two modules; H-164 changed only tests and docs after the branch point 79010e43, and the old code here includes its verify-road guards, which do not touch a verified switched-off account): **Ran 75, THIRTEEN red**, each for its written reason (rule 22; the runner's (r) step looks for the fragment inside that test's own failure block):
   - the verify code request sends nothing: `self.assertIsNone(user.activation_token)` (the old code stores a code);
   - verify does not switch the account back on / its refusal is the wrong-code refusal: `202 != 400` (the old verify answers 202); the verify budget test: `400 != 429`;
   - the reset code request makes no code: `self.assertFalse(PasswordResetOTP.objects.filter(user=user).exists())`;
