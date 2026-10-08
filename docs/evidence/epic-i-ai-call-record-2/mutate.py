@@ -443,7 +443,14 @@ EXPECTED = {
     "R1": "test_a_placeholder_has_no_vote",
     "R2": "test_an_answer_the_check_dropped_has_no_vote",
     "R3": "test_an_answer_repeated_in_a_reply_votes_once",
-    "R4": "test_an_answer_of_two_parts_counts_for_each_parts_model",
+    # R4, R13: the joined answer is not credited to the later part. Four tests fail:
+    # the unit two-parts test, the tipping test, the sum test, and the pipeline's joined test.
+    "R4": [
+        "test_an_answer_of_two_parts_counts_for_each_parts_model",
+        "test_a_joined_answer_can_tip_the_label_to_the_later_model",
+        "test_the_sum_of_votes_may_exceed_the_number_of_saved_answers",
+        "test_an_answer_joined_across_two_parts_counts_for_each_models_part",
+    ],
     "R5": "test_the_spelling_of_a_question_number_does_not_hide_an_origin",
     "R6": "test_no_call_left_is_not_run_beside_not_run",
     "R7": "test_a_reply_received_and_then_lost_keeps_the_providers_name",
@@ -452,9 +459,21 @@ EXPECTED = {
     "R10": "test_a_new_attempt_forgets_every_origin",
     "R11": "test_a_new_attempt_forgets_the_recheck",
     "R12": "test_a_reply_cannot_be_used_before_it_was_received",
-    "R13": "test_a_joined_answer_can_tip_the_label_to_the_later_model",
+    "R13": [
+        "test_an_answer_of_two_parts_counts_for_each_parts_model",
+        "test_a_joined_answer_can_tip_the_label_to_the_later_model",
+        "test_the_sum_of_votes_may_exceed_the_number_of_saved_answers",
+        "test_an_answer_joined_across_two_parts_counts_for_each_models_part",
+    ],
     "R14": "test_two_parts_by_the_same_model_count_once",
-    "R15": "test_the_sum_of_votes_may_exceed_the_number_of_saved_answers",
+    # R15 cuts the sum to the number of answers: the unit two-parts test (a tie goes to a/one),
+    # the tipping test (its votes are asserted), the sum test. The pipeline's joined test PASSES
+    # under it (the cut takes from m/one, the label stays a/two); R14 fails only the same-model test.
+    "R15": [
+        "test_an_answer_of_two_parts_counts_for_each_parts_model",
+        "test_a_joined_answer_can_tip_the_label_to_the_later_model",
+        "test_the_sum_of_votes_may_exceed_the_number_of_saved_answers",
+    ],
     "V1": "test_the_model_asked_for_is_not_the_label",
     "V2": "test_an_unnamed_reply_is_unknown_not_the_model_asked_for",
     "V3": "test_the_call_is_marked_before_it_leaves",
@@ -488,6 +507,14 @@ def clear_pycache(path):
     shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
 
 
+def _expected(mid):
+    """The failing tests written beforehand for a mutant: one name or a list.
+    A list names EVERY test reckoned to fail under it, not only the one the
+    mutant was made for (Senior Manager, 8 October 2026)."""
+    value = EXPECTED[mid]
+    return [value] if isinstance(value, str) else list(value)
+
+
 def judge(mid, returncode, text):
     """(status, the run's "Ran" line, the failing tests' names)."""
     failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", text, re.M)))
@@ -495,7 +522,7 @@ def judge(mid, returncode, text):
     ran_line = ran[-1] if ran else None
     if returncode == 0:
         status = "SURVIVED"
-    elif ran_line and LOAD_FAILURE not in text and EXPECTED[mid] in failed:
+    elif ran_line and LOAD_FAILURE not in text and set(_expected(mid)) <= set(failed):
         status = "KILLED"
     else:
         status = "BROKEN"
@@ -570,8 +597,9 @@ def main():
             "status": status,
             "exit": p.returncode,
             "ran_line": ran_line,
-            "expected": EXPECTED[mid],
+            "expected": _expected(mid),
             "failing_tests": failed,
+            "also_failed_not_expected": sorted(set(failed) - set(_expected(mid))),
         }
         print(mid, results[mid], flush=True)
     with open(OUT, "w") as f:
