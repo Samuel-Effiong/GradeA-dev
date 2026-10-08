@@ -1121,7 +1121,14 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
                 send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
-            if not user.email_verified_at:
+            # H-164: refused only when the account is also INACTIVE (a
+            # self-registered row, or an old-scheme pending student). An
+            # ACTIVE account that never verified its email is a student a
+            # teacher invited: it was created active with an emailed
+            # temporary password, and a student who lost that email needs
+            # this road. The reset itself proves the mailbox (see
+            # reset_password).
+            if not user.email_verified_at and not user.is_active:
                 raise ParseError("Email not verified.")
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
@@ -1322,7 +1329,19 @@ the plain rate limit (10 requests/hour per IP) does not.
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
+        # H-164: the code proves control of the mailbox exactly as the verify
+        # link does, so a successful reset stamps the email in the SAME save
+        # as the new password (never on the request, never on a wrong code).
+        # The new password replaces the temporary one an invited student was
+        # sent, so the flag that stood for it is cleared, as change_password
+        # does. The reset signs the student in, so it stamps last_login like
+        # every sign-in: otherwise a later add to another course would see
+        # "never signed in" and overwrite the password just chosen.
+        if not user.email_verified_at:
+            user.email_verified_at = timezone.now()
+        user.must_change_password = False
         user.save()
+        stamp_last_login(user)
 
         otp_obj.delete()
 
