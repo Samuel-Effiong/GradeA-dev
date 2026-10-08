@@ -265,7 +265,7 @@ class SwitchedOffRoadsTests(APITestCase):
         self.assertIsNotNone(user.activation_token)
         response = self.verify(user.email, user.activation_token)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         user.refresh_from_db()
         self.assertTrue(user.is_active)
         self.assertIsNotNone(user.email_verified_at)
@@ -284,7 +284,7 @@ class SwitchedOffRoadsTests(APITestCase):
 
         response = self.verify(admin.email, CODE)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         admin.refresh_from_db()
         self.assertTrue(admin.is_active)
 
@@ -301,7 +301,7 @@ class SwitchedOffRoadsTests(APITestCase):
 
         response = self.verify(student.email, CODE)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertIn("access", response.data)
         student.refresh_from_db()
         self.assertTrue(student.is_active)
