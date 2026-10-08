@@ -94,6 +94,14 @@ def tearDownModule():
         stub.stop()
 
 
+def roll_ups(callbacks):
+    """The licence roll-up callbacks among `callbacks`. A charge or a refund
+    registers other after-commit callbacks too (a cache or analytics hook), so
+    the tests count ONLY ours, by the function that `roll_up_after_commit`
+    registers."""
+    return [cb for cb in callbacks if "roll_up_after_commit" in cb.__qualname__]
+
+
 class LicensedTeacherFixture:
     """A teacher with an active seat under an active licence, a wallet and a
     live MONTHLY bucket. Mixed into a TestCase or a TransactionTestCase."""
@@ -192,7 +200,9 @@ class RollupAfterCommitTests(LicensedTeacherFixture, TestCase):
             self.assertEqual(
                 self.consumed(), 0, "the licence row was written inside the charge"
             )
-        self.assertEqual(len(callbacks), 1, "exactly one callback was registered")
+        self.assertEqual(
+            len(roll_ups(callbacks)), 1, "exactly one roll-up was registered"
+        )
         self.assertEqual(self.consumed(), 0, "written before the callback ran")
 
         for callback in callbacks:
@@ -230,7 +240,9 @@ class RollupAfterCommitTests(LicensedTeacherFixture, TestCase):
                 CHARGE,
                 "the licence row was written inside the refund",
             )
-        self.assertEqual(len(callbacks), 1, "exactly one callback was registered")
+        self.assertEqual(
+            len(roll_ups(callbacks)), 1, "exactly one roll-up was registered"
+        )
 
         for callback in callbacks:
             callback()
