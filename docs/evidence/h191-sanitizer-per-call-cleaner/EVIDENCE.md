@@ -175,8 +175,9 @@ assertion.
 - The task worker is not run in threads by its script; I did not check the
   running deployment.
 - The test relies on timing (a tiny switch interval and 8 threads); on the
-  cured code it was green 15 of 16 runs, and the one red was the deadline of
-  my own end-to-end test, shortened afterwards.
+  cured code the rate series were green 14 of 15 runs (plus the chain's step (a)
+  and the regression, once each), and the one red was the deadline of my own
+  end-to-end test, shortened afterwards.
 - Not run against a browser or a real model.
 
 ## The credential pattern
