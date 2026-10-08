@@ -35,4 +35,17 @@ clearing the flag does not undo a date still set; clearing both restores renewin
 
 ## Not shown by any run so far
 
-Everything: nothing has been run. And, even when run: how a real Stripe forms `cancel_at`, the order of Stripe's messages, what the customer sees on the real page.
+Step 1 has been run (Results below); step 3 (billing app) has not. Even after all steps: how a real Stripe forms `cancel_at`, the order of Stripe's messages, what the customer sees on the real page.
+
+## Results, step 1 (gate on 9f6b124213b5e7413c73403f15804e470f48d170, base 3f2ad13e; raw logs in this folder)
+
+Script run_h178_gate.sh c59b08493b140089, once, one outer inhibit, on the Release Engineer's GRANT. All as written. Times are from `date`.
+
+| Step | Time (WAT) | Result |
+|---|---|---|
+| 0 reproduce-first (old code) | 2026-10-08 17:38:43 | Ran 10, 5 red, exactly the five written (prefix_base_production_failing.txt) |
+| 1a makemigrations --check | 17:39:00 | no changes |
+| 1 new + related modules + guards | 17:39:03 to 17:41:05 | Ran 483, OK (modules_and_guards.txt) |
+| 2 mutants P1..P10 | 17:41:05 to 17:42:18 | 10 of 10 KILLED, expected-but-passed empty; SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN all empty (mutation_log.txt, mutation_results.json, mutant_logs/) |
+
+Load at the start of step 0 was 3.82, at the start of the modules run 4.06 (just over 4.0; the tests are not timing-based). Rule 20 not applicable (see above). Step 3 (billing app, serial) is not run.
