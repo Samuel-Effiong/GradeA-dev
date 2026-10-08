@@ -1265,7 +1265,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "enrollments",
                     queryset=StudentCourse.objects.exclude(
                         enrollment_status=EnrollmentStatusType.WITHDRAWN
-                    ).select_related("student"),
+                    )
+                    .select_related("student")
+                    .in_list_order(),
                     to_attr="active_enrollments",
                 ),
             )
