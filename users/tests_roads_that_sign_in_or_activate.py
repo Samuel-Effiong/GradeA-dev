@@ -141,7 +141,9 @@ def scan():
     found = Counter()
     for path in ROOT.rglob("*.py"):
         relative = path.relative_to(ROOT)
-        if SKIP_DIRS & set(relative.parts):
+        if SKIP_DIRS & set(relative.parts) or any(
+            part.startswith(".") for part in relative.parts[:-1]
+        ):
             continue
         name = path.name
         if (
