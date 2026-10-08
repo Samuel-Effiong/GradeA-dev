@@ -479,3 +479,15 @@ class SwitchingOffRevokesSessionsTests(APITestCase):
         self.admin_edit(self.person, ["is_active"])
 
         self.assertEqual(self.epoch(self.person), before)
+
+    def test_an_edit_of_an_already_inactive_user_that_leaves_is_active_alone_does_not_bump(
+        self,
+    ):
+        User.objects.filter(pk=self.person.pk).update(is_active=False)
+        self.person.refresh_from_db()
+        before = self.epoch(self.person)
+        self.person.first_name = "Renamed"
+
+        self.admin_edit(self.person, ["first_name"])
+
+        self.assertEqual(self.epoch(self.person), before)
