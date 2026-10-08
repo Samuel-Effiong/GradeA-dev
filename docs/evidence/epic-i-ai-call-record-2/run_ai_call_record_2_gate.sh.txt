@@ -1,0 +1,112 @@
+#!/bin/bash
+# AI-call record, slice 2. Usage: bash run_ai_call_record_2_gate.sh <tip> 1
+# One grant (6G), started inside ONE outer inhibit:
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# 0  the red run: the seven slice-2 test modules (as at the tip) against the code as at the tests-only commit $RED
+#    (the new modules and migrations taken away, the changed files taken back; own DB). Compared with what was written.
+# 1a makemigrations --check; 1b the seam (execute_graded_task identical to the slice-0 tip and to the base; slice C's
+#    test modules untouched); 1 the slice's modules + slice C and slice 0 pins + near modules + guards (incl. the cache
+#    test, rule 20); 2 the 35 mutants (rule 17; own DB, the one migration mutant last, DB dropped after).
+# The regression is 0b's one full run on the frozen tip; it is not in this script.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+TIP=$1; STEP=${2:-1}; RED=02b1ff20; BASE=75d82620; S0=2b54b7e1
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-i-ai-call-record-0-epic-i-ai-call-record-2 || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/epic-i-ai-call-record-2
+CAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0"
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+NEWFILES="ai_processor/reading_config.py ai_processor/reading_run.py students/reading_label.py students/migrations/0032_submission_answers_label.py students/migrations/0033_submission_answers_recheck_pair_check.py"
+CHANGED="ai_processor/services.py ai_processor/step_run.py students/models.py students/admin.py students/services.py students/step_label.py"
+restore_tree() { git checkout HEAD -- $CHANGED $NEWFILES 2>/dev/null; find ai_processor students -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+S2="ai_processor.tests_reading_config ai_processor.tests_reading_run ai_processor.tests_reading_pipeline ai_processor.tests_step_run_scope students.tests_reading_label_columns students.tests_reading_label_routes students.tests_reading_label_static"
+PIN="ai_processor.tests_vote_helper ai_processor.tests_step_run students.tests_step_label_words ai_processor.tests_grading_run_label ai_processor.tests_grading_run_pipeline ai_processor.tests_grading_run_checker students.tests_grading_label_written students.tests_grading_label_routes students.tests_grading_label_not_exposed students.tests_grading_label_migration students.tests_grading_label_fields students.tests_grading_label_end_to_end ai_processor.tests_grading_cache ai_processor.tests_grading_config"
+NEAR="ai_processor.tests_blank_verification ai_processor.tests_answer_extraction_gate ai_processor.tests_answer_completeness ai_processor.tests_answer_chunk_merge ai_processor.tests_chunked_extraction_contract ai_processor.tests_ai_call_trace ai_processor.tests_answer_benchmark_inputs ai_processor.tests_answer_benchmark_failures ai_processor.tests_answer_benchmark_scenarios ai_processor.tests_answer_benchmark_concurrency ai_processor.tests_answer_benchmark_grading students.tests_answers_unreadable students.tests_post_grading_submission_lock students.tests_student_upload_answer students.tests_raw_input_persistence students.tests_s6d_extraction_refund students.tests_async_edit_path students.tests_submission_concurrency students.tests_epic_a_submission_upload_audit students.tests_proxy_upload_attribution students.tests_upload_pipeline students.tests_missing_answer_review students.tests_batch_item_results students.tests_item_retry students.tests_app_boundaries assignments.tests_upload_batch_billing assignments.tests_upload_task_retry_policy billing.tests.test_execute_graded_task billing.tests.test_refusal_handling billing.tests.test_refusal_handling_gates"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_reason_codes AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_codederror_serialization AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard audit.tests_history_guard audit.tests_route_coverage audit.tests_sweep_beat_lock"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: the slice-2 modules against the code as at $RED (own DB) $(date +%T)"
+git checkout $RED -- $CHANGED
+rm -f $NEWFILES
+find ai_processor students -name __pycache__ -type d -prune -exec rm -rf {} +
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $S2" < /dev/null > $E/red_run_code_as_at_red_commit.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+# Written before the run: non-zero exit; no OK line; a Ran line; three modules fail to LOAD because the modules they
+# import do not exist yet (tests_reading_config, tests_reading_run, tests_reading_pipeline: reading_config, reading_run);
+# the other four load and fail, naming these tests: the enforced set, the six columns, the first upload's label,
+# the scope check on the provider call sites, the allowed pairs.
+RF=$E/red_run_code_as_at_red_commit.txt
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran [0-9]+ tests? in" $RF || { echo "red run: no Ran line"; RED_OK=0; }
+for S in tests_reading_config tests_reading_run tests_reading_pipeline; do
+    grep -qE "^ERROR: $S \(unittest.loader._FailedTest.$S\)$" $RF || { echo "red run: $S is not named in a load error"; RED_OK=0; }
+done
+LOADERR=$(grep -cE "^ERROR: [A-Za-z0-9_]+ \(unittest.loader._FailedTest" $RF)
+[ "$LOADERR" = 3 ] || { echo "red run: $LOADERR load errors (3 expected)"; RED_OK=0; }
+for T in test_in_slice_2_only_the_reading_is_enforced test_there_is_one_list_of_the_six_in_the_order_of_the_model test_a_first_upload_leaves_a_complete_label_in_the_one_insert test_slice_2_enforces_the_reading_and_only_it test_each_call_for_an_enforced_type_is_in_a_with_scope; do
+    grep -qE "^(FAIL|ERROR): $T " $RF || { echo "red run: $T is not among the failures"; RED_OK=0; }
+done
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED $NEWFILES
+    find ai_processor students -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: non-zero exit, no OK line, three modules failed to load, the five named tests failed"
+git checkout HEAD -- $CHANGED $NEWFILES
+find ai_processor students -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+grep -E "^(Ran |OK|FAILED \\()" $E/red_run_code_as_at_red_commit.txt | cut -c1-200
+dropmut
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam: execute_graded_task is identical to the base and to the slice-0 tip; slice C's tests are untouched"
+python - "$BASE" "$S0" > $E/seam_execute_graded_task.txt 2>&1 <<'PY'
+import ast, subprocess, sys
+def body(src):
+    tree = ast.parse(src)
+    for cls in tree.body:
+        if isinstance(cls, ast.ClassDef) and cls.name == "AIProcessor":
+            for fn in cls.body:
+                if isinstance(fn, ast.FunctionDef) and fn.name == "execute_graded_task":
+                    return ast.get_source_segment(src, fn)
+def show(ref):
+    return subprocess.run(["git", "show", f"{ref}:ai_processor/services.py"], capture_output=True, text=True, check=True).stdout
+now = open("ai_processor/services.py").read()
+mine = body(now)
+for ref in sys.argv[1:]:
+    other = body(show(ref))
+    print(ref, "identical" if other == mine else "DIFFERENT", len(other), len(mine))
+PY
+cat $E/seam_execute_graded_task.txt
+[ "$(grep -c identical $E/seam_execute_graded_task.txt)" = 2 ] || { echo "STOP: execute_graded_task changed"; exit 2; }
+git diff $S0 HEAD --stat -- ai_processor/tests_grading_run_label.py ai_processor/tests_grading_run_pipeline.py ai_processor/tests_grading_run_checker.py students/tests_grading_label_written.py students/tests_grading_label_routes.py students/tests_grading_label_not_exposed.py students/tests_grading_label_migration.py students/tests_grading_label_fields.py students/tests_grading_label_end_to_end.py > $E/slice_c_tests_diff.txt 2>&1
+echo "slice C tests diff bytes: $(wc -c < $E/slice_c_tests_diff.txt) (0 expected)"
+[ ! -s $E/slice_c_tests_diff.txt ] || { echo "STOP: slice C tests touched"; exit 2; }
+echo "=== 1. slice modules + pins + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $S2 $PIN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 35 (own DB, rules 17 and 18) $(date +%T)"
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 5400 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
