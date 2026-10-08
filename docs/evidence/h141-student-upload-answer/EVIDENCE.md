@@ -1,0 +1,261 @@
+# H-141: a student's own answer upload is answered with the student's serializer
+
+Author: Security Engineer (ed). Branch `task/h141-student-upload-answer`. Beta line, batch 12,
+after H-147. Verifier: Verifier 1. Severity LOW-MEDIUM (Senior Manager, 2026-10-07).
+
+**Everything down to the heading "Results" was written on 2026-10-07 at 11:24 WAT, before any
+run.** Nothing in it was observed in a run. What I read in the code is marked **[R]**; what I
+checked by calling a function directly, with no test run, is marked **[C]**.
+
+## What was wrong
+
+The student's own upload route (`students/views.py`, `upload_answers`, students only) answered
+201 with the teacher's `StudentSubmissionDetailSerializer`, built without the request, so none of
+that serializer's student branches could run. **[R]**
+
+My proposal of 2026-10-06 called this safe for the moment, because an upload is refused once the
+paper is graded. That holds for the score and the feedback. It does not hold for two things,
+which I found on 2026-10-07 while reading for this row (correction appended to
+`~/Documents/Projects/GAP-planning/H-141-staff-shaped-answers-proposal.md`):
+
+1. **A scheduled grading run.** A teacher can schedule a grading run for one paper
+   (`schedule_grade_async`), which writes the time and the task's name on the row. The paper is
+   not graded, so a student with attempts left (three are allowed) may upload again, and the
+   answer carried `scheduled_grading_at`, `grading_task_name` and `is_grading_scheduled: true`.
+   **[R]**
+2. **The state of grading.** After a grading run that failed, the row reads `FAILED` and stays
+   open; on a claim older than the staleness window it reads `RUNNING` and no longer blocks an
+   upload. The answer carried the state as stored. **[R]**
+
+Both are things H-133 hides on the student's list. H-133's listed claims stay true; Verifier 1's
+note N1 on H-133 names this gap. Not observed on a live or staging service; `main` not read.
+
+## What changes
+
+`students/serializers.py`:
+
+- A new `StudentUploadAnswerSerializer`. The same thirty keys as the teacher's serializer, in the
+  same order **[C]**. Fourteen are the student's own facts and keep their values: `id`,
+  `assignment`, `student`, the three names, `email`, `submission_status`, `remaining_attempts`,
+  `max_points`, `is_published`, `submission_date`, `raw_input`, `answers`. Sixteen are staff keys
+  and are constants, declared with a small field class `SentAs(value)` that does not read the
+  row's column: `score` null, `score_percentage` null, `was_regraded` false, `regraded_at` null,
+  `grade_status` "NOT GRADED", `formatted_grade` null, `grading_state` "IDLE", `needs_review`
+  false, `review_reasons` / `review_severity` / `review_tier` null, `second_opinion` null,
+  `question_breakdown` [], `scheduled_grading_at` / `grading_task_name` null,
+  `is_grading_scheduled` false.
+- `max_points` is the assignment's total (H-133's rule for a paper before release); `raw_input`
+  comes from `answer_document_for_student` (H-130's function).
+- Every serializer of a submission declares `audience`: "staff", "student" or "both". The list
+  serializer is "both" and names the methods that change its answer for a student.
+
+`students/views.py`: `upload_answers` builds the new serializer, with the context. The API
+description of the 201 answer names it.
+
+Because the answer does not read the grade's columns, it no longer depends on the refusal of an
+upload on a graded paper, nor on the request being passed.
+
+## What a page will see differently (for the frontend note)
+
+**One value: the upload answer's `score` is null until release (was 0.0 or "0.00").** The
+teacher's serializer sent the column's default, a zero: the number 0.0 on a first upload and the
+text "0.00" on a later one **[R]**. The student's other routes send null there before release.
+Ruled by the Senior Manager on 2026-10-07; the Release Engineer carries the line into batch 12's
+package under frontend changes. In fact the upload answer never carries a score at all, since an
+upload on a released paper is refused.
+
+And, only in the two cases this row closes: the three schedule keys are null / null / false and
+`grading_state` is "IDLE", where they showed a teacher's schedule or FAILED / RUNNING.
+
+Every other key and value of an ordinary upload's answer is unchanged **[R]**: for a paper nobody
+has graded or scheduled, the constants are the values the row has.
+
+## The guards
+
+- New: `AutoGrader/tests_submission_audience_guard.py`. Rule 1: every serializer of
+  `StudentSubmission` in `students/serializers.py` declares its audience. Rule 2: every action of
+  the submissions view is named with who can call it (checked against the view's
+  `get_permissions`) and which submission serializers its source builds. Rule 3: an action a
+  student can call builds a "staff" serializer only in the `else` of a test for a student caller,
+  and gives every serializer a `context=`. Rule 4: `get_serializer` gives a student no "staff"
+  serializer on list and retrieve. Its own docstring lists what it does not show (other views;
+  hand-built dictionaries; a serializer built in a helper; that the context holds the request).
+  I checked its table against the code by calling its helper functions directly: on b4a3b70e
+  every action matched but `upload_answers`; with the fix all match **[C]**.
+- H-127's guard (`AutoGrader/tests_student_feedback_guard.py`): the new serializer lists five
+  guarded columns as keys, so it is named in `SERIALIZERS`, and a new test holds that each of
+  them, and the state and schedule keys, is a `SentAs` constant with the agreed value.
+- H-130's census (`students/tests_answer_document_before_release.py`, d5's file): the new
+  serializer carries `raw_input`, so it is named in `READERS_OF_THE_DOCUMENT` as a student's; the
+  teacher's serializer's entry no longer says the upload route answers with it; one docstring is
+  brought up to date. No assertion of that file is changed.
+
+## What it does NOT claim
+
+- Other views. The guard covers the submissions view only. Assignments and classrooms have their
+  own rows (H-147 for the course answer).
+- The queued upload and the queued edit: they answer with task ids, not a submission **[R]**.
+- The edit route (`partial_update`): it answers with the list serializer, with the request; H-127
+  and H-133 cover what that hides. Unchanged here.
+- `remaining_attempts` still drops to 0 at grading (the founder's choice A, H-133). In the upload
+  answer that can only be seen if the refusal is taken out, as one test does.
+- The teacher's serializer keeps its old student branches. They are not removed here: the
+  teacher's routes do not need them, but removing them is a change to a file many tests read, and
+  not this row's.
+- Nothing was observed on a live or staging service. The frontend was not read.
+
+## Tests
+
+`students/tests_student_upload_answer.py`, 15 tests, through the real route; only the file
+reading and the AI call are replaced.
+
+- A first upload: the thirty keys; the own facts; the document equals the student's page; every
+  staff key the constant; the assignment's total.
+- A later upload on an ungraded paper: after the teacher's real scheduling route; after the real
+  function that marks a failed run; with a stale claim; the whole answer compared with a first
+  upload's (only the upload's own facts may differ); every staff key the constant, `score` null.
+- With the refusal taken out and the upload engine handing the route a paper graded by the real
+  grade save (with a missing answer, a second opinion, a formatted grade, a regrade and a
+  schedule on the row): every staff key the constant; the assignment's total, not the grader's;
+  the document a submitted paper has; and the whole answer before and after grading differs in
+  `remaining_attempts` only.
+- The teacher's page of a graded paper: the same thirty keys, real values.
+
+Committed first, tests only, at f32b316f (14 of these 15 and the audience guard). Added with the
+fix: the later-upload constants test (the Senior Manager's condition for `score`), and the test
+in H-127's guard.
+
+## Written before the runs
+
+Gate script: `~/Documents/Projects/GAP-ed-scripts/run_h141_gate.sh` (sha256 starts
+6567ca5f2dae458b when this was written), step 1.
+
+**0. Reproduce-first** (the new module and the two guards, on the production files as at the
+base): Ran 48, FAILED, **18 red** (failures or errors), and exactly these:
+
+- `students.tests_student_upload_answer` (10 of 15): `test_every_staff_field_is_the_constant`;
+  `test_a_scheduled_grading_run_is_not_shown`; `test_a_failed_grading_run_is_not_shown`;
+  `test_a_grading_claim_too_old_to_block_the_upload_is_not_shown`;
+  `test_it_answers_as_a_first_upload_does_but_for_the_uploads_own_facts`;
+  `test_every_staff_field_is_the_constant_on_a_later_upload_too`; and the four of
+  `OnlyTheAnswerProtectsTest`. Green there: the keys, the own facts, the document and the page,
+  the assignment's total on a first upload, the teacher's page.
+- `AutoGrader.tests_submission_audience_guard` (6 of 17): rule 1 "says who it is for" and "for
+  whom this guard was told"; rule 2 "builds the serializers named and no other"; both of rule 3;
+  rule 4. Green there: the six scanner self-tests, the census, rule 2's other three, and rule 1's
+  "for both names where a student is answered" (which checks nothing until a serializer says
+  "both").
+- `AutoGrader.tests_student_feedback_guard` (2 of 16): the new
+  `test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant` (it cannot import
+  `SentAs`), and `test_the_scan_covered_the_repository` (a serializer named in its table does not
+  exist yet).
+
+**1a.** `makemigrations --check`: no changes.
+
+**1. Modules and guards at the tip**: OK. No count written: the related modules' sizes are not
+known to me by reading.
+
+**2. Mutants**: 32, each KILLED with at least the tests `mutate.py` names for it
+(`python docs/evidence/h141-student-upload-answer/mutate.py --check` passes: anchors unique, all
+parse). In groups: the route back to the teacher's serializer, and the route without a context;
+each of the sixteen staff keys given back the row's value or a wrong constant, one at a time;
+the maximum and the document read from the row; a key dropped; four on the audience
+declarations; two on the view's permissions; a new unclassified action; PUT routed; the
+teacher's maximum.
+
+**3. Regression** (students, assignments, serial; own grant): OK.
+
+Rule 19, as it should stand after these runs: of the 15 route tests, 10 red in step 0; the other
+five each under a mutant (keys and own facts: K1; the document and the page: O3; the first
+upload's total: O4; the teacher's page: T1). Of the audience guard's 17: six red in step 0; rule
+1's "both" test under A3 and A4, rule 2's "named" under N1, "PUT" under H1, "who can call" under
+P1 and P2. **Never seen red, and not claimed as evidence:** the six scanner self-tests and the
+census test of the audience guard. H-127's new guard test: red in step 0 and under nine mutants.
+
+## Added 2026-10-07 11:38 WAT, still before any run: rule 20 (the cache tests)
+
+New team rule 20 (Senior Manager, 2026-10-07): a change to what a serializer or a cached route
+returns runs the AutoGrader app's cache tests with its gate. This row changes what one route
+returns, the upload's 201 answer, which is not cached; the serializers that cached routes use
+are changed only by a class attribute (`audience`). Added to step 1 of `run_h141_gate.sh`
+(sha256 now starts 7aff28f69409a90e): `AutoGrader.tests_cache_bespoke_1114` (its family 12 is the
+submission's detail page) and the three other AutoGrader cache modules that read a submission
+route: `tests_cache_user_fanout`, `tests_cache_matrix_tenant_isolation`,
+`tests_cache_matrix_concurrency`. Not added: `tests_cache_matrix_measurement` (a measurement).
+Expected: OK; I expect no effect of this row on them at all.
+
+## Not done
+
+Nothing run. No frontend read. `main` not read for the same route.
+
+## Results
+
+### The gate at c7ad6482 (0b's GRANT, 2026-10-07 13:33 WAT)
+
+c7ad6482 is this branch's 09829938 and 0b's base update onto the pushed batch 11 (beta
+d7143538). One run of `run_h141_gate.sh c7ad6482 1 d7143538` (script sha256 starts
+f89dd5da0bc5c45e: the 7aff28f6 of the section above plus one guard module 0b named for every
+gate, `AutoGrader.tests_migration_safety_check`). 13:33:54 to 13:47:03. It ran beside the
+Hardening Engineer's H-154 chain; load 1.57 at the start, 4.33 at the start of part 1, 7.64 at
+its end, 6.79 at the end. Not stopped, not repeated.
+
+| Part | Written before | Found | Log |
+|---|---|---|---|
+| 0. Reproduce-first, on the base's production files | Ran 48; 18 red: 10 + 6 + 2, named above | **Ran 48 tests in 3.110s, FAILED (failures=31, errors=1)**: 32 lines (sub-tests counted singly), **17 distinct tests: 10 + 5 + 2. One fewer than written; see below.** | `prefix_base_production_failing_c7ad6482.txt.gz` |
+| 1a. makemigrations --check | no changes | no changes | `makemigrations_check_c7ad6482.txt` |
+| 1. Modules and guards at the tip | OK | **Ran 538 tests in 292.155s, OK** (no skip) | `modules_and_guards_c7ad6482.txt.gz` |
+| 2. Mutants | 32 KILLED with their named tests | **32 of 32 KILLED**: each exit 1, its own "Ran 48", every expected test among the failed (`expected-but-passed []` thirty-two times); SURVIVED, KILLED_NOT_AS_EXPECTED, BROKEN empty. Source clean after. | `mutation_log_c7ad6482.txt`, `mutation_results_c7ad6482.json`, `mutant_logs_c7ad6482/` |
+
+The run's console is `gate_console_c7ad6482.txt.gz`.
+
+**The difference in part 0, and its cause (written 2026-10-07 13:48 WAT; the expectation above
+is left as it was written).** I wrote that six tests of the audience guard would be red on the
+base's production files, "both of rule 3" among them. Five were. The one that was green:
+`test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch`. It only looks at
+serializers that SAY they are for staff, and on the base no serializer says who it is for, so
+there it checked nothing. The prediction was wrong; I had not read the test against the base
+when I wrote it. No test was red that I had not named. I reported the difference to the Release
+Engineer and the Senior Manager at 13:41, while part 2 ran; the script had gone on by itself.
+The Senior Manager ruled the same hour: the run goes on; that test counts as evidence only if a
+mutant's own log shows it failing by name; my gate scripts are to halt at part 0 when the red
+set differs from the written one (owed before the grants of the rows that follow; this run
+had no such halt).
+
+It was then seen red, twice, in this run: under `V1` (the route answers with the teacher's
+serializer again: "Ran 48 tests in 7.849s", "FAILED (failures=20)") and under `A1` (the upload
+serializer says "staff": "Ran 48 tests in 4.017s", "FAILED (failures=2)"), named in the FAIL
+lines of both logs.
+
+Rule 20's cache modules were in part 1 and are green.
+
+Rule 19, counted from these records (the part 0 log and `mutation_results_c7ad6482.json`):
+
+- `students.tests_student_upload_answer`, 15 tests: 10 red in part 0, the other 5 under a mutant.
+  All 15 seen red.
+- `AutoGrader.tests_submission_audience_guard`, 17 tests: 5 red in part 0, 5 more under a mutant
+  (the rule 3 test above among them). **Never seen red, and not claimed as evidence: 7**: the six
+  self-tests of the scanner (`ScannerSelfTest`) and `test_the_census_found_the_serializers`. No
+  mutant of mine breaks the scanner itself or hides a serializer from the census. I say so and
+  leave it to the verifier whether a probe is wanted.
+- `AutoGrader.tests_student_feedback_guard` (H-127's guard, 16 tests, two touched by this row):
+  the new `test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant` and
+  `test_the_scan_covered_the_repository` were red in part 0. Its other 14 tests are not this
+  row's and were not red here; nothing is claimed from them.
+
+Still owed as this is committed: the regression (students and assignments), on its own grant.
+
+### The regression at 2148c8ae (0b's GRANT, 2026-10-07 14:42:38 WAT)
+
+2148c8ae is the gated tip plus the docs-only results commit above it; no code or test differs. One
+run of `run_h141_gate.sh 2148c8ae 3 d7143538` (script sha256 starts f89dd5da0bc5c45e): students and assignments, serial, in 0b's quiet window, alone among
+this team's runs. 14:49:05 to 14:52:56, exit 0. Not stopped, not repeated.
+
+| Written before | Found | Log |
+|---|---|---|
+| OK | **Ran 1045 tests in 211.986s, OK (skipped=14)** | `regression_2148c8ae.txt.gz`; console `regression_console_2148c8ae.txt` |
+
+The skips, in their own words: eight 'load tests are opt-in: set RUN_LOAD_TESTS=1', one 'set RUN_LOAD_TESTS=1 to build the 6,000-student school', five 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'. None is for want of a browser.
+
+One-minute load 2.10 at the start, 3.87 at the end. It started six minutes after its grant through my fault: my wait on the run before it never returned (it matched its own command line).
+
+Written 14:54 WAT. Nothing is owed on this row by me now but the hand-over to Verifier 1.

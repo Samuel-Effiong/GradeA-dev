@@ -71,6 +71,22 @@ MAX_FORMATTED_GRADE_CHARACTERS = 500_000
 #: The fields of the grading summary that a student is shown.
 STUDENT_SUMMARY_FIELDS = ("total_score", "max_total_points", "percentage")
 
+#: --- What the feedback formatter is sent of the arithmetic note ---
+#: (H-154) A note that says anything but PASS means the AI's reply was
+#: corrected before the sum: a repeated or stray evaluation was left out.
+#: That is for the teacher's review queue. The formatter words the result
+#: for the student and can restate what it is sent, so of such a note it
+#: gets the arithmetic and nothing else. A PASS note is sent whole, as
+#: before.
+VERIFICATION_NOTE = "score_calculation_verification"
+VERIFICATION_PASSED = "PASS"
+FORMATTER_VERIFICATION_FIELDS = (
+    "individual_scores",
+    "manual_sum",
+    "calculation_notes",
+    "snapped_to_rubric_level_count",
+)
+
 
 def _is_plain(value):
     """Text, a number, true or false, or nothing."""
@@ -148,7 +164,9 @@ def student_safe_feedback(feedback):
 
 def grading_result_for_formatter(grading):
     """The saved grading result as the feedback formatter is sent it:
-    everything except the second-opinion block.
+    everything except the second-opinion block and, when the AI's reply
+    was corrected, what the arithmetic note says of the correction
+    (FORMATTER_VERIFICATION_FIELDS).
 
     The formatter is an AI call that words the result for the student. The
     second opinion is the second grader's marks and reasons and, when it
@@ -158,7 +176,18 @@ def grading_result_for_formatter(grading):
     passed on as it is, as before."""
     if not isinstance(grading, dict):
         return grading
-    return {key: value for key, value in grading.items() if key != "second_opinion"}
+    sent = {key: value for key, value in grading.items() if key != "second_opinion"}
+    note = sent.get(VERIFICATION_NOTE)
+    if isinstance(note, dict) and note.get("verification_status") not in (
+        None,
+        VERIFICATION_PASSED,
+    ):
+        sent[VERIFICATION_NOTE] = {
+            key: value
+            for key, value in note.items()
+            if key in FORMATTER_VERIFICATION_FIELDS
+        }
+    return sent
 
 
 def student_safe_formatted_grade(stored):

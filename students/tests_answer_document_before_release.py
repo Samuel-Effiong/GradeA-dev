@@ -344,10 +344,13 @@ class TheCachedResponse(AnswerDocumentBase):
 
 
 class TheUploadRoutesOwnAnswer(AnswerDocumentBase):
-    """The student's own upload route answers with the STAFF serializer,
-    stored document and all (students/views.py, upload_answers). That is
+    """The student's own upload route (students/views.py, upload_answers).
+    It used to answer with the STAFF serializer, stored document and all,
     safe only because the upload refuses a row that is graded or being
-    graded before any answer is built. These two tests hold that."""
+    graded. Since H-141 it answers with a serializer of its own, whose
+    document comes from answer_document_for_student. These two tests hold
+    what they held: the first answer is the submitted document, and a
+    refused upload carries none."""
 
     def upload(self, assignment):
         self.client.force_authenticate(self.student)
@@ -423,11 +426,8 @@ class TheUploadRoutesOwnAnswer(AnswerDocumentBase):
 #: receive it. A new one must be added here, which is the point: whoever
 #: adds it has to say whether a student can receive it. Each line was read
 #: from the routes in students/views.py (2026-10-06), not assumed.
-STAFF_AND_THE_UPLOAD_ANSWER = (
-    "staff (retrieve, grade, feedback, release); AND the student's own "
-    "upload route answers with it, for a row the upload has just refused "
-    "to accept if it is graded or being graded (TheUploadRoutesOwnAnswer)"
-)
+# H-141: the student's upload route no longer answers with this one.
+STAFF = "staff (retrieve, grade, feedback, release)"
 STUDENT = "a student reads it: the document comes from answer_document_for_student"
 BUILT_BY_NO_ROUTE = (
     "no route builds a response from it today: it is named in schema "
@@ -436,8 +436,9 @@ BUILT_BY_NO_ROUTE = (
 READERS_OF_THE_DOCUMENT = {
     "StudentSubmissionSerializer": BUILT_BY_NO_ROUTE,
     "StudentSubmissionUpdateSerializer": BUILT_BY_NO_ROUTE,
-    "StudentSubmissionDetailSerializer": STAFF_AND_THE_UPLOAD_ANSWER,
+    "StudentSubmissionDetailSerializer": STAFF,
     "StudentSubmissionDetailStudentVersionSerializer": STUDENT,
+    "StudentUploadAnswerSerializer": STUDENT,
 }
 
 

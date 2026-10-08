@@ -1,0 +1,23 @@
+baseline exit=0
+U1	a value that is not a list is refused, not walked	KILLED	FAILED (errors=6)	True	6.4
+U2	the fixed line is printed when something was left out	KILLED	FAILED (failures=13)	True	9.2
+U3	which of the two lines is printed	KILLED	FAILED (failures=13)	True	8.8
+U4	a paper with nothing printable is refused before any paid call	KILLED	FAILED (failures=13)	True	8.1
+U5	ONLY a paper with nothing printable is refused	KILLED	FAILED (errors=4)	True	8.2
+U6	the refusal puts the paper in the review queue	KILLED	FAILED (failures=2)	True	8.1
+U7	a second refusal does not add the reason a second time	KILLED	FAILED (failures=1)	True	7.8
+U8	the refusal's tier is critical	KILLED	FAILED (failures=1)	True	7.8
+U9	grading a paper with some left out adds the reason	KILLED	FAILED (failures=2)	True	7.7
+U10	grading such a paper logs one line	KILLED	FAILED (failures=1)	True	7.9
+U11	the read that stores a rebuilt document logs one line	KILLED	FAILED (failures=1)	True	8.1
+U12	the log line carries the kind of value, not the value	KILLED	FAILED (failures=2)	True	7.9
+U13	the upload refuses a list that is not all objects	KILLED	FAILED (failures=3)	True	8.0
+U14	the edit refuses a list that is not all objects	KILLED	FAILED (failures=4)	True	7.1
+U15	the refusal is an error shown to the teacher as written	KILLED	FAILED (failures=2)	True	7.6
+U16	grading's reason is critical	KILLED	FAILED (failures=1)	True	7.9
+U17	an empty value leaves nothing out	KILLED	FAILED (failures=9)	True	7.9
+U18	an ordinary paper's document has no such line	KILLED	FAILED (failures=5)	True	8.0
+U19	the line is fixed text: nothing of the stored value is printed	KILLED	FAILED (failures=8)	True	7.7
+
+19/19 killed with verified restore
+exit=0 wall_s=172

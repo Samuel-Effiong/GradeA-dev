@@ -60,6 +60,19 @@ class TaskCancelledError(Exception):
     pass
 
 
+class SubmissionAnswersUnreadableError(Exception):
+    """
+    The submission's stored answers hold nothing the system can read (H-165:
+    a value that is not a list of objects), so it is not sent for grading:
+    no paid call, no charge. Raised by students.services.grade_engine,
+    which puts the paper in the teacher's review queue first. The way
+    round is readable answers: a new upload, or the edit by text.
+    User-facing: AutoGrader.error_messages passes the message through.
+    """
+
+    code = "submission_answers_unreadable"
+
+
 class SubmissionGradingInProgressError(Exception):
     """
     Raised when grade_engine can't acquire the grading claim on a

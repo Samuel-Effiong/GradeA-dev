@@ -11,7 +11,10 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
-from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from assignments.serializers import (
+    AssignmentListSerializer,
+    AssignmentListStudentSerializer,
+)
 from assignments.services import get_student_assignment_status
 from AutoGrader.tasks import send_email_task
 from billing.context import (
@@ -65,6 +68,18 @@ class SessionSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
         ]
+
+    #: H-147: what a student is sent in place of the ids of the school
+    #: that owns a session and of the staff account that created it.
+    STUDENT_FIELD_VALUES = {"school": None, "created_by": None}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if getattr(user, "user_type", None) == UserTypes.STUDENT:
+            data.update(self.STUDENT_FIELD_VALUES)
+        return data
 
 
 class TopicSerializer(serializers.ModelSerializer):
@@ -219,6 +234,9 @@ class CourseSerializer(serializers.ModelSerializer):
         return course
 
     def get_student_count(self, obj) -> int:
+        # H-147: a student is sent this too. The founder's representative
+        # allowed the size of the class, as a bare number, and nothing else
+        # about classmates (2026-10-06).
         if hasattr(obj, "student_count"):
             return obj.student_count
 
@@ -255,6 +273,14 @@ class CourseSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(AssignmentListSerializer(many=True))
     def get_assignments(self, obj):
+        if self._requesting_student() is not None:
+            # H-147: the student's own view of each assignment, the shape
+            # the assignment list route gives them. The teacher's list
+            # carries `submission_count` (how many classmates have handed
+            # in) and the scheduling of a grading run (H-133's rule).
+            return AssignmentListStudentSerializer(
+                many=True, context=self.context
+            ).to_representation(self._visible_assignments(obj))
         return AssignmentListSerializer(
             many=True, context=self.context
         ).to_representation(self._visible_assignments(obj))
@@ -276,6 +302,10 @@ class CourseSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
+        viewer = self._requesting_student()
+        if viewer is not None:
+            return self._own_entry(obj, viewer)
+
         if hasattr(obj, "active_enrollments"):
             enrolled_students = [
                 enrollment.student for enrollment in obj.active_enrollments
@@ -305,16 +335,30 @@ class CourseSerializer(serializers.ModelSerializer):
             context={"course": obj, "enrollment_status_by_student": status_by_student},
         )
 
-        data = serializer.data
-        viewer = self._requesting_student()
-        if viewer is not None:
-            # A student may see who their classmates are, never how to
-            # email them. Their own address stays: it is their own data.
-            for student, entry in zip(enrolled_students, data, strict=True):
-                if student.pk != viewer.pk:
-                    entry["email"] = None
+        return serializer.data
 
-        return data
+    def _own_entry(self, obj, viewer):
+        """H-147: a student sees nothing of their classmates. Their roster
+        is their own entry and no other: built from the one enrolment that
+        is theirs, not from the roster with the others taken out."""
+        if hasattr(obj, "active_enrollments"):
+            own = [e for e in obj.active_enrollments if e.student_id == viewer.pk]
+        else:
+            own = list(
+                obj.enrollments.exclude(
+                    enrollment_status=EnrollmentStatusType.WITHDRAWN
+                ).filter(student=viewer)
+            )
+        return StudentSerializer(
+            [e.student for e in own],
+            many=True,
+            context={
+                "course": obj,
+                "enrollment_status_by_student": {
+                    e.student_id: e.enrollment_status for e in own
+                },
+            },
+        ).data
 
 
 class StudentCourseSerializer(serializers.ModelSerializer):

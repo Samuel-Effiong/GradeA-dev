@@ -1,0 +1,504 @@
+tree search at 51c78a72, started 2026-10-07 16:32:32
+test files searched: 414
+
+## a fixture whose answers are a non-empty object, a string or a list of non-objects
+pattern: answers=\{"|answers=\{'|answers="|answers='|answers=\["|answers=\['|"answers": \{"|"answers": "|"answers": \["
+files with a hit (count per file):
+        1 assignments/tests_extraction_service.py
+        1 assignments/tests.py
+        1 assignments/tests_student_assignment_status.py
+        1 dashboard/tests_dashboard_audit_fixes.py
+        1 dashboard/tests_dashboard_remediation.py
+       19 dashboard/tests.py
+        1 dashboard/tests_real_ai_chat.py
+        2 dashboard/tests_rigor.py
+        1 students/tests_async_edit_path.py
+        3 students/tests.py
+        1 students/tests_task_tracking.py
+        1 users/tests_remediate_student123.py
+lines:
+  assignments/tests.py:630:            answers={"q1": "done"},
+  assignments/tests_extraction_service.py:412:            assignment=self.assignment, student=student, answers={"q1": "a"}
+  assignments/tests_student_assignment_status.py:65:        answers={"q1": "a"},
+  dashboard/tests.py:286:            answers={"q1": "a"},
+  dashboard/tests.py:294:            answers={"q1": "b"},
+  dashboard/tests.py:302:            answers={"q1": "c"},
+  dashboard/tests.py:311:            answers={"q1": "a"},
+  dashboard/tests.py:320:            answers={"q1": "a"},
+  dashboard/tests.py:328:            answers={"q1": "b"},
+  dashboard/tests.py:336:            answers={"q1": "c"},
+  dashboard/tests.py:440:                answers={"q1": "done"},
+  dashboard/tests.py:561:            answers={"q1": "a"},
+  dashboard/tests.py:570:            answers={"q1": "a"},
+  dashboard/tests.py:744:            answers={"q1": "a"},
+  dashboard/tests.py:1379:            answers={"q1": "a"},
+  dashboard/tests.py:1428:            answers={"q1": "a"},
+  dashboard/tests.py:1621:            answers={"q1": "a"},
+  dashboard/tests.py:1638:            answers={"q1": "a"},
+  dashboard/tests.py:1714:            answers={"q1": "a"},
+  dashboard/tests.py:1810:                answers={"q1": "a"},
+  dashboard/tests.py:1905:                answers={"q1": "a"},
+  dashboard/tests.py:1995:                answers={"q1": "a"},
+  dashboard/tests_dashboard_audit_fixes.py:93:        answers={"q1": "x"},
+  dashboard/tests_dashboard_remediation.py:126:            answers={"q1": "a"},
+  dashboard/tests_real_ai_chat.py:185:                        answers={"q1": "a"},
+  dashboard/tests_rigor.py:111:            answers={"q1": "a"},
+  dashboard/tests_rigor.py:326:                answers={"q1": "a"},
+  students/tests.py:166:            answers={"q1": "2"},
+  students/tests.py:256:            answers={"q1": "2"},
+  students/tests.py:476:            answers={"q1": "2"},
+  students/tests_async_edit_path.py:400:            return {"answers": "not a list"}
+  students/tests_task_tracking.py:199:            assignment=assignment, student=self.student, answers={"q1": "answer"}
+  users/tests_remediate_student123.py:90:                answers={"q": "a"},
+
+## the document builder called or patched
+pattern: student_submission_to_html
+files with a hit (count per file):
+        1 students/tests_answer_document_before_release.py
+        9 students/tests_answers_unreadable.py
+       11 students/tests_raw_input_persistence.py
+        2 students/tests_submission_concurrency.py
+lines:
+  students/tests_answer_document_before_release.py:6:`raw_input` is the answer document, built by `student_submission_to_html`.
+  students/tests_answers_unreadable.py:4:answer document builder, `student_submission_to_html`, walked it as a
+  students/tests_answers_unreadable.py:44:from students.services import student_submission_to_html, upload_answers_engine
+  students/tests_answers_unreadable.py:130:        graded = student_submission_to_html(fixed_row(self.ORDINARY))
+  students/tests_answers_unreadable.py:131:        ungraded = student_submission_to_html(
+  students/tests_answers_unreadable.py:143:                    sha256(student_submission_to_html(fixed_row(value))),
+  students/tests_answers_unreadable.py:158:                html = student_submission_to_html(fixed_row(value))
+  students/tests_answers_unreadable.py:166:        html = student_submission_to_html(fixed_row(MIXED))
+  students/tests_answers_unreadable.py:174:        graded = student_submission_to_html(fixed_row({"q1": TELLTALE}))
+  students/tests_answers_unreadable.py:175:        ungraded = student_submission_to_html(
+  students/tests_raw_input_persistence.py:11:- student_submission_to_html() interpolated `question_text` and `answer_html`
+  students/tests_raw_input_persistence.py:29:from students.services import student_submission_to_html
+  students/tests_raw_input_persistence.py:69:        html = student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:98:            student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:120:        html = student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:133:            student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:150:        html = student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:157:        html = student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:175:                student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:195:            student_submission_to_html(submission)
+  students/tests_raw_input_persistence.py:204:        html = student_submission_to_html(submission)
+  students/tests_submission_concurrency.py:165:        original_render = services.student_submission_to_html
+  students/tests_submission_concurrency.py:186:            "students.services.student_submission_to_html", render_after_rendezvous
+
+## grading's entry point or its save called or patched
+pattern: grade_engine\(|_populate_and_save_grade|students\.services\.grade_engine|views\.grade_engine
+files with a hit (count per file):
+        4 ai_processor/tests_answer_benchmark_grading.py
+        3 ai_processor/tests_objective_pipeline.py
+        2 billing/tests/test_grading_refund_scope.py
+        4 classrooms/tests_final_grade_zero_score.py
+        4 classrooms/tests_recalculate_final_grades.py
+        1 dashboard/tests_cache_matrix_status_summary.py
+        2 students/tests_ai_reply_corrected_review.py
+        4 students/tests_answers_unreadable.py
+        1 students/tests_app_boundaries.py
+        2 students/tests_broker_outage.py
+        1 students/tests_formatter_input.py
+        1 students/tests_grading_duration_migration.py
+        3 students/tests_grading_followup_dispatch.py
+        6 students/tests_grading_idempotency.py
+        5 students/tests_missing_answer_review.py
+        3 students/tests_no_grade_tell_before_release.py
+        1 students/tests_post_grading_submission_lock.py
+        2 students/tests.py
+        1 students/tests_second_opinion_queue.py
+        2 students/tests_student_upload_answer.py
+        1 students/tests_submission_concurrency.py
+lines:
+  ai_processor/tests_answer_benchmark_grading.py:13:      -> _populate_and_save_grade (the submission row and its review flags)
+  ai_processor/tests_answer_benchmark_grading.py:24:_populate_and_save_grade from those. A regression anywhere in that chain -
+  ai_processor/tests_answer_benchmark_grading.py:48:from students.services import _populate_and_save_grade
+  ai_processor/tests_answer_benchmark_grading.py:177:        _populate_and_save_grade(submission, grading, None)
+  ai_processor/tests_objective_pipeline.py:16:- End-to-end through students.services.grade_engine: the grade persists,
+  ai_processor/tests_objective_pipeline.py:492:    """Through students.services.grade_engine with a real submission row:
+  ai_processor/tests_objective_pipeline.py:533:        result = grade_engine(self.teacher, self.submission)
+  billing/tests/test_grading_refund_scope.py:143:            return grade_engine(self.teacher, self.submission)
+  billing/tests/test_grading_refund_scope.py:190:                grade_engine(self.teacher, self.submission)
+  classrooms/tests_final_grade_zero_score.py:12:  * the AI grading persist step (`_populate_and_save_grade`);
+  classrooms/tests_final_grade_zero_score.py:37:from students.services import _populate_and_save_grade
+  classrooms/tests_final_grade_zero_score.py:55:    """The shape AIProcessor returns and `_populate_and_save_grade` persists."""
+  classrooms/tests_final_grade_zero_score.py:113:        _populate_and_save_grade(submission, grading_result(score, max_points), None)
+  classrooms/tests_recalculate_final_grades.py:29:from students.services import _populate_and_save_grade
+  classrooms/tests_recalculate_final_grades.py:88:            _populate_and_save_grade(submission, grading_result(score, points), None)
+  classrooms/tests_recalculate_final_grades.py:149:        _populate_and_save_grade(submission, grading_result(7, 10), None)
+  classrooms/tests_recalculate_final_grades.py:202:        _populate_and_save_grade(submission, grading_result(6, 10), None)
+  dashboard/tests_cache_matrix_status_summary.py:219:        # writes (students/services.py `_populate_and_save_grade`).
+  students/tests.py:280:    @patch("students.views.grade_engine")
+  students/tests.py:289:    @patch("students.views.grade_engine")
+  students/tests_ai_reply_corrected_review.py:28:from students.services import _populate_and_save_grade
+  students/tests_ai_reply_corrected_review.py:98:        _populate_and_save_grade(self.submission, grading, None)
+  students/tests_answers_unreadable.py:225:                services.grade_engine(self.teacher, self.row())
+  students/tests_answers_unreadable.py:360:            services.grade_engine(self.teacher, self.row())
+  students/tests_answers_unreadable.py:435:            services.grade_engine(self.teacher, self.row())
+  students/tests_answers_unreadable.py:452:        services._populate_and_save_grade(self.submission, result, None)
+  students/tests_app_boundaries.py:108:            grade_engine(self.teacher, self.submission)
+  students/tests_broker_outage.py:77:    @patch("students.views.grade_engine_async")
+  students/tests_broker_outage.py:102:    @patch("students.views.grade_engine_async")
+  students/tests_formatter_input.py:163:        grade_engine(self.teacher, self.submission)
+  students/tests_grading_duration_migration.py:261:        grade_engine(self.teacher, fresh)
+  students/tests_grading_followup_dispatch.py:107:        grade_engine(self.teacher, self.submission)
+  students/tests_grading_followup_dispatch.py:144:            grade_engine(
+  students/tests_grading_followup_dispatch.py:162:            grade_engine(self.teacher, self.submission)
+  students/tests_grading_idempotency.py:199:            grade_engine(teacher, submission)
+  students/tests_grading_idempotency.py:210:        result = grade_engine(teacher, submission)
+  students/tests_grading_idempotency.py:224:            grade_engine(teacher, submission)
+  students/tests_grading_idempotency.py:238:        result = grade_engine(teacher, submission)
+  students/tests_grading_idempotency.py:254:        result = grade_engine(teacher, submission)
+  students/tests_grading_idempotency.py:301:    @patch("students.views.grade_engine")
+  students/tests_missing_answer_review.py:2:The missing-answer review flag: _populate_and_save_grade's newest source.
+  students/tests_missing_answer_review.py:28:from students.services import _populate_and_save_grade, _review_sort_key
+  students/tests_missing_answer_review.py:113:        _populate_and_save_grade(self.submission, result, None)
+  students/tests_missing_answer_review.py:234:    because _populate_and_save_grade makes no billed calls. If that ever
+  students/tests_missing_answer_review.py:262:            _populate_and_save_grade(submission, grading(not_found=MISSING), None)
+  students/tests_no_grade_tell_before_release.py:58:from students.services import MAX_STUDENT_SUBMISSION_ATTEMPTS, _populate_and_save_grade
+  students/tests_no_grade_tell_before_release.py:628:    REAL grade save (`_populate_and_save_grade`, which every AI grading
+  students/tests_no_grade_tell_before_release.py:677:        _populate_and_save_grade(
+  students/tests_post_grading_submission_lock.py:850:                grade_engine(self.teacher, submission)
+  students/tests_second_opinion_queue.py:146:            grade_engine(self.teacher, self.submission)
+  students/tests_student_upload_answer.py:48:    _populate_and_save_grade,
+  students/tests_student_upload_answer.py:351:        _populate_and_save_grade(self.row(self.submission), grading, None)
+  students/tests_submission_concurrency.py:246:            grade_engine(teacher, submission)
+
+## the two writers
+pattern: upload_answers_engine|update_submission_from_raw_text
+files with a hit (count per file):
+        1 ai_processor/tests_pdf_type_validation.py
+        7 assignments/tests_upload_task_retry_policy.py
+        3 billing/tests/test_refusal_handling_gates.py
+        3 billing/tests/test_refusal_handling.py
+        2 dashboard/tests_cache_matrix_status_summary.py
+        2 students/tests_answer_document_before_release.py
+        6 students/tests_answers_unreadable.py
+        3 students/tests_async_edit_path.py
+        4 students/tests_grading_hardening.py
+        3 students/tests_no_grade_tell_before_release.py
+       21 students/tests_post_grading_submission_lock.py
+        4 students/tests_proxy_upload_attribution.py
+        6 students/tests.py
+        1 students/tests_student_upload_answer.py
+        4 students/tests_submission_concurrency.py
+        5 students/tests_upload_pipeline.py
+lines:
+  ai_processor/tests_pdf_type_validation.py:159:        "students.views.upload_answers_engine",
+  assignments/tests_upload_task_retry_policy.py:6:Before this, upload_answers_engine_async retried an unreadable or
+  assignments/tests_upload_task_retry_policy.py:37:from assignments.tasks import upload_answers_engine_async, upload_assignment_async
+  assignments/tests_upload_task_retry_policy.py:125:        return upload_answers_engine_async.apply(
+  assignments/tests_upload_task_retry_policy.py:136:        "assignments.tasks.upload_answers_engine",
+  assignments/tests_upload_task_retry_policy.py:162:        "assignments.tasks.upload_answers_engine",
+  assignments/tests_upload_task_retry_policy.py:208:            prepare.call_count, 1 + upload_answers_engine_async.max_retries
+  assignments/tests_upload_task_retry_policy.py:419:            result = upload_answers_engine_async.apply_async(
+  billing/tests/test_refusal_handling.py:40:    upload_answers_engine_async,
+  billing/tests/test_refusal_handling.py:401:    def test_upload_answers_engine_async_does_not_retry_a_refusal(self):
+  billing/tests/test_refusal_handling.py:410:                    outcome = upload_answers_engine_async.apply(
+  billing/tests/test_refusal_handling_gates.py:215:        update_submission_from_raw_text's billing_refund_scope: no charge to
+  billing/tests/test_refusal_handling_gates.py:217:        from students.services import update_submission_from_raw_text
+  billing/tests/test_refusal_handling_gates.py:224:                update_submission_from_raw_text(
+  dashboard/tests_cache_matrix_status_summary.py:88:from students.services import upload_answers_engine
+  dashboard/tests_cache_matrix_status_summary.py:322:            upload_answers_engine(
+  students/tests.py:18:    upload_answers_engine,
+  students/tests.py:369:        upload_answers_engine(self.assignment, self.content, self.student)
+  students/tests.py:383:        upload_answers_engine(self.assignment, self.content, self.student)
+  students/tests.py:397:        upload_answers_engine(self.assignment, self.content, self.student)
+  students/tests.py:398:        upload_answers_engine(self.assignment, self.content, self.student)
+  students/tests.py:413:        upload_answers_engine(self.assignment, self.content, self.student)
+  students/tests_answer_document_before_release.py:43:from students.services import upload_answers_engine
+  students/tests_answer_document_before_release.py:84:            upload_answers_engine(
+  students/tests_answers_unreadable.py:44:from students.services import student_submission_to_html, upload_answers_engine
+  students/tests_answers_unreadable.py:380:            upload_answers_engine(
+  students/tests_answers_unreadable.py:388:            services.update_submission_from_raw_text(
+  students/tests_answers_unreadable.py:398:            services.update_submission_from_raw_text(
+  students/tests_answers_unreadable.py:491:            upload_answers_engine(
+  students/tests_answers_unreadable.py:497:            services.update_submission_from_raw_text(
+  students/tests_async_edit_path.py:56:from students.services import update_submission_from_raw_text
+  students/tests_async_edit_path.py:405:            update_submission_from_raw_text(self.student, self.submission, EDITED_TEXT)
+  students/tests_async_edit_path.py:697:        result = update_submission_from_raw_text(
+  students/tests_grading_hardening.py:14:- upload_answers_engine persists the extractor's extraction_confidence.
+  students/tests_grading_hardening.py:43:from students.services import upload_answers_engine
+  students/tests_grading_hardening.py:212:        submission = upload_answers_engine(
+  students/tests_grading_hardening.py:228:        submission = upload_answers_engine(
+  students/tests_no_grade_tell_before_release.py:50:    upload_answers_engine_async,
+  students/tests_no_grade_tell_before_release.py:168:        result = upload_answers_engine_async.apply(
+  students/tests_no_grade_tell_before_release.py:479:            return upload_answers_engine_async.apply(
+  students/tests_post_grading_submission_lock.py:50:from assignments.tasks import upload_answers_engine_async
+  students/tests_post_grading_submission_lock.py:65:    upload_answers_engine,
+  students/tests_post_grading_submission_lock.py:170:            upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:191:            upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:202:        upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:220:        created = upload_answers_engine(self.assignment, "ignored", other)
+  students/tests_post_grading_submission_lock.py:230:        created = upload_answers_engine(other_assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:247:            upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:271:        upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:289:            upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:327:            upload_answers_engine(
+  students/tests_post_grading_submission_lock.py:346:            upload_answers_engine(
+  students/tests_post_grading_submission_lock.py:364:        result = upload_answers_engine(
+  students/tests_post_grading_submission_lock.py:631:        result = upload_answers_engine_async.apply(
+  students/tests_post_grading_submission_lock.py:676:        result = upload_answers_engine_async.apply(
+  students/tests_post_grading_submission_lock.py:699:    @patch("assignments.tasks.upload_answers_engine")
+  students/tests_post_grading_submission_lock.py:727:        result = upload_answers_engine_async.apply(
+  students/tests_post_grading_submission_lock.py:769:                upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:804:                upload_answers_engine(
+  students/tests_post_grading_submission_lock.py:860:                upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_post_grading_submission_lock.py:898:            upload_answers_engine(self.assignment, "ignored", self.student)
+  students/tests_proxy_upload_attribution.py:29:from students.services import _match_enrolled_student, upload_answers_engine
+  students/tests_proxy_upload_attribution.py:115:        # End to end through upload_answers_engine: the load-bearing outcome
+  students/tests_proxy_upload_attribution.py:126:                upload_answers_engine(
+  students/tests_proxy_upload_attribution.py:141:            submission = upload_answers_engine(
+  students/tests_student_upload_answer.py:325:            patch("students.views.upload_answers_engine", return_value=row),
+  students/tests_submission_concurrency.py:37:    upload_answers_engine,
+  students/tests_submission_concurrency.py:139:    upload_answers_engine locks the student's submission row to enforce the
+  students/tests_submission_concurrency.py:176:                upload_answers_engine(assignment, "ignored", student)
+  students/tests_submission_concurrency.py:288:            upload_answers_engine(assignment, "ignored", student)
+  students/tests_upload_pipeline.py:12:from assignments.tasks import upload_answers_engine_async
+  students/tests_upload_pipeline.py:53:    @patch("assignments.tasks.upload_answers_engine")
+  students/tests_upload_pipeline.py:69:        upload_answers_engine_async.apply(
+  students/tests_upload_pipeline.py:90:    @patch("assignments.tasks.upload_answers_engine")
+  students/tests_upload_pipeline.py:125:        upload_answers_engine_async.apply(
+
+## the grade routes
+pattern: student-submission-grade
+files with a hit (count per file):
+        2 billing/tests/test_refusal_handling.py
+        1 students/tests_answers_unreadable.py
+        1 students/tests_broker_outage.py
+        1 students/tests_grading_idempotency.py
+        1 students/tests.py
+lines:
+  billing/tests/test_refusal_handling.py:646:            (teacher, "post", reverse("student-submission-grade", args=[s]), {}),
+  billing/tests/test_refusal_handling.py:647:            (teacher, "post", reverse("student-submission-grade-async", args=[s]), {}),
+  students/tests.py:274:            "student-submission-grade", kwargs={"pk": self.submission.pk}
+  students/tests_answers_unreadable.py:339:                reverse("student-submission-grade", kwargs={"pk": self.submission.pk})
+  students/tests_broker_outage.py:73:            "student-submission-grade-async", kwargs={"pk": self.submission.pk}
+  students/tests_grading_idempotency.py:298:            "student-submission-grade", kwargs={"pk": self.submission.pk}
+
+## the read routes that carry the document
+pattern: student-submission-detail|student_submission_raw_input|assignment-detail
+files with a hit (count per file):
+        1 ai_processor/tests_superadmin_unmetered_both_flags.py
+        1 assignments/tests_cache_matrix_g1.py
+        1 assignments/tests_course_ownership_concurrency.py
+        1 assignments/tests_course_ownership_failure.py
+        1 assignments/tests_course_ownership_scale.py
+        1 assignments/tests_load.py
+        1 assignments/tests_partial_update_credit_gate.py
+        2 assignments/tests_security.py
+        2 AutoGrader/tests_cache_matrix_failure_probe.py
+        1 AutoGrader/tests_cache_matrix_measurement.py
+        1 AutoGrader/tests_cache_matrix_scale.py
+        1 AutoGrader/tests_cache_matrix_tenant_isolation.py
+        3 billing/tests/test_refusal_handling_gates.py
+        5 billing/tests/test_refusal_handling.py
+        2 dashboard/tests_cache_matrix_status_summary.py
+        1 docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py
+        2 students/tests_ai_reply_corrected_review.py
+        5 students/tests_answer_document_before_release.py
+        1 students/tests_answers_unreadable.py
+        1 students/tests_async_edit_path.py
+        1 students/tests_grading_review_fixes.py
+        2 students/tests_no_grade_tell_before_release.py
+        2 students/tests_post_grading_submission_lock.py
+        3 students/tests_second_opinion_queue.py
+        4 students/tests_student_feedback_routes.py
+        1 students/tests_student_feedback_scoping.py
+        2 students/tests_student_upload_answer.py
+        1 students/tests_submission_update_freshness.py
+lines:
+  AutoGrader/tests_cache_matrix_failure_probe.py:100:                reverse("assignment-detail", args=[self.assignment.pk]),
+  AutoGrader/tests_cache_matrix_failure_probe.py:142:            reverse("assignment-detail", args=[self.assignment.pk]),
+  AutoGrader/tests_cache_matrix_measurement.py:282:                        reverse("assignment-detail", args=[s["draft"].pk]),
+  AutoGrader/tests_cache_matrix_scale.py:115:                        reverse("assignment-detail", args=[assignment.pk]),
+  AutoGrader/tests_cache_matrix_tenant_isolation.py:190:            reverse("assignment-detail", args=[self.assignment_a.pk]),
+  ai_processor/tests_superadmin_unmetered_both_flags.py:188:        return reverse("student-submission-detail", kwargs={"pk": uuid4()})
+  assignments/tests_cache_matrix_g1.py:122:            reverse("assignment-detail", args=[self.assignment.pk]),
+  assignments/tests_course_ownership_concurrency.py:106:        patch_url = reverse("assignment-detail", kwargs={"pk": self.own_assignment.pk})
+  assignments/tests_course_ownership_failure.py:183:                reverse("student-submission-detail", kwargs={"pk": uuid4()}),
+  assignments/tests_course_ownership_scale.py:106:            "assignment-detail", kwargs={"pk": self.attacker_assignment.pk}
+  assignments/tests_load.py:354:                    "assignment-detail", kwargs={"pk": self.hot_assignment.id}
+  assignments/tests_partial_update_credit_gate.py:40:        self.url = reverse("assignment-detail", kwargs={"pk": self.assignment.id})
+  assignments/tests_security.py:137:        return reverse("assignment-detail", kwargs={"pk": assignment.id})
+  assignments/tests_security.py:232:            reverse("assignment-detail", kwargs={"pk": uuid.uuid4()})
+  billing/tests/test_refusal_handling.py:559:                            "student-submission-detail", kwargs={"pk": submission.pk}
+  billing/tests/test_refusal_handling.py:634:            (teacher, "patch", reverse("assignment-detail", args=[a]), text),
+  billing/tests/test_refusal_handling.py:679:            (student, "put", reverse("student-submission-detail", args=[s]), text),
+  billing/tests/test_refusal_handling.py:680:            (student, "patch", reverse("student-submission-detail", args=[s]), text),
+  billing/tests/test_refusal_handling.py:713:            reverse("student-submission-detail", args=[str(self.submission.id)]),
+  billing/tests/test_refusal_handling_gates.py:382:                    "student-submission-detail",
+  billing/tests/test_refusal_handling_gates.py:446:                reverse("student-submission-detail", args=[str(submission.id)]),
+  billing/tests/test_refusal_handling_gates.py:495:                    reverse("student-submission-detail", args=[str(submission.id)]),
+  dashboard/tests_cache_matrix_status_summary.py:300:            reverse("assignment-detail", args=[assignment.pk]), payload, format="json"
+  dashboard/tests_cache_matrix_status_summary.py:356:            reverse("assignment-detail", args=[self.a_open.pk])
+  docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py:336:                "student-submission-detail", args=[str(school["submission"].id)]
+  students/tests_ai_reply_corrected_review.py:301:            self.read(self.teacher, "student-submission-detail", pk=self.submission.pk),
+  students/tests_ai_reply_corrected_review.py:306:            self.student, "student-submission-detail", pk=self.submission.pk
+  students/tests_answer_document_before_release.py:115:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_answer_document_before_release.py:125:            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+  students/tests_answer_document_before_release.py:128:        return response.data["student_submission_raw_input"]
+  students/tests_answer_document_before_release.py:144:            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+  students/tests_answer_document_before_release.py:396:            reverse("student-submission-detail", kwargs={"pk": made.pk})
+  students/tests_answers_unreadable.py:266:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_async_edit_path.py:275:        detail = reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_grading_review_fixes.py:256:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+  students/tests_no_grade_tell_before_release.py:97:        return reverse("student-submission-detail", kwargs={"pk": submission.pk})
+  students/tests_no_grade_tell_before_release.py:651:                reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_post_grading_submission_lock.py:387:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+  students/tests_post_grading_submission_lock.py:562:            reverse("student-submission-detail", kwargs={"pk": ungraded.pk}),
+  students/tests_second_opinion_queue.py:204:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_second_opinion_queue.py:220:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_second_opinion_queue.py:234:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_student_feedback_routes.py:213:            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+  students/tests_student_feedback_routes.py:506:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_student_feedback_routes.py:698:            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+  students/tests_student_feedback_routes.py:713:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+  students/tests_student_feedback_scoping.py:120:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+  students/tests_student_upload_answer.py:206:            reverse("student-submission-detail", kwargs={"pk": answer["id"]})
+  students/tests_student_upload_answer.py:422:            reverse("student-submission-detail", kwargs={"pk": submission.pk})
+  students/tests_submission_update_freshness.py:72:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+
+## the errors shown to a user
+pattern: is_user_facing_error|_user_facing_exception_types|describe_user_error
+files with a hit (count per file):
+        2 ai_processor/tests_answer_chunk_merge.py
+        9 AutoGrader/tests_error_messages.py
+        1 billing/tests/test_license_teacher_changes_400.py
+        3 billing/tests/test_refusal_handling.py
+        2 students/tests_answers_unreadable.py
+        2 students/tests_proxy_upload_attribution.py
+lines:
+  AutoGrader/tests_error_messages.py:8:    describe_user_error,
+  AutoGrader/tests_error_messages.py:23:                self.assertEqual(describe_user_error(exc), str(exc))
+  AutoGrader/tests_error_messages.py:27:            describe_user_error(
+  AutoGrader/tests_error_messages.py:35:        message = describe_user_error(exc, fallback_message="We couldn't grade this.")
+  AutoGrader/tests_error_messages.py:41:        self.assertEqual(describe_user_error(ValueError("boom")), DEFAULT_ERROR_MESSAGE)
+  AutoGrader/tests_error_messages.py:45:            describe_user_error("Some internal code path failed"),
+  AutoGrader/tests_error_messages.py:51:            describe_user_error(None, fallback_message="Try again."), "Try again."
+  AutoGrader/tests_error_messages.py:55:        message = describe_user_error(
+  AutoGrader/tests_error_messages.py:152:    def test_unclassified_exception_falls_back_like_describe_user_error(self):
+  ai_processor/tests_answer_chunk_merge.py:66:from AutoGrader.error_messages import classify_infra_error, describe_user_error
+  ai_processor/tests_answer_chunk_merge.py:389:                    self.assertEqual(describe_user_error(exc), expected)
+  billing/tests/test_license_teacher_changes_400.py:7:`describe_user_error` fallback does not show. Its user-input refusals (no
+  billing/tests/test_refusal_handling.py:46:    describe_user_error,
+  billing/tests/test_refusal_handling.py:597:                describe_user_error,
+  billing/tests/test_refusal_handling.py:606:        self.assertEqual(describe_user_error(exc), str(exc))
+  students/tests_answers_unreadable.py:286:        from AutoGrader.error_messages import is_user_facing_error
+  students/tests_answers_unreadable.py:288:        self.assertTrue(is_user_facing_error(error))
+  students/tests_proxy_upload_attribution.py:24:    describe_user_error,
+  students/tests_proxy_upload_attribution.py:156:        self.assertEqual(describe_user_error(exc, "fallback"), str(exc))
+
+## review reasons asserted on
+pattern: review_reasons|review_tier
+files with a hit (count per file):
+        2 ai_processor/tests_answer_benchmark_grading.py
+        2 ai_processor/tests_grading_eval_command.py
+       13 AutoGrader/tests_student_feedback_guard.py
+       10 students/tests_ai_reply_corrected_review.py
+        9 students/tests_answers_unreadable.py
+       17 students/tests_missing_answer_review.py
+        1 students/tests_no_grade_tell_before_release.py
+       15 students/tests_second_opinion_queue.py
+       12 students/tests_student_feedback_routes.py
+        5 students/tests_student_upload_answer.py
+        2 students/tests_submission_list_queries.py
+        2 students/tests_submission_update_freshness.py
+lines:
+  AutoGrader/tests_student_feedback_guard.py:12:`needs_review`, `review_reasons`, `review_severity`, `review_tier` and
+  AutoGrader/tests_student_feedback_guard.py:13:`grading_confidence` are the teacher's review queue; `review_reasons` holds
+  AutoGrader/tests_student_feedback_guard.py:67:    "review_reasons",
+  AutoGrader/tests_student_feedback_guard.py:69:    "review_tier",
+  AutoGrader/tests_student_feedback_guard.py:316:            "        fields = ['id', 'feedback', 'review_reasons']\n"
+  AutoGrader/tests_student_feedback_guard.py:322:            guarded_field_lists(source), [("A", {"feedback", "review_reasons"})]
+  AutoGrader/tests_student_feedback_guard.py:437:                "review_reasons": None,
+  AutoGrader/tests_student_feedback_guard.py:439:                "review_tier": None,
+  AutoGrader/tests_student_feedback_guard.py:460:                "review_reasons",
+  AutoGrader/tests_student_feedback_guard.py:462:                "review_tier",
+  AutoGrader/tests_student_feedback_guard.py:469:            "review_reasons": None,
+  AutoGrader/tests_student_feedback_guard.py:471:            "review_tier": None,
+  AutoGrader/tests_student_feedback_guard.py:497:            review_filters, {"needs_review", "review_tier", "grading_state"}
+  ai_processor/tests_answer_benchmark_grading.py:223:                        for reason in (submission.review_reasons or [])
+  ai_processor/tests_answer_benchmark_grading.py:229:                    self.assertEqual(submission.review_tier, "critical")
+  ai_processor/tests_grading_eval_command.py:150:            review_reasons=[
+  ai_processor/tests_grading_eval_command.py:190:            review_reasons=[
+  students/tests_ai_reply_corrected_review.py:11:No model change: the reason is one more entry in `review_reasons`, with
+  students/tests_ai_reply_corrected_review.py:109:        self.assertIsNone(saved.review_reasons)
+  students/tests_ai_reply_corrected_review.py:110:        self.assertIsNone(saved.review_tier)
+  students/tests_ai_reply_corrected_review.py:117:            saved.review_reasons,
+  students/tests_ai_reply_corrected_review.py:127:        self.assertEqual(saved.review_tier, "moderate")
+  students/tests_ai_reply_corrected_review.py:135:            saved.review_reasons,
+  students/tests_ai_reply_corrected_review.py:162:            [reason["type"] for reason in saved.review_reasons],
+  students/tests_ai_reply_corrected_review.py:165:        self.assertEqual(saved.review_tier, "critical")
+  students/tests_ai_reply_corrected_review.py:173:        self.assertIsNone(saved.review_reasons)
+  students/tests_ai_reply_corrected_review.py:293:        reasons = self.submission.review_reasons or []
+  students/tests_answers_unreadable.py:272:        for word in ("answers_unreadable", "review_reasons", "Traceback", TELLTALE):
+  students/tests_answers_unreadable.py:299:            after.review_reasons, [{"type": "answers_unreadable", "left_out": "all"}]
+  students/tests_answers_unreadable.py:301:        self.assertEqual(after.review_tier, "critical")
+  students/tests_answers_unreadable.py:321:            self.row().review_reasons,
+  students/tests_answers_unreadable.py:373:        self.assertIsNone(row.review_reasons)
+  students/tests_answers_unreadable.py:418:            row.review_reasons, [{"type": "answers_unreadable", "left_out": 1}]
+  students/tests_answers_unreadable.py:420:        self.assertEqual(row.review_tier, "critical")
+  students/tests_answers_unreadable.py:455:            [reason["type"] for reason in self.row().review_reasons],
+  students/tests_answers_unreadable.py:468:        self.assertIsNone(row.review_reasons)
+  students/tests_missing_answer_review.py:125:        self.assertEqual(submission.review_tier, "critical")
+  students/tests_missing_answer_review.py:133:        reason = submission.review_reasons[0]
+  students/tests_missing_answer_review.py:142:        self.assertEqual(len(submission.review_reasons), 3)
+  students/tests_missing_answer_review.py:149:        self.assertIsNone(submission.review_reasons)
+  students/tests_missing_answer_review.py:164:        types = {r["type"] for r in submission.review_reasons}
+  students/tests_missing_answer_review.py:179:        self.assertEqual(submission.review_tier, "critical")
+  students/tests_missing_answer_review.py:184:        types = {r["type"] for r in submission.review_reasons}
+  students/tests_missing_answer_review.py:186:        self.assertEqual(len(submission.review_reasons), 2)
+  students/tests_missing_answer_review.py:192:        self.assertEqual(submission.review_tier, "critical")
+  students/tests_missing_answer_review.py:193:        self.assertEqual(len(submission.review_reasons), 1)
+  students/tests_missing_answer_review.py:194:        self.assertEqual(submission.review_reasons[0]["type"], "grader_disagreement")
+  students/tests_missing_answer_review.py:202:        self.assertEqual(submission.review_tier, "moderate")
+  students/tests_missing_answer_review.py:205:            submission.review_reasons[0]["type"], "second_opinion_unavailable"
+  students/tests_missing_answer_review.py:213:        types = {r["type"] for r in submission.review_reasons}
+  students/tests_missing_answer_review.py:222:        self.assertIsNone(submission.review_reasons)
+  students/tests_missing_answer_review.py:224:        self.assertIsNone(submission.review_tier)
+  students/tests_missing_answer_review.py:229:        self.assertEqual(len(submission.review_reasons), 2)
+  students/tests_no_grade_tell_before_release.py:373:            review_tier="critical",
+  students/tests_second_opinion_queue.py:155:        [reason] = self.submission.review_reasons
+  students/tests_second_opinion_queue.py:168:        self.assertIsNone(self.submission.review_reasons)
+  students/tests_second_opinion_queue.py:178:        self.assertIsNone(self.submission.review_reasons)
+  students/tests_second_opinion_queue.py:260:            for entry in self.submission.review_reasons
+  students/tests_second_opinion_queue.py:269:                for entry in self.submission.review_reasons
+  students/tests_second_opinion_queue.py:292:                for entry in self.submission.review_reasons
+  students/tests_second_opinion_queue.py:305:        [reason] = self.submission.review_reasons
+  students/tests_second_opinion_queue.py:309:        self.assertEqual(self.submission.review_tier, "critical")
+  students/tests_second_opinion_queue.py:317:        self.assertEqual(self.submission.review_tier, "critical")
+  students/tests_second_opinion_queue.py:321:        self.assertIsNone(self.submission.review_tier)
+  students/tests_second_opinion_queue.py:357:        tiers = [row["review_tier"] for row in response.data["results"]]
+  students/tests_second_opinion_queue.py:367:        self.assertEqual(self.submission.review_tier, "critical")
+  students/tests_second_opinion_queue.py:372:        self.assertEqual(moderate.review_tier, "moderate")
+  students/tests_second_opinion_queue.py:376:    def test_review_tier_filter_returns_only_criticals(self):
+  students/tests_second_opinion_queue.py:386:            {"needs_review": "true", "review_tier": "critical"},
+  students/tests_student_feedback_routes.py:276:    `review_reasons` holds both AI graders' marks for each disputed
+  students/tests_student_feedback_routes.py:282:        "review_reasons": [
+  students/tests_student_feedback_routes.py:293:        "review_tier": "critical",
+  students/tests_student_feedback_routes.py:312:        self.assertIsNone(row["review_reasons"])
+  students/tests_student_feedback_routes.py:314:        self.assertIsNone(row["review_tier"])
+  students/tests_student_feedback_routes.py:340:            as_plain(row["review_reasons"]), self.REVIEW_STATE["review_reasons"]
+  students/tests_student_feedback_routes.py:343:        self.assertEqual(row["review_tier"], "critical")
+  students/tests_student_feedback_routes.py:352:    `?needs_review=true` or `?review_tier=critical` and see whether their
+  students/tests_student_feedback_routes.py:360:            review_tier="critical",
+  students/tests_student_feedback_routes.py:372:            {"review_tier": "critical"},
+  students/tests_student_feedback_routes.py:373:            {"review_tier": "moderate"},
+  students/tests_student_feedback_routes.py:402:            ({"review_tier": "critical"}, {str(self.submission.pk)}),
+  students/tests_student_upload_answer.py:84:    "review_reasons",
+  students/tests_student_upload_answer.py:86:    "review_tier",
+  students/tests_student_upload_answer.py:105:    "review_reasons": None,
+  students/tests_student_upload_answer.py:107:    "review_tier": None,
+  students/tests_student_upload_answer.py:373:        self.assertTrue(row.review_reasons)
+  students/tests_submission_list_queries.py:121:                review_tier="critical" if i % 6 == 1 else None,
+  students/tests_submission_list_queries.py:188:                "review_tier": "critical",
+  students/tests_submission_update_freshness.py:67:            review_reasons=[{"type": "grader_disagreement"}],
+  students/tests_submission_update_freshness.py:69:            review_tier="critical",
+
+## the old error text of the writers
+pattern: no usable .answers. list
+files with a hit (count per file):
+        1 students/tests_answers_unreadable.py
+lines:
+  students/tests_answers_unreadable.py:509:                self.assertIn("no usable `answers` list", str(raised.exception))
+
+ended 16:32:33

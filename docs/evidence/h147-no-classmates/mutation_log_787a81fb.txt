@@ -1,0 +1,19 @@
+13 mutants: anchors unique, all parse, expected tests named
+13 of 13 mutants selected
+R1_the_student_is_given_the_whole_roster KILLED exit 1 ran 36 failed 12 expected-but-passed []
+R2_the_own_entry_is_every_enrolment KILLED exit 1 ran 36 failed 11 expected-but-passed []
+R3_no_class_size_is_sent KILLED exit 1 ran 36 failed 5 expected-but-passed []
+R4_the_teacher_is_answered_as_a_student KILLED exit 1 ran 36 failed 6 expected-but-passed []
+A1_the_student_is_given_the_teachers_assignment_list KILLED exit 1 ran 36 failed 7 expected-but-passed []
+A2_the_view_does_not_load_the_viewers_submissions KILLED exit 1 ran 36 failed 2 expected-but-passed []
+A3_the_serializer_does_not_use_what_was_loaded KILLED exit 1 ran 36 failed 1 expected-but-passed []
+A4_the_view_loads_everyones_submissions KILLED exit 1 ran 36 failed 1 expected-but-passed []
+A5_the_serializer_reads_any_loaded_submission KILLED exit 1 ran 36 failed 1 expected-but-passed []
+A6_the_loaded_submission_is_never_found KILLED exit 1 ran 36 failed 3 expected-but-passed []
+S1_the_schools_id_is_sent KILLED exit 1 ran 36 failed 1 expected-but-passed []
+S2_the_creators_id_is_sent KILLED exit 1 ran 36 failed 1 expected-but-passed []
+S3_the_teacher_loses_the_ids_too KILLED exit 1 ran 36 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 13 of 13
