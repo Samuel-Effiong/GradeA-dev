@@ -45,3 +45,17 @@ Branch `task/h202-switched-off-means-out`, stacked on H-164 (branch point 79010e
 - **Existing tests that touch a switched-off account on these roads:** read `users/tests_auth_endpoints.py` (the three inactive rows are NEVER-verified school-admin / teacher invitation rows on `/auth/register/school-admin`, a road this change does not touch), `users/tests_google_auth.py` (Google road, untouched), `users/tests_login_lockout.py` (login). No existing test in the related modules uses a VERIFIED, switched-off account on the verify, code-request or reset roads, so none is expected to change except the one reversed on purpose.
 - **Admin POST path:** `force_login` of a staff + superuser operator; the standard Django `response_action` (action name + `_selected_action`, `index` defaults to 0) runs the action and redirects (302, asserted); the actor needs no extra permission as a superuser. Not run until the gate.
 - **Merge:** H-164's final tip (e11a0083) is merged in (fcbd360d); the reset module is now 51 tests, so step 0 is Ran 75 (24 + 51); the runner and this file say so.
+
+### Results of the gate (24388a4875e5c8bfc390a5f37139eed032478f8f, base e11a0083; raw logs `h202_*`)
+
+run_h202_gate.sh 2a3f0bca97d00000, once, one outer inhibit, on the Release Engineer's GRANT; 2026-10-08 20:10:41 to 20:16:15 WAT; load 1.57 at the start. The runner finished (exit 0) and reported ONE SURVIVOR.
+
+| Step | Time (WAT) | Result |
+|---|---|---|
+| 0 reproduce-first (H-164's final views.py and admin.py) | 20:10:41 | Ran 75, THIRTEEN red, exactly the thirteen written, and **rule 22: all thirteen "reason ok"** (the fragments in each test's own block); everything else green as written (h202_prefix_base_production_failing.txt) |
+| 1a makemigrations --check | 20:11:03 | no changes |
+| 1 new + related modules + guards | 20:11:07 to 20:13:21 | Ran 535, OK (skipped=3) (h202_modules_and_guards.txt.gz) |
+| 2 mutants S1..S17 | 20:13:21 to 20:16:13 | **16 KILLED, 1 SURVIVED (S5)**; BROKEN []; every killed mutant failed exactly its written set, no extras (h202_mutation_log.txt, h202_mutation_results.json, h202_mutant_logs/) |
+
+### The survivor, kept and reported (rule 19: a place the tests do not guard)
+**S5 (`/auth/verify` raises the same 400 without `refuse()`): SURVIVED**, ran 98, 0 failed. It is the SAME gap H-164's R30 had, and I did not carry that lesson into this module: the budget test sees the 429 (the attempt is spent before the check), never the address LOCK that `refuse()` sets when the budget is spent (which also stops a new code being mailed). Place not guarded: the lock after a refused verify of a switched-off account. Fix proposed (tests only): the same own-test as H-164's, `test_a_refused_verify_for_a_switched_off_account_locks_the_address_like_a_wrong_guess` (`verify_lock_until` None after the 1st refusal, not None after the 2nd), then a short run of S5 alone; S3's set gains it (without the refusal the first attempt succeeds, clears the failures and no lock is ever set); S5's set becomes the lock test alone.
