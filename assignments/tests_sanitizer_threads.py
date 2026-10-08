@@ -105,6 +105,15 @@ class TheSanitizerKeepsEachCallersTextToItself(SimpleTestCase):
         self.assertEqual(len(results), THREADS * ROUNDS * INPUTS)
         wrong = [i for i, got in results if got != self.expected[i]]
         self.assertEqual(wrong, [])
+        # And, separately, nobody's output carries another input's marker
+        # (the markers are non-empty and distinct: the first test proves it).
+        foreign = [
+            (i, j)
+            for i, got in results
+            for j in range(INPUTS)
+            if j != i and f"MARK-{j:02d}-alpha" in got
+        ]
+        self.assertEqual(foreign, [])
 
     def test_the_hostile_inputs_stay_clean_in_every_thread(self):
         results, errors = run_in_threads(sanitize_editor_html)
