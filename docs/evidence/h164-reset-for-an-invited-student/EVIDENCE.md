@@ -160,3 +160,14 @@ Runner run_h164_n3_gate.sh c702f0e69d0bf574, once, one outer inhibit, on the Rel
 - Step 1: makemigrations no changes; module + related modules + guards OK; **31 mutants**: R1..R22 as already recorded (R14, R15, R16 extended with the new tests of their marker; R15 also with the budget test, which uses the flag-only account) plus R23 (code request has no admin refusal: the four code-request tests), R24 (code request refuses every never-verified account: ordinary and licence controls), R25 (code request answers an admin with a refusal: the three answer tests), R26 (verify has no admin refusal: four refusals, three words, budget), R27 (verify refuses every never-verified account: ordinary, school admin, licence), R28 (verify refuses a verified admin too: the verified-admin verify control), R29 (verify refusal in its own words: three words), R30 (verify refuses without spending the attempt: budget), R31 (verify writes then refuses: the four refusals). **Said plainly: the command-line tests are killed only by removing a whole arm (R23, R26), not by one dropped marker; the three code-request-answer tests are killed only by R25.**
 - Users-app regression: ONCE on the final tip after Verifier 1.
 - Not shown: any real mailbox; that `refuse()` locks a real address in production (the budget test uses a local cache with a limit of 2).
+
+### Rule 22: the written reason for each of the twelve step-0 reds of the verify road (written before the run; the runner's (r) check looks for the fragment inside that test's own failure block, run_h164_v_gate.sh)
+
+| New test (VerifyEmailAdminPowerTests) | Why it is red on 42742c40's code | Fragment looked for in its block |
+|---|---|---|
+| the code request sends nothing to a never-verified staff / superuser-flag / SUPER_ADMIN-type account / command-line superuser (four) | the old request step makes and stores an activation code for the account (users/views.py VERIFY_EMAIL branch, `send_user_activation_email`), so `activation_token` is set and the first assertion fails | `self.assertIsNone(account.activation_token)` |
+| verify refuses a never-verified staff / flag / type / command-line account (four) | the old `/auth/verify` has no admin-power check: with the stored code it activates the account and answers 200 | `200 != 400` |
+| the verify refusal for a staff / flag / type account is the wrong-code one (three) | the first request (the right code) is accepted: 200, where a refusal would be 400 | `200 != 400` |
+| a refused verify spends the budget like a wrong guess | on the old code the first attempt succeeds and clears the failures, the second and third are ordinary wrong guesses: the third answers 400, not the lock's 429 | `400 != 429` |
+
+Green on the old code by design: the three code-request-answer tests (the old answer is already the same 202) and the five controls.
