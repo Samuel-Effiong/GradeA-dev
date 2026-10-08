@@ -359,6 +359,7 @@ def ai_assignment_content_only(ai_output):
 # which IS sent to the client.
 MODEL_QUESTION_NUMBERS = "model_question_numbers"
 MODEL_QUESTION_NUMBER_MAX_LENGTH = 32
+MODEL_QUESTION_NUMBER_MAX_DIGITS = 9
 QUESTION_NUMBERS_PUT_IN_ORDER = (
     "Question numbers put in order: user=%s path=%s questions=%s changed=%s"
 )
@@ -370,7 +371,15 @@ def _positive_integer(value):
     reads as one. `2.0`, `"2a"`, `0`, `-2`, true and null are not."""
     if type(value) is int:
         return value if value >= 1 else None
-    if isinstance(value, str) and value.isascii() and value.isdecimal():
+    # At most nine digits: a longer string is no question number, and Python
+    # refuses int() of one of more than 4300 digits (ValueError), which
+    # would fail the save after the paid call.
+    if (
+        isinstance(value, str)
+        and len(value) <= MODEL_QUESTION_NUMBER_MAX_DIGITS
+        and value.isascii()
+        and value.isdecimal()
+    ):
         return int(value) if int(value) >= 1 else None
     return None
 
