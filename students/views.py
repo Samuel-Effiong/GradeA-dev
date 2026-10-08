@@ -1138,9 +1138,26 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # released student reads the stored document: rebuild it from the
         # row as it now is, as grading does, or the paper keeps the old
         # score beside the new one.
-        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-            student_submission_to_html(submission)
-        )
+        #
+        # A second line behind H-165's builder (which never raises on a shape
+        # of `answers`): the teacher's grade must never fail to save because
+        # a document builder raised. Around the BUILD only, never around the
+        # save. On a fault the stored document is left as it was (it is the
+        # paper the student reads; a stale printed score is a lesser harm
+        # than a paper that vanishes), the answer carries that old document
+        # (it claims no refresh), and the fault is logged by submission id and
+        # exception type only: no answer text, no names.
+        try:
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                student_submission_to_html(submission)
+            )
+        except Exception as exc:  # noqa: BLE001 - see the comment above
+            logger.error(
+                "Manual grade: the answer document could not be rebuilt: "
+                "submission=%s error=%s",
+                submission.pk,
+                type(exc).__name__,
+            )
 
         # Update the formatted grade since the score/feedback changed
 
