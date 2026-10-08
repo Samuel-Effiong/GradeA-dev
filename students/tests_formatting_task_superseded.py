@@ -187,7 +187,10 @@ class TheTeacherFeedbackRoutePassesTheStamp(SupersededBase):
         self.override()  # leaves no formatted grade, so the route queues
         self.client.force_authenticate(self.teacher)
         with patch("students.views.formatted_grade_async") as task:
-            task.delay.return_value.id = "fake-task-id"
+            # not the id override() already used: the processing-task table
+            # holds celery_task_id unique, so a second "fake-task-id" in the
+            # same test is a 500 from the database, not from the route.
+            task.delay.return_value.id = "fake-task-id-for-the-route"
             response = self.client.get(
                 reverse(
                     "student-submission-teacher-feedback",
