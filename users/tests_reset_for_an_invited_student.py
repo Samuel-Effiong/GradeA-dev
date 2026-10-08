@@ -61,6 +61,7 @@ from billing.license_service import LicenseSubscriptionService
 from classrooms.models import Course, School, Session
 from classrooms.services import enroll_student_by_email
 from users.models import PasswordResetOTP, UserTypes
+from users.throttling import verify_lock_until
 
 User = get_user_model()
 
@@ -753,6 +754,22 @@ class VerifyEmailAdminPowerTests(APITestCase):
         third = self.verify(account.email, "424242")
 
         self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    @override_settings(VERIFY_EMAIL_MAX_FAILURES=2)
+    def test_a_refused_verify_on_an_admin_power_account_locks_the_address_like_a_wrong_guess(
+        self,
+    ):
+        """The budget is spent as for a wrong guess only if the address is
+        locked when it runs out (the lock is also what stops a new code being
+        mailed to it). Its own test, so the budget test keeps one reason to
+        fail."""
+        account = self.with_token(self.command_line("vvl.h164@x.example"))
+
+        self.verify(account.email, "424242")
+        self.assertIsNone(verify_lock_until(account.email))
+        self.verify(account.email, "424242")
+
+        self.assertIsNotNone(verify_lock_until(account.email))
 
     # -- controls: nothing else changes ------------------------------------
 
