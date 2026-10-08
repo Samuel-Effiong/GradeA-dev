@@ -33,6 +33,14 @@ THE RULE (option A, approved 2026-10-08)
     the account was active, then the account switched off). Same generic 400 as
     an unknown address. The code already issued is left as it is.
 
+  * A reset step AND a request step refuse an account that never verified its
+    email and holds admin power (is_staff, is_superuser or user type
+    SUPER_ADMIN, any one of them): nobody gets a new first road into the
+    highest accounts by a mailbox code. The request answers exactly as the
+    inactive refusal does; the reset answers like an unknown address. A
+    VERIFIED super admin is unchanged. A licence-invited teacher has the road
+    like an invited student.
+
 Run with:
     python manage.py test users.tests_reset_for_an_invited_student
 """
@@ -49,6 +57,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework.throttling import SimpleRateThrottle
 
+from billing.license_service import LicenseSubscriptionService
 from classrooms.models import Course, School, Session
 from classrooms.services import enroll_student_by_email
 from users.models import PasswordResetOTP, UserTypes
@@ -335,3 +344,208 @@ class InvitedStudentResetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         student.refresh_from_db()
         self.assertTrue(student.check_password(NEW_PASSWORD))
+
+    # -- a licence-invited teacher (Senior Manager's ruling on N3) ---------
+
+    def licence_invite(self, email="licence.teacher@h164-school.edu"):
+        """The real path: a school admin adds a teacher to a licence. The
+        mail is replaced; its arguments are read."""
+        mail = patch("billing.license_service.send_email_task")
+        self.licence_mail = mail.start()
+        self.addCleanup(mail.stop)
+        admin = User.objects.create_user(
+            email="h164.school.admin@h164-school.edu",
+            password="Admin-pass-1",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=self.school,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+        teacher = LicenseSubscriptionService._get_or_invite_teacher(
+            email, self.school, admin
+        )
+        if teacher is None:
+            self.fail("the invitation made no teacher")
+        teacher.refresh_from_db()
+        self.assertTrue(teacher.is_active)
+        self.assertIsNone(teacher.email_verified_at)
+        self.assertTrue(teacher.must_change_password)
+        self.assertEqual(self.licence_mail.call_count, 1)
+        return teacher, admin
+
+    def test_a_licence_invited_teacher_is_sent_a_reset_code(self):
+        teacher, _ = self.licence_invite()
+
+        response = self.request_reset(teacher.email)
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.sent_mock.assert_called_once()
+        self.assertEqual(
+            self.sent_mock.call_args.kwargs["recipient_list"], [teacher.email]
+        )
+
+    def test_a_licence_invited_teachers_reset_stamps_and_signs_them_in(self):
+        teacher, _ = self.licence_invite()
+
+        response = self.reset(teacher.email, self.code_for(teacher))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        teacher.refresh_from_db()
+        self.assertIsNotNone(teacher.email_verified_at)
+        self.assertFalse(teacher.must_change_password)
+        self.assertIsNotNone(teacher.last_login)
+
+    def test_a_licence_re_add_after_a_reset_keeps_the_password_they_chose(self):
+        """What this row creates for teachers: an invited teacher who has
+        never signed in can use Forgot password; after that a re-invite no
+        longer replaces their password."""
+        teacher, admin = self.licence_invite()
+        self.reset(teacher.email, self.code_for(teacher))
+
+        again = LicenseSubscriptionService._get_or_invite_teacher(
+            teacher.email, self.school, admin
+        )
+
+        if again is None:
+            self.fail("the re-add returned no teacher")
+        self.assertEqual(again.pk, teacher.pk)
+        self.assertEqual(self.licence_mail.call_count, 1, "a new temporary password")
+        self.client.credentials()
+        signed_in = self.client.post(
+            reverse("login"),
+            {"email": teacher.email, "password": NEW_PASSWORD},
+            format="json",
+        )
+        self.assertEqual(signed_in.status_code, status.HTTP_200_OK)
+
+    # -- an account with admin power that never verified its email ---------
+
+    def never_verified(self, email, **flags):
+        flags.setdefault("user_type", UserTypes.TEACHER)
+        return User.objects.create_user(
+            email=email,
+            password="Power-pass-1",  # pragma: allowlist secret
+            is_active=True,
+            email_verified_at=None,
+            **flags,
+        )
+
+    def assert_request_refused(self, account):
+        response = self.request_reset(account.email)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(PasswordResetOTP.objects.filter(user=account).exists())
+        self.sent_mock.assert_not_called()
+
+    def assert_reset_refused(self, account):
+        code = self.code_for(account)
+        before = account.password
+
+        response = self.reset(account.email, code)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("access", response.data)
+        account.refresh_from_db()
+        self.assertIsNone(account.email_verified_at)
+        self.assertEqual(account.password, before)
+
+    def test_the_request_refuses_a_never_verified_staff_account(self):
+        self.assert_request_refused(
+            self.never_verified("staff.h164@x.example", is_staff=True)
+        )
+
+    def test_the_request_refuses_a_never_verified_superuser_flag(self):
+        self.assert_request_refused(
+            self.never_verified("flag.h164@x.example", is_superuser=True)
+        )
+
+    def test_the_request_refuses_a_never_verified_super_admin_type(self):
+        self.assert_request_refused(
+            self.never_verified("type.h164@x.example", user_type=UserTypes.SUPER_ADMIN)
+        )
+
+    def test_the_request_refuses_a_command_line_superuser(self):
+        """create_superuser sets is_staff and is_superuser and leaves the
+        user type at its default, TEACHER: the flags, not the type, name it."""
+        account = User.objects.create_superuser(
+            email="cmdline.h164@x.example",
+            password="Power-pass-2",  # pragma: allowlist secret
+        )
+        self.assertEqual(account.user_type, UserTypes.TEACHER)
+        self.assertIsNone(account.email_verified_at)
+
+        self.assert_request_refused(account)
+
+    def test_that_refusal_says_what_the_inactive_refusal_says(self):
+        inactive = self.unverified_inactive()
+        power = self.never_verified("words.h164@x.example", is_superuser=True)
+
+        refused_inactive = self.request_reset(inactive.email)
+        refused_power = self.request_reset(power.email)
+
+        self.assertEqual(refused_power.status_code, refused_inactive.status_code)
+        self.assertEqual(refused_power.content, refused_inactive.content)
+
+    def test_the_reset_refuses_a_never_verified_staff_account(self):
+        self.assert_reset_refused(
+            self.never_verified("rstaff.h164@x.example", is_staff=True)
+        )
+
+    def test_the_reset_refuses_a_never_verified_superuser_flag(self):
+        self.assert_reset_refused(
+            self.never_verified("rflag.h164@x.example", is_superuser=True)
+        )
+
+    def test_the_reset_refuses_a_never_verified_super_admin_type(self):
+        self.assert_reset_refused(
+            self.never_verified("rtype.h164@x.example", user_type=UserTypes.SUPER_ADMIN)
+        )
+
+    def test_the_reset_refuses_a_command_line_superuser(self):
+        account = User.objects.create_superuser(
+            email="rcmdline.h164@x.example",
+            password="Power-pass-3",  # pragma: allowlist secret
+        )
+
+        self.assert_reset_refused(account)
+
+    def test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account(self):
+        power = self.never_verified("rwords.h164@x.example", is_superuser=True)
+        code = self.code_for(power)
+
+        refused = self.reset(power.email, code)
+        unknown = self.reset("nobody.power.h164@example.com", code)
+
+        self.assertEqual(refused.status_code, unknown.status_code)
+        self.assertEqual(refused.content, unknown.content)
+
+    def verified_super_admin(self, email):
+        return User.objects.create_user(
+            email=email,
+            password="Power-pass-4",  # pragma: allowlist secret
+            user_type=UserTypes.SUPER_ADMIN,
+            is_staff=True,
+            is_superuser=True,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+
+    def test_a_verified_super_admin_is_still_sent_a_reset_code(self):
+        """Green on the old code too: the refusal is for accounts that never
+        verified their email, nothing else."""
+        account = self.verified_super_admin("vsuper.h164@x.example")
+
+        response = self.request_reset(account.email)
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.sent_mock.assert_called_once()
+
+    def test_a_verified_super_admin_can_still_reset(self):
+        """Green on the old code too."""
+        account = self.verified_super_admin("vsuperreset.h164@x.example")
+
+        response = self.reset(account.email, self.code_for(account))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        account.refresh_from_db()
+        self.assertTrue(account.check_password(NEW_PASSWORD))
