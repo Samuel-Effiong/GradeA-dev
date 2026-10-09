@@ -1,0 +1,41 @@
+start 2026-10-09 19:51:54 load=1.80 1.77 3.61
+pre-commit exit=0 19:53:26
+check yaml......................................................................................................Passed
+fix end of files................................................................................................Passed
+trim trailing whitespace........................................................................................Passed
+check python ast................................................................................................Passed
+check docstring is first........................................................................................Passed
+check for added large files.....................................................................................Passed
+check for merge conflicts.......................................................................................Passed
+check toml......................................................................................................Passed
+check json......................................................................................................Passed
+check xml.......................................................................................................Passed
+check for case conflicts........................................................................................Passed
+check builtin type constructor use..............................................................................Passed
+fix utf-8 byte order marker.....................................................................................Passed
+detect private key..............................................................................................Passed
+python tests naming.............................................................................................Passed
+debug statements (python).......................................................................................Passed
+check for broken symlinks...................................................................(no files to check)Skipped
+fix requirements.txt............................................................................................Passed
+black...........................................................................................................Passed
+mypy............................................................................................................Passed
+flake8..........................................................................................................Passed
+isort...........................................................................................................Passed
+bandit..........................................................................................................Passed
+Detect secrets..................................................................................................Passed
+Check gunicorn timeout stays in sync with Stripe webhook claim window...........................................Passed
+Check no logger/print call passes .email/.first_name/.last_name/.get_full_name() directly.......................Passed
+tracked changes after hooks: 0
+makemigrations: No changes detected
+modules exit=1 end 2026-10-09 19:56:09 load=2.07 2.78 3.69
+Ran 989 tests in 143.730s
+FAILED (failures=3, errors=2, skipped=5)
+FAIL/ERROR headers: 5
+ERROR: test_batch_upload_runs_the_rest_of_the_batch (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch)
+ERROR: test_upload_async_is_never_half_queued (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued)
+FAIL: test_the_rest_stops_uncharged_and_resumes_by_re_upload (students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload)
+FAIL: test_every_site_is_on_the_named_list_with_its_count (users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count)
+FAIL: test_a_clawback_racing_the_monthly_grant_expires_nothing_twice (audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_monthly_grant_expires_nothing_twice)
+tree clean after: yes
+SCRIPT-ENDED 19:56:09

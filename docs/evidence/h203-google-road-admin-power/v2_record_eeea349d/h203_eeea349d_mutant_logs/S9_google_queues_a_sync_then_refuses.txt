@@ -1,0 +1,88 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user f2739d76-55d0-4fec-ac5b-778060867301.
+Cannot activate automatic trial for user f2739d76-55d0-4fec-ac5b-778060867301 (validation): ValueError
+.Free trial plan not found: no trial activated for user 968f51ce-1b9b-4785-a9d4-e4e820451f8f.
+Cannot activate automatic trial for user 968f51ce-1b9b-4785-a9d4-e4e820451f8f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FFree trial plan not found: no trial activated for user 780cf71e-e566-48a3-827a-e8399397a7b8.
+Cannot activate automatic trial for user 780cf71e-e566-48a3-827a-e8399397a7b8 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FFree trial plan not found: no trial activated for user 29fb8d19-158b-43c3-a1ff-bafdd6dbfc63.
+Cannot activate automatic trial for user 29fb8d19-158b-43c3-a1ff-bafdd6dbfc63 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FFree trial plan not found: no trial activated for user 90182e31-50f3-4f2b-a850-eaa4d6173895.
+Cannot activate automatic trial for user 90182e31-50f3-4f2b-a850-eaa4d6173895 (validation): ValueError
+.
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='staff_teacher_active')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 145, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(
+AssertionError: True is not false : safe_delay was called before the refusal (not undone by a rollback)
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='superuser_flag_inactive')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 145, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(
+AssertionError: True is not false : safe_delay was called before the refusal (not undone by a rollback)
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='super_admin_type_inactive')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 145, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(
+AssertionError: True is not false : safe_delay was called before the refusal (not undone by a rollback)
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='command_line_superuser')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 145, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(
+AssertionError: True is not false : safe_delay was called before the refusal (not undone by a rollback)
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.338s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...
+Found 3 test(s).

@@ -396,6 +396,11 @@ class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
         self.build(students=3)
         for target in (
             patch("students.views.launch_processing_task", side_effect=run_inline),
+            # H-180's door asks the wallet before the session exists; this
+            # class is about the balance running out AFTER the batch was
+            # accepted (the extraction is made to raise), and the door has
+            # its own tests (students.tests_upload_credit_door).
+            patch("students.views.upload_refusal_if_unaffordable", return_value=None),
         ):
             target.start()
             self.addCleanup(target.stop)

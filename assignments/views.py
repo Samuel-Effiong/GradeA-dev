@@ -37,6 +37,7 @@ from rest_framework.response import Response
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from assignments.exceptions import FileUnreadableError
+from assignments.upload_door import upload_refusal_if_unaffordable
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -1081,6 +1082,24 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files were uploaded. Please try again")
 
+        prompt_text = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
+        # H-180: before the session or any task exists. A file that is not an
+        # upload or is too large is left to the loop below, which refuses it.
+        refusal = upload_refusal_if_unaffordable(
+            request.user,
+            None,
+            [f for f in files if isinstance(f, UploadedFile)],
+            prompt_text,
+        )
+        if refusal is not None:
+            return refusal
+
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             course=course,
@@ -1115,13 +1134,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     {"file_name": file_name, "task_id": None, "item_id": refused.id}
                 )
                 continue
-
-            prompt_text = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
 
             file_payload = AssignmentProcessingService.build_async_upload_payload(
                 uploaded_file

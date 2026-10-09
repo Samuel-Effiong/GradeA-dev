@@ -1,0 +1,70 @@
+#!/bin/bash
+# 1a: H-211 verification (rules 12, 13, 16 revised, 17, 18, 19, 22). Usage: h211_run.sh <setup|all|base|Y1|Y2|Y3|G1>
+# The WHOLE script inside ONE systemd-inhibit (re-exec); "all" is base, then Y1 Y2 Y3 G1 ONLY if base failed exactly p4 (the finding, red by design).
+# Every test run writes straight to its own log file, stdin from /dev/null, nothing piped. One test process at a time.
+set -u
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP 1a H-211 check" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+G=/home/bond-servant-in-training/Documents/Projects/GAP-1a-records
+SC=/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch
+W=$SC/vf_h211
+SRC=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h211-student-edit-credit-sentence
+TIP=c6a1856c765bb1810008fae94fa9afdeda49cac8; T8=c6a1856c; Y=${1:-}
+OUT=$G/runs/h211_$T8
+MOD=students.tests_vf1a_h211
+if [ "$Y" = setup ]; then
+  [ -e "$W" ] && { echo "ABORT $W exists"; exit 9; }
+  git -C "$SRC" worktree add --detach "$W" $TIP || exit 9
+  cd "$W" || exit 9
+  ln -s "$(readlink -f "$SRC/.env")" .env
+  for S in settings_worktree:test_vf_h211 settings_worktree_mut:test_vf_h211_mut; do
+    printf 'from AutoGrader.settings import *  # noqa: F401,F403\nfrom AutoGrader.settings import DATABASES\n\nDATABASES["default"].setdefault("TEST", {})\nDATABASES["default"]["TEST"]["NAME"] = "%s"\n' "${S#*:}" > "${S%%:*}.py"
+  done
+  cp $G/h211_probe_tests_vf1a_h211.py students/tests_vf1a_h211.py
+  git rev-parse --short=8 HEAD; git status --porcelain
+  exit 0
+fi
+mkdir -p "$OUT"
+cd "$W" || exit 9
+[ "$(git rev-parse HEAD)" = $TIP ] && [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "ABORT tree"; exit 9; }
+cmp -s $G/h211_probe_tests_vf1a_h211.py students/tests_vf1a_h211.py || { echo "ABORT probe copy differs"; exit 9; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/ && /GAP/' | wc -l)" = 0 ] || { echo "ABORT another GAP test process"; exit 9; }
+wrap() { systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 env PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS= "$@"; }
+clearpyc() { find AutoGrader assignments students billing users classrooms ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + ; echo "pycache dirs after clear: $(find AutoGrader assignments students billing users classrooms ai_processor -name __pycache__ -type d | wc -l)"; }
+show() { grep -E "^(FAIL|ERROR): |^Ran |^OK|^FAILED" "$1" | cut -c1-300; }
+one() {
+  local Y=$1 L BLOB s rc F
+  case $Y in
+  base)
+    L=$OUT/h211_base.log
+    { echo "# 1a H-211 baseline at $(git rev-parse HEAD), unmutated, PYTHONDONTWRITEBYTECODE=1"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; } > "$L"
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)" >> "$L"
+    echo "== base exit=$rc"; show "$L"
+    BASE_FAILS=$(grep -cE "^(FAIL|ERROR): " "$L"); BASE_P4=$(grep -cE "^FAIL: test_p4_" "$L"); BASE_RAN=$(grep -c "^Ran 4 tests" "$L")
+    ;;
+  Y[1-3]|G1)
+    case $Y in Y1|Y2|Y3) F=assignments/tasks.py;; G1) F=ai_processor/services.py;; esac
+    BLOB=$(git show $TIP:$F | sha256sum | cut -d' ' -f1)
+    L=$OUT/h211_mutant_$Y.log
+    { echo "# 1a H-211 mutant $Y at $(git rev-parse HEAD), PYTHONDONTWRITEBYTECODE=1"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; "$PY" -B $G/h211_mutants_Y.py $Y; echo "mutated sha differs: $([ "$(sha256sum $F | cut -d' ' -f1)" != "$BLOB" ] && echo True || echo False)"; git diff --stat; } > "$L" 2>&1
+    grep -q "^mutated sha differs: True$" "$L" && grep -q "^applied $Y to $F$" "$L" || { git checkout $TIP -- $F; echo "ABORT $Y: mutant not applied, no test run; see $L" | tee -a "$L"; exit 8; }
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree_mut --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    git checkout $TIP -- $F
+    { echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)"; echo "restored_sha256_matches_commit_blob: $([ "$(sha256sum $F | cut -d' ' -f1)" = "$BLOB" ] && echo True || echo False)"; clearpyc; echo "tracked changes after restore: $(git status --porcelain --untracked-files=no | wc -l)"; } >> "$L" 2>&1
+    echo "== $Y exit=$rc"; sed -n 3,5p "$L"; show "$L"; tail -3 "$L"
+    ;;
+  *) echo "unknown $Y"; exit 9;;
+  esac
+}
+if [ "$Y" = all ]; then
+  BASE_FAILS=-1; BASE_P4=0; BASE_RAN=0
+  one base
+  [ "$BASE_FAILS" = 1 ] && [ "$BASE_P4" = 1 ] && [ "$BASE_RAN" = 1 ] || { echo "STOP: base is not 'Ran 4, only p4 red'; no mutant is run"; exit 7; }
+  for m in Y1 Y2 Y3 G1; do one $m; done
+  "$PY" -B $G/h211_expected.py "$OUT"
+else
+  one "$Y"
+fi

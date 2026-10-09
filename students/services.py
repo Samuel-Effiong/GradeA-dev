@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from decimal import Decimal
 from html import escape
 
 from django.conf import settings
@@ -24,6 +25,7 @@ from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.celery import app as celery_app
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
 from classrooms.models import teacher_course_access_q
@@ -152,6 +154,13 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
     student_name = submission.student.get_full_name()
     if show_grade:
         graded_at, score = submission.graded_at, submission.score
+        if graded_at and score is not None:
+            # A graded row prints its score with two decimals whichever
+            # path builds the document. Grading and the manual grade hold
+            # the score as a float ("7.0"), a row read back holds a decimal
+            # ("7.00"), and a genuine zero is falsy, which `safe()` prints
+            # as nothing. A row with no grading time is left as it was.
+            score = format(Decimal(str(score)), ".2f")
     else:
         # Not `None`: a new row's score is the column's default (zero), and
         # the document of a submitted row is printed from that.
@@ -336,8 +345,10 @@ def _mark_grading_claim_failed(submission_id):
 # restricted to these (not a full-row save) because a run takes minutes,
 # and the in-memory instance was loaded before it started: a full save
 # would write back the stale copy of every OTHER column - a re-upload's
-# `answers`/`attempt_count`, a publish's `is_published`, a formatter's
-# `formatted_grade` - silently reverting whatever landed in between.
+# `answers`/`attempt_count`, a publish's `is_published` - silently
+# reverting whatever landed in between.
+# `formatted_grade` is among them to be CLEARED, never to be written back:
+# see _populate_and_save_grade (H-146).
 GRADING_RESULT_FIELDS = (
     "ai_graded_at",
     "ai_grading_completed_at",
@@ -346,6 +357,7 @@ GRADING_RESULT_FIELDS = (
     "max_points",
     "score_percentage",
     "feedback",
+    "formatted_grade",
     "grading_confidence",
     "graded_at",
     "grading_state",
@@ -605,6 +617,14 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     )
     submission.graded_at = timezone.now()
     submission.grading_state = GradingState.DONE
+    # The formatted grade words the PREVIOUS result, and its first sentence
+    # states the previous score. Cleared by the same UPDATE that writes the
+    # new score, as the manual grade does (H-144): until the follow-up task
+    # has worded this result, and for good if that task fails, a student
+    # reads no formatted grade rather than a wrong one. A first grading has
+    # nothing to clear. The follow-up is queued only after this save has
+    # committed, so its text is never the one cleared here.
+    submission.formatted_grade = None
 
     # Review queue: when the blind second grader disagreed with grader A
     # on any question, flag the submission for the teacher — with both
@@ -763,6 +783,19 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
 FORMATTED_GRADE_TASK_NAME = "assignments.tasks.formatted_grade_async"
 
 
+def grading_result_stamp(submission) -> str:
+    """Which grading result a row holds: its grading time and its regrade
+    time. Grading sets the first and a teacher's manual grade the second,
+    so the stamp changes whenever the result does. It holds no score.
+
+    The formatting task is queued with the stamp of the result it is asked
+    to word and writes only if the row still has that stamp (H-145)."""
+    return "|".join(
+        moment.isoformat() if moment else ""
+        for moment in (submission.graded_at, submission.regraded_at)
+    )
+
+
 def _formatted_grade_task():
     return celery_app.signature(FORMATTED_GRADE_TASK_NAME)
 
@@ -820,6 +853,10 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     Return a formatted response
     """
 
+    # Of the result just saved, taken now: by the time the follow-up runs
+    # the row may hold a newer one.
+    result_stamp = grading_result_stamp(submission)
+
     def _dispatch_followups():
         try:
             formatted_processing_task = create_processing_task(
@@ -834,6 +871,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 formatted_processing_task,
                 str(submission.id),
                 user_prompt,
+                result_stamp=result_stamp,
             )
             # Invalidate ai_summary
             student_summary_async.delay(
@@ -841,11 +879,16 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 str(user.id),
                 str(submission.assignment.course.id),
             )
-        except Exception:
+        except Exception as exc:
             # The grade itself is already committed - a follow-up dispatch
-            # failure must not fail (or un-claim) the graded run.
-            logger.exception(
-                "Failed to dispatch post-grading follow-up tasks",
+            # failure must not fail (or un-claim) the graded run. H-208: the
+            # error's class (and frames if it is not a broker outage), never
+            # its text: a refused queue arrives as a wrapper `from` the broker
+            # error, whose text a chained traceback would print.
+            logger.error(
+                "Failed to dispatch post-grading follow-up tasks: submission=%s %s",
+                submission.id,
+                describe_error_for_log(exc),
                 extra={"submission_id": str(submission.id)},
             )
 

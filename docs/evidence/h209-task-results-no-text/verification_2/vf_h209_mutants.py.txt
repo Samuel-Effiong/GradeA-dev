@@ -1,0 +1,143 @@
+"""v2 mutants for H-209 (assignments/tasks.py: results and output carry the
+error's class and ids, never its text). Run from the vf2-s1 scratch worktree
+detached at COMMIT, inside the caller's wrappers (rules 12/13/16/17/18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h209_mutants.py check|baseline|mutants
+
+Written BEFORE any run. Judge: students.tests_vf2_h209_probe (12 tests, baseline
+expected "Ran 12 tests ... OK"). Each mutant is ONE counted-anchor edit of
+assignments/tasks.py. EXPECTED = the exact failing set (probe-judged); FRAG =
+a fragment that must appear inside that test's OWN FAIL block (rule 22).
+KILLED = rc != 0, a Ran line, failing set EQUAL to the expected set, and every
+fragment seen in its test's block. Restore verified by sha256 against the
+commit's blob; __pycache__ cleared before each mutant and after each restore.
+"""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+T = "assignments/tasks.py"
+LABEL = ["students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies", "students.tests_vf2_h209_probe.GradeAllAndFriendsThroughTheRealBodies"]
+FLABEL = ["students.tests_vf2_h209_probe.VF2H209Findings"]
+
+A1 = 'test_a1_auto_grade_failure_returns_class_only_and_logs_one_error'
+A2 = 'test_a2_auto_grade_broker_error_logs_the_class_without_frames'
+A3 = 'test_a3_a_chained_cause_or_context_text_is_not_kept'
+R1 = 'test_r1_reminder_failure_returns_class_only_and_logs_one_error'
+P1 = 'test_p1_posted_failure_returns_class_only_and_logs_one_error'
+C4 = 'test_c4_control_grade_all_completes_and_logs_ids_only'
+G1 = 'test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output'
+G2 = 'test_g2_batch_dispatch_logs_ids_only_and_prints_nothing'
+E1 = 'test_e1_a_failing_extraction_keeps_text_out_of_row_logs_and_output'
+
+AG_LOG = ('        "%s failed: assignment=%s %s",\n            "auto_grade_due_assignment",\n'
+          '            assignment_id,\n            describe_error_for_log(e),\n        )\n')
+def block(task):
+    return ('            "%s",\n            assignment_id,\n            describe_error_for_log(e),\n'
+            '        )\n        return f"Error: {type(e).__name__}"\n' % task)
+PRE = '        logger.error(\n            "%s failed: assignment=%s %s",\n'
+def full(task):
+    return PRE + block(task)
+
+MUTANTS = {
+ "M1_auto_grade_returns_the_text": ([(full("auto_grade_due_assignment"),
+    full("auto_grade_due_assignment").replace('f"Error: {type(e).__name__}"', 'f"Error: {e}"'))],
+    {A1, A2, A3}, {A1: r"the stored result is not class-only", A2: r"the stored result is not class-only"}),
+ "M2_auto_grade_logs_str_of_the_error": ([(full("auto_grade_due_assignment"),
+    full("auto_grade_due_assignment").replace("describe_error_for_log(e),", "str(e),"))],
+    {A1, A2}, {A1: r"error=RuntimeError", A2: r"error=OperationalError"}),
+ "M3_reminder_uses_logger_exception": ([(full("send_assignment_due_reminder"),
+    full("send_assignment_due_reminder").replace("logger.error(", "logger.exception(", 1))],
+    {R1}, {R1: r"the ERROR record carries a traceback"}),
+ "M4_posted_prints_the_error": ([(block("send_new_assignment_posted_notification"),
+    block("send_new_assignment_posted_notification").replace("        return f", "        print(e)\n        return f"))],
+    {P1}, {P1: r"the made-up error text reached a log record, the output or the result"}),
+ "M5_grade_all_meta_keeps_the_text": ([('"error": type(e).__name__,', '"error": str(e),')],
+    {G1}, {G1: r"the failure meta is not class and ids only"}),
+ "M6_grade_all_swallows_the_error": ([('                fallback_message=(\n                    "We couldn\'t finish grading all submissions. Please try "\n                    "again, or contact support if this continues."\n                ),\n            )\n            raise\n',
+    '                fallback_message=(\n                    "We couldn\'t finish grading all submissions. Please try "\n                    "again, or contact support if this continues."\n                ),\n            )\n            pass\n')],
+    {G1}, {G1: r"grade-all did not re-raise"}),
+ "M7_grade_all_progress_is_printed": ([('            logger.info(\n                "Grade-all progress: assignment=%s %s/%s",', '            print(\n                "Grade-all progress: assignment=%s %s/%s",')],
+    {C4}, {C4: r"the task printed something"}),
+ "M8_reminder_error_not_at_error_level": ([(full("send_assignment_due_reminder"),
+    full("send_assignment_due_reminder").replace("logger.error(", "logger.debug(", 1))],
+    {R1}, {R1: r"expected exactly one ERROR record, got 0"}),
+ "M9_auto_grade_logs_twice": ([(full("auto_grade_due_assignment"),
+    full("auto_grade_due_assignment").replace("        return f", full("auto_grade_due_assignment").split("        return f")[0] + "        return f"))],
+    {A1, A2, A3}, {A1: r"expected exactly one ERROR record, got 2", A2: r"expected exactly one ERROR record, got 2"}),
+ "M10_posted_log_drops_the_frames": ([(block("send_new_assignment_posted_notification"),
+    block("send_new_assignment_posted_notification").replace("describe_error_for_log(e),", '"error=" + type(e).__name__,'))],
+    {P1}, {P1: r"no frames in the only report"}),
+ "M11_batch_queued_line_is_printed": ([('logger.info("Grading queued: submission=%s", submission.id)', 'print("Grading queued: submission=%s" % submission.id)')],
+    {G2}, {G2: r"expected one queued line"}),
+ "M12_extraction_swallows_the_error": ([('                "this continues."\n            ),\n        )\n        raise\n', '                "this continues."\n            ),\n        )\n        pass\n')],
+    {E1}, {E1: r"extraction did not re-raise"}),
+ "M13_grade_all_prints_the_error": ([('            self.update_state(\n                state=states.FAILURE,', '            print(e)\n            self.update_state(\n                state=states.FAILURE,')],
+    {G1}, {G1: r"the task printed something"}),
+ "M14_grade_all_meta_keeps_a_detail": ([('"current_submission_id": submission.id,\n                },\n            )', '"current_submission_id": submission.id,\n                    "detail": str(e),\n                },\n            )')],
+    {G1}, {G1: r"the failure meta is not class and ids only"}),
+}
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+sha = lambda b: hashlib.sha256(b).hexdigest()
+def clear_pycache(path): shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+def run(log_name, labels=None):
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run([sys.executable, "manage.py", "test", *(labels or LABEL), "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                             stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    failing = set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+def frag_seen(o, test, rx):
+    for blk in re.split(r"^={50,}$", o, flags=re.M):
+        if re.search(rf"^(?:FAIL|ERROR): {test} ", blk, re.M) and re.search(rx, blk):
+            return True
+    return False
+
+def apply(src, edits):
+    counts = [src.count(old) for old, _ in edits]
+    if counts != [1] * len(edits):
+        return None, counts
+    for old, new in edits:
+        src = src.replace(old, new, 1)
+    ast.parse(src)
+    return src, counts
+
+step = sys.argv[1]
+if step == "check":
+    for name, (edits, _, _) in MUTANTS.items():
+        s, c = apply(open(T).read(), edits)
+        print(name, c, "APPLIES" if s else "NO_APPLY", "changed" if s and s != open(T).read() else "UNCHANGED")
+    sys.exit(0)
+if step == "baseline":
+    clear_pycache(T)
+    rc, ran, summary, failing, o = run("baseline.txt")
+    print("baseline |", ran, "|", summary, "|", sorted(failing), flush=True)
+    if rc != 0: print(o[-8000:])
+    sys.exit(rc)
+if step == "findings":
+    rc, ran, summary, failing, o = run("findings.txt", FLABEL)
+    print("findings |", ran, "|", summary, "|", sorted(failing), "| fragment seen", frag_seen(o, "test_f1_celerys_own_failure_log_for_a_failed_grade_all_carries_no_text", r"the made-up error text reached celery's own failure log"), flush=True)
+    sys.exit(0)
+for name, (edits, expected, frags) in MUTANTS.items():
+    src, counts = apply(open(T).read(), edits)
+    if src is None:
+        print(name, "APPLY_FAILED", counts, flush=True); continue
+    try:
+        clear_pycache(T); open(T, "w").write(src)
+        rc, ran, summary, failing, o = run(f"{name}.txt")
+        seen = {t: frag_seen(o, t, rx) for t, rx in frags.items()}
+        if rc == 0: status = "SURVIVED"
+        elif ran == "Ran ?" or not failing: status = "BROKEN"
+        elif failing == expected and all(seen.values()): status = "KILLED"
+        else: status = "KILLED_OTHER"
+        print(name, "|", status, "|", ran, "|", summary, "| expected", sorted(expected), "| failing", sorted(failing), "| fragments seen", seen, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", T], check=True); clear_pycache(T)
+        ok = sha(open(T, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{T}"], capture_output=True).stdout)
+        print("  restore", T, "ok" if ok else "MISMATCH", flush=True)

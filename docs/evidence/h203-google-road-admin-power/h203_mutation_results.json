@@ -1,0 +1,407 @@
+{
+  "T1_the_helper_forgets_is_staff": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff"
+    ],
+    "pycache_left": 0
+  },
+  "T2_the_helper_forgets_is_superuser": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser"
+    ],
+    "pycache_left": 0
+  },
+  "T3_the_helper_forgets_the_super_admin_type": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type"
+    ],
+    "pycache_left": 0
+  },
+  "T4_google_has_no_admin_power_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer"
+    ],
+    "pycache_left": 0
+  },
+  "T5_google_refuses_every_never_verified_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_an_ordinary_never_verified_user_is_still_completed_by_google"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_an_ordinary_never_verified_user_is_still_completed_by_google"
+    ],
+    "pycache_left": 0
+  },
+  "T6_google_refuses_a_verified_admin_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_a_verified_admin_still_signs_in_with_google"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_a_verified_admin_still_signs_in_with_google"
+    ],
+    "pycache_left": 0
+  },
+  "T7_google_answers_an_admin_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer"
+    ],
+    "pycache_left": 0
+  },
+  "T8_google_stamps_the_email_before_refusing": {
+    "status": "KILLED_NOT_AS_EXPECTED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser"
+    ],
+    "expected_but_passed": [
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type",
+      "users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag"
+    ],
+    "failing_tests": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "pycache_left": 0
+  },
+  "T9_the_invitation_road_has_no_admin_power_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff",
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser"
+    ],
+    "pycache_left": 0
+  },
+  "T10_the_invitation_road_refuses_every_pending_admin": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_an_ordinary_pending_school_admin_still_registers"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_an_ordinary_pending_school_admin_still_registers"
+    ],
+    "pycache_left": 0
+  },
+  "T11_the_invitation_road_answers_an_admin_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer"
+    ],
+    "pycache_left": 0
+  },
+  "T12_add_by_email_has_no_admin_power_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused"
+    ],
+    "pycache_left": 0
+  },
+  "T13_add_by_email_refuses_every_student": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_an_ordinary_student_is_still_enrolled",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_still_adds_an_ordinary_student",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_still_adds_an_ordinary_student",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_still_adds_an_ordinary_student"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_still_adds_an_ordinary_student",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_still_adds_an_ordinary_student",
+      "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_still_adds_an_ordinary_student",
+      "users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_an_ordinary_student_is_still_enrolled"
+    ],
+    "pycache_left": 0
+  },
+  "T14_a_new_site_that_switches_an_account_on_is_added": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "pycache_left": 0
+  },
+  "T15_the_licence_road_has_no_guard": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used"
+    ],
+    "pycache_left": 0
+  },
+  "T16_the_licence_guard_forgets_the_switched_off_clause": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched"
+    ],
+    "pycache_left": 0
+  },
+  "T17_the_licence_guard_forgets_the_admin_power_clause": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_an_ordinary_never_signed_in_teacher_still_gets_a_new_password_and_mail",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_an_ordinary_never_verified_inactive_teacher_is_still_added"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_an_ordinary_never_signed_in_teacher_still_gets_a_new_password_and_mail",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_an_ordinary_never_verified_inactive_teacher_is_still_added"
+    ],
+    "pycache_left": 0
+  },
+  "T18_the_licence_guard_refuses_a_verified_admin_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_verified_staff_teacher_who_has_onboarded_is_still_added"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_verified_staff_teacher_who_has_onboarded_is_still_added"
+    ],
+    "pycache_left": 0
+  },
+  "T19_the_licence_guard_answers_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used"
+    ],
+    "pycache_left": 0
+  },
+  "T20_the_licence_guard_attaches_the_school_before_refusing": {
+    "status": "KILLED_NOT_AS_EXPECTED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched"
+    ],
+    "expected_but_passed": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched",
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched"
+    ],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "T21_a_new_site_that_sets_a_password_is_added": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "pycache_left": 0
+  },
+  "T22_a_new_site_that_makes_a_credential_is_added": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+    ],
+    "pycache_left": 0
+  },
+  "T23_the_not_a_teacher_answer_changes_its_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 37,
+    "expected": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_an_account_that_is_not_a_teacher_gets_the_same_words"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_an_account_that_is_not_a_teacher_gets_the_same_words"
+    ],
+    "pycache_left": 0
+  }
+}

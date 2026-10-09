@@ -1149,6 +1149,11 @@ class SubscriptionService:
         why (default: an automatic expiry); a licence removal passes its own
         (Epic A S3, D4).
         """
+        # H-222: the wallet row before the bucket row, the order everything
+        # else uses (billing/locks.py). A licence clawback and the Beat
+        # cleanup reach here holding no wallet lock, and a monthly grant or a
+        # charge for the same user holds the wallet and waits for this bucket.
+        lock_wallet_first(bucket.wallet)
         bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
         # Re-checked under the lock: two overlapping expiries of one bucket
         # (the Beat cleanup and a licence clawback, or two cleanup runs - a

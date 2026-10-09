@@ -494,6 +494,48 @@ class InvitationDoorTests(DoorBase):
             reason="INVALID_CODE",
         )
 
+    def test_an_admin_power_pending_row_is_refused_and_audited_like_a_wrong_token(
+        self,
+    ):
+        """Merge-down b16: H-203 refuses a pending school-admin row that
+        carries admin power even with the right token. On the Phase 2 line
+        that refusal writes ONE failure event naming the account, with the
+        reason of a wrong token, and the row stays as it was."""
+        school = School.objects.create(name="Door School 3")
+        admin = make_user(
+            "admin.door3@example.com",
+            password=None,
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+            is_active=False,
+            is_staff=True,
+            email_verified_at=None,
+            activation_token="inv-token-3",
+            activation_expires=timezone.now() + timedelta(days=1),
+        )
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+
+        response = self.client.post(
+            reverse("auth-register-school-admin"),
+            {"email": admin.email, "token": "inv-token-3", "password": NEW_PASSWORD},
+            format="json",
+        )
+
+        new = AuditEvent.objects.exclude(pk__in=before)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(new.count(), 1)
+        self.assert_event(
+            new.get(),
+            outcome=AuditOutcome.FAILURE,
+            method="school_admin_invitation",
+            account=admin,
+            reason="INVALID_CODE",
+        )
+        admin.refresh_from_db()
+        self.assertFalse(admin.is_active)
+        self.assertIsNone(admin.email_verified_at)
+        self.assertEqual(admin.activation_token, "inv-token-3")
+
 
 class GoogleDoorTests(DoorBase):
     def google(self, email="g.door@gmail.com", verified=True, post_error=None):
@@ -541,6 +583,36 @@ class GoogleDoorTests(DoorBase):
             account=user,
             reason="ACCOUNT_DEACTIVATED",
         )
+
+    def test_a_never_verified_admin_power_account_is_refused_and_named(self):
+        """Merge-down b16: H-203 refuses a Google sign-in on a never-verified
+        account with admin power. On the Phase 2 line the refusal writes ONE
+        failure event naming that account (the neighbouring refusals do), and
+        nothing is written to the account."""
+        user = make_user(
+            "g.door@gmail.com",
+            password=None,
+            is_staff=True,
+            is_active=False,
+            email_verified_at=None,
+        )
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+
+        response = self.google()
+
+        new = AuditEvent.objects.exclude(pk__in=before)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(new.count(), 1)
+        self.assert_event(
+            new.get(),
+            outcome=AuditOutcome.FAILURE,
+            method="google",
+            account=user,
+            reason="GOOGLE_SIGN_IN_REFUSED",
+        )
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertIsNone(user.email_verified_at)
 
     def test_unverified_google_email(self):
         self.assertEqual(self.google(verified=False).status_code, 400)

@@ -1,0 +1,105 @@
+# v2 H-203 at eeea349d: expected failing tests per mutant (written 2026-10-09 BEFORE any run; regenerated 18:4x after the probe edit of a3). KILLED = rc!=0, a Ran line, and EVERY must-test among the failing; the full failing set is printed beside it.
+# Baseline expected: Ran 32 tests, OK (my probe 11 + ed's principle module 16 + the pin 2 + 1a's probe 3). a3 does NOT pin the status (H-214: direct add answers 500 for a refused add).
+# A written fragment (rule 22) is checked inside the test's own FAIL block where listed.
+
+## R1_google_check_removed  (users/views.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_google_refuses_a_never_verified_staff_account
+  must FAIL: test_google_refuses_a_never_verified_superuser_flag
+  must FAIL: test_google_refuses_a_never_verified_super_admin_type
+  must FAIL: test_google_refuses_a_command_line_superuser
+  must FAIL: test_g1_a_never_verified_inactive_admin_power_account_is_refused_and_left_alone
+  must FAIL: test_g3_the_refusal_changes_no_column_and_issues_no_token
+
+## R2_google_check_only_for_active_rows  (users/views.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_g1_a_never_verified_inactive_admin_power_account_is_refused_and_left_alone
+
+## R3_invitation_check_removed  (users/views.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_staff
+  must FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser
+  must FAIL: test_i1_a_pending_row_carrying_is_superuser_gets_the_wrong_token_answer_and_is_left_alone
+
+## R4_add_student_check_removed  (classrooms/services/enrollment.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle, classrooms.tests_h203_admin_power_routes
+  must FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_staff
+  must FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_superuser
+  must FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff
+  must FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser
+  must FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_staff
+  must FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_superuser
+  must FAIL: test_a_student_typed_row_carrying_is_staff_is_refused
+  must FAIL: test_a_student_typed_row_carrying_is_superuser_is_refused
+  must FAIL: test_a1_add_by_email_refuses_a_student_typed_row_carrying_is_staff
+  must FAIL: test_a2_add_by_email_refuses_a_student_typed_row_carrying_is_superuser
+  must FAIL: test_a3_direct_add_refuses_the_same_rows   fragment: \d+ not greater than or equal to 400
+  must FAIL: test_a5_a_verified_switched_off_row_with_admin_power_gets_the_not_a_student_answer
+
+## R6_helper_ignores_is_superuser  (users/admin_power.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_google_refuses_a_never_verified_superuser_flag
+  must FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser
+  must FAIL: test_a_student_typed_row_carrying_is_superuser_is_refused
+  must FAIL: test_a2_add_by_email_refuses_a_student_typed_row_carrying_is_superuser
+  must FAIL: test_i1_a_pending_row_carrying_is_superuser_gets_the_wrong_token_answer_and_is_left_alone
+  must FAIL: test_g2_the_refusal_is_the_same_bytes_as_an_ordinary_failed_google_sign_in
+
+## R7_helper_ignores_the_super_admin_type  (users/admin_power.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_google_refuses_a_never_verified_super_admin_type
+  must FAIL: test_g3_the_refusal_changes_no_column_and_issues_no_token
+
+## R8_google_refusal_has_its_own_text  (users/views.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_that_refusal_is_the_failed_google_sign_in_answer
+  must FAIL: test_g2_the_refusal_is_the_same_bytes_as_an_ordinary_failed_google_sign_in
+
+## L1_licence_admin_power_clause_removed  (billing/license_service.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, billing.tests.test_licence_invite_admin_power
+  must FAIL: test_l1_the_licence_teacher_road_does_not_replace_the_password_of_an_unverified_admin_power_row
+  must FAIL: test_a_never_verified_staff_teacher_is_refused_and_untouched
+
+## L2_licence_switched_off_clause_removed  (billing/license_service.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, billing.tests.test_licence_invite_admin_power
+  must FAIL: test_a_switched_off_verified_teacher_is_refused_and_untouched
+
+## S8_google_stamps_the_email_then_refuses  (users/views.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, users.tests_admin_power_principle
+  must FAIL: test_the_refusal_is_raised_before_any_write_to_the_account   fragment: \d+ != 0
+
+## S20_licence_guard_attaches_the_school_then_refuses  (billing/license_service.py)
+  judged by: users.tests_vf2_h203_probe.VF2Google, users.tests_vf2_h203_probe.VF2Invitation, users.tests_vf2_h203_probe.VF2AddStudentRoutes, users.tests_vf2_h203_probe.VF2LicenceRoadFindings, billing.tests.test_licence_invite_admin_power
+  must FAIL: test_the_refusal_is_raised_before_any_write_to_the_account   fragment: \d+ != 0
+
+## A1_google_arm_off_judged_by_the_old_google_module  (users/views.py)
+  judged by: users.tests_google_auth.GoogleAuthViewTests.test_a_dormant_never_verified_super_admin_is_not_activated_by_google, users.tests_google_auth.GoogleAuthViewTests.test_every_role_loses_a_pre_set_password_when_google_activates_the_row
+  must FAIL: test_a_dormant_never_verified_super_admin_is_not_activated_by_google   fragment: 200 != 400
+
+## S9_google_queues_a_sync_then_refuses  (users/views.py)
+  judged by: users.tests_vf1a_h203
+  must FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves   fragment: safe_delay was called before the refusal
+
+## S10_google_stamps_the_sign_in_then_refuses  (users/views.py)
+  judged by: users.tests_vf1a_h203
+  must FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves   fragment: the sign-in was stamped
+
+## R1b_google_arm_off_judged_by_1a  (users/views.py)
+  judged by: users.tests_vf1a_h203
+  must FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves   fragment: 200 != 400
+
+## A2_helper_forgets_the_super_admin_type_judged_by_the_old_google_module  (users/admin_power.py)
+  judged by: users.tests_google_auth.GoogleAuthViewTests.test_a_dormant_never_verified_super_admin_is_not_activated_by_google
+  must FAIL: test_a_dormant_never_verified_super_admin_is_not_activated_by_google   fragment: 200 != 400
+
+## P1_a_new_token_site_in_a_pinned_file  (users/views.py)
+  judged by: users.tests_roads_that_sign_in_or_activate
+  must FAIL: test_every_site_is_on_the_named_list_with_its_count
+
+## P2_a_new_file_with_a_token_site  (users/vf2_new_road.py)
+  judged by: users.tests_roads_that_sign_in_or_activate
+  must FAIL: test_every_site_is_on_the_named_list_with_its_count
+
+## P3_a_password_by_mail_road_the_pin_must_see  (users/vf2_blind_road.py)
+  judged by: users.tests_roads_that_sign_in_or_activate
+  must FAIL: test_every_site_is_on_the_named_list_with_its_count
