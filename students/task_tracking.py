@@ -17,6 +17,7 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
+from AutoGrader.safe_logging import describe_error_for_log
 from billing.refusals import is_permanent_refusal, log_refusal
 
 from .exceptions import TaskCancelledError
@@ -228,10 +229,12 @@ def mark_processing_task_failure(
     if is_permanent_refusal(error):
         log_refusal(logger, f"Background task {processing_task_id}", error)
     elif isinstance(error, BaseException):
+        # H-208: the error's class (and, for a fault that is not a broker
+        # outage, its frames), never its text or a traceback.
         logger.error(
-            "Background task %s failed",
+            "Background task %s failed: %s",
             processing_task_id,
-            exc_info=error,
+            describe_error_for_log(error),
         )
 
     return update_processing_task(
@@ -399,14 +402,14 @@ def cancel_processing_task(processing_task):
                 terminate=True,
                 signal="SIGTERM",
             )
-        except BROKER_UNAVAILABLE_ERRORS:
+        except BROKER_UNAVAILABLE_ERRORS as exc:
             logger.error(
                 "Could not revoke celery task %s for cancelled processing task %s "
-                "- broker unavailable; the worker will observe the cancellation "
-                "at its next cooperative check",
+                "- broker unavailable (%s); the worker will observe the "
+                "cancellation at its next cooperative check",
                 processing_task.celery_task_id,
                 processing_task.id,
-                exc_info=True,
+                describe_error_for_log(exc),
             )
 
     return processing_task
@@ -427,14 +430,14 @@ def normalize_processing_task_status(processing_task):
     # reporting back, so when it can't be read we fall back to the row.
     try:
         state = AsyncResult(processing_task.celery_task_id, app=celery_app).state
-    except BROKER_UNAVAILABLE_ERRORS:
+    except BROKER_UNAVAILABLE_ERRORS as exc:
         logger.warning(
             "Could not read celery state for processing task %s (celery id %s) "
-            "- result backend unavailable; reporting tracked status %s",
+            "- result backend unavailable (%s); reporting tracked status %s",
             processing_task.id,
             processing_task.celery_task_id,
+            describe_error_for_log(exc),
             processing_task.status,
-            exc_info=True,
         )
         return processing_task.status
 

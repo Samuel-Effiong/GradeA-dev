@@ -14,6 +14,7 @@ from ai_processor.services import REPLY_CORRECTED, ai_processor, is_readable_ans
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from AutoGrader.celery import app as celery_app
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
 from classrooms.tasks import student_summary_async
@@ -721,11 +722,16 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 str(user.id),
                 str(submission.assignment.course.id),
             )
-        except Exception:
+        except Exception as exc:
             # The grade itself is already committed - a follow-up dispatch
-            # failure must not fail (or un-claim) the graded run.
-            logger.exception(
-                "Failed to dispatch post-grading follow-up tasks",
+            # failure must not fail (or un-claim) the graded run. H-208: the
+            # error's class (and frames if it is not a broker outage), never
+            # its text: a refused queue arrives as a wrapper `from` the broker
+            # error, whose text a chained traceback would print.
+            logger.error(
+                "Failed to dispatch post-grading follow-up tasks: submission=%s %s",
+                submission.id,
+                describe_error_for_log(exc),
                 extra={"submission_id": str(submission.id)},
             )
 

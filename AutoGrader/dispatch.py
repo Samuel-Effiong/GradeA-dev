@@ -29,6 +29,8 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from rest_framework.exceptions import APIException
 
+from AutoGrader.safe_logging import describe_error_for_log
+
 logger = logging.getLogger(__name__)
 
 # Every exception type a broker-unreachable .delay()/.apply_async() call can
@@ -64,10 +66,10 @@ def safe_delay(task, *args, **kwargs):
     """
     try:
         return task.delay(*args, **kwargs)
-    except BROKER_UNAVAILABLE_ERRORS:
+    except BROKER_UNAVAILABLE_ERRORS as exc:
         logger.error(
-            "Could not dispatch task %s - broker unavailable",
+            "Could not dispatch task %s - broker unavailable (%s)",
             getattr(task, "name", task),
-            exc_info=True,
+            describe_error_for_log(exc),
         )
         return None
