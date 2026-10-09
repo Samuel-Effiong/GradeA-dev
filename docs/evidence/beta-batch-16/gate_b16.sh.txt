@@ -1,0 +1,32 @@
+#!/bin/bash
+# Batch 16 module gate (rule 23): pre-commit run --all-files on the tip, makemigrations, then the rows' test modules,
+# H-164/H-202's modules, the Google auth tests and the cache test. ONE inhibit around the whole script (rule 16 revised).
+# Usage: gate_b16.sh <tip sha8>   (MODS_OVERRIDE replaces the module list)
+set -u
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+TIP=${1:?tip}
+WT=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-16
+S=/home/bond-servant-in-training/Documents/Projects/GAP-0b-runs
+cd $WT || exit 2
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || { echo "not at $TIP"; exit 3; }
+[ -z "$(git status --porcelain)" ] || { echo "tree not clean"; exit 3; }
+[ -f settings_worktree.py ] && [ -e .env ] || { echo "STOP: settings_worktree.py or .env missing"; exit 5; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/ && /settings_worktree/' | wc -l)" = 0 ] || { echo "another GAP test run is active"; exit 4; }
+export PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS=
+echo "start $(date '+%F %T') load=$(cut -d' ' -f1-3 /proc/loadavg)"
+systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 pre-commit run --all-files > $S/pc_all_b16_$TIP.txt 2>&1 < /dev/null
+echo "pre-commit exit=$? $(date '+%T')"; grep -E "(Passed|Failed|Skipped)$" $S/pc_all_b16_$TIP.txt | sed 's/\x1b\[[0-9;]*m//g' | cut -c1-120
+echo "tracked changes after hooks: $(git status --porcelain --untracked-files=no | wc -l)"
+MM=$(python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null 2>&1 | tail -1); echo "makemigrations: $MM"
+case "$MM" in "No changes detected"*) : ;; *) echo "STOP: makemigrations not clean"; exit 6;; esac
+MODS_DEFAULT="assignments.tests_edit_refusal_student_sentence students.tests_upload_bills_the_teacher_only students.tests_broker_text_not_logged students.tests_task_tracking billing.tests.test_refusal_handling billing.tests.test_licence_invite_admin_power classrooms.tests_h203_admin_power_routes users.tests_admin_power_principle users.tests_roads_that_sign_in_or_activate users.tests_google_auth users.tests_switched_off_means_out users.tests_reset_for_an_invited_student AutoGrader.tests_cache_bespoke_1114"
+MODS=${MODS_OVERRIDE:-$MODS_DEFAULT}
+L=$S/gate_b16_modules_$TIP.log
+systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 python manage.py test $MODS --settings=settings_worktree --noinput --verbosity 2 > $L 2>&1 < /dev/null
+echo "modules exit=$? end $(date '+%F %T') load=$(cut -d' ' -f1-3 /proc/loadavg)"
+grep -E "^Ran [0-9]+ tests|^OK|^FAILED" $L | cut -c1-120; echo "FAIL/ERROR headers: $(grep -cE '^(FAIL|ERROR): ' $L)"; grep -E '^(FAIL|ERROR): ' $L | head -20 | cut -c1-200
+echo "tree clean after: $([ -z "$(git status --porcelain)" ] && echo yes || echo NO)"
+echo "SCRIPT-ENDED $(date '+%T')"
