@@ -5,7 +5,7 @@ The constraint says: the result column holds one of the five result words
 "unlabelled" or "not_run" stands in the model column only beside the same
 word in the result column.
 
-This is step one: the constraint is added NOT VALID. PostgreSQL then checks
+This is step one: the constraint is added NOT VALID, after SET LOCAL lock_timeout = '5s' (it lasts for this migration's transaction only). ADD CONSTRAINT takes an ACCESS EXCLUSIVE lock and waits behind any open transaction on the table while every new query on the table queues behind it; with the timeout it gives up after five seconds with an error instead of stalling the table. The deploy step then fails cleanly, the old version keeps running, and the deploy is simply run again. PostgreSQL then checks
 only rows that are written from now on and does NOT read the existing rows,
 so there is no scan of students_studentsubmission. The statement takes an
 ACCESS EXCLUSIVE lock on the table, but only for the moment it needs to
@@ -46,6 +46,7 @@ ADD_NOT_VALID = (
     "AND NOT (\"answers_recheck_model\" IN ('unlabelled', 'not_run')))"
     ")) NOT VALID"
 )
+SET_LOCK_TIMEOUT = "SET LOCAL lock_timeout = '5s'"
 DROP = 'ALTER TABLE "students_studentsubmission" DROP CONSTRAINT IF EXISTS "answers_recheck_pair_allowed"'
 
 
@@ -57,8 +58,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql=ADD_NOT_VALID,
-            reverse_sql=DROP,
+            sql=[SET_LOCK_TIMEOUT, ADD_NOT_VALID],
+            reverse_sql=[SET_LOCK_TIMEOUT, DROP],
             state_operations=[
                 migrations.AddConstraint(
                     model_name="studentsubmission",
