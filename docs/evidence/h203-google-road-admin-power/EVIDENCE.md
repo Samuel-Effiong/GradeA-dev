@@ -124,3 +124,8 @@ Commit c7c0659c, tests only. The written sets, `mutate.py` (b06d49f339a6d3bf) an
 4. **A one-bit signal:** a never-verified admin-power account answers Google sign-in with 400 "Google sign-in failed" where any other address gets 200; someone who controls that mailbox can tell the account is a never-verified admin-power account. Low; named.
 5. **A behaviour change:** `check_existing_account_may_join` refuses `holds_admin_power(student)` for VERIFIED STUDENT-typed rows as well, which is wider than the principle's "never verified". It is the gate of add-by-email, bulk import and direct add; intended, but it is a change.
 6. **SCHOOL_ADMIN:** a dormant never-verified SCHOOL_ADMIN still activates through Google; the Senior Manager accepted it as a decision outside the principle (a school admin's normal entrance is itself mailbox-based, the invitation; "admin power" means platform power, the H-164 predicate). To bring it inside: one more `or user.user_type == UserTypes.SCHOOL_ADMIN` in `users/admin_power.py`, at the cost that invitees could no longer finish through Google.
+
+---
+
+# REGRESSION (grant by 0b 18:19:04; tip eeea349d; start 18:19:25 WAT load 1.61, end 18:26:21 WAT)
+`APPS="users classrooms billing" run_h203_gate.sh eeea349d... 3 e11a0083`, 12G scope under the full-suite lock, one systemd-inhibit: **Ran 3381 tests in 395.0 s, OK (skipped=4)**; 0 FAIL/ERROR headers. The two order tests and the changed Google loop test were in it and passed on the current code (they are still not seen red: that is Verifier 2's slot). Raw: `h203_regression.txt.gz` (gzip -n, compared byte for byte with the original) and `h203_regression_stdout.txt`.

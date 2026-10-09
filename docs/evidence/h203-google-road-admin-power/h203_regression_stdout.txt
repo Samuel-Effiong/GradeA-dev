@@ -1,0 +1,6 @@
+=== 3. regression: users classrooms billing at eeea349d 18:19:25
+load at start: 1.61 1.78 2.50 6/2897 1685070
+exit=0 18:26:21
+load at end: 2.15 2.15 2.45 1/2871 1697021
+Ran 3381 tests in 395.044s
+OK (skipped=4)
