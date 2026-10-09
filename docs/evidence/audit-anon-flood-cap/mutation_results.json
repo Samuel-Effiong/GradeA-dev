@@ -1,0 +1,77 @@
+{
+  "F1_the_denied_admin_action_is_not_capped": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 23,
+    "expected": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_anonymous_probes_stop_writing_rows_at_the_global_limit",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_anonymous_probes_stop_writing_rows_at_the_global_limit",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row"
+    ],
+    "pycache_left": 0
+  },
+  "F2_the_route_target_is_the_cap_key": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 23,
+    "expected": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap"
+    ],
+    "pycache_left": 0
+  },
+  "F3_the_global_cap_does_not_apply": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 23,
+    "expected": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_anonymous_probes_stop_writing_rows_at_the_global_limit",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_anonymous_probes_stop_writing_rows_at_the_global_limit",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap",
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row"
+    ],
+    "pycache_left": 0
+  },
+  "F4_a_signed_in_refusal_is_capped_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 23,
+    "expected": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_a_signed_in_refusal_is_never_capped",
+      "audit.tests_failed_auth_cap.FailedAuthCapTests.test_a_signed_in_requesters_failures_are_never_capped"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_a_signed_in_refusal_is_never_capped",
+      "audit.tests_failed_auth_cap.FailedAuthCapTests.test_a_signed_in_requesters_failures_are_never_capped"
+    ],
+    "pycache_left": 0
+  },
+  "F5_the_admin_action_summary_loses_its_metadata_keys": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 23,
+    "expected": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row"
+    ],
+    "pycache_left": 0
+  }
+}
