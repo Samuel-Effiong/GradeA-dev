@@ -1,5 +1,6 @@
 """H-203 mutants. Each is one textual change to users/views.py, users/admin_power.py,
-classrooms/services/enrollment.py or users/services.py; the new modules run against it; the failing tests
+classrooms/services/enrollment.py, billing/license_service.py or users/services.py;
+the new modules run against it; the failing tests
 are recorded; the file is restored. The runner is H-164's.
 
 Written BEFORE any run: every mutant names the tests it must fail (EXPECTED, full dotted names). KILLED needs a non-zero
@@ -23,6 +24,8 @@ import sys
 TESTS = [
     "users.tests_admin_power_principle",
     "users.tests_roads_that_sign_in_or_activate",
+    "billing.tests.test_licence_invite_admin_power",
+    "classrooms.tests_h203_admin_power_routes",
 ]
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 HERE = pathlib.Path("docs/evidence/h203-google-road-admin-power")
@@ -34,6 +37,7 @@ VIEWS = "users/views.py"
 POWER = "users/admin_power.py"
 ENROLL = "classrooms/services/enrollment.py"
 SERVICES = "users/services.py"
+LICENCE = "billing/license_service.py"
 
 G = "users.tests_admin_power_principle.GoogleRoadTests."
 S = "users.tests_admin_power_principle.SchoolAdminInvitationRoadTests."
@@ -54,6 +58,30 @@ ES = E + "test_a_student_typed_row_carrying_is_staff_is_refused"
 EF = E + "test_a_student_typed_row_carrying_is_superuser_is_refused"
 EO = E + "test_an_ordinary_student_is_still_enrolled"
 PIN = P + "test_every_site_is_on_the_named_list_with_its_count"
+L = "billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests."
+LS = L + "test_a_never_verified_staff_teacher_is_refused_and_untouched"
+LF = L + "test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched"
+LC = L + "test_a_command_line_superuser_is_refused_and_untouched"
+LN = L + "test_the_non_raising_path_returns_none_and_writes_nothing"
+LO = L + "test_a_switched_off_verified_teacher_is_refused_and_untouched"
+LW = L + "test_the_refusal_does_not_say_which_school_the_row_belongs_to"
+LR = L + "test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used"
+LK_PLAIN = (
+    L + "test_an_ordinary_never_signed_in_teacher_still_gets_a_new_password_and_mail"
+)
+LK_PENDING = L + "test_an_ordinary_never_verified_inactive_teacher_is_still_added"
+LK_ONBOARDED = L + "test_a_verified_staff_teacher_who_has_onboarded_is_still_added"
+LK_STUDENT = L + "test_an_account_that_is_not_a_teacher_gets_the_same_words"
+R = "classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests."
+RS1 = R + "test_single_add_refuses_a_student_typed_row_carrying_is_staff"
+RS2 = R + "test_single_add_refuses_a_student_typed_row_carrying_is_superuser"
+RB1 = R + "test_bulk_import_refuses_a_student_typed_row_carrying_is_staff"
+RB2 = R + "test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser"
+RD1 = R + "test_direct_add_refuses_a_student_typed_row_carrying_is_staff"
+RD2 = R + "test_direct_add_refuses_a_student_typed_row_carrying_is_superuser"
+RK1 = R + "test_single_add_still_adds_an_ordinary_student"
+RK2 = R + "test_bulk_import_still_adds_an_ordinary_student"
+RK3 = R + "test_direct_add_still_adds_an_ordinary_student"
 
 HELPER = "        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN\n"
 G_ARM = (
@@ -65,19 +93,34 @@ S_ARM = (
     '                    raise ParseError("Invalid or expired activation token.")\n'
 )
 E_ARM = "    if student.user_type != UserTypes.STUDENT or holds_admin_power(student):\n"
+L_GUARD = (
+    "            if (holds_admin_power(user) and user.email_verified_at is None) or (\n"
+    "                user.email_verified_at is not None and not user.is_active\n"
+    "            ):\n"
+)
+L_BLOCK = (
+    L_GUARD
+    + '                error_msg = "This email can\'t be added as a teacher."\n'
+    + "                logger.warning(\n"
+    + '                    "User %s may not be invited by licence: not enrolled.", user.id\n'
+    + "                )\n"
+    + "                if raise_on_conflict:\n"
+    + "                    raise ValueError(error_msg)\n"
+    + "                return None\n\n"
+)
 
 MUTANTS = {
     "T1_the_helper_forgets_is_staff": (
         POWER,
         HELPER,
         HELPER.replace("user.is_staff or ", ""),
-        [GS, IS, IW, ES],
+        [GS, IS, IW, ES, LN, LW, LR, RS1, RB1, RD1],
     ),
     "T2_the_helper_forgets_is_superuser": (
         POWER,
         HELPER,
         HELPER.replace("user.is_superuser or ", ""),
-        [GF, GW, ISU, EF],
+        [GF, GW, ISU, EF, LF, RS2, RB2, RD2],
     ),
     "T3_the_helper_forgets_the_super_admin_type": (
         POWER,
@@ -140,13 +183,13 @@ MUTANTS = {
         ENROLL,
         E_ARM,
         E_ARM.replace(" or holds_admin_power(student)", ""),
-        [ES, EF],
+        [ES, EF, RS1, RS2, RB1, RB2, RD1, RD2],
     ),
     "T13_add_by_email_refuses_every_student": (
         ENROLL,
         E_ARM,
         E_ARM.replace("holds_admin_power(student)", "True"),
-        [EO],
+        [EO, RK1, RK2, RK3],
     ),
     "T14_a_new_site_that_switches_an_account_on_is_added": (
         SERVICES,
@@ -154,9 +197,112 @@ MUTANTS = {
         '_H203_PROBE = {"is_active": True}\n\n\ndef stamp_last_login(user):',
         [PIN],
     ),
+    "T15_the_licence_road_has_no_guard": (
+        LICENCE,
+        L_BLOCK,
+        "",
+        [LS, LF, LC, LN, LO, LW, LR],
+    ),
+    "T16_the_licence_guard_forgets_the_switched_off_clause": (
+        LICENCE,
+        L_GUARD,
+        L_GUARD.replace(
+            "(\n                user.email_verified_at is not None and not user.is_active\n            )",
+            "(\n                False\n            )",
+        ),
+        [LO],
+    ),
+    "T17_the_licence_guard_forgets_the_admin_power_clause": (
+        LICENCE,
+        L_GUARD,
+        L_GUARD.replace("holds_admin_power(user) and ", ""),
+        [LK_PLAIN, LK_PENDING],
+    ),
+    "T18_the_licence_guard_refuses_a_verified_admin_too": (
+        LICENCE,
+        L_GUARD,
+        L_GUARD.replace(" and user.email_verified_at is None)", ")", 1),
+        [LK_ONBOARDED],
+    ),
+    "T19_the_licence_guard_answers_in_its_own_words": (
+        LICENCE,
+        L_BLOCK,
+        L_BLOCK.replace(
+            "This email can't be added as a teacher.", "Not for a licence."
+        ),
+        [LS, LF, LC, LO, LW, LR],
+    ),
+    "T20_the_licence_guard_attaches_the_school_before_refusing": (
+        LICENCE,
+        L_BLOCK,
+        L_BLOCK.replace(
+            "                error_msg =",
+            "                user.school = school\n"
+            '                user.save(update_fields=["school"])\n'
+            "                error_msg =",
+            1,
+        ),
+        [LS, LF, LC, LN, LO],
+    ),
+    "T21_a_new_site_that_sets_a_password_is_added": (
+        SERVICES,
+        "def stamp_last_login(user):",
+        "def _h203_probe(account):\n    account.set_password(None)\n\n\ndef stamp_last_login(user):",
+        [PIN],
+    ),
+    "T22_a_new_site_that_makes_a_credential_is_added": (
+        SERVICES,
+        "def stamp_last_login(user):",
+        '_H203_PROBE = "generate_temporary_password("\n\n\ndef stamp_last_login(user):',
+        [PIN],
+    ),
+    "T23_the_not_a_teacher_answer_changes_its_words": (
+        LICENCE,
+        'error_msg = "This email can\'t be added as a teacher."\n'
+        '                logger.warning("User %s is not a teacher: not enrolled.", user.id)',
+        'error_msg = "Not a teacher."\n'
+        '                logger.warning("User %s is not a teacher: not enrolled.", user.id)',
+        [LK_STUDENT],
+    ),
 }
 
-NEW_TESTS = [GS, GF, GT, GC, GW, GV, GO, IS, ISU, IW, IO, ES, EF, EO, PIN]
+NEW_TESTS = [
+    GS,
+    GF,
+    GT,
+    GC,
+    GW,
+    GV,
+    GO,
+    IS,
+    ISU,
+    IW,
+    IO,
+    ES,
+    EF,
+    EO,
+    PIN,
+    LS,
+    LF,
+    LC,
+    LN,
+    LO,
+    LW,
+    LR,
+    LK_PLAIN,
+    LK_PENDING,
+    LK_ONBOARDED,
+    LK_STUDENT,
+    RS1,
+    RS2,
+    RB1,
+    RB2,
+    RD1,
+    RD2,
+    RK1,
+    RK2,
+    RK3,
+]
 
 COVERED = {test for mutant in MUTANTS.values() for test in mutant[3]}
 assert set(NEW_TESTS) <= COVERED, sorted(set(NEW_TESTS) - COVERED)

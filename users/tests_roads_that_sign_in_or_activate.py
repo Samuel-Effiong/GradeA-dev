@@ -1,6 +1,7 @@
 """
-H-203: every place that issues a login token, marks an email verified or
-switches an account on is on a NAMED LIST with its mark. A new site fails this
+H-203: every place that issues a login token, marks an email verified, switches
+an account on, sets a password or sends a credential by mail is on a NAMED LIST
+with its mark. A new site fails this
 test until someone decides what the principle says about it (the same device
 as the student-feedback guard).
 
@@ -14,6 +15,14 @@ The scan is by text, in production code only (test files, migrations, docs and
   FOR_USER        a call of RefreshToken/AccessToken/EpochRefreshToken.for_user(
   VERIFIED_WRITE  `email_verified_at = <not None>` or `"email_verified_at":`
   ACTIVE_TRUE     `.is_active = True`, `update(is_active=True` or `"is_active": True`
+  SET_PASSWORD    `<name>.set_password(` on any object but `self` (a road that
+                  sets a password and mails it signs nobody in by itself, but
+                  it hands the mailbox the way in)
+  MAKE_PASSWORD   `make_password(`
+  PASSWORD_KEYWORD  `password=` as a keyword argument (create/update/call)
+  CREDENTIAL_MAIL a call or definition of a function that makes or mails a
+                  temporary password (generate_temporary_password,
+                  _generate_school_admin_password and the three invitation mails)
 KNOWN LIMIT: an `is_active=True` KEYWORD in a `create(...)` call is not seen
 (it would also match every filter); the creation roads are on the list by the
 `"is_active": True` dict form where the code uses it, and the road table in
@@ -50,6 +59,14 @@ KINDS = {
         r"""(?:\.is_active\s*=\s*True\b|\bupdate\(\s*is_active\s*=\s*True"""
         r"""|["']is_active["']\s*:\s*True\b)"""
     ),
+    "SET_PASSWORD": re.compile(r"\b(?!self\b)\w+\.set_password\("),
+    "MAKE_PASSWORD": re.compile(r"\bmake_password\("),
+    "PASSWORD_KEYWORD": re.compile(r"\bpassword=(?!=)"),
+    "CREDENTIAL_MAIL": re.compile(
+        r"\b(?:send_student_login_invitation_email|_send_teacher_invitation"
+        r"|_send_school_admin_invitation_email|generate_temporary_password"
+        r"|_generate_school_admin_password)\("
+    ),
 }
 
 # Marks
@@ -60,6 +77,8 @@ NOT_A_USER = (
     "not a user account (subscription, allocation, school or a field definition)"
 )
 CREATES_ONLY = "creates a NEW non-admin row; no existing account is touched"
+TEXT_ONLY = "a pattern or a docstring about passwords, not a place that sets one"
+DEFINITION = "the function that makes or mails the credential (its callers are listed)"
 
 ROADS = {
     ("users/views.py", "FOR_USER"): (
@@ -134,6 +153,123 @@ ROADS = {
         "API schema examples",
     ),
     ("billing/views.py", "ACTIVE_TRUE"): (1, NOT_A_USER, "subscription row"),
+    # -- places that set a password or send a credential by mail ---------------
+    ("billing/license_service.py", "SET_PASSWORD"): (
+        2,
+        CALLS_THE_HELPER,
+        "licence invitation: an EXISTING never-signed-in teacher gets a new password "
+        "only after the H-203 guard in _get_or_invite_teacher; a NEW teacher is "
+        "created flagless",
+    ),
+    ("billing/license_service.py", "CREDENTIAL_MAIL"): (
+        5,
+        CALLS_THE_HELPER,
+        "the same two sites, the call of _send_teacher_invitation and its definition",
+    ),
+    ("classrooms/services/enrollment.py", "SET_PASSWORD"): (
+        2,
+        CALLS_THE_HELPER,
+        "enroll_student_by_email: a never-signed-in existing student (after "
+        "check_existing_account_may_join) and a NEW student",
+    ),
+    ("classrooms/services/enrollment.py", "CREDENTIAL_MAIL"): (
+        4,
+        CALLS_THE_HELPER,
+        "the two password makers and the two invitation mails of the same two sites",
+    ),
+    ("classrooms/services/notifications.py", "CREDENTIAL_MAIL"): (
+        1,
+        DEFINITION,
+        "send_student_login_invitation_email",
+    ),
+    ("users/services.py", "CREDENTIAL_MAIL"): (
+        1,
+        DEFINITION,
+        "generate_temporary_password",
+    ),
+    ("classrooms/serializers.py", "SET_PASSWORD"): (
+        1,
+        CREATES_ONLY,
+        "a super admin creates a school admin (a new row, verified by that act)",
+    ),
+    ("classrooms/serializers.py", "CREDENTIAL_MAIL"): (
+        5,
+        CREATES_ONLY,
+        "the same creation: the password maker, its mail, and their definitions "
+        "and the resend call",
+    ),
+    (
+        "classrooms/management/commands/backfill_pending_student_invites.py",
+        "SET_PASSWORD",
+    ): (
+        1,
+        OPERATOR,
+        "backfill command",
+    ),
+    (
+        "classrooms/management/commands/backfill_pending_student_invites.py",
+        "CREDENTIAL_MAIL",
+    ): (2, OPERATOR, "backfill command"),
+    ("users/models.py", "SET_PASSWORD"): (
+        1,
+        CREATES_ONLY,
+        "the user manager's create_user",
+    ),
+    ("users/models.py", "PASSWORD_KEYWORD"): (
+        2,
+        NOT_A_USER,
+        "the manager's create_user / create_superuser signatures",
+    ),
+    ("users/serializers.py", "SET_PASSWORD"): (
+        1,
+        OWN_DOOR,
+        "the signed-in account's own profile update (needs a live session)",
+    ),
+    ("users/views.py", "SET_PASSWORD"): (
+        3,
+        CALLS_THE_HELPER,
+        "reset-password (calls the helper), change-password (own door: a live "
+        "session) and school-admin registration (calls the helper)",
+    ),
+    ("users/management/commands/remediate_student123_passwords.py", "MAKE_PASSWORD"): (
+        1,
+        OPERATOR,
+        "remediation command (makes an unusable password)",
+    ),
+    (
+        "users/management/commands/remediate_student123_passwords.py",
+        "PASSWORD_KEYWORD",
+    ): (2, OPERATOR, "remediation command"),
+    ("AutoGrader/log_scrubbing.py", "PASSWORD_KEYWORD"): (2, TEXT_ONLY, "docstring"),
+    ("AutoGrader/sentry_scrubbing.py", "PASSWORD_KEYWORD"): (1, TEXT_ONLY, "docstring"),
+    (
+        "ai_processor/benchmark/isolation_run8/isolation_harness.py",
+        "PASSWORD_KEYWORD",
+    ): (
+        1,
+        OPERATOR,
+        "benchmark harness fixture",
+    ),
+    ("ai_processor/management/commands/grading_benchmark.py", "PASSWORD_KEYWORD"): (
+        1,
+        OPERATOR,
+        "benchmark command",
+    ),
+    ("billing/live_qa/scenarios_license.py", "PASSWORD_KEYWORD"): (
+        1,
+        OPERATOR,
+        "live QA scenario script (random, never used to sign in)",
+    ),
+    ("billing/stripe_live_qa.py", "PASSWORD_KEYWORD"): (
+        1,
+        OPERATOR,
+        "live QA script (random, never used to sign in)",
+    ),
+    ("classrooms/scale_my_students.py", "PASSWORD_KEYWORD"): (
+        1,
+        OPERATOR,
+        "operator script",
+    ),
 }
 
 
@@ -174,8 +310,8 @@ class RoadsThatSignInOrActivateTests(SimpleTestCase):
         self.assertEqual(
             new_or_changed,
             [],
-            "A place that issues a token, marks an email verified or switches an "
-            "account on is new or changed. Decide what the principle in "
+            "A place that issues a token, marks an email verified, switches an "
+            "account on, sets a password or mails a credential is new or changed. Decide what the principle in "
             "users/admin_power.py says about it, then add it to ROADS with its "
             "mark (and to docs/evidence/h203-google-road-admin-power/ROADS.md).",
         )
