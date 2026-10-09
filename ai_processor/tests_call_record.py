@@ -26,7 +26,6 @@ What these tests hold:
 Every provider reply has a real string model, or none on purpose (rule 14).
 """
 
-import logging
 import math
 import threading
 import uuid
@@ -860,8 +859,10 @@ class TheCanary(Base):
         response = reply()
         response.choices[0].message.content = content
         ai_model.return_value = response
-        with self.assertLogs(level="DEBUG") as logs:
-            logging.getLogger("canary").debug("start")
+        # The recorder's own logger, named: "ai_processor" does not propagate
+        # to the root logger (settings LOGGING), so a root capture would see
+        # nothing the recorder writes.
+        with self.assertLogs("ai_processor.call_record", level="DEBUG") as logs:
             self.run_call(user_prompt=f"prompt {self.SENTINEL}")
             # A call whose row cannot be written: here the recorder really logs.
             with patch.object(
@@ -877,12 +878,11 @@ class TheCanary(Base):
         for row in AICallRecord.objects.all():
             for name, value in row.__dict__.items():
                 self.assertNotIn(self.SENTINEL, str(value), name)
-        record_logs = [m for m in logs.output if "call_record" in m]
         self.assertTrue(
-            [m for m in record_logs if "ai_call_record_failed" in m],
+            [m for m in logs.output if "ai_call_record_failed" in m],
             "the recorder logged nothing, so the log check below would be empty",
         )
-        self.assertNotIn(self.SENTINEL, " ".join(record_logs))
+        self.assertNotIn(self.SENTINEL, " ".join(logs.output))
         self.assertEqual(AICallRecord.objects.count(), 2)
 
 
