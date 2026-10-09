@@ -50,14 +50,26 @@ SKIP_DIRS = {
     "venv",
     ".venv",
 }
+# A call that WRITES the named column through a keyword: `update(...)` or the
+# audit history helper `history.record_bulk(...)` (the only write helper in
+# audit/history.py; its `**changes` go straight into one UPDATE). The call's
+# arguments may hold two levels of parentheses (a nested filter, a timezone
+# call), and the keyword may be anywhere in them, on any line.
+_WRITE_CALL = r"\b(?:update|record_bulk)\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*?"
 KINDS = {
     "FOR_USER": re.compile(r"\b(?:Epoch)?(?:Refresh|Access|Sliding)Token\.for_user\("),
+    # `email_verified_at=<value>` as a bare keyword already matches inside
+    # `update(...)` and `history.record_bulk(...)`; the setattr form is new.
     "VERIFIED_WRITE": re.compile(
-        r"""(?:\bemail_verified_at\s*=\s*(?!=|None\b)|["']email_verified_at["']\s*:)"""
+        r"""(?:\bemail_verified_at\s*=\s*(?!=|None\b)|["']email_verified_at["']\s*:"""
+        r"""|\bsetattr\([^,()]+,\s*["']email_verified_at["']\s*,(?!\s*None\b))"""
     ),
     "ACTIVE_TRUE": re.compile(
-        r"""(?:\.is_active\s*=\s*True\b|\bupdate\(\s*is_active\s*=\s*True"""
-        r"""|["']is_active["']\s*:\s*True\b)"""
+        r"""(?:\.is_active\s*=\s*True\b|"""
+        + _WRITE_CALL
+        + r"""\bis_active\s*=\s*True\b|["']is_active["']\s*:\s*True\b"""
+        r"""|\bsetattr\([^,()]+,\s*["']is_active["']\s*,\s*True\b)""",
+        re.S,
     ),
     "SET_PASSWORD": re.compile(r"\b(?!self\b)\w+\.set_password\("),
     "MAKE_PASSWORD": re.compile(r"\bmake_password\("),
@@ -322,3 +334,67 @@ class RoadsThatSignInOrActivateTests(SimpleTestCase):
                 self.assertGreater(count, 0)
                 self.assertTrue(mark)
                 self.assertTrue(why)
+
+
+class PatternReachTests(SimpleTestCase):
+    """The scanner's patterns see the write forms the audit history helper
+    (`history.record_bulk`, whose `**changes` go into one UPDATE) and
+    `update(...)` allow, not only the bare `update(is_active=True` first
+    keyword. Each text below is a made-up snippet, not production code."""
+
+    def hits(self, kind, text):
+        return len(KINDS[kind].findall(text))
+
+    def test_active_true_is_seen_through_the_history_helper(self):
+        self.assertEqual(
+            self.hits(
+                "ACTIVE_TRUE", "n = history.record_bulk(queryset, is_active=True)"
+            ),
+            1,
+        )
+
+    def test_active_true_is_seen_across_lines_and_nested_calls(self):
+        text = (
+            "history.record_bulk(\n"
+            "    User.objects.filter(pk__in=[1, 2]),\n"
+            "    is_active=True,\n"
+            ")\n"
+        )
+        self.assertEqual(self.hits("ACTIVE_TRUE", text), 1)
+
+    def test_active_true_is_seen_when_it_is_not_the_first_keyword(self):
+        text = 'queryset.update(token_epoch=F("token_epoch") + 1, is_active=True)'
+        self.assertEqual(self.hits("ACTIVE_TRUE", text), 1)
+
+    def test_active_true_is_seen_through_setattr(self):
+        self.assertEqual(
+            self.hits("ACTIVE_TRUE", 'setattr(user, "is_active", True)'), 1
+        )
+
+    def test_active_false_and_filters_are_not_sites(self):
+        text = (
+            "history.record_bulk(qs, is_active=False)\n"
+            "queryset.update(is_active=False)\n"
+            "User.objects.filter(is_active=True)\n"
+            "history.record_bulk(qs, enrollment_status=X)\n"
+            "other.filter(is_active=True)\n"
+        )
+        self.assertEqual(self.hits("ACTIVE_TRUE", text), 0)
+
+    def test_email_verified_is_seen_through_the_history_helper_and_setattr(self):
+        text = (
+            "history.record_bulk(qs, email_verified_at=timezone.now())\n"
+            'setattr(user, "email_verified_at", timezone.now())\n'
+        )
+        self.assertEqual(self.hits("VERIFIED_WRITE", text), 2)
+
+    def test_email_verified_cleared_to_none_is_not_a_site(self):
+        text = (
+            "history.record_bulk(qs, email_verified_at=None)\n"
+            'setattr(user, "email_verified_at", None)\n'
+        )
+        self.assertEqual(self.hits("VERIFIED_WRITE", text), 0)
+
+    def test_a_password_through_the_history_helper_is_seen_as_a_keyword(self):
+        text = "history.record_bulk(qs, password=hashed)"  # pragma: allowlist secret
+        self.assertEqual(self.hits("PASSWORD_KEYWORD", text), 1)
