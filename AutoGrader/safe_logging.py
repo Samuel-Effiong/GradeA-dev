@@ -6,7 +6,9 @@ policy is ids and the error's TYPE. This module builds the part of a line that
 is about the error:
 
 * a broker outage (`BROKER_UNAVAILABLE_ERRORS`, also when the error that
-  reaches the line is a wrapper raised `from` one) is named by the class of the
+  reaches the line is a wrapper raised EXPLICITLY `from` one; an error that
+  only has the broker error as its implicit context is described as itself)
+  is named by the class of the
   broker error and nothing else;
 * any other error is named by its class and by its stack FRAMES only
   (file:line:function, from the traceback, without the message and without any
@@ -22,12 +24,16 @@ from collections.abc import Iterator
 
 
 def _chain(error: BaseException) -> Iterator[BaseException]:
+    """The error and its explicit causes (`raise ... from`). The implicit
+    __context__ is NOT followed: an error raised WHILE a broker error was being
+    handled is a different fault and must not be hidden behind "broker
+    unavailable"."""
     seen: set[int] = set()
     current: BaseException | None = error
     while current is not None and id(current) not in seen:
         seen.add(id(current))
         yield current
-        current = current.__cause__ or current.__context__
+        current = current.__cause__
 
 
 def _frames(error: BaseException) -> str:
