@@ -278,8 +278,11 @@ def main():
             pristine = sh("git", "show", f"{commit}:{rel}", cwd=REPO).stdout.encode()
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
+            mutated = replace_nth(
+                text, old, new, nth
+            )  # before the file is opened for writing
             with open(path, "w", encoding="utf-8") as fh:
-                fh.write(replace_nth(text, old, new, nth))
+                fh.write(mutated)
             clear_pycache(WORKTREE)
             started = time.monotonic()
             code, output = run_tests(os.path.join(raw, f"{mid}.out"), labels)

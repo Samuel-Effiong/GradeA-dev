@@ -187,7 +187,11 @@ class TheGradeAllTaskKeepsTextOutOfItsMetaAndItsPrint(SimpleTestCase):
         self.assertNotIn("Traceback", repr(meta))
 
     def test_g2_the_traceback_is_not_printed(self):
-        _, printed, _, _ = self._run()
+        result, printed, update_state, _ = self._run()
+        # The deciding values: the failure path really ran (a task that never
+        # failed prints nothing either), so "nothing printed" is about it.
+        self.assertTrue(result.failed())
+        self._failure_meta(update_state)
         self.assertNotIn("Traceback", printed)
         self.assertNotIn(MARKER, printed)
         self.assertNotIn("Ada_Lovelace", printed)
