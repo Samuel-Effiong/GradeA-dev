@@ -70,17 +70,33 @@ class _Collect(logging.Handler):
 
 
 class Captured:
+    """Collect the records of every logger. The project's own loggers
+    ("students", ...) have propagate=False in settings, so a handler on the
+    root alone sees none of their records: the handler is also put on every
+    logger that does not propagate."""
+
+    def _loggers(self):
+        names = [
+            name
+            for name, lg in logging.root.manager.loggerDict.items()
+            if isinstance(lg, logging.Logger) and not lg.propagate
+        ]
+        return [logging.getLogger()] + [logging.getLogger(n) for n in names]
+
     def __enter__(self):
         self.handler = _Collect()
-        self.root = logging.getLogger()
-        self.old_level = self.root.level
-        self.root.addHandler(self.handler)
-        self.root.setLevel(logging.DEBUG)
+        self.old_levels = {}
+        self.attached = self._loggers()
+        for lg in self.attached:
+            lg.addHandler(self.handler)
+            self.old_levels[lg] = lg.level
+            lg.setLevel(logging.DEBUG)
         return self
 
     def __exit__(self, *exc):
-        self.root.removeHandler(self.handler)
-        self.root.setLevel(self.old_level)
+        for lg in self.attached:
+            lg.removeHandler(self.handler)
+            lg.setLevel(self.old_levels[lg])
 
     @property
     def records(self):
