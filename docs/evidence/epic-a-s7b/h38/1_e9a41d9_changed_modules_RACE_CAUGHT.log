@@ -1,0 +1,400 @@
+# Trimmed: test results and the summary/failure blocks only (tests' logged tracebacks removed).
+# Full log: GAP-evidence-logs/epic-a-s7b-h38/1_e9a41d9_changed_modules_RACE_CAUGHT.log
+Found 238 test(s).
+Creating test database for alias 'default' ('test_epic_a_s7b')...
+System check identified some issues:
+System check identified 1 issue (0 silenced).
+The claim re-checks access in its conditional UPDATE: the removal ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_after_the_removal_the_item_is_not_found_and_nothing_runs (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_after_the_removal_the_item_is_not_found_and_nothing_runs) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+An assignment upload that failed before creating its assignment ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_upload_item_is_not_found_either_not_told_to_re_upload (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_an_upload_item_is_not_found_either_not_told_to_re_upload) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_before_the_removal_the_same_retry_is_accepted (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_before_the_removal_the_same_retry_is_accepted) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_for_a_removed_teacher_fails_before_grading (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_a_run_for_a_removed_teacher_fails_before_grading) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_active_teachers_run_still_grades (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_an_active_teachers_run_still_grades) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retry_failed_retries_nothing_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_failed_retries_nothing_for_a_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retry_item_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_item_is_not_found_for_a_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_every_retryable_failure_is_retried_and_the_rest_listed (students.tests_item_retry.RetryFailed.test_every_retryable_failure_is_retried_and_the_rest_listed) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_only_the_named_codes_are_retried (students.tests_item_retry.RetryFailed.test_only_the_named_codes_are_retried) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_code_that_is_not_retryable_as_it_is_is_a_409 (students.tests_item_retry.RetryOneItem.test_a_code_that_is_not_retryable_as_it_is_is_a_409) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_mid_batch_credit_stop_is_retried_after_a_top_up (students.tests_item_retry.RetryOneItem.test_a_mid_batch_credit_stop_is_retried_after_a_top_up) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_provider_failure_is_retried_in_place (students.tests_item_retry.RetryOneItem.test_a_provider_failure_is_retried_in_place) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_second_retry_counts_again_on_the_same_item (students.tests_item_retry.RetryOneItem.test_a_second_retry_counts_again_on_the_same_item) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_stale_copy_of_an_item_retried_since_is_refused (students.tests_item_retry.RetryOneItem.test_a_stale_copy_of_an_item_retried_since_is_refused) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_item_that_has_not_failed_is_a_409 (students.tests_item_retry.RetryOneItem.test_an_item_that_has_not_failed_is_a_409) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_upload_item_answers_upload_the_file_again (students.tests_item_retry.RetryOneItem.test_an_upload_item_answers_upload_the_file_again) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_teachers_session_or_a_foreign_item_is_a_404 (students.tests_item_retry.RetryOneItem.test_another_teachers_session_or_a_foreign_item_is_a_404) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_pickle_and_args_rebuild_keep_code_params_and_message (students.tests_item_retry.TheRefusalSurvivesSerialization.test_pickle_and_args_rebuild_keep_code_params_and_message) ... ok
+test_batch_upload_runs_the_rest_of_the_batch (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_upload_async_is_never_half_queued (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_items_finishing_out_of_order_are_listed_by_item_index (students.tests_batch_item_results.EveryListIsInUploadOrder.test_items_finishing_out_of_order_are_listed_by_item_index) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_failure_stores_its_reason_code (students.tests_batch_item_results.TheItemModel.test_a_failure_stores_its_reason_code) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_item_records_its_position_and_the_requests_trace (students.tests_batch_item_results.TheItemModel.test_an_item_records_its_position_and_the_requests_trace) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_scheduled_batch_creates_tracked_items (students.tests_batch_item_results.TheLegacyGradingPathsAreTracked.test_a_scheduled_batch_creates_tracked_items) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_auto_grade_creates_tracked_items (students.tests_batch_item_results.TheLegacyGradingPathsAreTracked.test_auto_grade_creates_tracked_items) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_overwrite_is_lifted_into_the_item_result (students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_unclassified_failure_is_visible_as_system_with_no_code (students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_each_item_answers_for_itself_and_the_old_keys_stay (students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_every_failure_is_listed_with_its_own_code (students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code) ... Cannot activate automatic trial for user s7a-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_batch_upload_answers_succeeds_for_active_teacher (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_generate_assignment_from_prompt_succeeds_for_active_teacher (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_generate_assignment_from_prompt_succeeds_for_active_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_upload_assignment_succeeds_for_active_teacher (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_upload_assignment_succeeds_for_active_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_custom_ai_prompt_succeeds_for_active_teacher (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCustomAIPromptTests.test_custom_ai_prompt_succeeds_for_active_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_save_generated_assignment_draft_succeeds_for_active_teacher (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherDraftSaveTests.test_save_generated_assignment_draft_succeeds_for_active_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_import_into_a_second_school_course_attaches_the_existing_student (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherRosterNameMatchTests.test_import_into_a_second_school_course_attaches_the_existing_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_create_async_assignment_in_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_create_async_assignment_in_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_create_async_in_the_colleagues_course_is_still_refused (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_create_async_in_the_colleagues_course_is_still_refused) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_colleague_course_filter_still_returns_no_rows (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_my_students_colleague_course_filter_still_returns_no_rows) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_course_filter_selects_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_my_students_course_filter_selects_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_prefetch_caches_hold_the_school_rows (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_my_students_prefetch_caches_hold_the_school_rows) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_row_names_both_own_courses_but_not_the_colleagues (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_my_students_row_names_both_own_courses_but_not_the_colleagues) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_session_filter_selects_the_student (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_my_students_session_filter_selects_the_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_patch_own_assignment_into_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_patch_own_assignment_into_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_user_detail_colleague_course_filter_is_still_404 (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_user_detail_colleague_course_filter_is_still_404) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_user_detail_course_filter_finds_the_student (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_user_detail_course_filter_finds_the_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_user_detail_session_filter_finds_the_student (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherSharedStudentTests.test_user_detail_session_filter_finds_the_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_associate_topic (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_associate_topic) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_delete_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_delete_assignment) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_generate_assignment_from_prompt (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_generate_assignment_from_prompt) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_grade_all (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_grade_all) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_list_assignments (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_list_assignments) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_patch_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_patch_assignment) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_publish_all_grades (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_publish_all_grades) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retrieve_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_retrieve_assignment) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_upload_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_upload_assignment) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_upload_assignment_async (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_upload_assignment_async) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_create_topic_in_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_create_topic_in_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_create_topic_through_the_course_action (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_create_topic_through_the_course_action) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_delete_topic (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_delete_topic) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_list_topics (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_list_topics) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_my_students) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_patch_topic (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_patch_topic) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_student_course_delete (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_student_course_delete) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_student_course_list (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_student_course_list) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_student_course_patch (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_student_course_patch) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_custom_ai_prompt_on_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_custom_ai_prompt_on_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_dashboard_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_assignment) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_dashboard_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_dashboard_overview (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_overview) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_dashboard_students (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_students) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_save_generated_assignment_draft_refuses_removed_teacher (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDraftSaveTests.test_save_generated_assignment_draft_refuses_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_download_pdf_teacher_view_refuses_removed_teacher (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherPdfTeacherViewTests.test_download_pdf_teacher_view_refuses_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+`AssignmentViewSet.get_queryset`'s teacher branch already filters ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_import_into_a_school_b_course_creates_a_new_student (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherRosterNameMatchTests.test_import_into_a_school_b_course_creates_a_new_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_import_into_an_individual_course_creates_a_new_student (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherRosterNameMatchTests.test_import_into_an_individual_course_creates_a_new_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_school_admin_dashboard_is_closed (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSchoolAdminSurfaceTests.test_school_admin_dashboard_is_closed) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_create_assignment_in_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_create_assignment_in_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_create_async_assignment_in_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_create_async_assignment_in_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_course_filter_naming_the_school_course_returns_no_rows (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_my_students_course_filter_naming_the_school_course_returns_no_rows) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_prefetch_caches_hold_no_school_rows (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_my_students_prefetch_caches_hold_no_school_rows) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_row_names_only_the_own_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_my_students_row_names_only_the_own_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_my_students_session_filter_naming_the_school_session_returns_no_rows (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_my_students_session_filter_naming_the_school_session_returns_no_rows) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_patch_own_assignment_into_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_patch_own_assignment_into_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_user_detail_course_filter_is_not_an_oracle_on_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_user_detail_course_filter_is_not_an_oracle_on_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_user_detail_session_filter_is_not_an_oracle_on_the_school_session (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSharedStudentTests.test_user_detail_session_filter_is_not_an_oracle_on_the_school_session) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_batch_upload_answers_to_the_school_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_batch_upload_answers_to_the_school_assignment) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_delete_submission (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_delete_submission) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_grade_paid_ai (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_grade_paid_ai) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_list_submissions (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_list_submissions) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_publish_grade (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_publish_grade) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retrieve_submission (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_retrieve_submission) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_teacher_feedback (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_teacher_feedback) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_update_grade (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_update_grade) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_private_course_stays_reachable_through_join_and_removal (billing.tests.test_h38_teacher_removal.IndividualCoursesSurviveSchoolMembershipTests.test_private_course_stays_reachable_through_join_and_removal) ... Cannot activate automatic trial for user solo@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_teacher_in_the_same_school_still_cannot_see_the_course (billing.tests.test_h38_teacher_removal.LicensedTeacherKeepsLegitimateAccessTests.test_another_teacher_in_the_same_school_still_cannot_see_the_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_licensed_teacher_can_read_list_and_enrol_into_the_school_course (billing.tests.test_h38_teacher_removal.LicensedTeacherKeepsLegitimateAccessTests.test_licensed_teacher_can_read_list_and_enrol_into_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_school_a_course_stays_hidden_after_joining_school_b (billing.tests.test_h38_teacher_removal.MovedTeacherDoesNotDragOldCoursesToNewSchoolTests.test_school_a_course_stays_hidden_after_joining_school_b) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_school_link_to_a_different_school_is_left_alone (billing.tests.test_h38_teacher_removal.RemovalDoesNotClobberAnotherSchoolLinkTests.test_school_link_to_a_different_school_is_left_alone) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_course_assignments_submissions_and_enrolments_survive_removal (billing.tests.test_h38_teacher_removal.RemovalLeavesTheSchoolDataIntactTests.test_course_assignments_submissions_and_enrolments_survive_removal) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cannot_edit_the_school_course (billing.tests.test_h38_teacher_removal.RemovedTeacherKeepsAccessTests.test_cannot_edit_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cannot_enrol_more_students_into_the_school_course (billing.tests.test_h38_teacher_removal.RemovedTeacherKeepsAccessTests.test_cannot_enrol_more_students_into_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cannot_list_the_school_course_or_its_students (billing.tests.test_h38_teacher_removal.RemovedTeacherKeepsAccessTests.test_cannot_list_the_school_course_or_its_students) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cannot_read_the_school_course (billing.tests.test_h38_teacher_removal.RemovedTeacherKeepsAccessTests.test_cannot_read_the_school_course) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cannot_read_the_school_student (billing.tests.test_h38_teacher_removal.RemovedTeacherKeepsAccessTests.test_cannot_read_the_school_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_another_school_can_onboard_the_removed_teacher (billing.tests.test_h38_teacher_removal.RemovedTeacherStaysLinkedTests.test_another_school_can_onboard_the_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_removed_teacher_is_no_longer_linked_to_the_school (billing.tests.test_h38_teacher_removal.RemovedTeacherStaysLinkedTests.test_removed_teacher_is_no_longer_linked_to_the_school) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_removed_teacher_leaves_the_school_admins_user_list (billing.tests.test_h38_teacher_removal.RemovedTeacherStaysLinkedTests.test_removed_teacher_leaves_the_school_admins_user_list) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_private_student_is_not_stamped_with_the_school (billing.tests.test_h38_teacher_removal.SchoolAdminSeesRemovedTeachersNewDataTests.test_private_student_is_not_stamped_with_the_school) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_school_admin_cannot_read_the_removed_teachers_private_student (billing.tests.test_h38_teacher_removal.SchoolAdminSeesRemovedTeachersNewDataTests.test_school_admin_cannot_read_the_removed_teachers_private_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_school_admin_student_dashboard_omits_the_private_student (billing.tests.test_h38_teacher_removal.SchoolAdminSeesRemovedTeachersNewDataTests.test_school_admin_student_dashboard_omits_the_private_student) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+SM ruling on v2's N1: a crash must not leave zero trace. ... ok
+test_a_crashed_read_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_crashed_read_records_nothing) ... ok
+test_a_refused_door_request_records_one_invalid_request (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_refused_door_request_records_one_invalid_request) ... ok
+test_a_route_that_is_not_a_door_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_route_that_is_not_a_door_records_nothing) ... ok
+test_a_signed_in_requester_is_left_to_the_generic_event (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_signed_in_requester_is_left_to_the_generic_event) ... Cannot activate automatic trial for user door.signed.in@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+The throttle refused it before the view ran; recording it would let ... ok
+test_an_excluded_route_that_crashes_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_an_excluded_route_that_crashes_records_nothing) ... ok
+test_any_crashed_anonymous_write_records_one_server_error (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_any_crashed_anonymous_write_records_one_server_error) ... ok
+test_a_crashed_registration_records_one_server_error (audit.tests_route_coverage.CrashedDoorTests.test_a_crashed_registration_records_one_server_error) ... API Exception
+ok
+test_an_admin_write_leaves_one_event_naming_the_superadmin (audit.tests_route_coverage.DjangoAdminTests.test_an_admin_write_leaves_one_event_naming_the_superadmin) ... Cannot activate automatic trial for user admin.site@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_every_code_s2_emits_is_in_the_catalogue (audit.tests_route_coverage.ReasonCodeCatalogueTests.test_every_code_s2_emits_is_in_the_catalogue) ... ok
+An empty body is refused before the door's own event; the ... API Exception
+ok
+Fired anonymously: anything not refused with 401/403 (or sent to ... API Exception
+ok
+test_every_exclusion_says_why (audit.tests_route_coverage.RouteCoverageTests.test_every_exclusion_says_why) ... ok
+test_every_registry_entry_names_a_real_route (audit.tests_route_coverage.RouteCoverageTests.test_every_registry_entry_names_a_real_route) ... ok
+test_every_write_route_leaves_one_event_naming_the_superadmin (audit.tests_route_coverage.RouteCoverageTests.test_every_write_route_leaves_one_event_naming_the_superadmin) ... Cannot activate automatic trial for user sweep.superadmin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+v2's G1: an unnamed write route would be outside every check. ... ok
+test_there_are_write_routes_to_guard (audit.tests_route_coverage.RouteCoverageTests.test_there_are_write_routes_to_guard) ... ok
+test_a_malformed_registration_is_one_invalid_request_failure (audit.tests_route_coverage.SelfRegistrationTests.test_a_malformed_registration_is_one_invalid_request_failure) ... API Exception
+ok
+test_a_new_account_is_recorded_with_the_account_as_target (audit.tests_route_coverage.SelfRegistrationTests.test_a_new_account_is_recorded_with_the_account_as_target) ... Cannot activate automatic trial for user route.coverage.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_named_one_is_in_the_guard (audit.tests_route_coverage.UnnamedRouteGuardTests.test_a_named_one_is_in_the_guard) ... ok
+test_an_unnamed_write_route_is_caught (audit.tests_route_coverage.UnnamedRouteGuardTests.test_an_unnamed_write_route_is_caught) ... ok
+test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+test_exactly_one_wins (students.tests_item_retry.TwoRetriesOfOneItemAtOnce.test_exactly_one_wins) ... Cannot activate automatic trial for user s7b-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_every_code_is_user_facing_or_audit_only_and_not_both (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_code_is_user_facing_or_audit_only_and_not_both) ... ok
+test_every_reason_code_the_code_emits_is_in_the_catalogue (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_reason_code_the_code_emits_is_in_the_catalogue) ... ok
+test_every_spec_is_consistent (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_spec_is_consistent) ... ok
+test_every_value_is_upper_snake_and_stable (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_value_is_upper_snake_and_stable) ... ok
+F8: kept for one release beside reason_code. ... ok
+Guard on the guard: one example per pattern the scan covers. ... ok
+test_the_ten_fr_a_06_codes_are_present_and_user_facing (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_the_ten_fr_a_06_codes_are_present_and_user_facing) ... ok
+A field named like an envelope key (`params`) still shows its ... ok
+test_a_view_that_catches_and_answers_itself_gets_the_same_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_a_view_that_catches_and_answers_itself_gets_the_same_envelope) ... ok
+test_every_user_facing_code_answers_its_own_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_every_user_facing_code_answers_its_own_envelope) ... API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+test_qa_err_03_no_exception_text_reaches_any_body (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_03_no_exception_text_reaches_any_body) ... API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+X-5 wins over the first QA-ERR-04 reading (SM ruling): echoing a ... API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+test_qa_err_04_reference_is_the_request_id (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_reference_is_the_request_id) ... API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+test_the_old_refusals_keep_their_message_and_legacy_code (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_the_old_refusals_keep_their_message_and_legacy_code) ... API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+test_a_missing_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_missing_param_is_refused) ... ok
+test_a_non_scalar_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_non_scalar_param_is_refused) ... ok
+test_a_param_outside_the_spec_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_param_outside_the_spec_is_refused) ... ok
+test_a_subclass_fixes_its_code (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_subclass_fixes_its_code) ... ok
+test_an_audit_only_code_has_no_error_body (AutoGrader.tests_reason_codes.CodedErrorTests.test_an_audit_only_code_has_no_error_body) ... ok
+test_defaults_fill_a_param_the_raiser_left_out (AutoGrader.tests_reason_codes.CodedErrorTests.test_defaults_fill_a_param_the_raiser_left_out) ... ok
+test_detail_stays_out_of_the_message (AutoGrader.tests_reason_codes.CodedErrorTests.test_detail_stays_out_of_the_message) ... ok
+test_display_for_no_placeholder_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_for_no_placeholder_is_refused) ... ok
+test_display_may_stand_in_for_an_unknown_param (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_may_stand_in_for_an_unknown_param) ... ok
+test_display_shapes_the_message_but_never_the_params (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_shapes_the_message_but_never_the_params) ... ok
+test_display_values_must_be_text (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_values_must_be_text) ... ok
+test_only_user_and_validation_classes_are_user_facing (AutoGrader.tests_reason_codes.CodedErrorTests.test_only_user_and_validation_classes_are_user_facing) ... ok
+test_refusal_response_still_answers_refusals_only (AutoGrader.tests_reason_codes.CodedErrorTests.test_refusal_response_still_answers_refusals_only) ... ok
+test_the_message_is_rendered_from_the_spec (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_is_rendered_from_the_spec) ... ok
+The path background-task item text and _failure_response's ... ok
+test_a_coded_body_flattens_to_its_display_sentence_alone (AutoGrader.tests_reason_codes.RendererMessageTests.test_a_coded_body_flattens_to_its_display_sentence_alone) ... ok
+test_a_balance_reason_gets_the_credits_refusal (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal) ... AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+ok
+test_a_refused_request_gets_the_plan_refusal_without_the_reason (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_refused_request_gets_the_plan_refusal_without_the_reason) ... AI access denied for user ANON (feature=None): User not authenticated
+ok
+The message shows "460 bytes", not the raw int, after a rebuild. ... ok
+test_a_real_task_that_fails_with_one_keeps_it (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_a_real_task_that_fails_with_one_keeps_it) ... ok
+test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) ... ok
+test_reflection_finds_every_coded_class (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_reflection_finds_every_coded_class) ... ok
+test_through_celerys_result_backend_both_serializers (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_through_celerys_result_backend_both_serializers) ... ok
+test_no_param_is_an_email_or_an_id (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_no_param_is_an_email_or_an_id) ... ok
+test_stored_results_expire (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_stored_results_expire) ... ok
+Every param that is a placeholder is already in the stored ... ok
+test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+The path exclusion above is only honest if production never ... ok
+test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+The exception is only safe while it is one assignment's prefix: ... ok
+Guard on the guard: each form is found in a synthetic module, and ... ok
+The over-invalidation half, stated as a property. Under the ... ok
+test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+Not response caches in the generation scheme, deliberately. ... ok
+test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+H-1 step 4: the one family that was still raw is on generations. ... ok
+test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+The eight AlterFields since production that change choices, ... ok
+test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+The production wiring (the Verification Engineer's H6 on ... ok
+Rule (a) on the real graph with a synthetic final state: drop ... ok
+Guard on the guard: the fields H-56 found are rule (a) ... ok
+fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+THE ACCEPTANCE TEST for broker isolation. ... ok
+A raw Redis client built from the broker URL bypasses the prefix. ... ok
+test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ... ok
+test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+Same requirement, for the H-1 invariant specifically. ... ok
+The blast radius is wider than the Django cache. ... ok
+The mechanism, demonstrated deterministically in-process. ... ok
+THE ACCEPTANCE TEST for the regression. ... ok
+test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+Server-wide Redis statistics are shared by every concurrent run. ... ok
+test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+Guard on the guard, on synthetic source. ... ok
+test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+Destroying test database for alias 'default' ('test_epic_a_s7b')...
+
+======================================================================
+FAIL: test_exactly_one_wins (students.tests_item_retry.TwoRetriesOfOneItemAtOnce.test_exactly_one_wins)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry.py", line 373, in test_exactly_one_wins
+    self.assertEqual(sorted(statuses), [202, 409])
+AssertionError: Lists differ: [202, 202] != [202, 409]
+
+First differing element 1:
+202
+409
+
+- [202, 202]
+?       ^ ^
+
++ [202, 409]
+?       ^ ^
+
+
+----------------------------------------------------------------------
+Ran 238 tests in 67.403s
+
+FAILED (failures=1)
+Destroying test database for alias 'default' ('test_epic_a_s7b')...

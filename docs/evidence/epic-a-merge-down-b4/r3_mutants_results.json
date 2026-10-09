@@ -1,0 +1,73 @@
+{
+  "M1 no request-time check (retry)": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_item_with_no_assignment_is_judged_by_its_batchs_course",
+      "test_the_service_refuses_the_item_by_its_own_course"
+    ]
+  },
+  "M2 no reachability in the claim": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_removal_between_the_check_and_the_claim_still_refuses"
+    ]
+  },
+  "M7 state conditions moved into the subquery": {
+    "killed": true,
+    "failing_tests": [
+      "test_same_code_new_retry_count_is_not_claimed_again"
+    ]
+  },
+  "M3 retry-failed: code filter before reachability": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_service_skips_every_item_without_saying_why"
+    ]
+  },
+  "M4 no assignment-less fallback": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_item_with_no_assignment_is_judged_by_its_batchs_course"
+    ]
+  },
+  "M5 no run-time check": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_run_for_a_removed_teacher_fails_before_grading",
+      "test_queued_grading_does_not_run_as_the_ex_owner",
+      "test_queued_grading_is_refused_and_never_charged_after_removal"
+    ]
+  },
+  "M6 lost access classed SYSTEM": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_run_for_a_removed_teacher_fails_before_grading"
+    ]
+  },
+  "M8 retry_item's session gate removed": {
+    "killed": false,
+    "failing_tests": []
+  },
+  "M9 retry_failed's session gate removed": {
+    "killed": true,
+    "failing_tests": [
+      "test_retry_failed_is_not_found_for_a_removed_teacher"
+    ]
+  },
+  "M10 the refusal's ids-only log line dropped": {
+    "killed": true,
+    "failing_tests": [
+      "test_routes_the_refused_run_and_the_beat_log_ids_only"
+    ]
+  },
+  "M11 the teacher_may_reach half dropped": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_grading_dispatch_checks_reachability"
+    ]
+  },
+  "M12 the reachable_courses half dropped": {
+    "killed": false,
+    "failing_tests": []
+  }
+}

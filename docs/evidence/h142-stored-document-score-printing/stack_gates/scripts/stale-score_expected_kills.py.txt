@@ -1,0 +1,122 @@
+"""H-139, H-140, H-142: for every mutant, the tests that fail must be the
+expected set and nothing else. Written on 2026-10-06 BEFORE any test run of
+the fix, by reasoning from the code and the tests; no mutant was applied to
+anything but a parser (the anchors-only check). The only run so far is the
+probe of 17:43 (five tests, at 6c5a8e43, before the fix). A test is named
+Class.method. Subtests are not told apart: a test fails if any sample fails.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of the module at the red commit>
+       python expected_kills.py --repro2 <log of the NEW module on 330f3efd>"""
+import re
+import sys
+from pathlib import Path
+
+P = "AfterAManualGradeThePaperShowsTheNewScore"
+B = "AManualGradeBeforeRelease"
+D = "AGradedRowPrintsItsScoreWithTwoDecimals"
+C = "ARowThatIsNotGradedPrintsWhatItPrinted"
+S = "TheStoredDocumentIsTheSameOnEveryPath"
+P_REBUILT = (P, "test_the_stored_document_is_rebuilt")
+P_ANSWER_OLD = (P, "test_the_routes_own_answer_does_not_carry_the_old_document")
+P_STUDENT = (P, "test_a_released_student_reads_a_paper_that_moved_with_the_score")
+P_SAME = (P, "test_an_override_to_the_same_score_leaves_the_document_as_it_is")
+P_IS_REBUILD = (P, "test_the_stored_document_is_the_one_a_rebuild_gives")
+P_ANSWER_NEW = (P, "test_the_routes_own_answer_carries_the_new_document")
+B_REBUILT = (B, "test_the_stored_document_is_rebuilt")
+D_ALL = {
+    (D, "test_a_whole_score"),
+    (D, "test_a_half_point"),
+    (D, "test_a_genuine_zero_is_printed"),
+    (D, "test_full_marks"),
+}
+C_SUBMITTED = (C, "test_a_submitted_row_prints_an_empty_score_line")
+C_NO_SCORE = (C, "test_a_grading_time_and_no_score_says_not_graded_yet")
+S_PATHS = (S, "test_grading_and_the_rebuild_on_a_read")
+# the new module (2026-10-08, with the guard), written before any run:
+SH = "TheBuilderMakesTheGradeSaveForEveryShape"
+GD = "TheGuardKeepsTheSaveSafeFromTheNextBuilderFault"
+SH_ALL = {
+    (SH, "test_a_dict_of_answers"),
+    (SH, "test_a_list_of_strings"),
+    (SH, "test_a_string_of_answers"),
+}
+GD_FAULT = {
+    (GD, "test_the_grade_is_saved_and_the_old_document_is_left_as_it_was"),
+    (GD, "test_the_answer_does_not_claim_a_refresh"),
+    (GD, "test_the_fault_is_logged_with_the_id_and_the_type_and_nothing_else"),
+}
+GD_SAVE = (GD, "test_a_fault_in_the_save_is_not_swallowed")
+
+EXPECTED = {
+    # no rebuild: the stored document is the grading-time one. Everything
+    # that looks for a moved or current document fails; the same-score
+    # test passes.
+    "M1": {P_REBUILT, P_ANSWER_OLD, P_STUDENT, P_IS_REBUILD, P_ANSWER_NEW, B_REBUILT},
+    # rebuilt in memory, not saved: the route's own answer is built from
+    # the object in memory, so P_ANSWER_OLD passes; P_ANSWER_NEW fails on
+    # its first line (the answer is not what is stored).
+    "M2": {P_REBUILT, P_STUDENT, P_IS_REBUILD, P_ANSWER_NEW, B_REBUILT},
+    # no formatting: a float prints "7.0", "7.5", "10.0", a zero nothing;
+    # grading's document differs from a rebuild's; after an override the
+    # stored document (from the float 9.0) is not the rebuild from the
+    # database. The zero pair passes: nothing is printed on either path.
+    "M3": D_ALL | {S_PATHS, P_IS_REBUILD},
+    # formatting without a grading time: a submitted row prints "0.00".
+    "M4": {C_SUBMITTED},
+    # formatting without a score: Decimal("None") raises (an ERROR).
+    "M5": {C_NO_SCORE},
+    # one decimal: every printed form is wrong, and "9.00" is not printed;
+    # the paths still agree with each other.
+    "M6": D_ALL | {P_IS_REBUILD},
+    # a zero is skipped again: printed as nothing, on both paths alike.
+    "M7": {(D, "test_a_genuine_zero_is_printed")},
+    # the route stores the ungraded form: it moved, so the probe's three
+    # pass; it is not the same document for the same score, and not the
+    # rebuild.
+    "M8": {P_SAME, P_IS_REBUILD},
+    # the guard removed: only the three tests that REPLACE the builder by one
+    # that raises go red; the per-shape tests (the real builder) and the
+    # save test stay green: each defence is shown on its own.
+    "M9": set(GD_FAULT),
+    # the guard also swallows a failing save: only the save test goes red.
+    "M10": {GD_SAVE},
+}
+#: the red commit 22e8c93e (the tests, no fix): the probe's three, the two
+#: added to its class, the unreleased rebuild, the four printed forms, and
+#: grading against a rebuild. The zero pair is GREEN there (nothing printed
+#: on either path); it is held by D's zero test.
+REPRO = {P_REBUILT, P_ANSWER_OLD, P_STUDENT, P_IS_REBUILD, P_ANSWER_NEW, B_REBUILT, S_PATHS} | D_ALL
+#: the NEW module on the code of 330f3efd (before the base update: no H-165
+#: builder, no guard): the three shapes raise in the builder (500), the three
+#: fault tests raise (no guard); the save test is GREEN there (a failing save
+#: fails the request there too: a control).
+REPRO2 = SH_ALL | GD_FAULT
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] in ("--repro", "--repro2"):
+    wanted = REPRO if sys.argv[1] == "--repro" else REPRO2
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), wanted)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

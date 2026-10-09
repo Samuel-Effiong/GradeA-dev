@@ -7,10 +7,19 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
-from ai_processor.services import ai_processor
-from AutoGrader.error_messages import describe_background_task_error
+from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
+from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
+from AutoGrader.error_messages import (
+    classify_infra_error,
+    describe_background_task_error,
+)
+from AutoGrader.reason_codes import REASON_CODES, CodedError, reason_of
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
-from billing.refusals import PERMANENT_AI_REFUSALS
+from billing.errors import InsufficientCreditsError
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import (
     EnrollmentStatusType,
     Topic,
@@ -18,18 +27,30 @@ from classrooms.models import (
     teacher_can_reach_course,
 )
 from students.exceptions import (
+    STUDENT_UPLOAD_NOT_PROCESSED,
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    CourseNotReachableError,
+    RubricMissingError,
+    StudentUploadNotProcessedError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
     TaskCancelledError,
 )
-from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
+from students.grading_gates import rubric_missing
+from students.models import (
+    BackgroundTaskType,
+    BatchUploadSession,
+    BatchUploadType,
+    StudentSubmission,
+)
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
+    emit_grading_completed,
     grade_engine,
+    grading_result_stamp,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -38,12 +59,16 @@ from students.task_tracking import (
     cancellable_final_save,
     claim_processing_task_start,
     cleanup_cancelled_task_artifacts,
+    create_processing_task,
+    ensure_batch_has_credits,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
+    launch_processing_task,
     mark_processing_task_cancelled,
     mark_processing_task_failure,
     mark_processing_task_started,
     mark_processing_task_success,
+    record_refused_item,
     update_processing_task,
 )
 from users.models import CustomUser, UserTypes
@@ -157,7 +182,12 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             submission = grade_engine(
                 user, submission, processing_task_id=processing_task_id
             )
-            print(f"Assignment saved: {index + 1}/{submissions_count}")
+            logger.info(
+                "Grade-all progress: assignment=%s %s/%s",
+                assignment_id,
+                index + 1,
+                submissions_count,
+            )
         except TaskCancelledError:
             mark_processing_task_cancelled(
                 processing_task_id,
@@ -169,17 +199,15 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             )
             raise
         except Exception as e:
-            import traceback
-
-            stack_trace_str = traceback.format_exc()
-            print(stack_trace_str)
+            # H-209: the stored result names the class and the ids; the error
+            # text and the traceback are not kept (the error is re-raised
+            # below, so error reporting receives it from the task machinery).
             self.update_state(
                 state=states.FAILURE,
                 meta={
-                    "error": str(e),
+                    "error": type(e).__name__,
                     "assignment_id": assignment_id,
                     "current_submission_id": submission.id,
-                    "detail": stack_trace_str,
                 },
             )
             mark_processing_task_failure(
@@ -216,12 +244,11 @@ def extract_assignment_background_task(
     keep_existing_title=True,
     processing_task_id=None,
 ):
-    print(
-        {
-            "user_id": user_id,
-            "assignment_id": assignment_id,
-            "keep_existing_title": keep_existing_title,
-        }
+    logger.info(
+        "Assignment extraction started: user=%s assignment=%s keep_existing_title=%s",
+        user_id,
+        assignment_id,
+        keep_existing_title,
     )
     try:
         ensure_task_not_cancelled(processing_task_id)
@@ -231,8 +258,6 @@ def extract_assignment_background_task(
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
         )
-
-        print("Extracting assignment content")
 
         assignment = Assignment.objects.get(id=assignment_id)
         user = CustomUser.objects.get(id=user_id)
@@ -247,7 +272,7 @@ def extract_assignment_background_task(
             processing_task_id=processing_task_id,
         )
 
-        print("Assignment saved successfully")
+        logger.info("Assignment extraction saved: assignment=%s", assignment_id)
         mark_processing_task_success(
             processing_task_id,
             meta={
@@ -375,6 +400,7 @@ def extract_answer_background_task(
     recorded verbatim; anything else is retried up to max_retries and only
     then recorded as a failure.
     """
+    user = None
     try:
         ensure_task_not_cancelled(processing_task_id)
         # The tracked row is the idempotency claim (there is no RUNNING
@@ -432,9 +458,20 @@ def extract_answer_background_task(
         )
         raise
     except UPLOAD_REFUSALS as exc:
+        # H-211: as in the upload task (H-180), a STUDENT who started the edit
+        # reads the fixed sentence for a credit refusal, never the gate's own
+        # text or the generic one that names the wallet; a teacher who started
+        # it keeps the generic text. `user` is None if the refusal came before
+        # the user was loaded.
+        shown = exc
+        if isinstance(exc, InsufficientCreditsError) and (
+            getattr(user, "user_type", None) == UserTypes.STUDENT
+        ):
+            log_refusal(logger, f"Background task {processing_task_id}", exc)
+            shown = StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)
         mark_processing_task_failure(
             processing_task_id,
-            exc,
+            shown,
             # The code goes on the tracked row too: the task-status route
             # serves the row's meta, not this task's return value (H-133).
             meta={
@@ -445,7 +482,7 @@ def extract_answer_background_task(
         )
         return {
             "status": states.FAILURE,
-            "message": describe_background_task_error(exc),
+            "message": describe_background_task_error(shown),
             **_refusal_code(exc),
         }
     except Exception as exc:
@@ -472,6 +509,117 @@ def extract_answer_background_task(
         raise
 
 
+def _grading_failure_error_class(exc):
+    """FR-A-05's fixed taxonomy, applied to what grade_engine_async's except
+    block actually sees. A coded failure (FR-A-06) and the two AI refusals
+    (credits, plan: the user's to resolve, so USER; they used to be
+    misfiled as MODEL, 08a §2.2) carry their own class. PROVIDER_FAILURE
+    is the provider's fault when its cause is a recognised infra failure
+    (timeout, rate limit, dropped connection, 5xx), and the model's when
+    it is not (unusable output). A teacher who lost access to the course
+    (H-38; uncoded) is the user's case. Any other recognised infra failure
+    is the provider's, and anything else an unclassified system fault."""
+    reason = reason_of(exc)
+    if reason is not None:
+        code = reason[0]
+        if (
+            code == ReasonCode.PROVIDER_FAILURE
+            and classify_infra_error(exc.__cause__) is None
+        ):
+            return ErrorClass.MODEL
+        return REASON_CODES[code].error_class
+    if isinstance(exc, CourseNotReachableError):
+        return ErrorClass.USER
+    if classify_infra_error(exc) is not None:
+        return ErrorClass.PROVIDER
+    return ErrorClass.SYSTEM
+
+
+def _grading_failure_reason_code(exc):
+    """The reason recorded on GRADING_FAILED: a coded failure's own code
+    (FR-A-06), or the audit-only COURSE_NOT_REACHABLE for H-38's uncoded
+    refusal (N3). That one is for the trail only; the client is still told
+    the plain "not found"."""
+    if isinstance(exc, CodedError):
+        return exc.reason_code
+    if isinstance(exc, CourseNotReachableError):
+        return ReasonCode.COURSE_NOT_REACHABLE
+    return None
+
+
+def _course_school_id(course):
+    """The school a course belongs to, or None for a course in a teacher's
+    own (individual) session."""
+    session = course.session if course is not None else None
+    return session.school_id if session is not None else None
+
+
+def _unreachable_course_school_id(exc, submission):
+    """H-38 N3: the school a refused run's GRADING_FAILED is filed under.
+    For the reachability refusal only, it is the course's school: the
+    teacher removed from it has none left, and the school must find the
+    refusal in its own trail. Any other failure returns None, which keeps
+    the emitter's rule (the actor's school)."""
+    if not isinstance(exc, CourseNotReachableError):
+        return None
+    if not isinstance(submission, StudentSubmission):
+        return None
+    try:
+        return _course_school_id(submission.assignment.course)
+    except Exception as error:
+        # Never let the audit's own lookup break the failure handling it
+        # sits in: the event is then filed by the emitter's rule.
+        logger.error(
+            "The course's school could not be read for the refused grading "
+            "of submission %s: %s",
+            submission.id,
+            type(error).__name__,
+        )
+        return None
+
+
+def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id=None):
+    """H-38 N3: one GRADING_FAILED for a batch or an auto-grade refused as a
+    whole because the teacher it would run as can no longer reach the
+    course. No submission was reached, so the event is about the teacher.
+    The actor is the tracked task's requester when the run has one, else
+    SYSTEM (as grade_engine_async's own event). It is filed under the
+    course's school: the removed teacher no longer has one. Ids only."""
+    # The lookups are guarded: emit() never raises, and nothing here may
+    # turn the refusal into a task failure. On an error the event is still
+    # written with whatever was read before it: nothing if the requester
+    # lookup failed (the system's, no school), or the requester alone if
+    # only the school lookup failed (the emitter then files it under the
+    # requester's own school, which is none for a removed teacher).
+    actor = school_id = None
+    try:
+        task = get_processing_task_by_id(processing_task_id)
+        actor = task.requested_by if task else None
+        school_id = _course_school_id(assignment.course)
+    except Exception as error:
+        logger.error(
+            "The requester or school could not be read for the refused "
+            "grading of assignment %s: %s",
+            assignment.id,
+            type(error).__name__,
+        )
+    emit(
+        AuditAction.GRADING_FAILED,
+        actor=actor,
+        request=None,
+        target_type="CustomUser",
+        target_id=teacher_id,
+        outcome=AuditOutcome.FAILURE,
+        error_class=ErrorClass.USER,
+        reason_code=ReasonCode.COURSE_NOT_REACHABLE,
+        school_id=school_id,
+        metadata={
+            "assignment_id": str(assignment.id),
+            "task_id": str(processing_task_id) if processing_task_id else None,
+        },
+    )
+
+
 @shared_task(
     bind=True,
     # Hard kill point for a hung grading run. The grading claim's staleness
@@ -492,6 +640,9 @@ def grade_engine_async(
         mark_processing_task_started(
             processing_task_id, meta={"step": "Retrieving submission"}
         )
+        # FR-A-07 (S7c): if the batch already ran out of credits, stop here,
+        # before any provider call (never charged).
+        ensure_batch_has_credits(processing_task_id)
         self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
         submission = StudentSubmission.objects.select_related("assignment").get(
             id=submission_id
@@ -504,33 +655,32 @@ def grade_engine_async(
             submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         user = CustomUser.objects.get(id=user_id)
-
-        # H-38: never grade - or charge - as a teacher who can no longer
-        # reach the course. This is the one chokepoint every grading route,
-        # the scheduled grading and the auto-grade beat go through, so work
-        # queued before a teacher's removal is refused too. Ids only.
-        if not teacher_may_reach(user, submission):
+        # H-38, checked when the run starts, not only when it was requested:
+        # a retry, a scheduled grading or a queued batch item must not grade
+        # (or bill) for a teacher since removed from the course's school.
+        # This is the one chokepoint every grading route, the scheduled
+        # grading and the auto-grade beat go through. Merge-down of bundle 4
+        # (SM ruling): Epic A keeps this coded refusal; beta's H-38 soft
+        # return is intentionally not carried here. Ids only.
+        # For a teacher the two halves agree; the reachable_courses half
+        # keeps S7b's refusal of a non-teacher who isn't the course's teacher.
+        if not teacher_may_reach(user, submission) or not (
+            reachable_courses(user).filter(pk=submission.assignment.course_id).exists()
+        ):
             logger.warning(
                 "Grading refused (H-38): submission %s, user %s can no longer "
                 "reach its course.",
                 submission.id,
                 user.id,
             )
-            mark_processing_task_failure(
-                processing_task_id,
-                None,
-                meta={"step": "Refused"},
-                fallback_message=COURSE_NOT_FOUND,
-            )
-            return {
-                "status": states.FAILURE,
-                "submission_id": submission_id,
-                "message": COURSE_NOT_FOUND,
-            }
+            raise CourseNotReachableError()
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
         ensure_task_not_cancelled(processing_task_id)
+        # Epic A S4: the grade as stored before this run, for the
+        # before/after on GRADING_COMPLETED.
+        grade_before = history.snapshot(submission)
         # grade_engine performs the final (cancellation-guarded) save
         # itself; a second full save here would race formatted_grade_async's
         # write to the same row and clobber formatted_grade (H4).
@@ -539,13 +689,19 @@ def grade_engine_async(
         )
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
-        mark_processing_task_success(
+        completed_task = mark_processing_task_success(
             processing_task_id,
             meta={
                 "step": "Completed",
                 "submission_id": str(submission.id),
                 "batch_id": str(batch_id) if batch_id else None,
             },
+        )
+        emit_grading_completed(
+            submission,
+            actor=completed_task.requested_by if completed_task else None,
+            before=grade_before,
+            task_id=processing_task_id,
         )
 
         if batch_id:
@@ -632,6 +788,25 @@ def grade_engine_async(
             exc,
             meta={"step": "Grading failed", "submission_id": submission_id},
             fallback_message=fallback_message,
+        )
+        emit(
+            AuditAction.GRADING_FAILED,
+            actor=task.requested_by if task else None,
+            request=None,
+            target_type="StudentSubmission",
+            target_id=submission_id,
+            outcome=AuditOutcome.FAILURE,
+            error_class=_grading_failure_error_class(exc),
+            reason_code=_grading_failure_reason_code(exc),
+            school_id=_unreachable_course_school_id(exc, locals().get("submission")),
+            metadata={
+                "assignment_id": (
+                    str(task.assignment_id) if task and task.assignment_id else None
+                ),
+                "submission_id": str(submission_id),
+                "task_id": str(processing_task_id) if processing_task_id else None,
+                "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
+            },
         )
         if batch_id:
             session = BatchUploadSession.objects.get(id=batch_id)
@@ -740,8 +915,11 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         submission.formatted_grade = _reconcile_formatted_grade_numbers(
             formatted_grade, submission
         )
+        # Only its own field (BE-I-04): this row was read before a slow AI
+        # call. A whole-row save would write the score and the label it
+        # read back over a grading that landed meanwhile.
         with cancellable_final_save(processing_task_id):
-            submission.save()
+            submission.save(update_fields=["formatted_grade"])
 
         self.update_state(
             state="PROGRESS", meta={"step": "Grade formatted successfully"}
@@ -794,6 +972,7 @@ def upload_answers_engine_async(
     file_name=None,
     processing_task_id=None,
 ):
+    user = None
     try:
         ensure_task_not_cancelled(processing_task_id)
         mark_processing_task_started(
@@ -818,6 +997,10 @@ def upload_answers_engine_async(
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt
             )
+        except InvalidUploadFileError:
+            # A coded file refusal (FR-A-06 S6b) goes on as itself, so the
+            # item keeps its reason code.
+            raise
         except ParseError as exc:
             # An unreadable or mislabelled file fails the same way on every
             # attempt: a final refusal (UPLOAD_REFUSALS), never a retry.
@@ -826,12 +1009,18 @@ def upload_answers_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
         ensure_task_not_cancelled(processing_task_id)
+        # FR-A-07 (S7c): stop before the billed extraction if the batch
+        # already ran out of credits.
+        ensure_batch_has_credits(processing_task_id)
+        outcome: dict = {}
         submission = upload_answers_engine(
             assignment=assignment,
             content=content,
             request_user=user,
             is_proxy_upload=is_teacher,
             processing_task_id=processing_task_id,
+            file_name=file_name or getattr(uploaded_file, "name", None),
+            upload_outcome=outcome,
         )
 
         if session_id:
@@ -849,6 +1038,9 @@ def upload_answers_engine_async(
                 "step": "Answers extracted successfully",
                 "submission_id": str(submission.id),
                 "assignment_id": assignment_id,
+                # F3 (S6c): true when this upload overwrote an existing
+                # ungraded submission; S7a lifts it into the per-item result.
+                "replaced_existing": bool(outcome.get("replaced_existing")),
             },
         )
         return {
@@ -876,10 +1068,18 @@ def upload_answers_engine_async(
         # the extraction. Recorded with their user-facing message (never a
         # credit refusal's internal text) and reported as a non-retried
         # failure.
-        message = describe_background_task_error(exc)
+        # H-180: a STUDENT reads the fixed sentence, never the gate's own
+        # text (the balance and the estimate); a teacher keeps the old one.
+        shown = exc
+        if isinstance(exc, InsufficientCreditsError) and (
+            getattr(user, "user_type", None) == UserTypes.STUDENT
+        ):
+            log_refusal(logger, f"Background task {processing_task_id}", exc)
+            shown = StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)
+        message = describe_background_task_error(shown)
         task = mark_processing_task_failure(
             processing_task_id,
-            exc,
+            shown,
             # The code on the tracked row too, for the one who polls (H-133).
             meta={
                 "step": "Submission refused",
@@ -929,8 +1129,15 @@ def upload_answers_engine_async(
         raise exc
 
 
+#: How a formatting task ends when the result it worded is no longer the
+#: row's. A success: nothing went wrong. It names no score.
+FORMATTED_GRADE_SUPERSEDED = "Superseded by a newer grade; nothing written"
+
+
 @shared_task()
-def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
+def formatted_grade_async(
+    submission_id, user_prompt, processing_task_id=None, result_stamp=None
+):
     try:
         ensure_task_not_cancelled(processing_task_id)
         mark_processing_task_started(
@@ -947,7 +1154,38 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             formatted_grade, submission
         )
         with cancellable_final_save(processing_task_id):
-            submission.save(update_fields=["formatted_grade"])
+            # The prompt was built from the grading result as it was when
+            # this task was queued, and the AI call takes seconds. If the
+            # row holds another result by now (a regrade, a teacher's
+            # manual grade), this wording is of a result that is gone:
+            # write nothing. The row lock holds a grade being saved at
+            # this moment back until this has written, or lets it finish
+            # first. A message with no stamp was queued before H-145 and
+            # writes as it always did.
+            superseded = result_stamp is not None and (
+                grading_result_stamp(
+                    StudentSubmission.objects.select_for_update()
+                    .only("graded_at", "regraded_at")
+                    .get(id=submission_id)
+                )
+                != result_stamp
+            )
+            if not superseded:
+                submission.save(update_fields=["formatted_grade"])
+
+        if superseded:
+            mark_processing_task_success(
+                processing_task_id,
+                meta={
+                    "step": FORMATTED_GRADE_SUPERSEDED,
+                    "submission_id": str(submission.id),
+                },
+            )
+            return {
+                "status": states.SUCCESS,
+                "submission_id": submission_id,
+                "message": FORMATTED_GRADE_SUPERSEDED,
+            }
 
         mark_processing_task_success(
             processing_task_id,
@@ -1080,6 +1318,63 @@ def upload_assignment_async(
         raise
 
 
+def _refuse_batch_without_rubric(assignment, submissions, session, actor):
+    """
+    The run-time RUBRIC_MISSING check for a scheduled or automatic batch
+    (S6d): the rubric was there when grading was scheduled (the route
+    checks) but is gone now. Nothing is dispatched, claimed or charged.
+    Each ungraded submission becomes a refused tracked item in S7a's
+    per-item shape (item_index 1..n, reason_code RUBRIC_MISSING), is
+    recorded FAILED in the batch's legacy results as a failed tracked
+    item also is, and is audited with its code (the SM's ruling on
+    S6d x S7a).
+    """
+    refusal = RubricMissingError()
+    for item_index, submission in enumerate(submissions, start=1):
+        item = None
+        if actor is not None:
+            item = record_refused_item(
+                requested_by=actor,
+                task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+                error=refusal,
+                batch_session=session,
+                assignment=assignment,
+                submission=submission,
+                file_name=f"Submission for {submission.student.get_full_name()}",
+                item_index=item_index,
+            )
+        if session is not None:
+            session.update_result(
+                f"Submission for {submission.student.get_full_name()}",
+                "FAILED",
+                error=str(refusal),
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission.id,
+            )
+        emit(
+            AuditAction.GRADING_FAILED,
+            actor=actor,
+            request=None,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.FAILURE,
+            error_class=REASON_CODES[ReasonCode.RUBRIC_MISSING].error_class,
+            reason_code=ReasonCode.RUBRIC_MISSING,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "submission_id": str(submission.id),
+                "task_id": str(item.id) if item is not None else None,
+                "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
+            },
+        )
+    logger.warning(
+        "Grading of assignment %s refused at run time: RUBRIC_MISSING "
+        "(%d submission(s) not dispatched).",
+        assignment.id,
+        len(submissions),
+    )
+
+
 @shared_task(bind=True, max_retries=3)
 def grade_batch_async(
     self, user_id, assignment_id, batch_id=None, processing_task_id=None
@@ -1106,6 +1401,9 @@ def grade_batch_async(
             assignment_id,
             user_id,
         )
+        _audit_unreachable_course_refusal(
+            batch_user.id, batch_assignment, processing_task_id
+        )
         return COURSE_NOT_FOUND
 
     try:
@@ -1128,14 +1426,77 @@ def grade_batch_async(
         logger.error(f"Failed to clear scheduling info or create session: {e}")
         pass
 
-    for submission in submissions:
-        ensure_task_not_cancelled(processing_task_id)
-        grade_engine_async.delay(
-            user_id,
-            str(submission.id),
-            batch_id=batch_id,
+    # S6d x S7a (the SM's ruling): the run-time RUBRIC_MISSING re-check
+    # (the rubric was removed after scheduling) comes before any item is
+    # dispatched. Each submission is recorded as a refused tracked item in
+    # S7a's per-item shape, with no AI call, claim or charge.
+    batch_assignment = Assignment.objects.filter(id=assignment_id).first()
+    if batch_assignment is not None and rubric_missing(batch_assignment.questions):
+        _refuse_batch_without_rubric(
+            batch_assignment,
+            list(submissions.select_related("student")),
+            (
+                BatchUploadSession.objects.filter(id=batch_id).first()
+                if batch_id
+                else None
+            ),
+            CustomUser.objects.filter(id=user_id).first(),
         )
-        print(f"Starting grading of Submission {submission.id}")
+        return "Refused: RUBRIC_MISSING"
+
+    ensure_task_not_cancelled(processing_task_id)
+    if submissions.exists():
+        # With no session (its creation failed above, and was logged) the
+        # items are still tracked, just not grouped: grading is never dropped.
+        _dispatch_tracked_grading(
+            CustomUser.objects.get(id=user_id),
+            Assignment.objects.get(id=assignment_id),
+            submissions,
+            (
+                BatchUploadSession.objects.filter(id=batch_id).first()
+                if batch_id
+                else None
+            ),
+        )
+
+
+def _dispatch_tracked_grading(teacher, assignment, submissions, session):
+    """Grade each submission as a tracked batch item, as grade-all does
+    (FR-A-07 S7a): the session then answers in session-results' per-item
+    shape, with codes, instead of the legacy results list. Items are
+    numbered 1..n in dispatch order."""
+    for item_index, submission in enumerate(submissions, start=1):
+        processing_task = create_processing_task(
+            requested_by=teacher,
+            task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+            batch_session=session,
+            assignment=assignment,
+            submission=submission,
+            file_name=f"Submission for {submission.student.get_full_name()}",
+            meta={"step": "Queued for batch grading"},
+            item_index=item_index,
+        )
+        launch_processing_task(
+            grade_engine_async,
+            processing_task,
+            str(teacher.id),
+            str(submission.id),
+            batch_id=str(session.id) if session else None,
+        )
+        emit(
+            AuditAction.GRADING_REQUESTED,
+            actor=teacher,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "submission_id": str(submission.id),
+                "task_id": str(processing_task.id),
+                "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+            },
+        )
+        logger.info("Grading queued: submission=%s", submission.id)
 
 
 @shared_task(name="assignments.tasks.auto_grade_due_assignment")
@@ -1162,6 +1523,7 @@ def auto_grade_due_assignment(assignment_id):
                 assignment.course_id,
                 assignment.course.teacher_id,
             )
+            _audit_unreachable_course_refusal(assignment.course.teacher_id, assignment)
             return COURSE_NOT_FOUND
 
         session = BatchUploadSession.objects.create(
@@ -1171,18 +1533,32 @@ def auto_grade_due_assignment(assignment_id):
             total_files=ungraded_submissions.count(),
         )
 
-        for submission in ungraded_submissions:
-            grade_engine_async.delay(
-                str(assignment.course.teacher.id),
-                str(submission.id),
-                batch_id=str(session.id),
+        # S6d x S7a: the run-time re-check, before any item is dispatched
+        # (see grade_batch_async).
+        if rubric_missing(assignment.questions):
+            _refuse_batch_without_rubric(
+                assignment,
+                list(ungraded_submissions.select_related("student")),
+                session,
+                assignment.course.teacher,
             )
+            return "Refused: RUBRIC_MISSING"
+
+        _dispatch_tracked_grading(
+            assignment.course.teacher, assignment, ungraded_submissions, session
+        )
 
         return f"Auto-grading started for {ungraded_submissions.count()} submissions."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "auto_grade_due_assignment",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(name="assignments.tasks.send_assignment_due_reminder")
@@ -1300,9 +1676,15 @@ def send_assignment_due_reminder(assignment_id, hours_before):
 
         return f"Queued {notifications_sent} assignment due reminder emails."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "send_assignment_due_reminder",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(name="assignments.tasks.send_new_assignment_posted_notification")
@@ -1374,9 +1756,15 @@ def send_new_assignment_posted_notification(assignment_id):
 
         return f"Queued {notifications_sent} new assignment notification email(s)."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "send_new_assignment_posted_notification",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(

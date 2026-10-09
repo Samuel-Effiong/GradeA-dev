@@ -1,0 +1,141 @@
+"""v2's probe for H-178 part A (26e16742), written 2026-10-08 BEFORE any run.
+Copied to billing/tests/test_vf2_h178_probe.py; never committed to the branch.
+
+The author's tests hand a plain dict to StripeWebhookHandler.handle_subscription_updated.
+Here the message goes through the REAL route AND the real task: a body signed with the real HMAC,
+posted to the "stripe-webhook" endpoint (signature check, ledger claim, queueing), then
+billing.tasks.process_stripe_event run as the worker runs it (handler from the dispatch table,
+payload read back from the ledger row, as production does). (First version stopped after the
+POST: the route answers 200 and leaves the row PROCESSING; red baseline, 2026-10-08 18:53.) Nothing is
+patched; no call goes to Stripe. Each test asserts the 200 and the ledger row (a 500 is
+not read as "unchanged"), then a deciding value read from the stored record.
+Fixture: the author's PaidSubscriptionFixture (reused as it is).
+"""
+import hashlib
+import hmac
+import json
+import time
+from datetime import timedelta
+
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from django.utils import timezone
+
+from billing.models import StripeEvent, StripeEventStatus
+from billing.tasks import process_stripe_event
+from billing.tests.test_date_scheduled_cancellation import (
+    STRIPE_SUB_ID,
+    PaidSubscriptionFixture,
+    stamp,
+)
+
+SECRET = "whsec_vf2_h178_probe_secret"  # pragma: allowlist secret
+
+
+def signed(body: bytes) -> str:
+    ts = int(time.time())
+    mac = hmac.new(SECRET.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+    return f"t={ts},v1={mac}"
+
+
+@override_settings(STRIPE_WEBHOOK_SECRET=SECRET)
+class SignedSubscriptionUpdated(PaidSubscriptionFixture, TestCase):
+    counter = 0
+
+    def send(self, event_id=None, **fields):
+        SignedSubscriptionUpdated.counter += 1
+        event_id = event_id or f"evt_vf2_h178_{SignedSubscriptionUpdated.counter}"
+        body = json.dumps(
+            {
+                "id": event_id,
+                "type": "customer.subscription.updated",
+                "data": {"object": {"id": STRIPE_SUB_ID, "status": "active", **fields}},
+            }
+        ).encode()
+        response = self.client.post(
+            reverse("stripe-webhook"),
+            data=body,
+            content_type="application/json",
+            HTTP_STRIPE_SIGNATURE=signed(body),
+        )
+        self.assertEqual(response.status_code, 200)
+        # The route only CLAIMS the event and queues it (billing/webhooks.py
+        # _record_and_dispatch); the handler runs in the task, from the payload
+        # stored in the ledger row. Run that second half here, as the worker does,
+        # when the row is still waiting; a row already SUCCEEDED (a repeat of an
+        # event id) is answered 200 and not queued again, as in production.
+        row = StripeEvent.objects.get(stripe_event_id=event_id)
+        if row.status == StripeEventStatus.PROCESSING:
+            outcome = process_stripe_event.apply(args=(event_id, row.claimed_at.isoformat()))
+            self.assertTrue(outcome.successful(), outcome.result)
+        self.assertEqual(
+            StripeEvent.objects.get(stripe_event_id=event_id).status,
+            StripeEventStatus.SUCCEEDED,
+        )
+        return event_id
+
+    def test_e1_a_signed_date_message_with_the_flag_off_stops_renewal(self):
+        self.build()
+        asked = stamp(timedelta(days=-1))
+        self.send(
+            cancel_at_period_end=False,
+            cancel_at=stamp(timedelta(days=10)),
+            canceled_at=asked,
+        )
+        sub = self.reloaded()
+        self.assertIs(sub.auto_renew, False)
+        self.assertEqual(int(sub.cancelled_at.timestamp()), asked)
+
+    def test_e2_a_real_period_end_cancel_then_resume_round_trip(self):
+        """Stripe's real shape for a period-end cancel carries BOTH the flag and a
+        cancel_at equal to the period end; a resume clears both."""
+        self.build()
+        self.send(
+            cancel_at_period_end=True,
+            cancel_at=int(self.sub.billing_cycle_end.timestamp()),
+            canceled_at=stamp(timedelta(minutes=-1)),
+        )
+        mid = self.reloaded()
+        self.assertIs(mid.auto_renew, False)
+        self.assertIsNotNone(mid.cancelled_at)
+        self.send(cancel_at_period_end=False, cancel_at=None, canceled_at=None)
+        end = self.reloaded()
+        self.assertIs(end.auto_renew, True)
+        self.assertIsNone(end.cancelled_at)
+
+    def test_e3_a_signed_date_message_leaves_a_trial_alone(self):
+        self.build(auto_renew=False, is_trial=True)
+        self.send(cancel_at_period_end=False, cancel_at=stamp(timedelta(days=3)))
+        sub = self.reloaded()
+        self.assertIs(sub.auto_renew, False)
+        self.assertIsNone(sub.cancelled_at)
+
+    def test_e4_a_repeat_writes_nothing_by_event_id_and_by_content(self):
+        self.build()
+        fields = dict(
+            cancel_at_period_end=False,
+            cancel_at=stamp(timedelta(days=10)),
+            canceled_at=stamp(timedelta(minutes=-5)),
+        )
+        first_id = self.send(**fields)
+        first = self.reloaded()
+        self.assertIs(first.auto_renew, False)
+        self.send(event_id=first_id, **fields)  # the same event id again
+        self.send(**fields)  # the same content under a new event id
+        again = self.reloaded()
+        self.assertIs(again.auto_renew, False)
+        self.assertEqual(again.updated_at, first.updated_at)
+        self.assertEqual(again.cancelled_at, first.cancelled_at)
+
+    def test_e5_a_signed_message_without_either_key_changes_nothing(self):
+        self.build(auto_renew=False, cancelled_at=timezone.now())
+        before = self.reloaded()
+        self.send()
+        after = self.reloaded()
+        self.assertIs(after.auto_renew, False)
+        self.assertEqual(after.cancelled_at, before.cancelled_at)
+
+    def test_e6_the_flag_alone_with_no_date_key_still_mirrors(self):
+        self.build()
+        self.send(cancel_at_period_end=True)
+        self.assertIs(self.reloaded().auto_renew, False)

@@ -1,0 +1,22 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+bundle md12b strict full run start 2026-10-08 12:17:52 WAT sha=0b268c3e load=1.83 2.11 2.02
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=1 end 2026-10-08 12:26:34 WAT wall=522s
+load at end: 5.20 5.58 3.86
+Ran 7079 tests in 483.268s
+FAILED (errors=1, skipped=30)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 1031
+  assignments 698
+  audit 367
+  AutoGrader 754
+  billing 2172
+  classrooms 467
+  dashboard 270
+  students 622
+  users 698
+FAIL/ERROR headers: 1
+ERROR: test_the_prompt_dispatched_after_a_grading (students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading)
+suspends during run: 0

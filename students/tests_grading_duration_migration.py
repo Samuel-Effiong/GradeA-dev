@@ -216,7 +216,14 @@ class GradingDurationDashboardTest(TransactionTestCase):
         self.assignment = Assignment.objects.create(
             title="A",
             course=course,
-            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_text": "Q1?",
+                    "points": 10,
+                    "model_answer": "4",
+                }
+            ],
         )
         self.client = APIClient()
         self.client.force_authenticate(self.superadmin)

@@ -1,0 +1,272 @@
+"""1a's own tests for H-211 (a student's refused answer EDIT reads the fixed
+sentence). Rule 19 and rule 22.
+
+The author's tests replace update_submission_from_raw_text by a fake refusal
+(his own words: "the gate is replaced by the refusal itself"), so the real gate,
+the real billing target and the real polled status are never reached. These
+tests go through the REAL routes, the real task and the real gate; only the
+provider is replaced (it must not be reached).
+
+p1  A student edits through update-async; the teacher's wallet (5,000) is below
+    every estimate (flat 20,000). The real gate refuses. The student reads the
+    fixed sentence: stored, returned by the task, and polled on the status
+    route, with no money word and no number; the gate's own text stays in the
+    server log (assignments.tasks WARNING).
+p2  The teacher edits the same student's submission through the same route,
+    same poor wallet, same real gate: the generic credit message, never the
+    student sentence.
+p3  R1 on the EDIT path: the student's OWN wallet is funded (200,000), the
+    teacher's is 5,000. The real gate bills the teacher only: refused with the
+    student sentence, neither balance changes, the provider is not reached.
+p4  FINDING (expected RED at the tip): the synchronous student edit (PATCH
+    submissions/<id>, kept until H-11) still answers 402 with the generic text
+    that names the credit wallet.
+
+Copied to students/tests_vf1a_h211.py of a scratch checkout.
+Usage: python manage.py test students.tests_vf1a_h211
+"""
+
+import ast
+import logging
+import re
+from unittest.mock import patch
+from uuid import uuid4
+
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from ai_processor.services import AIProcessor
+from assignments.models import Assignment, AssignmentStatus
+from assignments.tasks import extract_answer_background_task
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
+from billing.models import CreditWallet, PlanType
+from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    StudentSubmission,
+)
+from students.tests_upload_credit_door import _fund
+from users.models import CustomUser, UserTypes
+
+STUDENT_SENTENCE = (
+    "Your answers were not submitted. Your teacher's account can't process "
+    "uploads right now. Please keep your file and try again later, or let "
+    "your teacher know."
+)
+MONEY_WORDS = ("credit", "wallet", "balance", "refill", "top up", "topped")
+POOR = 5_000
+RICH = 200_000
+UUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+
+class _Collect(logging.Handler):
+    """Collects the records of one logger without failing when there are none
+    (so a missing log line is reported by MY assertion, not by assertLogs)."""
+
+    def __init__(self, name):
+        super().__init__(level=logging.DEBUG)
+        self.records = []
+        self.target = logging.getLogger(name)
+
+    def emit(self, record):
+        self.records.append(record)
+
+    def __enter__(self):
+        self.old_level = self.target.level
+        self.target.addHandler(self)
+        self.target.setLevel(logging.DEBUG)
+        return self
+
+    def __exit__(self, *exc):
+        self.target.removeHandler(self)
+        self.target.setLevel(self.old_level)
+
+
+class VF1aH211Base(ExecuteGradedTaskTestBase):
+    def _classroom(self, credits):
+        if not hasattr(self, "_vf_plan"):
+            self._vf_plan = self._make_plan(PlanType.PRO)
+        teacher = self._make_teacher_with_credits(plan=self._vf_plan, credits=credits)
+        teacher.email_verified_at = timezone.now()
+        teacher.save(update_fields=["email_verified_at"])
+        student = CustomUser.objects.create_user(
+            email=f"s-{uuid4().hex[:8]}@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+        session = Session.objects.create(name="S", teacher=teacher)
+        course = Course.objects.create(name="C", teacher=teacher, session=session)
+        StudentCourse.objects.create(
+            student=student,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        assignment = Assignment.objects.create(
+            title="A",
+            course=course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[
+                {"question_number": 1, "question_text": "Q1?", "points": 10},
+                {"question_number": 2, "question_text": "Q2?", "points": 10},
+            ],
+        )
+        submission = StudentSubmission.objects.create(
+            assignment=assignment,
+            student=student,
+            answers=[{"question_number": 1, "answer_html": "An answer."}],
+        )
+        return teacher, student, assignment, submission
+
+    def _client(self, user):
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    def _edit_url(self, submission):
+        return reverse("student-submission-update-async", kwargs={"pk": submission.pk})
+
+    def _polled(self, user, tracked):
+        tracked.refresh_from_db()
+        if not tracked.celery_task_id:
+            tracked.celery_task_id = str(uuid4())
+            tracked.save(update_fields=["celery_task_id"])
+        return self._client(user).get(f"/api/v1/tasks/status/{tracked.celery_task_id}")
+
+    def _balance(self, user):
+        return CreditWallet.objects.get(user=user).total_remaining_credits()
+
+    def _start_edit(self, launch, who, submission):
+        """The real route queues the task; the queue call is captured."""
+        launch.return_value.id = f"task-{uuid4().hex[:6]}"
+        response = self._client(who).post(
+            self._edit_url(submission), {"raw_input": "An edited answer."}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
+        launch.assert_called_once()
+        tracked = BackgroundProcessingTask.objects.get(
+            requested_by=who, task_type=BackgroundTaskType.ANSWER_EXTRACTION
+        )
+        return tracked
+
+    def _run_task(self, launch_call, tracked):
+        args = launch_call.args  # (task, processing_task, submission_id, raw_input, user_id)
+        return extract_answer_background_task.apply(
+            args=tuple(args[2:5]), kwargs={"processing_task_id": str(tracked.id)}
+        )
+
+    def assertNoMoneyOrNumber(self, text):
+        """`text` is the status route's `meta` (a str of a dict). The words of
+        money are looked for in the whole of it (without ids); the word
+        "credit" only in the error text the student reads, because the row's
+        machine `code` is legitimately "insufficient_credits"."""
+        self.assertTrue(text)
+        meta = ast.literal_eval(text)
+        shown = meta.get("error")
+        self.assertTrue(shown, meta)
+        self.assertEqual(shown, STUDENT_SENTENCE)
+        scrubbed = UUID.sub("", text).lower()
+        for word in MONEY_WORDS:
+            if word != "credit":
+                self.assertNotIn(word, scrubbed)
+        self.assertNotIn("credit", shown.lower())
+        self.assertIsNone(re.search(r"\d{3,}", scrubbed), scrubbed)
+
+
+class VF1aH211(VF1aH211Base):
+    @patch("students.views.launch_processing_task")
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_p1_student_edit_real_gate_reads_the_sentence(self, ai_model, launch):
+        ai_model.side_effect = AssertionError("the provider was reached")
+        teacher, student, _, submission = self._classroom(POOR)
+        self.assertEqual(self._balance(teacher), POOR, "premise: balance")
+        tracked = self._start_edit(launch, student, submission)
+
+        with _Collect("assignments.tasks") as logs:
+            outcome = self._run_task(launch.call_args, tracked)
+
+        ai_model.assert_not_called()
+        tracked.refresh_from_db()
+        self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
+        self.assertTrue(tracked.error)
+        self.assertEqual(tracked.error, STUDENT_SENTENCE)
+        self.assertFalse(outcome.failed(), repr(outcome.result))
+        self.assertEqual(outcome.result["message"], STUDENT_SENTENCE)
+        polled = self._polled(student, tracked)
+        self.assertEqual(polled.status_code, status.HTTP_200_OK)
+        text = str(polled.data["meta"])
+        self.assertIn(STUDENT_SENTENCE, text)
+        self.assertNoMoneyOrNumber(text)
+        logged = "\n".join(r.getMessage() for r in logs.records)
+        self.assertIn(
+            "you only have", logged, "the gate's own refusal text was not logged server-side"
+        )
+        self.assertEqual(self._balance(teacher), POOR, "a refused edit must not charge")
+
+    @patch("students.views.launch_processing_task")
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_p2_teacher_edit_real_gate_keeps_the_generic_text(self, ai_model, launch):
+        ai_model.side_effect = AssertionError("the provider was reached")
+        teacher, student, _, submission = self._classroom(POOR)
+        tracked = self._start_edit(launch, teacher, submission)
+
+        outcome = self._run_task(launch.call_args, tracked)
+
+        ai_model.assert_not_called()
+        tracked.refresh_from_db()
+        self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
+        self.assertTrue(tracked.error)
+        self.assertEqual(tracked.error, INSUFFICIENT_CREDITS_MESSAGE)
+        self.assertEqual(outcome.result["message"], INSUFFICIENT_CREDITS_MESSAGE)
+        polled = self._polled(teacher, tracked)
+        self.assertEqual(polled.status_code, status.HTTP_200_OK)
+        text = str(polled.data["meta"])
+        self.assertIn(INSUFFICIENT_CREDITS_MESSAGE, text)
+        self.assertNotIn("Your answers were not submitted", text)
+        self.assertIsNone(re.search(r"\d{3,}", UUID.sub("", text)))
+
+    @patch("students.views.launch_processing_task")
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else(
+        self, ai_model, launch
+    ):
+        ai_model.side_effect = AssertionError("the provider was reached")
+        teacher, student, _, submission = self._classroom(POOR)
+        _fund(student, RICH)
+        student_before, teacher_before = self._balance(student), self._balance(teacher)
+        self.assertEqual(student_before, RICH, "premise: the student's own wallet")
+        self.assertEqual(teacher_before, POOR, "premise: the teacher's wallet")
+        tracked = self._start_edit(launch, student, submission)
+
+        outcome = self._run_task(launch.call_args, tracked)
+
+        tracked.refresh_from_db()
+        self.assertTrue(tracked.error)
+        self.assertEqual(tracked.error, STUDENT_SENTENCE)
+        self.assertEqual(outcome.result["message"], STUDENT_SENTENCE)
+        ai_model.assert_not_called()
+        self.assertEqual(self._balance(student), student_before)
+        self.assertEqual(self._balance(teacher), teacher_before)
+
+
+class VF1aH211Finding(VF1aH211Base):
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_p4_finding_the_synchronous_student_edit_reads_the_sentence(self, ai_model):
+        ai_model.side_effect = AssertionError("the provider was reached")
+        teacher, student, _, submission = self._classroom(POOR)
+        url = reverse("student-submission-detail", kwargs={"pk": submission.pk})
+
+        response = self._client(student).patch(
+            url, {"raw_input": "An edited answer."}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED, response.data)
+        self.assertTrue(response.data["error"])
+        self.assertEqual(response.data["error"], STUDENT_SENTENCE)
+        ai_model.assert_not_called()

@@ -1,0 +1,62 @@
+"""v2 mutants for H-179 at e61cbe5a (written 2026-10-09 BEFORE any run). Run from the vf2-s1 scratch worktree
+detached at COMMIT with ai_processor/tests_vf2_h179_probe.py copied in. Usage:
+  COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h179_mutants.py check | baseline | mutants
+Each mutant is judged by my probe alone; the failing set must EQUAL the written one. Rule 17: no bytecode,
+pycache cleared, restore verified by sha256 against the commit blob."""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]; LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+SV = "ai_processor/services.py"
+LABEL = "ai_processor.tests_vf2_h179_probe"
+v1, v2, v3 = ("test_v1_a_cut_off_reply_is_logged_once_per_provider_call_and_nothing_leaks",
+              "test_v2_a_normal_reply_logs_no_cut_off_line", "test_v3_only_the_length_reason_counts")
+CALL = "        note_if_reply_cut_off(response, task_type)\n"
+M = {
+ "K1_the_call_is_removed": ([(CALL, "")], {v1}),
+ "K2_content_filter_counts_too": ([('    if not isinstance(reason, str) or reason != "length":\n', '    if not isinstance(reason, str) or reason not in ("length", "content_filter"):\n')], {v3}),
+ "K3_every_reason_counts": ([('    if not isinstance(reason, str) or reason != "length":\n', '    if not isinstance(reason, str) or reason == "":\n')], {v2, v3}),
+ "K4_the_line_carries_the_reply_text": ([("        model if isinstance(model, str) else None,\n        reason,\n    )", "        model if isinstance(model, str) else None,\n        str(choices[0].message.content),\n    )")], {v1}),
+ "K5_info_not_warning": ([("    logger.warning(\n        CUT_OFF_REPLY_LOG,", "    logger.info(\n        CUT_OFF_REPLY_LOG,")], {v1}),
+ "K6_the_main_model_not_the_replys": ([("        model if isinstance(model, str) else None,\n        reason,\n    )", '        "main-model",\n        reason,\n    )')], {v1}),
+ "K7_logged_twice": ([(CALL, CALL + CALL)], {v1}),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear(p): shutil.rmtree(pathlib.Path(p).parent / "__pycache__", ignore_errors=True)
+def run(name):
+    LOGS.mkdir(parents=True, exist_ok=True); log = LOGS / name
+    with open(log, "wb") as fh:
+        p = subprocess.run([sys.executable, "-B", "manage.py", "test", LABEL, "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                           stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summ = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={p.returncode}")
+    return p.returncode, ran, summ, failing, o
+if sys.argv[1:] == ["check"]:
+    for n, (edits, _e) in M.items():
+        s = open(SV).read(); counts = [s.count(o) for o, _ in edits]
+        for o, nw in edits: s = s.replace(o, nw, 1)
+        ast.parse(s); print(n, counts, "parses")
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    clear(SV); rc, ran, summ, failing, o = run("baseline.txt"); print("baseline |", ran, "|", summ, "|", failing, flush=True)
+    if rc: print(o[-8000:])
+    sys.exit(rc)
+for name, (edits, exact) in M.items():
+    src = open(SV).read(); counts = [src.count(o) for o, _ in edits]
+    if counts != [1] * len(edits): print(name, "APPLY_FAILED", counts, flush=True); continue
+    for o, nw in edits: src = src.replace(o, nw, 1)
+    ast.parse(src)
+    try:
+        clear(SV); open(SV, "w").write(src)
+        rc, ran, summ, failing, _ = run(f"{name}.txt")
+        if rc == 0: st = "SURVIVED"
+        elif ran == "Ran ?" or not failing: st = "BROKEN"
+        elif set(failing) == exact: st = "KILLED_AS_WRITTEN"
+        else: st = "KILLED_OTHER"
+        print(name, "|", st, "|", ran, "|", summ, "| written", sorted(exact), "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", SV], check=True); clear(SV)
+        ok = sha(open(SV, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{SV}"], capture_output=True).stdout)
+        print("  restore", "ok" if ok else "MISMATCH", flush=True)

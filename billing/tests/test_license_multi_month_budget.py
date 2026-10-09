@@ -147,9 +147,10 @@ class LicenseMultiMonthBudgetTests(TestCase):
             used_credits=0,
             expires_at=timezone.now() + timedelta(days=60),
         )
-        wallet.consume_credits(
-            amount=MONTHLY_POOL, feature="Grading Assignment", task_id="budget-burn"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            wallet.consume_credits(
+                amount=MONTHLY_POOL, feature="Grading Assignment", task_id="budget-burn"
+            )
 
     def _license_consumed(self):
         return LicenseSubscription.objects.get(
@@ -254,9 +255,10 @@ class LicenseMultiMonthBudgetTests(TestCase):
 
         # Consume again inside the new window.
         wallet = CreditWallet.objects.get(user=teacher_a)
-        wallet.consume_credits(
-            amount=1_000, feature="Grading Assignment", task_id="budget-burn-2"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            wallet.consume_credits(
+                amount=1_000, feature="Grading Assignment", task_id="budget-burn-2"
+            )
         self.assertEqual(self._license_consumed(), 1_000)
 
         # A second sweep in the same month must leave that 1,000 alone.

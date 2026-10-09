@@ -528,7 +528,9 @@ class GoogleAuthViewTests(APITestCase):
         self.assertTrue(user.check_password(new_password))
 
     def test_every_role_loses_a_pre_set_password_when_google_activates_the_row(self):
-        for user_type in UserTypes.values:
+        # H-203: not SUPER_ADMIN. An account with admin power that was never
+        # verified is not entered by a Google identity (the next test).
+        for user_type in (t for t in UserTypes.values if t != UserTypes.SUPER_ADMIN):
             with self.subTest(user_type=user_type):
                 email = f"dormant.{user_type.lower()}@gmail.com"
                 user = User.objects.create_user(
@@ -549,6 +551,33 @@ class GoogleAuthViewTests(APITestCase):
                 user.refresh_from_db()
                 self.assertTrue(user.is_active)
                 self.assertFalse(user.has_usable_password())
+
+    def test_a_dormant_never_verified_super_admin_is_not_activated_by_google(self):
+        """H-203, THE PRINCIPLE (users/admin_power.py): the mailbox is not the
+        account. The row stays inactive, unverified and keeps its password, and
+        the answer is the one of any failed Google sign-in."""
+        email = "dormant.super_admin@gmail.com"
+        user = User.objects.create_user(
+            email=email,
+            password="password123",  # pragma: allowlist secret
+            first_name="Dormant",
+            last_name="SUPER_ADMIN",
+            user_type=UserTypes.SUPER_ADMIN,
+            is_active=False,
+        )
+
+        response = self.call(
+            token_response=self.valid_token_response(),
+            id_info=self.valid_id_info(email=email),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Google sign-in failed. Please try again.", str(response.data))
+        self.assertNotIn("access", response.data)
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertIsNone(user.email_verified_at)
+        self.assertTrue(user.check_password("password123"))  # pragma: allowlist secret
 
     def test_repeated_google_sign_ins_on_a_dormant_row_are_stable(self):
         user = self._existing(is_active=False, email_verified_at=None)

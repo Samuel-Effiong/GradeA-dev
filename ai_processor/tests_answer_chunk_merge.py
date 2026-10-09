@@ -49,6 +49,7 @@ from django.test import SimpleTestCase
 
 from ai_processor import services
 from ai_processor.benchmark.answers.provider import _Response, already_found_in
+from ai_processor.exceptions import ProviderFailureError
 from ai_processor.extraction_schemas import (
     ANSWERED,
     BLANK,
@@ -403,7 +404,10 @@ class ErrorsKeepTheirTypeTest(SimpleTestCase):
                 exc, _ = self._run(
                     pages, requests.exceptions.Timeout("provider timed out")
                 )
-                self.assertIn("attempts failed", str(exc))
+                # S6d: coded PROVIDER_FAILURE; the attempts are in the
+                # log-only detail, and the cause is still on __cause__.
+                self.assertIsInstance(exc, ProviderFailureError)
+                self.assertIn("attempts failed", exc.detail)
                 self.assertIsNotNone(exc.__cause__)
                 self.assertIsNotNone(classify_infra_error(exc))
                 self.assertIn("timed out", classify_infra_error(exc))

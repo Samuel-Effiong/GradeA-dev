@@ -1,0 +1,176 @@
+"""v2's probe for H-196 (roster order), written 2026-10-09 BEFORE any run. Copy to
+classrooms/tests_vf2_h196_probe.py of the scratch worktree; never committed to the branch.
+
+The ruled order of an enrolment list: created_at oldest first, then id. How the order is made
+observable (my own writing, same idea as d5's): rows are inserted 0..N-1 and then given created_at
+values so that the DEFINED order is the REVERSE of insertion (or one shared created_at and ids chosen
+so that id order is the reverse of insertion). Every list is compared whole, its length asserted first.
+Nothing is cached (cache.get/set patched), nothing is patched but the cache.
+
+Class VF2RosterOrder (all expected GREEN on the tip; each seen red by a mutant of mine):
+  c1 course detail `students`; c2 course list `students`; c3 detail, created_at tie broken by id;
+  c4 CourseSerializer's fallback (no prefetch); c5 my-students `enrolled_courses`;
+  c6 my-students: the course a row is ABOUT (course_description) is the oldest enrolment's;
+  c7 CHARACTERISATION: the student-course list (StudentCourseViewSet) is NEWEST first by its own
+     explicit order ("-created_at", "id"); it states what is, not what is wanted.
+Class VF2RosterOrderFindings (report-only; f1 is PREDICTED RED on the tip):
+  f1 the teacher's assignment detail `student_submissions` (one entry per enrolled student) is built
+     from an unordered StudentCourse query; the ruled order is expected on every roster-returning route.
+"""
+import uuid
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from assignments.models import Assignment, AssignmentStatus
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from classrooms.serializers import CourseSerializer
+from users.models import UserTypes
+
+User = get_user_model()
+N = 6
+
+
+def make_user(email, user_type, first_name):
+    return User.objects.create_user(
+        email=email, password="password123",  # nosec  # pragma: allowlist secret
+        user_type=user_type, is_active=True, first_name=first_name,
+        last_name=user_type.title(), last_login=timezone.now(),
+    )
+
+
+class Base(TestCase):
+    def setUp(self):
+        self.teacher = make_user("vf2-196-t@x.test", UserTypes.TEACHER, "Teacher")
+        self.term = Session.objects.create(name="Term", teacher=self.teacher)
+        self.course = Course.objects.create(name="Course", teacher=self.teacher, session=self.term)
+        self.students = [make_user(f"vf2-196-s{i}@x.test", UserTypes.STUDENT, f"Student{i}") for i in range(N)]
+
+    def enrol_reverse_created(self):
+        """Inserted 0..N-1; created_at makes N-1..0 the defined order. Returns student ids in DEFINED order."""
+        base = timezone.now() - timedelta(days=1)
+        rows = []
+        for i, student in enumerate(self.students):
+            # ids ascend with insertion, so an order by id (or by insertion) is NOT the defined order
+            row = StudentCourse.objects.create(id=uuid.UUID(int=i + 1), student=student, course=self.course,
+                                               enrollment_status=EnrollmentStatusType.ENROLLED)
+            StudentCourse.objects.filter(pk=row.pk).update(created_at=base - timedelta(minutes=i))
+            rows.append(row)
+        return [r.student_id for r in reversed(rows)]
+
+    def enrol_tied(self):
+        """Inserted with ids N..1 and one shared created_at; defined order is id ascending. Student ids in that order."""
+        shared = timezone.now() - timedelta(days=1)
+        rows = []
+        for i, student in enumerate(self.students):
+            rows.append(StudentCourse.objects.create(id=uuid.UUID(int=N - i), student=student, course=self.course,
+                                                     enrollment_status=EnrollmentStatusType.ENROLLED))
+        StudentCourse.objects.filter(course=self.course).update(created_at=shared)
+        return [r.student_id for r in sorted(rows, key=lambda r: r.id)]
+
+    def get(self, url, user=None):
+        client = APIClient()
+        client.force_authenticate(user or self.teacher)
+        with patch.object(cache, "get", lambda *a, **k: None), patch.object(cache, "set", lambda *a, **k: True):
+            response = client.get(url)
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        return response.data
+
+
+class VF2RosterOrder(Base):
+    def ids(self, students):
+        return [str(s["id"]) for s in students]
+
+    def test_c1_detail_students_oldest_enrolment_first(self):
+        expected = [str(i) for i in self.enrol_reverse_created()]
+        got = self.ids(self.get(reverse("course-detail", args=[self.course.pk]))["students"])
+        self.assertEqual(len(got), N)
+        self.assertEqual(got, expected)
+
+    def test_c2_list_students_oldest_enrolment_first(self):
+        expected = [str(i) for i in self.enrol_reverse_created()]
+        data = self.get(reverse("course-list"))
+        items = data["results"] if "results" in data else data
+        item = next(c for c in items if str(c["id"]) == str(self.course.pk))
+        got = self.ids(item["students"])
+        self.assertEqual(len(got), N)
+        self.assertEqual(got, expected)
+
+    def test_c3_detail_breaks_a_created_at_tie_by_id(self):
+        expected = [str(i) for i in self.enrol_tied()]
+        got = self.ids(self.get(reverse("course-detail", args=[self.course.pk]))["students"])
+        self.assertEqual(len(got), N)
+        self.assertEqual(got, expected)
+
+    def test_c4_serializer_fallback_without_a_prefetch(self):
+        expected = [str(i) for i in self.enrol_reverse_created()]
+        course = Course.objects.get(pk=self.course.pk)
+        self.assertFalse(hasattr(course, "active_enrollments"))
+        got = self.ids(CourseSerializer(course, context={}).data["students"])
+        self.assertEqual(len(got), N)
+        self.assertEqual(got, expected)
+
+    def _one_student_in_n_courses(self):
+        student = self.students[0]
+        base = timezone.now() - timedelta(days=1)
+        courses = []
+        for i in range(N):
+            course = Course.objects.create(name=f"Course {i}", description=f"desc {i}", teacher=self.teacher,
+                                           session=self.term)
+            row = StudentCourse.objects.create(id=uuid.UUID(int=i + 1), student=student, course=course,
+                                               enrollment_status=EnrollmentStatusType.ENROLLED)
+            StudentCourse.objects.filter(pk=row.pk).update(created_at=base - timedelta(minutes=i))
+            courses.append(course)
+        return student, courses  # inserted 0..N-1; defined order N-1..0
+
+    def test_c5_my_students_enrolled_courses_oldest_first(self):
+        student, courses = self._one_student_in_n_courses()
+        data = self.get(reverse("student-course-my-students"))
+        row = next(r for r in data["results"] if str(r["id"]) == str(student.id))
+        self.assertEqual(len(row["enrolled_courses"]), N)
+        self.assertEqual(row["enrolled_courses"], [c.name for c in reversed(courses)])
+
+    def test_c6_my_students_row_is_about_the_oldest_enrolment(self):
+        student, courses = self._one_student_in_n_courses()
+        data = self.get(reverse("student-course-my-students"))
+        row = next(r for r in data["results"] if str(r["id"]) == str(student.id))
+        self.assertTrue(row["course_description"])
+        self.assertEqual(row["course_description"], courses[-1].description)
+
+    def test_c7_characterisation_the_student_course_list_is_newest_first(self):
+        base = timezone.now() - timedelta(days=1)
+        rows = []
+        for i, student in enumerate(self.students):
+            row = StudentCourse.objects.create(student=student, course=self.course,
+                                               enrollment_status=EnrollmentStatusType.ENROLLED)
+            StudentCourse.objects.filter(pk=row.pk).update(created_at=base - timedelta(minutes=i))
+            rows.append(row)
+        data = self.get(reverse("student-course-list"))
+        got = [str(r["id"]) for r in data["results"]]
+        self.assertEqual(len(got), N)
+        # created_at newest first = inserted 0 (least old) .. N-1
+        self.assertEqual(got, [str(r.pk) for r in rows])
+
+
+def _question():
+    return {"question_number": 1, "question_text": "Q1", "question_type": "OBJECTIVE", "points": 10,
+            "options": ["one", "two"], "rubric": [], "model_answer": "one"}
+
+
+class VF2RosterOrderFindings(Base):
+    def test_f1_assignment_detail_student_submissions_in_the_ruled_order(self):
+        expected_ids = self.enrol_reverse_created()
+        names = {s.pk: s.get_full_name() for s in self.students}
+        assignment = Assignment.objects.create(title="A", course=self.course, status=AssignmentStatus.DRAFT,
+                                               questions=[_question()])
+        data = self.get(reverse("assignment-detail", args=[assignment.pk]))
+        got = [e["name"] for e in data["student_submissions"]]
+        self.assertEqual(len(got), N)
+        self.assertEqual(len(set(got)), N)
+        self.assertEqual(got, [names[i] for i in expected_ids])

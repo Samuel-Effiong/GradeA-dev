@@ -38,12 +38,16 @@ LOGGING = {
             # from a request - it reads "-" outside any request/task).
             "format": (
                 "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} "
-                "[request_id={request_id}] {message}\n\n"
+                "[request_id={request_id} client_request_id={client_request_id}] "
+                "{message}\n\n"
             ),
             "style": "{",
         },
         "simple": {
-            "format": "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s] %(message)s\n\n",
+            "format": (
+                "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s "
+                "client_request_id=%(client_request_id)s] %(message)s\n\n"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
@@ -374,6 +378,7 @@ INSTALLED_APPS = [
     "ai_processor",
     "dashboard",
     "billing",
+    "audit",
     "django_celery_results",
     "django_celery_beat",
     # Third-party packages
@@ -394,6 +399,14 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Last: request-level audit coverage - finishes the automatic
+    # ADMIN_ACTION audit that classrooms.permissions.IsSuperAdmin starts, and
+    # writes the generic STATE_CHANGE event for a write that recorded no named
+    # event (audit/middleware.py, audit/request_audit.py). It reads
+    # request.user after the view has run, so it must stay after
+    # AuthenticationMiddleware; RequestIDMiddleware, first, keeps the
+    # correlation id live for the whole cycle.
+    "audit.middleware.AuditMiddleware",
 ]
 
 ROOT_URLCONF = "AutoGrader.urls"
@@ -767,6 +780,13 @@ GRADING_ANSWER_CACHE_ENABLED = env.bool("GRADING_ANSWER_CACHE_ENABLED", default=
 GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
     "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
 )
+# BE-I-04: the release that is running, recorded on every grade beside the
+# settings version (ai_processor/grading_config.py). It covers what the
+# settings version cannot: instruction text and rules written directly in
+# the code. Empty means the host does not say, and each grade then records
+# the word "none". Never part of the settings version or of the
+# saved-answer matching, so a deploy changes neither.
+GRADING_RELEASE_ID = env.str("GRADING_RELEASE_ID", default="")
 
 # Rendered-PDF cache (assignments/pdf_cache.py): a downloaded assignment
 # PDF costs a full headless-Chromium render to produce and is identical
@@ -1028,6 +1048,20 @@ CELERY_BEAT_SCHEDULE = {
         "task": "AutoGrader.beat_health.check_beat_health",
         "schedule": crontab(minute="*/15"),
     },
+    # A6 retention sweep (audit/tasks.py): deletes AuditEvent rows past
+    # their retention_class cutoff (12mo general / 3yr student-record).
+    # 06:00 keeps it after the 05:00 credit-bucket sweep.
+    "sweep-audit-retention-daily": {
+        "task": "audit.tasks.sweep_audit_retention",
+        "schedule": crontab(minute=0, hour=6),
+    },
+    # X-4: nulls source_ip/user_agent after PII_SHORT_RETENTION_DAYS,
+    # independent of the row's own retention_class. 06:30 keeps it clear
+    # of the row-delete sweep above.
+    "sweep-audit-pii-short-retention-daily": {
+        "task": "audit.tasks.sweep_audit_pii_short_retention",
+        "schedule": crontab(minute=30, hour=6),
+    },
 }
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
@@ -1072,6 +1106,8 @@ BEAT_HEALTH_EXPECTATIONS = {
     "send-weekly-course-summaries": (timedelta(weeks=1), timedelta(days=10)),
     "send-weekly-student-summaries": (timedelta(weeks=1), timedelta(days=10)),
     "send-weekly-school-admin-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "sweep-audit-retention-daily": (timedelta(days=1), timedelta(days=2)),
+    "sweep-audit-pii-short-retention-daily": (timedelta(days=1), timedelta(days=2)),
 }
 
 # Static files (CSS, JavaScript, Images)
@@ -1207,6 +1243,12 @@ REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT = env.int(
 REGISTER_STUDENT_FAILURE_WINDOW_SECONDS = env.int(
     "REGISTER_STUDENT_FAILURE_WINDOW_SECONDS", default=3600
 )
+
+# Epic A S1b: the bound on failed-sign-in audit rows; see audit.failed_auth_cap.
+FAILED_AUTH_TARGET_FLOOR = env.int("FAILED_AUTH_TARGET_FLOOR", default=5)
+FAILED_AUTH_TARGET_LIMIT = env.int("FAILED_AUTH_TARGET_LIMIT", default=30)
+FAILED_AUTH_GLOBAL_LIMIT = env.int("FAILED_AUTH_GLOBAL_LIMIT", default=300)
+FAILED_AUTH_WINDOW_SECONDS = env.int("FAILED_AUTH_WINDOW_SECONDS", default=3600)
 
 # H-53: per-address budget of attempts on POST /auth/verify; see
 # users.throttling.reserve_verify_attempt.

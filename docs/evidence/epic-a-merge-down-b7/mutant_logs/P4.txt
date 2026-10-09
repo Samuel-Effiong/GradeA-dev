@@ -1,0 +1,49 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c6c33657-26bd-4a9b-a5c8-92dce94f858f.
+Cannot activate automatic trial for user c6c33657-26bd-4a9b-a5c8-92dce94f858f (validation): ValueError
+.Free trial plan not found: no trial activated for user e34e875c-e86d-4561-af2e-806b8e773aec.
+Cannot activate automatic trial for user e34e875c-e86d-4561-af2e-806b8e773aec (validation): ValueError
+.Free trial plan not found: no trial activated for user 10733cfd-10b2-4116-8139-edd23f152d13.
+Cannot activate automatic trial for user 10733cfd-10b2-4116-8139-edd23f152d13 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6759330e-7cbc-49fd-bce3-0d2fafea3a17.
+Cannot activate automatic trial for user 6759330e-7cbc-49fd-bce3-0d2fafea3a17 (validation): ValueError
+.Free trial plan not found: no trial activated for user c1f6627b-2876-4e63-b915-66d4e01478be.
+Cannot activate automatic trial for user c1f6627b-2876-4e63-b915-66d4e01478be (validation): ValueError
+.Free trial plan not found: no trial activated for user 9571e719-da4f-43db-829a-1b90370414ea.
+Cannot activate automatic trial for user 9571e719-da4f-43db-829a-1b90370414ea (validation): ValueError
+.Free trial plan not found: no trial activated for user 21fd34e7-9524-45e9-b609-b2f7bb9fe8d1.
+Cannot activate automatic trial for user 21fd34e7-9524-45e9-b609-b2f7bb9fe8d1 (validation): ValueError
+Free trial plan not found: no trial activated for user 7d6c4f22-e57e-4fca-a9db-b797d3a88502.
+Cannot activate automatic trial for user 7d6c4f22-e57e-4fca-a9db-b797d3a88502 (validation): ValueError
+.Free trial plan not found: no trial activated for user 63fcd96f-e102-4c7b-beae-ad4788c20996.
+Cannot activate automatic trial for user 63fcd96f-e102-4c7b-beae-ad4788c20996 (validation): ValueError
+.Free trial plan not found: no trial activated for user 55d84bae-2087-48cf-b1e4-fefcc9b356c7.
+Cannot activate automatic trial for user 55d84bae-2087-48cf-b1e4-fefcc9b356c7 (validation): ValueError
+....F...
+======================================================================
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_no_pii_in_logs.py", line 111, in test_no_log_or_print_call_passes_an_address_or_a_name
+    self.assertEqual(problems, [], "\n".join(problems))
+AssertionError: Lists differ: ['billing/views.py:1169: request.user.email'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'billing/views.py:1169: request.user.email'
+
+- ['billing/views.py:1169: request.user.email']
++ [] : billing/views.py:1169: request.user.email
+
+----------------------------------------------------------------------
+Ran 16 tests in 3.681s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 16 test(s).

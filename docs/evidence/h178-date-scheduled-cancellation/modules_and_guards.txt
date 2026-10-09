@@ -1,0 +1,1399 @@
+Creating test database for alias 'default' ('test_h178_date_scheduled_cancellation')...
+Found 483 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_date_with_the_period_end_flag_off_stops_the_record_renewing (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_date_with_the_period_end_flag_off_stops_the_record_renewing) ... Free trial plan not found: no trial activated for user 54cc1f67-c372-4b43-abc9-d53ebda18401.
+Cannot activate automatic trial for user 54cc1f67-c372-4b43-abc9-d53ebda18401 (validation): ValueError
+ok
+test_a_message_that_says_nothing_about_it_changes_nothing (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_message_that_says_nothing_about_it_changes_nothing)
+Neither key: nothing is said, so nothing is un-cancelled. Green on ... Free trial plan not found: no trial activated for user f7968103-3c27-40a4-b3f0-b99edc512868.
+Cannot activate automatic trial for user f7968103-3c27-40a4-b3f0-b99edc512868 (validation): ValueError
+ok
+test_a_message_with_a_date_but_without_the_flag_is_scheduled (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_message_with_a_date_but_without_the_flag_is_scheduled)
+The flag is absent (a thin payload), the date is there: that says ... Free trial plan not found: no trial activated for user 2d0259cf-24ee-4b73-8365-24ad8fa7cd38.
+Cannot activate automatic trial for user 2d0259cf-24ee-4b73-8365-24ad8fa7cd38 (validation): ValueError
+ok
+test_a_repeat_of_the_same_message_writes_nothing (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_repeat_of_the_same_message_writes_nothing) ... Free trial plan not found: no trial activated for user d84930fb-9d15-473d-b809-655870a7ff0b.
+Cannot activate automatic trial for user d84930fb-9d15-473d-b809-655870a7ff0b (validation): ValueError
+ok
+test_a_trial_is_left_alone (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_trial_is_left_alone)
+A trial's auto_renew is False by design and must not gain a ... Free trial plan not found: no trial activated for user 3c006398-1fe2-40b4-84e2-3731b40bff57.
+Cannot activate automatic trial for user 3c006398-1fe2-40b4-84e2-3731b40bff57 (validation): ValueError
+ok
+test_clearing_both_puts_the_record_back_to_renewing (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_clearing_both_puts_the_record_back_to_renewing)
+Green on the old code too: held across the change. ... Free trial plan not found: no trial activated for user fa1c0e57-bbd5-434e-bda2-fd334f852408.
+Cannot activate automatic trial for user fa1c0e57-bbd5-434e-bda2-fd334f852408 (validation): ValueError
+ok
+test_clearing_the_flag_does_not_undo_a_date_that_is_still_set (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_clearing_the_flag_does_not_undo_a_date_that_is_still_set)
+The customer's own cancellation (period end) was changed in ... Free trial plan not found: no trial activated for user bafa8f21-9db3-4102-b5bb-f2123aed8eb4.
+Cannot activate automatic trial for user bafa8f21-9db3-4102-b5bb-f2123aed8eb4 (validation): ValueError
+ok
+test_the_period_end_flag_alone_still_mirrors (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_the_period_end_flag_alone_still_mirrors)
+Green on the old code too: the existing behaviour is kept. ... Free trial plan not found: no trial activated for user b73142cb-89cc-459c-b8b4-fe34b316cb12.
+Cannot activate automatic trial for user b73142cb-89cc-459c-b8b4-fe34b316cb12 (validation): ValueError
+ok
+test_the_recorded_date_is_stripes_own_when_it_gives_one (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_the_recorded_date_is_stripes_own_when_it_gives_one) ... Free trial plan not found: no trial activated for user 3a0f4e4f-bd5c-4d8d-b5d9-666f527bf711.
+Cannot activate automatic trial for user 3a0f4e4f-bd5c-4d8d-b5d9-666f527bf711 (validation): ValueError
+ok
+test_the_answer_says_to_contact_support_and_not_that_it_is_active (billing.tests.test_date_scheduled_cancellation.KeepAnswersForADateScheduledRecordTests.test_the_answer_says_to_contact_support_and_not_that_it_is_active) ... Free trial plan not found: no trial activated for user 639ab1fd-0828-4951-b9ee-f7f170324cd5.
+Cannot activate automatic trial for user 639ab1fd-0828-4951-b9ee-f7f170324cd5 (validation): ValueError
+ok
+test_customer_subscription_updated_is_registered (billing.tests.test_subscription_updated_webhook.DispatchTableTests.test_customer_subscription_updated_is_registered) ... ok
+test_handler_is_atomic (billing.tests.test_subscription_updated_webhook.DispatchTableTests.test_handler_is_atomic) ... ok
+test_canceled_from_dashboard_deactivates_the_row (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_canceled_from_dashboard_deactivates_the_row) ... Free trial plan not found: no trial activated for user fa8b31dc-698a-4e29-8e2f-f9a9e7ce488b.
+Cannot activate automatic trial for user fa8b31dc-698a-4e29-8e2f-f9a9e7ce488b (validation): ValueError
+ok
+test_dashboard_side_pause_is_synced (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_dashboard_side_pause_is_synced)
+The exact gap this closes: a status change from Stripe's side ... Free trial plan not found: no trial activated for user 227fa277-42de-4b9c-aaaf-22cd50f94a5c.
+Cannot activate automatic trial for user 227fa277-42de-4b9c-aaaf-22cd50f94a5c (validation): ValueError
+ok
+test_does_not_touch_plan_or_billing_period (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_does_not_touch_plan_or_billing_period)
+This handler must stay narrowly scoped to status -- plan and ... Free trial plan not found: no trial activated for user bb4b8ded-3cd2-4e30-a931-f4a072d210a0.
+Cannot activate automatic trial for user bb4b8ded-3cd2-4e30-a931-f4a072d210a0 (validation): ValueError
+ok
+test_only_the_active_row_is_matched (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_only_the_active_row_is_matched)
+A stale/inactive row sharing the Stripe subscription id (e.g. ... Free trial plan not found: no trial activated for user 28c4f9c6-b81a-479c-b47c-22820fbd9f86.
+Cannot activate automatic trial for user 28c4f9c6-b81a-479c-b47c-22820fbd9f86 (validation): ValueError
+ok
+test_same_status_replay_is_a_no_op (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_same_status_replay_is_a_no_op)
+The event fires for changes our OWN code made too -- syncing ... Free trial plan not found: no trial activated for user cb0220ad-08a9-4f8a-81d4-fffbe67fc974.
+Cannot activate automatic trial for user cb0220ad-08a9-4f8a-81d4-fffbe67fc974 (validation): ValueError
+ok
+test_unmapped_status_is_left_alone (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_unmapped_status_is_left_alone)
+Stripe sends 'paused' and 'incomplete_expired' too, which have ... Free trial plan not found: no trial activated for user 14428b9d-1e55-448f-aefc-410d28e1d6a9.
+Cannot activate automatic trial for user 14428b9d-1e55-448f-aefc-410d28e1d6a9 (validation): ValueError
+ok
+test_unpaid_from_dashboard_deactivates_the_row (billing.tests.test_subscription_updated_webhook.IndividualSubscriptionUpdatedTests.test_unpaid_from_dashboard_deactivates_the_row) ... Free trial plan not found: no trial activated for user 9441976a-1c28-4b17-966d-c75df0fe9dc9.
+Cannot activate automatic trial for user 9441976a-1c28-4b17-966d-c75df0fe9dc9 (validation): ValueError
+ok
+test_canceled_from_dashboard_deactivates_the_license (billing.tests.test_subscription_updated_webhook.LicenseSubscriptionUpdatedTests.test_canceled_from_dashboard_deactivates_the_license) ... ok
+test_dashboard_side_past_due_is_synced (billing.tests.test_subscription_updated_webhook.LicenseSubscriptionUpdatedTests.test_dashboard_side_past_due_is_synced) ... ok
+test_individual_lookup_does_not_fire_for_a_license_id (billing.tests.test_subscription_updated_webhook.LicenseSubscriptionUpdatedTests.test_individual_lookup_does_not_fire_for_a_license_id)
+A LicenseSubscription-only id must fall through to the license ... ok
+test_unknown_subscription_id_is_a_silent_no_op (billing.tests.test_subscription_updated_webhook.NoMatchingSubscriptionTests.test_unknown_subscription_id_is_a_silent_no_op)
+A late-arriving event for a subscription id we never ... ok
+test_cancel_stamps_cancelled_at (billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_cancel_stamps_cancelled_at) ... Free trial plan not found: no trial activated for user 00086a8e-4a99-4399-9297-49a3ce1f3ff4.
+Cannot activate automatic trial for user 00086a8e-4a99-4399-9297-49a3ce1f3ff4 (validation): ValueError
+ok
+test_cancelling_a_trial_does_not_fabricate_a_date (billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_cancelling_a_trial_does_not_fabricate_a_date)
+A trial is already auto_renew=False, so there is no True->False ... Free trial plan not found: no trial activated for user 78e0bcc4-1d60-4b47-99fa-ae1a57953bb7.
+Cannot activate automatic trial for user 78e0bcc4-1d60-4b47-99fa-ae1a57953bb7 (validation): ValueError
+ok
+test_failed_stripe_cancel_leaves_cancelled_at_unset (billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_failed_stripe_cancel_leaves_cancelled_at_unset)
+If Stripe refused the cancellation, nothing was cancelled — the ... Free trial plan not found: no trial activated for user d2cd374a-4e1d-4916-aac8-681005f73cce.
+Cannot activate automatic trial for user d2cd374a-4e1d-4916-aac8-681005f73cce (validation): ValueError
+ok
+test_repeat_cancel_does_not_slide_the_date (billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_repeat_cancel_does_not_slide_the_date)
+The date must record when the user ACTUALLY cancelled. Stamping ... Free trial plan not found: no trial activated for user 08bc1c1d-fd14-46c2-ab73-2351503715bf.
+Cannot activate automatic trial for user 08bc1c1d-fd14-46c2-ab73-2351503715bf (validation): ValueError
+ok
+test_serializer_reports_the_cancellation_right_after_the_call (billing.tests.test_cancellation_visibility.CancelEndpointStampsCancelledAtTests.test_serializer_reports_the_cancellation_right_after_the_call)
+The end-to-end point of the whole feature. ... Free trial plan not found: no trial activated for user d766192f-180e-4060-97af-a6fee3943c9e.
+Cannot activate automatic trial for user d766192f-180e-4060-97af-a6fee3943c9e (validation): ValueError
+ok
+test_cancel_then_resume_round_trip (billing.tests.test_cancellation_visibility.CancelResumeRoundTripTests.test_cancel_then_resume_round_trip) ... Free trial plan not found: no trial activated for user 6083dfe0-4017-466d-a315-9ef515ce6c05.
+Cannot activate automatic trial for user 6083dfe0-4017-466d-a315-9ef515ce6c05 (validation): ValueError
+ok
+test_dashboard_cancel_then_in_app_resume (billing.tests.test_cancellation_visibility.CancelResumeRoundTripTests.test_dashboard_cancel_then_in_app_resume)
+The cross-surface case the gap fix enables: cancelled in the ... Free trial plan not found: no trial activated for user aa797576-f9e4-4024-81ce-82422b2ef651.
+Cannot activate automatic trial for user aa797576-f9e4-4024-81ce-82422b2ef651 (validation): ValueError
+ok
+test_cancellation_field_is_present_and_read_only (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_cancellation_field_is_present_and_read_only)
+The four fields used to be separate top-level SerializerMethodFields ... Free trial plan not found: no trial activated for user 3e0fac4e-4a25-4b24-988c-8aaa17857460.
+Cannot activate automatic trial for user 3e0fac4e-4a25-4b24-988c-8aaa17857460 (validation): ValueError
+ok
+test_cancellation_object_always_has_all_four_keys (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_cancellation_object_always_has_all_four_keys)
+Behavioral equivalent of the old per-field presence check — ... Free trial plan not found: no trial activated for user 3106ef28-593e-4ebb-b42c-9e523d8727e4.
+Cannot activate automatic trial for user 3106ef28-593e-4ebb-b42c-9e523d8727e4 (validation): ValueError
+ok
+test_cancelled_subscription_reports_no_pending_change (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_cancelled_subscription_reports_no_pending_change)
+The mirror image — cancel discards any scheduled change. ... Free trial plan not found: no trial activated for user f3c3b1b5-0ec3-44c9-887a-3b7f81a05c16.
+Cannot activate automatic trial for user f3c3b1b5-0ec3-44c9-887a-3b7f81a05c16 (validation): ValueError
+ok
+test_cancelled_subscription_reports_pending_cancellation (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_cancelled_subscription_reports_pending_cancellation) ... Free trial plan not found: no trial activated for user 0336868e-3ffb-4fbd-919b-41882225c0f5.
+Cannot activate automatic trial for user 0336868e-3ffb-4fbd-919b-41882225c0f5 (validation): ValueError
+ok
+test_effective_date_is_the_end_of_the_paid_period (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_effective_date_is_the_end_of_the_paid_period)
+Access runs to the end of what was already paid for — never to ... Free trial plan not found: no trial activated for user 70ea2337-9b2c-4a03-8101-62a2c715521b.
+Cannot activate automatic trial for user 70ea2337-9b2c-4a03-8101-62a2c715521b (validation): ValueError
+ok
+test_expired_period_is_not_resumable (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_expired_period_is_not_resumable)
+Once billing_cycle_end has passed there is nothing to resume — ... Free trial plan not found: no trial activated for user c02f632c-d176-4906-bed5-af62adb61848.
+Cannot activate automatic trial for user c02f632c-d176-4906-bed5-af62adb61848 (validation): ValueError
+ok
+test_inactive_subscription_is_not_reported_as_cancelled (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_inactive_subscription_is_not_reported_as_cancelled) ... Free trial plan not found: no trial activated for user 73c62241-b070-4897-9574-0cdb2c7ca7d4.
+Cannot activate automatic trial for user 73c62241-b070-4897-9574-0cdb2c7ca7d4 (validation): ValueError
+ok
+test_message_degrades_gracefully_without_a_cancelled_at (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_message_degrades_gracefully_without_a_cancelled_at)
+Rows cancelled before cancelled_at existed, and any row whose ... Free trial plan not found: no trial activated for user e3090eb7-4323-4911-a9e2-fdd65d2349d3.
+Cannot activate automatic trial for user e3090eb7-4323-4911-a9e2-fdd65d2349d3 (validation): ValueError
+ok
+test_message_includes_both_the_cancel_date_and_the_end_date (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_message_includes_both_the_cancel_date_and_the_end_date) ... Free trial plan not found: no trial activated for user cfdd74c4-933c-42b3-a1d6-d119c0ad39b1.
+Cannot activate automatic trial for user cfdd74c4-933c-42b3-a1d6-d119c0ad39b1 (validation): ValueError
+ok
+test_renewing_subscription_reports_no_cancellation (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_renewing_subscription_reports_no_cancellation) ... Free trial plan not found: no trial activated for user 04b74dc0-a49d-4cbf-bbb6-ca8e3c6ef324.
+Cannot activate automatic trial for user 04b74dc0-a49d-4cbf-bbb6-ca8e3c6ef324 (validation): ValueError
+ok
+test_scheduled_downgrade_is_not_a_cancellation (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_scheduled_downgrade_is_not_a_cancellation)
+A downgrade still renews — just onto a different plan — so ... Free trial plan not found: no trial activated for user 3523271e-3b23-4e45-a71e-d351c1bd3628.
+Cannot activate automatic trial for user 3523271e-3b23-4e45-a71e-d351c1bd3628 (validation): ValueError
+ok
+test_trial_is_never_reported_as_cancelled (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_trial_is_never_reported_as_cancelled)
+THE regression this whole field exists to prevent. A trial's ... Free trial plan not found: no trial activated for user 011427f1-3ead-466f-8d79-a19474dd514f.
+Cannot activate automatic trial for user 011427f1-3ead-466f-8d79-a19474dd514f (validation): ValueError
+ok
+test_trial_with_a_stray_cancelled_at_is_still_not_reported (billing.tests.test_cancellation_visibility.CancellationSerializerFieldTests.test_trial_with_a_stray_cancelled_at_is_still_not_reported)
+Belt-and-braces: is_trial wins over any stray date. ... Free trial plan not found: no trial activated for user 6aba5005-563f-4766-9283-fefbf77d9478.
+Cannot activate automatic trial for user 6aba5005-563f-4766-9283-fefbf77d9478 (validation): ValueError
+ok
+test_banner_is_gone_after_resume (billing.tests.test_cancellation_visibility.ResumeClearsCancelledAtTests.test_banner_is_gone_after_resume) ... Free trial plan not found: no trial activated for user 1cba567d-c697-410c-923c-a32265570d22.
+Cannot activate automatic trial for user 1cba567d-c697-410c-923c-a32265570d22 (validation): ValueError
+ok
+test_resume_clears_a_stale_date_even_when_auto_renew_already_true (billing.tests.test_cancellation_visibility.ResumeClearsCancelledAtTests.test_resume_clears_a_stale_date_even_when_auto_renew_already_true)
+Drift case: auto_renew got back to True by some other path while ... Free trial plan not found: no trial activated for user 4e8d22d3-899d-4d9f-b63e-e464eeb46c7f.
+Cannot activate automatic trial for user 4e8d22d3-899d-4d9f-b63e-e464eeb46c7f (validation): ValueError
+ok
+test_resume_clears_cancelled_at (billing.tests.test_cancellation_visibility.ResumeClearsCancelledAtTests.test_resume_clears_cancelled_at) ... Free trial plan not found: no trial activated for user bdbe2d5a-ed8f-48cc-b33e-d1e030150fce.
+Cannot activate automatic trial for user bdbe2d5a-ed8f-48cc-b33e-d1e030150fce (validation): ValueError
+ok
+test_backfills_a_missing_date_on_an_already_cancelled_row (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_backfills_a_missing_date_on_an_already_cancelled_row)
+A row cancelled before cancelled_at existed still gets a date ... Free trial plan not found: no trial activated for user a58c6970-158e-4521-b80e-e619a86b0216.
+Cannot activate automatic trial for user a58c6970-158e-4521-b80e-e619a86b0216 (validation): ValueError
+ok
+test_dashboard_cancellation_is_mirrored_locally (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_dashboard_cancellation_is_mirrored_locally) ... Free trial plan not found: no trial activated for user 4728c97e-f1fc-42e3-ba8f-9d92063daa7b.
+Cannot activate automatic trial for user 4728c97e-f1fc-42e3-ba8f-9d92063daa7b (validation): ValueError
+ok
+test_dashboard_uncancel_is_mirrored_locally (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_dashboard_uncancel_is_mirrored_locally) ... Free trial plan not found: no trial activated for user a2cb1297-d4f4-4736-89ee-80acc7b4f963.
+Cannot activate automatic trial for user a2cb1297-d4f4-4736-89ee-80acc7b4f963 (validation): ValueError
+ok
+test_explicit_null_flag_is_also_ignored (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_explicit_null_flag_is_also_ignored) ... Free trial plan not found: no trial activated for user 3cf0f7fa-8f6d-40dc-baf3-e78631e26b89.
+Cannot activate automatic trial for user 3cf0f7fa-8f6d-40dc-baf3-e78631e26b89 (validation): ValueError
+ok
+test_falls_back_to_now_when_stripe_sends_no_canceled_at (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_falls_back_to_now_when_stripe_sends_no_canceled_at) ... Free trial plan not found: no trial activated for user 4828ba87-fadd-48d7-a4b4-d35638d4134c.
+Cannot activate automatic trial for user 4828ba87-fadd-48d7-a4b4-d35638d4134c (validation): ValueError
+ok
+test_frontend_sees_the_banner_after_a_dashboard_cancellation (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_frontend_sees_the_banner_after_a_dashboard_cancellation) ... Free trial plan not found: no trial activated for user 6ee85dfa-d27a-46f3-9a09-ee88f321fd84.
+Cannot activate automatic trial for user 6ee85dfa-d27a-46f3-9a09-ee88f321fd84 (validation): ValueError
+ok
+test_inactive_row_is_not_matched (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_inactive_row_is_not_matched) ... Free trial plan not found: no trial activated for user 687f68a9-76fd-4bdd-9f02-720d66caf577.
+Cannot activate automatic trial for user 687f68a9-76fd-4bdd-9f02-720d66caf577 (validation): ValueError
+ok
+test_malformed_canceled_at_falls_back_instead_of_raising (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_malformed_canceled_at_falls_back_instead_of_raising)
+A bad timestamp must never be the reason a webhook 500s — that ... Free trial plan not found: no trial activated for user e13afd37-b062-4099-b926-21b9e43ff3ae.
+Cannot activate automatic trial for user e13afd37-b062-4099-b926-21b9e43ff3ae (validation): ValueError
+ok
+test_our_own_cancel_date_wins_over_the_echoed_event (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_our_own_cancel_date_wins_over_the_echoed_event)
+Our cancel endpoint sets Stripe first, so the resulting webhook ... Free trial plan not found: no trial activated for user a2796c86-24d0-4670-9359-0f16833f092c.
+Cannot activate automatic trial for user a2796c86-24d0-4670-9359-0f16833f092c (validation): ValueError
+ok
+test_payload_without_the_flag_never_uncancels (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_payload_without_the_flag_never_uncancels)
+The critical safety rule: a thin or partial payload that OMITS ... Free trial plan not found: no trial activated for user 16a709c5-823a-4c08-9472-5bf6e2882862.
+Cannot activate automatic trial for user 16a709c5-823a-4c08-9472-5bf6e2882862 (validation): ValueError
+ok
+test_replay_of_a_normal_renewing_subscription_writes_nothing (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_replay_of_a_normal_renewing_subscription_writes_nothing) ... Free trial plan not found: no trial activated for user 37559f45-55a1-454b-aafc-0bf777d65073.
+Cannot activate automatic trial for user 37559f45-55a1-454b-aafc-0bf777d65073 (validation): ValueError
+ok
+test_replay_of_an_already_synced_cancellation_writes_nothing (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_replay_of_an_already_synced_cancellation_writes_nothing)
+This event fires for changes our own code just made, and Stripe ... Free trial plan not found: no trial activated for user d8ed377e-443d-4f03-a6de-982ebe630ae2.
+Cannot activate automatic trial for user d8ed377e-443d-4f03-a6de-982ebe630ae2 (validation): ValueError
+ok
+test_status_and_cancellation_sync_together (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_status_and_cancellation_sync_together) ... Free trial plan not found: no trial activated for user d4db5739-89c5-4448-96e7-821aeb513121.
+Cannot activate automatic trial for user d4db5739-89c5-4448-96e7-821aeb513121 (validation): ValueError
+ok
+test_status_stays_active_which_is_why_status_sync_alone_missed_this (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_status_stays_active_which_is_why_status_sync_alone_missed_this)
+Pins the premise: the event carries no status change at all. ... Free trial plan not found: no trial activated for user 7a5b6692-24e9-46e0-bf6c-2f9dada2f9f3.
+Cannot activate automatic trial for user 7a5b6692-24e9-46e0-bf6c-2f9dada2f9f3 (validation): ValueError
+ok
+test_terminal_status_still_deactivates (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_terminal_status_still_deactivates) ... Free trial plan not found: no trial activated for user 26b38ea0-b4c6-4e87-953a-206bd0f6bd32.
+Cannot activate automatic trial for user 26b38ea0-b4c6-4e87-953a-206bd0f6bd32 (validation): ValueError
+ok
+test_trial_is_never_mirrored (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_trial_is_never_mirrored)
+A trial's auto_renew=False means "won't convert without an ... Free trial plan not found: no trial activated for user 159bcd69-f8f9-4c6c-a5d0-6347d7934a2d.
+Cannot activate automatic trial for user 159bcd69-f8f9-4c6c-a5d0-6347d7934a2d (validation): ValueError
+ok
+test_uncancel_clears_a_stale_date_even_if_auto_renew_is_already_true (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_uncancel_clears_a_stale_date_even_if_auto_renew_is_already_true) ... Free trial plan not found: no trial activated for user f995650d-72e2-4ca0-90c7-99ea064d3398.
+Cannot activate automatic trial for user f995650d-72e2-4ca0-90c7-99ea064d3398 (validation): ValueError
+ok
+test_unknown_subscription_id_does_not_raise (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_unknown_subscription_id_does_not_raise) ... Free trial plan not found: no trial activated for user e62e8692-7e3d-4230-b1b3-062c2a98b77c.
+Cannot activate automatic trial for user e62e8692-7e3d-4230-b1b3-062c2a98b77c (validation): ValueError
+ok
+test_unmapped_status_still_syncs_the_cancellation (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_unmapped_status_still_syncs_the_cancellation)
+An unmapped status ("paused") leaves stripe_status alone, but ... Free trial plan not found: no trial activated for user 4ec48d14-62a5-4e84-b8cf-a5f996f22d2c.
+Cannot activate automatic trial for user 4ec48d14-62a5-4e84-b8cf-a5f996f22d2c (validation): ValueError
+ok
+test_uses_stripes_own_canceled_at_timestamp (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_uses_stripes_own_canceled_at_timestamp)
+Stripe knows when the cancellation was actually requested; the ... Free trial plan not found: no trial activated for user 277e6c3a-6185-413f-aec3-f00944c2bbf0.
+Cannot activate automatic trial for user 277e6c3a-6185-413f-aec3-f00944c2bbf0 (validation): ValueError
+ok
+test_exact_membership (billing.tests.test_event_replay.AllowListPinningTests.test_exact_membership) ... ok
+test_no_refund_or_subscription_mutating_handler_is_listed (billing.tests.test_event_replay.AllowListPinningTests.test_no_refund_or_subscription_mutating_handler_is_listed) ... ok
+test_the_only_entry_maps_to_the_overage_flow_handler (billing.tests.test_event_replay.AllowListPinningTests.test_the_only_entry_maps_to_the_overage_flow_handler) ... ok
+test_vetted_handlers_is_exactly_that_handler (billing.tests.test_event_replay.AllowListPinningTests.test_vetted_handlers_is_exactly_that_handler) ... ok
+test_attempts_are_capped (billing.tests.test_event_replay.DenyByDefaultTests.test_attempts_are_capped) ... Free trial plan not found: no trial activated for user ee27be2c-515b-49f2-b435-ff543c28c728.
+Cannot activate automatic trial for user ee27be2c-515b-49f2-b435-ff543c28c728 (validation): ValueError
+ok
+test_disallowed_event_type_is_never_even_selected (billing.tests.test_event_replay.DenyByDefaultTests.test_disallowed_event_type_is_never_even_selected) ... Free trial plan not found: no trial activated for user 168352c3-d694-4a20-bb29-f7c8ee64449c.
+Cannot activate automatic trial for user 168352c3-d694-4a20-bb29-f7c8ee64449c (validation): ValueError
+ok
+test_missing_flow (billing.tests.test_event_replay.DenyByDefaultTests.test_missing_flow) ... Free trial plan not found: no trial activated for user 417dfce7-8dc9-4575-8658-bed56d2a5805.
+Cannot activate automatic trial for user 417dfce7-8dc9-4575-8658-bed56d2a5805 (validation): ValueError
+ok
+test_succeeded_events_are_never_replayed (billing.tests.test_event_replay.DenyByDefaultTests.test_succeeded_events_are_never_replayed) ... Free trial plan not found: no trial activated for user fecde456-c399-478b-a4b5-ebd4c3c4e0d7.
+Cannot activate automatic trial for user fecde456-c399-478b-a4b5-ebd4c3c4e0d7 (validation): ValueError
+ok
+test_unknown_flow_on_an_allowed_event_type (billing.tests.test_event_replay.DenyByDefaultTests.test_unknown_flow_on_an_allowed_event_type) ... Free trial plan not found: no trial activated for user 6ec73603-4729-4318-932f-6b8a04f642d4.
+Cannot activate automatic trial for user 6ec73603-4729-4318-932f-6b8a04f642d4 (validation): ValueError
+ok
+test_exhausted_row_is_not_run_even_when_handed_over (billing.tests.test_event_replay.ReplayOneGuardTests.test_exhausted_row_is_not_run_even_when_handed_over) ... Free trial plan not found: no trial activated for user 810a924a-87e6-4ff1-8bb3-da92a548d1ec.
+Cannot activate automatic trial for user 810a924a-87e6-4ff1-8bb3-da92a548d1ec (validation): ValueError
+ok
+test_row_already_claimed_by_a_live_worker_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_row_already_claimed_by_a_live_worker_is_not_run) ... Free trial plan not found: no trial activated for user 036792af-51d8-41cb-b02d-25b344adc2fe.
+Cannot activate automatic trial for user 036792af-51d8-41cb-b02d-25b344adc2fe (validation): ValueError
+ok
+test_runs_exactly_the_mapped_handler_not_the_dispatcher (billing.tests.test_event_replay.ReplayOneGuardTests.test_runs_exactly_the_mapped_handler_not_the_dispatcher) ... Free trial plan not found: no trial activated for user c7d39419-acb4-4ff2-9e20-81832db4d681.
+Cannot activate automatic trial for user c7d39419-acb4-4ff2-9e20-81832db4d681 (validation): ValueError
+Auto-replayed FAILED Stripe event evt_direct (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run)
+Another sweep replayed it, and it failed again, since we read it. ... Free trial plan not found: no trial activated for user a33617c5-85d5-4eea-a52f-007eeaac2328.
+Cannot activate automatic trial for user a33617c5-85d5-4eea-a52f-007eeaac2328 (validation): ValueError
+ok
+test_beat_schedule_and_health_expectation (billing.tests.test_event_replay.ReplayTaskWiringTests.test_beat_schedule_and_health_expectation) ... Free trial plan not found: no trial activated for user 1d3398c7-317d-481f-b9c6-037287bdab7e.
+Cannot activate automatic trial for user 1d3398c7-317d-481f-b9c6-037287bdab7e (validation): ValueError
+ok
+test_task_reports_nothing_eligible (billing.tests.test_event_replay.ReplayTaskWiringTests.test_task_reports_nothing_eligible) ... Free trial plan not found: no trial activated for user 4fac0f32-d16f-4422-aa17-4f4d5c954783.
+Cannot activate automatic trial for user 4fac0f32-d16f-4422-aa17-4f4d5c954783 (validation): ValueError
+ok
+test_every_writable_field_is_read_only (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_every_writable_field_is_read_only) ... Free trial plan not found: no trial activated for user 75f3943d-545f-4d15-9cfa-03cff5cca1e5.
+Cannot activate automatic trial for user 75f3943d-545f-4d15-9cfa-03cff5cca1e5 (validation): ValueError
+ok
+test_superuser_cannot_add_a_ledger_row (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_add_a_ledger_row) ... Free trial plan not found: no trial activated for user 54a43907-a1fc-4ec9-8583-877f81114eaf.
+Cannot activate automatic trial for user 54a43907-a1fc-4ec9-8583-877f81114eaf (validation): ValueError
+ok
+test_superuser_cannot_change_status_or_payload (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_change_status_or_payload) ... Free trial plan not found: no trial activated for user 5c67562c-e86f-4bfd-81d4-7eb821c5f1a3.
+Cannot activate automatic trial for user 5c67562c-e86f-4bfd-81d4-7eb821c5f1a3 (validation): ValueError
+ok
+test_superuser_cannot_delete_a_ledger_row (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_delete_a_ledger_row) ... Free trial plan not found: no trial activated for user 33c8d40d-061c-4dfe-8be5-3c83f18e683f.
+Cannot activate automatic trial for user 33c8d40d-061c-4dfe-8be5-3c83f18e683f (validation): ValueError
+ok
+test_widened_to_a_refund_handler_the_handler_is_never_called (billing.tests.test_event_replay.WidenedAllowListTests.test_widened_to_a_refund_handler_the_handler_is_never_called) ... Free trial plan not found: no trial activated for user fd725286-9ebc-4126-bab9-9c306e9a4c63.
+Cannot activate automatic trial for user fd725286-9ebc-4126-bab9-9c306e9a4c63 (validation): ValueError
+ok
+test_widened_to_the_upgrade_flow_no_subscription_is_modified (billing.tests.test_event_replay.WidenedAllowListTests.test_widened_to_the_upgrade_flow_no_subscription_is_modified) ... Free trial plan not found: no trial activated for user 6bf47396-e910-4410-af58-948b7606c576.
+Cannot activate automatic trial for user 6bf47396-e910-4410-af58-948b7606c576 (validation): ValueError
+ok
+test_auto_resumed_subscription_keeps_renewing_across_multiple_cycles (billing.tests.test_subscription_reactivation.AutoResumeThenRenewalTestCase.test_auto_resumed_subscription_keeps_renewing_across_multiple_cycles)
+Guards against a narrower bug: auto_renew flipping True once but ... Free trial plan not found: no trial activated for user ef25e29d-51ee-4a51-8534-d42a7b9918b6.
+Cannot activate automatic trial for user ef25e29d-51ee-4a51-8534-d42a7b9918b6 (validation): ValueError
+Invoice in_renewal_1791477260.208883 for subscription 48d8c54f-b608-4196-a6d6-834717bf2514 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_renewal_1791477260.235186 for subscription c663075e-44db-4699-8a30-3be3de8e023b carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+ok
+test_auto_resumed_subscription_renews_on_next_cycle (billing.tests.test_subscription_reactivation.AutoResumeThenRenewalTestCase.test_auto_resumed_subscription_renews_on_next_cycle) ... Free trial plan not found: no trial activated for user 6cec0727-1352-4141-af12-28bba0b863ed.
+Cannot activate automatic trial for user 6cec0727-1352-4141-af12-28bba0b863ed (validation): ValueError
+Invoice in_renewal_1791477260.287083 for subscription f4bff0d3-7276-4795-9469-d049d64a918f carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+ok
+test_resume_via_endpoint_then_renewal_succeeds (billing.tests.test_subscription_reactivation.AutoResumeThenRenewalTestCase.test_resume_via_endpoint_then_renewal_succeeds)
+End-to-end from the actual user-facing `resume` endpoint (not just ... Free trial plan not found: no trial activated for user fa5c9bcf-67f2-453a-b236-eba5939fe97c.
+Cannot activate automatic trial for user fa5c9bcf-67f2-453a-b236-eba5939fe97c (validation): ValueError
+Invoice in_renewal_1791477260.352703 for subscription d72d9558-3b43-4409-94fd-9b59e2d53de0 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+ok
+test_downgrade_auto_resumes_and_note_stays_clean (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_downgrade_auto_resumes_and_note_stays_clean) ... Free trial plan not found: no trial activated for user 13eb39c3-09fe-4190-913a-021373e0fd19.
+Cannot activate automatic trial for user 13eb39c3-09fe-4190-913a-021373e0fd19 (validation): ValueError
+ok
+test_downgrade_blocked_when_fully_canceled (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_downgrade_blocked_when_fully_canceled) ... Free trial plan not found: no trial activated for user 647ae4a7-f2c3-4668-95ac-8bb76140669f.
+Cannot activate automatic trial for user 647ae4a7-f2c3-4668-95ac-8bb76140669f (validation): ValueError
+ok
+test_lateral_scheduled_auto_resumes (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_lateral_scheduled_auto_resumes) ... Free trial plan not found: no trial activated for user 50eabfbb-7c5c-453c-b456-a658fff89ae5.
+Cannot activate automatic trial for user 50eabfbb-7c5c-453c-b456-a658fff89ae5 (validation): ValueError
+ok
+test_upgrade_auto_resumes (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_upgrade_auto_resumes) ... Free trial plan not found: no trial activated for user 560813d0-a1ba-40b1-80d0-b4ff558adfca.
+Cannot activate automatic trial for user 560813d0-a1ba-40b1-80d0-b4ff558adfca (validation): ValueError
+ok
+test_upgrade_scheduled_auto_resumes (billing.tests.test_subscription_reactivation.SelectPlanAutoResumeTestCase.test_upgrade_scheduled_auto_resumes) ... Free trial plan not found: no trial activated for user 15f79c62-8a68-4529-b36c-239d7f4adc8f.
+Cannot activate automatic trial for user 15f79c62-8a68-4529-b36c-239d7f4adc8f (validation): ValueError
+ok
+test_blocks_fully_canceled (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_blocks_fully_canceled) ... Free trial plan not found: no trial activated for user 5f649480-7d9e-4765-86aa-e30930b67ab0.
+Cannot activate automatic trial for user 5f649480-7d9e-4765-86aa-e30930b67ab0 (validation): ValueError
+ok
+test_clears_and_flips_auto_renew (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_clears_and_flips_auto_renew) ... Free trial plan not found: no trial activated for user d33975bb-f84f-499e-ad9c-7613b5876cf6.
+Cannot activate automatic trial for user d33975bb-f84f-499e-ad9c-7613b5876cf6 (validation): ValueError
+ok
+test_compensating_rollback_on_save_failure (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_compensating_rollback_on_save_failure) ... Free trial plan not found: no trial activated for user f29a808e-4681-4dcd-8fc5-9d1f5cb744b0.
+Cannot activate automatic trial for user f29a808e-4681-4dcd-8fc5-9d1f5cb744b0 (validation): ValueError
+Reactivation: local save failed for subscription 5533081c-ddeb-4382-a8a1-363afb4f288f after Stripe was already updated. Attempting compensating revert.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/stripe_service.py", line 1014, in reactivate_if_cancelling
+    locked_sub.save(
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: db boom
+ok
+test_local_record_is_corrected_when_stripe_is_not_cancelling (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_local_record_is_corrected_when_stripe_is_not_cancelling)
+H-174 reverses the old "noop when not cancelling" (Senior ... Free trial plan not found: no trial activated for user aa9f882b-af0f-46f7-8fad-0758e2c8e409.
+Cannot activate automatic trial for user aa9f882b-af0f-46f7-8fad-0758e2c8e409 (validation): ValueError
+ok
+test_noop_when_no_stripe_subscription_id (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_noop_when_no_stripe_subscription_id) ... Free trial plan not found: no trial activated for user a7934bca-be7e-4db4-b8c6-c9c290b9907e.
+Cannot activate automatic trial for user a7934bca-be7e-4db4-b8c6-c9c290b9907e (validation): ValueError
+ok
+test_noop_when_stripe_and_the_local_record_agree (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_noop_when_stripe_and_the_local_record_agree) ... Free trial plan not found: no trial activated for user a2b16104-9646-4396-8c57-e043dbfd8044.
+Cannot activate automatic trial for user a2b16104-9646-4396-8c57-e043dbfd8044 (validation): ValueError
+ok
+test_raises_expired_during_request_when_row_superseded (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_raises_expired_during_request_when_row_superseded) ... Free trial plan not found: no trial activated for user b0e36dde-5e06-4ddb-87a0-1197c5905ccd.
+Cannot activate automatic trial for user b0e36dde-5e06-4ddb-87a0-1197c5905ccd (validation): ValueError
+ok
+test_surfaces_past_due_warning (billing.tests.test_subscription_reactivation.SubscriptionReactivationServiceTestCase.test_surfaces_past_due_warning) ... Free trial plan not found: no trial activated for user 5d4c4495-076d-4420-abe0-183927d3c08c.
+Cannot activate automatic trial for user 5d4c4495-076d-4420-abe0-183927d3c08c (validation): ValueError
+ok
+test_already_active_noop (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_already_active_noop) ... Free trial plan not found: no trial activated for user 84eb92d9-ad0d-4cc5-95bb-4c4004eaa4dc.
+Cannot activate automatic trial for user 84eb92d9-ad0d-4cc5-95bb-4c4004eaa4dc (validation): ValueError
+ok
+test_already_renewed_race (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_already_renewed_race) ... Free trial plan not found: no trial activated for user 691da7d3-ccd4-46cb-a971-b51a28fec665.
+Cannot activate automatic trial for user 691da7d3-ccd4-46cb-a971-b51a28fec665 (validation): ValueError
+ok
+test_billing_period_already_ended (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_billing_period_already_ended) ... Free trial plan not found: no trial activated for user 65e87e66-c2cc-48cd-918d-29e0ad38c5c9.
+Cannot activate automatic trial for user 65e87e66-c2cc-48cd-918d-29e0ad38c5c9 (validation): ValueError
+ok
+test_fully_canceled_rejection (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_fully_canceled_rejection) ... Free trial plan not found: no trial activated for user 7df5edf4-8b56-48a9-857c-1015e4b45df4.
+Cannot activate automatic trial for user 7df5edf4-8b56-48a9-857c-1015e4b45df4 (validation): ValueError
+ok
+test_no_active_subscription (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_no_active_subscription) ... Free trial plan not found: no trial activated for user 7050622a-372a-4909-9b49-f3c992271e8a.
+Cannot activate automatic trial for user 7050622a-372a-4909-9b49-f3c992271e8a (validation): ValueError
+ok
+test_past_due_warning_surfaces (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_past_due_warning_surfaces) ... Free trial plan not found: no trial activated for user b4660098-569f-4b51-b598-f1fd777ab5ec.
+Cannot activate automatic trial for user b4660098-569f-4b51-b598-f1fd777ab5ec (validation): ValueError
+ok
+test_successful_resume (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_successful_resume) ... Free trial plan not found: no trial activated for user 206c3bef-0dd0-43f2-a093-24ebcc65d9d7.
+Cannot activate automatic trial for user 206c3bef-0dd0-43f2-a093-24ebcc65d9d7 (validation): ValueError
+ok
+test_trial_cancelling_message (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_trial_cancelling_message) ... Free trial plan not found: no trial activated for user fccf1740-6c95-49a1-9300-4c0142b7c384.
+Cannot activate automatic trial for user fccf1740-6c95-49a1-9300-4c0142b7c384 (validation): ValueError
+ok
+test_trial_not_cancelling_message (billing.tests.test_subscription_reactivation.SubscriptionResumeTestCase.test_trial_not_cancelling_message) ... Free trial plan not found: no trial activated for user 322f6852-7bd2-4699-b97b-31778148dab3.
+Cannot activate automatic trial for user 322f6852-7bd2-4699-b97b-31778148dab3 (validation): ValueError
+ok
+test_cancels_only_the_requesting_users_subscription (billing.tests.test_subscription_cancel.CancelGuardTests.test_cancels_only_the_requesting_users_subscription) ... Free trial plan not found: no trial activated for user 09b502e2-4b15-4bba-bc99-cfb1cda23851.
+Cannot activate automatic trial for user 09b502e2-4b15-4bba-bc99-cfb1cda23851 (validation): ValueError
+Free trial plan not found: no trial activated for user 8d3cbe54-25b6-4fbe-9599-c7001f0e9962.
+Cannot activate automatic trial for user 8d3cbe54-25b6-4fbe-9599-c7001f0e9962 (validation): ValueError
+ok
+test_concurrent_billing_change_is_rejected (billing.tests.test_subscription_cancel.CancelGuardTests.test_concurrent_billing_change_is_rejected)
+cancel shares one lock key with select_plan and resume, so a ... Free trial plan not found: no trial activated for user d64c1bb6-2a9d-4d71-84d1-94bea4981dd1.
+Cannot activate automatic trial for user d64c1bb6-2a9d-4d71-84d1-94bea4981dd1 (validation): ValueError
+ok
+test_inactive_subscription_is_not_cancellable (billing.tests.test_subscription_cancel.CancelGuardTests.test_inactive_subscription_is_not_cancellable) ... Free trial plan not found: no trial activated for user dc4b645a-513c-43a3-8646-63877745634d.
+Cannot activate automatic trial for user dc4b645a-513c-43a3-8646-63877745634d (validation): ValueError
+ok
+test_lock_is_released_after_a_404 (billing.tests.test_subscription_cancel.CancelGuardTests.test_lock_is_released_after_a_404) ... Free trial plan not found: no trial activated for user 872ab6b8-da9e-4121-8778-dbd31cd31428.
+Cannot activate automatic trial for user 872ab6b8-da9e-4121-8778-dbd31cd31428 (validation): ValueError
+ok
+test_lock_is_released_even_when_the_request_fails (billing.tests.test_subscription_cancel.CancelGuardTests.test_lock_is_released_even_when_the_request_fails)
+The lock is dropped in a `finally`. If an early-return path ... Free trial plan not found: no trial activated for user 3db6a496-6901-432f-bd91-424c08c019bd.
+Cannot activate automatic trial for user 3db6a496-6901-432f-bd91-424c08c019bd (validation): ValueError
+ok
+test_no_active_subscription_returns_404 (billing.tests.test_subscription_cancel.CancelGuardTests.test_no_active_subscription_returns_404) ... Free trial plan not found: no trial activated for user 16ce35c2-e11d-439a-a621-732fe159ccd7.
+Cannot activate automatic trial for user 16ce35c2-e11d-439a-a621-732fe159ccd7 (validation): ValueError
+ok
+test_students_cannot_cancel (billing.tests.test_subscription_cancel.CancelGuardTests.test_students_cannot_cancel) ... Free trial plan not found: no trial activated for user b662d427-1c80-4d7e-8dde-c4d121d12892.
+Cannot activate automatic trial for user b662d427-1c80-4d7e-8dde-c4d121d12892 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must not be a student to access this endpoint.
+ok
+test_unauthenticated_cannot_cancel (billing.tests.test_subscription_cancel.CancelGuardTests.test_unauthenticated_cannot_cancel) ... Free trial plan not found: no trial activated for user 739847a6-b2a0-4190-8961-9a29379bd8fc.
+Cannot activate automatic trial for user 739847a6-b2a0-4190-8961-9a29379bd8fc (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+ok
+test_clears_auto_renew_locally (billing.tests.test_subscription_cancel.CancelHappyPathTests.test_clears_auto_renew_locally) ... Free trial plan not found: no trial activated for user 41e9bde5-98da-48ec-9096-5c11cc9c2626.
+Cannot activate automatic trial for user 41e9bde5-98da-48ec-9096-5c11cc9c2626 (validation): ValueError
+ok
+test_does_not_deactivate_or_shorten_the_current_period (billing.tests.test_subscription_cancel.CancelHappyPathTests.test_does_not_deactivate_or_shorten_the_current_period)
+Cancellation is always end-of-cycle. The user keeps their plan, ... Free trial plan not found: no trial activated for user da6b3889-72d6-4bd5-9270-74bb2e5417e8.
+Cannot activate automatic trial for user da6b3889-72d6-4bd5-9270-74bb2e5417e8 (validation): ValueError
+ok
+test_no_stripe_subscription_id_skips_stripe_entirely (billing.tests.test_subscription_cancel.CancelHappyPathTests.test_no_stripe_subscription_id_skips_stripe_entirely)
+A manually-granted subscription has no Stripe counterpart. It ... Free trial plan not found: no trial activated for user 61ab7453-f4ec-43ca-ba8b-5dbd0ec11062.
+Cannot activate automatic trial for user 61ab7453-f4ec-43ca-ba8b-5dbd0ec11062 (validation): ValueError
+ok
+test_response_shape (billing.tests.test_subscription_cancel.CancelHappyPathTests.test_response_shape) ... Free trial plan not found: no trial activated for user 240d846d-922b-4e33-bda2-9b3d7a1a411e.
+Cannot activate automatic trial for user 240d846d-922b-4e33-bda2-9b3d7a1a411e (validation): ValueError
+ok
+test_sets_cancel_at_period_end_on_stripe (billing.tests.test_subscription_cancel.CancelHappyPathTests.test_sets_cancel_at_period_end_on_stripe) ... Free trial plan not found: no trial activated for user 594317e4-98f8-4737-bb7b-71cdc31960b8.
+Cannot activate automatic trial for user 594317e4-98f8-4737-bb7b-71cdc31960b8 (validation): ValueError
+ok
+test_already_not_renewing_reports_so (billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_already_not_renewing_reports_so) ... Free trial plan not found: no trial activated for user a71a52cc-3857-485b-814f-1f452519e07a.
+Cannot activate automatic trial for user a71a52cc-3857-485b-814f-1f452519e07a (validation): ValueError
+ok
+test_already_not_renewing_still_reasserts_on_stripe (billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_already_not_renewing_still_reasserts_on_stripe)
+Deliberate: the Stripe call is NOT skipped for an ... Free trial plan not found: no trial activated for user 3f56b14a-c704-4b98-ae7a-07d65e175eae.
+Cannot activate automatic trial for user 3f56b14a-c704-4b98-ae7a-07d65e175eae (validation): ValueError
+ok
+test_cancelling_twice_in_a_row_succeeds (billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_cancelling_twice_in_a_row_succeeds)
+Proves the per-user lock is released in the `finally`. ... Free trial plan not found: no trial activated for user 15033354-44d6-4abf-8d04-d60f8fe62603.
+Cannot activate automatic trial for user 15033354-44d6-4abf-8d04-d60f8fe62603 (validation): ValueError
+ok
+test_pending_change_means_not_already_cancelled (billing.tests.test_subscription_cancel.CancelIdempotencyTests.test_pending_change_means_not_already_cancelled)
+auto_renew=False alone is not enough to report "already ... Free trial plan not found: no trial activated for user 20813828-9849-4ca6-b17e-1750d7b301b1.
+Cannot activate automatic trial for user 20813828-9849-4ca6-b17e-1750d7b301b1 (validation): ValueError
+ok
+test_modify_failure_after_release_clears_the_orphaned_pending_change (billing.tests.test_subscription_cancel.CancelStripeFailureTests.test_modify_failure_after_release_clears_the_orphaned_pending_change)
+THE compensating branch (billing/views.py:802-815). ... Free trial plan not found: no trial activated for user 20059d4d-ecbc-4662-af14-f8164b2258f6.
+Cannot activate automatic trial for user 20059d4d-ecbc-4662-af14-f8164b2258f6 (validation): ValueError
+ok
+test_retrying_after_a_failed_modify_succeeds (billing.tests.test_subscription_cancel.CancelStripeFailureTests.test_retrying_after_a_failed_modify_succeeds)
+The state left behind by the compensating branch must be a ... Free trial plan not found: no trial activated for user c04e7d44-bfa1-44cc-904e-e828e3283a99.
+Cannot activate automatic trial for user c04e7d44-bfa1-44cc-904e-e828e3283a99 (validation): ValueError
+ok
+test_schedule_release_failure_aborts_before_touching_anything (billing.tests.test_subscription_cancel.CancelStripeFailureTests.test_schedule_release_failure_aborts_before_touching_anything)
+If the schedule can't be released, the cancellation must NOT ... Free trial plan not found: no trial activated for user e8a9d3d6-7d58-459b-8282-391922369df7.
+Cannot activate automatic trial for user e8a9d3d6-7d58-459b-8282-391922369df7 (validation): ValueError
+ok
+test_stripe_modify_failure_leaves_local_state_untouched (billing.tests.test_subscription_cancel.CancelStripeFailureTests.test_stripe_modify_failure_leaves_local_state_untouched)
+No schedule involved: if Stripe refuses the cancellation, nothing ... Free trial plan not found: no trial activated for user 2ab0626b-ac56-4474-9a20-211c545a112b.
+Cannot activate automatic trial for user 2ab0626b-ac56-4474-9a20-211c545a112b (validation): ValueError
+ok
+test_cancel_then_resume_restores_renewal (billing.tests.test_subscription_cancel.CancelThenResumeTests.test_cancel_then_resume_restores_renewal) ... Free trial plan not found: no trial activated for user b283ca45-2516-4542-80fb-11d472c8942d.
+Cannot activate automatic trial for user b283ca45-2516-4542-80fb-11d472c8942d (validation): ValueError
+ok
+test_resume_does_not_restore_a_cancelled_plan_change (billing.tests.test_subscription_cancel.CancelThenResumeTests.test_resume_does_not_restore_a_cancelled_plan_change)
+cancel deliberately discards any scheduled plan change. resume ... Free trial plan not found: no trial activated for user d539b5c6-adcf-4094-a790-4e3c54695793.
+Cannot activate automatic trial for user d539b5c6-adcf-4094-a790-4e3c54695793 (validation): ValueError
+ok
+test_already_released_schedule_is_not_an_error (billing.tests.test_subscription_cancel.CancelWithPendingPlanChangeTests.test_already_released_schedule_is_not_an_error)
+release_schedule treats InvalidRequestError ("already released / ... Free trial plan not found: no trial activated for user 197de0c3-efb2-4b10-a9b6-387a7df86758.
+Cannot activate automatic trial for user 197de0c3-efb2-4b10-a9b6-387a7df86758 (validation): ValueError
+ok
+test_clears_all_pending_fields (billing.tests.test_subscription_cancel.CancelWithPendingPlanChangeTests.test_clears_all_pending_fields) ... Free trial plan not found: no trial activated for user a8123df2-64bb-4a66-be52-e6c736ebb712.
+Cannot activate automatic trial for user a8123df2-64bb-4a66-be52-e6c736ebb712 (validation): ValueError
+ok
+test_message_mentions_the_cancelled_plan_change (billing.tests.test_subscription_cancel.CancelWithPendingPlanChangeTests.test_message_mentions_the_cancelled_plan_change) ... Free trial plan not found: no trial activated for user 3c714d67-bd8b-46d5-b758-1820e93656fa.
+Cannot activate automatic trial for user 3c714d67-bd8b-46d5-b758-1820e93656fa (validation): ValueError
+ok
+test_releases_schedule_before_setting_cancel_at_period_end (billing.tests.test_subscription_cancel.CancelWithPendingPlanChangeTests.test_releases_schedule_before_setting_cancel_at_period_end)
+Order matters: Stripe documents that directly modifying a ... Free trial plan not found: no trial activated for user 85f61887-7226-4ceb-a964-6de78d7a09ac.
+Cannot activate automatic trial for user 85f61887-7226-4ceb-a964-6de78d7a09ac (validation): ValueError
+ok
+test_releases_the_stripe_schedule (billing.tests.test_subscription_cancel.CancelWithPendingPlanChangeTests.test_releases_the_stripe_schedule) ... Free trial plan not found: no trial activated for user 7c41fb7b-a2d5-43fc-9092-3cdd20c6996b.
+Cannot activate automatic trial for user 7c41fb7b-a2d5-43fc-9092-3cdd20c6996b (validation): ValueError
+ok
+test_schedule_id_without_pending_plan_is_still_cleared (billing.tests.test_subscription_cancel.CancelWithPendingPlanChangeTests.test_schedule_id_without_pending_plan_is_still_cleared)
+stripe_schedule_id and pending_plan are cleared by two separate ... Free trial plan not found: no trial activated for user 9d312d77-4293-46c2-a3b0-6df0c83af2b6.
+Cannot activate automatic trial for user 9d312d77-4293-46c2-a3b0-6df0c83af2b6 (validation): ValueError
+ok
+test_a_stray_date_of_cancellation_is_cleared (billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_a_stray_date_of_cancellation_is_cleared) ... ok
+test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending (billing.tests.test_converted_trial_is_not_cancelling.ATrialThatStripeConvertsTests.test_it_is_set_to_renew_and_the_page_is_told_nothing_is_pending) ... ok
+test_a_second_cancel_still_says_already_and_keeps_the_date (billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_a_second_cancel_still_says_already_and_keeps_the_date) ... ok
+test_it_says_what_it_did_and_records_when (billing.tests.test_converted_trial_is_not_cancelling.CancelOnSuchARecordTests.test_it_says_what_it_did_and_records_when)
+The record already read as "not renewing", but Stripe had never ... ok
+test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_cancellation_scheduled_by_date_at_stripe_is_not_corrected_away)
+Stripe can schedule a cancellation for a DATE (`cancel_at`, for ... ok
+test_a_cancellation_stripe_has_recorded_is_not_corrected_away (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_cancellation_stripe_has_recorded_is_not_corrected_away)
+The same for an answer that carries the time a cancellation was ... ok
+test_a_real_cancellation_is_still_undone_at_stripe (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_real_cancellation_is_still_undone_at_stripe)
+The road that already worked, on a record made the same way. ... ok
+test_a_record_converted_before_the_fix_is_corrected (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_record_converted_before_the_fix_is_corrected) ... ok
+test_a_stale_date_goes_with_it (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_stale_date_goes_with_it)
+Our record says cancelled on a date; Stripe says not cancelling. ... ok
+test_a_trial_is_never_corrected_into_a_renewing_plan (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_a_trial_is_never_corrected_into_a_renewing_plan)
+A trial's mark is false by design. Even with a Stripe id on it ... ok
+test_an_answer_whose_two_dates_are_empty_is_still_corrected (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_an_answer_whose_two_dates_are_empty_is_still_corrected)
+Stripe's real answer carries both keys, empty, when nothing is ... ok
+test_it_does_not_guess_when_stripe_does_not_say (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_it_does_not_guess_when_stripe_does_not_say)
+An answer WITHOUT the flag is not "not cancelling" (the same ... ok
+test_right_after_the_purchase_the_answer_does_not_contradict_itself (billing.tests.test_converted_trial_is_not_cancelling.KeepSubscriptionTests.test_right_after_the_purchase_the_answer_does_not_contradict_itself)
+What the user did: bought, saw the banner, pressed the button. ... ok
+test_a_stray_date_of_cancellation_on_the_trial_is_cleared (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_a_stray_date_of_cancellation_on_the_trial_is_cleared) ... ok
+test_an_annual_plan_the_same (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_an_annual_plan_the_same)
+The one that would otherwise read so for a year. ... ok
+test_the_page_is_not_told_a_cancellation_is_pending (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_page_is_not_told_a_cancellation_is_pending) ... ok
+test_the_plan_is_set_to_renew (billing.tests.test_converted_trial_is_not_cancelling.ThePurchaseTests.test_the_plan_is_set_to_renew) ... ok
+test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_choosing_another_plan_corrects_it_and_claims_no_undone_cancellation)
+select_plan calls the same core first. It must not tell the ... ok
+test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_cancellation_scheduled_at_stripe_and_changes_nothing) ... ok
+test_it_reports_a_local_correction_and_no_change_at_stripe (billing.tests.test_converted_trial_is_not_cancelling.TheSharedCoreTests.test_it_reports_a_local_correction_and_no_change_at_stripe) ... ok
+test_logs_error_and_names_the_overdue_task (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_logs_error_and_names_the_overdue_task) ... ok
+test_returns_all_clear_message_when_nothing_overdue (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_returns_all_clear_message_when_nothing_overdue) ... ok
+test_disabled_task_is_never_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_disabled_task_is_never_reported) ... ok
+test_missing_periodic_task_row_is_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_missing_periodic_task_row_is_reported) ... ok
+test_multiple_overdue_tasks_are_all_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_multiple_overdue_tasks_are_all_reported) ... ok
+test_never_run_task_uses_date_changed_as_reference (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_never_run_task_uses_date_changed_as_reference) ... ok
+test_no_expectations_configured_returns_empty (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_no_expectations_configured_returns_empty) ... ok
+test_on_schedule_task_is_not_overdue (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_on_schedule_task_is_not_overdue) ... ok
+test_overdue_task_is_reported_with_actionable_message (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_overdue_task_is_reported_with_actionable_message) ... ok
+test_days_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_days_hours_and_minutes) ... ok
+test_exact_hour_omits_zero_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_exact_hour_omits_zero_minutes) ... ok
+test_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_hours_and_minutes) ... ok
+test_minutes_only (AutoGrader.tests_beat_health.HumanizeTests.test_minutes_only) ... ok
+test_negative_delta_clamped_to_zero (AutoGrader.tests_beat_health.HumanizeTests.test_negative_delta_clamped_to_zero) ... ok
+test_singular_minute (AutoGrader.tests_beat_health.HumanizeTests.test_singular_minute) ... ok
+test_zero_renders_as_zero_minutes_not_empty (AutoGrader.tests_beat_health.HumanizeTests.test_zero_renders_as_zero_minutes_not_empty) ... ok
+test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+test_a_missing_trial_plan_is_logged_as_an_error (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_missing_trial_plan_is_logged_as_an_error)
+A configuration fault: without it every new teacher is silently ... Free trial plan not found: no trial activated for user 0380ceb5-6642-45a7-bedb-0fc4465e5faf.
+Cannot activate automatic trial for user 0380ceb5-6642-45a7-bedb-0fc4465e5faf (validation): ValueError
+ok
+test_a_used_trial_is_logged_as_a_warning (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_used_trial_is_logged_as_a_warning) ... Free trial plan not found: no trial activated for user 935ec6cd-0d2f-49fb-ad84-4950ce9fd7de.
+Cannot activate automatic trial for user 935ec6cd-0d2f-49fb-ad84-4950ce9fd7de (validation): ValueError
+ok
+test_a_failed_licence_creation_summary_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_failed_licence_creation_summary_logs_no_address)
+create_license_subscription logged the failed_results dicts. ... ok
+test_a_seat_limit_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_seat_limit_refusal_logs_its_reason_with_ids)
+H-86 (1a's R3): the operator learns why, by ids. ... School a5e99dbe-082d-4fbc-a3a3-cf04102efadd already has active license subscription 220adde9-899c-487b-a52d-823126e1278b. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user 3f8fcc79-bc5a-45c9-8a8b-ebfa7127338f.
+Cannot activate automatic trial for user 3f8fcc79-bc5a-45c9-8a8b-ebfa7127338f (validation): ValueError
+Free trial plan not found: no trial activated for user 4130a021-b5b3-4e17-9c2c-52326150e247.
+Cannot activate automatic trial for user 4130a021-b5b3-4e17-9c2c-52326150e247 (validation): ValueError
+ok
+test_an_other_school_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_an_other_school_refusal_logs_its_reason_with_ids)
+H-86: the enrolment's own school check says why, by ids. ... Free trial plan not found: no trial activated for user 3ae6bb45-8949-4a4b-b3d2-3ba506e18788.
+Cannot activate automatic trial for user 3ae6bb45-8949-4a4b-b3d2-3ba506e18788 (validation): ValueError
+ok
+test_carrying_teachers_to_a_new_licence_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_carrying_teachers_to_a_new_licence_logs_no_address)
+1a's R2: a carried-forward teacher now has an individual plan. ... Free trial plan not found: no trial activated for user 810ae571-1653-4660-9b54-1b530c5d530b.
+Cannot activate automatic trial for user 810ae571-1653-4660-9b54-1b530c5d530b (validation): ValueError
+ok
+test_enrolling_and_inviting_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_enrolling_and_inviting_logs_no_address)
+The success path: invitation queued, wallet, enrolment, bucket. ... ok
+test_creating_a_user_logs_no_address (billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest.test_creating_a_user_logs_no_address) ... ok
+test_adding_a_teacher_logs_as_before_with_no_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_adding_a_teacher_logs_as_before_with_no_address) ... ok
+test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address)
+The known limit H-80 recorded: the traceback prints the ... ok
+test_control_with_the_scrubber_off_the_traceback_has_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_control_with_the_scrubber_off_the_traceback_has_the_address)
+What these tests would see without it: the reason for H-89. ... ok
+test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Free trial plan not found: no trial activated for user 0712d190-0dac-4139-8ad4-eb5689039839.
+Cannot activate automatic trial for user 0712d190-0dac-4139-8ad4-eb5689039839 (validation): ValueError
+Free trial plan not found: no trial activated for user 5b6b26b8-58d9-40d2-8f32-5e5f33103d6e.
+Cannot activate automatic trial for user 5b6b26b8-58d9-40d2-8f32-5e5f33103d6e (validation): ValueError
+ok
+test_both_mapped_serializers_still_exist (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_both_mapped_serializers_still_exist) ... ok
+test_it_targets_the_assignment_list_serializer (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_it_targets_the_assignment_list_serializer) ... ok
+test_the_discriminator_property_is_declared_and_required (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_discriminator_property_is_declared_and_required)
+A discriminator absent from `properties`/`required` is invalid ... ok
+test_the_mapping_declares_both_teacher_and_student_shapes (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_mapping_declares_both_teacher_and_student_shapes)
+The whole point: one endpoint returns two shapes depending on who ... ok
+test_the_target_serializer_still_exists (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_target_serializer_still_exists)
+target_class is a hand-written import path. A renamed serializer ... ok
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_course_description". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+test_extensions_is_not_a_real_drf_spectacular_setting (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_extensions_is_not_a_real_drf_spectacular_setting)
+The root cause, asserted directly so an upgrade that ADDS an ... ok
+test_no_production_module_imports_the_extension (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_no_production_module_imports_the_extension)
+The root cause, checked statically. ... ok
+test_the_components_the_mapping_points_at_do_not_exist (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_components_the_mapping_points_at_do_not_exist)
+Even if the extension were registered as-is, its refs would dangle: ... ok
+test_the_settings_entry_that_was_meant_to_register_it_is_inert (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_settings_entry_that_was_meant_to_register_it_is_inert) ... ok
+test_extension_is_registered_for_the_wrapper_authenticator (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_is_registered_for_the_wrapper_authenticator) ... ok
+test_extension_targets_the_wrapper_class_exactly (users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_targets_the_wrapper_class_exactly) ... ok
+test_concurrent_sweeps_replay_once (billing.tests.test_event_replay.ReplayConcurrencyTests.test_concurrent_sweeps_replay_once) ... Free trial plan not found: no trial activated for user 7ef72575-3c1f-4042-b2ca-36c0af3808b6.
+Cannot activate automatic trial for user 7ef72575-3c1f-4042-b2ca-36c0af3808b6 (validation): ValueError
+Auto-replayed FAILED Stripe event evt_conc_0 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_1 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_2 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_3 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_4 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_5 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_6 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_7 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_8 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_conc_9 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_replays_racing_live_duplicate_events_for_one_session_grant_once (billing.tests.test_event_replay.ReplayConcurrencyTests.test_replays_racing_live_duplicate_events_for_one_session_grant_once)
+Stripe's documented duplicate: DIFFERENT event ids carrying the SAME ... Free trial plan not found: no trial activated for user 4a306b73-6236-4819-984e-afe4537510b1.
+Cannot activate automatic trial for user 4a306b73-6236-4819-984e-afe4537510b1 (validation): ValueError
+Auto-replayed FAILED Stripe event evt_dup_0_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_0_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_1_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_1_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_2_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_2_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_3_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_3_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_4_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_4_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_5_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_5_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_6_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_6_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_7_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_7_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_8_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_8_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_9_b (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_dup_9_a (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_sweep_racing_a_live_redelivery_grants_once (billing.tests.test_event_replay.ReplayConcurrencyTests.test_sweep_racing_a_live_redelivery_grants_once) ... Free trial plan not found: no trial activated for user 7dd84d16-9c7e-44e3-b68d-2cfa2928d18d.
+Cannot activate automatic trial for user 7dd84d16-9c7e-44e3-b68d-2cfa2928d18d (validation): ValueError
+Auto-replayed FAILED Stripe event evt_race_1 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_race_2 (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_a_replay_that_fails_again_stays_failed (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_a_replay_that_fails_again_stays_failed) ... Free trial plan not found: no trial activated for user 37ec56c2-27bd-4fa5-89a2-3f047289c9b0.
+Cannot activate automatic trial for user 37ec56c2-27bd-4fa5-89a2-3f047289c9b0 (validation): ValueError
+Stripe auto-replay: error processing event evt_failagain (checkout.session.completed).
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/webhooks.py", line 399, in _run_handler_inline
+    handler(event["data"]["object"])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/event_replay.py", line 218, in run
+    handler(obj, obj.get("metadata") or {})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_event_replay.py", line 392, in handler
+    raise RuntimeError("still broken")
+RuntimeError: still broken
+ok
+test_replaying_an_already_granted_purchase_grants_nothing_more (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_replaying_an_already_granted_purchase_grants_nothing_more)
+The idempotency proof the allow-list rests on, exercised. ... Free trial plan not found: no trial activated for user 882f7807-70c8-4c35-bf48-3f3c6d47a055.
+Cannot activate automatic trial for user 882f7807-70c8-4c35-bf48-3f3c6d47a055 (validation): ValueError
+Auto-replayed FAILED Stripe event evt_already (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_stripe_is_never_re_fetched_to_decide (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_stripe_is_never_re_fetched_to_decide) ... Free trial plan not found: no trial activated for user a886c60d-c91b-45cf-9aca-2d312f1713bc.
+Cannot activate automatic trial for user a886c60d-c91b-45cf-9aca-2d312f1713bc (validation): ValueError
+Auto-replayed FAILED Stripe event evt_nofetch (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_stuck_paid_purchase_is_credited (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_stuck_paid_purchase_is_credited) ... Free trial plan not found: no trial activated for user 62d20c8f-6a12-4b3c-a8bd-56976f4c287e.
+Cannot activate automatic trial for user 62d20c8f-6a12-4b3c-a8bd-56976f4c287e (validation): ValueError
+ok
+test_a_replay_whose_claim_went_stale_mid_handler_grants_once (billing.tests.test_event_replay.StaleReplayClaimTests.test_a_replay_whose_claim_went_stale_mid_handler_grants_once) ... Free trial plan not found: no trial activated for user bc3544dc-24f1-4824-b476-f5c0534f797c.
+Cannot activate automatic trial for user bc3544dc-24f1-4824-b476-f5c0534f797c (validation): ValueError
+Stripe event evt_stale: claim was stolen before the terminal SUCCEEDED write; leaving the current owner's result intact.
+Auto-replayed FAILED Stripe event evt_stale (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+Auto-replayed FAILED Stripe event evt_stale (checkout.session.completed, attempt 2 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+The path exclusion above is only honest if production never ... ok
+test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+The exception is only safe while it is one assignment's prefix: ... ok
+test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+Guard on the guard: each form is found in a synthetic module, and ... ok
+test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+The over-invalidation half, stated as a property. Under the ... ok
+test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+Not response caches in the generation scheme, deliberately. ... ok
+test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+H-1 step 4: the one family that was still raw is on generations. ... ok
+test_a_factory_imported_from_another_module_is_found_across_modules (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_factory_imported_from_another_module_is_found_across_modules)
+raw_client_uses resolves a factory imported from another module: ... ok
+test_a_listed_module_gaining_raw_writes_changes_its_count (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_listed_module_gaining_raw_writes_changes_its_count)
+v2's F1 on the real beat_locks: two new writes, two more. ... ok
+test_a_write_name_counts_whatever_it_is_called_on (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_write_name_counts_whatever_it_is_called_on)
+Rule 1 (v2 F1): in a module that obtains a raw client, a write ... ok
+test_an_imported_factory_counts_in_the_importing_module (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_an_imported_factory_counts_in_the_importing_module) ... ok
+test_any_non_read_call_on_a_client_is_a_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_any_non_read_call_on_a_client_is_a_write)
+Rule 2 (v2 F1): the read allow-list. `vf_cmd` is in no list, so ... ok
+test_every_entry_gives_a_reason (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_entry_gives_a_reason) ... ok
+test_every_raw_client_user_is_listed (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_raw_client_user_is_listed) ... ok
+test_the_live_modules_are_found_by_the_scan (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_live_modules_are_found_by_the_scan)
+The table is not vacuous: each listed module really is found. ... ok
+test_the_scanner_finds_every_shape_it_exists_to_catch (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_finds_every_shape_it_exists_to_catch) ... ok
+test_the_scanner_ignores_what_is_not_a_raw_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_ignores_what_is_not_a_raw_write) ... ok
+test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Free trial plan not found: no trial activated for user c8abc41b-07fe-44d9-b5fd-a6c07ea0d1d8.
+Cannot activate automatic trial for user c8abc41b-07fe-44d9-b5fd-a6c07ea0d1d8 (validation): ValueError
+Free trial plan not found: no trial activated for user da2737d7-8111-48c2-b4c1-88deb8ba7d06.
+Cannot activate automatic trial for user da2737d7-8111-48c2-b4c1-88deb8ba7d06 (validation): ValueError
+Free trial plan not found: no trial activated for user 49c42166-a43c-4dd7-8084-b03a0d5568c5.
+Cannot activate automatic trial for user 49c42166-a43c-4dd7-8084-b03a0d5568c5 (validation): ValueError
+Free trial plan not found: no trial activated for user fd09591b-7ad8-4d95-8012-d198fd3fb2c2.
+Cannot activate automatic trial for user fd09591b-7ad8-4d95-8012-d198fd3fb2c2 (validation): ValueError
+ok
+test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+The eight AlterFields since production that change choices, ... ok
+test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+The production wiring (the Verification Engineer's H6 on ... ok
+test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+Rule (a) on the real graph with a synthetic final state: drop ... ok
+test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+Guard on the guard: the fields H-56 found are rule (a) ... ok
+test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+THE ACCEPTANCE TEST for broker isolation. ... ok
+test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+A raw Redis client built from the broker URL bypasses the prefix. ... ok
+test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+ok
+test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+Same requirement, for the H-1 invariant specifically. ... ok
+test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+The blast radius is wider than the Django cache. ... ok
+test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+The mechanism, demonstrated deterministically in-process. ... ok
+test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+THE ACCEPTANCE TEST for the regression. ... ok
+test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+Server-wide Redis statistics are shared by every concurrent run. ... ok
+test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+So a hung run can never swallow the next scheduled one. ... ok
+test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+The worst-case lifetime the schedule guard relies on. ... ok
+test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t631321:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:d16510723d31).
+ok
+test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t631321:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:d2565df93dd0; this run direct:eedb5246ada6).
+ok
+test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command) ... ok
+test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class) ... ok
+test_the_moved_script_cannot_be_imported_as_a_module (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_moved_script_cannot_be_imported_as_a_module) ... ok
+test_the_sweep_sees_the_projects_commands (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_sweep_sees_the_projects_commands)
+Guards the guard: an empty sweep would pass everything. ... ok
+test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name) ... ok
+test_tests_and_migrations_are_not_scanned (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_tests_and_migrations_are_not_scanned) ... ok
+test_the_rule_allows_what_the_hook_allows (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_allows_what_the_hook_allows)
+Ids, exception text and built messages are outside this rule. ... ok
+test_the_rule_sees_each_shape_the_hook_does (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_sees_each_shape_the_hook_does) ... ok
+test_a_record_made_while_settings_are_loading_is_scrubbed (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_a_record_made_while_settings_are_loading_is_scrubbed) ... ok
+test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs) ... ok
+test_a_celery_task_loggers_own_formatter (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_a_celery_task_loggers_own_formatter) ... ok
+test_an_object_argument_whose_text_is_an_address (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_an_object_argument_whose_text_is_an_address) ... ok
+test_pythons_last_resort_handler (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_pythons_last_resort_handler)
+What prints a billing.* or users.* line when the process has ... ok
+test_the_console_handler_from_settings (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_the_console_handler_from_settings) ... ok
+test_a_chained_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_chained_exception) ... ok
+test_a_constraint_error_naming_the_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_constraint_error_naming_the_address) ... ok
+test_an_error_built_with_an_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_an_error_built_with_an_address) ... ok
+test_logger_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_logger_exception) ... ok
+test_a_record_whose_class_cannot_be_replaced_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_a_record_whose_class_cannot_be_replaced_fails_closed) ... ok
+test_a_second_install_does_not_wrap_again (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_does_not_wrap_again) ... ok
+test_a_second_install_still_sets_the_switch (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_still_sets_the_switch) ... ok
+test_another_factorys_records_keep_their_class_and_are_scrubbed (AutoGrader.tests_log_scrubbing.InstallTests.test_another_factorys_records_keep_their_class_and_are_scrubbed)
+Celery or Sentry may have set their own factory first. ... ok
+test_exception_text_that_cannot_be_rendered_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_exception_text_that_cannot_be_rendered_fails_closed) ... ok
+test_it_is_on_and_scrubs_from_the_first_record (AutoGrader.tests_log_scrubbing.OutsideTheTestRunnerTests.test_it_is_on_and_scrubs_from_the_first_record) ... ok
+test_a_key_before_an_address_stays_readable (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_key_before_an_address_stays_readable) ... ok
+test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it)
+They are characters an address may start with, so the scrubber ... ok
+test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) ... ok
+test_text_without_an_at_sign_is_returned_as_it_is (AutoGrader.tests_log_scrubbing.ScrubTests.test_text_without_an_at_sign_is_returned_as_it_is) ... ok
+test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through)
+A KNOWN LIMIT (SM, 2026-10-05). "/", "=", "?" and "&" are legal ... ok
+test_settings_import_nothing_from_the_project_at_the_top_level (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_settings_import_nothing_from_the_project_at_the_top_level) ... ok
+test_the_package_installs_the_factory (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_the_package_installs_the_factory) ... ok
+test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_message_that_cannot_be_formatted_fails_closed)
+The template and a marker; never the arguments, and no error ... ok
+test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles) ... ok
+test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
+Only getMessage() and the rendered exception text are scrubbed; ... ok
+test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+So H-80's and H-91's tests read what the code really logged. ... ok
+test_no_environment_or_variable_can_switch_it_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_no_environment_or_variable_can_switch_it_off)
+In settings.py the switch is computed from "are tests running" ... ok
+test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off) ... ok
+test_the_factory_is_installed (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_the_factory_is_installed) ... ok
+test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) ... ok
+test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it)
+The userinfo ends at the LAST "@" before the host, not the ... ok
+test_a_url_without_credentials_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_url_without_credentials_is_left_alone) ... ok
+test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string) ... ok
+test_text_that_only_looks_like_an_address_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_text_that_only_looks_like_an_address_is_left_alone) ... ok
+test_a_dead_pids_key_in_another_database_is_swept (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_dead_pids_key_in_another_database_is_swept) ... ok
+test_a_key_put_through_one_client_is_not_seen_through_another (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_key_put_through_one_client_is_not_seen_through_another) ... ok
+test_a_live_pids_key_in_another_database_is_left_alone (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_live_pids_key_in_another_database_is_left_alone) ... ok
+test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases)
+A whole other run (its start-of-run sweep, its teardown and its ... ok
+test_delete_own_keys_reaches_another_database (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_delete_own_keys_reaches_another_database) ... ok
+test_each_client_is_on_its_own_database (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_each_client_is_on_its_own_database) ... ok
+test_other_key_families_in_another_database_survive (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_other_key_families_in_another_database_survive)
+The sweep and delete_own_keys match `gaplus-t<digits>:` and ... ok
+test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says)
+Only the database changes: the host, port, TLS, socket path, ... ok
+test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused)
+A process that is later given a dead run's pid has that run's ... ok
+test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+Two concurrent runs: the second one's start-of-run sweep and its ... ok
+test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile)
+H-94: the same race as SweepTests', on the killed child's keys. ... ok
+test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+test_delete_own_keys_is_unmoved_by_another_runs_sweep (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_is_unmoved_by_another_runs_sweep)
+H-94: under --parallel another worker's sweep can run between ... ok
+test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+An expired counter reads as generation 1 and revives every stale ... ok
+test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+test_a_reader_that_has_gone_is_an_error_at_once (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_has_gone_is_an_error_at_once) ... ok
+test_a_reader_that_is_slow_but_reading_is_waited_for (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_is_slow_but_reading_is_waited_for)
+The patience is per wait, not for the whole write: a reader ... ok
+test_it_gives_up_loudly_after_its_patience_not_never (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_it_gives_up_loudly_after_its_patience_not_never) ... ok
+test_the_default_patience (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_the_default_patience)
+Longer than any pause of a live reader; shorter than the five ... ok
+test_everything_arrives_once_and_in_order (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_everything_arrives_once_and_in_order) ... ok
+test_one_write_larger_than_the_pipe_arrives_whole (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_one_write_larger_than_the_pipe_arrives_whole) ... ok
+test_text_that_cannot_be_encoded_is_written_as_the_stream_would (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_text_that_cannot_be_encoded_is_written_as_the_stream_would) ... ok
+test_the_condition_is_real_a_plain_stream_raises (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_the_condition_is_real_a_plain_stream_raises)
+The control: without the wrapper, the same writes to the same ... ok
+test_what_the_stream_itself_still_holds_goes_out_first (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_what_the_stream_itself_still_holds_goes_out_first)
+Something written through the underlying stream and still in ... ok
+test_a_stream_with_no_file_descriptor_is_written_to_as_it_is (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_a_stream_with_no_file_descriptor_is_written_to_as_it_is) ... ok
+test_everything_else_is_the_streams_own (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_everything_else_is_the_streams_own) ... ok
+test_the_runner_reports_on_a_patient_stream_over_stderr (AutoGrader.tests_patient_test_stream.WiringTests.test_the_runner_reports_on_a_patient_stream_over_stderr) ... ok
+test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up (AutoGrader.tests_patient_test_stream.WiringTests.test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up)
+Not the interpreter's original stderr. A run whose sys.stderr ... ok
+test_unittests_runner_writes_through_it (AutoGrader.tests_patient_test_stream.WiringTests.test_unittests_runner_writes_through_it) ... ok
+test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies) ... ok
+test_the_setup_of_a_spawned_worker_restores_the_default_action_too (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too) ... ok
+test_django_still_starts_each_worker_through_init_worker (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_django_still_starts_each_worker_through_init_worker) ... ok
+test_our_suite_starts_each_worker_through_our_own (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_our_suite_starts_each_worker_through_our_own) ... ok
+test_no_driver_is_started_in_the_importing_process (AutoGrader.tests_no_playwright_at_import.ImportingTheRendererTestsStartsNoDriverHereTests.test_no_driver_is_started_in_the_importing_process) ... ok
+test_no_test_module_reaches_a_starter_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_no_test_module_reaches_a_starter_at_import) ... ok
+test_the_false_alarms_that_are_known_and_kept (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_false_alarms_that_are_known_and_kept)
+All err on the safe side. The first two need to know which names ... ok
+test_the_rule_allows_what_does_not_run_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_allows_what_does_not_run_at_import) ... ok
+test_the_rule_follows_a_class_made_at_import (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_class_made_at_import) ... ok
+test_the_rule_follows_a_decorator_applied_without_brackets (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_decorator_applied_without_brackets) ... ok
+test_the_rule_follows_a_lambda_bound_to_a_name (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_lambda_bound_to_a_name) ... ok
+test_the_rule_follows_a_starter_under_another_name (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_a_starter_under_another_name) ... ok
+test_the_rule_follows_methods (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_follows_methods) ... ok
+test_the_rule_reads_getattr_with_the_starters_name (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_reads_getattr_with_the_starters_name) ... ok
+test_the_rule_reads_through_staticmethod_and_classmethod (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_reads_through_staticmethod_and_classmethod) ... ok
+test_the_rule_sees_each_shape (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_rule_sees_each_shape) ... ok
+test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets)
+The scan's quick first look decides which files the rule reads at ... ok
+test_the_scan_reads_the_renderer_tests (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_scan_reads_the_renderer_tests) ... ok
+test_the_wider_rule_still_allows_what_starts_nothing (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_the_wider_rule_still_allows_what_starts_nothing) ... ok
+test_what_the_rule_still_does_not_see (AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests.test_what_the_rule_still_does_not_see)
+The limits, pinned so that nobody takes the rule for more than it ... ok
+test_a_child_that_cannot_be_run_or_does_not_end_means_not_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_a_child_that_cannot_be_run_or_does_not_end_means_not_available) ... ok
+test_any_other_exit_code_means_not_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_any_other_exit_code_means_not_available) ... ok
+test_exit_code_zero_means_available (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_exit_code_zero_means_available) ... ok
+test_the_child_gets_nothing_of_the_runs_output (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_gets_nothing_of_the_runs_output) ... ok
+test_the_child_is_given_a_time_limit (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_is_given_a_time_limit) ... ok
+test_the_child_is_this_interpreter_running_the_launch (AutoGrader.tests_no_playwright_at_import.TheProbeAsksAChildTests.test_the_child_is_this_interpreter_running_the_launch) ... ok
+test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address) ... ok
+test_the_guard_sees_each_kind_of_leak (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_the_guard_sees_each_kind_of_leak)
+Not vacuous: each shape the guard rejects, in a sample call. ... ok
+test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+Guard on the guard, on synthetic source. ... ok
+test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+test_a_column_made_shorter_is_reported_with_both_numbers (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_column_made_shorter_is_reported_with_both_numbers) ... ok
+test_a_field_with_no_known_past_cannot_be_called_additive (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_field_with_no_known_past_cannot_be_called_additive) ... ok
+test_a_nullable_column_made_not_null_with_nothing_to_fill_it_is_reported (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_nullable_column_made_not_null_with_nothing_to_fill_it_is_reported) ... ok
+test_a_type_change_is_reported_and_named (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_type_change_is_reported_and_named) ... ok
+test_changes_that_are_additive_pass (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_changes_that_are_additive_pass) ... ok
+test_each_thing_wrong_with_one_change_is_reported (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_each_thing_wrong_with_one_change_is_reported) ... ok
+test_a_not_null_column_with_no_default_is_reported (AutoGrader.tests_migration_safety_check.AnAddedColumn.test_a_not_null_column_with_no_default_is_reported) ... ok
+test_columns_every_existing_row_can_get_a_value_for_pass (AutoGrader.tests_migration_safety_check.AnAddedColumn.test_columns_every_existing_row_can_get_a_value_for_pass) ... ok
+test_a_record_only_change_is_still_the_next_operations_past (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_a_record_only_change_is_still_the_next_operations_past)
+Django's record says the column is NOT NULL after the first ... ok
+test_each_is_judged_against_what_the_ones_before_it_left (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_each_is_judged_against_what_the_ones_before_it_left)
+Added nullable, then made NOT NULL, in one file: the second ... ok
+test_raw_sql_and_data_migrations_are_not_judged (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_raw_sql_and_data_migrations_are_not_judged)
+A stated limit, pinned: the check reads neither. They are for a ... ok
+test_the_operations_that_were_always_reported_still_are (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_the_operations_that_were_always_reported_still_are) ... ok
+test_what_a_separate_database_and_state_does_to_the_database_is_judged (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_what_a_separate_database_and_state_does_to_the_database_is_judged) ... ok
+test_an_acknowledgement_is_still_read (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheCheckFailsOnToday.test_an_acknowledgement_is_still_read) ... ok
+test_each_one (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheCheckFailsOnToday.test_each_one) ... ok
+test_seven_of_the_thirteen_pass_and_six_need_a_decision (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheCheckFailsOnToday.test_seven_of_the_thirteen_pass_and_six_need_a_decision)
+students/0026 is the fourteenth: acknowledged already. ... ok
+test_each_one (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_each_one) ... ok
+test_none_of_them_is_acknowledged (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_none_of_them_is_acknowledged) ... ok
+test_the_pull_request_goes_from_thirteen_red_files_to_twelve (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_the_pull_request_goes_from_thirteen_red_files_to_twelve)
+Seven of the thirteen clear, six remain, and these six are new. ... ok
+test_as_a_frames_variable_text_it_is_replaced (AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced)
+The second defence: an event that reaches the hook with a pool's ... ok
+test_guard_the_library_still_prints_the_password (AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_guard_the_library_still_prints_the_password)
+If this fails the library has changed how a pool prints itself, ... ok
+test_in_a_breadcrumb_and_a_log_item_it_is_replaced (AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced) ... ok
+test_in_an_exceptions_text_and_a_message_it_is_replaced (AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced) ... ok
+test_it_sends_no_request_body (AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_sends_no_request_body) ... ok
+test_it_still_sends_no_default_pii (AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_still_sends_no_default_pii)
+Held by H-89's wiring test as well; here because the two new ... ok
+test_it_turns_frame_variables_off (AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_turns_frame_variables_off) ... ok
+test_a_text_with_no_at_sign_is_scrubbed_too (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too)
+scrub() returned a text with no "@" as it was, without running a ... ok
+test_an_address_and_a_url_password_are_still_replaced_beside_it (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it) ... ok
+test_each_of_the_four_names (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names) ... ok
+test_text_that_only_looks_alike_is_unchanged (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_text_that_only_looks_alike_is_unchanged) ... ok
+test_the_names_case_and_a_longer_name_that_ends_in_one (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one) ... ok
+test_the_value_is_taken_to_the_end_of_its_line_and_no_further (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further) ... ok
+test_two_lines_each_with_one (AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one) ... ok
+test_each_part_by_itself (AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself)
+One part at a time, so that each part's own line is needed. ... ok
+test_none_of_the_made_values_is_left (AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left) ... ok
+test_what_holds_none_of_them_is_kept (AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_what_holds_none_of_them_is_kept) ... ok
+test_a_message_built_with_a_pool (AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool) ... ok
+test_an_exceptions_text (AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text) ... ok
+test_control_with_the_bare_defaults_a_frames_variable_is_in_the_event (AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_control_with_the_bare_defaults_a_frames_variable_is_in_the_event)
+The leak, shown: this is what was sent. ... ok
+test_control_with_the_bare_defaults_a_small_body_is_within_bounds (AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_control_with_the_bare_defaults_a_small_body_is_within_bounds) ... ok
+test_with_our_call_no_body_is_within_bounds (AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_body_is_within_bounds) ... ok
+test_with_our_call_no_frame_has_variables (AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_frame_has_variables) ... ok
+test_a_dsn_in_an_exception_never_shows_its_password (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_dsn_in_an_exception_never_shows_its_password) ... ok
+test_a_plain_message_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_plain_message_event) ... ok
+test_an_argument_that_is_not_text_yet (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_argument_that_is_not_text_yet)
+An object among the params whose text is an address. ... ok
+test_an_event_with_none_of_these_parts_passes_through (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_event_with_none_of_these_parts_passes_through) ... ok
+test_frame_variables_that_hold_no_address_are_unchanged (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_frame_variables_that_hold_no_address_are_unchanged)
+The debugging value of locals is kept: ids, UUIDs, numbers, ... ok
+test_it_fails_closed_and_never_raises (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_it_fails_closed_and_never_raises)
+A part that cannot be scrubbed is replaced by a marker; the event ... ok
+test_no_address_is_left_in_the_events_text (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_no_address_is_left_in_the_events_text) ... ok
+test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+A sampled transaction is an event of its own: it does not pass ... ok
+test_the_threads_of_an_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_threads_of_an_event)
+An event can carry a stack per thread, with frame variables, ... ok
+test_user_context_tags_and_request_are_scrubbed_too (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_scrubbed_too)
+H-167 reverses H-89's "left alone" for these parts (Senior ... ok
+test_what_makes_the_report_useful_is_kept (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_what_makes_the_report_useful_is_kept) ... ok
+test_a_breadcrumbs_message_and_data (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_breadcrumbs_message_and_data) ... ok
+test_a_log_items_body_and_attributes (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_log_items_body_and_attributes) ... ok
+test_the_small_hooks_never_raise_either (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_the_small_hooks_never_raise_either) ... ok
+test_a_failure_to_import_the_hooks_is_not_swallowed (AutoGrader.tests_sentry_scrubbing.WiringTests.test_a_failure_to_import_the_hooks_is_not_swallowed)
+settings.py has a try/except ImportError for a missing sentry-sdk ... ok
+test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry) ... ok
+
+----------------------------------------------------------------------
+Ran 483 tests in 106.293s
+
+OK
+Destroying test database for alias 'default' ('test_h178_date_scheduled_cancellation')...

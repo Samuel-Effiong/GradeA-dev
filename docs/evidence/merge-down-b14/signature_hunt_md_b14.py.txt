@@ -1,0 +1,33 @@
+import ast, subprocess, sys, re
+SCR='/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/bc1109fd-c7d0-4089-add8-2f504b6dc1e9/scratchpad/'
+files=[l.strip() for l in open(SCR+'beta_files.txt') if l.strip()]
+def show(ref,f):
+    r=subprocess.run(['git','show',f'{ref}:{f}'],capture_output=True,text=True)
+    return r.stdout if r.returncode==0 else None
+def sigs(src):
+    out={}
+    if src is None: return out
+    try: tree=ast.parse(src)
+    except SyntaxError: return out
+    def walk(node,prefix):
+        for n in ast.iter_child_nodes(node):
+            if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)):
+                a=n.args
+                pos=[x.arg for x in a.posonlyargs+a.args]
+                kw=[x.arg for x in a.kwonlyargs]
+                out[prefix+n.name]=(tuple(pos),len(a.defaults),tuple(kw),bool(a.vararg),bool(a.kwarg))
+                walk(n,prefix+n.name+'.')
+            elif isinstance(n,ast.ClassDef):
+                walk(n,prefix+n.name+'.')
+    walk(tree,'')
+    return out
+changed=[]
+for f in files:
+    base=sigs(show('035e0a07',f)); epic=sigs(show('554fcf11',f))
+    for name,s in epic.items():
+        if name in base and base[name]!=s:
+            changed.append((f,name,base[name],s))
+for f,name,b,e in changed:
+    print(f"{f}::{name}\n   base {b}\n   epic {e}")
+print('TOTAL changed signatures',len(changed))
+open(SCR+'changed_sigs.txt','w').write('\n'.join(f"{f}::{n}" for f,n,_,_ in changed))
