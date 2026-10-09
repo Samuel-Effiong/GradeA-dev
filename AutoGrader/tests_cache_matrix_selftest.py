@@ -39,6 +39,7 @@ from AutoGrader.tests_cache_matrix_support import (
     Read,
 )
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -102,7 +103,7 @@ class MatrixFixtureBase(FreshnessMatrixMixin, TransactionTestCase):
         client = APIClient()
         client.force_authenticate(teacher)
         response = client.post(
-            reverse("course-students", args=[course.pk]), {"email": email}
+            reverse("course-students", args=[course.pk]), add_by_email(email)
         )
         self.assertIn(response.status_code, (200, 201), response.content)
         self.assertEqual(

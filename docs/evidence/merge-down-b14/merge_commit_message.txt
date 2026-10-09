@@ -1,0 +1,30 @@
+Merge-down: beta batches 12s, 13, 13h and 14 (origin/beta 8567a7a0) into phase2/epic-a
+
+Authored by 0b; Verifier 2 verifies the merge-down part, the Checker the AI-call
+record slices. The Phase 2 line (554fcf11) already carried beta up to 035e0a07 and
+slice 0; this brings the 148 non-merge commits of beta since: batch 12s (add a
+student by email with names, H-148), batch 13 (a teacher renames a student, the
+old student sign-up doors closed with a 410, question numbers in order), batch
+13h (the text cleaner per call, H-191) and batch 14 (H-181, H-178 Part A, H-164,
+H-182, H-202).
+
+Four content conflicts, resolved hunk by hunk:
+- users/admin.py (deactivate_users): both sides kept. The Phase 2 line calls
+  history.record_bulk (one PERMISSION_CHANGE per user changed); beta (H-202)
+  calls queryset.update with the token-epoch Case. The merged call is
+  history.record_bulk(queryset, is_active=False, token_epoch=Case(...)): the
+  extra field rides into record_bulk's one update.
+- users/views.py imports: the union (the Phase 2 line's item_retry, item_results,
+  BackgroundProcessingTask imports and IsTeacher, plus beta's
+  OLD_INVITATION_CLOSED_MESSAGE); StudentRegistrationCompletionSerializer, ReasonCode
+  and REASON_CODES dropped because nothing uses them now.
+- users/views.py register_student: beta's body (H-152 closes the old door with a
+  410). The Phase 2 line's budget check, REGISTRATION_PAUSED envelope and audit
+  events on that door are gone with it; tests of the Phase 2 line that exercised
+  the door are adapted in follow-up commits on this branch.
+- classrooms/tests_h99_placeholder_email.py: import lines, the union of both sides.
+- classrooms/tests_roster_ready_to_use.py: import lines. The Phase 2 side removed both uses of
+  CROSS_SCHOOL_REJECTION_MESSAGE from this module (base 2 uses, Phase 2 side 0, beta 2), so the
+  merged file has none and the import is dropped (flake8 F401).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>

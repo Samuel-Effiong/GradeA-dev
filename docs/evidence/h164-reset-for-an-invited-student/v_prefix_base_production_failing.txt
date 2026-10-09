@@ -1,0 +1,800 @@
+Creating test database for alias 'default' ('test_h164_invited_reset_mut')...
+Found 50 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_later_add_to_another_course_keeps_the_password_they_chose (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_later_add_to_another_course_keeps_the_password_they_chose)
+The reason the reset stamps last_login: without it the add sees ... Free trial plan not found: no trial activated for user fca5ee5e-e104-4751-b9ff-eb5c6bf9ae40.
+Cannot activate automatic trial for user fca5ee5e-e104-4751-b9ff-eb5c6bf9ae40 (validation): ValueError
+ok
+test_a_licence_invited_teacher_is_sent_a_reset_code (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teacher_is_sent_a_reset_code) ... Free trial plan not found: no trial activated for user c8dc866e-d4c7-48fa-896c-575dd5f54c1f.
+Cannot activate automatic trial for user c8dc866e-d4c7-48fa-896c-575dd5f54c1f (validation): ValueError
+ok
+test_a_licence_invited_teachers_reset_stamps_and_signs_them_in (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_invited_teachers_reset_stamps_and_signs_them_in) ... Free trial plan not found: no trial activated for user 5f2126c1-ba84-4e6c-89cd-526ec383007f.
+Cannot activate automatic trial for user 5f2126c1-ba84-4e6c-89cd-526ec383007f (validation): ValueError
+ok
+test_a_licence_re_add_after_a_reset_keeps_the_password_they_chose (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_licence_re_add_after_a_reset_keeps_the_password_they_chose)
+What this row creates for teachers: an invited teacher who has ... Free trial plan not found: no trial activated for user e6067cfe-3676-44b0-b101-1d082b95a3d4.
+Cannot activate automatic trial for user e6067cfe-3676-44b0-b101-1d082b95a3d4 (validation): ValueError
+ok
+test_a_locked_reset_sends_nothing_and_answers_the_same (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_locked_reset_sends_nothing_and_answers_the_same) ... Free trial plan not found: no trial activated for user d736ee4b-3312-4df3-83d5-f67a45cf33b8.
+Cannot activate automatic trial for user d736ee4b-3312-4df3-83d5-f67a45cf33b8 (validation): ValueError
+ok
+test_a_refused_reset_leaves_the_code_and_its_budget_alone (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_refused_reset_leaves_the_code_and_its_budget_alone)
+Decision: the code already issued is LEFT. A refusal writes nothing ... Free trial plan not found: no trial activated for user 0cf5597a-a3a4-4356-b7fa-19917735652c.
+Cannot activate automatic trial for user 0cf5597a-a3a4-4356-b7fa-19917735652c (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_a_reset_is_refused_for_a_switched_off_never_verified_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account) ... Free trial plan not found: no trial activated for user 9636c0f9-06cb-438e-a2e9-1c322a89fd40.
+Cannot activate automatic trial for user 9636c0f9-06cb-438e-a2e9-1c322a89fd40 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_a_reset_leaves_an_established_accounts_flag_alone (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_leaves_an_established_accounts_flag_alone)
+Green on the old code too: a verified user whose flag is false ... Free trial plan not found: no trial activated for user e95914e0-5aac-4183-8fb4-fe3a5507c3f1.
+Cannot activate automatic trial for user e95914e0-5aac-4183-8fb4-fe3a5507c3f1 (validation): ValueError
+ok
+test_a_reset_signs_the_student_in (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_signs_the_student_in) ... Free trial plan not found: no trial activated for user 4295d584-c401-4333-bde4-3e5ec59aaac5.
+Cannot activate automatic trial for user 4295d584-c401-4333-bde4-3e5ec59aaac5 (validation): ValueError
+ok
+test_a_successful_reset_clears_must_change_password (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_successful_reset_clears_must_change_password) ... Free trial plan not found: no trial activated for user b220836a-8a3b-4786-b64c-152446bb104e.
+Cannot activate automatic trial for user b220836a-8a3b-4786-b64c-152446bb104e (validation): ValueError
+ok
+test_a_successful_reset_sets_the_password_and_stamps_the_email (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_successful_reset_sets_the_password_and_stamps_the_email) ... Free trial plan not found: no trial activated for user 2c2f10f4-777a-4938-9bc2-2d9cc74d34af.
+Cannot activate automatic trial for user 2c2f10f4-777a-4938-9bc2-2d9cc74d34af (validation): ValueError
+ok
+test_a_switched_off_account_that_verified_its_email_still_resets (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_switched_off_account_that_verified_its_email_still_resets)
+Green on the old code too: the guard is for never-verified accounts ... Free trial plan not found: no trial activated for user a005e072-0f42-45dd-ad6d-58cbc78539b1.
+Cannot activate automatic trial for user a005e072-0f42-45dd-ad6d-58cbc78539b1 (validation): ValueError
+Creating token for inactive user: 983447ae-42ac-41b9-8fd7-e02f2ef5f3a0. If this is not intentional, consider checking the user's status before calling the `for_user` method.
+ok
+test_a_verified_super_admin_can_still_reset (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_can_still_reset)
+Green on the old code too. ... Free trial plan not found: no trial activated for user 359b55ac-f36f-40cb-b88a-a3f7f3158a64.
+Cannot activate automatic trial for user 359b55ac-f36f-40cb-b88a-a3f7f3158a64 (validation): ValueError
+ok
+test_a_verified_super_admin_is_still_sent_a_reset_code (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_verified_super_admin_is_still_sent_a_reset_code)
+Green on the old code too: the refusal is for accounts that never ... Free trial plan not found: no trial activated for user 2d2dbcf4-e709-4765-a6f8-a97f5749b567.
+Cannot activate automatic trial for user 2d2dbcf4-e709-4765-a6f8-a97f5749b567 (validation): ValueError
+ok
+test_a_wrong_code_stamps_nothing (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_wrong_code_stamps_nothing) ... Free trial plan not found: no trial activated for user 4d82c11c-d98d-4975-b08c-e4c35ff0514b.
+Cannot activate automatic trial for user 4d82c11c-d98d-4975-b08c-e4c35ff0514b (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1354, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_an_inactive_never_verified_row_is_still_refused (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_an_inactive_never_verified_row_is_still_refused)
+Green on the old code too: a self-registered row or an old-scheme ... Free trial plan not found: no trial activated for user c756edce-3695-4239-9d6a-3c2481039ed9.
+Cannot activate automatic trial for user c756edce-3695-4239-9d6a-3c2481039ed9 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_an_invited_student_who_never_signed_in_is_sent_a_reset_code (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_an_invited_student_who_never_signed_in_is_sent_a_reset_code) ... Free trial plan not found: no trial activated for user 8425ea12-bf1e-446a-88e0-97547b35f401.
+Cannot activate automatic trial for user 8425ea12-bf1e-446a-88e0-97547b35f401 (validation): ValueError
+ok
+test_that_refusal_is_the_same_as_for_an_address_with_no_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_is_the_same_as_for_an_address_with_no_account) ... Free trial plan not found: no trial activated for user 27ae9434-02a2-4e2c-af9e-77abac247949.
+Cannot activate automatic trial for user 27ae9434-02a2-4e2c-af9e-77abac247949 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Exception
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1325, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.") from Exception
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_that_refusal_says_what_the_inactive_refusal_says (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_refusal_says_what_the_inactive_refusal_says) ... Free trial plan not found: no trial activated for user 0d6422ab-c8b0-45a1-881a-89a2080aa4a5.
+Cannot activate automatic trial for user 0d6422ab-c8b0-45a1-881a-89a2080aa4a5 (validation): ValueError
+Free trial plan not found: no trial activated for user a4e16154-a701-425d-afcb-0d03abe39d7d.
+Cannot activate automatic trial for user a4e16154-a701-425d-afcb-0d03abe39d7d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account) ... Free trial plan not found: no trial activated for user 9c9d1711-e5a2-48ff-9dac-20d04f6bc6b6.
+Cannot activate automatic trial for user 9c9d1711-e5a2-48ff-9dac-20d04f6bc6b6 (validation): ValueError
+Free trial plan not found: no trial activated for user 16f54701-7678-4478-8944-af8cef3ecb6c.
+Cannot activate automatic trial for user 16f54701-7678-4478-8944-af8cef3ecb6c (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Exception
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1325, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.") from Exception
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_the_reply_is_the_same_as_for_an_address_with_no_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reply_is_the_same_as_for_an_address_with_no_account) ... Free trial plan not found: no trial activated for user f3b885af-c426-4c5d-b5b9-a1db6e3d94f8.
+Cannot activate automatic trial for user f3b885af-c426-4c5d-b5b9-a1db6e3d94f8 (validation): ValueError
+ok
+test_the_request_alone_does_not_verify_the_email (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_alone_does_not_verify_the_email) ... Free trial plan not found: no trial activated for user c89cbba0-21c0-4e98-9eca-f61074ef8b55.
+Cannot activate automatic trial for user c89cbba0-21c0-4e98-9eca-f61074ef8b55 (validation): ValueError
+ok
+test_the_request_refuses_a_command_line_superuser (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_command_line_superuser)
+create_superuser sets is_staff and is_superuser and leaves the ... Free trial plan not found: no trial activated for user f8b7b61c-b425-4fd8-a07d-c6c97e3ef1d8.
+Cannot activate automatic trial for user f8b7b61c-b425-4fd8-a07d-c6c97e3ef1d8 (validation): ValueError
+Free trial plan not found: no trial activated for user c7d50dbc-793f-4aab-a19e-7fe554d6c946.
+Cannot activate automatic trial for user c7d50dbc-793f-4aab-a19e-7fe554d6c946 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_the_request_refuses_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_staff_account) ... Free trial plan not found: no trial activated for user b6f37669-49ba-48e8-8d92-8bf854a70e8d.
+Cannot activate automatic trial for user b6f37669-49ba-48e8-8d92-8bf854a70e8d (validation): ValueError
+Free trial plan not found: no trial activated for user c0f3e8a0-2b9b-4b05-831c-67a804c115b4.
+Cannot activate automatic trial for user c0f3e8a0-2b9b-4b05-831c-67a804c115b4 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_the_request_refuses_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_super_admin_type) ... Free trial plan not found: no trial activated for user 66579b47-6b52-4472-8034-20ff352006b5.
+Cannot activate automatic trial for user 66579b47-6b52-4472-8034-20ff352006b5 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_the_request_refuses_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_request_refuses_a_never_verified_superuser_flag) ... Free trial plan not found: no trial activated for user 770b8253-3b1a-4969-9873-f6ba42b73d73.
+Cannot activate automatic trial for user 770b8253-3b1a-4969-9873-f6ba42b73d73 (validation): ValueError
+Free trial plan not found: no trial activated for user 5aab1e0a-a9ad-40ea-9e66-b511ed26ee11.
+Cannot activate automatic trial for user 5aab1e0a-a9ad-40ea-9e66-b511ed26ee11 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1147, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+ok
+test_the_reset_refuses_a_command_line_superuser (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser) ... Free trial plan not found: no trial activated for user 3c9222dc-e11b-435b-aee7-c05575541f4f.
+Cannot activate automatic trial for user 3c9222dc-e11b-435b-aee7-c05575541f4f (validation): ValueError
+Free trial plan not found: no trial activated for user 6c909958-4b6e-4ad9-aa33-7794f1843263.
+Cannot activate automatic trial for user 6c909958-4b6e-4ad9-aa33-7794f1843263 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_the_reset_refuses_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account) ... Free trial plan not found: no trial activated for user 9bb0e312-f6b4-40e3-b641-511c5f7143c8.
+Cannot activate automatic trial for user 9bb0e312-f6b4-40e3-b641-511c5f7143c8 (validation): ValueError
+Free trial plan not found: no trial activated for user 63d10d79-3844-453a-a7eb-61c1f6bd65c2.
+Cannot activate automatic trial for user 63d10d79-3844-453a-a7eb-61c1f6bd65c2 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_the_reset_refuses_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type) ... Free trial plan not found: no trial activated for user e1f2df54-6349-41e1-a8fb-c97a3ffb3f56.
+Cannot activate automatic trial for user e1f2df54-6349-41e1-a8fb-c97a3ffb3f56 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_the_reset_refuses_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag) ... Free trial plan not found: no trial activated for user 6d0b6837-8842-4960-ac89-cf59a62797d7.
+Cannot activate automatic trial for user 6d0b6837-8842-4960-ac89-cf59a62797d7 (validation): ValueError
+Free trial plan not found: no trial activated for user 658b0ef2-f306-43c3-a350-2f7dfb6f37f9.
+Cannot activate automatic trial for user 658b0ef2-f306-43c3-a350-2f7dfb6f37f9 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1335, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+ok
+test_a_licence_invited_teacher_still_verifies_end_to_end (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_licence_invited_teacher_still_verifies_end_to_end)
+Green on the old code too: an active, never-verified licence ... Free trial plan not found: no trial activated for user 2dfb3e2e-0d40-4e9c-9e65-6b4e8adf20cb.
+Cannot activate automatic trial for user 2dfb3e2e-0d40-4e9c-9e65-6b4e8adf20cb (validation): ValueError
+ok
+test_a_refused_verify_spends_the_budget_like_a_wrong_guess (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_refused_verify_spends_the_budget_like_a_wrong_guess) ... Free trial plan not found: no trial activated for user 813c9507-6a0b-48e3-84a0-d0cadedac733.
+Cannot activate automatic trial for user 813c9507-6a0b-48e3-84a0-d0cadedac733 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+verify_email address locked after too many attempts
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+FAIL
+test_a_verified_admin_can_still_verify (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_verified_admin_can_still_verify)
+Green on the old code too. ... ok
+test_a_verified_admin_still_gets_the_already_verified_answer (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_verified_admin_still_gets_the_already_verified_answer)
+Green on the old code too. ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1127, in otp
+    raise ParseError("Email already verified. Please login.")
+rest_framework.exceptions.ParseError: Email already verified. Please login.
+ok
+test_an_invited_school_admin_still_verifies (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_an_invited_school_admin_still_verifies)
+Green on the old code too: an invited school admin (inactive, ... ok
+test_an_ordinary_unverified_user_still_activates_end_to_end (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_an_ordinary_unverified_user_still_activates_end_to_end)
+Green on the old code too: a self-registered account (inactive, ... Free trial plan not found: no trial activated for user 71562311-7eb6-4c78-b46b-56210b5b7517.
+Cannot activate automatic trial for user 71562311-7eb6-4c78-b46b-56210b5b7517 (validation): ValueError
+ok
+test_that_code_request_answer_for_a_staff_account_is_the_unknown_ones (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_code_request_answer_for_a_staff_account_is_the_unknown_ones) ... Free trial plan not found: no trial activated for user f8fac60e-c1e1-434e-93e9-5e10a83f292d.
+Cannot activate automatic trial for user f8fac60e-c1e1-434e-93e9-5e10a83f292d (validation): ValueError
+ok
+test_that_code_request_answer_for_a_super_admin_type_is_the_unknown_ones (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_code_request_answer_for_a_super_admin_type_is_the_unknown_ones) ... ok
+test_that_code_request_answer_for_a_superuser_flag_is_the_unknown_ones (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_code_request_answer_for_a_superuser_flag_is_the_unknown_ones) ... Free trial plan not found: no trial activated for user abbe7d39-fdb3-4b85-b486-e5d53d498857.
+Cannot activate automatic trial for user abbe7d39-fdb3-4b85-b486-e5d53d498857 (validation): ValueError
+ok
+test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one) ... Free trial plan not found: no trial activated for user 5615a99e-5d08-4690-8804-210020764608.
+Cannot activate automatic trial for user 5615a99e-5d08-4690-8804-210020764608 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+FAIL
+test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+FAIL
+test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one) ... Free trial plan not found: no trial activated for user e67f9feb-ce40-464f-8bd5-8f6a4c5e87e4.
+Cannot activate automatic trial for user e67f9feb-ce40-464f-8bd5-8f6a4c5e87e4 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+FAIL
+test_the_code_request_sends_nothing_to_a_command_line_superuser (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_command_line_superuser) ... Free trial plan not found: no trial activated for user 5bbd91d0-0b46-45dc-a4d5-07db4637f421.
+Cannot activate automatic trial for user 5bbd91d0-0b46-45dc-a4d5-07db4637f421 (validation): ValueError
+FAIL
+test_the_code_request_sends_nothing_to_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_never_verified_staff_account) ... Free trial plan not found: no trial activated for user b3e5c91f-692e-41e7-89b3-c6560504b94a.
+Cannot activate automatic trial for user b3e5c91f-692e-41e7-89b3-c6560504b94a (validation): ValueError
+FAIL
+test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type) ... FAIL
+test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag) ... Free trial plan not found: no trial activated for user 33d746ce-a814-4949-a7ab-037dbd4e8eba.
+Cannot activate automatic trial for user 33d746ce-a814-4949-a7ab-037dbd4e8eba (validation): ValueError
+FAIL
+test_verify_refuses_a_command_line_superuser (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_command_line_superuser) ... Free trial plan not found: no trial activated for user 910699b1-076c-476e-b4b6-084105d2b181.
+Cannot activate automatic trial for user 910699b1-076c-476e-b4b6-084105d2b181 (validation): ValueError
+FAIL
+test_verify_refuses_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_never_verified_staff_account) ... Free trial plan not found: no trial activated for user eb52ce7e-cdeb-407c-bb76-4b11743a735d.
+Cannot activate automatic trial for user eb52ce7e-cdeb-407c-bb76-4b11743a735d (validation): ValueError
+FAIL
+test_verify_refuses_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_never_verified_super_admin_type) ... FAIL
+test_verify_refuses_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_never_verified_superuser_flag) ... Free trial plan not found: no trial activated for user d76e2368-7ddc-499b-9ed6-4ef7549e7a47.
+Cannot activate automatic trial for user d76e2368-7ddc-499b-9ed6-4ef7549e7a47 (validation): ValueError
+FAIL
+
+======================================================================
+FAIL: test_a_refused_verify_spends_the_budget_like_a_wrong_guess (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_refused_verify_spends_the_budget_like_a_wrong_guess)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 755, in test_a_refused_verify_spends_the_budget_like_a_wrong_guess
+    self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+AssertionError: 400 != 429
+
+======================================================================
+FAIL: test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 733, in test_that_verify_refusal_for_a_staff_account_is_the_wrong_code_one
+    self.assert_verify_refusal_is_the_wrong_code_refusal(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 659, in assert_verify_refusal_is_the_wrong_code_refusal
+    self.assertEqual(refused.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+======================================================================
+FAIL: test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 743, in test_that_verify_refusal_for_a_super_admin_type_is_the_wrong_code_one
+    self.assert_verify_refusal_is_the_wrong_code_refusal(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 659, in assert_verify_refusal_is_the_wrong_code_refusal
+    self.assertEqual(refused.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+======================================================================
+FAIL: test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 738, in test_that_verify_refusal_for_a_superuser_flag_is_the_wrong_code_one
+    self.assert_verify_refusal_is_the_wrong_code_refusal(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 659, in assert_verify_refusal_is_the_wrong_code_refusal
+    self.assertEqual(refused.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+======================================================================
+FAIL: test_the_code_request_sends_nothing_to_a_command_line_superuser (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_command_line_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 693, in test_the_code_request_sends_nothing_to_a_command_line_superuser
+    self.assert_code_request_sends_nothing(self.command_line("vqc.h164@x.example"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 629, in assert_code_request_sends_nothing
+    self.assertIsNone(account.activation_token)
+AssertionError: '863493' is not None
+
+======================================================================
+FAIL: test_the_code_request_sends_nothing_to_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_never_verified_staff_account)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 684, in test_the_code_request_sends_nothing_to_a_never_verified_staff_account
+    self.assert_code_request_sends_nothing(self.staff_only("vqs.h164@x.example"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 629, in assert_code_request_sends_nothing
+    self.assertIsNone(account.activation_token)
+AssertionError: '136692' is not None
+
+======================================================================
+FAIL: test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 690, in test_the_code_request_sends_nothing_to_a_never_verified_super_admin_type
+    self.assert_code_request_sends_nothing(self.type_only("vqt.h164@x.example"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 629, in assert_code_request_sends_nothing
+    self.assertIsNone(account.activation_token)
+AssertionError: '658945' is not None
+
+======================================================================
+FAIL: test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 687, in test_the_code_request_sends_nothing_to_a_never_verified_superuser_flag
+    self.assert_code_request_sends_nothing(self.flag_only("vqf.h164@x.example"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 629, in assert_code_request_sends_nothing
+    self.assertIsNone(account.activation_token)
+AssertionError: '202027' is not None
+
+======================================================================
+FAIL: test_verify_refuses_a_command_line_superuser (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_command_line_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 728, in test_verify_refuses_a_command_line_superuser
+    self.assert_verify_refused_and_nothing_written(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 646, in assert_verify_refused_and_nothing_written
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+======================================================================
+FAIL: test_verify_refuses_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_never_verified_staff_account)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 713, in test_verify_refuses_a_never_verified_staff_account
+    self.assert_verify_refused_and_nothing_written(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 646, in assert_verify_refused_and_nothing_written
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+======================================================================
+FAIL: test_verify_refuses_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_never_verified_super_admin_type)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 723, in test_verify_refuses_a_never_verified_super_admin_type
+    self.assert_verify_refused_and_nothing_written(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 646, in assert_verify_refused_and_nothing_written
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+======================================================================
+FAIL: test_verify_refuses_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_verify_refuses_a_never_verified_superuser_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 718, in test_verify_refuses_a_never_verified_superuser_flag
+    self.assert_verify_refused_and_nothing_written(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 646, in assert_verify_refused_and_nothing_written
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 202 != 400
+
+----------------------------------------------------------------------
+Ran 50 tests in 2.505s
+
+FAILED (failures=12)
+Destroying test database for alias 'default' ('test_h164_invited_reset_mut')...
+ OK
+systemd-run failed with exit status 1.

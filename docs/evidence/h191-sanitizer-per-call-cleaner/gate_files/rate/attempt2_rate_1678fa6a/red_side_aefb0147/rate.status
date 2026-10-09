@@ -1,0 +1,6 @@
+14:59:25 aefb0147: 10 runs start, loadavg 1.44 2.57 3.60 4/2415 421205
+15:01:33 aefb0147 run 1 exit=1 (4 failing lines)
+15:08:23 aefb0147 run 2 exit=137 (4 failing lines)
+15:15:13 aefb0147 run 3 exit=137 (4 failing lines)
+15:22:03 aefb0147 run 4 exit=137 (0 failing lines)
+15:24:20 aefb0147 run 5 exit=1 (5 failing lines)

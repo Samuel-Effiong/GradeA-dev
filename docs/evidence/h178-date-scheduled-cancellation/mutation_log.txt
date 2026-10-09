@@ -1,0 +1,16 @@
+10 mutants: anchors unique, all parse, expected tests named
+10 of 10 mutants selected
+P1_the_handler_does_not_run_the_mirror_for_a_date_alone KILLED exit 1 ran 66 failed 1 expected-but-passed []
+P2_a_date_does_not_count_as_scheduled KILLED exit 1 ran 66 failed 5 expected-but-passed []
+P3_the_flag_does_not_count_as_scheduled KILLED exit 1 ran 66 failed 13 expected-but-passed []
+P4_scheduled_needs_both_the_flag_and_a_date KILLED exit 1 ran 66 failed 18 expected-but-passed []
+P5_the_recorded_date_ignores_stripes_own KILLED exit 1 ran 66 failed 2 expected-but-passed []
+P6_a_trial_is_mirrored_too KILLED exit 1 ran 66 failed 2 expected-but-passed []
+P7_a_repeat_message_writes_again KILLED exit 1 ran 66 failed 2 expected-but-passed []
+P8_the_record_never_goes_back_to_renewing KILLED exit 1 ran 66 failed 3 expected-but-passed []
+P9_silence_is_read_as_not_cancelling KILLED exit 1 ran 66 failed 3 expected-but-passed []
+P10_the_keep_answer_no_longer_says_to_contact_support KILLED exit 1 ran 66 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 10 of 10
