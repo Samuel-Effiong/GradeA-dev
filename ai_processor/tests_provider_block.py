@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """H-206: every request to the AI provider asks for zero-retention endpoints.
 
 `provider: {"data_collection": "deny"}` filters suppliers that TRAIN on data;
@@ -33,6 +32,7 @@ Run with:
 import ast
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
@@ -95,7 +95,7 @@ def call(**arguments):
     """Run the real __ai_model with only the SDK's create replaced; return the arguments
     that reached it."""
     processor = AIProcessor()
-    processor.client = SimpleNamespace(
+    processor.client = SimpleNamespace(  # type: ignore[assignment]
         chat=SimpleNamespace(completions=SimpleNamespace(create=capture))
     )
     del CAPTURED[:]
@@ -110,7 +110,7 @@ TOOLS = [
 SCHEMA = {"name": "s", "strict": True, "schema": {"type": "object"}}
 EXPECTED = {"data_collection": "deny", "zdr": True}
 
-PATHS = {
+PATHS: dict[str, dict[str, Any]] = {
     "plain": {"system_prompt": "s", "user_prompt": "u"},
     "with tools": {"system_prompt": "s", "user_prompt": "u", "tool_schemas": TOOLS},
     "with an override model": {
@@ -362,7 +362,9 @@ class NoRequestCanBeSentWithoutTheBlock(SimpleTestCase):
             helper_lines = set()
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef) and node.name == "_provider_block":
-                    helper_lines.update(range(node.lineno, node.end_lineno + 1))
+                    helper_lines.update(
+                        range(node.lineno, (node.end_lineno or node.lineno) + 1)
+                    )
             for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Constant)

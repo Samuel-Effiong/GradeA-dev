@@ -652,6 +652,13 @@ ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", def
 # DIFFERENT model re-grades triggered questions without seeing the first
 # grade; disagreement flags the submission needs_review for the teacher.
 # Grader A's score always stands — the second opinion can only flag.
+# H-206: every request to the AI provider asks for zero-retention endpoints
+# (`zdr: true` in the provider block, ai_processor/services.py
+# _provider_block). ON by default. Switching it OFF (set to false) sends prompts
+# to suppliers that retain them again; it is the way back if the zero-retention
+# endpoints are unavailable. The account's own privacy settings are separate.
+AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=True)
+
 GRADING_SECOND_OPINION_ENABLED = env.bool(
     "GRADING_SECOND_OPINION_ENABLED", default=True
 )
