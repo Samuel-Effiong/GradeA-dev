@@ -80,7 +80,9 @@ class FollowupDispatchByNameTest(TestCase):
         session = Session.objects.create(name="S", teacher=self.teacher)
         course = Course.objects.create(name="C", teacher=self.teacher, session=session)
         assignment = Assignment.objects.create(
-            title="A", course=course, questions=[{"question_number": 1, "points": 10}]
+            title="A",
+            course=course,
+            questions=[{"question_number": 1, "points": 10, "model_answer": "4"}],
         )
         self.submission = StudentSubmission.objects.create(
             assignment=assignment,

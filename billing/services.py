@@ -10,6 +10,8 @@ from django.db.models.functions import Greatest
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from audit import history
+from audit import metrics as audit_metrics
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
 from users.mailerlite_service import queue_sync
@@ -193,9 +195,11 @@ class SubscriptionService:
             )
         )
 
-        # 1. Deactivate any existing active subscriptions
-        UserSubscription.objects.filter(user=user, is_active=True).update(
-            is_active=False
+        # 1. Deactivate any existing active subscriptions. Epic A S4: one
+        # SUBSCRIPTION_CHANGE per subscription switched off.
+        history.record_bulk(
+            UserSubscription.objects.filter(user=user, is_active=True),
+            is_active=False,
         )
 
         # 2. Create new UserSubscription
@@ -1139,15 +1143,23 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def expire_bucket(bucket):
+    def expire_bucket(bucket, reference=None):
         """
-        Formalizes the loss of credits due to expiration
+        Formalizes the loss of credits due to expiration. `reference` names
+        why (default: an automatic expiry); a licence removal passes its own
+        (Epic A S3, D4).
         """
+        # H-222: the wallet row before the bucket row, the order everything
+        # else uses (billing/locks.py). A licence clawback and the Beat
+        # cleanup reach here holding no wallet lock, and a monthly grant or a
+        # charge for the same user holds the wallet and waits for this bucket.
+        lock_wallet_first(bucket.wallet)
         bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
         # Re-checked under the lock: two overlapping expiries of one bucket
-        # (two cleanup runs - a duplicate Beat, a redeploy overlap, a manual
-        # run) used to both write an EXPIRE row; the second waited on the
-        # lock, then recorded the same credits as expired again.
+        # (the Beat cleanup and a licence clawback, or two cleanup runs - a
+        # duplicate Beat, a redeploy overlap, a manual run) used to both
+        # write an EXPIRE row; the second waited on the lock, then recorded
+        # the same credits as expired again.
         if bucket.is_processed:
             return 0
         unused_amount = max(0, bucket.total_credits - bucket.used_credits)
@@ -1159,7 +1171,8 @@ class SubscriptionService:
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
                 amount=unused_amount,
-                reference=f"Automatic expiration of {bucket.bucket_type} bucket.",
+                reference=reference
+                or f"Automatic expiration of {bucket.bucket_type} bucket.",
                 metadata={
                     "expired_amount": unused_amount,
                     "total_at_start": bucket.total_credits,
@@ -1487,6 +1500,12 @@ class SubscriptionService:
                     # Bucket vanished (CASCADE would normally have taken the
                     # log with it, so this is defensive). Mark refunded
                     # anyway so we don't keep retrying a dead reference.
+                    # BE-A-09 #3: a usage log with no bucket to refund into
+                    # is a REFUND that cannot reconcile at all.
+                    audit_metrics.count(
+                        "credit_ledger_anomaly",
+                        tags={"kind": "refund_no_bucket"},
+                    )
                     refunded_log_ids.append(log.id)
                     continue
 
@@ -1495,6 +1514,16 @@ class SubscriptionService:
                 # F()-decrement so a partially-refunded or externally-reset
                 # bucket can never push it negative and raise IntegrityError.
                 amount = max(0, min(log.amount, bucket.used_credits))
+                if amount != log.amount:
+                    # BE-A-09 #3: the log claims more credits were consumed
+                    # than the bucket can now give back - a REFUND that
+                    # doesn't reconcile with what was logged. Reuses this
+                    # existing clamp rather than a second comparison
+                    # elsewhere.
+                    audit_metrics.count(
+                        "credit_ledger_anomaly",
+                        tags={"kind": "refund_mismatch"},
+                    )
 
                 if amount:
                     bucket.used_credits -= amount

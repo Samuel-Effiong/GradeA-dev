@@ -13,10 +13,13 @@ for entries that no longer match, so it cannot rot.
 
 import os
 import re
+import uuid
 from pathlib import Path
 
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
+from billing.tests.test_h38_part2_removed_teacher_routes import jwt_client
 from classrooms.models import (
     Course,
     School,
@@ -26,6 +29,7 @@ from classrooms.models import (
     teacher_can_reach_course,
     teacher_course_access_q,
 )
+from students.tests_item_retry_h38 import H38RetryFixture
 from users.models import CustomUser, UserTypes
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -253,6 +257,56 @@ class HelperAgreementTests(TestCase):
                             by_object,
                             expected[name] and name != "own in my school",
                         )
+
+
+class TasksNamespaceRoutesFollowTheRule(H38RetryFixture):
+    """H-38 on the tasks/ routes that act on a batch's items. The batch
+    session stays the removed teacher's own, so ownership alone can't decide:
+    the route checks the session's course (F6.2's rule, like every tasks/
+    route) and item_retry checks each item's course, also inside the claim
+    (v2's H1 on S7b 923b2b8). The full cases are in
+    students.tests_item_retry_h38; these keep the routes on the sweep's
+    list."""
+
+    def test_retry_item_is_not_found_for_a_removed_teacher(self):
+        """The session-level rule answers, not item_retry's own item check
+        (its bare "Not found."): exactly like a batch that doesn't exist."""
+        self.removed_and_funded()
+
+        response = self.retry(self.grade_item)
+        missing = jwt_client(self.teacher.email).post(
+            reverse(
+                "task-retry-item",
+                kwargs={
+                    "session_id": str(uuid.uuid4()),
+                    "item_id": str(self.grade_item.id),
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 404, response.content[:400])
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(response.json()["message"], missing.json()["message"])
+        self.assertEqual(self.launched, [])
+
+    def test_retry_failed_is_not_found_for_a_removed_teacher(self):
+        """F6.2's session-level rule, as on status and session-results (SM
+        ruling at the bundle 4 merge-down): the removed teacher's own batch
+        answers exactly like a batch that doesn't exist. It used to be a 202
+        retrying nothing, which read as success."""
+        self.removed_and_funded()
+
+        response = self.retry_failed()
+        missing = jwt_client(self.teacher.email).post(
+            reverse("task-retry-failed", kwargs={"session_id": str(uuid.uuid4())}),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404, response.content[:400])
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(response.json()["message"], missing.json()["message"])
+        self.assertEqual(self.launched, [])
 
 
 # ---------------------------------------------------------------------------

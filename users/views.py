@@ -12,6 +12,7 @@ profile.
 import logging
 import math
 import time
+import uuid
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 
@@ -19,7 +20,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -44,7 +45,6 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
-    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -61,10 +61,14 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.reason_codes import add_coded_envelope
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -72,10 +76,16 @@ from classrooms.models import (
     StudentCourse,
     teacher_course_access_q,
 )
-from classrooms.permissions import IsSuperAdmin
+from classrooms.permissions import IsSuperAdmin, IsTeacher
 from classrooms.serializers import SchoolAdminRegistrationCompletionSerializer
 from classrooms.services import OLD_INVITATION_CLOSED_MESSAGE
-from students.models import BackgroundTaskStatus, BatchUploadSession
+from students import item_retry
+from students.item_results import UNCLASSIFIED, failure_summary, item_result
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BatchUploadSession,
+)
 from students.task_access import teacher_may_reach
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
@@ -84,6 +94,9 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.admin_power import holds_admin_power as _holds_admin_power
+from users.auth_audit import account_for_email, sign_in_failed, sign_in_succeeded
+from users.exceptions import EnvelopedThrottled
 from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
@@ -97,6 +110,7 @@ from users.models import (
     UserTypes,
     Waitlist,
 )
+from users.permissions import HasCreditBalance
 from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskContextSerializer,
     BatchSessionCancelSerializer,
     BatchSessionResultSerializer,
@@ -149,6 +163,7 @@ NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 # sent code, and a locked reset alike - so its text says nothing about
 # whether an account exists.
 OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
+GOOGLE_SIGN_IN_FAILED = "Google sign-in failed. Please try again."
 
 # Founder-approved wording (2026-09-28) for the password-reset email.
 # Wording only: no link.
@@ -771,17 +786,6 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
-def _holds_admin_power(user):
-    """H-164: any one of the three marks of an admin account.
-
-    They can differ: `create_superuser` sets is_staff and is_superuser and
-    leaves user_type at its default, TEACHER (H-19 read the same shape), and
-    the Django admin ticks the flags independently of the type."""
-    return bool(
-        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN
-    )
-
-
 def _reset_locked_response(otp_obj):
     """429 for POST /auth/reset-password while the reset code is locked.
 
@@ -801,13 +805,16 @@ def _reset_locked_response(otp_obj):
         "your current password. If you didn't try to reset your password, "
         "someone else may have. Your account is still safe."
     )
+    # v2's S6a N3 (SM ruling): every documented field exactly as before,
+    # with the coded envelope added beside them.
+    body = {
+        "code": "RESET_LOCKED",
+        "message": message,
+        "locked_until": locked_until.isoformat(),
+        "retry_after_seconds": retry_after,
+    }
     response = Response(
-        {
-            "code": "RESET_LOCKED",
-            "message": message,
-            "locked_until": locked_until.isoformat(),
-            "retry_after_seconds": retry_after,
-        },
+        add_coded_envelope(body, "RESET_LOCKED", message),
         status=status.HTTP_429_TOO_MANY_REQUESTS,
     )
     response["Retry-After"] = str(retry_after)
@@ -833,6 +840,11 @@ def _auth_error_example(name, message, summary=None):
         response_only=True,
     )
 
+
+_VERIFY_LOCKED_TEXT = (
+    "Too many incorrect codes for this email address. Please wait, then "
+    "request a new verification email. Expected available in 1800 seconds."
+)
 
 _THROTTLED_EXAMPLE = _auth_error_example(
     "Throttled",
@@ -869,6 +881,15 @@ returns a JWT pair, so the user is signed in straight away.
 - The code from a self-registration email is valid for **15 minutes**; requesting a
   new one (`/auth/otp`) replaces the old code.
 - Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+
+**Two different 429s.** After **5 wrong codes for one address** (from any number
+of IPs) the address is locked for 30 minutes, and every attempt, a correct code
+included, answers **429** with `error.field_errors.code == "VERIFY_LOCKED"` and a
+`Retry-After` header. Show `message`, then offer "Send a new link" once the wait
+is over. The per-IP rate limit has **no** `code`. The lock's body also carries
+`reason_code`, `error_class`, `remediation`, `retryable`, `params` and `reference`
+(quote `reference` when contacting support); the per-IP limit's does not. An
+address with no account is locked and answered exactly the same way.
 """,
         request=VerifyCustomUserSerializer,
         examples=[
@@ -921,8 +942,37 @@ returns a JWT pair, so the user is signed in straight away.
             ),
             429: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Too many attempts from this IP (5/hour). Wait for `Retry-After` seconds.",
-                examples=[_THROTTLED_EXAMPLE],
+                description=(
+                    "VERIFY_LOCKED (5 wrong codes for this address, 30 min; has "
+                    "`error.field_errors.code`), or the per-IP rate limit (5/hour; "
+                    "no `code`). Wait for `Retry-After` seconds either way."
+                ),
+                examples=[
+                    OpenApiExample(
+                        "Address locked",
+                        summary="VERIFY_LOCKED: 5 wrong codes for this address",
+                        value={
+                            "success": False,
+                            "message": _VERIFY_LOCKED_TEXT,
+                            "error": {
+                                "field_errors": {
+                                    "detail": _VERIFY_LOCKED_TEXT,
+                                    "code": "VERIFY_LOCKED",
+                                    "reason_code": "VERIFY_LOCKED",
+                                    "error_class": "USER",
+                                    "remediation": (
+                                        "Wait, then request a new verification email."
+                                    ),
+                                    "retryable": True,
+                                    "params": {},
+                                    "reference": "<request id>",
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                    _THROTTLED_EXAMPLE,
+                ],
             ),
         },
     )
@@ -944,6 +994,9 @@ returns a JWT pair, so the user is signed in straight away.
         token = (request.data.get("token") or "").strip()
 
         if not email or not token:
+            sign_in_failed(
+                request, account_for_email(email), "email_verification", "CODE_MISSING"
+            )
             raise ParseError("Email and Token are required.")
 
         # H-53: a per-address budget of attempts. While locked, every
@@ -959,27 +1012,51 @@ returns a JWT pair, so the user is signed in straight away.
                 if lock_until
                 else settings.VERIFY_EMAIL_LOCK_SECONDS
             )
-            raise Throttled(
+            # Merge of beta (H-53) into Epic A (SM ruling): a locked attempt
+            # is recorded as refused, one event per attempt.
+            sign_in_failed(
+                request,
+                account_for_email(email),
+                "email_verification",
+                "VERIFY_LOCKED",
+                denied=True,
+            )
+            # v2's S6a N3 (SM ruling): the same 429, text and Retry-After,
+            # plus `code` VERIFY_LOCKED and the coded envelope, so a client
+            # can tell this lock from the per-IP rate limit.
+            raise EnvelopedThrottled(
                 wait=max(1, int(wait)),
                 detail=(
                     "Too many incorrect codes for this email address. Please "
                     "wait, then request a new verification email."
                 ),
+                reason_code="VERIFY_LOCKED",
+                code_value="VERIFY_LOCKED",
             )
 
-        def refuse(message):
-            if verify_budget_spent(attempt):
+        def refuse(message, account, reason_code):
+            # Audit records what happened to THIS attempt; the guess that
+            # spends the budget also set the lock (as reset_password's L2).
+            lock_triggered = verify_budget_spent(attempt)
+            if lock_triggered:
                 # The stored code is left alone: activation_token also holds
                 # student (24 h) and school-admin (7 d) invitations, and
                 # clearing it would let anyone destroy an invitation with a
                 # few wrong guesses. A sign-up code (15 min) expires during
                 # the lock anyway.
                 lock_verify_address(email)
+            sign_in_failed(
+                request,
+                account,
+                "email_verification",
+                reason_code,
+                extra_metadata={"lock_triggered": True} if lock_triggered else None,
+            )
             raise ParseError(message)
 
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
-            refuse("Invalid email or token.")
+            refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
 
         user = user.first()
 
@@ -987,21 +1064,24 @@ returns a JWT pair, so the user is signed in straight away.
         # or signed in by a code: the wrong-code refusal, the attempt spent,
         # nothing written.
         if not user.email_verified_at and _holds_admin_power(user):
-            refuse("Invalid email or token.")
+            refuse("Invalid email or token.", user, "INVALID_CODE")
 
         # H-202: a verified account that was switched off is not switched back
         # on or signed in by a code: the same refusal, nothing written.
         if user.email_verified_at and not user.is_active:
-            refuse("Invalid email or token.")
+            refuse("Invalid email or token.", user, "INVALID_CODE")
 
         if user.activation_expires and timezone.now() > user.activation_expires:
-            refuse("Activation link has expired.")
+            refuse("Activation link has expired.", user, "CODE_EXPIRED")
 
         user.email_verified_at = timezone.now()
         user.activation_token = None
         user.activation_expires = None
         user.is_active = True
-        user.save()
+        # Epic A S4 (SM ruling): the activation's PERMISSION_CHANGE names the
+        # account that just proved the code - their own action, not SYSTEM.
+        with history.acting_as(user):
+            user.save()
         clear_verify_failures(email)
 
         safe_delay(sync_user_to_mailerlite, str(user.id))
@@ -1012,6 +1092,7 @@ returns a JWT pair, so the user is signed in straight away.
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "email_verification")
 
         return Response(
             {
@@ -1236,7 +1317,9 @@ is locked for **30 minutes**: the answer becomes **429** with
 `error.field_errors.code == "RESET_LOCKED"`, plus `locked_until` (UTC ISO time),
 `retry_after_seconds` and a `Retry-After` header. Show `message` as is; it tells
 the user their password was not changed. Requesting a new code during the lock
-sends nothing.
+sends nothing. The body also carries `reason_code` ("RESET_LOCKED"),
+`error_class`, `remediation`, `retryable`, `params` and `reference` (quote
+`reference` when contacting support).
 
 **Telling the two 429s apart:** `RESET_LOCKED` has `error.field_errors.code`;
 the plain rate limit (10 requests/hour per IP) does not.
@@ -1353,6 +1436,9 @@ the plain rate limit (10 requests/hour per IP) does not.
             user = CustomUser.objects.get(email=email)
             otp_obj = PasswordResetOTP.objects.get(user=user)
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            sign_in_failed(
+                request, account_for_email(email), "password_reset", "INVALID_CODE"
+            )
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         # H-164: a switched-off account that never verified its email is not
@@ -1374,10 +1460,14 @@ the plain rate limit (10 requests/hour per IP) does not.
             raise ParseError("Invalid email, OTP code, or new password.")
 
         if otp_obj.is_locked():
+            # Merge of batch-2a (L2) into Epic A: L2's 429 answer, and the
+            # attempt is recorded as refused because the reset is locked.
+            sign_in_failed(request, user, "password_reset", "RESET_LOCKED", denied=True)
             return _reset_locked_response(otp_obj)
 
         if not otp_obj.is_valid():
             otp_obj.delete()
+            sign_in_failed(request, user, "password_reset", "CODE_EXPIRED")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         # Constant-time compare so the response latency does not leak how
@@ -1387,9 +1477,18 @@ the plain rate limit (10 requests/hour per IP) does not.
         if not constant_time_compare(str(otp_obj.code), str(otp)):
             otp_obj.register_failure()
             # The guess that spends the budget gets the lockout answer
-            # straight away, not one more generic 400.
+            # straight away, not one more generic 400. Audit records what
+            # happened to THIS attempt: a wrong code, which also set the lock.
             if otp_obj.is_locked():
+                sign_in_failed(
+                    request,
+                    user,
+                    "password_reset",
+                    "INVALID_CODE",
+                    extra_metadata={"lock_triggered": True},
+                )
                 return _reset_locked_response(otp_obj)
+            sign_in_failed(request, user, "password_reset", "INVALID_CODE")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -1417,6 +1516,7 @@ the plain rate limit (10 requests/hour per IP) does not.
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "password_reset")
 
         return Response(
             {
@@ -1509,6 +1609,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         otp = (serializer.validated_data.get("otp") or "").strip()
 
         if not user.check_password(current_password):
+            sign_in_failed(request, user, "password_change", "WRONG_PASSWORD")
             raise ParseError("Incorrect current password. Please try again.")
 
         # Dual-mode by design: the frontend does not send `otp` yet, so a
@@ -1526,6 +1627,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             otp_obj = PasswordChangeOTP.objects.filter(user=user).first()
 
             if otp_obj is None:
+                sign_in_failed(request, user, "password_change", "CODE_NOT_REQUESTED")
                 raise ParseError(
                     "No password change code has been requested for this "
                     "account. Request one and try again."
@@ -1533,6 +1635,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             if not otp_obj.is_valid():
                 otp_obj.delete()
+                sign_in_failed(request, user, "password_change", "CODE_EXPIRED")
                 raise ParseError(
                     "This password change code has expired. Request a new one "
                     "and try again."
@@ -1541,6 +1644,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # Constant-time, for the same reason reset_password does it: a
             # plain == leaks how much of the code was correct via timing.
             if not constant_time_compare(str(otp_obj.code), str(otp)):
+                sign_in_failed(request, user, "password_change", "INVALID_CODE")
                 raise ParseError("Invalid password change code. Please try again.")
 
             # Single-use: a code that has completed a change must not be
@@ -1560,6 +1664,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # Track activity
         AnalyticsService.track_activity(user)
+        sign_in_succeeded(request, user, "password_change")
 
         return Response(
             {
@@ -1651,15 +1756,57 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             token = RefreshToken(refresh_token)
             token.blacklist()
         except KeyError:
+            emit(
+                AuditAction.AUTH_LOGOUT,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=request.user.id,
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.VALIDATION,
+                reason_code="REFRESH_TOKEN_MISSING",
+            )
             raise ParseError("Refresh token is required.") from KeyError
         except TokenError:
+            emit(
+                AuditAction.AUTH_LOGOUT,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=request.user.id,
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.USER,
+                reason_code="REFRESH_TOKEN_INVALID",
+            )
             raise ParseError("Invalid or expired token") from TokenError
 
         # AUTHZ-T1: blacklisting the refresh token never touched the access
         # token, which stayed valid for up to a day. Bumping the session epoch
         # kills the access token AND every other device's tokens at once
         # (logging out anywhere signs the user out everywhere).
-        request.user.revoke_all_sessions()
+        try:
+            request.user.revoke_all_sessions()
+        except Exception:
+            emit(
+                AuditAction.AUTH_LOGOUT,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=request.user.id,
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.SYSTEM,
+                reason_code="SESSION_REVOKE_FAILED",
+            )
+            raise
+
+        emit(
+            AuditAction.AUTH_LOGOUT,
+            actor=request.user,
+            request=request,
+            target_type="CustomUser",
+            target_id=request.user.id,
+            outcome=AuditOutcome.SUCCESS,
+        )
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
@@ -1711,7 +1858,18 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         serializer = CustomUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        serializer.save()
+        user = serializer.save()
+        # Epic A S2: the new account is traceable. The requester was not
+        # signed in, so the actor is ANONYMOUS and the account is the target;
+        # a refused (malformed) registration is recorded by AuditMiddleware.
+        emit(
+            AuditAction.ACCOUNT_REGISTER,
+            actor=request.user,
+            request=request,
+            target_type="CustomUser",
+            target_id=user.pk,
+            metadata={"auth_method": "self_registration"},
+        )
 
         return Response(serializer.data)
 
@@ -1780,6 +1938,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_name="register-school-admin",
     )
     def register_school_admin(self, request, *args, **kwargs):
+        # A refused code is recorded after the atomic block has rolled back,
+        # never inside it (the event would roll back too).
+        audit_failure = None
         try:
             with transaction.atomic():
                 serializer = SchoolAdminRegistrationCompletionSerializer(
@@ -1805,10 +1966,17 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     .first()
                 )
 
-                if not user:
+                # H-203, THE PRINCIPLE: the invitation token proves only the
+                # mailbox. A pending row that has admin power (the Django admin
+                # can give a SCHOOL_ADMIN row is_staff or is_superuser) is not
+                # activated or signed in: the answer for a wrong token, and the
+                # same audit event as one (Epic A's failed-sign-in record).
+                if not user or _holds_admin_power(user):
+                    audit_failure = (account_for_email(email), "INVALID_CODE")
                     raise ParseError("Invalid or expired activation token.")
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
+                    audit_failure = (user, "CODE_EXPIRED")
                     raise ParseError(
                         "This invitation link has expired. Please contact your "
                         "superadmin for a new invitation."
@@ -1819,7 +1987,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.email_verified_at = timezone.now()
                 user.activation_token = None
                 user.activation_expires = None
-                user.save()
+                # Epic A S4: the invited school admin who just proved the
+                # invitation code is the actor of their own activation.
+                with history.acting_as(user):
+                    user.save()
 
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
@@ -1827,6 +1998,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             # Track activity
             AnalyticsService.track_activity(user)
+            sign_in_succeeded(request, user, "school_admin_invitation")
 
             return Response(
                 {
@@ -1837,6 +2009,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 status=status.HTTP_200_OK,
             )
         except (ParseError, ValidationError):
+            if audit_failure is not None:
+                sign_in_failed(
+                    request,
+                    audit_failure[0],
+                    "school_admin_invitation",
+                    audit_failure[1],
+                )
             raise
         except Exception as e:
             logger.error("School admin registration failed", exc_info=e)
@@ -1904,10 +2083,36 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="google-auth",
     )
     def google_auth(self, request, *args, **kwargs):
+        # Every refusal is recorded here, after the view's own atomic block has
+        # unwound (an event written inside it would roll back with it). Each
+        # raise site in _google_auth tags its reason, and the refused account
+        # when one is known (a deactivated account).
+        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
+        self._audit_account = None
+        try:
+            return self._google_auth(request)
+        except (ParseError, ValidationError, AuthenticationFailed):
+            reason = self._audit_reason
+            sign_in_failed(
+                request,
+                self._audit_account,
+                "google",
+                reason,
+                denied=reason == "ACCOUNT_DEACTIVATED",
+                error_class=(
+                    ErrorClass.PROVIDER
+                    if reason == "GOOGLE_EXCHANGE_FAILED"
+                    else ErrorClass.USER
+                ),
+            )
+            raise
+
+    def _google_auth(self, request):
         code = request.data.get("code")
         redirect_uri = settings.GOOGLE_REDIRECT_URI
 
         if not code:
+            self._audit_reason = "GOOGLE_CODE_MISSING"
             raise ParseError("Authorization code is required")
 
         try:
@@ -1928,10 +2133,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 token_data = response.json()
             except http_requests.exceptions.RequestException as e:
                 logger.error("Google OAuth token exchange failed", exc_info=e)
+                self._audit_reason = "GOOGLE_EXCHANGE_FAILED"
                 raise ParseError(
                     describe_user_error(
                         e,
-                        fallback_message=("Google sign-in failed. Please try again."),
+                        fallback_message=GOOGLE_SIGN_IN_FAILED,
                     )
                 ) from e
 
@@ -1941,6 +2147,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             expires_in = token_data.get("expires_in", 500)
 
             if not id_token_str:
+                self._audit_reason = "GOOGLE_TOKEN_INVALID"
                 raise ParseError("Google did not return an ID token")
 
             id_info = id_token.verify_oauth2_token(
@@ -1950,6 +2157,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
             if not id_info.get("email_verified"):
+                self._audit_reason = "GOOGLE_EMAIL_UNVERIFIED"
                 raise ParseError("Google has not verified your email")
 
             with transaction.atomic():
@@ -2016,11 +2224,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # this button.
                         email_errors = serializer.errors.get("email")
                         if email_errors:
+                            self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
                             raise ParseError(
                                 f"{email_errors[0]} If you are joining a "
                                 "school, ask your school admin to invite you "
                                 "and use the link in that invitation instead."
                             )
+                        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
                         raise ValidationError(serializer.errors)
 
                 else:
@@ -2041,11 +2251,24 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     # activating there would turn Google sign-in into a way
                     # round a deactivation.
                     if not user.is_active and user.email_verified_at is not None:
+                        self._audit_reason = "ACCOUNT_DEACTIVATED"
+                        self._audit_account = user
                         raise AuthenticationFailed(
                             "This account has been deactivated. Please "
                             "contact support.",
                             "account_deactivated",
                         )
+
+                    # H-203, THE PRINCIPLE: a mailbox-only road (a Google
+                    # identity proves only the mailbox) never signs in, verifies
+                    # or activates a never-verified account with admin power.
+                    # Answered like a failed Google sign-in; nothing written.
+                    if user.email_verified_at is None and _holds_admin_power(user):
+                        # Epic A: a refused sign-in is audited, naming the
+                        # account it was tried on.
+                        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"
+                        self._audit_account = user
+                        raise ParseError(GOOGLE_SIGN_IN_FAILED)
 
                     resurrected_fields = []
                     if user.email_verified_at is None:
@@ -2068,7 +2291,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         resurrected_fields.append("password")
 
                     if resurrected_fields:
-                        user.save(update_fields=resurrected_fields)
+                        # Epic A S4 (SM ruling): the account Google's token
+                        # check just established is the actor of its own
+                        # activation.
+                        with history.acting_as(user):
+                            user.save(update_fields=resurrected_fields)
                         # Only now does this account become a real, usable
                         # one, so this is the first point it should reach
                         # the mailing list (queue_sync no-ops on inactive).
@@ -2095,10 +2322,17 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # and Google has just proven mailbox ownership of
                         # the exact address the teacher invited - strictly
                         # stronger evidence than the emailed code.
-                        promoted = StudentCourse.objects.filter(
-                            student=user,
-                            enrollment_status=EnrollmentStatusType.PENDING,
-                        ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+                        # Epic A S4 (SM R3): one ROSTER_CHANGE per promoted
+                        # enrolment, naming `user` - the account Google's
+                        # token check just established, not request input.
+                        promoted = history.record_bulk(
+                            StudentCourse.objects.filter(
+                                student=user,
+                                enrollment_status=EnrollmentStatusType.PENDING,
+                            ),
+                            actor=user,
+                            enrollment_status=EnrollmentStatusType.ENROLLED,
+                        )
                         if promoted:
                             logger.info(
                                 "Promoted %s pending enrollment(s) to ENROLLED "
@@ -2123,6 +2357,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # tokens here rather than through the login serializer.
             stamp_last_login(user)
             refresh = EpochRefreshToken.for_user(user)
+            sign_in_succeeded(request, user, "google")
 
             return Response(
                 {
@@ -2134,6 +2369,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         except ValueError as e:
+            self._audit_reason = "GOOGLE_TOKEN_INVALID"
             raise ParseError("Invalid Google token signature") from e
 
 
@@ -2158,7 +2394,15 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             },
             description="Successfully authenticated",
         ),
-        401: OpenApiResponse(description="Invalid credentials"),
+        401: OpenApiResponse(
+            description=(
+                "Invalid credentials, or the account is locked after too many "
+                "failed attempts. The lock's body has `error.field_errors.code` "
+                '"account_locked" and `reason_code` "ACCOUNT_LOCKED", plus '
+                "`error_class`, `remediation`, `retryable`, `params` and "
+                "`reference`; show `message` either way."
+            )
+        ),
     },
 )
 class TokenObtainPairView(BaseTokenObtainPairView):
@@ -2205,6 +2449,15 @@ class TokenObtainPairView(BaseTokenObtainPairView):
 )
 class TokenRefreshView(BaseTokenRefreshView):
     serializer_class = EpochTokenRefreshSerializer
+
+
+def _uuid_or_404(value):
+    """A path id as a UUID; a malformed one is simply not found (a 404, not
+    a 500 from the UUIDField lookup)."""
+    try:
+        return uuid.UUID(str(value))
+    except ValueError as exc:
+        raise NotFound() from exc
 
 
 class TaskViewSet(viewsets.ViewSet):
@@ -2431,6 +2684,80 @@ class TaskViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Tasks"],
+        summary="Retry one failed batch item in place (FR-A-07 S7b)",
+        description=(
+            "Retries a FAILED grade item whose reason code is retryable as it "
+            "is (PROVIDER_FAILURE, INSUFFICIENT_CREDITS_MID_BATCH): the same "
+            "item_id, retry_count + 1, relaunched. 202 with the item in "
+            "session-results' shape. Anything else is 409 NOT_RETRYABLE; an "
+            "upload item answers 'upload the file again' with "
+            "params.resolution = 'replace_file' (its file isn't kept)."
+        ),
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"session/(?P<session_id>[^/.]+)/items/(?P<item_id>[^/.]+)/retry",
+        url_name="retry-item",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def retry_item(self, request, session_id=None, item_id=None):
+        session = self._own_session(request, session_id)
+        # H-38 (F6.2's rule for every tasks/ route; SM ruling at the bundle 4
+        # merge-down): a session whose course its teacher can no longer reach
+        # answers exactly like a missing one, as status and session-results
+        # do. item_retry's own per-item and in-claim checks stay behind it.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
+        item = get_object_or_404(
+            BackgroundProcessingTask, id=_uuid_or_404(item_id), batch_session=session
+        )
+        item = item_retry.retry_item(item, request.user, request=request)
+        return Response(
+            item_result(item, get_task_context(item)), status=status.HTTP_202_ACCEPTED
+        )
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Retry every retryable failed item of a batch (FR-A-07 S7b)",
+        description=(
+            'Body (optional): {"reason_codes": [...]} to retry only those codes. '
+            "202 with {retried: [item_id], skipped: [{item_id, reason_code}]}."
+        ),
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"session/(?P<session_id>[^/.]+)/retry-failed",
+        url_name="retry-failed",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def retry_failed(self, request, session_id=None):
+        session = self._own_session(request, session_id)
+        # H-38: the same session-level rule as the other tasks/ routes.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
+        reason_codes = request.data.get("reason_codes")
+        if reason_codes is not None and (
+            not isinstance(reason_codes, list)
+            or not all(isinstance(code, str) for code in reason_codes)
+        ):
+            raise ParseError("reason_codes must be a list of reason codes.")
+        retried, skipped = item_retry.retry_failed(
+            session, request.user, reason_codes=reason_codes, request=request
+        )
+        return Response(
+            {"retried": retried, "skipped": skipped}, status=status.HTTP_202_ACCEPTED
+        )
+
+    @staticmethod
+    def _own_session(request, session_id):
+        return get_object_or_404(
+            BatchUploadSession, id=_uuid_or_404(session_id), teacher=request.user
+        )
+
+    @extend_schema(
+        tags=["Tasks"],
         summary="Retrieve batch upload session results",
         description="""
             Retrieve the processing status and results of a batch upload session.
@@ -2561,7 +2888,11 @@ class TaskViewSet(viewsets.ViewSet):
                 "submission",
                 "submission__assignment",
                 "assignment__course",
-            ).all()
+            )
+            # FR-A-07 (S7a, v2's N1): every per-item list is in item_index
+            # order (upload order), whatever order the items finished in;
+            # items with no index (older rows) come last, oldest first.
+            .order_by(F("item_index").asc(nulls_last=True), "created_at")
         )
 
         if tracked_tasks:
@@ -2577,13 +2908,8 @@ class TaskViewSet(viewsets.ViewSet):
                 # Get context for this specific task
                 task_context = get_task_context(processing_task)
 
-                task_entry = {
-                    "status": processing_task.status,
-                    "file_name": processing_task.file_name,
-                    "task_id": processing_task.celery_task_id,
-                    "error": processing_task.error,
-                    "context": task_context,  # add context
-                }
+                # FR-A-07 (S7a): the old keys, plus the item's own result.
+                task_entry = item_result(processing_task, task_context)
 
                 if processing_task.status == "SUCCESS":
                     success.append(task_entry)
@@ -2619,6 +2945,7 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failures,
                 "cancelled_list": cancelled,
                 "pending_list": pending,
+                **failure_summary(failures),
             }
         else:
             # Fallback to session.results (legacy, for sessions without tracked tasks)
@@ -2671,6 +2998,13 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failure_entries,
                 "cancelled_list": [],
                 "pending_list": [],
+                # FR-A-07: a legacy session has no codes; its failures count
+                # as unclassified.
+                "failure_codes": (
+                    {UNCLASSIFIED: len(failure_entries)} if failure_entries else {}
+                ),
+                "stopped_at_item": None,
+                "resumable": False,
             }
 
         # Use the new serializer

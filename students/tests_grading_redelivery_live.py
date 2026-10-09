@@ -95,7 +95,14 @@ class GradingRedeliveryLiveTest(TransactionTestCase):
         self.assignment = Assignment.objects.create(
             title="A",
             course=self.course,
-            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_text": "Q1?",
+                    "points": 10,
+                    "model_answer": "4",
+                }
+            ],
         )
         # Everything a worker execution reports, in order of completion.
         self.outcomes = []

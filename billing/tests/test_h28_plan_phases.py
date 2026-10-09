@@ -46,7 +46,12 @@ from billing.models import (
     PlanType,
 )
 from billing.stripe_service import StripeSubscriptionMutationService
-from billing.tests.test_h28_cancel_phases import MUTATION_LOGGER, LicencePhaseTestCase
+from billing.tests.test_h28_cancel_phases import (
+    MUTATION_LOGGER,
+    LicencePhaseTestCase,
+    as_a_request_by,
+    assert_one_escalation_event,
+)
 from billing.tests.test_h28_licence_stripe_divergence import CONTRACT_MONTHS, _make_plan
 
 
@@ -213,6 +218,19 @@ class PlanPhaseTests(LicencePhaseTestCase):
         self.assertEqual(self.fresh_licence().plan_id, self.old_plan.id)
         revert = self.modify_calls()[-1][2]
         self.assertEqual(revert["idempotency_key"], intent.idempotency_key("revert"))
+
+    def test_an_escalated_plan_change_is_audited_as_the_signed_in_user(self):
+        with as_a_request_by(self.superadmin), patch.object(
+            BillingTransactionService,
+            "record",
+            side_effect=OperationalError("server closed the connection"),
+        ), self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+            with self.assertRaises(
+                license_stripe_mutation.LicenceStripeChangeNotRecorded
+            ):
+                self.change_plan(self.dearer_plan)
+
+        assert_one_escalation_event(self, self.only_intent(), self.superadmin)
 
     def test_a_failed_local_write_after_a_paid_upgrade_escalates(self):
         with patch.object(

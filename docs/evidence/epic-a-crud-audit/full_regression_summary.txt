@@ -1,0 +1,52 @@
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-crud-audit/users/serializers.py", line 428, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+....
+course payload query counts: roster=2 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7} roster=6 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7}
+
+[H18/H19 scale] query counts small(60 students)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 25} large(600)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 25}
+
+[scale] 30-file batch (24 good, 6 bad) took 1.96s
+
+[scale] 6 concurrent 30-file batches took 1.94s; provider calls=24
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+{'user_id': '7bb97bd7-7e7d-4aa6-bb53-f5457463dd15', 'assignment_id': '7622b27c-914e-4739-85b5-4aa18810af2f', 'keep_existing_title': True}
+Extracting assignment content
+{'user_id': '7bb97bd7-7e7d-4aa6-bb53-f5457463dd15', 'assignment_id': '7622b27c-914e-4739-85b5-4aa18810af2f', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': '35cf9798-154f-4aa7-a3ca-0fb70e37a630', 'assignment_id': 'b0ba1e3b-90a2-4074-bdf0-53478dd6a470', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': '35cf9798-154f-4aa7-a3ca-0fb70e37a630', 'assignment_id': 'b0ba1e3b-90a2-4074-bdf0-53478dd6a470', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+scanned            : 1
+repaired           : 1 assignment(s)
+questions cleaned  : 1
+done
+scanned  : 1
+repaired : 1 assignment(s)
+done
+
+----------------------------------------------------------------------
+Ran 4718 tests in 282.712s
+
+OK (skipped=28)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+
+[exited with code 0]

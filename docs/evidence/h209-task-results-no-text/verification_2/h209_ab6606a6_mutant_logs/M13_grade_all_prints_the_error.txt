@@ -1,0 +1,58 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user f8676829-a768-406a-a708-8ae073d81cb2.
+Cannot activate automatic trial for user f8676829-a768-406a-a708-8ae073d81cb2 (validation): ValueError
+.Free trial plan not found: no trial activated for user f7e5ad0f-e03b-4a6f-b6af-42324a837562.
+Cannot activate automatic trial for user f7e5ad0f-e03b-4a6f-b6af-42324a837562 (validation): ValueError
+.Free trial plan not found: no trial activated for user 155d8a27-0b3c-4db5-861b-b5031d83b596.
+Cannot activate automatic trial for user 155d8a27-0b3c-4db5-861b-b5031d83b596 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8ffbdecd-d3c0-4303-b11d-81e2d88e8778.
+Cannot activate automatic trial for user 8ffbdecd-d3c0-4303-b11d-81e2d88e8778 (validation): ValueError
+.Free trial plan not found: no trial activated for user e03d715e-65a0-40a8-b0b2-8121da1f5abe.
+Cannot activate automatic trial for user e03d715e-65a0-40a8-b0b2-8121da1f5abe (validation): ValueError
+.Free trial plan not found: no trial activated for user 819ed1f3-5d80-4d78-bd24-485cdf3b57a7.
+Cannot activate automatic trial for user 819ed1f3-5d80-4d78-bd24-485cdf3b57a7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 291dac36-05c8-4e8c-add3-2273e648b0ee.
+Cannot activate automatic trial for user 291dac36-05c8-4e8c-add3-2273e648b0ee (validation): ValueError
+.Free trial plan not found: no trial activated for user 85eae5e4-b512-4504-b206-ff168b697d10.
+Cannot activate automatic trial for user 85eae5e4-b512-4504-b206-ff168b697d10 (validation): ValueError
+.Free trial plan not found: no trial activated for user c7112ec2-6a2c-4146-887b-a9095008856f.
+Cannot activate automatic trial for user c7112ec2-6a2c-4146-887b-a9095008856f (validation): ValueError
+.Free trial plan not found: no trial activated for user d979b296-b0c1-4ada-96a9-cf403f8e6d90.
+Cannot activate automatic trial for user d979b296-b0c1-4ada-96a9-cf403f8e6d90 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:31,194 task_tracking 1864250 135526206004160 [request_id=-] Background task f3a00b17-c433-4513-bbaa-85a42e6cd997 failed: error=RuntimeError frames=tasks.py:243:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user ce6fa136-ee82-4e98-bcb0-a29b85d594c7.
+Cannot activate automatic trial for user ce6fa136-ee82-4e98-bcb0-a29b85d594c7 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:31,396 task_tracking 1864250 135526206004160 [request_id=-] Background task fe804b3f-d378-49e8-a136-b24a7f7da936 failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+FFree trial plan not found: no trial activated for user d6560932-bd1d-4a48-b59c-6e65e3496064.
+Cannot activate automatic trial for user d6560932-bd1d-4a48-b59c-6e65e3496064 (validation): ValueError
+.
+======================================================================
+FAIL: test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output (students.tests_vf2_h209_probe.GradeAllAndFriendsThroughTheRealBodies.test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 272, in test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output
+    self.assertEqual(cap.printed, "", "the task printed something")
+AssertionError: 'cannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET\n' != ''
+- cannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET
+ : the task printed something
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.510s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

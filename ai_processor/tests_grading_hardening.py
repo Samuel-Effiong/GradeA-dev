@@ -36,6 +36,9 @@ from ai_processor.services import (
 from ai_processor.tools import safe_sort_key
 from users.models import CustomUser, UserTypes
 
+# S5: execute_graded_task requires one; any non-empty label will do here.
+TEST_PROMPT_VERSION = "TEST_PROMPT:00000000"
+
 
 @override_settings(
     GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
@@ -168,6 +171,7 @@ class GradingFallbackModelRestrictionTest(TestCase):
             AIProcessor, "_AIProcessor__ai_model", side_effect=fake_model
         ):
             self.processor.execute_graded_task(
+                prompt_version=TEST_PROMPT_VERSION,
                 user=self.super_admin,
                 feature="Grading Assignment",
                 task_type=task_type,

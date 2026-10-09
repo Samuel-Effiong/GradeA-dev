@@ -38,6 +38,7 @@ from rest_framework.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from assignments.exceptions import SubmissionEmptyError
 from assignments.models import Assignment, AssignmentStatus
 from assignments.serializers import (
     BatchUploadResponseSerializer,
@@ -52,11 +53,14 @@ from assignments.tasks import (
     upload_answers_engine_async,
 )
 from assignments.upload_door import upload_refusal_if_unaffordable
+from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.uploads import validate_upload_size
-from billing.refusals import refusal_response
+from AutoGrader.reason_codes import CodedError, coded_response
+from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -71,6 +75,7 @@ from .exceptions import (
     SubmissionProcessingInProgressError,
 )
 from .feedback_projection import grading_result_for_formatter
+from .grading_gates import ensure_gradable
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -92,6 +97,8 @@ from .serializers import (
     StudentUploadAnswerSerializer,
 )
 from .services import (
+    SUBMITTED_TEXT,
+    emit_grading_completed,
     ensure_no_active_extraction,
     ensure_student_may_submit,
     ensure_submission_open,
@@ -105,7 +112,11 @@ from .services import (
     upload_answers_engine,
 )
 from .signals import invalidate_submission_caches
-from .task_tracking import create_processing_task, launch_processing_task
+from .task_tracking import (
+    create_processing_task,
+    launch_processing_task,
+    record_refused_item,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -130,12 +141,13 @@ def _submission_closed_response(exc):
 
 
 def _failure_response(exc, fallback_message):
-    """An AI refusal (plan or credits) is a 403/402 with a code; any other
-    refusal the user can act on is a 400 with its own text; anything else is
-    a 500 with the operation's fallback text (never the raw exception)."""
-    refused = refusal_response(exc)
-    if refused is not None:
-        return refused
+    """A coded failure (FR-A-06, including the AI refusals: plan or credits)
+    gets its own status and the coded body; any other refusal the user can
+    act on is a 400 with its own text; anything else is a 500 with the
+    operation's fallback text (never the raw exception)."""
+    coded = coded_response(exc)
+    if coded is not None:
+        return coded
     return Response(
         {"error": describe_user_error(exc, fallback_message=fallback_message)},
         status=(
@@ -578,6 +590,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
 
             submission = upload_answers_engine(assignment, content, request.user)
+
+            emit(
+                AuditAction.SUBMISSION_UPLOAD,
+                actor=request.user,
+                request=request,
+                target_type="StudentSubmission",
+                target_id=submission.id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "file_type": uploaded_file.content_type or "",
+                    "file_size_bytes": uploaded_file.size,
+                },
+            )
+
             # H-141: the student's own serializer, not the teacher's. With
             # the context, as every serializer a student's route builds;
             # this one does not need the request to be safe.
@@ -704,6 +731,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         task_id = task.id
 
+        emit(
+            AuditAction.SUBMISSION_UPLOAD,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "file_type": uploaded_file.content_type or "",
+                "file_size_bytes": uploaded_file.size,
+            },
+        )
+
         data = {"task_id": task_id, "message": "Answer Extraction Started"}
 
         serializer = StudentSubmissionUploadAsyncSerializer(data)
@@ -719,8 +760,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         graded, refund on failure, column-scoped save) cannot diverge.
         """
         raw_input = request.data.get("raw_input")
-        if not raw_input or not str(raw_input).strip():
+        if raw_input is None:
             raise ParseError("raw_input is required.")
+        if not str(raw_input).strip():
+            # S6d: present but empty is SUBMISSION_EMPTY (422), not a
+            # malformed request; nothing is extracted or charged.
+            raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})
 
         submission = self.get_object()
         if submission.assignment.status != AssignmentStatus.PUBLISHED:
@@ -765,8 +810,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def update_async(self, request, pk=None):
         raw_input = request.data.get("raw_input")
-        if not raw_input or not str(raw_input).strip():
+        if raw_input is None:
             raise ParseError("raw_input is required.")
+        if not str(raw_input).strip():
+            # S6d: present but empty is SUBMISSION_EMPTY (422), not a
+            # malformed request; nothing is extracted or charged.
+            raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})
 
         submission = self.get_object()
         if submission.assignment.status != AssignmentStatus.PUBLISHED:
@@ -833,7 +882,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission = self.get_object()
 
         try:
+            # Epic A S4 (SM R2): the synchronous route records the same one
+            # GRADING_COMPLETED as the Celery path, with the grade's
+            # before/after. It names the requester, so it replaces S1's
+            # generic event for this request.
+            grade_before = history.snapshot(submission)
             submission = grade_engine(request.user, submission)
+            emit_grading_completed(submission, actor=request.user, before=grade_before)
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_200_OK)
@@ -875,6 +930,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def grade_async(self, request, pk=None):
         submission = self.get_object()
+        # 409 RUBRIC_MISSING before anything is queued (S6d).
+        ensure_gradable(submission.assignment)
 
         processing_task = create_processing_task(
             requested_by=request.user,
@@ -891,6 +948,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             str(submission.id),
         )
         task_id = task.id
+
+        emit(
+            AuditAction.GRADING_REQUESTED,
+            actor=request.user,
+            request=request,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(submission.assignment_id),
+                "submission_id": str(submission.id),
+                "task_id": str(processing_task.id),
+                "task_type": BackgroundTaskType.SUBMISSION_GRADING,
+            },
+        )
 
         data = {
             "submission_id": submission.id,
@@ -915,6 +987,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def schedule_grade_async(self, request, pk=None):
         submission = self.get_object()
+        # 409 RUBRIC_MISSING before anything is scheduled (S6d); the run
+        # re-checks, since the rubric can be removed meanwhile.
+        ensure_gradable(submission.assignment)
 
         serializer = ScheduleGradingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1319,12 +1394,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files uploaded. Please try again.")
 
-        # Validate every file up front, before the session/Celery tasks for
-        # any of them are created - one oversized file in a batch shouldn't
-        # leave a half-queued session behind.
-        for uploaded_file in files:
-            validate_upload_size(uploaded_file)
-
         prompt = """
             Analyze the image of an educational assignment and return a JSON
 
@@ -1332,7 +1401,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-        # H-180: before the session or any task exists.
+        # H-180: before the session or any task exists. A file too large to
+        # read counts as "cannot say" for the door (it is that file's own item
+        # below, FR-A-07), so the door never refuses a batch for it.
         refusal = upload_refusal_if_unaffordable(
             request.user, assignment, files, prompt
         )
@@ -1349,7 +1420,31 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tasks_data = []
         task_ids = []
 
-        for uploaded_file in files:
+        # FR-A-07 (S7a): every file is an item. One too large for the batch
+        # fails as ITS item (413 FILE_TOO_LARGE) and the others still run;
+        # the whole batch is never refused, nor left half-queued.
+        for item_index, uploaded_file in enumerate(files, start=1):
+            try:
+                validate_upload_size(uploaded_file)
+            except PayloadTooLarge as exc:
+                refused = record_refused_item(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                    error=exc,
+                    batch_session=session,
+                    assignment=assignment,
+                    file_name=uploaded_file.name,
+                    item_index=item_index,
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": refused.id,
+                    }
+                )
+                continue
+
             # Read raw file bytes cheaply here; heavy rasterization/compression
             # happens inside the Celery task, not on the request thread.
             file_payload = AssignmentProcessingService.build_async_upload_payload(
@@ -1365,6 +1460,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 assignment=assignment,
                 file_name=uploaded_file.name,
                 meta={"step": "Queued for batch answer extraction"},
+                item_index=item_index,
             )
             task = launch_processing_task(
                 upload_answers_engine_async,
@@ -1376,8 +1472,24 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 session_id=str(session.id),
                 file_name=uploaded_file.name,
             )
-            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
+            tasks_data.append(
+                {
+                    "file_name": uploaded_file.name,
+                    "task_id": task.id,
+                    "item_id": processing_task.id,
+                }
+            )
             task_ids.append(task.id)
+
+        emit(
+            AuditAction.SUBMISSION_UPLOAD,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"assignment_id": str(assignment.id), "file_count": len(files)},
+        )
 
         data = {
             "session_id": session.id,
@@ -1417,18 +1529,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # persisting a score, or vice versa) be published, emailing the
         # student about a grade that doesn't exist.
         if not submission.graded_at or submission.score is None:
-            return Response(
-                {"error": "Cannot publish an ungraded submission."},
-                status=HTTP_400_BAD_REQUEST,
-            )
+            # Catalogue F (Epic A S7d): coded SUBMISSION_NOT_GRADED, still a
+            # 400.
+            return coded_response(CodedError(ReasonCode.SUBMISSION_NOT_GRADED))
 
         # Conditional UPDATE as an atomic claim: two concurrent publish
         # requests both saw is_published=False above, but only one matches
         # this WHERE clause — so the student gets exactly one notification
         # instead of one per click.
-        newly_published = StudentSubmission.objects.filter(
-            pk=submission.pk, is_published=False
-        ).update(is_published=True)
+        # Epic A S4: through record_bulk, which writes the GRADE_CHANGE
+        # (is_published false -> true) for the row it actually flipped.
+        newly_published = history.record_bulk(
+            StudentSubmission.objects.filter(pk=submission.pk, is_published=False),
+            is_published=True,
+        )
         submission.is_published = True
 
         if newly_published:
@@ -1470,9 +1584,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # requests only one matches needs_review=True, so the resolution
         # entry is appended exactly once. Already-resolved submissions are
         # an idempotent no-op, not an error.
-        resolved = StudentSubmission.objects.filter(
-            pk=submission.pk, needs_review=True
-        ).update(
+        # Epic A S4 (SM R1): record_bulk writes the GRADE_CHANGE
+        # (needs_review true -> false); the actor is the "by", the event time
+        # the "at". review_reasons (grader text) is never tracked.
+        resolved = history.record_bulk(
+            StudentSubmission.objects.filter(pk=submission.pk, needs_review=True),
             needs_review=False,
             review_reasons=(submission.review_reasons or [])
             + [

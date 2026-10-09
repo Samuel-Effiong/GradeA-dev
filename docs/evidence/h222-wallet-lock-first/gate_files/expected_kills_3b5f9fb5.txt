@@ -1,0 +1,5 @@
+W1: 1 failing, as expected
+W2: 1 failing, as expected
+W3: 1 failing, as expected
+W4: 1 failing, as expected
+every mutant's failing set is the expected one

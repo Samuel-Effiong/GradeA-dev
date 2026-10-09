@@ -185,8 +185,18 @@ class UpdateAsyncRouteTest(APITestCase):
         self.assertFalse(BackgroundProcessingTask.objects.exists())
 
     @patch("students.views.launch_processing_task")
-    def test_missing_text_and_unpublished_assignment_are_400(self, mock_launch):
-        self.assertEqual(self._post("   ").status_code, status.HTTP_400_BAD_REQUEST)
+    def test_empty_or_missing_text_and_unpublished_assignment_are_refused(
+        self, mock_launch
+    ):
+        # Epic A S6d (behaviour change, EVIDENCE's 4-point record): empty
+        # text is SUBMISSION_EMPTY (422); a missing field stays 400.
+        response = self._post("   ")
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["reason_code"], "SUBMISSION_EMPTY"
+        )
+        missing = self.client.post(self.url, {}, format="json")
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
         Assignment.objects.filter(pk=self.assignment.pk).update(
             status=AssignmentStatus.DRAFT
         )

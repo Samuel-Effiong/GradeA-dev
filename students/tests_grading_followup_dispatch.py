@@ -73,7 +73,7 @@ class GradingFollowupDispatchTest(TransactionTestCase):
         assignment = Assignment.objects.create(
             title="Test Assignment",
             course=course,
-            questions=[{"question_number": 1, "points": 10}],
+            questions=[{"question_number": 1, "points": 10, "model_answer": "4"}],
         )
         self.submission = StudentSubmission.objects.create(
             assignment=assignment,

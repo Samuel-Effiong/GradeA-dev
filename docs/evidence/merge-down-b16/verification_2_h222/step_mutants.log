@@ -1,0 +1,11 @@
+B0_base_code_with_the_tip_tests | KILLED | Ran 4 tests in 22.016s | FAILED (failures=2) | X failing ['ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket', 'ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets'] | written ['ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket', 'ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets'] | fragment-missing [] | A (informative only) []
+  restore billing/license_service.py ok | __pycache__ cleared
+  restore billing/services.py ok | __pycache__ cleared
+M1_clawback_has_no_wallet_lock | KILLED | Ran 4 tests in 12.862s | FAILED (failures=1) | X failing ['ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets'] | written ['ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets'] | fragment-missing [] | A (informative only) []
+  restore billing/license_service.py ok | __pycache__ cleared
+M2_expire_bucket_has_no_wallet_lock | KILLED | Ran 4 tests in 12.869s | FAILED (failures=1) | X failing ['ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket'] | written ['ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket'] | fragment-missing [] | A (informative only) []
+  restore billing/services.py ok | __pycache__ cleared
+M3_expire_bucket_locks_wallet_after_bucket | KILLED | Ran 4 tests in 4.009s | FAILED (failures=1) | X failing ['ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket'] | written ['ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket'] | fragment-missing [] | A (informative only) []
+  restore billing/services.py ok | __pycache__ cleared
+M4_clawback_locks_wallet_after_buckets | KILLED | Ran 4 tests in 3.938s | FAILED (failures=1) | X failing ['ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets'] | written ['ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets'] | fragment-missing [] | A (informative only) []
+  restore billing/license_service.py ok | __pycache__ cleared

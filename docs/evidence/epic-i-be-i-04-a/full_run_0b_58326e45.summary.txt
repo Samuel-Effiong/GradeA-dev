@@ -1,0 +1,21 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+epic-a a1 gate10 start 2026-10-06 15:27:33 WAT sha=58326e45 load=2.20 2.64 5.24
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=0 end 2026-10-06 15:35:51 WAT wall=498s
+load at end: 7.03 5.58 5.57
+Ran 6442 tests in 471.359s
+OK (skipped=30)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 855
+  assignments 663
+  audit 367
+  AutoGrader 613
+  billing 2139
+  classrooms 434
+  dashboard 270
+  students 403
+  users 698
+FAIL/ERROR headers: 0
+suspends during run: 0
