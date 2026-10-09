@@ -18,6 +18,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from audit import history
+from users.admin_power import holds_admin_power
 from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserActivity, UserTypes
 from users.services import generate_temporary_password
 
@@ -171,7 +172,10 @@ def check_existing_account_may_join(student, course):
     school, its enrollments and every other tenant row exactly as they
     were, so the caller raises instead of "fixing up" ownership.
     """
-    if student.user_type != UserTypes.STUDENT:
+    # H-203, THE PRINCIPLE: a STUDENT-typed row that carries admin power is not
+    # an account a teacher can attach to a course (and re-activate with an
+    # emailed password): the answer for an address that cannot be enrolled.
+    if student.user_type != UserTypes.STUDENT or holds_admin_power(student):
         logger.info(
             "Refused to enrol non-student account %s (%s) in course %s",
             student.pk,

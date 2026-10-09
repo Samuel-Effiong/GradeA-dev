@@ -1,0 +1,1 @@
+findings | Ran 1 test in 0.418s | FAILED (failures=1) | ['test_f1_celerys_own_failure_log_for_a_failed_grade_all_carries_no_text'] | fragment seen True

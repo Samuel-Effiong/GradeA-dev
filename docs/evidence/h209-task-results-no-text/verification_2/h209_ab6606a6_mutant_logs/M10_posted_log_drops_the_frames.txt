@@ -1,0 +1,56 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 164d40d9-1c93-4684-886f-8ce1b7654436.
+Cannot activate automatic trial for user 164d40d9-1c93-4684-886f-8ce1b7654436 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9addc769-f7ce-4097-9391-1f7a5390592b.
+Cannot activate automatic trial for user 9addc769-f7ce-4097-9391-1f7a5390592b (validation): ValueError
+.Free trial plan not found: no trial activated for user 4c3b686c-f162-458b-9340-8fe4035a048f.
+Cannot activate automatic trial for user 4c3b686c-f162-458b-9340-8fe4035a048f (validation): ValueError
+.Free trial plan not found: no trial activated for user ece6ec3f-254a-41b9-bf58-ba011e5519f7.
+Cannot activate automatic trial for user ece6ec3f-254a-41b9-bf58-ba011e5519f7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3cf3ed8d-3467-4086-b617-3fbede32df12.
+Cannot activate automatic trial for user 3cf3ed8d-3467-4086-b617-3fbede32df12 (validation): ValueError
+.Free trial plan not found: no trial activated for user 52bb2236-e58e-450a-8872-2347d003ea1e.
+Cannot activate automatic trial for user 52bb2236-e58e-450a-8872-2347d003ea1e (validation): ValueError
+.Free trial plan not found: no trial activated for user 02d3f386-a04f-4e3f-a5c3-42fa080677d3.
+Cannot activate automatic trial for user 02d3f386-a04f-4e3f-a5c3-42fa080677d3 (validation): ValueError
+FFree trial plan not found: no trial activated for user c75fa513-42bd-46e4-b921-806dce1470ad.
+Cannot activate automatic trial for user c75fa513-42bd-46e4-b921-806dce1470ad (validation): ValueError
+.Free trial plan not found: no trial activated for user fd125509-a8ab-498b-bd1b-b0a508e6f72f.
+Cannot activate automatic trial for user fd125509-a8ab-498b-bd1b-b0a508e6f72f (validation): ValueError
+.Free trial plan not found: no trial activated for user 84d5df7c-5d28-44cd-8348-5badeed0aa7f.
+Cannot activate automatic trial for user 84d5df7c-5d28-44cd-8348-5badeed0aa7f (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:13,642 task_tracking 1864054 133265033653184 [request_id=-] Background task 0d85dc67-1ca4-4544-8fe5-286641a63b50 failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 25a749b1-cc04-49c3-b8e9-14cad870e503.
+Cannot activate automatic trial for user 25a749b1-cc04-49c3-b8e9-14cad870e503 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:13,845 task_tracking 1864054 133265033653184 [request_id=-] Background task 9f41c95b-c1b4-4a59-ba74-6b6ce27ffd7b failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 82e8783e-7789-4e29-a3b7-2da05e5f75c0.
+Cannot activate automatic trial for user 82e8783e-7789-4e29-a3b7-2da05e5f75c0 (validation): ValueError
+.
+======================================================================
+FAIL: test_p1_posted_failure_returns_class_only_and_logs_one_error (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_p1_posted_failure_returns_class_only_and_logs_one_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 222, in test_p1_posted_failure_returns_class_only_and_logs_one_error
+    self.assertIn("frames=", error["msg"], "no frames in the only report")
+AssertionError: 'frames=' not found in 'send_new_assignment_posted_notification failed: assignment=55f89f30-8648-46a5-9508-099ab94896ff error=RuntimeError' : no frames in the only report
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.515s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

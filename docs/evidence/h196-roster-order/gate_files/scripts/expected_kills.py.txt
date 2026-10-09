@@ -1,0 +1,119 @@
+"""H-196: written on 2026-10-08 BEFORE any run of the row, by reading each of
+the module's 8 tests against every mutant and against the base (beta
+5e37ac2b, no defined order). Nothing here was seen by a run.
+Two honest limits: (1) the base is expected red because the database returns
+the rows in insertion order (or by student id under another plan) and the
+tests make the defined order the REVERSE of insertion; (2) N8 (order by id
+only) is expected to fail the created_at tests only because random uuid4 ids
+are in the reverse of created order with probability 719/720 per test.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE 5e37ac2b>"""
+import re
+import sys
+from pathlib import Path
+
+D = "CourseDetailOrderTests"
+F = "SerializerFallbackOrderTests"
+S = "StudentCoursesOrderTests"
+O = "OneDefinitionTests"
+CD1 = (D, "test_detail_lists_students_by_enrolment_created_at_oldest_first")
+CD2 = (D, "test_detail_breaks_a_created_at_tie_by_enrolment_id")
+CD3 = (D, "test_list_route_lists_students_in_the_same_order")
+FB1 = (F, "test_fallback_lists_students_by_created_at_oldest_first")
+FB2 = (F, "test_fallback_breaks_a_created_at_tie_by_enrolment_id")
+SC1 = (S, "test_my_students_lists_enrolled_courses_oldest_enrolment_first")
+SC2 = (S, "test_unprefetched_serializer_lists_enrolled_courses_in_the_same_order")
+OD = (O, "test_the_order_is_defined_once_and_the_queryset_uses_it")
+
+EXPECTED = {
+    # the course prefetch loses its order: detail and list (both read it)
+    "N1": {CD1, CD2, CD3},
+    # the serializer's fallback query loses its order
+    "N2": {FB1, FB2},
+    # the student serializer stops sorting what it reads (the my-students
+    # prefetch has no order of its own, so both the route and the bare
+    # serializer show insertion order)
+    "N3": {SC1, SC2},
+    # the tie-break is dropped from the one definition: only the tie tests
+    # (rows with one created_at) and the definition test see it
+    "N4": {CD2, FB2, OD},
+    # the definition says newest first: every created_at test through the
+    # queryset sees it; the tie tests (one created_at, id ascending) and the
+    # in-memory sort (its own key) do not
+    "N5": {CD1, CD3, FB1, OD},
+    # the in-memory key puts id first: the two tests that go through it
+    "N6": {SC1, SC2},
+    # the queryset ignores the definition and orders by id only: the
+    # created_at tests and the definition test see it; the tie tests do not
+    "N7": {CD1, CD3, FB1, OD},
+}
+#: The BASE with the final tests: all seven behaviour tests are red (the rows
+#: are inserted in the reverse of the defined order); the definition test
+#: errors (no ENROLLMENT_LIST_ORDER).
+REPRO = {CD1, CD2, CD3, FB1, FB2, SC1, SC2, OD}
+#: RULE 22 (19:18): per test, the fragments that must be in ITS OWN failure
+#: block at (r), written before the run. A fixture 500 or a setup error shows
+#: "AssertionError: 500 != 200" or a different line and is a WRONG REASON.
+#: The seven behaviour tests reach the final list comparison (their length
+#: checks pass and the route answered 200) and fail ON IT; the definition test
+#: fails because the module has no ENROLLMENT_LIST_ORDER.
+REASON = {
+    CD1: ("Lists differ", "self.assertEqual(got, expected)"),
+    CD2: ("Lists differ", "self.assertEqual(got, expected)"),
+    CD3: ("Lists differ", "self.assertEqual(got, expected)"),
+    FB1: ("Lists differ", "self.assertEqual(got, expected)"),
+    FB2: ("Lists differ", "self.assertEqual(got, expected)"),
+    SC1: ("Lists differ", 'self.assertEqual(row["enrolled_courses"], self.expected_names)'),
+    SC2: ("Lists differ", 'self.assertEqual(data["enrolled_courses"], self.expected_names)'),
+    OD: ("AttributeError", "ENROLLMENT_LIST_ORDER"),
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), REPRO)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

@@ -1267,7 +1267,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "enrollments",
                     queryset=StudentCourse.objects.exclude(
                         enrollment_status=EnrollmentStatusType.WITHDRAWN
-                    ).select_related("student"),
+                    )
+                    .select_related("student")
+                    .in_list_order(),
                     to_attr="active_enrollments",
                 ),
             )
@@ -2140,6 +2142,10 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         )
                         .select_related("course", "course__teacher")
                         .prefetch_related("course__assignments"),
+                        # H-196: deliberately NOT ordered here. The order
+                        # is applied where a student's enrolments are read
+                        # (StudentListSerializer._enrollments); a second one
+                        # here no test could tell apart. Do not add it back.
                     ),
                     Prefetch(
                         "submissions",

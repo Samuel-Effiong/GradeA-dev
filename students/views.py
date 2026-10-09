@@ -52,6 +52,7 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from assignments.upload_door import upload_refusal_if_unaffordable
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -102,6 +103,7 @@ from .services import (
     ensure_student_may_submit,
     ensure_submission_open,
     grade_engine,
+    grading_result_stamp,
     notify_student_of_graded_submission,
     printable_answers,
     student_submission_to_html,
@@ -686,6 +688,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
+        # H-180: refuse here, before anything is queued, an upload the
+        # teacher's wallet cannot pay for (the gate in the task would refuse
+        # it and the student's file would be lost).
+        refusal = upload_refusal_if_unaffordable(
+            request.user, assignment, [uploaded_file], prompt
+        )
+        if refusal is not None:
+            return refusal
+
         file_payload = AssignmentProcessingService.build_async_upload_payload(
             uploaded_file
         )
@@ -1081,6 +1092,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     processing_task,
                     str(submission.id),
                     user_prompt,
+                    result_stamp=grading_result_stamp(submission),
                 )
                 task_id = task.id
 
@@ -1209,7 +1221,37 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             ]
         submission.needs_review = False
 
-        # Update the formatted grade since the score/feedback changed
+        # The stored answer document prints the score in its header, and a
+        # released student reads the stored document: rebuild it from the
+        # row as it now is, as grading does, or the paper keeps the old
+        # score beside the new one.
+        #
+        # A second line behind H-165's builder (which never raises on a shape
+        # of `answers`): the teacher's grade must never fail to save because
+        # a document builder raised. Around the BUILD only, never around the
+        # save. On a fault the stored document is left as it was (it is the
+        # paper the student reads; a stale printed score is a lesser harm
+        # than a paper that vanishes), the answer carries that old document
+        # (it claims no refresh), and the fault is logged by submission id and
+        # exception type only: no answer text, no names.
+        try:
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                student_submission_to_html(submission)
+            )
+        except Exception as exc:  # noqa: BLE001 - see the comment above
+            logger.error(
+                "Manual grade: the answer document could not be rebuilt: "
+                "submission=%s error=%s",
+                submission.pk,
+                type(exc).__name__,
+            )
+
+        # The formatted grade words the OLD result, and its first sentence
+        # states the old score. Clear it in the same save as the new score:
+        # until the task queued below has worded the new result, and for
+        # good if that task fails, a student reads no formatted grade
+        # rather than a wrong one (H-144).
+        submission.formatted_grade = None
 
         submission.save(
             update_fields=[
@@ -1221,6 +1263,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "regraded_at",
                 "needs_review",
                 "review_reasons",
+                "raw_input",
+                "formatted_grade",
             ]
         )
 
@@ -1250,12 +1294,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             submission=submission,
             meta={"step": "Queued for formatted grade generation"},
         )
-        launch_processing_task(
-            formatted_grade_async,
-            formatted_processing_task,
-            str(submission.id),
-            user_prompt,
-        )
+        try:
+            launch_processing_task(
+                formatted_grade_async,
+                formatted_processing_task,
+                str(submission.id),
+                user_prompt,
+                result_stamp=grading_result_stamp(submission),
+            )
+        except Exception as exc:  # noqa: BLE001 - the grade is already saved
+            # The score is saved and the notice sent. Answering a failure
+            # here would tell the teacher a grade that went through did
+            # not. The formatted grade stays empty; the background task's
+            # record holds the failure. Ids and the error's type only: a
+            # broker error's text can carry a connection address.
+            logger.error(
+                "Formatted grade not queued after a manual grade: "
+                "submission=%s task=%s error=%s",
+                submission.id,
+                formatted_processing_task.id,
+                # an unreachable broker arrives wrapped; name what it was
+                type(exc.__cause__ or exc).__name__,
+            )
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
@@ -1334,6 +1394,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files uploaded. Please try again.")
 
+        prompt = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
+        # H-180: before the session or any task exists. A file too large to
+        # read counts as "cannot say" for the door (it is that file's own item
+        # below, FR-A-07), so the door never refuses a batch for it.
+        refusal = upload_refusal_if_unaffordable(
+            request.user, assignment, files, prompt
+        )
+        if refusal is not None:
+            return refusal
+
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             assignment=assignment,
@@ -1368,13 +1444,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     }
                 )
                 continue
-
-            prompt = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
 
             # Read raw file bytes cheaply here; heavy rasterization/compression
             # happens inside the Celery task, not on the request thread.

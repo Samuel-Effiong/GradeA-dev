@@ -1,0 +1,182 @@
+"""H-145: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-06 BEFORE any test run of H-145, by
+reasoning from the code and the tests; no mutant was applied to anything
+but a parser (the anchors-only check). A test is named Class.method. A
+failing test may show as FAIL or ERROR; both count.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of the module at the red commit>"""
+import re
+import sys
+from pathlib import Path
+
+A = "AnOlderTaskDoesNotWriteOverAManualGrade"
+R = "ARegradeSupersedesTheFirstGradingsTask"
+E = "HowASupersededTaskEnds"
+A_LOADED = (A, "test_one_that_loaded_the_row_before_the_manual_grade")
+A_QUEUED = (A, "test_one_queued_before_and_started_after_the_manual_grade")
+A_OWN = (A, "test_the_manual_grades_own_task_fills_the_text")
+A_STILL = (A, "test_a_task_whose_result_is_still_the_rows_writes")
+A_NO_STAMP = (A, "test_a_message_with_no_stamp_behaves_as_before")
+R_FIRST = (R, "test_the_first_gradings_task_writes_nothing_after_a_regrade")
+R_OWN = (R, "test_the_regrades_own_task_writes")
+E_SUCCESS = (E, "test_as_a_success_not_a_failure")
+E_STEP = (E, "test_its_step_says_superseded_and_names_no_score")
+F_ROUTE = ("TheTeacherFeedbackRoutePassesTheStamp", "test_the_route_queues_the_task_with_the_rows_stamp")
+G_STAMP = ("GradingPassesTheStamp", "test_the_follow_up_is_queued_with_the_saved_results_stamp")
+T_CHANGES = ("TheStamp", "test_it_changes_with_a_regrade_and_with_a_manual_grade")
+T_NO_SCORE = ("TheStamp", "test_it_holds_no_score")
+FG_SCORE = ("FormatGradeSavesOnlyItsText", "test_a_score_saved_during_its_ai_call_is_not_written_back")
+FG_STILL = ("FormatGradeSavesOnlyItsText", "test_it_still_writes_its_text")
+
+EXPECTED = {
+    # nothing is ever superseded: the three overtaken tasks write, and the
+    # step is the ordinary one. E_SUCCESS passes (an ordinary success).
+    "S1": {A_LOADED, A_QUEUED, R_FIRST, E_STEP},
+    # inverted: overtaken tasks write and current ones do not. A_STILL
+    # fails on its second line (the stored text is still the fixture's).
+    "S2": {A_LOADED, A_QUEUED, A_OWN, A_STILL, R_FIRST, R_OWN, E_STEP},
+    # a message with no stamp is treated as overtaken.
+    "S3": {A_NO_STAMP},
+    # the stamp is the grading time alone: a manual grade is not seen.
+    "S4": {A_LOADED, A_QUEUED, E_STEP, T_CHANGES, T_NO_SCORE},
+    # the stamp is the regrade time alone: a regrade is not seen.
+    "S5": {R_FIRST, T_CHANGES, T_NO_SCORE},
+    "S6": {F_ROUTE},
+    "S7": {A_OWN},
+    "S8": {G_STAMP},
+    "S9": {E_SUCCESS},
+    "S10": {E_STEP},
+    "S11": {FG_SCORE},
+    # AMENDED 2026-10-07 15:37, BEFORE any run of H-145, on the Senior
+    # Manager's ruling. The second re-read found that A_STILL could not
+    # pass on the unmutated code: it ended with "the stored text is not
+    # the fixture's", and for a paper still graded 7 the task's rewritten
+    # sentence is letter for letter the fixture's (shown by calling
+    # assignments.tasks._reconcile_formatted_grade_numbers directly on a
+    # row I built: equal; no test was run). FG_STILL, a control, looked
+    # only for that same sentence and so could not fail. In the tests-only
+    # commit that follows, the stand-in formatter's reply carries a marker
+    # of its own and both tests look for the marker. Re-derived by reading
+    # all 19 tests against all 12 mutants:
+    #  - A_STILL: where it was (S2 only: there the task with the row's own
+    #    stamp does not write, so the marker is not stored);
+    #  - S12, new: format_grade writes nothing; FG_STILL fails (no marker),
+    #    FG_SCORE passes (nothing is written back);
+    #  - every other set as written on 2026-10-06: the marker is one more
+    #    key in what a task writes and no other assertion reads it.
+    "S12": {FG_STILL},
+}
+#: the red commit de902ca2 (the tests and the seam: the stamp function, and
+#: an argument the task accepts and ignores). Green there: a task whose
+#: result is still the row's, a message with no stamp, the regrade's own
+#: task, "as a success" (an ordinary success), the stamp's three tests,
+#: and format_grade still writing its text.
+#: AMENDED 2026-10-07 15:37, before any run: A_STILL is added. The red
+#: commit's test file is the one of 2026-10-06 and still holds the faulty
+#: last line; there the task writes (the seam ignores the stamp), the
+#: written text equals the fixture's, and "not equal" fails. So at the red
+#: commit A_STILL is red for the test's own fault, not for the defect;
+#: the line above that calls "a task whose result is still the row's"
+#: green there was wrong. FG_STILL is green there (its old, vacuous form).
+#: CORRECTED 2026-10-08 (after the second stop, (r) of the re-run on 76b69102):
+#: A_STILL is no longer in the red set. Since c7d28c13 it is a CONTROL (the
+#: task whose result is still the row's must still write), and the old code
+#: writes always, so it PASSES at the red commit. I had not updated this set
+#: when I began taking the module from the tip at (r); the first run matched
+#: it by name against the OLD copy of the test, which failed for its own old
+#: reason. S2 (inverted) still kills A_STILL in the battery.
+#: Read once more against the module AS IT IS AT THE TIP 76b69102 (16 tests;
+#: the two-step form's tests are gone since 1f76431d): the 8 here are red at
+#: (r); the other 8 are GREEN at (r) on purpose, controls of the old
+#: behaviour: A_STILL (a current task still writes; killed only by S2),
+#: A_NO_STAMP (an unstamped message writes; S3), R_OWN (the regrade's own task
+#: writes; S2), E_SUCCESS (an ordinary success; S9), T_CHANGES and T_NO_SCORE
+#: (the stamp function exists at the red commit; S4, S5), the in-memory
+#: stamp test (no mutant touches it) and FG_STILL (format_grade still writes;
+#: S12). A green A_STILL at (r) is therefore not a gap.
+REPRO = {A_LOADED, A_QUEUED, A_OWN, R_FIRST, E_STEP, F_ROUTE, G_STAMP, FG_SCORE}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+#: Added 2026-10-08 19:2x, after F_ROUTE was found red at (r) for a wrong reason
+#: (a 500 from its own set-up) while matching by NAME. For these tests the red
+#: must be for the written reason: the fragment must be in the test's own
+#: failure block. Written BEFORE the re-run: at (r) the route queues the task
+#: without a result_stamp, so the line `.kwargs["result_stamp"]` raises
+#: KeyError: 'result_stamp'; same for the grading follow-up; the step test
+#: says 'uperseded' not found.
+REASON = {
+    F_ROUTE: "KeyError: 'result_stamp'",
+    G_STAMP: "KeyError: 'result_stamp'",
+    E_STEP: "'uperseded' not found in 'Grade formatted successfully'",
+    # Added from the second stop's log (the old code's behaviour, read before
+    # the next run). For each: is the observed failure the reason the test
+    # was written for? (Senior Manager, 19:5x condition 1.)
+    # A_OWN: YES. Written to show the manual-grade route queues the task WITH
+    # the stamp of the saved result (`queued.kwargs["result_stamp"]`); the old
+    # route passes none, so the key is absent: KeyError names exactly that.
+    A_OWN: "KeyError: 'result_stamp'",
+    # A_LOADED: YES. Written to show a task that loaded the row BEFORE the
+    # manual grade must not put text back after the grade cleared it
+    # (`assertIsNone(stored_formatted())`); the old task writes its wording,
+    # so the stored text is not None: the defect itself, way 1.
+    A_LOADED: "self.assertIsNone(self.stored_formatted())",
+    # A_QUEUED: YES. Same assertion for way 2 (queued before, started after
+    # the manual grade); the old task writes its old wording around the new
+    # number (the log shows "You scored 9 ... worded by this run").
+    A_QUEUED: "self.assertIsNone(self.stored_formatted())",
+    # R_FIRST: YES. Written to show the first grading's task, finishing after
+    # a regrade, writes nothing (stored text stays the fixture's,
+    # `assertEqual(stored, str(OLD_FORMATTED))`); the old task overwrites it
+    # with the 3-point sentence (the log shows the two texts differ in that
+    # sentence and the marker).
+    R_FIRST: "self.assertEqual(self.stored_formatted(), str(OLD_FORMATTED))",
+    # FG_SCORE: YES. Written to show format_grade, the task nothing queues,
+    # does not put back an old score a teacher saved during its AI call
+    # (`after.score == 9`); the old task saves the whole row from its stale
+    # copy, so the score is 7.00 again: the defect itself.
+    FG_SCORE: "Decimal('7.00') != Decimal('9')",
+}
+BLOCK = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)", re.M | re.S)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragment in REASON.items():
+        if test in blocks and fragment not in blocks[test]:
+            out.append(f"{test[1]}: expected '{fragment}' in its failure, not found")
+    return out
+
+
+if sys.argv[1] == "--repro":
+    wanted = REPRO
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), wanted)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

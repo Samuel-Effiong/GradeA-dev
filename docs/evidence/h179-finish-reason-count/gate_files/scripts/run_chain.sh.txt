@@ -1,0 +1,10 @@
+#!/bin/bash
+# Starts the granted chain once, detached from the session, and marks its end.
+# Usage: run_chain.sh <tip-sha8>
+set -u
+D=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h179
+cd $D
+echo "$(date +%H:%M:%S) starting chain.sh $1 at load $(cut -d' ' -f1 /proc/loadavg)" >> $D/chain_wait.log
+./chain.sh $1 > $D/chain.out 2>&1 < /dev/null; rc=$?
+echo "$(date +%H:%M:%S) chain exit=$rc" >> $D/chain_wait.log
+echo "$(date +%H:%M:%S) CHAIN END" >> $D/chain_wait.log

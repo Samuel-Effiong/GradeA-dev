@@ -233,6 +233,36 @@ STUDENT_AI_UNAVAILABLE_MESSAGE = (
 )
 
 
+# H-179. A reply the model stopped because of its length limit
+# (finish_reason "length") is cut off, usually in the middle of its JSON. Every
+# metered call logs one WARNING line for it, with this fixed prefix, so the
+# count can be read from the logs. No prompt or reply text, no user or
+# submission id, no e-mail. (The metrics module the row's brief named exists
+# only on the next-stage line.)
+CUT_OFF_REPLY_LOG = (
+    "AI reply cut off by the length limit: task_type=%s model=%s finish_reason=%s"
+)
+
+
+def note_if_reply_cut_off(response, task_type):
+    """Log the cut-off line when the reply's first choice says "length". Never
+    raises: a reply without the attribute, without choices, or with a
+    non-string reason (a test stand-in) is simply not a cut-off reply."""
+    choices = getattr(response, "choices", None)
+    if not isinstance(choices, (list, tuple)) or not choices:
+        return
+    reason = getattr(choices[0], "finish_reason", None)
+    if not isinstance(reason, str) or reason != "length":
+        return
+    model = getattr(response, "model", None)
+    logger.warning(
+        CUT_OFF_REPLY_LOG,
+        task_type,
+        model if isinstance(model, str) else None,
+        reason,
+    )
+
+
 class GradingEvidenceError(ValueError):
     """
     A response was rejected because a points-awarding evaluation cited no
@@ -4889,52 +4919,10 @@ Now, respond to the following teacher's instruction using the rules above
             # below instead of a clear, actionable error here.
             raise ValueError(f"Unsupported user_type for AI access: {user.user_type!r}")
 
-        total_prompt = ""
-        image_bytes = []
-        pdf_bytes = []
-
-        if user_prompt:
-            if isinstance(user_prompt, str):
-                total_prompt += user_prompt
-            else:
-                for prompt in user_prompt:
-                    if prompt["type"] == "text":
-                        total_prompt += prompt["text"]
-                    elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.get("bytes"))
-
-        if system_prompt:
-            if isinstance(system_prompt, str):
-                total_prompt += system_prompt
-            else:
-                for prompt in system_prompt:
-                    if prompt["type"] == "text":
-                        total_prompt += prompt["text"]
-                    elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.get("bytes"))
-
-        if messages:
-            for message in messages:
-                # A tool-calling assistant message legitimately has
-                # content=None (the "content" is the tool_calls instead) -
-                # skip it here rather than crashing; there's nothing to
-                # estimate tokens for in that message anyway.
-                content = message.get("content")
-                if not content:
-                    continue
-                if isinstance(content, str):
-                    total_prompt += content
-                else:
-                    for item in content:
-                        if item["type"] == "text":
-                            total_prompt += item["text"]
-                        elif item["type"] == "image_url":
-                            image_bytes.append(item.get("bytes"))
-                        elif item["type"] == "pdf_url":
-                            pdf_bytes.append(item.get("bytes"))
-
         ensure_task_not_cancelled(processing_task_id)
-        estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
+        estimated_cost = self.estimate_messages_cost(
+            user_prompt, system_prompt, messages
+        )
 
         balance = wallet.total_remaining_credits()
 
@@ -4961,6 +4949,7 @@ Now, respond to the following teacher's instruction using the rules above
             prompt_version=prompt_version,
             task_type=task_type,
         )
+        note_if_reply_cut_off(response, task_type)
 
         resolved_course = assignment.course if assignment else course
 
@@ -5013,6 +5002,59 @@ Now, respond to the following teacher's instruction using the rules above
         tiles_high = math.ceil(height / 512)
 
         return (tiles_wide * tiles_high * 170) + 85
+
+    def estimate_messages_cost(self, user_prompt, system_prompt, messages):
+        """What a call carrying these prompts and messages is estimated at.
+
+        THE ONE PLACE the gate in execute_graded_task and the door of the
+        upload routes (assignments.upload_door, H-180) both ask, so the
+        two cannot differ for the same content.
+        """
+        total_prompt = ""
+        image_bytes = []
+        pdf_bytes = []
+
+        if user_prompt:
+            if isinstance(user_prompt, str):
+                total_prompt += user_prompt
+            else:
+                for prompt in user_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.get("bytes"))
+
+        if system_prompt:
+            if isinstance(system_prompt, str):
+                total_prompt += system_prompt
+            else:
+                for prompt in system_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.get("bytes"))
+
+        if messages:
+            for message in messages:
+                # A tool-calling assistant message legitimately has
+                # content=None (the "content" is the tool_calls instead) -
+                # skip it here rather than crashing; there's nothing to
+                # estimate tokens for in that message anyway.
+                content = message.get("content")
+                if not content:
+                    continue
+                if isinstance(content, str):
+                    total_prompt += content
+                else:
+                    for item in content:
+                        if item["type"] == "text":
+                            total_prompt += item["text"]
+                        elif item["type"] == "image_url":
+                            image_bytes.append(item.get("bytes"))
+                        elif item["type"] == "pdf_url":
+                            pdf_bytes.append(item.get("bytes"))
+
+        return self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 
     def estimate_total_token(self, prompt_text, image_bytes=None, pdf_bytes=None):
 
