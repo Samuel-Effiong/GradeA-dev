@@ -1,0 +1,251 @@
+{
+  "P1": {
+    "what": "billing/access_control.py: a user by id",
+    "file": "billing/access_control.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.538s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P2": {
+    "what": "billing/services.py: a user by id",
+    "file": "billing/services.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.321s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P3": {
+    "what": "billing/stripe_service.py: a subscription's user by id",
+    "file": "billing/stripe_service.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.540s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P4": {
+    "what": "billing/views.py: the requesting user by id",
+    "file": "billing/views.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.681s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P5": {
+    "what": "billing/tasks.py: a subscription's user by id",
+    "file": "billing/tasks.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.736s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P6": {
+    "what": "the rule covers a name, not only an address",
+    "file": "billing/tasks.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.826s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P7": {
+    "what": "the rule covers print()",
+    "file": "billing/qa_time_travel.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.763s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P8": {
+    "what": "the rule covers a keyword argument and any receiver",
+    "file": "billing/qa_time_travel.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.900s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "P9": {
+    "what": "the price-drift line names the user by id (read by a behaviour test)",
+    "file": "billing/tasks.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.314s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_drift_is_detected_and_logged_as_an_error",
+      "test_no_log_or_print_call_passes_an_address_or_a_name",
+      "test_only_the_drifted_subscription_is_reported"
+    ]
+  },
+  "Q1": {
+    "what": "users/mailerlite_service.py: the user by id",
+    "file": "users/mailerlite_service.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.332s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "Q4": {
+    "what": "scripts/: a one-off script's print names the user by id",
+    "file": "scripts/one_off_backfill_stripe_schedules.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.387s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "Q5": {
+    "what": "classrooms/serializers.py: the admin by id",
+    "file": "classrooms/serializers.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.610s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "E1": {
+    "what": "roster_import.py: a refused row by row number, not by name",
+    "file": "classrooms/services/roster_import.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.859s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "E2": {
+    "what": "assignments/tasks.py: the tracked dispatch names the submission",
+    "file": "assignments/tasks.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.747s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "E3": {
+    "what": "classrooms/serializers.py: the invitation line names the user by id",
+    "file": "classrooms/serializers.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.503s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "E4": {
+    "what": "billing/license_service.py: the reason-code line carries no address",
+    "file": "billing/license_service.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 16 tests in 3.875s",
+    "expected": "test_no_log_or_print_call_passes_an_address_or_a_name",
+    "failing_tests": [
+      "test_no_log_or_print_call_passes_an_address_or_a_name"
+    ]
+  },
+  "S11": {
+    "what": "the scrubber is off while tests run",
+    "file": "AutoGrader/settings.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 56 tests in 6.216s",
+    "expected": "test_it_is_off_under_the_test_runner",
+    "failing_tests": [
+      "test_it_is_off_under_the_test_runner",
+      "test_no_environment_or_variable_can_switch_it_off",
+      "test_once_settings_are_configured_the_switch_is_theirs",
+      "test_override_settings_switches_it_on_and_back_off"
+    ]
+  },
+  "S16": {
+    "what": "settings.py imports nothing from the project",
+    "file": "AutoGrader/settings.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 56 tests in 5.437s",
+    "expected": "test_settings_import_nothing_from_the_project_at_the_top_level",
+    "failing_tests": [
+      "test_explicit_value_is_used_instead_of_falling_back",
+      "test_falls_back_to_frontend_domain_when_unset",
+      "test_settings_import_nothing_from_the_project_at_the_top_level"
+    ]
+  },
+  "Y7": {
+    "what": "Sentry: settings pass before_send",
+    "file": "AutoGrader/settings.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 56 tests in 5.577s",
+    "expected": "test_settings_pass_the_hooks_to_sentry",
+    "failing_tests": [
+      "test_settings_pass_the_hooks_to_sentry"
+    ]
+  },
+  "Y8": {
+    "what": "Sentry: settings pass before_send_log",
+    "file": "AutoGrader/settings.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 56 tests in 5.648s",
+    "expected": "test_settings_pass_the_hooks_to_sentry",
+    "failing_tests": [
+      "test_settings_pass_the_hooks_to_sentry"
+    ]
+  },
+  "Y9": {
+    "what": "Sentry: a failure to import the hooks is not swallowed",
+    "file": "AutoGrader/settings.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 56 tests in 5.527s",
+    "expected": "test_a_failure_to_import_the_hooks_is_not_swallowed",
+    "failing_tests": [
+      "test_a_failure_to_import_the_hooks_is_not_swallowed"
+    ]
+  },
+  "Y12": {
+    "what": "P3: settings pass before_send_transaction",
+    "file": "AutoGrader/settings.py",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 56 tests in 5.539s",
+    "expected": "test_settings_pass_the_hooks_to_sentry",
+    "failing_tests": [
+      "test_settings_pass_the_hooks_to_sentry"
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+"""1a's mutants for H-182 (rule 19: my own tests must be seen red).
+Usage, in the checkout: python -B h182_mutants_W.py <Z1..Z6> [--check]. Applied in place;
+restore with git checkout. Expected failing tests: h182_expected_kills.txt.
+
+Z1: the roll-up is applied at once, inside the charge's transaction (no on_commit).
+Z2: the charge's roll-up is the OLD inline update again (models.py).
+Z3: the refund's roll-up is the OLD inline update again (services.py).
+Z4: the roll-up is registered twice.
+Z5: a refund adds instead of subtracting.
+Z6: the roll-up runs at once in another thread, so on its own connection and outside the
+    charge's transaction (a naive "move it out").
+"""
+
+import ast
+import sys
+
+LR = "billing/licence_rollup.py"
+MD = "billing/models.py"
+SV = "billing/services.py"
+ON_COMMIT = "    transaction.on_commit(apply)\n"
+MODEL_OLD = (
+    "        from .licence_rollup import roll_up_after_commit\n\n"
+    "        roll_up_after_commit(allocation.license_subscription_id, amount)\n"
+)
+MODEL_NEW = (
+    "        LicenseSubscription.objects.filter(\n"
+    "            pk=allocation.license_subscription_id\n"
+    "        ).update(\n"
+    '            total_credits_consumed=models.F("total_credits_consumed") + amount,\n'
+    "            updated_at=timezone.now(),\n"
+    "        )\n"
+)
+REFUND_OLD = (
+    "                    roll_up_after_commit(allocation.license_subscription_id, -amount)\n"
+)
+REFUND_NEW = (
+    "                    from django.db.models import F as _F, Value as _V\n"
+    "                    from django.db.models.functions import Greatest as _G\n"
+    "                    from .models import LicenseSubscription as _L\n"
+    "                    _L.objects.filter(pk=allocation.license_subscription_id).update(\n"
+    '                        total_credits_consumed=_G(_F("total_credits_consumed") - amount, _V(0)),\n'
+    "                        updated_at=timezone.now(),\n"
+    "                    )\n"
+)
+THREAD_NEW = (
+    "    import threading\n\n"
+    "    def _run():\n"
+    "        try:\n"
+    "            apply()\n"
+    "        finally:\n"
+    "            from django.db import connection as _connection\n\n"
+    "            _connection.close()\n\n"
+    "    _thread = threading.Thread(target=_run)\n"
+    "    _thread.start()\n"
+    "    _thread.join()\n"
+)
+MUTANTS = {
+    "Z1": (LR, ON_COMMIT, "    apply()\n"),
+    "Z2": (MD, MODEL_OLD, MODEL_NEW),
+    "Z3": (SV, REFUND_OLD, REFUND_NEW),
+    "Z4": (LR, ON_COMMIT, ON_COMMIT + ON_COMMIT),
+    "Z5": (SV, REFUND_OLD, REFUND_OLD.replace("-amount", "amount")),
+    "Z6": (LR, ON_COMMIT, THREAD_NEW),
+}
+
+
+def main():
+    name = sys.argv[1]
+    path, old, new = MUTANTS[name]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    count = source.count(old)
+    if count != 1:
+        print(f"ABORT {name}: anchor found {count} times in {path}")
+        sys.exit(7)
+    mutated = source.replace(old, new, 1)
+    ast.parse(mutated)
+    if "--check" in sys.argv:
+        print(f"checked {name}: anchor once in {path}, mutant parses")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {name} to {path}")
+
+
+if __name__ == "__main__":
+    main()

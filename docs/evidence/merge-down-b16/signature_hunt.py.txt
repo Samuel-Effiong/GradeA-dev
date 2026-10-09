@@ -1,0 +1,36 @@
+"""Signature hunt for merge-down b16: in the files beta touched since the merge base (8567a7a0), which function
+signatures did the Phase 2 line change (so beta's new callers may call a changed signature), and which did beta change
+(so the line's callers may call a changed signature). Usage: python signature_hunt_md_b16.py <repo> <files.txt>"""
+import ast, subprocess, sys
+REPO, FILES = sys.argv[1], sys.argv[2]
+BASE, EPIC, BETA = '8567a7a0', 'd2ad0405', '1edd5c92'
+files = [l.strip() for l in open(FILES) if l.strip()]
+def show(ref, f):
+    r = subprocess.run(['git', '-C', REPO, 'show', f'{ref}:{f}'], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else None
+def sigs(src):
+    out = {}
+    if src is None: return out
+    try: tree = ast.parse(src)
+    except SyntaxError: return out
+    def walk(node, prefix):
+        for n in ast.iter_child_nodes(node):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                a = n.args
+                out[prefix + n.name] = (tuple(x.arg for x in a.posonlyargs + a.args), len(a.defaults),
+                                        tuple(x.arg for x in a.kwonlyargs), bool(a.vararg), bool(a.kwarg))
+                walk(n, prefix + n.name + '.')
+            elif isinstance(n, ast.ClassDef):
+                walk(n, prefix + n.name + '.')
+    walk(tree, '')
+    return out
+n_epic = n_beta = 0
+for f in files:
+    base, epic, beta = sigs(show(BASE, f)), sigs(show(EPIC, f)), sigs(show(BETA, f))
+    for name, s in epic.items():
+        if name in base and base[name] != s:
+            n_epic += 1; print(f"EPIC-CHANGED {f}::{name}\n   base {base[name]}\n   epic {s}")
+    for name, s in beta.items():
+        if name in base and base[name] != s:
+            n_beta += 1; print(f"BETA-CHANGED {f}::{name}\n   base {base[name]}\n   beta {s}")
+print('TOTAL epic-changed', n_epic, 'beta-changed', n_beta, 'files', len(files))

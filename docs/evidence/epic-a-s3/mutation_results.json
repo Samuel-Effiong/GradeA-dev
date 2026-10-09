@@ -1,0 +1,92 @@
+{
+  "A1_owner_is_the_actor_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_celery_task_expiry_is_the_system",
+      "test_add_teachers_names_the_admin_on_the_teachers_credit_grant",
+      "test_an_anonymous_request_is_the_system",
+      "test_background_work_is_the_system_with_the_owner_as_target",
+      "test_consume_emits_exactly_one_event",
+      "test_one_credit_transaction_per_bucket_naming_the_remover",
+      "test_record_emits_exactly_one_event",
+      "test_refund_emits_exactly_one_event",
+      "test_remove_teachers_names_the_admin_on_the_clawback",
+      "test_the_same_grant_in_a_superadmin_request_names_the_superadmin"
+    ]
+  },
+  "A2_ledger_row_is_the_target_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_celery_task_expiry_is_the_system",
+      "test_add_teachers_names_the_admin_on_the_teachers_credit_grant",
+      "test_background_work_is_the_system_with_the_owner_as_target",
+      "test_consume_emits_exactly_one_event",
+      "test_consume_spanning_two_buckets_emits_one_event_per_ledger_row",
+      "test_one_credit_transaction_per_bucket_naming_the_remover",
+      "test_record_emits_exactly_one_event",
+      "test_refund_emits_exactly_one_event",
+      "test_remove_teachers_names_the_admin_on_the_clawback",
+      "test_the_same_grant_in_a_superadmin_request_names_the_superadmin"
+    ]
+  },
+  "A3_request_actor_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_add_teachers_names_the_admin_on_the_teachers_credit_grant",
+      "test_one_credit_transaction_per_bucket_naming_the_remover",
+      "test_remove_teachers_names_the_admin_on_the_clawback",
+      "test_the_same_grant_in_a_superadmin_request_names_the_superadmin"
+    ]
+  },
+  "A4_not_scoped_to_the_owners_school": {
+    "killed": true,
+    "failing_tests": [
+      "test_background_work_is_the_system_with_the_owner_as_target"
+    ]
+  },
+  "S1_retention_sweep_records_nothing": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_retention_sweep_records_its_counts",
+      "test_a_retention_sweep_that_deletes_nothing_still_records_itself"
+    ]
+  },
+  "S2_zero_count_run_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_retention_sweep_that_deletes_nothing_still_records_itself"
+    ]
+  },
+  "S3_pii_sweep_records_nothing": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_pii_sweep_records_what_it_scrubbed_including_zero"
+    ]
+  },
+  "C1_clawback_bypasses_the_ledger": {
+    "killed": true,
+    "failing_tests": [
+      "test_one_credit_transaction_per_bucket_naming_the_remover",
+      "test_remove_teachers_names_the_admin_on_the_clawback",
+      "test_the_ledger_nets_exactly_the_expired_credits"
+    ]
+  },
+  "C2_clawback_logs_the_email": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_email_reaches_the_log"
+    ]
+  },
+  "C3_rollover_logs_the_email": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_suppressed_rollover_log_carries_no_email"
+    ]
+  },
+  "R1_expire_recheck_removed": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_clawback_racing_the_cleanup_expires_each_bucket_once"
+    ]
+  }
+}

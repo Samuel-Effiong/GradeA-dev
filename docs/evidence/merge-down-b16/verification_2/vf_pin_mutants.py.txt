@@ -1,0 +1,160 @@
+"""v2 re-run of ed's five roads-pin mutants (tip dfee4d19).
+
+Run from the vf2-s1 scratch worktree detached at COMMIT, inside the caller's
+rule 16/13/12 wrappers, output to files, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_b16_mutants.py check | baseline | (no args: all) | <name>...
+
+Written 2026-10-09 ~19:55 WAT BEFORE any run, from reading the merge blobs and
+the judged tests. Judged by the EXISTING modules (0b's two new audit tests and
+the oversized-file door class are the things under test).
+
+EXACT = the failing set must EQUAL the written one (qualified Class.method).
+MUST  = every named test must be among the failing ones (others are printed).
+Fragments (rule 22): a regex that must appear inside the named test's OWN
+FAIL/ERROR block of the log; a missing fragment is reported as FRAGMENT_MISSING
+and the mutant is not counted as killed for its written reason.
+Rule 17: PYTHONDONTWRITEBYTECODE=1, __pycache__ of the mutated dir cleared
+before each mutant and after each restore; restore verified by sha256 against
+the commit blob.
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+PIN = "users/tests_roads_that_sign_in_or_activate.py"
+ADMIN = "users/admin.py"
+MOD = "users.tests_roads_that_sign_in_or_activate"
+BASELINE = [MOD]
+P = "RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count"
+H = "PatternReachTests.test_active_true_is_seen_through_the_history_helper"
+L = "PatternReachTests.test_active_true_is_seen_across_lines_and_nested_calls"
+F = "PatternReachTests.test_active_true_is_seen_when_it_is_not_the_first_keyword"
+V = "PatternReachTests.test_email_verified_is_seen_through_the_history_helper_and_setattr"
+ACT = "        updated = history.record_bulk(queryset, is_active=True)\n"
+
+# ed's five pin mutants (docs/evidence/h203-pin-record-bulk/mutate.py), re-run
+# with EXACT failing sets and fragments (ed's runner checks only containment).
+EXPECTED = {
+    "P1_second_record_bulk_active_site": ([MOD], "EXACT", [P], {P: r"'ACTIVE_TRUE'\): found 2, pinned 1"}),
+    "P2_record_bulk_email_verified_write": ([MOD], "EXACT", [P], {P: r"'VERIFIED_WRITE'\): found 1, pinned 0"}),
+    "P3_scanner_forgets_record_bulk": ([MOD], "EXACT", [P, H, L], {P: r"'ACTIVE_TRUE'\): found 0, pinned 1", H: r"0 != 1", L: r"0 != 1"}),
+    "P4_scanner_forgets_setattr_verified": ([MOD], "EXACT", [V], {V: r"1 != 2"}),
+    "P5_only_first_keyword_is_seen": ([MOD], "EXACT", [P, H, L, F], {P: r"'ACTIVE_TRUE'\): found 0, pinned 1", H: r"0 != 1", L: r"0 != 1", F: r"0 != 1"}),
+}
+
+MUTANTS = {
+    "P1_second_record_bulk_active_site": (ADMIN, [(ACT, ACT + "        history.record_bulk(queryset, is_active=True)\n")]),
+    "P2_record_bulk_email_verified_write": (ADMIN, [(ACT, ACT + "        history.record_bulk(queryset, email_verified_at=timezone.now())\n")]),
+    "P3_scanner_forgets_record_bulk": (PIN, [(r'_WRITE_CALL = r"\b(?:update|record_bulk)\(', r'_WRITE_CALL = r"\b(?:update)\(')]),
+    "P4_scanner_forgets_setattr_verified": (PIN, [(r"""|\bsetattr\([^,()]+,\s*["']email_verified_at["']""", r"""|\bsetattr\([^,()]+,\s*["']email_verified_at_x["']""")]),
+    "P5_only_first_keyword_is_seen": (PIN, [(r'\([^()]*\))*\))*?"' + "\nKINDS", r'\([^()]*\))*\)){0}"' + "\nKINDS")]),
+}
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    blocks = {}
+    for m in re.finditer(
+        r"^={70}\n(?:FAIL|ERROR): (\w+) \(([\w.]+)\)[^\n]*\n(.*?)(?=^={70}\n|\Z)",
+        o, re.M | re.S,
+    ):
+        method, dotted, body = m.groups()
+        blocks[".".join(dotted.split(".")[-2:-1] + [method])] = body
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, blocks, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name, (path, edits) in MUTANTS.items():
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        print(name, path, counts, "parses", flush=True)
+    # every expected test name exists in the judged modules
+    for name, (labels, mode, tests, frags) in EXPECTED.items():
+        for t in tests:
+            cls, meth = t.split(".")
+            hits = 0
+            for lab in labels:
+                p = pathlib.Path(lab.replace(".", "/") + ".py")
+                txt = p.read_text()
+                if re.search(rf"^class {cls}\b", txt, re.M) and f"def {meth}(" in txt:
+                    hits += 1
+            print(" ", name, t, "found" if hits == 1 else f"HITS={hits}", flush=True)
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    for p in (ADMIN, PIN):
+        clear_pycache(p)
+    rc, ran, summary, blocks, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", sorted(blocks), flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    path, edits = MUTANTS[name]
+    src = open(path).read()
+    counts = [src.count(old) for old, _ in edits]
+    if counts != [1] * len(edits):
+        print(name, "APPLY_FAILED", path, counts, flush=True)
+        continue
+    for old, new in edits:
+        src = src.replace(old, new, 1)
+    ast.parse(src)
+    labels, mode, tests, frags = EXPECTED[name]
+    try:
+        clear_pycache(path)
+        open(path, "w").write(src)
+        rc, ran, summary, blocks, _ = run(labels, f"{name}.txt")
+        failing = sorted(blocks)
+        if rc == 0:
+            status = "SURVIVED"
+        elif ran == "Ran ?" or not failing:
+            status = "BROKEN"
+        elif mode == "EXACT":
+            status = "KILLED" if failing == sorted(tests) else "KILLED_OTHER_SET"
+        else:
+            status = "KILLED" if all(t in failing for t in tests) else "KILLED_OTHER_SET"
+        frag_bad = [t for t, rx in frags.items()
+                    if t in blocks and not re.search(rx, blocks[t])]
+        if status == "KILLED" and frag_bad:
+            status = "FRAGMENT_MISSING"
+        print(name, "|", status, "|", ran, "|", summary, "|", mode, tests,
+              "| failing", failing, "| fragment-missing", frag_bad, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True)
+        clear_pycache(path)
+        ok = sha(open(path, "rb").read()) == sha(
+            subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+        )
+        print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

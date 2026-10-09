@@ -24,7 +24,12 @@ from AutoGrader.error_messages import (
     describe_user_error,
 )
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
-from students.exceptions import CannotAssociateStudentError, SubmissionLimitReachedError
+from students.exceptions import (
+    CannotAssociateStudentError,
+    StudentNameUnmatchedError,
+    StudentNotOnRosterError,
+    SubmissionLimitReachedError,
+)
 from students.models import StudentSubmission
 from students.services import _match_enrolled_student, upload_answers_engine
 from users.models import CustomUser, UserTypes
@@ -100,16 +105,48 @@ class MatchEnrolledStudentTest(TestCase):
     def test_student_who_is_not_enrolled_is_not_matched(self):
         self._enrol("Samuel", "Effiong", status=EnrollmentStatusType.PENDING)
 
-        with self.assertRaises(CannotAssociateStudentError) as ctx:
+        # FR-A-06 S6c: the teacher's own pending student is named as not on
+        # the roster (STUDENT_NOT_ON_ROSTER), still refused, never matched.
+        with self.assertRaises(StudentNotOnRosterError) as ctx:
             _match_enrolled_student(self.course, "Samuel Effiong")
-        self.assertIn("not among the enrolled", str(ctx.exception))
+        self.assertIsInstance(ctx.exception, CannotAssociateStudentError)
+        self.assertIn("isn't enrolled in this course", str(ctx.exception))
+
+    def test_without_a_file_name_the_not_on_roster_sentence_starts_capitalised(self):
+        # v2's S6c N1: the #2 template opens with the file name. The stand-in
+        # used when none is known starts the sentence capitalised...
+        self._enrol("Samuel", "Effiong", status=EnrollmentStatusType.PENDING)
+
+        with self.assertRaises(StudentNotOnRosterError) as ctx:
+            _match_enrolled_student(self.course, "Samuel Effiong")
+        self.assertTrue(
+            str(ctx.exception).startswith("The paper belongs to Samuel Effiong"),
+            str(ctx.exception),
+        )
+        self.assertEqual(ctx.exception.params["file_name"], "the paper")
+
+    def test_a_real_file_name_is_never_recased(self):
+        # ...but a real file name is shown exactly as given, even where it
+        # opens the sentence, and mid-sentence the stand-in stays lower case.
+        self._enrol("Samuel", "Effiong", status=EnrollmentStatusType.PENDING)
+
+        with self.assertRaises(StudentNotOnRosterError) as ctx:
+            _match_enrolled_student(self.course, "Samuel Effiong", file_name="scan.png")
+        self.assertTrue(str(ctx.exception).startswith("scan.png belongs to"))
+
+        with self.assertRaises(StudentNameUnmatchedError) as ctx2:
+            _match_enrolled_student(self.course, "")
+        self.assertTrue(
+            str(ctx2.exception).startswith("We couldn't match the paper to"),
+            str(ctx2.exception),
+        )
 
     def test_missing_name_is_reported(self):
         for value in (None, "", "   "):
             with self.subTest(value=value):
-                with self.assertRaises(CannotAssociateStudentError) as ctx:
+                with self.assertRaises(StudentNameUnmatchedError) as ctx:
                     _match_enrolled_student(self.course, value)
-                self.assertIn("cannot be found", str(ctx.exception))
+                self.assertIn("no name was found", str(ctx.exception))
 
     def test_ambiguous_proxy_upload_creates_no_submission_for_anyone(self):
         # End to end through upload_answers_engine: the load-bearing outcome

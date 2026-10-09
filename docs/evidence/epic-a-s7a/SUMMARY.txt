@@ -1,0 +1,42 @@
+=== (1) reproduce-first: final students.tests_batch_item_results on UNCHANGED 4124d73 2026-09-30T19:03:25+01:00
+base 4124d73
+rc=1
+Ran 10 tests in 1.271s
+FAILED (failures=3, errors=9)
+=== tree 4c8ba13 Merge phase2/epic-a 522f818 into task/epic-a-s7a before its gates
+=== (2) changed modules outside the regression apps 19:03:41
+rc=0
+Ran 179 tests in 48.481s
+OK
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:12.84
+	Maximum resident set size (kbytes): 369840
+=== (3) model-change regression: students users assignments 19:04:54
+rc=0
+Ran 1635 tests in 242.431s
+OK (skipped=18)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:21.86
+	Maximum resident set size (kbytes): 383468
+=== (4) mutants 19:09:16
+S1_code_not_stored KILLED FAILED (failures=18) ['test_a_failure_stores_its_reason_code', 'test_batch_upload_runs_the_rest_of_the_batch', 'test_each_item_answers_for_itself_and_the_old_keys_stay', 'test_every_failure_is_listed_with_its_own_code', 'test_upload_async_is_never_half_queued']
+  restore ok
+S2_no_item_index_batch_upload KILLED FAILED (failures=1, errors=1) ['test_each_item_answers_for_itself_and_the_old_keys_stay', 'test_every_failure_is_listed_with_its_own_code']
+  restore ok
+S3_batch_upload_refused_whole KILLED FAILED (failures=2) ['test_batch_upload_runs_the_rest_of_the_batch', 'test_every_failure_is_listed_with_its_own_code']
+  restore ok
+S4_upload_async_refused_whole KILLED FAILED (failures=1) ['test_upload_async_is_never_half_queued']
+  restore ok
+S5_reference_dashed KILLED FAILED (failures=1) ['test_each_item_answers_for_itself_and_the_old_keys_stay']
+  restore ok
+S6_uncoded_not_system KILLED FAILED (failures=1) ['test_an_unclassified_failure_is_visible_as_system_with_no_code']
+  restore ok
+S7_replaced_not_lifted KILLED FAILED (failures=2) ['test_an_overwrite_is_lifted_into_the_item_result', 'test_each_item_answers_for_itself_and_the_old_keys_stay']
+  restore ok
+S8_auto_grade_untracked KILLED FAILED (failures=1) ['test_auto_grade_creates_tracked_items']
+  restore ok
+S9_no_unclassified_sentinel KILLED FAILED (failures=1) ['test_an_unclassified_failure_is_visible_as_system_with_no_code']
+  restore ok
+S10_no_trace_recorded KILLED FAILED (failures=2) ['test_an_item_records_its_position_and_the_requests_trace', 'test_each_item_answers_for_itself_and_the_old_keys_stay']
+  restore ok
+S11_scheduled_batch_untracked KILLED FAILED (failures=1) ['test_a_scheduled_batch_creates_tracked_items']
+  restore ok
+=== done 19:10:23

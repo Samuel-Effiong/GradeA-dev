@@ -1,0 +1,21 @@
+#!/bin/bash
+# H-196 probe: one targeted module in a disposable worktree at beta 5e37ac2b.
+# Usage: run_probe.sh   (runs ONLY on 0b's grant)
+set -euo pipefail
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h196-roster-order
+RW=$P/Grade-Automator-Plus-h196-probe
+OUT=$P/GAP-d5-runs/h196
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/probe.status; }
+[ ! -e $OUT/probe.log ] && [ ! -e $RW ] || { say "ABORT: probe.log or $RW exists"; exit 9; }
+cd $WT; [ "$(git rev-parse --short=8 HEAD)" = "5e37ac2b" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: worktree not clean at 5e37ac2b"; exit 9; }
+git worktree add --detach $RW 5e37ac2b > /dev/null 2>&1
+trap 'cd $WT; git worktree remove --force $RW; git worktree prune' EXIT
+ln -s $P/Grade-Automator-Plus/.env $RW/.env
+printf 'from AutoGrader.settings import *  # noqa: F401,F403\nfrom AutoGrader.settings import DATABASES\n\nDATABASES["default"].setdefault("TEST", {})\nDATABASES["default"]["TEST"]["NAME"] = "test_h196_probe"\n' > $RW/settings_worktree.py
+cp $OUT/probe_roster_order.py $RW/classrooms/tests_h196_probe.py
+say "start: loadavg $(cat /proc/loadavg)"
+rc=0
+( cd $RW && H196_PROBE_OUT=$OUT/probe_reads.json PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS= systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 600 ~/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test classrooms.tests_h196_probe --settings=settings_worktree --noinput > $OUT/probe.log 2>&1 < /dev/null ) || rc=$?
+echo "exit=$rc" >> $OUT/probe.log
+say "end: exit=$rc loadavg $(cat /proc/loadavg)"

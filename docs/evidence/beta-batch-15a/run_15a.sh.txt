@@ -1,0 +1,24 @@
+#!/bin/bash
+# Batch 15a: pre-commit run --all-files on the tip, then the one module's tests. ONE inhibit around the whole script (rule 16 revised).
+# Usage: run_15a.sh <tip sha8>
+set -u
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+TIP=${1:?tip}
+WT=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-15
+S=/home/bond-servant-in-training/Documents/Projects/GAP-0b-runs
+cd $WT || exit 2
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || { echo "not at $TIP"; exit 3; }
+[ -z "$(git status --porcelain)" ] || { echo "tree not clean"; exit 3; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/ && /settings_worktree/' | wc -l)" = 0 ] || { echo "another GAP test run is active"; exit 4; }
+export PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS=
+echo "start $(date '+%F %T') load=$(cut -d' ' -f1-3 /proc/loadavg)"
+systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 pre-commit run --all-files > $S/pc_all_$TIP.txt 2>&1 < /dev/null
+echo "pre-commit exit=$? $(date '+%T')"; grep -E "(Passed|Failed|Skipped)$" $S/pc_all_$TIP.txt | sed 's/\x1b\[[0-9;]*m//g' | cut -c1-120
+echo "tracked changes after hooks: $(git status --porcelain --untracked-files=no | wc -l)"
+systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 python manage.py test students.tests_formatting_task_superseded --settings=settings_worktree --noinput --verbosity 2 > $S/pc_15a_module_$TIP.log 2>&1 < /dev/null
+echo "module exit=$? $(date '+%T')"; grep -E "^Ran |^OK|^FAILED" $S/pc_15a_module_$TIP.log; echo "FAIL/ERROR headers: $(grep -cE '^(FAIL|ERROR): ' $S/pc_15a_module_$TIP.log)"
+echo "tree clean after: $([ -z "$(git status --porcelain)" ] && echo yes || echo NO)"
+echo "SCRIPT-ENDED $(date '+%T')"

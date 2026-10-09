@@ -1,0 +1,202 @@
+# TRIMMED: last 200 of 6700 lines. Full log (sha256 ecbecc19610c2094342318fbcea4383328465c8b3ee3be0f5ef7a1b2d5e9741f) is outside the repo at
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-merge-down-b4___full.txt (chmod 600). Round 1 at bfcf6e1: 304 tests, FAILED (failures=3, errors=1).
+01:07:54 test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+01:07:54 The exception is only safe while it is one assignment's prefix: ... ok
+01:07:54 test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+01:07:54 Guard on the guard: each form is found in a synthetic module, and ... ok
+01:07:54 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+01:07:54 The over-invalidation half, stated as a property. Under the ... ok
+01:07:54 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+01:07:54 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+01:07:54 Not response caches in the generation scheme, deliberately. ... ok
+01:07:55 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+01:07:55 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+01:07:55 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+01:07:56 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+01:07:57 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+01:07:57 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+01:07:57 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+01:07:57 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+01:07:57 H-1 step 4: the one family that was still raw is on generations. ... ok
+01:07:58 test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:07:58 Cannot activate automatic trial for user h56-wallet-988931cc@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:07:58 Cannot activate automatic trial for user h56-wallet-16df8845@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:07:58 Cannot activate automatic trial for user h56-wallet-7f798f37@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:07:58 ok
+01:07:58 test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+01:07:58 The eight AlterFields since production that change choices, ... ok
+01:07:58 test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+01:07:58 test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+01:07:58 Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+01:07:58 test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+01:07:58 The production wiring (the Verification Engineer's H6 on ... ok
+01:07:58 test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+01:07:59 Rule (a) on the real graph with a synthetic final state: drop ... ok
+01:07:59 test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+01:07:59 Guard on the guard: the fields H-56 found are rule (a) ... ok
+01:07:59 test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+01:07:59 fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+01:07:59 test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+01:07:59 test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+01:07:59 test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+01:07:59 test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+01:07:59 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+01:08:01 THE ACCEPTANCE TEST for broker isolation. ... ok
+01:08:01 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+01:08:01 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+01:08:01 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+01:08:01 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+01:08:01 H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+01:08:01 H38P2 assignments/views.py:1238 generate (positive control - active teacher) WRITE(paid AI) status=201 changed=True
+01:08:01 H38P2 assignments/views.py:782 upload (positive control - active teacher) WRITE status=201 changed=True
+01:08:01 H38P2 dashboard/views.py custom-ai-prompt (positive control - active teacher) READ(paid AI) status=200 changed=False
+01:08:01 H38P2 assignments/views.py:1461 generated-drafts save (positive control - active teacher) WRITE status=201 changed=True
+01:08:01 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name (positive control - active teacher) WRITE status=200 changed=True
+01:08:01 H38P2 assignments/views.py associate-topic WRITE status=404 changed=False
+01:08:01 H38P2 assignments/views.py:310 delete DELETE status=404 changed=False
+01:08:01 H38P2 assignments/views.py:1238 generate WRITE(paid AI) status=404 changed=False
+01:08:01 H38P2 assignments/views.py grade-all WRITE(paid AI) status=404 changed=False
+01:08:01 H38P2 assignments/views.py:310 list READ status=200 changed=False
+01:08:01 H38P2 assignments/views.py:310 patch WRITE status=404 changed=False
+01:08:01 H38P2 assignments/views.py publish-all-grades WRITE status=404 changed=False
+01:08:01 H38P2 assignments/views.py:310 retrieve READ status=404 changed=False
+01:08:01 H38P2 assignments/views.py:782 upload WRITE status=404 changed=False
+01:08:01 H38P2 assignments/views.py:966 upload-async WRITE status=404 changed=False
+01:08:01 H38P2 classrooms/views.py topics create WRITE status=400 changed=False
+01:08:01 H38P2 classrooms/views.py:1723 course topics WRITE status=404 changed=False
+01:08:01 H38P2 classrooms/views.py:2392 topic delete DELETE status=404 changed=False
+01:08:01 H38P2 classrooms/views.py:2392 topics list READ status=200 changed=False
+01:08:01 H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=False
+01:08:01 H38P2 classrooms/views.py:2392 topic patch WRITE status=404 changed=False
+01:08:01 H38P2 classrooms/views.py:2099 student-course delete DELETE status=404 changed=False
+01:08:01 H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=False
+01:08:01 H38P2 classrooms/views.py:2099 student-course patch WRITE status=404 changed=False
+01:08:01 H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+01:08:01 H38P2 dashboard/views.py teacher assignments/{id} READ status=404 changed=False
+01:08:01 H38P2 dashboard/views.py teacher courses/{id} READ status=404 changed=False
+01:08:01 H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+01:08:01 H38P2 dashboard/views.py teacher students/{course} READ status=404 changed=False
+01:08:01 H38P2 assignments/views.py:1461 generated-drafts save WRITE status=404 changed=False
+01:08:01 H38P2 assignments/views.py:1788 download-pdf teacher view READ status=404 changed=False
+01:08:01 H38P2 assignments/views.py:1788 download-pdf teacher view (object-level guard in isolation) READ status=403 changed=False
+01:08:01 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+01:08:01 H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+01:08:01 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+01:08:01 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+01:08:01 H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+01:08:01 H38P2 assignments/serializers.py validate_course create WRITE status=400 changed=False
+01:08:01 H38P2 assignments/serializers.py validate_course create-async WRITE status=400 changed=False
+01:08:01 H38P2 classrooms/filters.py my-students ?enrollments__course READ status=200 changed=False
+01:08:01 H38P2 classrooms/views.py my-students enrollments prefetch READ status=200 changed=False
+01:08:01 H38P2 classrooms/filters.py my-students ?enrollments__course__session READ status=200 changed=False
+01:08:01 H38P2 assignments/serializers.py validate_course patch WRITE status=400 changed=False
+01:08:01 H38P2 users/filters.py /users/<id>?enrollments__course READ status=404 changed=False
+01:08:01 H38P2 users/filters.py /users/<id>?enrollments__course__session READ status=404 changed=False
+01:08:01 H38P2 students/views.py:158 batch-upload WRITE status=404 changed=False
+01:08:01 H38P2 students/views.py:358 delete DELETE status=404 changed=False
+01:08:01 H38P2 students/views.py grade WRITE(paid AI) status=404 changed=False
+01:08:01 H38P2 students/views.py:358 list READ status=200 changed=False
+01:08:01 H38P2 students/views.py publish WRITE status=404 changed=False
+01:08:01 H38P2 students/views.py:358 retrieve READ status=404 changed=False
+01:08:01 H38P2 students/views.py teacher_feedback READ status=402 changed=False
+01:08:01 H38P2 students/views.py update-grade WRITE status=402 changed=False
+01:08:04 ok
+01:08:06 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+01:08:06 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+01:08:08 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+01:08:08 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+01:08:10 Same requirement, for the H-1 invariant specifically. ... ok
+01:08:10 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+01:08:10 The blast radius is wider than the Django cache. ... ok
+01:08:10 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+01:08:10 The mechanism, demonstrated deterministically in-process. ... ok
+01:08:10 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+01:08:12 THE ACCEPTANCE TEST for the regression. ... ok
+01:08:15 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+01:08:15 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+01:08:15 Server-wide Redis statistics are shared by every concurrent run. ... ok
+01:08:15 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+01:08:15 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+01:08:17 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+01:08:19 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+01:08:19 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+01:08:22 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+01:08:22 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+01:08:24 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+01:08:24 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+01:08:24 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+01:08:24 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+01:08:24 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+01:08:24 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+01:08:24 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+01:08:26 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+01:08:28 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+01:08:28 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+01:08:30 Guard on the guard, on synthetic source. ... ok
+01:08:32 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+01:08:32 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+01:08:32 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+01:08:32 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+01:08:32 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+01:08:32 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+01:08:32 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+01:08:32 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+01:08:32 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+01:08:32 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+01:08:32 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+01:08:32 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+01:08:32 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+01:08:32 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+01:08:32 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+01:08:32 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+01:08:32 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+01:08:32 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+01:08:32 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+01:08:32 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+01:08:32 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+01:08:32 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+01:08:32 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+01:08:32
+01:08:32 ======================================================================
+01:08:32 ERROR: test_queued_grading_is_refused_and_never_charged_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_queued_grading_is_refused_and_never_charged_after_removal)
+01:08:32 The chokepoint: work queued before the removal (a grade-all, a
+01:08:32 ----------------------------------------------------------------------
+01:08:32 Traceback (most recent call last):
+01:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/students/tests_h38_tasks_namespace.py", line 224, in test_queued_grading_is_refused_and_never_charged_after_removal
+01:08:32     self.assertEqual(result["message"], COURSE_NOT_FOUND)
+01:08:32                      ~~~~~~^^^^^^^^^^^
+01:08:32 TypeError: 'CourseNotReachableError' object is not subscriptable
+01:08:32
+01:08:32 ======================================================================
+01:08:32 FAIL: test_routes_the_refused_run_and_the_beat_log_ids_only (students.tests_h38_tasks_namespace.NothingLeaksToTheLogsTests.test_routes_the_refused_run_and_the_beat_log_ids_only)
+01:08:32 1a's Q6: no student name or email in any record, from any
+01:08:32 ----------------------------------------------------------------------
+01:08:32 Traceback (most recent call last):
+01:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/students/tests_h38_tasks_namespace.py", line 295, in test_routes_the_refused_run_and_the_beat_log_ids_only
+01:08:32     self.assertIn(str(self.submission.id), text)
+01:08:32 AssertionError: '0fa0f390-5831-4818-8a2f-dc01b231c28f' not found in 'users.exceptions:API ExceptionTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch\n    response = handler(request, *args, **kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2802, in session_results\n    raise Http404("No BatchUploadSession matches the given query.")\ndjango.http.response.Http404: No BatchUploadSession matches the given query.\n\ndjango.request:Not Found: /api/v1/tasks/session-results/b7a68f9e-821e-4032-a7b1-b690fb5231fc\nusers.exceptions:API ExceptionTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch\n    response = handler(request, *args, **kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2450, in task_status\n    raise NotFound("Tracked task not found for this user.")\nrest_framework.exceptions.NotFound: Tracked task not found for this user.\n\ndjango.request:Not Found: /api/v1/tasks/status/cde301ff-95bf-4805-8dca-47a6a86d6685\nusers.exceptions:API ExceptionTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch\n    response = handler(request, *args, **kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2521, in cancel\n    raise NotFound("Tracked task not found for this user.")\nrest_framework.exceptions.NotFound: Tracked task not found for this user.\n\ndjango.request:Not Found: /api/v1/tasks/cancel/cde301ff-95bf-4805-8dca-47a6a86d6685\nusers.exceptions:API ExceptionTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch\n    response = handler(request, *args, **kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/users/views.py", line 2580, in cancel_session\n    raise Http404("No BatchUploadSession matches the given query.")\ndjango.http.response.Http404: No BatchUploadSession matches the given query.\n\ndjango.request:Not Found: /api/v1/tasks/cancel-session/b7a68f9e-821e-4032-a7b1-b690fb5231fc\nstudents.task_tracking:Background task 5e3f96ec-c5b1-4f85-9918-ae1d819ef914 failedTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 546, in grade_engine_async\n    raise CourseNotReachableError()\nstudents.exceptions.CourseNotReachableError: This course wasn\'t found.\n\ncelery.app.trace:Task assignments.tasks.grade_engine_async[3ae778de-488b-456f-b319-4fc27802f9e9] raised unexpected: CourseNotReachableError("This course wasn\'t found.")Traceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task\n    R = retval = fun(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 546, in grade_engine_async\n    raise CourseNotReachableError()\nstudents.exceptions.CourseNotReachableError: This course wasn\'t found.\n\nassignments.tasks:Auto-grade skipped (H-38): assignment d79d85da-48a2-4d76-bb5a-45c1c4effe40, course c025f4dc-5b84-4331-a3d7-c27650955d47 is no longer reachable by its teacher 112a4fb5-d69d-43f5-9dc0-c9480652235d.'
+01:08:32
+01:08:32 ======================================================================
+01:08:32 FAIL: test_the_beat_now_grades_as_the_new_owner (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_beat_now_grades_as_the_new_owner)
+01:08:32 Control: the course isn't blocked, only the ex-owner is.
+01:08:32 ----------------------------------------------------------------------
+01:08:32 Traceback (most recent call last):
+01:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/students/tests_h38_tasks_namespace.py", line 275, in test_the_beat_now_grades_as_the_new_owner
+01:08:32     self.assertEqual(delay.call_count, 1)
+01:08:32 AssertionError: 0 != 1
+01:08:32
+01:08:32 ======================================================================
+01:08:32 FAIL: test_the_auto_grade_beat_still_grades_before_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_the_auto_grade_beat_still_grades_before_removal)
+01:08:32 Control: a member's due assignment is still auto-graded.
+01:08:32 ----------------------------------------------------------------------
+01:08:32 Traceback (most recent call last):
+01:08:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/students/tests_h38_tasks_namespace.py", line 207, in test_the_auto_grade_beat_still_grades_before_removal
+01:08:32     self.assertEqual(delay.call_count, 1)
+01:08:32 AssertionError: 0 != 1
+01:08:32
+01:08:32 ----------------------------------------------------------------------
+01:08:32 Ran 304 tests in 89.717s
+01:08:32
+01:08:32 FAILED (failures=3, errors=1)
+01:08:32 Destroying test database for alias 'default' ('test_epic_a_merge_down_b4')...
+01:08:33 systemd-run failed with exit status 1.

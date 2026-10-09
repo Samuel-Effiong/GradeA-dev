@@ -1,0 +1,83 @@
+"""v2's probe for H-179 (a reply the model cut off at its length limit is logged once per metered call),
+written 2026-10-09 BEFORE any run. Copy to ai_processor/tests_vf2_h179_probe.py of the scratch worktree;
+never committed to the branch.
+
+d5's tests call execute_graded_task directly. These go through a REAL CALLER with its own retry loop
+(AIProcessor.extract_answer_with_retry -> extract_answer_image -> execute_graded_task); only the provider call
+(`AIProcessor._AIProcessor__ai_model`) is replaced, by a plain stand-in reply (no MagicMock reaches the code).
+
+  v1  a reply cut off mid-JSON, every time: the caller fails as it always did (decode error on __cause__) and
+      the provider is called max_retries (3) times; the log holds exactly 3 cut-off lines, each of level WARNING
+      with args ("extract_answer", <the reply's model>, "length"); no line carries the prompt, the assignment
+      text or the reply text (markers VF2-SECRET-*).
+  v2  a normal reply (finish_reason "stop", valid JSON): returned; one provider call; no cut-off line.
+  v3  finish_reason "content_filter": valid JSON, returned, no cut-off line (only "length" counts).
+Rule 19, which mutant shows which probe red: v1 under K1, K4, K5, K6, K7; v2 under K3; v3 under K2 and K3.
+"""
+import logging
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from ai_processor.services import AIProcessor
+from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
+
+PREFIX = "AI reply cut off by the length limit:"
+LOGGER = "ai_processor.services"
+SECRET_PROMPT = "VF2-SECRET-PROMPT"
+SECRET_ASSIGNMENT = "VF2-SECRET-ASSIGNMENT"
+SECRET_REPLY = "VF2-SECRET-REPLY"
+
+
+def reply(content, finish_reason, model="vf2-model-b"):
+    return SimpleNamespace(
+        choices=[SimpleNamespace(finish_reason=finish_reason, message=SimpleNamespace(content=content))],
+        usage=SimpleNamespace(total_tokens=50),
+        model=model,
+    )
+
+
+class VF2CutOffThroughARealCaller(ExecuteGradedTaskTestBase):
+    def run_caller(self, response, expect_error):
+        user = self._make_teacher_with_credits()
+        with patch.object(AIProcessor, "_AIProcessor__ai_model", return_value=response) as provider:
+            with self.assertLogs(LOGGER, level="WARNING") as logged:
+                logging.getLogger(LOGGER).warning("sentinel")  # assertLogs fails on silence; filtered out
+                if expect_error:
+                    with self.assertRaises(Exception) as caught:
+                        self.processor.extract_answer_with_retry(
+                            user, SECRET_PROMPT, SECRET_ASSIGNMENT, max_retries=3)
+                    outcome = caught.exception
+                else:
+                    outcome = self.processor.extract_answer_with_retry(
+                        user, SECRET_PROMPT, SECRET_ASSIGNMENT, max_retries=3)
+        lines = [r for r in logged.records if r.msg.startswith(PREFIX)]
+        return outcome, provider.call_count, lines
+
+    def test_v1_a_cut_off_reply_is_logged_once_per_provider_call_and_nothing_leaks(self):
+        cut = '{"answers": [{"question_number": 1, "answer_html": "' + SECRET_REPLY
+        error, calls, lines = self.run_caller(reply(cut, "length"), expect_error=True)
+
+        self.assertIn("Error decoding JSON", str(error.__cause__))
+        self.assertEqual(calls, 3)
+        self.assertEqual(len(lines), 3)
+        for record in lines:
+            self.assertEqual(record.levelno, logging.WARNING)
+            self.assertEqual(record.args, ("extract_answer", "vf2-model-b", "length"))
+            text = record.getMessage()
+            self.assertTrue(text)
+            for secret in (SECRET_PROMPT, SECRET_ASSIGNMENT, SECRET_REPLY):
+                self.assertNotIn(secret, text)
+
+    def test_v2_a_normal_reply_logs_no_cut_off_line(self):
+        result, calls, lines = self.run_caller(reply('{"answers": []}', "stop"), expect_error=False)
+
+        self.assertEqual(result, {"answers": []})
+        self.assertEqual(calls, 1)
+        self.assertEqual(lines, [])
+
+    def test_v3_only_the_length_reason_counts(self):
+        result, calls, lines = self.run_caller(reply('{"answers": []}', "content_filter"), expect_error=False)
+
+        self.assertEqual(result, {"answers": []})
+        self.assertEqual(calls, 1)
+        self.assertEqual(lines, [])

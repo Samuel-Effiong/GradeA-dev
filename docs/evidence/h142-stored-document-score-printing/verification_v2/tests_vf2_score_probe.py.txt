@@ -1,0 +1,172 @@
+"""v2's probe for H-139 + H-140 + H-142 (d5). Copy to
+students/tests_vf2_score_probe.py of the scratch worktree; never committed
+to the branch. Written 2026-10-06 before any run, after reading b95d0323.
+
+Every read goes through the real route and checks its status and key
+first; the student is ENROLLED (checked in setUp); the submission is made
+by the upload engine (d5's fixture).
+
+  S1  after a manual grade of a RELEASED paper the student's ASSIGNMENT
+      route gives the stored document, with the new score (d5 reads the
+      submission route).
+  S2  a manual grade to zero: the stored paper, and the paper a released
+      student reads on both routes, print "0.00".
+  S3  no database: for every score from 0.00 to 10.00 in hundredths, the
+      header printed from the float (as grading and the manual grade hold
+      it) is the header printed from the decimal the database would give
+      back for it.
+  S4  a manual grade of an UNRELEASED paper, then release: the student
+      reads the new score, never the old one.
+"""
+
+import re
+from decimal import Decimal
+
+from django.core.cache import cache
+from django.db.backends.utils import format_number
+from django.urls import reverse
+from django.utils import timezone
+
+from assignments.services import AssignmentProcessingService
+from classrooms.models import EnrollmentStatusType
+from students.models import StudentSubmission
+from students.services import student_submission_to_html
+from students.tests_answer_document_before_release import AnswerDocumentBase
+
+SCORE_LINE = re.compile(r"<strong>Score:</strong>\s*([^<]*)</p>")
+
+
+def printed(html):
+    (found,) = SCORE_LINE.findall(html)
+    return found.strip()
+
+
+def rebuilt(row):
+    """The document the builder gives for the row as it is now."""
+    return AssignmentProcessingService.html_to_prosemirror_text(
+        student_submission_to_html(row)
+    )
+
+
+class VF2ManualGradeProbe(AnswerDocumentBase):
+    def setUp(self):
+        super().setUp()
+        self.assertEqual(
+            self.enrollment().enrollment_status, EnrollmentStatusType.ENROLLED
+        )
+        self.grade_by_ai(self.submission, 7)
+
+    def override(self, score):
+        self.client.force_authenticate(self.teacher)
+        response = self.client.patch(
+            reverse(
+                "student-submission-update-grade", kwargs={"pk": self.submission.pk}
+            ),
+            {"score": score},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        self.assertIn("raw_input", response.data)
+        return response
+
+    def student_reads(self):
+        """(submission route document, assignment route document, score)"""
+        self.client.force_authenticate(self.student)
+        own = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+        )
+        self.assertEqual(own.status_code, 200)
+        self.assertIn("raw_input", own.data)
+        on_assignment = self.client.get(
+            reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
+        )
+        self.assertEqual(on_assignment.status_code, 200)
+        self.assertIn("student_submission_raw_input", on_assignment.data)
+        return (
+            own.data["raw_input"],
+            on_assignment.data["student_submission_raw_input"],
+            own.data.get("score"),
+        )
+
+    def test_s1_the_assignment_route_moves_with_a_manual_grade_after_release(self):
+        self.release()
+        cache.clear()
+        before = self.student_reads()
+        self.assertEqual(before[0], self.stored())
+        self.assertEqual(before[1], self.stored())
+        old = self.stored()
+
+        self.override(9)
+
+        # no cache clear: the override is a save
+        after = self.student_reads()
+        self.assertNotEqual(self.stored(), old)
+        self.assertEqual(after[0], self.stored())
+        self.assertEqual(after[1], self.stored())
+        self.assertEqual(Decimal(str(after[2])), Decimal("9"))
+        row = StudentSubmission.objects.get(pk=self.submission.pk)
+        self.assertEqual(printed(student_submission_to_html(row)), "9.00")
+        # the paper the student reads is the document of the row as it now is
+        self.assertEqual(after[0], rebuilt(row))
+
+    def test_s2_a_manual_grade_to_zero_is_printed_for_a_released_student(self):
+        self.release()
+        response = self.override(0)
+
+        row = StudentSubmission.objects.get(pk=self.submission.pk)
+        self.assertEqual(row.score, Decimal("0"))
+        self.assertEqual(printed(student_submission_to_html(row)), "0.00")
+        self.assertEqual(response.data["raw_input"], row.raw_input)
+        self.assertEqual(row.raw_input, rebuilt(row))
+        cache.clear()
+        own, on_assignment, score = self.student_reads()
+        self.assertEqual(own, row.raw_input)
+        self.assertEqual(on_assignment, row.raw_input)
+        self.assertEqual(Decimal(str(score)), Decimal("0"))
+
+    def test_s4_a_manual_grade_before_release_then_release(self):
+        cache.clear()
+        submitted = self.student_reads()
+        hidden = ("7", "7.0", "7.00", "9", "9.0", "9.00")
+        self.assertNotIn(str(submitted[2]), hidden)
+
+        self.override(9)
+        held = self.student_reads()
+        self.assertEqual(held[:2], submitted[:2])
+        self.assertNotIn(str(held[2]), hidden)
+
+        self.release()
+        released = self.student_reads()
+        row = StudentSubmission.objects.get(pk=self.submission.pk)
+        self.assertEqual(released[0], row.raw_input)
+        self.assertEqual(released[1], row.raw_input)
+        self.assertEqual(Decimal(str(released[2])), Decimal("9"))
+        self.assertEqual(printed(student_submission_to_html(row)), "9.00")
+        # ...and that stored document is the one of the row as it now is:
+        # a paper graded by hand before release must not keep the old score
+        self.assertEqual(released[0], rebuilt(row))
+
+    def test_s3_every_hundredth_prints_the_same_from_a_float_and_from_the_database(
+        self,
+    ):
+        field = StudentSubmission._meta.get_field("score")
+        row = StudentSubmission.objects.select_related("assignment", "student").get(
+            pk=self.submission.pk
+        )
+        row.graded_at = timezone.now()
+        differing = []
+        for hundredths in range(0, 1001):
+            as_a_float = round(hundredths / 100, 2)
+            row.score = as_a_float
+            from_the_float = printed(student_submission_to_html(row))
+            stored = Decimal(
+                format_number(
+                    field.to_python(as_a_float), field.max_digits, field.decimal_places
+                )
+            )
+            row.score = stored
+            from_the_database = printed(student_submission_to_html(row))
+            if from_the_float != from_the_database or from_the_float != f"{stored:.2f}":
+                differing.append((as_a_float, from_the_float, from_the_database))
+        print(f"VF2-S3 hundredths checked: 1001; differing: {len(differing)}", flush=True)
+        self.assertEqual(differing, [])

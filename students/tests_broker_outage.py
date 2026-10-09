@@ -47,7 +47,14 @@ class GradeAsyncBrokerOutageTest(APITestCase):
             title="A",
             course=course,
             status=AssignmentStatus.PUBLISHED,
-            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_text": "Q1?",
+                    "points": 10,
+                    "model_answer": "4",
+                }
+            ],
         )
         student = CustomUser.objects.create_user(
             email="broker-outage-student@example.com",
@@ -144,7 +151,12 @@ class SafeDelaySideEffectOutageTest(TestCase):
                 course=self.course,
                 status=AssignmentStatus.PUBLISHED,
                 questions=[
-                    {"question_number": 1, "question_text": "Q1?", "points": 10}
+                    {
+                        "question_number": 1,
+                        "question_text": "Q1?",
+                        "points": 10,
+                        "model_answer": "4",
+                    }
                 ],
             )
 

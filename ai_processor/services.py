@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import logging
 import math
@@ -6,6 +7,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import uuid
 from io import BytesIO
 from pathlib import Path
@@ -23,6 +25,7 @@ from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
 
 from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
+from audit.emitter import resolve_trace_id
 from billing.access_control import (
     NO_CREDITS_REMAINING_REASON,
     TRIAL_CREDITS_EXHAUSTED_REASON,
@@ -44,6 +47,7 @@ from .answer_completeness import MODE_OFF as ANSWER_MODE_OFF
 from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
 from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
+from .exceptions import provider_failure
 from .extraction_schemas import (
     ANSWER_EXTRACTION_RESPONSE_SCHEMA,
     ANSWER_STATUSES,
@@ -54,6 +58,7 @@ from .extraction_schemas import (
     NOT_FOUND_IN_DOCUMENT,
     REVIEW_REQUIRED_STATUSES,
 )
+from .grading_run import GradingRun
 from .grading_schemas import (
     GRADING_BATCH_RESPONSE_SCHEMA,
     GRADING_SINGLE_PASS_RESPONSE_SCHEMA,
@@ -81,6 +86,25 @@ OPENROUTER_API_KEY: str = env.str(
 
 AI_CONFIDENCE_THRESHOLD = 80
 
+# The temperature of every provider call. A named constant, because it is
+# part of the grading settings' version (ai_processor/grading_config.py,
+# BE-I-04): a grade can move because this moved, and the version must show
+# it. SM ruling, 2026-10-06.
+AI_TEMPERATURE = 0.0
+
+
+def _grading_setting(run, name):
+    """A grade-shaping setting, from the run's ONE reading (BE-I-04).
+
+    Nothing in the grading code reads such a setting from Django settings
+    directly: a setting changed while a run is going would then grade
+    under settings the label does not name. A caller that has no run (a
+    helper called by itself, a test) gets a reading taken now.
+    ai_processor/tests_grading_run_pipeline.py scans for live reads.
+    """
+    return (run or GradingRun.start()).config.get(name)
+
+
 # Prompts live beside this module. Anchored to __file__ rather than the
 # process's working directory: these are read at IMPORT time, so a
 # CWD-relative path makes the whole app unimportable from anywhere but
@@ -89,8 +113,29 @@ AI_CONFIDENCE_THRESHOLD = 80
 PROMPT_DIR = Path(__file__).resolve().parent
 
 
-def _load_prompt(filename: str) -> str:
-    return (PROMPT_DIR / filename).read_text(encoding="utf-8")
+class Prompt(str):
+    """A prompt's text, carrying the version NFR-OBS-04 records on every AI
+    call: the file's stem plus the first 8 hex digits of the text's
+    SHA-256, e.g. "GRADING_ASSIGNMENT_PROMPT_5:1a2b3c4d" (no "@": audit
+    metadata drops anything shaped like an email address). The hash changes
+    whenever the text does, even if the file is edited without a rename."""
+
+    version: str
+
+    def __new__(cls, text: str, version: str) -> "Prompt":
+        prompt = super().__new__(cls, text)
+        prompt.version = version
+        return prompt
+
+
+def prompt_version_of(filename: str, text: str) -> str:
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+    return f"{Path(filename).stem}:{digest}"
+
+
+def _load_prompt(filename: str) -> Prompt:
+    text = (PROMPT_DIR / filename).read_text(encoding="utf-8")
+    return Prompt(text, prompt_version_of(filename, text))
 
 
 ASSIGNMENT_EXTRACTION_PROMPT = _load_prompt("ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt")
@@ -122,7 +167,62 @@ WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = _load_prompt(
     "WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt"
 )
 
+# Built in code rather than a file; versioned the same way, over the template
+# text before `{numbers}` is filled in.
+_BLANK_VERIFICATION_TEXT = (
+    "You are re-checking ONE narrow thing about a scanned student "
+    "submission. A first pass reported that the student wrote "
+    "nothing for question(s) {numbers}.\n\n"
+    "For EACH of those question numbers, look at the pages and say "
+    "whether there is ANY student writing responding to it - any "
+    "mark, working, crossing-out, marginal note or continuation "
+    "elsewhere on the page counts.\n\n"
+    "Describe what you can see in `observed` BEFORE you decide "
+    "`content_found`. If you do find writing, quote a short "
+    "verbatim fragment of it in `verbatim_fragment` and give the "
+    "page in `page`; otherwise set both to null.\n\n"
+    "Do not transcribe the full answer and do not grade anything. "
+    "Answer only the question of whether something is there.\n\n"
+    "Be honest in both directions: saying content exists when it "
+    "does not sends a teacher on a pointless hunt, and saying it "
+    "does not exist when it does leaves a student wrongly scored "
+    "zero."
+)
+BLANK_VERIFICATION_INSTRUCTION = Prompt(
+    _BLANK_VERIFICATION_TEXT,
+    prompt_version_of("BLANK_VERIFICATION_INSTRUCTION", _BLANK_VERIFICATION_TEXT),
+)
+
 logger = logging.getLogger(__name__)
+
+
+def _current_attempt() -> int:
+    """1 for a first try; Celery's retry count + 1 inside a retried task."""
+    try:
+        from celery import current_task
+
+        if current_task and current_task.request.id:
+            return int(current_task.request.retries or 0) + 1
+    except Exception:  # noqa: BLE001 - a log field must never fail the call
+        pass
+    return 1
+
+
+def _log_ai_call(*, trace_id, model, prompt_version, task_type, latency_ms, outcome):
+    """One line per provider call (S5, NFR-OBS-04). Fields only - never
+    prompt or answer text, which carry student work."""
+    logger.info(
+        "ai_call trace_id=%s model=%s prompt_version=%s task_type=%s "
+        "attempt=%d latency_ms=%d outcome=%s",
+        trace_id,
+        model,
+        prompt_version or "-",
+        task_type or "-",
+        _current_attempt(),
+        latency_ms,
+        outcome,
+    )
+
 
 # Shown to a STUDENT when their teacher's plan or wallet blocks the AI call.
 # Deliberately says nothing about the teacher's subscription, balance or any
@@ -131,6 +231,36 @@ STUDENT_AI_UNAVAILABLE_MESSAGE = (
     "AI features aren't available for this assignment right now. "
     "Please ask your teacher to check their account."
 )
+
+
+# H-179. A reply the model stopped because of its length limit
+# (finish_reason "length") is cut off, usually in the middle of its JSON. Every
+# metered call logs one WARNING line for it, with this fixed prefix, so the
+# count can be read from the logs. No prompt or reply text, no user or
+# submission id, no e-mail. (The metrics module the row's brief named exists
+# only on the next-stage line.)
+CUT_OFF_REPLY_LOG = (
+    "AI reply cut off by the length limit: task_type=%s model=%s finish_reason=%s"
+)
+
+
+def note_if_reply_cut_off(response, task_type):
+    """Log the cut-off line when the reply's first choice says "length". Never
+    raises: a reply without the attribute, without choices, or with a
+    non-string reason (a test stand-in) is simply not a cut-off reply."""
+    choices = getattr(response, "choices", None)
+    if not isinstance(choices, (list, tuple)) or not choices:
+        return
+    reason = getattr(choices[0], "finish_reason", None)
+    if not isinstance(reason, str) or reason != "length":
+        return
+    model = getattr(response, "model", None)
+    logger.warning(
+        CUT_OFF_REPLY_LOG,
+        task_type,
+        model if isinstance(model, str) else None,
+        reason,
+    )
 
 
 class GradingEvidenceError(ValueError):
@@ -745,7 +875,13 @@ class AIProcessor:
         response_schema=None,
         sub_models=None,
         override_model=None,
+        prompt_version=None,
+        task_type=None,
     ):
+        """The one place a provider call leaves the app (S5, FR-A-03 /
+        NFR-OBS-04). Every call carries the server trace id as X-Request-ID
+        and writes one log line: trace id, model, prompt version, task type,
+        attempt, latency and outcome - never prompt or answer text."""
         main_model = override_model or MAIN_MODEL
         if sub_models is None:
             sub_models = DEFAULT_FALLBACK_MODELS
@@ -757,51 +893,52 @@ class AIProcessor:
         else:
             response_format = None
 
+        trace_id = resolve_trace_id()
+        request = {
+            "extra_headers": {
+                "HTTP-Referer": settings.FRONTEND_DOMAIN,
+                "X-Title": "GradeA+",
+                "X-Request-ID": str(trace_id),
+            },
+            "model": main_model,
+            "extra_body": {
+                "models": sub_models,
+                # data_collection "deny" filters suppliers that train on
+                # data; zdr filters suppliers that retain prompts. Both
+                # are in the block. Student names and submission content
+                # pass through this call.
+                "provider": _provider_block(),
+            },
+            "messages": messages
+            or [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": AI_TEMPERATURE,
+            "response_format": response_format,
+        }
         if tool_schemas:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": settings.FRONTEND_DOMAIN,
-                    "X-Title": "GradeA+",
-                },
-                model=main_model,
-                extra_body={
-                    "models": sub_models,
-                    # data_collection "deny" filters suppliers that train on
-                    # data; zdr filters suppliers that retain prompts. Both
-                    # are in the block. Student names and submission content
-                    # pass through this call.
-                    "provider": _provider_block(),
-                },
-                messages=messages
-                or [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                tools=tool_schemas,
-                temperature=0.0,
-                response_format=response_format,
-            )
-        else:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": settings.FRONTEND_DOMAIN,
-                    "X-Title": "GradeA+",
-                },
-                model=main_model,
-                extra_body={
-                    "models": sub_models,
-                    "provider": _provider_block(),
-                },
-                messages=messages
-                or [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.0,
-                response_format=response_format,
-            )
+            request["tools"] = tool_schemas
 
-        return response
+        started = time.monotonic()
+        outcome = "ok"
+        served_model = main_model
+        try:
+            response = self.client.chat.completions.create(**request)
+            served_model = getattr(response, "model", None) or main_model
+            return response
+        except Exception as exc:
+            outcome = type(exc).__name__
+            raise
+        finally:
+            _log_ai_call(
+                trace_id=trace_id,
+                model=served_model,
+                prompt_version=prompt_version,
+                task_type=task_type,
+                latency_ms=int((time.monotonic() - started) * 1000),
+                outcome=outcome,
+            )
 
     def get_ai_model_function(self):
         return self.__ai_model
@@ -840,6 +977,7 @@ Do not include any explanatory text before or after the JSON
         try:
 
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
@@ -898,6 +1036,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
@@ -1041,6 +1180,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=ASSIGNMENT_EXTRACTION_PROMPT.version,
                         user=user,
                         feature="Assignment Extraction",
                         task_type="extract_assignment",
@@ -1217,6 +1357,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=system_prompt.version,
                         user=user,
                         feature="Assignment Extraction",
                         task_type="extract_assignment",
@@ -1684,6 +1825,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
                         user=user,
                         feature="Answer Extraction",
                         task_type="extract_answer",
@@ -1910,6 +2052,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
@@ -2057,25 +2200,7 @@ Do not include any explanatory text before or after the JSON
             return answers
 
         numbers = [entry.get("question_number") for entry in blanks]
-        instruction = (
-            "You are re-checking ONE narrow thing about a scanned student "
-            "submission. A first pass reported that the student wrote "
-            f"nothing for question(s) {numbers}.\n\n"
-            "For EACH of those question numbers, look at the pages and say "
-            "whether there is ANY student writing responding to it - any "
-            "mark, working, crossing-out, marginal note or continuation "
-            "elsewhere on the page counts.\n\n"
-            "Describe what you can see in `observed` BEFORE you decide "
-            "`content_found`. If you do find writing, quote a short "
-            "verbatim fragment of it in `verbatim_fragment` and give the "
-            "page in `page`; otherwise set both to null.\n\n"
-            "Do not transcribe the full answer and do not grade anything. "
-            "Answer only the question of whether something is there.\n\n"
-            "Be honest in both directions: saying content exists when it "
-            "does not sends a teacher on a pointless hunt, and saying it "
-            "does not exist when it does leaves a student wrongly scored "
-            "zero."
-        )
+        instruction = BLANK_VERIFICATION_INSTRUCTION.format(numbers=numbers)
 
         override_model = (
             getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
@@ -2084,6 +2209,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
@@ -2288,11 +2414,10 @@ Do not include any explanatory text before or after the JSON
 
                 if attempt < max_retries - 1:
                     logger.info("Retrying...")
-        # `from last_error` keeps the real failure on __cause__, which is what
-        # classify_infra_error walks to tell a timeout from a corrupt file.
-        raise Exception(
-            f"All {max_retries} attempts failed. Last error: {last_error}"
-        ) from last_error
+        # FR-A-06 #9 (S6d): PROVIDER_FAILURE, coded. `from last_error` keeps
+        # the real failure on __cause__, which is what classify_infra_error
+        # walks to tell a timeout from a corrupt file.
+        raise provider_failure(last_error, max_retries) from last_error
 
     @staticmethod
     def _question_number_key(value):
@@ -2331,20 +2456,46 @@ Do not include any explanatory text before or after the JSON
         return model_name if isinstance(model_name, str) else None
 
     @staticmethod
-    def _grading_response_schema(schema):
+    def _stamp_graded_by(evaluations, model_name):
+        """Mark each freshly graded evaluation with the model that answered
+        (or "llm" when the provider named none), as OUR code read it from
+        the response.
+
+        Assigned, never `setdefault`: a "graded_by" or "from_cache" value
+        that arrives inside the AI's own reply is not trusted (BE-I-04,
+        ruling B6). Kept, a reply's "deterministic" or "from_cache" would
+        make later code skip the second opinion and the saved-answer
+        store, and would name a grader that did not grade.
+
+        The same holds for the repeat rule (H-154, found by Verifier 2): the
+        system knows its own evaluations by two fields
+        (_held_by_the_system), and a reply is free text that can carry
+        either. Without this a reply's repeat carrying the mark and a
+        higher score would outrank an honest one, and a returned evaluation
+        carrying it could lower a grade the model was never asked about.
+        The response schema refuses extra fields where a provider honours
+        it; this does not lean on that.
+        """
+        for evaluation in evaluations or []:
+            if isinstance(evaluation, dict):
+                evaluation.pop("from_cache", None)
+                evaluation["graded_by"] = model_name or grading_cache.UNNAMED_MODEL
+
+    @staticmethod
+    def _grading_response_schema(schema, run=None):
         """
         The json_schema contract for a grading call, or None when the
         kill switch is off (None falls back to free-form json_object in
         __ai_model — the pre-schema behavior, kept as a rollback lever in
         case a routed fallback model rejects json_schema).
         """
-        if getattr(settings, "GRADING_RESPONSE_SCHEMA_ENABLED", True):
+        if _grading_setting(run, "GRADING_RESPONSE_SCHEMA_ENABLED"):
             return schema
         return None
 
     @staticmethod
-    def _evidence_mode():
-        return getattr(settings, "GRADING_EVIDENCE_ENFORCEMENT", MODE_STRICT)
+    def _evidence_mode(run=None):
+        return _grading_setting(run, "GRADING_EVIDENCE_ENFORCEMENT")
 
     def _missing_question_numbers(self, evaluations: list, questions: list) -> list:
         """
@@ -2617,27 +2768,6 @@ Do not include any explanatory text before or after the JSON
             or evaluation.get("from_cache")
         )
 
-    @staticmethod
-    def _stamp_as_a_models(evaluations, model_name) -> None:
-        """Mark a REPLY's evaluations as a model's, in place.
-
-        The system knows its own evaluations by two fields
-        (_held_by_the_system), and a reply is free text: it can carry
-        either. So `graded_by` is ASSIGNED here, not defaulted, and
-        `from_cache` is removed. Without this a reply's repeat carrying
-        the mark and a higher score would outrank an honest one, a
-        returned evaluation carrying it could lower a grade the model was
-        never asked about, and the same mark would skip the snap to a
-        rubric level and keep the evaluation out of the saved-answer
-        store (H-154; found by Verifier 2). The response schema refuses
-        extra fields where a provider honours it; this does not lean on
-        that.
-        """
-        for evaluation in evaluations:
-            if isinstance(evaluation, dict):
-                evaluation.pop("from_cache", None)
-                evaluation["graded_by"] = model_name or "llm"
-
     def _outranks(self, candidate, held) -> bool:
         """Whether `candidate` replaces `held` as a question's ONE
         evaluation (both already corrected). See _finalize_grading_result."""
@@ -2739,6 +2869,7 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         processing_task_id=None,
         override_model=None,
+        run=None,
     ) -> list:
         """
         Grades a small batch of questions (up to GRADING_QUESTIONS_PER_CHUNK)
@@ -2764,7 +2895,7 @@ Do not include any explanatory text before or after the JSON
             list of question_evaluation dicts from the grading response.
         """
         system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
-            assignment_model
+            assignment_model, run
         )
         assignment_context = self._assignment_context_block(
             assignment_model, batch_number=batch_number, total_batches=total_batches
@@ -2800,7 +2931,7 @@ Do not include any explanatory text before or after the JSON
         """
 
         user_prompts = [{"type": "text", "text": user_prompt}]
-        user_prompts.extend(self._question_image_content_blocks(batch_rubric))
+        user_prompts.extend(self._question_image_content_blocks(batch_rubric, run))
         system_prompts = [{"type": "text", "text": system_prompt}]
 
         last_error: Optional[Exception] = None
@@ -2809,6 +2940,7 @@ Do not include any explanatory text before or after the JSON
             ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
+                    prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                     user=user,
                     feature="Grading Assignment",
                     task_type="grade_assignment",
@@ -2817,7 +2949,7 @@ Do not include any explanatory text before or after the JSON
                     assignment=assignment_model,
                     processing_task_id=processing_task_id,
                     response_schema=self._grading_response_schema(
-                        GRADING_BATCH_RESPONSE_SCHEMA
+                        GRADING_BATCH_RESPONSE_SCHEMA, run
                     ),
                     override_model=override_model,
                 )
@@ -2906,7 +3038,7 @@ Do not include any explanatory text before or after the JSON
                 is_final_attempt = (
                     attempt == batch_attempts - 1 and override_model is None
                 )
-                effective_mode = self._evidence_mode()
+                effective_mode = self._evidence_mode(run)
                 if is_final_attempt and effective_mode == MODE_STRICT:
                     effective_mode = MODE_LOG
                 violations = enforce_evidence(
@@ -2920,7 +3052,7 @@ Do not include any explanatory text before or after the JSON
                         f"Batch {batch_number} evidence check failed: "
                         f"{'; '.join(violations)}"
                     )
-                if is_final_attempt and self._evidence_mode() == (MODE_STRICT):
+                if is_final_attempt and self._evidence_mode(run) == (MODE_STRICT):
                     logger.warning(
                         "[Grading] evidence_degraded batch=%s/%s — strict "
                         "evidence relaxed to 'log' on the final attempt so "
@@ -2935,9 +3067,16 @@ Do not include any explanatory text before or after the JSON
                     f"[Grading] Batch {batch_number}/{total_batches} complete — "
                     f"{len(evaluations)} question(s) graded."
                 )
-                # Provenance marker for the future eval loop.
                 batch_model = self._response_model_name(response)
-                self._stamp_as_a_models(evaluations, batch_model)
+                self._stamp_graded_by(evaluations, batch_model)
+                # BE-I-04: this reply is KEPT (it passed every check above;
+                # a rejected reply never gets here). A second opinion is
+                # recorded apart: it does not set the score.
+                if run is not None:
+                    if override_model is not None:
+                        run.keep_second_opinion(batch_model)
+                    else:
+                        run.keep_answers(batch_model, len(evaluations))
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -2995,6 +3134,7 @@ Do not include any explanatory text before or after the JSON
         answer_json: str,
         assignment_model=None,
         processing_task_id=None,
+        run=None,
     ) -> dict:
         """
         After all question batches are graded, runs one final AI call to produce
@@ -3024,7 +3164,7 @@ Do not include any explanatory text before or after the JSON
                   defined in GRADING_ASSIGNMENT_PROMPT_5.txt.
         """
         system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
-            assignment_model
+            assignment_model, run
         )
 
         # ── Recalculate score arithmetic in Python — never trust the model ────────
@@ -3079,6 +3219,7 @@ Do not include any explanatory text before or after the JSON
             ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
+                    prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                     user=user,
                     feature="Grading Assignment",
                     task_type="grade_assignment",
@@ -3087,7 +3228,7 @@ Do not include any explanatory text before or after the JSON
                     assignment=assignment_model,
                     processing_task_id=processing_task_id,
                     response_schema=self._grading_response_schema(
-                        GRADING_SUMMARY_RESPONSE_SCHEMA
+                        GRADING_SUMMARY_RESPONSE_SCHEMA, run
                     ),
                 )
                 raw = response.choices[0].message.content
@@ -3114,6 +3255,11 @@ Do not include any explanatory text before or after the JSON
                 summary["score_calculation_verification"] = verification
 
                 model_name = self._response_model_name(response)
+                # BE-I-04: the summary call is a kept fresh call that
+                # marked no answer. It counts for the backup flag and does
+                # not vote for the grade's model.
+                if run is not None:
+                    run.keep_call(model_name)
                 if model_name:
                     summary["grading_model"] = model_name
 
@@ -3206,7 +3352,29 @@ Do not include any explanatory text before or after the JSON
             )
         return deterministic_evaluations, llm_questions, llm_answers
 
-    def _partition_cached(self, questions, answers, assignment_model=None):
+    @staticmethod
+    def _answer_as_said(answer):
+        """The parts of an answer, besides its text, that the saved-answer
+        key takes: what is said ABOUT the answer and sent to the AI with
+        it. One place, so the lookup and the store cannot differ. NOT
+        source_page, confidence or the answer's own question_text: see the
+        stated limits in ai_processor/grading_cache.py."""
+        answer = answer if isinstance(answer, dict) else {}
+        return {
+            "answer_status": answer.get("answer_status"),
+            "transcription_notes": answer.get("transcription_notes"),
+        }
+
+    def _match_context(self, assignment_model, run):
+        """What the saved-answer key holds besides the question and the
+        answer, from the run's one reading (BE-I-04 slice B)."""
+        return grading_cache.MatchContext.for_run(
+            assignment_model,
+            run,
+            self._custom_instructions_block(assignment_model, run),
+        )
+
+    def _partition_cached(self, questions, answers, assignment_model=None, run=None):
         """
         Tier 0.5, after tier 0: reuse a prior evaluation for a question
         whose exact content and exact student answer text were already
@@ -3233,7 +3401,8 @@ Do not include any explanatory text before or after the JSON
             for a in (answers or [])
             if is_readable_answer(a)
         }
-        assignment_id = getattr(assignment_model, "id", None)
+        run = run or GradingRun.start()
+        context = self._match_context(assignment_model, run)
 
         cached_evaluations = []
         remaining_questions = []
@@ -3244,14 +3413,21 @@ Do not include any explanatory text before or after the JSON
                 remaining_questions.append(question)
                 continue
             key = self._question_number_key(question.get("question_number"))
-            answer_html = answer_by_key.get(key, {}).get("answer_html", "")
+            answer = answer_by_key.get(key, {})
             hit = grading_cache.get_cached_evaluation(
                 question,
-                answer_html,
+                answer.get("answer_html", ""),
                 model_name=MAIN_MODEL,
-                assignment_id=assignment_id,
+                context=context,
+                **self._answer_as_said(answer),
             )
             if hit is not None:
+                # BE-I-04: a reused answer counts by the model that first
+                # produced it, as the envelope our code wrote names it.
+                first_model = hit.get("graded_by")
+                run.keep_reused(
+                    None if first_model == grading_cache.UNNAMED_MODEL else first_model
+                )
                 cached_evaluations.append(hit)
                 claimed_keys.add(key)
             else:
@@ -3278,7 +3454,13 @@ Do not include any explanatory text before or after the JSON
         return cached_evaluations, remaining_questions, remaining_answers
 
     def _store_cache_evaluations(
-        self, fresh_evaluations, questions, answers, result, assignment_model=None
+        self,
+        fresh_evaluations,
+        questions,
+        answers,
+        result,
+        assignment_model=None,
+        run=None,
     ):
         """
         Writes fresh LLM evaluations to the answer cache — called only
@@ -3308,7 +3490,8 @@ Do not include any explanatory text before or after the JSON
             for q in (questions or [])
             if isinstance(q, dict)
         }
-        assignment_id = getattr(assignment_model, "id", None)
+        # The SAME reading the lookup of this run used: never a fresh one.
+        context = self._match_context(assignment_model, run or GradingRun.start())
 
         for evaluation in fresh_evaluations or []:
             if not isinstance(evaluation, dict):
@@ -3324,13 +3507,23 @@ Do not include any explanatory text before or after the JSON
             question = question_by_key.get(key)
             if question is None:
                 continue
-            answer_html = answer_by_key.get(key, {}).get("answer_html", "")
+            answer = answer_by_key.get(key, {})
+            # `graded_by` was assigned by _stamp_graded_by from the
+            # response our code read, never taken from the reply.
+            graded_by = evaluation.get("graded_by")
             grading_cache.store_evaluation(
                 question,
-                answer_html,
+                answer.get("answer_html", ""),
                 evaluation,
                 model_name=MAIN_MODEL,
-                assignment_id=assignment_id,
+                served_model=(
+                    graded_by
+                    if isinstance(graded_by, str)
+                    and graded_by != grading_cache.UNNAMED_MODEL
+                    else None
+                ),
+                context=context,
+                **self._answer_as_said(answer),
             )
 
     @staticmethod
@@ -3369,7 +3562,7 @@ Do not include any explanatory text before or after the JSON
         return "\n".join(lines) + "\n"
 
     @staticmethod
-    def _custom_instructions_block(assignment_model):
+    def _custom_instructions_block(assignment_model, run=None):
         """
         Splices a teacher's Assignment.custom_ai_prompt into the grading
         system prompt when set — e.g. "always require units", "accept
@@ -3384,7 +3577,10 @@ Do not include any explanatory text before or after the JSON
         that turns out to cause a bad interaction can be switched off
         without a deploy.
         """
-        if not getattr(settings, "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", True):
+        # The run's ONE reading of the settings when there is a run, so the
+        # text spliced into the prompt and the text in the saved-answer
+        # key cannot disagree (BE-I-04 slice B).
+        if not _grading_setting(run, "GRADING_CUSTOM_INSTRUCTIONS_ENABLED"):
             return ""
         custom_prompt = (
             getattr(assignment_model, "custom_ai_prompt", None) or ""
@@ -3398,7 +3594,7 @@ Do not include any explanatory text before or after the JSON
         )
 
     @staticmethod
-    def _question_image_content_blocks(questions):
+    def _question_image_content_blocks(questions, run=None):
         """
         A question whose content IS a diagram was, until now, graded
         blind: question_image is a real field (assignments/serializers.py)
@@ -3412,7 +3608,7 @@ Do not include any explanatory text before or after the JSON
         call, the same category of caution already applied to fetched web
         content via FETCHED_CONTENT_SECURITY_NOTE.
         """
-        cap = getattr(settings, "GRADING_MAX_IMAGES_PER_CALL", 5)
+        cap = _grading_setting(run, "GRADING_MAX_IMAGES_PER_CALL")
         blocks: list = []
         for question in questions or []:
             if not isinstance(question, dict):
@@ -3526,6 +3722,7 @@ Do not include any explanatory text before or after the JSON
         user,
         assignment_model=None,
         processing_task_id=None,
+        run=None,
     ):
         """
         Selective blind second opinion (see ai_processor/second_opinion.py
@@ -3543,7 +3740,7 @@ Do not include any explanatory text before or after the JSON
         retries) logs, annotates result["second_opinion"]["error"], and
         lets the run succeed. Only task cancellation propagates.
         """
-        if not getattr(settings, "GRADING_SECOND_OPINION_ENABLED", True):
+        if not _grading_setting(run, "GRADING_SECOND_OPINION_ENABLED"):
             return result
 
         # Bound before the try so the except handlers below can always
@@ -3555,26 +3752,20 @@ Do not include any explanatory text before or after the JSON
                 result,
                 llm_questions,
                 key_fn=self._question_number_key,
-                min_confidence=getattr(
-                    settings,
-                    "GRADING_SECOND_OPINION_MIN_CONFIDENCE",
-                    AI_CONFIDENCE_THRESHOLD,
+                min_confidence=_grading_setting(
+                    run, "GRADING_SECOND_OPINION_MIN_CONFIDENCE"
                 ),
-                high_points_threshold=getattr(
-                    settings, "GRADING_SECOND_OPINION_HIGH_POINTS", 15
+                high_points_threshold=_grading_setting(
+                    run, "GRADING_SECOND_OPINION_HIGH_POINTS"
                 ),
-                sample_rate=getattr(
-                    settings, "GRADING_SECOND_OPINION_SAMPLE_RATE", 0.05
-                ),
-                borderline_enabled=getattr(
-                    settings, "GRADING_SECOND_OPINION_ON_BORDERLINE", True
+                sample_rate=_grading_setting(run, "GRADING_SECOND_OPINION_SAMPLE_RATE"),
+                borderline_enabled=_grading_setting(
+                    run, "GRADING_SECOND_OPINION_ON_BORDERLINE"
                 ),
                 subjective_types=frozenset(
                     str(t).strip().upper()
-                    for t in getattr(
-                        settings,
-                        "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES",
-                        ["ESSAY", "SHORT-ANSWER"],
+                    for t in _grading_setting(
+                        run, "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES"
                     )
                 ),
             )
@@ -3589,7 +3780,7 @@ Do not include any explanatory text before or after the JSON
 
             second_model = pick_second_model(
                 result.get("grading_model"),
-                getattr(settings, "GRADING_SECOND_OPINION_MODELS", []),
+                _grading_setting(run, "GRADING_SECOND_OPINION_MODELS"),
             )
             if second_model is None:
                 # Not a quiet edge case: this is the review queue's safety
@@ -3644,6 +3835,7 @@ Do not include any explanatory text before or after the JSON
                         assignment_model=assignment_model,
                         processing_task_id=processing_task_id,
                         override_model=second_model,
+                        run=run,
                     )
                 )
 
@@ -3661,11 +3853,11 @@ Do not include any explanatory text before or after the JSON
                 # it never suppresses one (equality stays the agreement
                 # test on discrete rubric levels).
                 questions=selected_questions,
-                critical_fraction=getattr(
-                    settings, "GRADING_DISAGREEMENT_CRITICAL_FRACTION", 0.5
+                critical_fraction=_grading_setting(
+                    run, "GRADING_DISAGREEMENT_CRITICAL_FRACTION"
                 ),
-                moderate_fraction=getattr(
-                    settings, "GRADING_DISAGREEMENT_MODERATE_FRACTION", 0.25
+                moderate_fraction=_grading_setting(
+                    run, "GRADING_DISAGREEMENT_MODERATE_FRACTION"
                 ),
             )
             result["second_opinion"] = {
@@ -3742,6 +3934,7 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         processing_task_id=None,
         final_attempt=False,
+        run=None,
     ):
         """
         Main entry point for grading a student submission.
@@ -3766,6 +3959,7 @@ Do not include any explanatory text before or after the JSON
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
                 final_attempt=final_attempt,
+                run=run,
             )
         # Stamped HERE, outside the impl, because this is the one choke
         # point every grading path returns through - the deterministic-only
@@ -3884,6 +4078,7 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         processing_task_id=None,
         final_attempt=False,
+        run=None,
     ):
         """
         The actual grading pipeline (see grade_student_submission for the
@@ -3927,6 +4122,14 @@ Do not include any explanatory text before or after the JSON
 
         ensure_task_not_cancelled(processing_task_id)
 
+        # BE-I-04: the run's one reading of the settings. A caller that
+        # starts a run (extract_grade_with_retry) passes it, so every
+        # attempt shares it; a direct caller gets one for this call.
+        run = run or GradingRun.start()
+        # Only kept replies count: whatever an earlier attempt gathered is
+        # thrown away with that attempt.
+        run.begin_attempt()
+
         # Parse answers once — the deterministic partition needs the list
         # form (the LLM prompt builders keep accepting either form).
         try:
@@ -3942,7 +4145,7 @@ Do not include any explanatory text before or after the JSON
         deterministic_evaluations = []
         llm_questions = questions
         llm_answers = answers
-        if questions and getattr(settings, "GRADING_DETERMINISTIC_OBJECTIVE", True):
+        if questions and _grading_setting(run, "GRADING_DETERMINISTIC_OBJECTIVE"):
             deterministic_evaluations, llm_questions, llm_answers = (
                 self._partition_deterministic(questions, answers)
             )
@@ -3953,7 +4156,7 @@ Do not include any explanatory text before or after the JSON
         # ai_processor/grading_cache.py for why this makes cross-student
         # consistency a guarantee rather than a hope.
         cached_evaluations, llm_questions, llm_answers = self._partition_cached(
-            llm_questions, llm_answers, assignment_model=assignment_model
+            llm_questions, llm_answers, assignment_model=assignment_model, run=run
         )
 
         claimed_evaluations = deterministic_evaluations + cached_evaluations
@@ -4005,7 +4208,7 @@ Do not include any explanatory text before or after the JSON
             )
 
             system_prompt = GRADING_ASSIGNMENT_PROMPT + self._custom_instructions_block(
-                assignment_model
+                assignment_model, run
             )
             assignment_context = self._assignment_context_block(assignment_model)
 
@@ -4034,10 +4237,11 @@ Do not include any explanatory text before or after the JSON
     """
 
             user_prompts = [{"type": "text", "text": user_prompt}]
-            user_prompts.extend(self._question_image_content_blocks(llm_questions))
+            user_prompts.extend(self._question_image_content_blocks(llm_questions, run))
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
+                prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                 user=user,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -4046,7 +4250,7 @@ Do not include any explanatory text before or after the JSON
                 assignment=assignment_model,
                 processing_task_id=processing_task_id,
                 response_schema=self._grading_response_schema(
-                    GRADING_SINGLE_PASS_RESPONSE_SCHEMA
+                    GRADING_SINGLE_PASS_RESPONSE_SCHEMA, run
                 ),
             )
 
@@ -4102,7 +4306,7 @@ Do not include any explanatory text before or after the JSON
             # LAST attempt a strict evidence failure would cost the student
             # their whole grade, which is worse for them than a grade
             # carrying one unverified quote.
-            single_pass_mode = self._evidence_mode()
+            single_pass_mode = self._evidence_mode(run)
             if final_attempt and single_pass_mode == MODE_STRICT:
                 single_pass_mode = MODE_LOG
                 logger.warning(
@@ -4123,10 +4327,10 @@ Do not include any explanatory text before or after the JSON
                     f"{'; '.join(violations)}"
                 )
 
-            # Provenance marker for the future eval loop: which grader
-            # produced each evaluation.
             model_name = self._response_model_name(response)
-            self._stamp_as_a_models(evaluations, model_name)
+            self._stamp_graded_by(evaluations, model_name)
+            # BE-I-04: this reply is kept; each answer it marked votes.
+            run.keep_answers(model_name, len(evaluations))
 
             # Captured before the merge below: exactly the questions this
             # call freshly graded (excludes deterministic and cache-hit
@@ -4162,6 +4366,7 @@ Do not include any explanatory text before or after the JSON
                 user,
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
+                run=run,
             )
             self._store_cache_evaluations(
                 fresh_evaluations,
@@ -4169,6 +4374,7 @@ Do not include any explanatory text before or after the JSON
                 llm_answers,
                 final_result,
                 assignment_model=assignment_model,
+                run=run,
             )
             return final_result
 
@@ -4213,6 +4419,7 @@ Do not include any explanatory text before or after the JSON
                 total_batches=total_batches,
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
+                run=run,
             )
             all_evaluations.extend(batch_evaluations)
 
@@ -4251,6 +4458,7 @@ Do not include any explanatory text before or after the JSON
             answer_json=answer_json,
             assignment_model=assignment_model,
             processing_task_id=processing_task_id,
+            run=run,
         )
 
         # Step 6: Assemble the final result — evaluations + summary
@@ -4277,6 +4485,7 @@ Do not include any explanatory text before or after the JSON
             user,
             assignment_model=assignment_model,
             processing_task_id=processing_task_id,
+            run=run,
         )
         self._store_cache_evaluations(
             fresh_evaluations,
@@ -4284,6 +4493,7 @@ Do not include any explanatory text before or after the JSON
             llm_answers,
             graded_result,
             assignment_model=assignment_model,
+            run=run,
         )
         return graded_result
 
@@ -4295,7 +4505,12 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         max_retries: int = 3,
         processing_task_id=None,
+        run=None,
     ):
+        # BE-I-04: ONE reading of the grading settings for the whole run,
+        # taken above the retry loop, so every attempt, the saved-answer
+        # lookup and the saved-answer store all use the same one.
+        run = run or GradingRun.start()
         last_error = None
 
         for attempt in range(max_retries):
@@ -4307,6 +4522,7 @@ Do not include any explanatory text before or after the JSON
                     answer_json,
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
+                    run=run,
                     # The single-pass path has no retry loop of its own,
                     # so it cannot know it is out of chances. Tell it, so
                     # its evidence check can degrade to "log" instead of
@@ -4322,7 +4538,10 @@ Do not include any explanatory text before or after the JSON
                 if attempt < max_retries - 1:
                     logger.info("[Grading] Retrying...")
 
-        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+        # FR-A-06 #9 (S6d): PROVIDER_FAILURE, coded, and now `from
+        # last_error`: the bare Exception left no __cause__, so a grading
+        # timeout could not be told from a code fault.
+        raise provider_failure(last_error, max_retries) from last_error
 
     @staticmethod
     def _execute_assignment_generation_tool_call(tool):
@@ -4435,6 +4654,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         for round_index in range(MAX_TOOL_CALL_ROUNDS):
             response = self.execute_graded_task(
+                prompt_version=GENERATE_ASSIGNMENT_PROMPT.version,
                 user=user,
                 feature="Assignment Generation",
                 task_type="generate_assignment",
@@ -4541,6 +4761,7 @@ Now, respond to the following teacher's instruction using the rules above
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
+                prompt_version=GRADE_FORMATTER.version,
                 user=user,
                 feature="Formatted Grade",
                 task_type="formatted_grade",
@@ -4589,7 +4810,16 @@ Now, respond to the following teacher's instruction using the rules above
         course=None,
         processing_task_id=None,
         override_model=None,
+        *,
+        prompt_version,
     ):
+        """The only way into the provider call: access control, billing and
+        the call itself. `prompt_version` is required (S5, NFR-OBS-04): every
+        AI path names the prompt it sent (e.g. `GRADING_ASSIGNMENT_PROMPT.
+        version`), so any result can be traced to the exact prompt text."""
+        if not prompt_version:
+            raise ValueError("execute_graded_task requires a prompt_version")
+
         # I need the assignment to for students who are submitting
         # their assignment to know who the teacher that created
         # the assignment is and charge the teacher
@@ -4700,6 +4930,8 @@ Now, respond to the following teacher's instruction using the rules above
                 response_schema,
                 sub_models=sub_models,
                 override_model=override_model,
+                prompt_version=prompt_version,
+                task_type=task_type,
             )
             return response
 
@@ -4710,52 +4942,10 @@ Now, respond to the following teacher's instruction using the rules above
             # below instead of a clear, actionable error here.
             raise ValueError(f"Unsupported user_type for AI access: {user.user_type!r}")
 
-        total_prompt = ""
-        image_bytes = []
-        pdf_bytes = []
-
-        if user_prompt:
-            if isinstance(user_prompt, str):
-                total_prompt += user_prompt
-            else:
-                for prompt in user_prompt:
-                    if prompt["type"] == "text":
-                        total_prompt += prompt["text"]
-                    elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.get("bytes"))
-
-        if system_prompt:
-            if isinstance(system_prompt, str):
-                total_prompt += system_prompt
-            else:
-                for prompt in system_prompt:
-                    if prompt["type"] == "text":
-                        total_prompt += prompt["text"]
-                    elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.get("bytes"))
-
-        if messages:
-            for message in messages:
-                # A tool-calling assistant message legitimately has
-                # content=None (the "content" is the tool_calls instead) -
-                # skip it here rather than crashing; there's nothing to
-                # estimate tokens for in that message anyway.
-                content = message.get("content")
-                if not content:
-                    continue
-                if isinstance(content, str):
-                    total_prompt += content
-                else:
-                    for item in content:
-                        if item["type"] == "text":
-                            total_prompt += item["text"]
-                        elif item["type"] == "image_url":
-                            image_bytes.append(item.get("bytes"))
-                        elif item["type"] == "pdf_url":
-                            pdf_bytes.append(item.get("bytes"))
-
         ensure_task_not_cancelled(processing_task_id)
-        estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
+        estimated_cost = self.estimate_messages_cost(
+            user_prompt, system_prompt, messages
+        )
 
         balance = wallet.total_remaining_credits()
 
@@ -4779,7 +4969,10 @@ Now, respond to the following teacher's instruction using the rules above
             response_schema,
             sub_models=sub_models,
             override_model=override_model,
+            prompt_version=prompt_version,
+            task_type=task_type,
         )
+        note_if_reply_cut_off(response, task_type)
 
         resolved_course = assignment.course if assignment else course
 
@@ -4832,6 +5025,59 @@ Now, respond to the following teacher's instruction using the rules above
         tiles_high = math.ceil(height / 512)
 
         return (tiles_wide * tiles_high * 170) + 85
+
+    def estimate_messages_cost(self, user_prompt, system_prompt, messages):
+        """What a call carrying these prompts and messages is estimated at.
+
+        THE ONE PLACE the gate in execute_graded_task and the door of the
+        upload routes (assignments.upload_door, H-180) both ask, so the
+        two cannot differ for the same content.
+        """
+        total_prompt = ""
+        image_bytes = []
+        pdf_bytes = []
+
+        if user_prompt:
+            if isinstance(user_prompt, str):
+                total_prompt += user_prompt
+            else:
+                for prompt in user_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.get("bytes"))
+
+        if system_prompt:
+            if isinstance(system_prompt, str):
+                total_prompt += system_prompt
+            else:
+                for prompt in system_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.get("bytes"))
+
+        if messages:
+            for message in messages:
+                # A tool-calling assistant message legitimately has
+                # content=None (the "content" is the tool_calls instead) -
+                # skip it here rather than crashing; there's nothing to
+                # estimate tokens for in that message anyway.
+                content = message.get("content")
+                if not content:
+                    continue
+                if isinstance(content, str):
+                    total_prompt += content
+                else:
+                    for item in content:
+                        if item["type"] == "text":
+                            total_prompt += item["text"]
+                        elif item["type"] == "image_url":
+                            image_bytes.append(item.get("bytes"))
+                        elif item["type"] == "pdf_url":
+                            pdf_bytes.append(item.get("bytes"))
+
+        return self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 
     def estimate_total_token(self, prompt_text, image_bytes=None, pdf_bytes=None):
 
@@ -4899,6 +5145,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         try:
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature=feature,
                 task_type=task_type,
@@ -5051,6 +5298,7 @@ Based on the data above, write a short personalised summary for the teacher."""
         ]
 
         response = self.execute_graded_task(
+            prompt_version=STUDENT_SUMMARY_PROMPT.version,
             user=teacher,
             feature="Student Summary",
             task_type="student_summary",
@@ -5097,6 +5345,7 @@ Turn this data into concise teacher-facing narration.
         ]
 
         response = self.execute_graded_task(
+            prompt_version=WEEKLY_COURSE_SUMMARY_PROMPT.version,
             user=teacher,
             feature="Weekly Course Summary",
             task_type="weekly_course_summary",
@@ -5160,6 +5409,7 @@ Turn this data into concise school-admin-facing narration.
         ]
 
         response = self.execute_graded_task(
+            prompt_version=WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.version,
             user=admin,
             feature="Weekly School Admin Summary",
             task_type="weekly_school_admin_summary",
@@ -5193,6 +5443,34 @@ Turn this data into concise school-admin-facing narration.
             )
 
         return {field: str(parsed[field]).strip() for field in required_fields}
+
+
+class PDFUnreadableError(ValueError):
+    """The bytes cannot be read as a PDF: damaged, truncated, encrypted, or
+    not a PDF at all. The library's own text stays on __cause__ (QA-ERR-03);
+    the caller names the file (assignments.services.prepare_ai_content)."""
+
+
+class PDFNotAPdfError(PDFUnreadableError):
+    """The bytes are not a PDF at all (a photo labelled application/pdf).
+    A PDFUnreadableError, so every existing handler still matches; the
+    caller turns it into FILE_NOT_A_PDF (Epic A S7d, catalogue C)."""
+
+
+class PDFEmptyError(ValueError):
+    """A readable PDF with no pages."""
+
+
+class PDFTooManyPagesError(ValueError):
+    """More pages than one upload may carry (PDFService.MAX_PAGE_COUNT)."""
+
+    def __init__(self, page_count, limit):
+        self.page_count = page_count
+        self.limit = limit
+        super().__init__(
+            f"PDF has {page_count} pages, which exceeds the maximum "
+            f"of {limit} pages allowed per upload."
+        )
 
 
 class PDFService:
@@ -5269,7 +5547,7 @@ class PDFService:
                 page_count = pdf.page_count
                 is_pdf = pdf.is_pdf
         except Exception as e:
-            raise ValueError(f"Could not read this PDF: {e}") from e
+            raise PDFUnreadableError("Could not read this PDF.") from e
 
         # filetype="pdf" is only a hint: PyMuPDF sniffs the bytes and opens a
         # PNG or JPEG as a one-page document. The Content-Type checked above
@@ -5277,19 +5555,16 @@ class PDFService:
         # application/pdf passed every check here and then crashed pdftoppm -
         # a 500 for what is an ordinary bad upload.
         if not is_pdf:
-            raise ValueError(
+            raise PDFNotAPdfError(
                 "This file is not a PDF. If it is a photo or scan, upload it "
                 "as an image instead."
             )
 
         if page_count == 0:
-            raise ValueError("This PDF has no pages.")
+            raise PDFEmptyError("This PDF has no pages.")
 
         if page_count > self.MAX_PAGE_COUNT:
-            raise ValueError(
-                f"PDF has {page_count} pages, which exceeds the maximum "
-                f"of {self.MAX_PAGE_COUNT} pages allowed per upload."
-            )
+            raise PDFTooManyPagesError(page_count, self.MAX_PAGE_COUNT)
 
         images_byte = []
         tmp_dir = tempfile.mkdtemp(prefix="pdf_extract_")
@@ -5315,7 +5590,7 @@ class PDFService:
                     # A document PyMuPDF could open but poppler cannot: the
                     # file's fault, so a client error. A missing poppler
                     # install or a timeout is ours, and is left to propagate.
-                    raise ValueError(f"Could not read this PDF: {e}") from e
+                    raise PDFUnreadableError("Could not read this PDF.") from e
                 for page_path in page_paths:
                     try:
                         with Image.open(page_path) as page_image:

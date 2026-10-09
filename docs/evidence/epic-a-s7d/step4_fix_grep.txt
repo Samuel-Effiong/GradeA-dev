@@ -1,0 +1,86 @@
+# SM ruling after step 4 run 1: grep ALL test files repo-wide for the old code and the photo-as-PDF case. Run at 3f3ba90.
+$ grep -rn --include="test*.py" --include="tests*.py" -E "FILE_UNREADABLE|FileUnreadableError|PDFUnreadableError|PDF_UNREADABLE" . | grep -v "^./docs/"
+assignments/tests_upload_task_retry_policy.py:60:# S7d (catalogue C; it was S6b's FILE_UNREADABLE). Its own text naming the
+students/tests_batch_item_results.py:202:        from assignments.exceptions import FileUnreadableError
+students/tests_batch_item_results.py:205:            (FileUnreadableError(params={"file_name": "a.png"}), "FILE_UNREADABLE"),
+students/tests_batch_item_results.py:251:        spec = REASON_CODES[ReasonCode.FILE_UNREADABLE]
+students/tests_batch_item_results.py:254:        self.assertEqual(bad["reason_code"], "FILE_UNREADABLE")
+students/tests_batch_item_results.py:266:        self.assertEqual(data["failure_codes"], {"FILE_UNREADABLE": 1})
+students/tests_batch_item_results.py:486:                "FILE_UNREADABLE",
+students/tests_batch_item_results.py:491:                "FILE_UNREADABLE",
+students/tests_batch_item_results.py:561:                "FILE_UNREADABLE": 2,
+assignments/tests_upload_batch_billing.py:87:# b.pdf's coded FILE_UNREADABLE message (FR-A-06 S6b).
+assignments/tests_file_reason_codes.py:7:  FILE_UNREADABLE        422  damaged, truncated, or not what its type claims
+assignments/tests_file_reason_codes.py:154:    # -- #3 FILE_UNREADABLE --------------------------------------------------
+assignments/tests_file_reason_codes.py:161:            ReasonCode.FILE_UNREADABLE,
+assignments/tests_file_reason_codes.py:176:            ReasonCode.FILE_UNREADABLE,
+assignments/tests_file_reason_codes.py:191:            ReasonCode.FILE_UNREADABLE,
+assignments/tests_file_reason_codes.py:206:            ReasonCode.FILE_UNREADABLE,
+assignments/tests_file_reason_codes.py:416:        FileUnreadableError = errors.FileUnreadableError
+assignments/tests_file_reason_codes.py:420:            (upload("a.png", GARBAGE_PNG, "image/png"), FileUnreadableError),
+assignments/tests_file_reason_codes.py:441:        FileUnreadableError = coded_file_errors().FileUnreadableError
+assignments/tests_file_reason_codes.py:446:            with self.assertRaises(FileUnreadableError) as caught:
+assignments/tests_file_reason_codes.py:526:        self.assertIsInstance(refused, coded_file_errors().FileUnreadableError)
+assignments/tests_file_reason_codes.py:527:        self.assertEqual(refused.reason_code, ReasonCode.FILE_UNREADABLE)
+classrooms/tests_s7d_roster_codes.py:6:ROSTER_FILE_UNREADABLE, ROSTER_TOO_MANY_ROWS, and FILE_TOO_LARGE (413, sizes
+classrooms/tests_s7d_roster_codes.py:565:        self.assertEqual(envelope["reason_code"], "ROSTER_FILE_UNREADABLE")
+classrooms/tests_tenancy_and_roster.py:369:        self.assertEqual(envelope["reason_code"], "ROSTER_FILE_UNREADABLE")
+students/tests_item_retry_h38.py:77:            2, BackgroundTaskType.BATCH_ANSWER_UPLOAD, "FILE_UNREADABLE"
+students/tests_item_retry_h38.py:156:        self.assert_untouched(self.upload_item, "FILE_UNREADABLE")
+students/tests_item_retry_h38.py:168:            reason_code="FILE_UNREADABLE",
+students/tests_item_retry.py:235:        for code in ("", "RUBRIC_MISSING", "FILE_UNREADABLE"):
+students/tests_item_retry.py:255:        for code in ("FILE_UNREADABLE", "PROVIDER_FAILURE"):
+AutoGrader/tests_codederror_serialization.py:138:            "FileUnreadableError",
+AutoGrader/tests_reason_codes.py:233:                "FILE_UNREADABLE",
+AutoGrader/tests_reason_codes.py:338:    "ROSTER_FILE_UNREADABLE": (
+AutoGrader/tests_reason_codes.py:717:                ReasonCode.FILE_UNREADABLE,
+AutoGrader/tests_reason_codes.py:734:                ReasonCode.FILE_UNREADABLE, params={"file_name": RuntimeError("x")}
+AutoGrader/tests_reason_codes.py:739:            CodedError(ReasonCode.FILE_UNREADABLE)
+ai_processor/tests_pdf_type_validation.py:33:from assignments.exceptions import FileUnreadableError
+ai_processor/tests_pdf_type_validation.py:83:                # S7d (catalogue C) supersedes S6b's FILE_UNREADABLE: coded
+ai_processor/tests_pdf_type_validation.py:84:                # FILE_NOT_A_PDF naming the file, still a FileUnreadableError
+ai_processor/tests_pdf_type_validation.py:87:                self.assertIsInstance(caught.exception, FileUnreadableError)
+ai_processor/tests_pdf_type_validation.py:94:        at all: a truncated PDF stays FILE_UNREADABLE."""
+ai_processor/tests_pdf_type_validation.py:96:        with self.assertRaises(FileUnreadableError) as caught:
+ai_processor/tests_pdf_type_validation.py:101:        self.assertEqual(caught.exception.reason_code, "FILE_UNREADABLE")
+
+$ grep -rn --include="test*.py" -E "photo\.pdf|scan\.pdf|image\.pdf|image_bytes\([^)]*\).*application/pdf|not a PDF|not_a_pdf|NOT_A_PDF|NotAPdf" . | grep -v "^./docs/"
+assignments/tests_upload_task_retry_policy.py:59:# The coded message for the photo labelled as a PDF: FILE_NOT_A_PDF since
+assignments/tests_upload_task_retry_policy.py:62:NOT_A_PDF = "photo.pdf is not a PDF"
+assignments/tests_upload_task_retry_policy.py:76:    return payload("photo.pdf", buffer.getvalue(), "application/pdf")
+assignments/tests_upload_task_retry_policy.py:157:        self.assertIn(NOT_A_PDF, result["message"])
+assignments/tests_upload_task_retry_policy.py:162:        self.assertIn(NOT_A_PDF, tracked.error)
+assignments/tests_upload_task_retry_policy.py:163:        self.assertEqual(tracked.reason_code, "FILE_NOT_A_PDF")
+assignments/tests_upload_task_retry_policy.py:185:            file_name="photo.pdf",
+assignments/tests_upload_task_retry_policy.py:192:        self.assertIn(NOT_A_PDF, entry["error"])
+assignments/tests_upload_task_retry_policy.py:256:        outcome, session, tracked = self._run(photo_labelled_as_pdf(), "photo.pdf")
+assignments/tests_upload_task_retry_policy.py:262:        self.assertIn(NOT_A_PDF, tracked.error)
+assignments/tests_upload_task_retry_policy.py:446:        self.assertIn(NOT_A_PDF, tracked.error)
+assignments/tests_upload_pipeline.py:33:            "name": "scan.pdf",
+assignments/tests_upload_pipeline.py:58:                "file_name": "scan.pdf",
+assignments/tests_upload_pipeline.py:71:            name = "scan.pdf"
+assignments/tests_upload_pipeline.py:89:        self.assertEqual(rebuilt.name, "scan.pdf")
+assignments/tests_file_reason_codes.py:212:    def test_a_photo_labelled_as_a_pdf_is_not_a_pdf(self):
+assignments/tests_file_reason_codes.py:215:            upload("photo.pdf", image_bytes("JPEG"), "application/pdf")
+assignments/tests_file_reason_codes.py:220:            ReasonCode.FILE_NOT_A_PDF,
+assignments/tests_file_reason_codes.py:222:            "photo.pdf",
+assignments/tests_file_reason_codes.py:321:            ("ai_processor.services", "scan.pdf", pdf_bytes(), "application/pdf"),
+students/tests_upload_pipeline.py:48:            "name": "scan.pdf",
+students/tests_upload_pipeline.py:104:            name = "scan.pdf"
+students/tests_post_grading_submission_lock.py:700:                "file_name": "scan.pdf",
+assignments/tests_renderer_crash.py:116:    test.assertTrue(payload.startswith(b"%PDF"), f"not a PDF: {payload[:40]!r}")
+AutoGrader/tests_reason_codes.py:322:    "FILE_NOT_A_PDF": (
+AutoGrader/tests_reason_codes.py:324:        "{file_name} is not a PDF. If it is a photo or scan, upload it as an "
+ai_processor/tests_pdf_type_validation.py:72:                self.assertIn("not a PDF", str(caught.exception))
+ai_processor/tests_pdf_type_validation.py:80:                        labelled_pdf(image_bytes(image_format), "photo.pdf"), "p"
+ai_processor/tests_pdf_type_validation.py:84:                # FILE_NOT_A_PDF naming the file, still a FileUnreadableError
+ai_processor/tests_pdf_type_validation.py:86:                self.assertEqual(caught.exception.reason_code, "FILE_NOT_A_PDF")
+ai_processor/tests_pdf_type_validation.py:88:                self.assertEqual(caught.exception.params, {"file_name": "photo.pdf"})
+ai_processor/tests_pdf_type_validation.py:89:                self.assertIn("photo.pdf is not a PDF", str(caught.exception.detail))
+ai_processor/tests_pdf_type_validation.py:90:                self.assertIn("not a PDF", str(caught.exception.__cause__))
+ai_processor/tests_pdf_type_validation.py:93:        """S7d (catalogue C) scopes FILE_NOT_A_PDF to bytes that aren't a PDF
+ai_processor/tests_pdf_type_validation.py:167:                "assignments": labelled_pdf(image_bytes("PNG"), "photo.pdf"),
+ai_processor/tests_pdf_type_validation.py:177:        self.assertIn("photo.pdf is not a PDF", response.content.decode())
+ai_processor/tests_pdf_type_validation.py:205:        # S7d (catalogue C): FILE_NOT_A_PDF, params exactly the file name.
+ai_processor/tests_pdf_type_validation.py:206:        self.assertEqual(body["reason_code"], "FILE_NOT_A_PDF")
+ai_processor/tests_pdf_type_validation.py:214:        self.assertIn("answers.pdf is not a PDF", body["error"])

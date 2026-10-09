@@ -1,0 +1,4 @@
+M4 {'what': 'the migration gives one column another word as its database default', 'file': 'students/migrations/0031_submission_grading_label.py', 'kind': 'fresh', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 1 test in 2.306s', 'expected': 'test_a_row_made_before_0031_reads_the_placeholder_after_it', 'failing_tests': ['test_a_row_made_before_0031_reads_the_placeholder_after_it']}
+KILLED: ['M4']
+SURVIVED: []
+BROKEN: []

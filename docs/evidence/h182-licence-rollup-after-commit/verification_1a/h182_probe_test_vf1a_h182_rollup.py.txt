@@ -1,0 +1,318 @@
+"""1a's own tests for H-182 (the licence consumption rollup applied after the
+charge commits).
+
+The author's module counts callbacks and reads the figure inside a wrapped
+test transaction. These tests use real commits (TransactionTestCase) and a
+different mechanism for each property:
+
+  A1/A2  the SQL a charge and a refund send, with the connection's
+         "inside a transaction" flag read at each statement: the licence row
+         is UPDATEd exactly once, and never while a transaction is open
+         (so never while the wallet and bucket locks are held).
+  B1/B2  nested transactions with real savepoints: a charge in an outer
+         transaction that rolls back AFTER an inner savepoint was released
+         rolls up nothing; a charge rolled back in an inner savepoint rolls
+         up nothing while a second charge that commits rolls up its own amount.
+  C      real threads: while another connection holds the licence row, a
+         charge has already committed and holds neither the wallet row nor a
+         bucket (checked from a third connection with NOWAIT), and its
+         roll-up lands when the licence row is released.
+
+Copied into billing/tests/test_vf1a_h182_rollup.py of a scratch checkout.
+Usage: python manage.py test billing.tests.test_vf1a_h182_rollup
+"""
+
+import threading
+import time
+import uuid
+from datetime import timedelta
+from unittest.mock import patch
+
+from dateutil.relativedelta import relativedelta
+from django.contrib.auth import get_user_model
+from django.db import connection, transaction
+from django.test import TransactionTestCase
+from django.utils import timezone
+
+from billing.immutable import allow_unsafe_mutation
+from billing.models import (
+    BillingInterval,
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditWallet,
+    LicenseSubscription,
+    PlanCategory,
+    PlanTier,
+    PlanType,
+    SchoolCreditAllocation,
+    SubscriptionPlan,
+)
+from billing.services import SubscriptionService
+from classrooms.models import School
+from users.models import UserTypes
+
+CustomUser = get_user_model()
+
+CHARGE = 1_000
+SECOND_CHARGE = 250
+LICENCE_TABLE = '"billing_licensesubscription"'
+
+
+class Recorder:
+    """A statement wrapper: remembers each statement and whether a
+    transaction was open when it was sent."""
+
+    def __init__(self):
+        self.rows = []
+
+    def __call__(self, execute, sql, params, many, context):
+        self.rows.append((sql, connection.in_atomic_block))
+        return execute(sql, params, many, context)
+
+    def licence_updates(self):
+        return [
+            (index, in_transaction)
+            for index, (sql, in_transaction) in enumerate(self.rows)
+            if sql.startswith("UPDATE") and LICENCE_TABLE in sql
+        ]
+
+    def last_wallet_or_bucket_write(self):
+        marks = [
+            index
+            for index, (sql, _) in enumerate(self.rows)
+            if sql.startswith(("UPDATE", "INSERT"))
+            and ('"billing_creditwallet"' in sql or '"billing_creditbucket"' in sql)
+        ]
+        return max(marks) if marks else None
+
+
+class RollupBase(TransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        for target in (
+            "billing.services.queue_sync",
+            "billing.services.safe_delay",
+            "billing.license_service.queue_sync",
+            "billing.license_service.safe_delay",
+        ):
+            started = patch(target, return_value=None)
+            started.start()
+            self.addCleanup(started.stop)
+        self.school = School.objects.create(name="VF1a Rollup High")
+        plan = SubscriptionPlan.objects.create(
+            name=PlanType.POWER_LICENSE,
+            display_name="Power License",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.POWER,
+            interval=BillingInterval.MONTHLY,
+            price_cents=19_900,
+            monthly_credits=12_000_000,
+            carry_over_percent=50,
+            carry_over_expiry_months=6,
+            overage_block_size=5_000_000,
+            is_active=True,
+        )
+        admin = CustomUser.objects.create_user(
+            email="vf1a-rollup-admin@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=self.school,
+        )
+        self.teacher = CustomUser.objects.create_user(
+            email="vf1a-rollup-teacher@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            school=self.school,
+        )
+        self.wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
+        self.wallet.buckets.all().delete()
+        with allow_unsafe_mutation():
+            CreditLedger.objects.filter(user_id=self.teacher.id).delete()
+        now = timezone.now()
+        self.licence = LicenseSubscription.objects.create(
+            school=self.school,
+            admin_user=admin,
+            plan=plan,
+            contract_months=12,
+            max_seats=2,
+            billing_cycle_start=now,
+            billing_cycle_end=now + relativedelta(months=12),
+            is_active=True,
+            auto_renew=True,
+        )
+        SchoolCreditAllocation.objects.filter(user=self.teacher).delete()
+        SchoolCreditAllocation.objects.create(
+            license_subscription=self.licence,
+            user=self.teacher,
+            monthly_allocation=12_000_000,
+            is_active=True,
+            next_credit_grant_at=now + timedelta(days=30),
+        )
+        self.bucket = CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=12_000_000,
+            used_credits=0,
+            expires_at=now + timedelta(days=30),
+        )
+
+    def consumed(self):
+        return LicenseSubscription.objects.get(pk=self.licence.pk).total_credits_consumed
+
+    def charge(self, amount=CHARGE):
+        task_id = str(uuid.uuid4())
+        self.wallet.consume_credits(amount, feature="grading", task_id=task_id)
+        return task_id
+
+
+class TheSqlOfAChargeAndARefund(RollupBase):
+    def test_a1_a_charge_updates_the_licence_once_and_never_inside_a_transaction(self):
+        recorder = Recorder()
+        with connection.execute_wrapper(recorder):
+            self.charge()
+
+        updates = recorder.licence_updates()
+        self.assertEqual(len(updates), 1, "the licence row is updated exactly once")
+        index, in_transaction = updates[0]
+        self.assertFalse(
+            in_transaction,
+            "the licence row was updated while a transaction (and the wallet "
+            "and bucket locks) was open",
+        )
+        self.assertGreater(
+            index,
+            recorder.last_wallet_or_bucket_write(),
+            "the licence update came before the last wallet or bucket write",
+        )
+        self.assertEqual(self.consumed(), CHARGE)
+
+    def test_a2_a_refund_updates_the_licence_once_and_never_inside_a_transaction(self):
+        task_id = self.charge()
+        self.assertEqual(self.consumed(), CHARGE)
+
+        recorder = Recorder()
+        with connection.execute_wrapper(recorder):
+            refunded = SubscriptionService.refund_credits(task_id)
+
+        self.assertEqual(refunded, CHARGE)
+        updates = recorder.licence_updates()
+        self.assertEqual(len(updates), 1, "the licence row is updated exactly once")
+        self.assertFalse(
+            updates[0][1],
+            "the licence row was updated while a transaction was open",
+        )
+        self.assertEqual(self.consumed(), 0, "the refund did not take the charge back")
+
+
+class NestedTransactions(RollupBase):
+    def test_b1_a_rollback_after_a_released_savepoint_rolls_up_nothing(self):
+        try:
+            with transaction.atomic():
+                with transaction.atomic():
+                    self.charge()
+                raise RuntimeError("the outer transaction fails after the inner one")
+        except RuntimeError:
+            pass
+
+        self.assertEqual(
+            CreditBucket.objects.get(pk=self.bucket.pk).used_credits,
+            0,
+            "the charge itself must have been rolled back",
+        )
+        self.assertEqual(self.consumed(), 0, "a rolled-back charge was rolled up")
+
+    def test_b2_a_savepoint_rolled_back_inside_a_committed_transaction(self):
+        with transaction.atomic():
+            try:
+                with transaction.atomic():
+                    self.charge()
+                    raise RuntimeError("the inner step fails")
+            except RuntimeError:
+                pass
+            self.charge(SECOND_CHARGE)
+            self.assertEqual(self.consumed(), 0, "written before the commit")
+
+        self.assertEqual(
+            CreditBucket.objects.get(pk=self.bucket.pk).used_credits, SECOND_CHARGE
+        )
+        self.assertEqual(
+            self.consumed(),
+            SECOND_CHARGE,
+            "the figure must hold the committed charge only",
+        )
+
+
+class ARealWaitForTheLicenceRow(RollupBase):
+    def test_c_a_charge_waiting_for_the_licence_row_holds_no_lock(self):
+        held = threading.Event()
+        release = threading.Event()
+        outcome = {}
+
+        def holder():
+            try:
+                with transaction.atomic():
+                    with connection.cursor() as cursor:
+                        cursor.execute("SET LOCAL lock_timeout = '8s'")
+                    LicenseSubscription.objects.select_for_update().get(
+                        pk=self.licence.pk
+                    )
+                    held.set()
+                    release.wait(timeout=10)
+            except Exception as exc:  # noqa: BLE001
+                outcome["holder"] = repr(exc)
+            finally:
+                connection.close()
+
+        def charger():
+            try:
+                if not held.wait(timeout=10):
+                    raise AssertionError("the licence row was never held")
+                with connection.cursor() as cursor:
+                    cursor.execute("SET lock_timeout = '8s'")
+                self.wallet.consume_credits(
+                    CHARGE, feature="grading", task_id=str(uuid.uuid4())
+                )
+                outcome["charged"] = True
+            except Exception as exc:  # noqa: BLE001
+                outcome["charger"] = repr(exc)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=holder), threading.Thread(target=charger)]
+        failure = None
+        try:
+            threads[0].start()
+            self.assertTrue(held.wait(timeout=10), "the licence row was not taken")
+            threads[1].start()
+            time.sleep(1.2)
+
+            # Seen from this (third) connection while the licence row is held.
+            self.assertTrue(threads[1].is_alive(), "the charge did not wait at all")
+            self.assertEqual(
+                CreditBucket.objects.get(pk=self.bucket.pk).used_credits,
+                CHARGE,
+                "the charge has not committed while it waits",
+            )
+            self.assertEqual(self.consumed(), 0, "the figure moved under the lock")
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute("SET LOCAL lock_timeout = '2s'")
+                CreditWallet.objects.select_for_update(nowait=True).get(
+                    pk=self.wallet.pk
+                )
+                CreditBucket.objects.select_for_update(nowait=True).get(
+                    pk=self.bucket.pk
+                )
+        except Exception as exc:  # noqa: BLE001
+            failure = exc
+        finally:
+            release.set()
+            for thread in threads:
+                thread.join(timeout=30)
+        if failure is not None:
+            raise failure
+
+        self.assertEqual(outcome, {"charged": True}, outcome)
+        self.assertEqual(self.consumed(), CHARGE, "the roll-up was lost")

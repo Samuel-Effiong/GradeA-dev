@@ -75,11 +75,15 @@ def allow_unsafe_mutation():
     """
     Temporarily lift append-only enforcement on the current thread.
 
-    Intended for exactly two callers: test setup that needs to fabricate
-    historical rows (e.g. back-dating `created_at`), and a supervised
-    data-repair session. It is thread-local and does not leak across
-    threads, but it DOES lift the guard for every append-only model for
-    its duration, so keep the block as small as possible.
+    Intended for exactly three callers: test setup that needs to fabricate
+    historical rows (e.g. back-dating `created_at`), a supervised
+    data-repair session, and `audit.tasks.sweep_audit_retention` (the one
+    part of the audit retention sweep that deletes rows outright - the
+    sibling PII-short-retention sweep needs no such thing, since it only
+    ever touches the two fields a model's own `mutable_fields` already
+    exempts). It is thread-local and does not leak across threads, but it
+    DOES lift the guard for every append-only model for its duration, so
+    keep the block as small as possible.
 
     Using this in ordinary application code defeats the point of the
     module and should be caught in review.
@@ -135,7 +139,9 @@ class AppendOnlyQuerySet(models.QuerySet):
                 "update_conflicts=True) would rewrite existing rows. "
                 "Insert new rows instead."
             )
-        return super().bulk_create(objs, *args, **kwargs)
+        created = super().bulk_create(objs, *args, **kwargs)
+        self.model.after_bulk_create(created)
+        return created
 
 
 class AppendOnlyModel(models.Model):
@@ -151,6 +157,19 @@ class AppendOnlyModel(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def after_bulk_create(cls, objs):
+        """
+        Hook called with the rows a successful `bulk_create()` just wrote.
+
+        No-op by default. `bulk_create` never emits `post_save` (see the
+        override above), so nothing else runs after this kind of write —
+        a subclass whose call sites bypass `record()`/`.save()` in favour
+        of a bulk insert (`CreditLedger`'s consume/batch-refund paths, for
+        instance) overrides this rather than trusting every future
+        `bulk_create` call site to remember an extra step by hand.
+        """
 
     def delete(self, *args, **kwargs):
         if not mutations_allowed():

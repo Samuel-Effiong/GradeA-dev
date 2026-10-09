@@ -1,0 +1,38 @@
+import ast, subprocess, sys
+rev=sys.argv[1]; files=sys.argv[2:]
+G="/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus"
+def ok(node, call, skip_self):
+    a=node.args; pos=[p.arg for p in a.posonlyargs+a.args]
+    if skip_self and pos: pos=pos[1:]
+    nd=len(a.defaults); req=pos[:len(pos)-nd]
+    if any(isinstance(x,ast.Starred) for x in call.args) or any(k.arg is None for k in call.keywords): return True
+    if len(call.args)>len(pos) and a.vararg is None: return False
+    given=set(pos[:len(call.args)]); kw={k.arg for k in call.keywords}; ko=[p.arg for p in a.kwonlyargs]
+    for k in kw:
+        if k not in pos and k not in ko and a.kwarg is None: return False
+        if k in given: return False
+    miss=[r for r in req if r not in given and r not in kw]
+    kreq=[p.arg for p,d in zip(a.kwonlyargs,a.kw_defaults) if d is None and p.arg not in kw]
+    return not miss and not kreq
+out=[]
+for f in files:
+    src=subprocess.run(["git","-C",G,"show",f"{rev}:{f}"],capture_output=True).stdout
+    try: t=ast.parse(src)
+    except Exception: continue
+    for fn in ast.walk(t):
+        if isinstance(fn,(ast.FunctionDef,ast.AsyncFunctionDef)):
+            nested={n.name:n for n in fn.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
+            for c in ast.walk(fn):
+                if isinstance(c,ast.Call) and isinstance(c.func,ast.Name) and c.func.id in nested and not ok(nested[c.func.id],c,False):
+                    out.append(f"{f}:{c.lineno} nested {c.func.id}")
+    for cl in ast.walk(t):
+        if isinstance(cl,ast.ClassDef):
+            meths={}
+            for n in cl.body:
+                if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)): meths.setdefault(n.name,n)
+            for c in ast.walk(cl):
+                if isinstance(c,ast.Call) and isinstance(c.func,ast.Attribute) and isinstance(c.func.value,ast.Name) and c.func.value.id=="self" and c.func.attr in meths:
+                    m=meths[c.func.attr]
+                    if any(isinstance(d,ast.Name) and d.id in("staticmethod","classmethod") for d in m.decorator_list): continue
+                    if not ok(m,c,True): out.append(f"{f}:{c.lineno} self.{c.func.attr}")
+print(rev,len(out)); [print(" ",x) for x in out]

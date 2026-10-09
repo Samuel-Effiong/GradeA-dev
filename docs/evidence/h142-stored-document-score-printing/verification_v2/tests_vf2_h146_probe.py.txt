@@ -1,0 +1,158 @@
+"""v2's probe for H-146 (d5). Copy to students/tests_vf2_h146_probe.py of
+the scratch worktree; never committed to the branch. Written 2026-10-06
+before any run, after reading be79f8ab (H-146 on H-145 as built).
+
+d5's tests call the saving function directly. These go through the REAL
+grading pipeline (students.services.grade_engine), as d5's own
+GradingPassesTheStamp does: the grader's AI call and the two follow-up
+tasks are replaced, nothing else. TransactionTestCase, because the
+follow-up is queued when the grade's transaction commits.
+
+  R1  (the SM's request) a RELEASED paper with stored wording is regraded.
+      At the moment the follow-up is queued the stored wording is already
+      gone and the stamp sent is the saved row's. Between the save and the
+      wording task the student reads the new score, no formatted grade,
+      and the old sentence nowhere in the answer.
+  R2  the same for an UNRELEASED paper, then released through the route:
+      the student reads the new score and no old sentence.
+
+Rule 19, which mutant shows which probe red: R1 under Y13 (grading does
+not clear), R2 under Y8 (grading clears only a released paper) and Y13.
+"""
+
+import types
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.test import TransactionTestCase
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+from assignments.models import Assignment, AssignmentStatus
+from classrooms.models import EnrollmentStatusType, StudentCourse
+from students.models import StudentSubmission
+from students.services import grade_engine, grading_result_stamp
+from students.tests_formatter_input import grading_result as a_grading_result
+from students.tests_formatter_input import make_people_and_submission
+
+OLD_STATEMENT = "You scored 8 out of 10 points, giving you a final grade of 80.00%."
+OLD_FORMATTED = {"overall_performance_summary": {"score_statement": OLD_STATEMENT}}
+
+
+def a_result_scoring(score):
+    result = a_grading_result()
+    result["grading_summary"]["total_score"] = score
+    result["grading_summary"]["percentage"] = score * 10.0
+    result["question_evaluations"][0]["score_awarded"] = score
+    return result
+
+
+class VF2RegradeThroughThePipeline(TransactionTestCase):
+    def setUp(self):
+        cache.clear()
+        self.teacher, submission = make_people_and_submission()
+        self.pk = submission.pk
+        self.student = submission.student
+        Assignment.objects.filter(pk=submission.assignment_id).update(
+            status=AssignmentStatus.PUBLISHED
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=submission.assignment.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.queued = []
+        # the first grading, 8 of 10, then its wording as the task leaves it
+        self.grade(8)
+        self.assertEqual(self.row().score, Decimal("8"))
+        self.assertIsNone(self.row().formatted_grade)
+        StudentSubmission.objects.filter(pk=self.pk).update(
+            formatted_grade=str(OLD_FORMATTED)
+        )
+        self.queued.clear()
+
+    def row(self):
+        return StudentSubmission.objects.select_related("assignment", "student").get(
+            pk=self.pk
+        )
+
+    def grade(self, score):
+        """One run of the real pipeline. Records, at the moment the wording
+        task is queued, what the stored row holds."""
+
+        def queue(*args, **kwargs):
+            stored = StudentSubmission.objects.get(pk=self.pk)
+            self.queued.append(
+                {
+                    "stored_formatted": stored.formatted_grade,
+                    "stored_score": stored.score,
+                    "stored_stamp": grading_result_stamp(stored),
+                    "sent_stamp": kwargs.get("result_stamp"),
+                }
+            )
+            return types.SimpleNamespace(id="vf2-fake-task-id")
+
+        with (
+            patch("students.services._formatted_grade_task") as formatted,
+            patch("students.services.student_summary_async"),
+            patch("students.services.ai_processor") as ai,
+        ):
+            ai.extract_grade_with_retry.return_value = a_result_scoring(score)
+            formatted.return_value.delay.side_effect = queue
+            grade_engine(self.teacher, self.row())
+
+    def student_reads(self):
+        client = APIClient()
+        client.force_authenticate(self.student)
+        response = client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.pk})
+        )
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        for key in ("score", "formatted_grade", "raw_input"):
+            self.assertIn(key, response.data)
+        return response.data
+
+    def release_by_the_route(self):
+        client = APIClient()
+        client.force_authenticate(self.teacher)
+        response = client.post(
+            reverse("student-submission-publish-grade", kwargs={"pk": self.pk})
+        )
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+
+    def test_r1_a_released_paper_regraded_through_the_pipeline(self):
+        StudentSubmission.objects.filter(pk=self.pk).update(is_published=True)
+        cache.clear()
+        before = self.student_reads()  # cached, as a student with the page open
+        self.assertEqual(Decimal(str(before["score"])), Decimal("8"))
+        self.assertIn(OLD_STATEMENT, str(before["formatted_grade"]))
+
+        self.grade(3)
+
+        # at the moment the wording task was queued
+        self.assertEqual(len(self.queued), 1)
+        at_queue = self.queued[0]
+        self.assertIsNone(at_queue["stored_formatted"])
+        self.assertEqual(at_queue["stored_score"], Decimal("3"))
+        self.assertEqual(at_queue["sent_stamp"], at_queue["stored_stamp"])
+        # between the save and the wording task, no cache clear
+        after = self.student_reads()
+        self.assertEqual(Decimal(str(after["score"])), Decimal("3"))
+        self.assertIsNone(after["formatted_grade"])
+        self.assertNotIn("You scored 8", str(dict(after)))
+        self.assertIsNone(self.row().formatted_grade)
+
+    def test_r2_an_unreleased_paper_regraded_then_released(self):
+        self.assertFalse(self.row().is_published)
+        self.assertIn(OLD_STATEMENT, self.row().formatted_grade)
+
+        self.grade(3)
+        self.assertIsNone(self.row().formatted_grade)
+
+        self.release_by_the_route()
+        cache.clear()
+        after = self.student_reads()
+        self.assertEqual(Decimal(str(after["score"])), Decimal("3"))
+        self.assertIsNone(after["formatted_grade"])
+        self.assertNotIn("You scored 8", str(dict(after)))

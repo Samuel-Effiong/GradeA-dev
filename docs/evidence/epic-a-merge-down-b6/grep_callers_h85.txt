@@ -1,0 +1,33 @@
+# Tests that reach what the H-85 change touches (teacher_failure, add_teachers_batch, the add-teachers route,
+# the exception, the new code). Run at d4b5f8e0's tree; all ten are in the gate's first step.
+$ grep -rlE "teacher_failure|add_teachers_batch|license-subscription-add-teachers|TEACHER_CANNOT_JOIN_YET|IndividualSubscriptionConflictError" --include="test*.py" . | grep -v docs/ | sort
+AutoGrader/tests_codederror_serialization.py
+AutoGrader/tests_reason_codes.py
+billing/tests/test_add_teachers_other_school_not_disclosed.py
+billing/tests/test_license_seat_counting.py
+billing/tests/test_license_service.py
+billing/tests/test_license_teacher_changes_400.py
+billing/tests/test_neutral_subscription_refusal.py
+billing/tests/test_other_school_before_subscription.py
+billing/tests/test_s7d_licence_teacher_codes.py
+billing/tests/test_track_separation.py
+
+# The retired code's name in Python outside docs/evidence: only beta's constant (the sentence), its users, and two comments.
+$ grep -rn "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION" --include=*.py . | grep -v docs/evidence
+billing/license_service.py:118:TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION = (
+billing/license_service.py:1261:                        TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+billing/license_service.py:1438:                TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+billing/tests/test_neutral_subscription_refusal.py:29:    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
+billing/tests/test_neutral_subscription_refusal.py:125:        """Epic A's TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION catalogue entry takes
+billing/tests/test_neutral_subscription_refusal.py:127:        self.assertEqual(TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION, NEUTRAL)
+billing/tests/test_other_school_before_subscription.py:29:    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
+billing/tests/test_other_school_before_subscription.py:177:        self.assertEqual(str(caught.exception), TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)
+billing/tests/test_s7d_licence_teacher_codes.py:35:    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
+billing/tests/test_s7d_licence_teacher_codes.py:334:        self.assertEqual(entry["message"], TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)
+billing/tests/test_license_service.py:16:    TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION,
+billing/tests/test_license_service.py:259:        assert results["errors"][0]["error"] == TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+AutoGrader/tests_codederror_serialization.py:189:#: until H-85 retired TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION). They are
+AutoGrader/tests_reason_codes.py:498:        from billing.license_service import TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION
+AutoGrader/tests_reason_codes.py:501:        self.assertEqual(spec.message, TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)
+AutoGrader/tests_reason_codes.py:506:        """The retired TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION must not come back
+AutoGrader/tests_reason_codes.py:524:            "TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION", {code.value for code in ReasonCode}

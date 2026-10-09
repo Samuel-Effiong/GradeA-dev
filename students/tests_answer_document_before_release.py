@@ -215,11 +215,12 @@ class GradingChangesNothingTheStudentReads(AnswerDocumentBase):
         StudentSubmission.objects.filter(pk=self.submission.pk).update(raw_input="")
 
         self.assertEqual(self.on_the_submission(self.student), self.submitted)
-        # The stored document is not compared with the one grading stored:
-        # grading prints the score from the value in memory ("7.0") and
-        # this rebuild prints it from the database ("7.00"). That existing
-        # difference is not this row's. What matters here: a document was
-        # stored, and it is not the ungraded form the student was given.
+        # The stored document is not compared with the one grading stored.
+        # (When this was written the two differed: grading printed "7.0"
+        # and this rebuild "7.00". Since H-139 both print "7.00"; the test
+        # for that is in tests_answer_document_score_printing.) What
+        # matters here: a document was stored, and it is not the ungraded
+        # form the student was given.
         rebuilt = self.stored()
         self.assertTrue(rebuilt)
         self.assertNotEqual(rebuilt, self.submitted)

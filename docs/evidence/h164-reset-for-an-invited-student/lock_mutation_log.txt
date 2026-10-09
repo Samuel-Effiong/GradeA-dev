@@ -1,0 +1,7 @@
+31 mutants: anchors unique, all parse, expected tests named
+1 of 31 mutants selected
+R30_verify_refuses_without_spending_the_attempt KILLED exit 1 ran 74 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 1 of 1

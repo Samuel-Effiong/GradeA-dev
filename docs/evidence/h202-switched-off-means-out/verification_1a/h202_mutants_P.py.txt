@@ -1,0 +1,99 @@
+"""1a's mutants for H-202 (rule 19). Usage, in the checkout: python -B h202_mutants_P.py <P1..P13> [--check].
+Applied in place to users/views.py or users/admin.py; restore from the commit blob.
+P1  the VERIFY_EMAIL request arm for a verified, switched-off account removed.
+P2  the /auth/verify arm removed.
+P3  the /auth/verify arm raises ParseError directly (no budget, no lock).
+P4  the RESET request arm removed.
+P5  the reset-step arm removed.
+P6  the reset-step arm does not spend the attempt (no register_failure).
+P8  the bulk switch-off raises every row's epoch (no Case).
+P9  the bulk switch-off raises no epoch at all.
+P10 the edit form's revoke removed.
+P11 the RESET request arm too wide (every account is refused).
+P12 the /auth/verify arm too wide (every inactive account, never-verified ones too).
+P13 the edit form's revoke too wide (every edit revokes).
+"""
+
+import ast
+import sys
+
+V, A = "users/views.py", "users/admin.py"
+REQ_V = (
+    "            if user.email_verified_at and not user.is_active:\n"
+    "                return Response(\n"
+    '                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED\n'
+    "                )\n"
+)
+VER = (
+    "        if user.email_verified_at and not user.is_active:\n"
+    '            refuse("Invalid email or token.")\n'
+)
+REQ_R = (
+    "            if not user.is_active:\n"
+    "                return Response(\n"
+    '                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED\n'
+    "                )\n"
+)
+STEP = (
+    "        if not user.is_active:\n"
+    "            if not otp_obj.is_locked():\n"
+    "                otp_obj.register_failure()\n"
+    '            raise ParseError("Invalid email, OTP code, or new password.")\n'
+)
+CASE = (
+    "            token_epoch=Case(\n"
+    '                When(is_active=True, then=F("token_epoch") + 1),\n'
+    '                default=F("token_epoch"),\n'
+    "                # Said outright: the two branches would otherwise be an\n"
+    "                # IntegerField and a PositiveIntegerField, which Django\n"
+    "                # refuses to mix.\n"
+    "                output_field=IntegerField(),\n"
+    "            ),\n"
+)
+SAVE = (
+    '        if change and "is_active" in form.changed_data and not obj.is_active:\n'
+    "            obj.revoke_all_sessions()\n"
+)
+MUT = {
+    "P1": (V, REQ_V, ""),
+    "P2": (V, VER, ""),
+    "P3": (V, VER, VER.replace("refuse(", "raise ParseError(")),
+    "P4": (V, REQ_R, ""),
+    "P5": (V, STEP, ""),
+    "P6": (
+        V,
+        STEP,
+        STEP.replace(
+            "            if not otp_obj.is_locked():\n                otp_obj.register_failure()\n",
+            "",
+        ),
+    ),
+    "P8": (A, CASE, '            token_epoch=F("token_epoch") + 1,\n'),
+    "P9": (A, CASE, ""),
+    "P10": (A, SAVE, ""),
+    "P11": (V, REQ_R, REQ_R.replace("if not user.is_active:", "if True:")),
+    "P12": (V, VER, VER.replace("user.email_verified_at and not user.is_active", "not user.is_active")),
+    "P13": (A, SAVE, SAVE.replace('if change and "is_active" in form.changed_data and not obj.is_active:', "if change:")),
+}
+code = sys.argv[1]
+if code not in MUT:
+    sys.exit("usage: P1..P13 (no P7)")
+path, old, new = MUT[code]
+src = open(path, encoding="utf-8").read()
+if src.count(old) != 1:
+    print(f"ABORT {code}: anchor found {src.count(old)} times")
+    sys.exit(7)
+out = src.replace(old, new)
+if out == src:
+    print(f"ABORT {code}: equals source")
+    sys.exit(7)
+if "--check" in sys.argv:
+    try:
+        ast.parse(out)
+    except SyntaxError as exc:
+        print(f"ABORT {code}: does not parse: {exc}")
+        sys.exit(7)
+    print(f"checked {code}: one anchor in {path}, differs")
+    sys.exit(0)
+open(path, "w", encoding="utf-8").write(out)
+print(f"applied {code} to {path}")

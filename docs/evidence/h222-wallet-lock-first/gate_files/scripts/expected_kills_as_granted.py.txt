@@ -1,0 +1,118 @@
+"""H-222: written on 2026-10-09 BEFORE any run of the row, by tracing each test
+of billing/tests/test_wallet_lock_first_expiry.py (X1, X2) and of
+audit/tests_background_attribution.py ClawbackRaceTests (A1, A2) against every
+mutant and against the base d2ad0405, by hand, reading the code. Nothing here
+was seen by a run (the base deadlock itself was seen once, by the diagnostic).
+
+The two ClawbackRaceTests tests are TIMING races (two threads and a barrier,
+no hook): where the lock order is wrong they usually, not always, deadlock.
+So they are listed as ALLOWED where the order is wrong and are never required;
+X1 and X2 (hooked, deterministic) are the REQUIRED kills. Where the order is
+right, an allowed test must pass.
+
+The checker reads logs/raw/<id>.out (the failure bodies), not the condensed log.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE>"""
+import re
+import sys
+from pathlib import Path
+
+XC = "ExpiryLocksTheWalletFirst"
+AC = "ClawbackRaceTests"
+X1 = (XC, "test_x1_expire_bucket_locks_the_wallet_before_the_bucket")
+X2 = (XC, "test_x2_the_clawback_locks_the_wallet_before_its_buckets")
+A1 = (AC, "test_a_clawback_racing_the_cleanup_expires_each_bucket_once")
+A2 = (AC, "test_a_clawback_racing_the_monthly_grant_expires_nothing_twice")
+
+#: mutant -> (required failing set, extra tests that MAY fail)
+EXPECTED = {
+    # W1 expire_bucket never takes the wallet lock: X1's hook is never reached.
+    # The real clawback still takes the wallet itself, and the cleanup's
+    # expire_bucket locks only its bucket, so neither race can deadlock.
+    "W1": ({X1}, set()),
+    # W2 the clawback takes no wallet lock of its own: X2's hook (the
+    # licence module's helper) is never reached. The clawback locks its
+    # buckets, then expire_bucket asks for the wallet while the grant (or
+    # the cleanup) holds it and waits for the bucket: both races can deadlock.
+    "W2": ({X2}, {A1, A2}),
+    # W3 expire_bucket asks for the wallet AFTER its bucket lock: X1 deadlocks
+    # (worker 0 holds the bucket at the hook). The cleanup's stale
+    # expire_bucket then holds a bucket and asks for the wallet that the
+    # clawback holds (and the clawback wants the bucket): A1 may deadlock.
+    # A2 cannot: the grant waits for the wallet the clawback holds.
+    "W3": ({X1}, {A1}),
+    # W4 the clawback asks for the wallet AFTER its bucket query: X2 deadlocks;
+    # both races may.
+    "W4": ({X2}, {A1, A2}),
+}
+#: The BASE with the final test modules (taken from the tip). X1 and X2 are
+#: red (the helper is never called); A2 is the old deadlock (the Senior
+#: Manager and the diagnostic saw it red) and MAY be red; A1 is green at the
+#: base (neither side holds the wallet).
+REPRO = ({X1, X2}, {A2})
+#: RULE 22: fragments that must be in each red test's OWN failure block,
+#: written before the run. One tuple of acceptable alternatives per test and
+#: situation: (all must appear in one block).
+HOOK = "the hook was not reached once"
+DEADLOCK = "deadlock detected"
+REASON_REPRO = {X1: (HOOK,), X2: (HOOK,), A2: (DEADLOCK,)}
+REASON_MUTANT = {
+    "W1": {X1: (HOOK,)},
+    "W2": {X2: (HOOK,), A1: (DEADLOCK,), A2: (DEADLOCK,)},
+    "W3": {X1: (DEADLOCK,), A1: (DEADLOCK,)},
+    "W4": {X2: (DEADLOCK,), A1: (DEADLOCK,), A2: (DEADLOCK,)},
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests?)",
+    re.M | re.S,
+)
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def wrong_reasons(text, reasons):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in reasons.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, required, allowed):
+    missing = required - got
+    extra = got - required - allowed
+    ok = not missing and not extra
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if ok else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; required but passed: {sorted(missing)}" if missing else "")
+        + (f"; allowed ones that failed: {sorted(got & allowed)}" if got & allowed else "")
+    )
+    return not ok
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), *REPRO)
+    reasons = wrong_reasons(log, REASON_REPRO)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    raw = Path(sys.argv[1]) / "logs" / "raw"
+    bad = 0
+    for mutant, (required, allowed) in EXPECTED.items():
+        text = (raw / f"{mutant}.out").read_text(errors="replace")
+        bad += compare(mutant, failing(text), required, allowed)
+        for line in wrong_reasons(text, REASON_MUTANT[mutant]):
+            print(f"{mutant} WRONG REASON:", line)
+            bad += 1
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} problem(s)")
+sys.exit(1 if bad else 0)

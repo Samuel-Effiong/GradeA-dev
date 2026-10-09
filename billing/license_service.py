@@ -27,10 +27,13 @@ from django.db.models import F, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
+from users.admin_power import holds_admin_power
 from users.mailerlite_service import queue_sync
 from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import generate_temporary_password
@@ -40,6 +43,7 @@ from . import license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
+from .locks import lock_wallet_first
 from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     CONVERSION_FACTOR,
     BillingTransactionMethod,
@@ -127,6 +131,47 @@ class LicenseRequestError(ValueError):
     turn THIS into a 400 with its message, while any other ValueError is a
     programming error and must stay a loud 500.
     """
+
+
+class LicenceTeachersRefused(CodedError, LicenseRequestError):
+    """A coded refusal of a whole add-teachers request, before anything is
+    written (QA catalogue E1, Epic A S7d): LICENCE_INACTIVE or
+    LICENCE_SEATS_EXCEEDED. Still a LicenseRequestError for every existing
+    handler."""
+
+
+#: _get_or_invite_teacher's refusals whose texts ARE the approved catalogue
+#: texts (the add-teachers fix and H-78, carried byte-identical from beta).
+#: The raise sites keep their literals so the merge-down stays trivial; the
+#: code is chosen from them here (pinned through the real paths by
+#: billing/tests/test_s7d_licence_teacher_codes.py).
+TEACHER_OTHER_ROLE_TEXT = "This email can't be added as a teacher."
+TEACHER_OTHER_SCHOOL_TEXT = "This teacher already belongs to another school."
+
+
+def _not_business_text(email):
+    return f"Email {email} is not a business email. Only business emails are allowed."
+
+
+def teacher_failure(exc, email):
+    """The coded per-teacher failure (QA catalogue E2) for what adding one
+    teacher raised. Anything not recognised is TEACHER_ADD_FAILED; its own
+    text never reaches the result."""
+    if isinstance(exc, IndividualSubscriptionConflictError):
+        # H-85: no address and no reason. The raise's own log line gives
+        # support the reason, by id.
+        return CodedError(ReasonCode.TEACHER_CANNOT_JOIN_YET)
+    if isinstance(exc, ValueError):
+        text = str(exc)
+        if text == _not_business_text(email):
+            return CodedError(
+                ReasonCode.TEACHER_EMAIL_NOT_BUSINESS, params={"email": email}
+            )
+        if text == TEACHER_OTHER_ROLE_TEXT:
+            return CodedError(ReasonCode.TEACHER_EMAIL_OTHER_ROLE)
+        if text == TEACHER_OTHER_SCHOOL_TEXT:
+            return CodedError(ReasonCode.TEACHER_IN_OTHER_SCHOOL)
+    return CodedError(ReasonCode.TEACHER_ADD_FAILED)
 
 
 class LicenseSubscriptionService:
@@ -522,7 +567,14 @@ class LicenseSubscriptionService:
         skip rollover and leave the teacher holding both the old live
         bucket and a new one simultaneously (a double-grant). This version
         is safe for both callers.
+
+        H-181: the wallet row is locked BEFORE the bucket, the order
+        consume_credits uses (billing/locks.py); the callers hold the
+        licence row (or, for the monthly refresh, update it) first, so the
+        order is licence, wallet, bucket. None of the three callers holds a
+        bucket lock before calling this.
         """
+        wallet = lock_wallet_first(wallet)
         current_bucket = (
             wallet.buckets.select_for_update()
             .filter(bucket_type=CreditBucketType.MONTHLY, is_processed=False)
@@ -556,6 +608,8 @@ class LicenseSubscriptionService:
                         metadata={**metadata, "previous_unused": unused, **cap_meta},
                     )
                 elif cap_meta["requested_rollover"] > 0:
+                    # Ids only: the teacher's email here was a BE-A-04 PII
+                    # leak (Epic A S3, SM ruling).
                     logger.info(
                         "License rollover fully suppressed by max_bank for "
                         "teacher %s: requested %d (%s).",
@@ -1187,6 +1241,25 @@ class LicenseSubscriptionService:
                     raise ValueError(error_msg)
                 return None
 
+            # H-203, THE PRINCIPLE (users/admin_power.py): this road sets a
+            # fresh password and mails it to an account that has never signed
+            # in, so it proves only control of a mailbox. An account that holds
+            # admin power and was never verified, or that was switched off after
+            # it verified (H-202), gets no password and no mail: the answer for
+            # an email that cannot be added, nothing written, no seat used.
+            # Before the school and subscription checks, so it tells a school
+            # admin nothing about the row.
+            if (holds_admin_power(user) and user.email_verified_at is None) or (
+                user.email_verified_at is not None and not user.is_active
+            ):
+                error_msg = "This email can't be added as a teacher."
+                logger.warning(
+                    "User %s may not be invited by licence: not enrolled.", user.id
+                )
+                if raise_on_conflict:
+                    raise ValueError(error_msg)
+                return None
+
             # 3. School validation. Before the subscription check (H-78): another
             # school's teacher's billing status is not this admin's to learn.
             if user.school and user.school != school:
@@ -1678,20 +1751,87 @@ class LicenseSubscriptionService:
         return LicenseSubscriptionService._enroll_teacher_internal(license_sub, teacher)
 
     @staticmethod
-    def _no_seats_message(license_sub, adding: int, remaining: int) -> str:
-        """The school admin's message when a licence can't take the teachers
-        being added. Plain wording, and the seat counts they can act on."""
-        in_use = f"{license_sub.teacher_count} of {license_sub.max_seats} in use"
-        if remaining == 0:
-            return (
-                f"Your licence has no seats left ({in_use}). "
-                "Remove a teacher or ask us to add seats."
+    def _seats_exceeded(license_sub, adding: int, remaining: int):
+        """LICENCE_SEATS_EXCEEDED (QA catalogue E1). The numbers stay
+        machine-readable in params; the message reads as the approved text
+        in its two forms, "{remaining} seats left, but you're adding
+        {adding} teachers" and "no seats left" (with one seat left, "1 seat
+        left")."""
+        if remaining:
+            availability = (
+                f"{remaining} seat{'' if remaining == 1 else 's'} left, but "
+                f"you're adding {adding} teachers"
             )
-        return (
-            f"Your licence has {remaining} seat{'' if remaining == 1 else 's'} "
-            f"left, but you're adding {adding} teachers ({in_use}). "
-            "Add fewer teachers, remove a teacher, or ask us to add seats."
+        else:
+            availability = "no seats left"
+        return LicenceTeachersRefused(
+            ReasonCode.LICENCE_SEATS_EXCEEDED,
+            params={
+                "remaining": int(remaining),
+                "adding": int(adding),
+                "in_use": int(license_sub.teacher_count),
+                "max_seats": int(license_sub.max_seats),
+            },
+            display={"availability": availability},
         )
+
+    @staticmethod
+    def _add_one_teacher(license_sub: LicenseSubscription, email: str):
+        """add_teachers_batch's unit for one teacher: (teacher, None) or
+        (None, CodedError).
+
+        One savepoint around the whole unit (Epic A S7d, SM ruling Q2): the
+        account, the school link, the seat and the on_commit invitation
+        commit together or not at all. A database error no longer aborts the
+        batch's transaction (losing the good teachers too), and a failure
+        after the account exists leaves no account, no seat and no invite:
+        Django discards on_commit callbacks registered in a rolled-back
+        savepoint. The log carries ids and the code, never the address or
+        the exception's text (SM condition b)."""
+        try:
+            with transaction.atomic():
+                teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                    email,
+                    license_sub.school,
+                    license_sub.admin_user,
+                    raise_on_conflict=True,
+                )
+                if teacher is None:  # never with raise_on_conflict=True
+                    raise ValueError("Teacher could not be resolved or created.")
+                LicenseSubscriptionService._enroll_teacher_internal(
+                    license_sub, teacher
+                )
+        except Exception as exc:
+            failure = teacher_failure(exc, email)
+            if isinstance(exc, (IndividualSubscriptionConflictError, ValueError)):
+                # The same ids-only line as the copied
+                # _invite_and_enroll_one_teacher (H-78), so both lines log a
+                # refused teacher alike: the exception's class, never its
+                # text (the not-business refusal carries the address; the
+                # individual-subscription refusal did too, until H-85 made
+                # it one neutral sentence).
+                logger.warning(
+                    "Skipped enrolling a teacher in license %s (school %s): %s",
+                    license_sub.id,
+                    license_sub.school_id,
+                    type(exc).__name__,
+                )
+            else:
+                logger.error(
+                    "Unexpected error adding a teacher to license %s (school %s): %s",
+                    license_sub.id,
+                    license_sub.school_id,
+                    type(exc).__name__,
+                )
+            # Epic A only: the reason code, on its own line (SM ruling).
+            logger.info(
+                "Teacher not added to license %s (school %s): %s",
+                license_sub.id,
+                license_sub.school_id,
+                failure.reason_code,
+            )
+            return None, failure
+        return teacher, None
 
     @staticmethod
     @transaction.atomic
@@ -1706,17 +1846,20 @@ class LicenseSubscriptionService:
             license_sub: License subscription
             teacher_emails: List of teacher emails
 
-        Returns:
+        Returns (QA catalogue E2, Epic A S7d):
             dict: {
                 'successful': int,
                 'failed': int,
-                'errors': [{'teacher_id': str, 'error': str}]
+                'errors': [coded entry per teacher not added],
+                'added': [{'teacher_email', 'teacher_id', 'status': 'added'}],
+                'skipped': [coded entry per teacher already on the licence],
             }
+
+        Raises LicenceTeachersRefused (LICENCE_INACTIVE,
+        LICENCE_SEATS_EXCEEDED) before anything is written.
         """
         if not license_sub.is_active:
-            raise LicenseRequestError(
-                "This licence isn't active, so teachers can't be added to it."
-            )
+            raise LicenceTeachersRefused(ReasonCode.LICENCE_INACTIVE)
 
         # Lock License row to prevent concurrent modification
         license_sub = LicenseSubscription.objects.select_for_update().get(
@@ -1733,37 +1876,58 @@ class LicenseSubscriptionService:
         # Determine which emails are NOT already active. Each address once,
         # matched case-insensitively (H-58), so one teacher is one seat.
         new_teacher_emails = []
+        results: Dict[str, Any] = {
+            "successful": 0,
+            "failed": 0,
+            "errors": [],
+            "added": [],
+            "skipped": [],
+        }
 
         for email in LicenseSubscriptionService.normalize_teacher_emails(
             teacher_emails
         ):
             user = LicenseSubscriptionService.teacher_account_for_email(email)
             if user and user.id in active_teacher_ids:
-                # Already active - skip (they won't consume a seat)
+                # Already active - skipped, and now said so (it was silent);
+                # they won't consume a seat.
+                results["skipped"].append(
+                    coded_entry(
+                        CodedError(
+                            ReasonCode.TEACHER_ALREADY_ON_LICENCE,
+                            params={"email": email},
+                        ),
+                        teacher_email=email,
+                        status="skipped",
+                    )
+                )
                 continue
             new_teacher_emails.append(email)
 
         # Check seats
         seats_remaining = license_sub.seats_remaining
         if seats_remaining is not None and len(new_teacher_emails) > seats_remaining:
-            raise LicenseRequestError(
-                LicenseSubscriptionService._no_seats_message(
-                    license_sub, len(new_teacher_emails), seats_remaining
-                )
+            raise LicenseSubscriptionService._seats_exceeded(
+                license_sub, len(new_teacher_emails), seats_remaining
             )
-
-        results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
 
         for email in new_teacher_emails:
-            result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
-                license_sub, license_sub.school, license_sub.admin_user, email
+            teacher, failure = LicenseSubscriptionService._add_one_teacher(
+                license_sub, email
             )
-            if result["successful"]:
+            if failure is None:
                 results["successful"] += 1
+                results["added"].append(
+                    {
+                        "teacher_email": email,
+                        "teacher_id": str(teacher.id),
+                        "status": "added",
+                    }
+                )
             else:
                 results["failed"] += 1
                 results["errors"].append(
-                    {"teacher_email": email, "error": result["error"]}
+                    coded_entry(failure, teacher_email=email, status="failed")
                 )
 
         logger.info(
@@ -1831,19 +1995,43 @@ class LicenseSubscriptionService:
 
         safe_delay(sync_user_to_mailerlite, str(teacher.id))
 
-        # 2. Expire all active credit buckets for this teacher
-        wallet = teacher.credit_wallet
+        # 2. Expire all active credit buckets for this teacher - through the
+        # ledger (Epic A S3, G7 / D4), exactly as the Beat cleanup records a
+        # normal expiry: an EXPIRE row per bucket with credits left, so the
+        # books balance and each gets a CREDIT_TRANSACTION naming whoever
+        # removed the teacher. It used to be a bare .update() with no ledger
+        # row and no event. Local import: this module stays free of
+        # SubscriptionService at import time (see the module docstring).
+        from .services import SubscriptionService
+
+        # H-222: the wallet row before any bucket row (billing/locks.py). The
+        # allocation row locked above comes first; no path locks a wallet and
+        # then an allocation (the licence roll-up runs after commit, H-182).
+        wallet = lock_wallet_first(teacher.credit_wallet)
         now = timezone.now()
+        buckets = list(
+            wallet.buckets.select_for_update().filter(
+                models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now),
+                is_processed=False,
+            )
+        )
+        for bucket in buckets:
+            bucket.expires_at = now
+            bucket.save(update_fields=["expires_at", "updated_at"])
+            SubscriptionService.expire_bucket(
+                bucket,
+                reference=(
+                    f"Removed from licence {license_sub.id}: "
+                    f"{bucket.bucket_type} bucket expired."
+                ),
+            )
 
-        expired_count = wallet.buckets.filter(
-            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
-        ).update(expires_at=now)
-
+        # Ids only: the teacher's email here was a BE-A-04 PII leak.
         logger.info(
             "Removed teacher %s from license %s. Expired %d credit buckets.",
             teacher.id,
             license_sub.id,
-            expired_count,
+            len(buckets),
         )
 
     @staticmethod

@@ -1,0 +1,56 @@
+start 2026-10-09 19:35:11 load=5.45 5.82 6.02
+pre-commit exit=1 19:38:06
+check yaml......................................................................................................Passed
+fix end of files................................................................................................Passed
+trim trailing whitespace........................................................................................Passed
+check python ast................................................................................................Passed
+check docstring is first........................................................................................Passed
+check for added large files.....................................................................................Passed
+check for merge conflicts.......................................................................................Passed
+check toml......................................................................................................Passed
+check json......................................................................................................Passed
+check xml.......................................................................................................Passed
+check for case conflicts........................................................................................Passed
+check builtin type constructor use..............................................................................Passed
+fix utf-8 byte order marker.....................................................................................Passed
+detect private key..............................................................................................Passed
+python tests naming.............................................................................................Passed
+debug statements (python).......................................................................................Passed
+check for broken symlinks...................................................................(no files to check)Skipped
+fix requirements.txt............................................................................................Passed
+black...........................................................................................................Passed
+mypy............................................................................................................Failed
+flake8..........................................................................................................Passed
+isort...........................................................................................................Passed
+bandit..........................................................................................................Passed
+Detect secrets..................................................................................................Passed
+Check gunicorn timeout stays in sync with Stripe webhook claim window...........................................Passed
+Check no logger/print call passes .email/.first_name/.last_name/.get_full_name() directly.......................Passed
+tracked changes after hooks: 0
+makemigrations: No changes detected
+modules exit=1 end 2026-10-09 19:40:50 load=2.18 5.14 5.88
+Ran 987 tests in 142.247s
+FAILED (failures=9, errors=14, skipped=5)
+FAIL/ERROR headers: 23
+ERROR: test_a_mock_for_a_reason_is_treated_as_absent (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_a_mock_for_a_reason_is_treated_as_absent)
+ERROR: test_a_model_name_that_is_not_text_is_logged_as_none (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_a_model_name_that_is_not_text_is_logged_as_none)
+ERROR: test_a_reply_cut_off_at_the_limit_is_logged_once_with_its_task_type (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_a_reply_cut_off_at_the_limit_is_logged_once_with_its_task_type
+ERROR: test_a_reply_object_without_the_attribute_does_not_break_the_call (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_a_reply_object_without_the_attribute_does_not_break_the_call)
+ERROR: test_a_reply_that_stopped_normally_is_not_logged (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_a_reply_that_stopped_normally_is_not_logged)
+ERROR: test_a_reply_with_no_choices_does_not_break_the_call (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_a_reply_with_no_choices_does_not_break_the_call)
+ERROR: test_no_reason_at_all_is_not_logged (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_no_reason_at_all_is_not_logged)
+ERROR: test_the_line_has_exactly_the_three_fields_and_no_more (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_the_line_has_exactly_the_three_fields_and_no_more)
+ERROR: test_the_unmetered_super_admin_branch_logs_nothing (ai_processor.tests_finish_reason.CutOffRepliesAreCounted.test_the_unmetered_super_admin_branch_logs_nothing)
+ERROR: test_an_overwrite_is_lifted_into_the_item_result (students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result)
+ERROR: test_an_unclassified_failure_is_visible_as_system_with_no_code (students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code)
+ERROR: test_the_gate_lets_through_what_the_shared_method_says_is_cheap (students.tests_upload_credit_door.TheGateAsksTheSameMethodTest.test_the_gate_lets_through_what_the_shared_method_says_is_cheap)
+ERROR: test_the_gate_refuses_what_the_shared_method_says_is_too_dear (students.tests_upload_credit_door.TheGateAsksTheSameMethodTest.test_the_gate_refuses_what_the_shared_method_says_is_too_dear)
+ERROR: test_a_refused_follow_up_queue_leaves_the_broker_text_out_of_every_line (students.tests_broker_text_not_logged.TheGradingFollowUpLine.test_a_refused_follow_up_queue_leaves_the_broker_text_out_o
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying
+FAIL: test_batch_upload_runs_the_rest_of_the_batch (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch)
+FAIL: test_upload_async_is_never_half_queued (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued)
+FAIL: test_each_item_answers_for_itself_and_the_old_keys_stay (students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay)
+FAIL: test_every_failure_is_listed_with_its_own_code (students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code)
+tree clean after: yes
+SCRIPT-ENDED 19:40:50

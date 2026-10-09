@@ -1,0 +1,60 @@
+=== (1) reproduce-first: final students.tests_identity_reason_codes on UNCHANGED be1147a 2026-09-30T17:50:16+01:00
+base be1147a
+rc=1
+Ran 15 tests in 3.865s
+FAILED (failures=12, errors=2)
+=== tree 280571c Epic A S6c: code the identity refusals #1/#2 (FR-A-06, 08a §5, F2/F3)
+=== (2) changed modules outside students 17:50:36
+rc=0
+Ran 144 tests in 26.864s
+OK
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:45.50
+	Maximum resident set size (kbytes): 278220
+=== (3) owning-app regression: students 17:51:22
+rc=1
+Ran 274 tests in 51.590s
+FAILED (failures=1, errors=1, skipped=1)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:08.57
+	Maximum resident set size (kbytes): 257760
+=== (4) mutants 17:52:31
+C1_no_off_roster_lookup KILLED FAILED (failures=4, errors=2) ['test_a_pending_student_of_this_course_is_not_on_the_roster', 'test_a_second_upload_for_the_same_student_replaced_the_first', 'test_a_student_from_another_of_the_teachers_courses_is_not_on_the_roster', 'test_a_withdrawn_student_is_not_on_the_roster', 'test_student_who_is_not_enrolled_is_not_matched', 'test_the_other_items_of_the_batch_still_succeed']
+  restore ok
+C2_lookup_every_student KILLED FAILED (failures=2, errors=1) ['test_a_colleagues_student_in_the_same_school_is_never_named', 'test_a_second_upload_for_the_same_student_replaced_the_first', 'test_another_schools_student_is_never_named']
+  restore ok
+C3_ambiguity_guessed KILLED FAILED (failures=4, errors=1) ['test_a_name_matching_two_enrolled_students_is_ambiguous', 'test_a_second_upload_for_the_same_student_replaced_the_first', 'test_ambiguous_proxy_upload_creates_no_submission_for_anyone', 'test_ambiguous_substring_match_is_refused_not_guessed', 'test_single_token_name_matching_two_students_is_refused']
+  restore ok
+C4_off_roster_guessed KILLED FAILED (failures=1, errors=1) ['test_a_second_upload_for_the_same_student_replaced_the_first', 'test_two_out_of_roster_matches_are_not_a_guess']
+  restore ok
+C5_file_name_dropped KILLED FAILED (failures=10, errors=2) ['test_a_colleagues_student_in_the_same_school_is_never_named', 'test_a_name_matching_nobody_quotes_the_name_read', 'test_a_name_matching_two_enrolled_students_is_ambiguous', 'test_a_pending_student_of_this_course_is_not_on_the_roster', 'test_a_second_upload_for_the_same_student_replaced_the_first', 'test_a_student_from_another_of_the_teachers_courses_is_not_on_the_roster', 'test_a_withdrawn_student_is_not_on_the_roster', 'test_another_schools_student_is_never_named', 'test_no_name_on_the_paper', 'test_two_out_of_roster_matches_are_not_a_guess']
+  restore ok
+C6_replaced_existing_false KILLED FAILED (failures=1) ['test_a_second_upload_for_the_same_student_replaced_the_first']
+  restore ok
+C7_roster_any_status KILLED FAILED (failures=5, errors=1) ['test_a_pending_student_of_this_course_is_not_on_the_roster', 'test_a_second_upload_for_the_same_student_replaced_the_first', 'test_a_withdrawn_student_is_not_on_the_roster', 'test_student_who_is_not_enrolled_is_not_matched', 'test_the_other_items_of_the_batch_still_succeed', 'test_two_out_of_roster_matches_are_not_a_guess']
+  restore ok
+=== done 17:53:27
+
+=== (3b) students regression again, at 7c7832f after the fix 17:55:00
+rc=0
+Ran 274 tests in 53.289s
+OK (skipped=1)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:56.85
+	Maximum resident set size (kbytes): 254408
+=== (2b) the one changed module outside students that the task fix touches
+Ran 8 tests in 11.550s
+OK
+=== (4b) mutants again 17:56:11
+C1_no_off_roster_lookup KILLED FAILED (failures=4, errors=1) ['test_a_pending_student_of_this_course_is_not_on_the_roster', 'test_a_student_from_another_of_the_teachers_courses_is_not_on_the_roster', 'test_a_withdrawn_student_is_not_on_the_roster', 'test_student_who_is_not_enrolled_is_not_matched', 'test_the_other_items_of_the_batch_still_succeed']
+  restore ok
+C2_lookup_every_student KILLED FAILED (failures=2) ['test_a_colleagues_student_in_the_same_school_is_never_named', 'test_another_schools_student_is_never_named']
+  restore ok
+C3_ambiguity_guessed KILLED FAILED (failures=4) ['test_a_name_matching_two_enrolled_students_is_ambiguous', 'test_ambiguous_proxy_upload_creates_no_submission_for_anyone', 'test_ambiguous_substring_match_is_refused_not_guessed', 'test_single_token_name_matching_two_students_is_refused']
+  restore ok
+C4_off_roster_guessed KILLED FAILED (failures=1) ['test_two_out_of_roster_matches_are_not_a_guess']
+  restore ok
+C5_file_name_dropped KILLED FAILED (failures=10, errors=1) ['test_a_colleagues_student_in_the_same_school_is_never_named', 'test_a_name_matching_nobody_quotes_the_name_read', 'test_a_name_matching_two_enrolled_students_is_ambiguous', 'test_a_pending_student_of_this_course_is_not_on_the_roster', 'test_a_student_from_another_of_the_teachers_courses_is_not_on_the_roster', 'test_a_withdrawn_student_is_not_on_the_roster', 'test_another_schools_student_is_never_named', 'test_no_name_on_the_paper', 'test_two_out_of_roster_matches_are_not_a_guess']
+  restore ok
+C6_replaced_existing_false KILLED FAILED (failures=1) ['test_a_second_upload_for_the_same_student_replaced_the_first']
+  restore ok
+C7_roster_any_status KILLED FAILED (failures=5) ['test_a_pending_student_of_this_course_is_not_on_the_roster', 'test_a_withdrawn_student_is_not_on_the_roster', 'test_student_who_is_not_enrolled_is_not_matched', 'test_the_other_items_of_the_batch_still_succeed', 'test_two_out_of_roster_matches_are_not_a_guess']
+  restore ok
+=== done 17:57:09

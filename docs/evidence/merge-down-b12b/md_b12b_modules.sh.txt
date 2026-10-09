@@ -1,0 +1,29 @@
+#!/bin/bash
+# Merge-down b12b, quick gate before the one full run: makemigrations, then the Senior Manager's four named modules
+# (requirement 2) plus the modules both sides' guards and the touched grading/upload paths live in. One inhibit around the
+# whole script (rule 16 revised). Usage: md_b12b_modules.sh <tip sha8>
+set -u
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+TIP=${1:?tip}
+WT=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b12b
+S=/home/bond-servant-in-training/Documents/Projects/GAP-0b-runs
+cd $WT || exit 2
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || { echo "not at $TIP"; exit 3; }
+[ -z "$(git status --porcelain)" ] || { echo "tree not clean"; exit 3; }
+[ -f settings_worktree.py ] && [ -e .env ] || { echo "STOP: settings_worktree.py or .env missing"; exit 5; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/ && /settings_worktree/' | wc -l)" = 0 ] || { echo "another GAP test run is active"; exit 4; }
+export PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS=
+L=$S/md_b12b_modules${MODS_LABEL:+_$MODS_LABEL}_$TIP.log
+echo "start $(date '+%F %T') load=$(cut -d' ' -f1-3 /proc/loadavg)"
+MM=$(python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null 2>&1 | tail -1); echo "makemigrations: $MM"
+case "$MM" in "No changes detected"*) : ;; *) echo "STOP: makemigrations not clean"; exit 6;; esac
+MODS_DEFAULT="ai_processor.tests_grading_run_label ai_processor.tests_grading_run_pipeline ai_processor.tests_grading_run_checker students.tests_grading_label_end_to_end ai_processor.tests_grading_pipeline ai_processor.tests_second_opinion_pipeline students.tests_ai_reply_corrected_review students.tests_answers_unreadable AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_student_feedback_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_migration_safety_check AutoGrader.tests_no_playwright_at_import AutoGrader.tests_credscan AutoGrader.tests_sentry_scrubbing AutoGrader.tests_sentry_sends_no_variables"
+MODS=${MODS_OVERRIDE:-$MODS_DEFAULT}
+systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 python manage.py test $MODS --settings=settings_worktree --noinput --verbosity 2 > $L 2>&1 < /dev/null
+echo "exit=$? end $(date '+%F %T') load=$(cut -d' ' -f1-3 /proc/loadavg)"
+grep -E "^Ran [0-9]+ tests|^OK|^FAILED" $L | cut -c1-120; echo "FAIL/ERROR headers: $(grep -cE '^(FAIL|ERROR): ' $L)"; grep -E '^(FAIL|ERROR): ' $L | head -20 | cut -c1-200
+echo "tree clean after: $([ -z "$(git status --porcelain)" ] && echo yes || echo NO)"
+echo "SCRIPT-ENDED $(date '+%T')"
