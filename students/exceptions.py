@@ -1,3 +1,6 @@
+from billing.errors import InsufficientCreditsError
+
+
 class CannotAssociateStudentError(Exception):
     pass
 
@@ -16,6 +19,27 @@ SUBMISSION_BUSY_FOR_STUDENT = (
 # Each of the four refusals also carries a stable `code` (below), sent
 # beside the sentence, so a client need not match on words. The names say
 # what the caller can do, never why.
+
+
+# H-180. The one sentence a STUDENT reads when their teacher's wallet cannot
+# pay for the upload (at the door, and on the polled status of a task the gate
+# refused). It names no balance, amount, credit or wallet.
+STUDENT_UPLOAD_NOT_PROCESSED = (
+    "Your answers were not submitted. Your teacher's account can't process "
+    "uploads right now. Please keep your file and try again later, or let "
+    "your teacher know."
+)
+
+
+class StudentUploadNotProcessedError(InsufficientCreditsError):
+    """
+    A student's upload was refused because their teacher's wallet cannot pay
+    for it (H-180). Stands in, on a tracked task a STUDENT polls, for the
+    InsufficientCreditsError whose own text carries the balance and the
+    estimate. An InsufficientCreditsError like any other (it is logged and
+    never retried as a refusal), except that AutoGrader.error_messages
+    passes ITS message through instead of the generic credit sentence.
+    """
 
 
 class SubmissionAlreadyGradedError(Exception):

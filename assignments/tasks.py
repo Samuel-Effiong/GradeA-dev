@@ -10,7 +10,8 @@ from rest_framework.exceptions import ParseError
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
-from billing.refusals import PERMANENT_AI_REFUSALS
+from billing.errors import InsufficientCreditsError
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import (
     EnrollmentStatusType,
     Topic,
@@ -18,8 +19,10 @@ from classrooms.models import (
     teacher_can_reach_course,
 )
 from students.exceptions import (
+    STUDENT_UPLOAD_NOT_PROCESSED,
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    StudentUploadNotProcessedError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
@@ -798,6 +801,7 @@ def upload_answers_engine_async(
     file_name=None,
     processing_task_id=None,
 ):
+    user = None
     try:
         ensure_task_not_cancelled(processing_task_id)
         mark_processing_task_started(
@@ -880,10 +884,18 @@ def upload_answers_engine_async(
         # the extraction. Recorded with their user-facing message (never a
         # credit refusal's internal text) and reported as a non-retried
         # failure.
-        message = describe_background_task_error(exc)
+        # H-180: a STUDENT reads the fixed sentence, never the gate's own
+        # text (the balance and the estimate); a teacher keeps the old one.
+        shown = exc
+        if isinstance(exc, InsufficientCreditsError) and (
+            getattr(user, "user_type", None) == UserTypes.STUDENT
+        ):
+            log_refusal(logger, f"Background task {processing_task_id}", exc)
+            shown = StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)
+        message = describe_background_task_error(shown)
         task = mark_processing_task_failure(
             processing_task_id,
-            exc,
+            shown,
             # The code on the tracked row too, for the one who polls (H-133).
             meta={
                 "step": "Submission refused",

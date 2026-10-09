@@ -1,0 +1,55 @@
+"""1a's mutants for H-180 (rule 19). Usage, in the checkout: python -B h180_mutants_Q.py <Q1..Q5> [--check].
+Q1 the task never shows a student the fixed sentence (False and ...).
+Q2 the task shows the fixed sentence to EVERY requester (teacher too).
+Q3 the error text helper no longer passes the student sentence through.
+Q4 the door refuses a balance equal to the estimate (> instead of >=).
+Q5 the door counts a running total (each queued file takes its estimate off the balance).
+"""
+
+import ast
+import sys
+
+T, E, D = "assignments/tasks.py", "AutoGrader/error_messages.py", "assignments/upload_door.py"
+MUT = {
+    "Q1": (
+        T,
+        "        if isinstance(exc, InsufficientCreditsError) and (\n",
+        "        if False and (\n",
+    ),
+    "Q2": (
+        T,
+        '            getattr(user, "user_type", None) == UserTypes.STUDENT\n',
+        '            getattr(user, "user_type", None) is not None\n',
+    ),
+    "Q3": (
+        E,
+        "    if isinstance(error, StudentUploadNotProcessedError):\n        return str(error)\n",
+        "",
+    ),
+    "Q4": (D, "        if estimate is None or balance >= estimate:\n", "        if estimate is None or balance > estimate:\n"),
+    "Q5": (
+        D,
+        "        if estimate is None or balance >= estimate:\n            continue\n",
+        "        if estimate is None or balance >= estimate:\n            balance -= estimate or 0\n            continue\n",
+    ),
+}
+
+
+def main():
+    code = sys.argv[1]
+    path, old, new = MUT[code]
+    src = open(path, encoding="utf-8").read()
+    if src.count(old) != 1:
+        print(f"ABORT {code}: anchor found {src.count(old)} times in {path}")
+        sys.exit(7)
+    out = src.replace(old, new)
+    ast.parse(out)
+    if "--check" in sys.argv:
+        print(f"checked {code}: one anchor in {path}, mutant parses")
+        return
+    open(path, "w", encoding="utf-8").write(out)
+    print(f"applied {code} to {path}")
+
+
+if __name__ == "__main__":
+    main()
