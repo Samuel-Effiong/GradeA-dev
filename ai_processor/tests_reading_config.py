@@ -180,7 +180,13 @@ class NothingElseReadsAnAnswerSettingTest(SimpleTestCase):
     that builds the reading. The reading code asks the reading."""
 
     ALLOWED = {"ai_processor/reading_config.py", "AutoGrader/settings.py"}
-    PATTERN = re.compile(r"""["']ANSWER_[A-Z_]+["']|settings\.ANSWER_""")
+    # A read of the Django setting: `settings.ANSWER_X`, `getattr(settings,
+    # "ANSWER_X"...)` or `settings["ANSWER_X"]`. The reading code's own
+    # `config.get("ANSWER_X")` asks the reading, which is the point, and is
+    # not matched.
+    PATTERN = re.compile(
+        r"""settings\.ANSWER_|getattr\(\s*settings\s*,\s*["']ANSWER_|settings\[\s*["']ANSWER_"""
+    )
 
     def test_no_other_file_names_an_answer_setting(self):
         found = []

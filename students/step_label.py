@@ -37,7 +37,7 @@ SOURCE_GENERATED = "generated"
 #: The words that may not stand for a provider's name in a model column.
 FIXED_MODEL_WORDS = frozenset({UNLABELLED, MODEL_UNKNOWN, NOT_RUN})
 
-#: `StudentSubmission.answers_recheck_result` (besides UNLABELLED).
+#: The result column of a submission's blank-answer re-check (besides UNLABELLED).
 RECHECK_RESULTS = (NOT_RUN, FAILED, CONFIRMED_BLANK, FOUND_WRITING)
 #: `Assignment.content_source` (besides UNLABELLED).
 SOURCES = (SOURCE_EXTRACTED, SOURCE_GENERATED)

@@ -225,7 +225,7 @@ class OnlyKeptRepliesCountTest(SimpleTestCase):
         )
         self.assertEqual(label(result, run)["answers_model"], "zzz/last")
 
-    def test_a_placeholder_has_no_vote(self):
+    def test_a_placeholder_has_no_vote_through_the_real_extraction(self):
         """One real answer by an odd model, two placeholders. The placeholders
         must not be handed to the main model or to 'unknown'."""
         with override_settings(ANSWER_COMPLETENESS_ENFORCEMENT="log"):
@@ -237,7 +237,7 @@ class OnlyKeptRepliesCountTest(SimpleTestCase):
         )
         self.assertEqual(label(result, run)["answers_model"], "odd/model")
 
-    def test_an_answer_the_check_dropped_has_no_vote(self):
+    def test_an_answer_the_check_dropped_has_no_vote_in_a_one_call_reading(self):
         """Log mode: the reply supplied questions 1 and 2 and two numbers the
         assignment does not have; the extras are dropped from what is saved."""
         with override_settings(ANSWER_COMPLETENESS_ENFORCEMENT="log"):
@@ -425,7 +425,7 @@ class TheRecheckTest(SimpleTestCase):
         pair, _, _, _ = self._pair(provider)
         self.assertEqual(pair, ("failed", "unknown"))
 
-    def test_an_unnamed_reply_that_was_used_is_unknown(self):
+    def test_an_unnamed_reply_that_was_used_is_unknown_through_the_real_recheck(self):
         provider = in_order(reply(BLANK_FIRST, "read/model"), reply(findings(), None))
         pair, _, _, _ = self._pair(provider)
         self.assertEqual(pair, ("confirmed_blank", "unknown"))
