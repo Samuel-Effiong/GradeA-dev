@@ -989,6 +989,11 @@ returns a JWT pair, so the user is signed in straight away.
         if not user.email_verified_at and _holds_admin_power(user):
             refuse("Invalid email or token.")
 
+        # H-202: a verified account that was switched off is not switched back
+        # on or signed in by a code: the same refusal, nothing written.
+        if user.email_verified_at and not user.is_active:
+            refuse("Invalid email or token.")
+
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.")
 
@@ -1132,6 +1137,14 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
+            # H-202: a verified account that was switched off is not mailed a
+            # code (verify would switch it back on): the neutral reply of an
+            # unknown address, nothing made or sent.
+            if user.email_verified_at and not user.is_active:
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
+
             # H-164: a never-verified account with admin power gets no
             # activation code (/auth/verify would make it active and sign it
             # in): nothing is made or sent, and the reply below is the one an
@@ -1156,6 +1169,13 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
                 not user.is_active or _holds_admin_power(user)
             ):
                 raise ParseError("Email not verified.")
+
+            # H-202: a switched-off (verified) account makes and gets no reset
+            # code: the neutral reply of an unknown address.
+            if not user.is_active:
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
@@ -1343,6 +1363,14 @@ the plain rate limit (10 requests/hour per IP) does not.
         if not user.email_verified_at and (
             not user.is_active or _holds_admin_power(user)
         ):
+            raise ParseError("Invalid email, OTP code, or new password.")
+
+        # H-202: what is left inactive here is verified. A switched-off person
+        # sets no password and is not told it worked: the generic refusal,
+        # the attempt spent like a wrong guess (unless already locked).
+        if not user.is_active:
+            if not otp_obj.is_locked():
+                otp_obj.register_failure()
             raise ParseError("Invalid email, OTP code, or new password.")
 
         if otp_obj.is_locked():

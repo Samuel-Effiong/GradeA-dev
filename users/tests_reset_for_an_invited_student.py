@@ -329,9 +329,11 @@ class InvitedStudentResetTests(APITestCase):
         self.assertEqual(otp.code, code)
         self.assertEqual(otp.attempts, 0)
 
-    def test_a_switched_off_account_that_verified_its_email_still_resets(self):
-        """Green on the old code too: the guard is for never-verified accounts
-        only; what a verified switched-off account could do is unchanged."""
+    def test_a_switched_off_account_that_verified_its_email_no_longer_resets(self):
+        """REVERSED by H-202 (Senior Manager, 2026-10-08). H-164 pinned the old
+        behaviour here: a verified, switched-off account could still reset
+        (200, new password set). A switched-off person must not be able to set
+        a password on the account, nor be told it worked."""
         student = User.objects.create_user(
             email="verified.off.h164@example.com",
             password="Old-pass-2",  # pragma: allowlist secret
@@ -342,9 +344,9 @@ class InvitedStudentResetTests(APITestCase):
 
         response = self.reset(student.email, self.code_for(student))
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         student.refresh_from_db()
-        self.assertTrue(student.check_password(NEW_PASSWORD))
+        self.assertFalse(student.check_password(NEW_PASSWORD))
 
     # -- a licence-invited teacher (Senior Manager's ruling on N3) ---------
 

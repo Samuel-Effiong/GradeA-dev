@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
@@ -101,9 +102,29 @@ class CustomUserAdmin(UserAdmin):
     @admin.action(description="Mark selected users as inactive")
     def deactivate_users(self, request, queryset):
         users = list(queryset.only("pk", "school_id"))
-        updated = queryset.update(is_active=False)
+        # H-202: switching a user off revokes their sessions. One UPDATE; only
+        # a row that is active NOW gets its token epoch raised (the right-hand
+        # side reads the row as it was before this statement).
+        updated = queryset.update(
+            is_active=False,
+            token_epoch=Case(
+                When(is_active=True, then=F("token_epoch") + 1),
+                default=F("token_epoch"),
+                # Said outright: the two branches would otherwise be an
+                # IntegerField and a PositiveIntegerField, which Django
+                # refuses to mix.
+                output_field=IntegerField(),
+            ),
+        )
         invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully deactivated.")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # H-202: the edit form switching a user off revokes their sessions
+        # (an edit that leaves is_active alone, or switches it on, does not).
+        if change and "is_active" in form.changed_data and not obj.is_active:
+            obj.revoke_all_sessions()
 
 
 @admin.register(PasswordResetOTP)
