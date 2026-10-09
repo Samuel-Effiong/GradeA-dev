@@ -771,6 +771,17 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
+def _holds_admin_power(user):
+    """H-164: any one of the three marks of an admin account.
+
+    They can differ: `create_superuser` sets is_staff and is_superuser and
+    leaves user_type at its default, TEACHER (H-19 read the same shape), and
+    the Django admin ticks the flags independently of the type."""
+    return bool(
+        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN
+    )
+
+
 def _reset_locked_response(otp_obj):
     """429 for POST /auth/reset-password while the reset code is locked.
 
@@ -972,6 +983,17 @@ returns a JWT pair, so the user is signed in straight away.
 
         user = user.first()
 
+        # H-164: a never-verified account with admin power is not activated
+        # or signed in by a code: the wrong-code refusal, the attempt spent,
+        # nothing written.
+        if not user.email_verified_at and _holds_admin_power(user):
+            refuse("Invalid email or token.")
+
+        # H-202: a verified account that was switched off is not switched back
+        # on or signed in by a code: the same refusal, nothing written.
+        if user.email_verified_at and not user.is_active:
+            refuse("Invalid email or token.")
+
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.")
 
@@ -1115,14 +1137,45 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
-            # H-53: a locked address gets no new code (it could not be used
-            # until the lock ends), and the same reply as a send.
-            if not verify_lock_until(user.email):
-                send_user_activation_email(user)
+            # H-202: a verified account that was switched off is not mailed a
+            # code (verify would switch it back on): the neutral reply of an
+            # unknown address, nothing made or sent.
+            if user.email_verified_at and not user.is_active:
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
+
+            # H-164: a never-verified account with admin power gets no
+            # activation code (/auth/verify would make it active and sign it
+            # in): nothing is made or sent, and the reply below is the one an
+            # unknown address gets.
+            if user.email_verified_at or not _holds_admin_power(user):
+                # H-53: a locked address gets no new code (it could not be
+                # used until the lock ends), and the same reply as a send.
+                if not verify_lock_until(user.email):
+                    send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
-            if not user.email_verified_at:
+            # H-164: refused only when the account is also INACTIVE (a
+            # self-registered row, or an old-scheme pending student). An
+            # ACTIVE account that never verified its email is a student a
+            # teacher invited: it was created active with an emailed
+            # temporary password, and a student who lost that email needs
+            # this road. The reset itself proves the mailbox (see
+            # reset_password).
+            # An account with admin power that never verified its email gets no
+            # new first road by a mailbox code: refused as the inactive case is.
+            if not user.email_verified_at and (
+                not user.is_active or _holds_admin_power(user)
+            ):
                 raise ParseError("Email not verified.")
+
+            # H-202: a switched-off (verified) account makes and gets no reset
+            # code: the neutral reply of an unknown address.
+            if not user.is_active:
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
@@ -1302,6 +1355,24 @@ the plain rate limit (10 requests/hour per IP) does not.
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
+        # H-164: a switched-off account that never verified its email is not
+        # reset or stamped, whatever code exists (one issued while it was
+        # active), and neither is a never-verified account with admin power.
+        # The same generic refusal as an unknown address; nothing is
+        # written, so the code is left to expire by itself.
+        if not user.email_verified_at and (
+            not user.is_active or _holds_admin_power(user)
+        ):
+            raise ParseError("Invalid email, OTP code, or new password.")
+
+        # H-202: what is left inactive here is verified. A switched-off person
+        # sets no password and is not told it worked: the generic refusal,
+        # the attempt spent like a wrong guess (unless already locked).
+        if not user.is_active:
+            if not otp_obj.is_locked():
+                otp_obj.register_failure()
+            raise ParseError("Invalid email, OTP code, or new password.")
+
         if otp_obj.is_locked():
             return _reset_locked_response(otp_obj)
 
@@ -1322,7 +1393,19 @@ the plain rate limit (10 requests/hour per IP) does not.
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
+        # H-164: the code proves control of the mailbox exactly as the verify
+        # link does, so a successful reset stamps the email in the SAME save
+        # as the new password (never on the request, never on a wrong code).
+        # The new password replaces the temporary one an invited student was
+        # sent, so the flag that stood for it is cleared, as change_password
+        # does. The reset signs the student in, so it stamps last_login like
+        # every sign-in: otherwise a later add to another course would see
+        # "never signed in" and overwrite the password just chosen.
+        if not user.email_verified_at:
+            user.email_verified_at = timezone.now()
+        user.must_change_password = False
         user.save()
+        stamp_last_login(user)
 
         otp_obj.delete()
 

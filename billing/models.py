@@ -1057,10 +1057,12 @@ class CreditWallet(models.Model):
         allocations (is_admin_allocation=True) are deliberately excluded,
         matching every other place that counts license consumption.
 
-        Runs inside consume_credits' transaction; the single-statement F()
-        update is atomic, so no extra row lock is needed. Acquired last —
-        after the wallet and bucket locks — in both the consume and refund
-        paths, so lock ordering stays consistent between them.
+        H-182: the update is NOT made here. It is registered to run after
+        the charge's transaction commits (billing/licence_rollup.py), so the
+        licence row is never written while the wallet and bucket locks are
+        held: the licence paths take the licence row first, then wallets,
+        then buckets, and this was the one place that took them the other
+        way round. A charge that rolls back registers nothing.
         """
         if amount <= 0:
             return
@@ -1078,12 +1080,9 @@ class CreditWallet(models.Model):
         if not allocation:
             return
 
-        LicenseSubscription.objects.filter(
-            pk=allocation.license_subscription_id
-        ).update(
-            total_credits_consumed=models.F("total_credits_consumed") + amount,
-            updated_at=timezone.now(),
-        )
+        from .licence_rollup import roll_up_after_commit
+
+        roll_up_after_commit(allocation.license_subscription_id, amount)
 
     @property
     def display_balance(self):
