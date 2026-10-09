@@ -228,8 +228,11 @@ class TheHelper(SimpleTestCase):
         self.assertIsNot(services._provider_block(), services._provider_block())
 
     def test_a_change_to_a_sent_block_cannot_reach_the_next_request(self):
+        """The change is to keys the helper does not reset (an added key, a deleted
+        data_collection), so a block shared between calls would carry it forward."""
         sent = call(system_prompt="s", user_prompt="u")["extra_body"]["provider"]
-        sent["zdr"] = False
+        sent["extra"] = 1
+        del sent["data_collection"]
         self.assertEqual(
             call(system_prompt="s", user_prompt="u")["extra_body"]["provider"], EXPECTED
         )
@@ -344,13 +347,40 @@ class NoRequestCanBeSentWithoutTheBlock(SimpleTestCase):
         for relative in NAMED:
             self.assertTrue((BASE / relative).exists(), relative)
 
-    def test_a_file_marked_sends_the_block_goes_through_the_helper_or_ai_model(self):
-        for relative, (mark, _reason) in NAMED.items():
-            if mark != "sends the provider block":
+    def test_every_listed_file_other_than_services_has_zero_create_calls(self):
+        """A file marked "sends the provider block" other than services.py must go
+        through __ai_model: it may build a client, never call create itself."""
+        for relative in {**NAMED, **OPTIONAL_NAMED}:
+            if relative == "ai_processor/services.py":
                 continue
-            text = (BASE / relative).read_text(encoding="utf-8")
+            path = BASE / relative
+            if not path.exists():
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            creates = [
+                n.lineno
+                for n in ast.walk(tree)
+                if isinstance(n, ast.Call)
+                and _call_chain(n.func).endswith("completions.create")
+            ]
             with self.subTest(file=relative):
-                self.assertTrue("_provider_block(" in text or "services" in text)
+                self.assertEqual(creates, [])
+
+    def test_the_provider_host_appears_only_in_listed_files(self):
+        """A request through requests/httpx/urllib would not show as completions.create;
+        the host name gives it away."""
+        outside = []
+        listed = set(NAMED) | set(OPTIONAL_NAMED)
+        for relative, path in _python_files():
+            if relative in listed:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            if "openrouter.ai" in text:
+                outside.append(relative)
+        self.assertEqual(outside, [])
 
     def test_the_data_collection_literal_exists_only_inside_the_helper(self):
         outside = []
