@@ -1,0 +1,7 @@
+20:09:29 run 1 start: loadavg 2.13 4.57 4.63 4/3014 1969197
+20:09:55 run 1 end: exit=1 Ran 1 test in 1.350s FAILED (failures=1)
+20:09:55 run 2 start: loadavg 2.24 4.40 4.58 4/3025 1969672
+20:10:03 run 2 end: exit=2
+20:10:03 run 3 start: loadavg 2.26 4.34 4.55 4/3053 1969788
+20:10:11 run 3 end: exit=2
+20:10:11 DIAG END

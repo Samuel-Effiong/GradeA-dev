@@ -1,0 +1,29 @@
+#!/bin/bash
+# H-222 diagnostic: ONE test, up to 3 times, with a lock-wait poller beside it,
+# from the clean tip of the worktree. Rule 18: output to files, stdin null.
+# Usage: diag.sh <tip-sha8>
+set -uo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h222-diag
+OUT=$P/GAP-d5-runs/h222
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export EXEMPT_EMAIL_DOMAINS=
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/diag.status; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: tree not frozen at $TIP"; exit 9; }
+[ ! -e $OUT/diag_$TIP ] || { say "ABORT: diag_$TIP exists already"; exit 9; }
+mkdir -p $OUT/diag_$TIP
+WRAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 600"
+T=audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_monthly_grant_expires_nothing_twice
+for i in 1 2 3; do
+  say "run $i start: loadavg $(cat /proc/loadavg)"
+  $PY $OUT/lockpoll.py $WT $OUT/diag_$TIP/poll_$i.txt > $OUT/diag_$TIP/poller_$i.err 2>&1 < /dev/null &
+  PP=$!
+  rc=0
+  PYTHONDONTWRITEBYTECODE=1 $WRAP $PY manage.py test $T --settings=settings_worktree --noinput > $OUT/diag_$TIP/run_$i.log 2>&1 < /dev/null || rc=$?
+  kill $PP 2>/dev/null; wait $PP 2>/dev/null
+  echo "exit=$rc" >> $OUT/diag_$TIP/run_$i.log
+  say "run $i end: exit=$rc $(grep -E '^(Ran |OK|FAILED)' $OUT/diag_$TIP/run_$i.log | tr '\n' ' ')"
+done
+say "DIAG END"
