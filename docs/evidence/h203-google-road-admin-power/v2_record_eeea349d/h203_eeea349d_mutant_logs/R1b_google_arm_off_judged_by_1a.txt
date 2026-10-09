@@ -1,0 +1,56 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 4c50046f-6236-447d-a2c5-5f1269a3a423.
+Cannot activate automatic trial for user 4c50046f-6236-447d-a2c5-5f1269a3a423 (validation): ValueError
+.Free trial plan not found: no trial activated for user 56047db9-96e0-480d-b9cd-8bdf62a0088d.
+Cannot activate automatic trial for user 56047db9-96e0-480d-b9cd-8bdf62a0088d (validation): ValueError
+FFree trial plan not found: no trial activated for user 17986dcb-d86c-493d-8188-5728895b67d5.
+Cannot activate automatic trial for user 17986dcb-d86c-493d-8188-5728895b67d5 (validation): ValueError
+FFFree trial plan not found: no trial activated for user 540c8224-181a-4b06-89b4-9459b21cdf37.
+Cannot activate automatic trial for user 540c8224-181a-4b06-89b4-9459b21cdf37 (validation): ValueError
+FFree trial plan not found: no trial activated for user 4abe57df-e0cd-4680-911d-6f3c2ff4e58e.
+Cannot activate automatic trial for user 4abe57df-e0cd-4680-911d-6f3c2ff4e58e (validation): ValueError
+.
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='staff_teacher_active')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 140, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='superuser_flag_inactive')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 140, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='super_admin_type_inactive')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 140, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='command_line_superuser')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 140, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.450s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...
+Found 3 test(s).

@@ -1,0 +1,350 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 954279c9-683b-48b3-8147-8b8cfbe5738a.
+Cannot activate automatic trial for user 954279c9-683b-48b3-8147-8b8cfbe5738a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user 8cd6455d-a6d5-416f-a6bd-d384bf4af891.
+Cannot activate automatic trial for user 8cd6455d-a6d5-416f-a6bd-d384bf4af891 (validation): ValueError
+Google OAuth token exchange failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1893, in google_auth
+    response = http_requests.post(token_url, data=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.ConnectionError: google is down
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1893, in google_auth
+    response = http_requests.post(token_url, data=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.ConnectionError: google is down
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1898, in google_auth
+    raise ParseError(
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2011, in google_auth
+    raise AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: This account has been deactivated. Please contact support.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+.Free trial plan not found: no trial activated for user cbd607af-d1c9-40f6-9eca-3ff8b456c545.
+Cannot activate automatic trial for user cbd607af-d1c9-40f6-9eca-3ff8b456c545 (validation): ValueError
+FFree trial plan not found: no trial activated for user 87b90fd3-2245-4f60-9703-3fd636f43161.
+Cannot activate automatic trial for user 87b90fd3-2245-4f60-9703-3fd636f43161 (validation): ValueError
+FFree trial plan not found: no trial activated for user 70b60aeb-fc1d-4349-9632-be8cf3301404.
+Cannot activate automatic trial for user 70b60aeb-fc1d-4349-9632-be8cf3301404 (validation): ValueError
+FFree trial plan not found: no trial activated for user 910bb620-279d-4954-8814-d3cd7fc749cb.
+Cannot activate automatic trial for user 910bb620-279d-4954-8814-d3cd7fc749cb (validation): ValueError
+.Free trial plan not found: no trial activated for user 18e5ba64-b4d2-4e6f-8b17-e784d1efc15f.
+Cannot activate automatic trial for user 18e5ba64-b4d2-4e6f-8b17-e784d1efc15f (validation): ValueError
+Refused to enroll student 69e364aa-39bb-4d20-8f7a-192d8402f65b into course 7e385aa5-1c32-40d1-a08b-a1bc8b0c14b0: the account is deactivated.
+FFree trial plan not found: no trial activated for user c9222f5b-6a69-49ea-9e65-daab252588f7.
+Cannot activate automatic trial for user c9222f5b-6a69-49ea-9e65-daab252588f7 (validation): ValueError
+User c9222f5b-6a69-49ea-9e65-daab252588f7 may not be invited by licence: not enrolled.
+.Free trial plan not found: no trial activated for user 9c3f4778-8b6d-4aea-bed3-a2d0cf91043b.
+Cannot activate automatic trial for user 9c3f4778-8b6d-4aea-bed3-a2d0cf91043b (validation): ValueError
+FFree trial plan not found: no trial activated for user 0813463d-dd88-4211-ae55-5ebec02976bb.
+Cannot activate automatic trial for user 0813463d-dd88-4211-ae55-5ebec02976bb (validation): ValueError
+FFree trial plan not found: no trial activated for user 7707901d-e5fa-4484-bc66-f6e893dd3687.
+Cannot activate automatic trial for user 7707901d-e5fa-4484-bc66-f6e893dd3687 (validation): ValueError
+..Free trial plan not found: no trial activated for user 79a37e4d-a970-4f99-b969-aece6bc95eeb.
+Cannot activate automatic trial for user 79a37e4d-a970-4f99-b969-aece6bc95eeb (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2011, in google_auth
+    raise AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: This account has been deactivated. Please contact support.
+.Free trial plan not found: no trial activated for user fa8a8d14-2a5b-47cd-a0d0-003253a0fdcf.
+Cannot activate automatic trial for user fa8a8d14-2a5b-47cd-a0d0-003253a0fdcf (validation): ValueError
+.Free trial plan not found: no trial activated for user 9cd48afd-2986-429a-9a81-6046e89d0300.
+Cannot activate automatic trial for user 9cd48afd-2986-429a-9a81-6046e89d0300 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user 063b8381-84db-4476-adc0-e489fedb022f.
+Cannot activate automatic trial for user 063b8381-84db-4476-adc0-e489fedb022f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user e3e7b37f-50b5-4146-8d46-e6620dcb4e19.
+Cannot activate automatic trial for user e3e7b37f-50b5-4146-8d46-e6620dcb4e19 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user 6cf4c56c-ad11-4b74-a050-8ed53e4a5bd6.
+Cannot activate automatic trial for user 6cf4c56c-ad11-4b74-a050-8ed53e4a5bd6 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user 2f609f6d-4321-497c-980c-b43e31502c82.
+Cannot activate automatic trial for user 2f609f6d-4321-497c-980c-b43e31502c82 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+..API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+.Free trial plan not found: no trial activated for user 443f2206-f287-42b7-a487-ff6bf5fc2f8f.
+Cannot activate automatic trial for user 443f2206-f287-42b7-a487-ff6bf5fc2f8f (validation): ValueError
+FFree trial plan not found: no trial activated for user bbde990d-8a17-4af9-9faf-f8f5c2abfe7b.
+Cannot activate automatic trial for user bbde990d-8a17-4af9-9faf-f8f5c2abfe7b (validation): ValueError
+FFree trial plan not found: no trial activated for user 4275a932-3eb5-4c60-8e50-e5eee8bc75ae.
+Cannot activate automatic trial for user 4275a932-3eb5-4c60-8e50-e5eee8bc75ae (validation): ValueError
+.Free trial plan not found: no trial activated for user 68a332a4-02cf-472a-bdd9-49b4993b6d11.
+Cannot activate automatic trial for user 68a332a4-02cf-472a-bdd9-49b4993b6d11 (validation): ValueError
+FFree trial plan not found: no trial activated for user df7d1fe3-d890-4519-abc5-6456388255ef.
+Cannot activate automatic trial for user df7d1fe3-d890-4519-abc5-6456388255ef (validation): ValueError
+FFree trial plan not found: no trial activated for user c89a0121-b817-470f-b420-c604b75fdaae.
+Cannot activate automatic trial for user c89a0121-b817-470f-b420-c604b75fdaae (validation): ValueError
+.Free trial plan not found: no trial activated for user ef5c0cd5-92ed-4356-a0cf-2416ee00ee22.
+Cannot activate automatic trial for user ef5c0cd5-92ed-4356-a0cf-2416ee00ee22 (validation): ValueError
+FFree trial plan not found: no trial activated for user 791b680b-0ddf-44da-8e89-7f4841413c99.
+Cannot activate automatic trial for user 791b680b-0ddf-44da-8e89-7f4841413c99 (validation): ValueError
+FFree trial plan not found: no trial activated for user c60304ed-2f9b-405c-85ba-3825496e23ba.
+Cannot activate automatic trial for user c60304ed-2f9b-405c-85ba-3825496e23ba (validation): ValueError
+.
+======================================================================
+FAIL: test_a1_add_by_email_refuses_a_student_typed_row_carrying_is_staff (users.tests_vf2_h203_probe.VF2AddStudentRoutes.test_a1_add_by_email_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 212, in test_a1_add_by_email_refuses_a_student_typed_row_carrying_is_staff
+    self.assert_refused_untouched(self.add_by_email(account.email), account, before)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 202, in assert_refused_untouched
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_a2_add_by_email_refuses_a_student_typed_row_carrying_is_superuser (users.tests_vf2_h203_probe.VF2AddStudentRoutes.test_a2_add_by_email_refuses_a_student_typed_row_carrying_is_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 217, in test_a2_add_by_email_refuses_a_student_typed_row_carrying_is_superuser
+    self.assert_refused_untouched(self.add_by_email(account.email), account, before)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 202, in assert_refused_untouched
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_a3_direct_add_refuses_the_same_rows (users.tests_vf2_h203_probe.VF2AddStudentRoutes.test_a3_direct_add_refuses_the_same_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 227, in test_a3_direct_add_refuses_the_same_rows
+    self.assert_refused_untouched(response, account, before, direct_add=True)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 200, in assert_refused_untouched
+    self.assertGreaterEqual(response.status_code, 400)
+AssertionError: 200 not greater than or equal to 400
+
+======================================================================
+FAIL: test_a5_a_verified_switched_off_row_with_admin_power_gets_the_not_a_student_answer (users.tests_vf2_h203_probe.VF2AddStudentRoutes.test_a5_a_verified_switched_off_row_with_admin_power_gets_the_not_a_student_answer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 240, in test_a5_a_verified_switched_off_row_with_admin_power_gets_the_not_a_student_answer
+    self.assert_refused_untouched(self.add_by_email(account.email), account, before)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf2_h203_probe.py", line 203, in assert_refused_untouched
+    self.assertIn(NOT_A_STUDENT_MESSAGE, str(response.data))
+AssertionError: "This email can't be added as a student." not found in '{\'detail\': "This student\'s account is disabled. Contact support if they should have access."}'
+
+======================================================================
+FAIL: test_a_student_typed_row_carrying_is_staff_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_admin_power_principle.py", line 317, in test_a_student_typed_row_carrying_is_staff_is_refused
+    with self.assertRaises(EnrollmentError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: EnrollmentError not raised
+
+======================================================================
+FAIL: test_a_student_typed_row_carrying_is_superuser_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_admin_power_principle.py", line 328, in test_a_student_typed_row_carrying_is_superuser_is_refused
+    with self.assertRaises(EnrollmentError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: EnrollmentError not raised
+
+======================================================================
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/classrooms/tests_h203_admin_power_routes.py", line 129, in test_bulk_import_refuses_a_student_typed_row_carrying_is_staff
+    self.assertEqual(response.data["failure_count"], 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/classrooms/tests_h203_admin_power_routes.py", line 140, in test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser
+    self.assertEqual(response.data["failure_count"], 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/classrooms/tests_h203_admin_power_routes.py", line 150, in test_direct_add_refuses_a_student_typed_row_carrying_is_staff
+    self.assertIn(response.status_code, DIRECT_REFUSALS)
+AssertionError: 200 not found in (400, 500)
+
+======================================================================
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/classrooms/tests_h203_admin_power_routes.py", line 159, in test_direct_add_refuses_a_student_typed_row_carrying_is_superuser
+    self.assertIn(response.status_code, DIRECT_REFUSALS)
+AssertionError: 200 not found in (400, 500)
+
+======================================================================
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/classrooms/tests_h203_admin_power_routes.py", line 108, in test_single_add_refuses_a_student_typed_row_carrying_is_staff
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/classrooms/tests_h203_admin_power_routes.py", line 118, in test_single_add_refuses_a_student_typed_row_carrying_is_superuser
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+----------------------------------------------------------------------
+Ran 36 tests in 2.651s
+
+FAILED (failures=12)
+Preserving test database for alias 'default'...
+Found 36 test(s).
