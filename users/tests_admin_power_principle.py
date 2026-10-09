@@ -31,7 +31,9 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -135,6 +137,26 @@ class GoogleRoadTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn(GOOGLE_FAILED, str(response.data))
+
+    def test_the_refusal_is_raised_before_any_write_to_the_account(self):
+        """The Google arm runs inside a transaction that would undo an earlier
+        write, so the end state alone cannot show the ORDER. This counts the
+        statements the refused sign-in sent: a SELECT of the row (so the capture
+        is not empty) and no UPDATE, INSERT or DELETE on the users table."""
+        account = self.account("go.order.h203@x.example", is_superuser=True)
+        table = connection.ops.quote_name(User._meta.db_table)
+
+        with CaptureQueriesContext(connection) as captured:
+            response = self.call(account.email)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        on_users = [q["sql"].lstrip().upper() for q in captured if table in q["sql"]]
+        reads = [sql for sql in on_users if sql.startswith("SELECT")]
+        writes = [
+            sql for sql in on_users if sql.startswith(("UPDATE", "INSERT", "DELETE"))
+        ]
+        self.assertGreater(len(reads), 0)
+        self.assertEqual(len(writes), 0)
 
     # -- controls: nothing else changes ----------------------------------------
 

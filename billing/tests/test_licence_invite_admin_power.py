@@ -22,6 +22,8 @@ Run with:
 
 from unittest.mock import patch
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -188,6 +190,26 @@ class LicenceInviteRoadTests(APITestCase):
         self.assertEqual(account.password, before)
         self.assertEqual(self.seats(account), 0)
         self.assertEqual(self.mail.delay.call_count, 0)
+
+    def test_the_refusal_is_raised_before_any_write_to_the_account(self):
+        """_get_or_invite_teacher is atomic, so a write made before the refusal
+        would be undone and the end state alone cannot show the ORDER. This
+        counts the statements the refused call sent: a SELECT of the row (so the
+        capture is not empty) and no UPDATE, INSERT or DELETE on the users table."""
+        account = self.teacher("order.h203@x.edu", is_staff=True)
+        table = connection.ops.quote_name(CustomUser._meta.db_table)
+
+        with CaptureQueriesContext(connection) as captured:
+            with self.assertRaises(ValueError):
+                self.invite(account.email)
+
+        on_users = [q["sql"].lstrip().upper() for q in captured if table in q["sql"]]
+        reads = [sql for sql in on_users if sql.startswith("SELECT")]
+        writes = [
+            sql for sql in on_users if sql.startswith(("UPDATE", "INSERT", "DELETE"))
+        ]
+        self.assertGreater(len(reads), 0)
+        self.assertEqual(len(writes), 0)
 
     # -- controls: nothing else changes ---------------------------------------
 
