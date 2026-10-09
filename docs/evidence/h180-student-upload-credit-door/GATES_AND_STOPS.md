@@ -23,3 +23,8 @@ Only the student who started it, on the polled status route (`users/views.py`, s
 ## Not cured here, named for the package
 - A credit refusal of a student's answer EDIT stored the generic text: H-211 (stacked on this row).
 - The window between the door and the task (another job can spend the balance in between).
+
+## Limits named by Verifier 1 (record in `verification_1a/`)
+- **Cumulative batch (N1):** the door compares EACH file with the WHOLE balance, so files that are each affordable but not together are all queued, and the later ones fail in the task with the generic message. The door's docstring does not list it (its code is frozen at the gated shape); it is named here for the package. Epic B's run-level hold cures it.
+- **Not shown (N3):** nobody has read the student site's handling of the new 402 body (`{"error": <student sentence>, "code": "insufficient_credits"}`).
+- **Worktrees (rule 21):** Grade-Automator-Plus-h180-student-upload-credit-door, and -h211-student-edit-credit-sentence which is stacked on this row.
