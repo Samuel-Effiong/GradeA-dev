@@ -40,34 +40,25 @@ TESTS = ["ai_processor.tests_provider_block"]
 K = "keepdb"
 
 COMMENT_NEW = (
-    '                    # data_collection "deny" filters suppliers that train on\n'
-    "                    # data; zdr filters suppliers that retain prompts. Both\n"
-    "                    # are in the block. Student names and submission content\n"
-    "                    # pass through this call.\n"
+    '                # data_collection "deny" filters suppliers that train on\n'
+    "                # data; zdr filters suppliers that retain prompts. Both\n"
+    "                # are in the block. Student names and submission content\n"
+    "                # pass through this call.\n"
 )
 COMMENT_OLD = (
-    "                    # Refuse any upstream provider (e.g. DeepSeek) that may\n"
-    "                    # retain or train on this request. Student names and\n"
-    "                    # submission content pass through this call.\n"
+    "                # Refuse any upstream provider (e.g. DeepSeek) that may\n"
+    "                # retain or train on this request. Student names and\n"
+    "                # submission content pass through this call.\n"
 )
 
 # id, what is broken, file, text replaced (or a list), new text (or a list), tests, database kind
 MUTANTS = [
     (
         "Z1",
-        "the tools shape sends the old literal block, no zdr",
+        "the request sends the old literal block, no zdr",
         SV,
-        '                    # pass through this call.\n                    "provider": _provider_block(),\n',
-        '                    # pass through this call.\n                    "provider": {"data_collection": "deny"},\n',
-        TESTS,
-        K,
-    ),
-    (
-        "Z2",
-        "the plain shape sends the old literal block, no zdr",
-        SV,
-        '                    "models": sub_models,\n                    "provider": _provider_block(),\n',
-        '                    "models": sub_models,\n                    "provider": {"data_collection": "deny"},\n',
+        '                # pass through this call.\n                "provider": _provider_block(),\n',
+        '                # pass through this call.\n                "provider": {"data_collection": "deny"},\n',
         TESTS,
         K,
     ),
@@ -123,8 +114,8 @@ MUTANTS = [
         "Z8",
         "zdr is placed beside the provider object (in extra_body), not inside it",
         SV,
-        '                    "models": sub_models,\n                    "provider": _provider_block(),\n                },\n',
-        '                    "models": sub_models,\n                    "provider": {"data_collection": "deny"},\n                    "zdr": True,\n                },\n',
+        '                # pass through this call.\n                "provider": _provider_block(),\n            },\n',
+        '                # pass through this call.\n                "provider": {"data_collection": "deny"},\n                "zdr": True,\n            },\n',
         TESTS,
         K,
     ),
@@ -132,8 +123,8 @@ MUTANTS = [
         "Z9",
         "zdr is sent only when the fallback list is the default one",
         SV,
-        '                    "models": sub_models,\n                    "provider": _provider_block(),\n',
-        '                    "models": sub_models,\n                    "provider": _provider_block() if sub_models is DEFAULT_FALLBACK_MODELS else {"data_collection": "deny"},\n',
+        '                # pass through this call.\n                "provider": _provider_block(),\n',
+        '                # pass through this call.\n                "provider": _provider_block() if sub_models is DEFAULT_FALLBACK_MODELS else {"data_collection": "deny"},\n',
         TESTS,
         K,
     ),
@@ -207,13 +198,12 @@ _READ = "test_the_switch_is_read_at_each_call_not_once_at_import"
 _EXIST = "test_it_exists_and_returns_the_block"
 _FRESH = "test_it_returns_a_new_dict_each_call"
 _CHANGE = "test_a_change_to_a_sent_block_cannot_reach_the_next_request"
-_BOTH = "test_both_requests_take_the_block_from_the_helper"
+_BOTH = "test_the_request_takes_the_block_from_the_helper"
 _LIT = "test_the_data_collection_literal_exists_only_inside_the_helper"
 
 #: Written before any run: every test reckoned to fail under each mutant.
 EXPECTED = {
-    "Z1": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT],
-    "Z2": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT, _READ, _CHANGE],
+    "Z1": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT, _READ, _CHANGE],
     "Z3": [_OFF, _READ],
     "Z4": [_EXACT, _BOOL, _INSIDE, _OFF, _READ, _EXIST, _FRESH, _CHANGE],
     "Z5": [_FRESH, _CHANGE, _OFF, _READ],
@@ -243,7 +233,7 @@ EXPECTED = {
         _FRESH,
         _CHANGE,
     ],
-    "Z13": ["test_the_only_create_calls_are_the_two_in_ai_model"],
+    "Z13": ["test_the_only_create_call_is_the_one_in_ai_model"],
     "Z14": ["test_every_file_that_builds_a_client_or_a_request_is_on_the_named_list"],
     "Z15": ["test_every_listed_file_other_than_services_has_zero_create_calls"],
 }
