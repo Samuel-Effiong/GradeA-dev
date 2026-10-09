@@ -16,8 +16,10 @@ from AutoGrader.error_messages import (
     describe_background_task_error,
 )
 from AutoGrader.reason_codes import REASON_CODES, CodedError, reason_of
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
-from billing.refusals import PERMANENT_AI_REFUSALS
+from billing.errors import InsufficientCreditsError
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import (
     EnrollmentStatusType,
     Topic,
@@ -25,10 +27,12 @@ from classrooms.models import (
     teacher_can_reach_course,
 )
 from students.exceptions import (
+    STUDENT_UPLOAD_NOT_PROCESSED,
     AssignmentNotOpenError,
     CannotAssociateStudentError,
     CourseNotReachableError,
     RubricMissingError,
+    StudentUploadNotProcessedError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
@@ -46,6 +50,7 @@ from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
     emit_grading_completed,
     grade_engine,
+    grading_result_stamp,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -177,7 +182,12 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             submission = grade_engine(
                 user, submission, processing_task_id=processing_task_id
             )
-            print(f"Assignment saved: {index + 1}/{submissions_count}")
+            logger.info(
+                "Grade-all progress: assignment=%s %s/%s",
+                assignment_id,
+                index + 1,
+                submissions_count,
+            )
         except TaskCancelledError:
             mark_processing_task_cancelled(
                 processing_task_id,
@@ -189,17 +199,15 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             )
             raise
         except Exception as e:
-            import traceback
-
-            stack_trace_str = traceback.format_exc()
-            print(stack_trace_str)
+            # H-209: the stored result names the class and the ids; the error
+            # text and the traceback are not kept (the error is re-raised
+            # below, so error reporting receives it from the task machinery).
             self.update_state(
                 state=states.FAILURE,
                 meta={
-                    "error": str(e),
+                    "error": type(e).__name__,
                     "assignment_id": assignment_id,
                     "current_submission_id": submission.id,
-                    "detail": stack_trace_str,
                 },
             )
             mark_processing_task_failure(
@@ -236,12 +244,11 @@ def extract_assignment_background_task(
     keep_existing_title=True,
     processing_task_id=None,
 ):
-    print(
-        {
-            "user_id": user_id,
-            "assignment_id": assignment_id,
-            "keep_existing_title": keep_existing_title,
-        }
+    logger.info(
+        "Assignment extraction started: user=%s assignment=%s keep_existing_title=%s",
+        user_id,
+        assignment_id,
+        keep_existing_title,
     )
     try:
         ensure_task_not_cancelled(processing_task_id)
@@ -251,8 +258,6 @@ def extract_assignment_background_task(
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
         )
-
-        print("Extracting assignment content")
 
         assignment = Assignment.objects.get(id=assignment_id)
         user = CustomUser.objects.get(id=user_id)
@@ -267,7 +272,7 @@ def extract_assignment_background_task(
             processing_task_id=processing_task_id,
         )
 
-        print("Assignment saved successfully")
+        logger.info("Assignment extraction saved: assignment=%s", assignment_id)
         mark_processing_task_success(
             processing_task_id,
             meta={
@@ -395,6 +400,7 @@ def extract_answer_background_task(
     recorded verbatim; anything else is retried up to max_retries and only
     then recorded as a failure.
     """
+    user = None
     try:
         ensure_task_not_cancelled(processing_task_id)
         # The tracked row is the idempotency claim (there is no RUNNING
@@ -452,9 +458,20 @@ def extract_answer_background_task(
         )
         raise
     except UPLOAD_REFUSALS as exc:
+        # H-211: as in the upload task (H-180), a STUDENT who started the edit
+        # reads the fixed sentence for a credit refusal, never the gate's own
+        # text or the generic one that names the wallet; a teacher who started
+        # it keeps the generic text. `user` is None if the refusal came before
+        # the user was loaded.
+        shown = exc
+        if isinstance(exc, InsufficientCreditsError) and (
+            getattr(user, "user_type", None) == UserTypes.STUDENT
+        ):
+            log_refusal(logger, f"Background task {processing_task_id}", exc)
+            shown = StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)
         mark_processing_task_failure(
             processing_task_id,
-            exc,
+            shown,
             # The code goes on the tracked row too: the task-status route
             # serves the row's meta, not this task's return value (H-133).
             meta={
@@ -465,7 +482,7 @@ def extract_answer_background_task(
         )
         return {
             "status": states.FAILURE,
-            "message": describe_background_task_error(exc),
+            "message": describe_background_task_error(shown),
             **_refusal_code(exc),
         }
     except Exception as exc:
@@ -955,6 +972,7 @@ def upload_answers_engine_async(
     file_name=None,
     processing_task_id=None,
 ):
+    user = None
     try:
         ensure_task_not_cancelled(processing_task_id)
         mark_processing_task_started(
@@ -1050,10 +1068,18 @@ def upload_answers_engine_async(
         # the extraction. Recorded with their user-facing message (never a
         # credit refusal's internal text) and reported as a non-retried
         # failure.
-        message = describe_background_task_error(exc)
+        # H-180: a STUDENT reads the fixed sentence, never the gate's own
+        # text (the balance and the estimate); a teacher keeps the old one.
+        shown = exc
+        if isinstance(exc, InsufficientCreditsError) and (
+            getattr(user, "user_type", None) == UserTypes.STUDENT
+        ):
+            log_refusal(logger, f"Background task {processing_task_id}", exc)
+            shown = StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)
+        message = describe_background_task_error(shown)
         task = mark_processing_task_failure(
             processing_task_id,
-            exc,
+            shown,
             # The code on the tracked row too, for the one who polls (H-133).
             meta={
                 "step": "Submission refused",
@@ -1103,8 +1129,15 @@ def upload_answers_engine_async(
         raise exc
 
 
+#: How a formatting task ends when the result it worded is no longer the
+#: row's. A success: nothing went wrong. It names no score.
+FORMATTED_GRADE_SUPERSEDED = "Superseded by a newer grade; nothing written"
+
+
 @shared_task()
-def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
+def formatted_grade_async(
+    submission_id, user_prompt, processing_task_id=None, result_stamp=None
+):
     try:
         ensure_task_not_cancelled(processing_task_id)
         mark_processing_task_started(
@@ -1121,7 +1154,38 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             formatted_grade, submission
         )
         with cancellable_final_save(processing_task_id):
-            submission.save(update_fields=["formatted_grade"])
+            # The prompt was built from the grading result as it was when
+            # this task was queued, and the AI call takes seconds. If the
+            # row holds another result by now (a regrade, a teacher's
+            # manual grade), this wording is of a result that is gone:
+            # write nothing. The row lock holds a grade being saved at
+            # this moment back until this has written, or lets it finish
+            # first. A message with no stamp was queued before H-145 and
+            # writes as it always did.
+            superseded = result_stamp is not None and (
+                grading_result_stamp(
+                    StudentSubmission.objects.select_for_update()
+                    .only("graded_at", "regraded_at")
+                    .get(id=submission_id)
+                )
+                != result_stamp
+            )
+            if not superseded:
+                submission.save(update_fields=["formatted_grade"])
+
+        if superseded:
+            mark_processing_task_success(
+                processing_task_id,
+                meta={
+                    "step": FORMATTED_GRADE_SUPERSEDED,
+                    "submission_id": str(submission.id),
+                },
+            )
+            return {
+                "status": states.SUCCESS,
+                "submission_id": submission_id,
+                "message": FORMATTED_GRADE_SUPERSEDED,
+            }
 
         mark_processing_task_success(
             processing_task_id,
@@ -1432,7 +1496,7 @@ def _dispatch_tracked_grading(teacher, assignment, submissions, session):
                 "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
             },
         )
-        logger.info("Starting grading of submission %s", submission.id)
+        logger.info("Grading queued: submission=%s", submission.id)
 
 
 @shared_task(name="assignments.tasks.auto_grade_due_assignment")
@@ -1485,11 +1549,16 @@ def auto_grade_due_assignment(assignment_id):
         )
 
         return f"Auto-grading started for {ungraded_submissions.count()} submissions."
-    except Exception:
-        # Logged with its traceback; the task result (Celery's backend) never
-        # carries exception text (QA-ERR-03).
-        logger.exception("Auto-grading could not start for %s", assignment_id)
-        return "Error: auto-grading could not start."
+    except Exception as e:
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "auto_grade_due_assignment",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(name="assignments.tasks.send_assignment_due_reminder")
@@ -1607,9 +1676,15 @@ def send_assignment_due_reminder(assignment_id, hours_before):
 
         return f"Queued {notifications_sent} assignment due reminder emails."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "send_assignment_due_reminder",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(name="assignments.tasks.send_new_assignment_posted_notification")
@@ -1681,9 +1756,15 @@ def send_new_assignment_posted_notification(assignment_id):
 
         return f"Queued {notifications_sent} new assignment notification email(s)."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "send_new_assignment_posted_notification",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(

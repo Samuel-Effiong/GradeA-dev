@@ -1,0 +1,13 @@
+15:47:13 7864ea6c: 5 runs start, loadavg 4.54 4.38 4.02 18/2586 448661
+15:47:13 7864ea6c run 1 start: loadavg 4.54 4.38 4.02 24/2586 448666
+15:48:08 7864ea6c run 1 exit=0 (0 failing lines)
+15:48:08 7864ea6c run 2 start: loadavg 7.25 5.12 4.30 11/2612 449789
+15:49:04 7864ea6c run 2 exit=0 (0 failing lines)
+15:49:04 7864ea6c run 3 start: loadavg 8.15 5.71 4.54 3/2567 450596
+15:49:54 7864ea6c run 3 exit=0 (0 failing lines)
+15:49:54 7864ea6c run 4 start: loadavg 7.47 5.88 4.66 7/2571 451741
+15:50:47 7864ea6c run 4 exit=0 (0 failing lines)
+15:50:47 7864ea6c run 5 start: loadavg 6.62 5.96 4.75 20/2570 453339
+15:51:33 7864ea6c run 5 exit=0 (0 failing lines)
+15:51:33 7864ea6c: 0 of 5 runs RED
+15:51:33 H-191 RATE END

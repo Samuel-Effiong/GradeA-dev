@@ -300,7 +300,9 @@ METADATA_ALLOWLIST = {
     AuditAction.LIBRARY_ADD: frozenset(),
     AuditAction.LIBRARY_EDIT: frozenset(),
     AuditAction.LIBRARY_COPY: frozenset(),
-    AuditAction.ADMIN_ACTION: frozenset({"source"}),
+    # H-194: plus the summary keys, for the summary an anonymous admin-route
+    # flood leaves when the global cap suppresses its refusals.
+    AuditAction.ADMIN_ACTION: frozenset({"source"} | _FAILED_AUTH_SUMMARY_KEYS),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields", "source"}),
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is

@@ -152,6 +152,7 @@ class ReasonCode(models.TextChoices):
     # QA catalogue additions (docs/phase2/qa/catalogue_additions_proposal.md,
     # approved as written by the founder acting as QA, 2026-09-30), built in
     # Epic A S7d. B: student registration paused.
+    # DEAD since H-152 closed the old student door (nothing raises it); kept in this merge-down; removal is H-207.
     REGISTRATION_PAUSED = "REGISTRATION_PAUSED", "Student registration paused"
     # C: a photo or scan uploaded as a PDF.
     FILE_NOT_A_PDF = "FILE_NOT_A_PDF", "File is not a PDF"

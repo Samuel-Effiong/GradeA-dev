@@ -1,0 +1,15 @@
+{
+  "S5_verify_refuses_without_spending_the_attempt": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 99,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_locks_the_address_like_a_wrong_guess"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_locks_the_address_like_a_wrong_guess"
+    ],
+    "pycache_left": 0
+  }
+}

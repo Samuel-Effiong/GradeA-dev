@@ -84,6 +84,7 @@ from AutoGrader.tests_cache_matrix_support import (
     Read,
 )
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from classrooms.tests_support_add_by_email import add_by_email
 from students.models import GradingState, StudentSubmission
 from students.services import upload_answers_engine
 from users.models import UserTypes
@@ -360,7 +361,7 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
     def teacher_enrolls_student_in_course_b(self):
         response = self.as_teacher().post(
             reverse("course-students", kwargs={"pk": self.course_b.pk}),
-            {"email": self.student.email},
+            add_by_email(self.student.email),
             format="json",
         )
         self.assertEqual(response.status_code, 200, response.content)

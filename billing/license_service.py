@@ -33,6 +33,7 @@ from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
+from users.admin_power import holds_admin_power
 from users.mailerlite_service import queue_sync
 from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import generate_temporary_password
@@ -42,6 +43,7 @@ from . import license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
+from .locks import lock_wallet_first
 from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     CONVERSION_FACTOR,
     BillingTransactionMethod,
@@ -565,7 +567,14 @@ class LicenseSubscriptionService:
         skip rollover and leave the teacher holding both the old live
         bucket and a new one simultaneously (a double-grant). This version
         is safe for both callers.
+
+        H-181: the wallet row is locked BEFORE the bucket, the order
+        consume_credits uses (billing/locks.py); the callers hold the
+        licence row (or, for the monthly refresh, update it) first, so the
+        order is licence, wallet, bucket. None of the three callers holds a
+        bucket lock before calling this.
         """
+        wallet = lock_wallet_first(wallet)
         current_bucket = (
             wallet.buckets.select_for_update()
             .filter(bucket_type=CreditBucketType.MONTHLY, is_processed=False)
@@ -1232,6 +1241,25 @@ class LicenseSubscriptionService:
                     raise ValueError(error_msg)
                 return None
 
+            # H-203, THE PRINCIPLE (users/admin_power.py): this road sets a
+            # fresh password and mails it to an account that has never signed
+            # in, so it proves only control of a mailbox. An account that holds
+            # admin power and was never verified, or that was switched off after
+            # it verified (H-202), gets no password and no mail: the answer for
+            # an email that cannot be added, nothing written, no seat used.
+            # Before the school and subscription checks, so it tells a school
+            # admin nothing about the row.
+            if (holds_admin_power(user) and user.email_verified_at is None) or (
+                user.email_verified_at is not None and not user.is_active
+            ):
+                error_msg = "This email can't be added as a teacher."
+                logger.warning(
+                    "User %s may not be invited by licence: not enrolled.", user.id
+                )
+                if raise_on_conflict:
+                    raise ValueError(error_msg)
+                return None
+
             # 3. School validation. Before the subscription check (H-78): another
             # school's teacher's billing status is not this admin's to learn.
             if user.school and user.school != school:
@@ -1337,9 +1365,7 @@ class LicenseSubscriptionService:
             "top_content": (
                 f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
                 "Your account is ready - log in below with your email and the "
-                f"temporary password: {generated_password}\n\n"
-                "You'll be asked to choose your own password the first time "
-                "you log in."
+                f"temporary password: {generated_password}"
             ),
             "bottom_content": "",
             # Shared merge key with the school-admin invite email
@@ -1978,7 +2004,10 @@ class LicenseSubscriptionService:
         # SubscriptionService at import time (see the module docstring).
         from .services import SubscriptionService
 
-        wallet = teacher.credit_wallet
+        # H-222: the wallet row before any bucket row (billing/locks.py). The
+        # allocation row locked above comes first; no path locks a wallet and
+        # then an allocation (the licence roll-up runs after commit, H-182).
+        wallet = lock_wallet_first(teacher.credit_wallet)
         now = timezone.now()
         buckets = list(
             wallet.buckets.select_for_update().filter(

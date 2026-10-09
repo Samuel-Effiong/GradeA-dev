@@ -1,0 +1,36 @@
+#!/bin/bash
+# v2's one slot for H-203. Only after the Release Engineer's GRANT. Usage: vf_h203_run.sh <tip-sha8> (full path)
+set -uo pipefail
+if [ -z "${GAP_INHIBITED:-}" ]; then GAP_INHIBITED=1 exec systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block "$0" "$@"; fi
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+PROBE=users/tests_vf2_h203_probe.py
+PROBE1A=users/tests_vf1a_h203.py
+export COMMIT=$TIP MUTANT_LOGS=$H/runs/h203_${TIP}_mutant_logs EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/h203_${TIP}.status
+WRAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+[ ! -e $MUTANT_LOGS ] || { echo "logs of $TIP exist already"; exit 9; }
+cp $H/tests_vf2_h203_probe.py $WT/$PROBE
+cp $H/tests_vf1a_h203_probe.py $WT/$PROBE1A
+cmp -s $H/tests_vf2_h203_probe.py $WT/$PROBE && cmp -s $H/tests_vf1a_h203_probe.py $WT/$PROBE1A || { echo "probe copy differs"; rm -f $WT/$PROBE $WT/$PROBE1A; exit 9; }
+[ "$(git status --porcelain | sort | tr "\n" " ")" = "?? $PROBE1A ?? $PROBE " ] || { echo "unexpected files"; rm -f $WT/$PROBE $WT/$PROBE1A; exit 9; }
+finish() {
+  rm -f $WT/$PROBE $WT/$PROBE1A
+  rm -rf $WT/users/__pycache__ $WT/classrooms/__pycache__; rm -f $WT/users/vf2_new_road.py $WT/users/vf2_blind_road.py
+  if [ -z "$(git -C $WT status --porcelain)" ] && [ "$(git -C $WT rev-parse --short=8 HEAD)" = "$TIP" ]; then say "probe removed; tree is the frozen tip again"; else say "WARNING: tree not the frozen tip at exit"; fi
+}
+trap finish EXIT
+for step in check baseline mutants; do
+  say "$step start: loadavg $(cat /proc/loadavg)"
+  rc=0; $WRAP $PY -B $H/vf_h203_mutants.py $step > $H/runs/h203_${TIP}_$step.log 2>&1 < /dev/null || rc=$?
+  say "$step end exit=$rc: loadavg $(cat /proc/loadavg)"
+  [ $step = check ] && [ $rc -ne 0 ] && { echo "check failed"; exit 1; }
+  [ $step = baseline ] && [ $rc -ne 0 ] && { echo "baseline red: no mutant is run"; exit 1; }
+done
+echo "done: see $ST"

@@ -35,21 +35,25 @@ class LicenseConsumptionRollupTests(ExecuteGradedTaskTestBase):
         ).total_credits_consumed
 
     def test_consumption_increments_the_license_counter(self):
-        self.wallet.consume_credits(
-            amount=700, feature="Grading Assignment", task_id="lic-task-1"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            self.wallet.consume_credits(
+                amount=700, feature="Grading Assignment", task_id="lic-task-1"
+            )
         self.assertEqual(self._license_total(), 700)
 
-        self.wallet.consume_credits(
-            amount=300, feature="Grading Assignment", task_id="lic-task-2"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            self.wallet.consume_credits(
+                amount=300, feature="Grading Assignment", task_id="lic-task-2"
+            )
         self.assertEqual(self._license_total(), 1_000)
 
     def test_refund_reverses_the_license_counter(self):
-        self.wallet.consume_credits(
-            amount=700, feature="Grading Assignment", task_id="lic-task-3"
-        )
-        refunded = SubscriptionService.refund_credits("lic-task-3")
+        with self.captureOnCommitCallbacks(execute=True):
+            self.wallet.consume_credits(
+                amount=700, feature="Grading Assignment", task_id="lic-task-3"
+            )
+        with self.captureOnCommitCallbacks(execute=True):
+            refunded = SubscriptionService.refund_credits("lic-task-3")
 
         self.assertEqual(refunded, 700)
         self.assertEqual(self._license_total(), 0)
@@ -58,14 +62,16 @@ class LicenseConsumptionRollupTests(ExecuteGradedTaskTestBase):
         # A renewal legitimately resets the per-cycle counter between the
         # consume and the refund; the reversal must clamp, not go negative
         # (the field is a PositiveIntegerField).
-        self.wallet.consume_credits(
-            amount=700, feature="Grading Assignment", task_id="lic-task-4"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            self.wallet.consume_credits(
+                amount=700, feature="Grading Assignment", task_id="lic-task-4"
+            )
         LicenseSubscription.objects.filter(pk=self.license_sub.pk).update(
             total_credits_consumed=100
         )
 
-        SubscriptionService.refund_credits("lic-task-4")
+        with self.captureOnCommitCallbacks(execute=True):
+            SubscriptionService.refund_credits("lic-task-4")
 
         self.assertEqual(self._license_total(), 0)
 
@@ -76,17 +82,19 @@ class LicenseConsumptionRollupTests(ExecuteGradedTaskTestBase):
         self._make_allocation(self.license_sub, self.admin, is_admin=True)
         admin_wallet = self._give_credits(self.admin, 100_000)
 
-        admin_wallet.consume_credits(
-            amount=500, feature="Weekly Course Summary", task_id="lic-task-5"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            admin_wallet.consume_credits(
+                amount=500, feature="Weekly Course Summary", task_id="lic-task-5"
+            )
 
         self.assertEqual(self._license_total(), 0)
 
     def test_individual_teacher_without_allocation_is_untouched(self):
         individual = self._make_teacher_with_credits()
 
-        individual.credit_wallet.consume_credits(
-            amount=500, feature="Grading Assignment", task_id="lic-task-6"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            individual.credit_wallet.consume_credits(
+                amount=500, feature="Grading Assignment", task_id="lic-task-6"
+            )
 
         self.assertEqual(self._license_total(), 0)

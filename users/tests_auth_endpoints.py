@@ -23,13 +23,7 @@ from rest_framework_simplejwt.token_blacklist.models import (
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from classrooms.models import (
-    Course,
-    EnrollmentStatusType,
-    School,
-    Session,
-    StudentCourse,
-)
+from classrooms.models import School
 from students.models import BatchUploadSession
 from users.models import PasswordChangeOTP, PasswordResetOTP, UserTypes
 
@@ -479,67 +473,6 @@ class ResetPasswordBranchTests(APITestCase):
             reverse("refresh"), {"refresh": new_refresh}, format="json"
         )
         self.assertEqual(refreshed.status_code, status.HTTP_200_OK)
-
-
-@override_settings(CACHES=LOCMEM_CACHE)
-class StudentRegistrationBranchTests(APITestCase):
-    """Branches of `register/student` beyond the expiry cases."""
-
-    def setUp(self):
-        cache.clear()
-        self.addCleanup(cache.clear)
-        self.teacher = make_user("student.reg.teacher@gmail.com")
-        self.session = Session.objects.create(name="Term", teacher=self.teacher)
-        self.course = Course.objects.create(
-            name="Biology", teacher=self.teacher, session=self.session
-        )
-        self.student = User.objects.create_user(
-            email="pending.student@student.local",
-            password="placeholder-password-1",  # pragma: allowlist secret
-            first_name="",
-            last_name="",
-            user_type=UserTypes.STUDENT,
-            is_active=False,
-            activation_token="student-token",
-            activation_expires=timezone.now() + timezone.timedelta(days=1),
-        )
-        self.url = reverse("auth-register-student")
-
-    def payload(self, **overrides):
-        body = {
-            "first_name": "Sam",
-            "last_name": "Student",
-            "password": PASSWORD,
-            "token": "student-token",
-        }
-        body.update(overrides)
-        return body
-
-    def test_pending_enrollments_are_promoted_to_enrolled(self):
-        enrollment = StudentCourse.objects.create(
-            student=self.student,
-            course=self.course,
-            enrollment_status=EnrollmentStatusType.PENDING,
-        )
-
-        with patch("users.views.sync_user_to_mailerlite"):
-            response = self.client.post(self.url, self.payload(), format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        enrollment.refresh_from_db()
-        self.assertEqual(enrollment.enrollment_status, EnrollmentStatusType.ENROLLED)
-
-    def test_an_unexpected_failure_is_reported_without_leaking_internals(self):
-        with patch(
-            "users.views.StudentCourse.objects.filter",
-            side_effect=RuntimeError("enrollment lookup exploded"),
-        ):
-            response = self.client.post(self.url, self.payload(), format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertNotIn("exploded", str(response.data))
-        self.student.refresh_from_db()
-        self.assertFalse(self.student.is_active)
 
 
 @override_settings(CACHES=LOCMEM_CACHE)

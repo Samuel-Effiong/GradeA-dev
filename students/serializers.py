@@ -5,6 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from classrooms.models import enrollment_list_key
 from users.models import CustomUser
 
 from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
@@ -801,7 +802,8 @@ class StudentListSerializer(serializers.ModelSerializer):
         need an enrollment, so going through the cache once here is the
         difference between ~1 query per student and ~6.
         """
-        return list(obj.enrollments.all())
+        # H-196: in the one defined order, whether or not the view prefetched.
+        return sorted(obj.enrollments.all(), key=enrollment_list_key)
 
     def _get_relevant_course(self, obj):
         """Which course this row is 'about', memoised per student.

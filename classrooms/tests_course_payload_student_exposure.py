@@ -42,6 +42,7 @@ from assignments.serializers import (
 )
 from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Session, StudentCourse
+from classrooms.tests_support_add_by_email import add_by_email
 from students.serializers import StudentSerializer
 from users.models import UserTypes
 
@@ -128,7 +129,7 @@ class CoursePayloadBase(APITestCase):
         self.client.force_authenticate(teacher or self.teacher)
         response = self.client.post(
             reverse("course-students", kwargs={"pk": course_id}),
-            {"email": student.email},
+            add_by_email(student.email),
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)

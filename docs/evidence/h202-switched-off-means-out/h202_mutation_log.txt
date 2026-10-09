@@ -1,0 +1,23 @@
+17 mutants: anchors unique, all parse, expected tests named
+17 of 17 mutants selected
+S1_a_switched_off_account_is_mailed_a_verify_code KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S2_that_verify_code_request_answers_with_a_refusal KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S3_verify_switches_a_switched_off_account_back_on KILLED exit 1 ran 98 failed 3 expected-but-passed []
+S4_verify_refuses_a_switched_off_account_in_its_own_words KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S5_verify_refuses_without_spending_the_attempt SURVIVED exit 0 ran 98 failed 0 expected-but-passed ['users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_spends_the_budget']
+S6_a_switched_off_account_is_sent_a_reset_code KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S7_that_reset_code_request_answers_with_a_refusal KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S8_the_reset_step_accepts_a_switched_off_account KILLED exit 1 ran 98 failed 4 expected-but-passed []
+S9_the_reset_refusal_spends_no_attempt KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S10_the_reset_refusal_is_in_its_own_words KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S11_the_bulk_switch_off_bumps_nothing KILLED exit 1 ran 98 failed 3 expected-but-passed []
+S12_the_bulk_switch_off_bumps_every_selected_row KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S13_the_bulk_switch_off_bumps_by_two KILLED exit 1 ran 98 failed 2 expected-but-passed []
+S14_the_edit_form_does_not_revoke KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S15_the_edit_form_revokes_on_a_switch_on_too KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S16_the_edit_form_revokes_on_any_edit_of_an_inactive_user KILLED exit 1 ran 98 failed 1 expected-but-passed []
+S17_the_bulk_switch_on_bumps_the_epoch KILLED exit 1 ran 98 failed 1 expected-but-passed []
+SURVIVED: ['S5_verify_refuses_without_spending_the_attempt']
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 16 of 17

@@ -29,6 +29,7 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.services import EnrollmentError, enroll_student_by_email
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -217,7 +218,7 @@ class BrokerOutageResilienceTests(ThreadSafeTransactionTestCase):
         with self._broker_down():
             response = self.client.post(
                 reverse("course-students", kwargs={"pk": self.course.id}),
-                {"email": "outage-student@x.test"},
+                add_by_email("outage-student@x.test"),
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

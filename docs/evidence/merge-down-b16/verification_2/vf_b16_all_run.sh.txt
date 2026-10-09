@@ -1,0 +1,37 @@
+#!/bin/bash
+# v2's one slot for merge-down b16 (+ ed's roads-pin mutants). Only after the Release Engineer's GRANT.
+# Usage: vf_b16_all_run.sh <tip-sha8>   (the tip is dfee4d19 = 72bce4fd + tests/docs only)
+set -uo pipefail
+if [ -z "${GAP_INHIBITED:-}" ]; then GAP_INHIBITED=1 exec systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block "$0" "$@"; fi
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export COMMIT=$TIP EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/b16all_${TIP}.status
+WRAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ -z "$(git status --porcelain)" ] || { echo "scratch tree not clean"; exit 9; }
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || git checkout -q --detach $TIP || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || { echo "not at $TIP"; exit 9; }
+[ ! -e $H/runs/b16all_${TIP}_logs ] || { echo "logs of $TIP exist already"; exit 9; }
+mkdir -p $H/runs/b16all_${TIP}_logs
+finish() {
+  rm -rf $WT/students/__pycache__ $WT/assignments/__pycache__ $WT/users/__pycache__
+  if [ -z "$(git -C $WT status --porcelain)" ] && [ "$(git -C $WT rev-parse --short=8 HEAD)" = "$TIP" ]; then say "tree is the frozen tip again"; else say "WARNING: tree not the frozen tip at exit"; fi
+}
+trap finish EXIT
+for set in b16 pin; do
+  export MUTANT_LOGS=$H/runs/b16all_${TIP}_logs/$set
+  script=$H/vf_${set}_mutants.py
+  for step in check baseline mutants; do
+    say "$set $step start: loadavg $(cat /proc/loadavg)"
+    rc=0; $WRAP $PY -B $script $( [ $step = mutants ] || echo $step ) > $H/runs/b16all_${TIP}_${set}_$step.log 2>&1 < /dev/null || rc=$?
+    say "$set $step end exit=$rc: loadavg $(cat /proc/loadavg)"
+    [ $step = check ] && [ $rc -ne 0 ] && { echo "check failed"; exit 1; }
+    [ $step = baseline ] && [ $rc -ne 0 ] && { echo "$set baseline red: its mutants are not run"; break; }
+  done
+done
+echo "done: see $ST"

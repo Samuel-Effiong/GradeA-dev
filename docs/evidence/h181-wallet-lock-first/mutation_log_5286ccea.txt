@@ -1,0 +1,16 @@
+10 mutants: anchors unique, all parse, expected tests named
+10 of 10 mutants selected
+M1_activate_subscription_no_wallet_first KILLED exit 1 ran 11 failed 1 expected-but-passed []
+M2_apply_immediate_plan_change_no_wallet_first KILLED exit 1 ran 11 failed 1 expected-but-passed []
+M3_process_mid_cycle_credit_grant_no_wallet_first KILLED exit 1 ran 11 failed 1 expected-but-passed []
+M4_process_rollover_and_renewal_no_wallet_first KILLED exit 1 ran 11 failed 2 expected-but-passed []
+M5_finalize_trial_conversion_via_stripe_no_wallet_first KILLED exit 1 ran 11 failed 1 expected-but-passed []
+M6_finalize_trial_to_paid_conversion_no_wallet_first KILLED exit 1 ran 11 failed 1 expected-but-passed []
+M7_licence_rollover_helper_no_wallet_first KILLED exit 1 ran 11 failed 4 expected-but-passed []
+M8_the_helper_locks_nothing KILLED exit 1 ran 11 failed 9 expected-but-passed []
+M9_licence_rollover_helper_wallet_after_bucket KILLED exit 1 ran 11 failed 1 expected-but-passed []
+M10_process_rollover_and_renewal_wallet_after_bucket KILLED exit 1 ran 11 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 10 of 10

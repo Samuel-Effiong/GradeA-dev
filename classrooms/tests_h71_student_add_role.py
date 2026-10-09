@@ -23,6 +23,7 @@ from classrooms.services import (
     EnrollmentError,
     check_existing_account_may_join,
 )
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -77,7 +78,7 @@ class StudentAddNamesNoRoleTests(APITestCase):
     def routes(self, email):
         """(label, response) for every student-add route given `email`."""
         return [
-            ("single add", self.post("course-students", {"email": email})),
+            ("single add", self.post("course-students", add_by_email(email))),
             (
                 "bulk import",
                 self.post(
@@ -133,7 +134,7 @@ class StudentAddNamesNoRoleTests(APITestCase):
     def test_a_student_address_is_still_added(self):
         """Control: the neutral wording blocks no real student."""
         student = make_user("pupil@h71.test", UserTypes.STUDENT)
-        response = self.post("course-students", {"email": student.email})
+        response = self.post("course-students", add_by_email(student.email))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(
             StudentCourse.objects.filter(student=student, course=self.course).exists()

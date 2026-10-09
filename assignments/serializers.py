@@ -156,6 +156,24 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
         questions = data.get("questions", [])
 
+        # H-158, the last defence: grading pairs a question with an answer
+        # by its number. Every AI path numbers the questions 1..N before
+        # this serializer, so nothing of ours reaches this refusal.
+        seen = set()
+        for question in questions:
+            question_number = question.get("question_number")
+            if question_number in seen:
+                raise serializers.ValidationError(
+                    {
+                        "questions": (
+                            "Two questions have the same number "
+                            f"({question_number}). Each question needs its "
+                            "own number."
+                        )
+                    }
+                )
+            seen.add(question_number)
+
         assignment_type = data.get("assignment_type")
         if assignment_type and assignment_type != "HYBRID":
             # Only OBJECTIVE, ESSAY, SHORT-ANSWER require uniform question types

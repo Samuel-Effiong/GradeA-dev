@@ -309,6 +309,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     # B. Student registration paused (H-68: register_student's budget).
     # The message is today's text; DRF appends "Expected available in N
     # seconds." to the body's `detail` and sets Retry-After itself.
+    # DEAD since H-152 closed the old student door (nothing raises it); kept in this merge-down; removal is H-207.
     ReasonCode.REGISTRATION_PAUSED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_429_TOO_MANY_REQUESTS,

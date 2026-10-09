@@ -1,0 +1,23 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+F
+======================================================================
+FAIL: test_a_dormant_never_verified_super_admin_is_not_activated_by_google (users.tests_google_auth.GoogleAuthViewTests.test_a_dormant_never_verified_super_admin_is_not_activated_by_google)
+H-203, THE PRINCIPLE (users/admin_power.py): the mailbox is not the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_google_auth.py", line 574, in test_a_dormant_never_verified_super_admin_is_not_activated_by_google
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+----------------------------------------------------------------------
+Ran 1 test in 0.210s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 1 test(s).

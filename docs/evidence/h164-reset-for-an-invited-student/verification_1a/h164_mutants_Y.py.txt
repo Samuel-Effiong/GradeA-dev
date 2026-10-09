@@ -1,0 +1,121 @@
+"""1a's mutants for H-164 (rule 19: my own tests must be seen red).
+Usage, in the checkout: python -B h164_mutants_Y.py <Y1..Y9> [--check]. Applied in place to
+users/views.py; restore with git checkout. Expected failing tests: h164_expected_kills.txt.
+
+Y1: the old refusal is back (never-verified is refused even when active).
+Y2: the email stamp is a separate queryset UPDATE after the save, not in the save.
+Y3: the email is stamped (queryset UPDATE) right after the code lookup, before the lock check.
+Y4: the email is stamped in the expired-code branch, before the refusal.
+Y5: the must_change_password flag is kept (its line removed).
+Y6: the request answers 200 instead of 202 for an account whose email is unverified.
+Y7: the guard in reset_password removed (the 1c970b9d behaviour: v6 must be red again).
+Y8: the guard weakened to "not email_verified_at" (refuses an active invited student too).
+Y9: the guard widened to "not is_active" (refuses a switched-off VERIFIED account too).
+"""
+
+import ast
+import sys
+
+F = "users/views.py"
+GUARD = (
+    "        if not user.email_verified_at and not user.is_active:\n"
+    '            raise ParseError("Invalid email, OTP code, or new password.")\n\n'
+)
+LOOKUP = (
+    "        if otp_obj.is_locked():\n"
+    "            return _reset_locked_response(otp_obj)\n\n"
+    "        if not otp_obj.is_valid():\n"
+    "            otp_obj.delete()\n"
+)
+STAMP = "CustomUser.objects.filter(pk=user.pk, email_verified_at__isnull=True).update(email_verified_at=timezone.now())\n"
+MUTANTS = {
+    "Y1": (
+        "            if not user.email_verified_at and not user.is_active:\n",
+        "            if not user.email_verified_at:\n",
+    ),
+    "Y2": (
+        "        if not user.email_verified_at:\n"
+        "            user.email_verified_at = timezone.now()\n"
+        "        user.must_change_password = False\n"
+        "        user.save()\n",
+        "        user.must_change_password = False\n"
+        "        user.save()\n"
+        "        " + STAMP,
+    ),
+    "Y3": (LOOKUP, "        " + STAMP + LOOKUP),
+    "Y4": (
+        LOOKUP,
+        LOOKUP.replace(
+            "            otp_obj.delete()\n", "            otp_obj.delete()\n            " + STAMP
+        ),
+    ),
+    "Y5": ("        user.must_change_password = False\n        user.save()\n        stamp_last_login(user)\n",
+           "        user.save()\n        stamp_last_login(user)\n"),
+    "Y6": (
+        "        return Response(\n"
+        '            {"detail": OTP_SENT_DETAIL},\n'
+        "            status=status.HTTP_202_ACCEPTED,\n"
+        "        )\n\n"
+        "    @extend_schema(\n"
+        '        tags=["Authentication"],\n'
+        '        summary="Reset the password with',
+        "        return Response(\n"
+        '            {"detail": OTP_SENT_DETAIL},\n'
+        "            status=(\n"
+        "                status.HTTP_202_ACCEPTED\n"
+        "                if user.email_verified_at\n"
+        "                else status.HTTP_200_OK\n"
+        "            ),\n"
+        "        )\n\n"
+        "    @extend_schema(\n"
+        '        tags=["Authentication"],\n'
+        '        summary="Reset the password with',
+    ),
+    # Y7..Y9 are for the delta tip bbf20687 (the guard in reset_password).
+    "Y7": (
+        GUARD,
+        "",
+    ),
+    "Y8": (
+        GUARD,
+        GUARD.replace(
+            "if not user.email_verified_at and not user.is_active:",
+            "if not user.email_verified_at:",
+        ),
+    ),
+    "Y9": (
+        GUARD,
+        GUARD.replace(
+            "if not user.email_verified_at and not user.is_active:",
+            "if not user.is_active:",
+        ),
+    ),
+}
+
+
+def main():
+    code = sys.argv[1]
+    if code not in MUTANTS:
+        print("usage: Y1..Y9")
+        sys.exit(2)
+    old, new = MUTANTS[code]
+    with open(F, encoding="utf-8") as handle:
+        source = handle.read()
+    if source.count(old) != 1:
+        print(f"ABORT {code}: anchor found {source.count(old)} times")
+        sys.exit(7)
+    mutated = source.replace(old, new)
+    ast.parse(mutated)
+    if mutated == source:
+        print(f"ABORT {code}: equals source")
+        sys.exit(7)
+    if "--check" in sys.argv:
+        print(f"checked {code}: one anchor, mutant parses and differs")
+        return
+    with open(F, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {code} to {F}")
+
+
+if __name__ == "__main__":
+    main()

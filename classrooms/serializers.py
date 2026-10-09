@@ -315,7 +315,9 @@ class CourseSerializer(serializers.ModelSerializer):
                 enrollment.student
                 for enrollment in obj.enrollments.exclude(
                     enrollment_status=EnrollmentStatusType.WITHDRAWN
-                ).select_related("student")
+                )
+                .select_related("student")
+                .in_list_order()
             ]
 
         # The enrollment status each student holds in THIS course, passed
@@ -347,7 +349,9 @@ class CourseSerializer(serializers.ModelSerializer):
             own = list(
                 obj.enrollments.exclude(
                     enrollment_status=EnrollmentStatusType.WITHDRAWN
-                ).filter(student=viewer)
+                )
+                .filter(student=viewer)
+                .in_list_order()
             )
         return StudentSerializer(
             [e.student for e in own],
@@ -552,9 +556,26 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
 
 
 class AddStudentToCourseSerializer(serializers.Serializer):
-    """Serializer for adding students to a course."""
+    """Serializer for adding students to a course.
+
+    H-148: the teacher names the student here. A student does not name
+    themselves (the account edit refuses it), so an add by email alone
+    made a student nobody could name. The rule for each name is the direct
+    add's.
+    """
 
     email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
+    middle_name = serializers.CharField(
+        max_length=150,
+        default="",
+        allow_blank=True,
+    )
+    last_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
 
     def validate_email(self, value):
         """
@@ -874,9 +895,7 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
             "top_content": (
                 f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
                 "Your account is ready - log in below with your email and the "
-                f"temporary password: {generated_password}\n\n"
-                "You'll be asked to choose your own password the first time "
-                "you log in."
+                f"temporary password: {generated_password}"
             ),
             "bottom_content": "",
             "activation_url": activation_url,

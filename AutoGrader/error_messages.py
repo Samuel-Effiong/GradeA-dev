@@ -68,12 +68,16 @@ def _passthrough_message(error):
     billing state, so every one gets the same fixed message."""
     from AutoGrader.reason_codes import CodedError
     from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+    from students.exceptions import StudentUploadNotProcessedError
 
     if isinstance(error, CodedError):
         # Rendered from the spec and whitelisted params only (QA-ERR-03).
         # First: a coded credit refusal (S7c's mid-batch one) shows its own
         # catalogue message, not the fixed one below.
         return error.message
+    # H-180: the one credit refusal written for a student to read.
+    if isinstance(error, StudentUploadNotProcessedError):
+        return str(error)
     if isinstance(error, InsufficientCreditsError):
         return INSUFFICIENT_CREDITS_MESSAGE
     if isinstance(error, _user_facing_exception_types()):

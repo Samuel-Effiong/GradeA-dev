@@ -1,0 +1,26 @@
+"""v2's edge probe for H-158 at 9f882c18, run apart from the gated probe:
+Z4 a question number the model wrote as a string of 5000 ASCII digits
+must not make the numberer raise (before the ruling's code it was only
+shown as text, cut at 32 characters). PREDICTED RED at 9f882c18 (d5 confirmed 20:24 and is fixing it: a digit string counts only up to nine characters; so on the fixed tip Z4 is PREDICTED GREEN, and a red there is a finding) by a
+plain-Python call (`int` of such a string raises ValueError on Python 3.12,
+limit 4300 digits), written before any run. Copy to
+assignments/tests_vf2_h158_edge_probe.py; never committed to the branch.
+"""
+
+from django.test import SimpleTestCase
+
+from assignments.services import number_questions_in_order
+
+
+class VF2H158Edge(SimpleTestCase):
+    def test_z4_a_5000_digit_text_number_does_not_raise(self):
+        digits = "9" * 5000
+        questions = [
+            {"question_number": digits, "question_text": "<p>One.</p>"},
+            {"question_number": "2", "question_text": "<p>Two.</p>"},
+        ]
+
+        numbered, kept, changed = number_questions_in_order(questions)
+
+        self.assertIn(numbered[-1]["question_number"], (2, "2"))
+        self.assertLessEqual(len(kept["1"]), 32)

@@ -7,6 +7,7 @@ token-issuing (or password-setting) routes, exercised through the real URLs.
 """
 
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 import requests
@@ -159,6 +160,51 @@ class VerifyEmailDoorTests(DoorBase):
             account=user,
             reason="INVALID_CODE",
         )
+
+    def test_the_beta_refusals_are_audited_like_a_wrong_code(self):
+        """Merge-down b14: H-164 (a never-verified account with admin power)
+        and H-202 (a verified, switched-off account) are refused on
+        /auth/verify with the wrong-code answer. On the Phase 2 line that
+        refusal also writes the sign-in failure event (reason INVALID_CODE,
+        the account named) and spends the per-address budget exactly as a
+        wrong code on an ordinary account does (the lock after the last
+        allowed guess is asserted in the two lock tests of
+        users.tests_reset_for_an_invited_student and
+        users.tests_switched_off_means_out)."""
+        expires = timezone.now() + timedelta(minutes=15)
+        cases: dict[str, dict[str, Any]] = {
+            "admin.power@example.com": {
+                "is_active": True,
+                "email_verified_at": None,
+                "is_staff": True,
+                "activation_token": "123456",
+                "activation_expires": expires,
+            },
+            "switched.off@example.com": {
+                "is_active": False,
+                "activation_token": "123456",
+                "activation_expires": expires,
+            },
+        }
+        for email, overrides in cases.items():
+            with self.subTest(email=email):
+                user = make_user(email, **overrides)
+                before = set(AuditEvent.objects.values_list("pk", flat=True))
+
+                response = self.verify(user.email, "123456")
+
+                new = AuditEvent.objects.exclude(pk__in=before)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(new.count(), 1)
+                self.assert_event(
+                    new.get(),
+                    outcome=AuditOutcome.FAILURE,
+                    method="email_verification",
+                    account=user,
+                    reason="INVALID_CODE",
+                )
+                user.refresh_from_db()
+                self.assertIsNotNone(user.activation_token)
 
     def test_a_failure_is_scoped_to_the_targets_school(self):
         school = School.objects.create(name="Verify Scope School")
@@ -448,25 +494,47 @@ class InvitationDoorTests(DoorBase):
             reason="INVALID_CODE",
         )
 
-    def test_student_invitation_bad_code_survives_the_rollback(self):
+    def test_an_admin_power_pending_row_is_refused_and_audited_like_a_wrong_token(
+        self,
+    ):
+        """Merge-down b16: H-203 refuses a pending school-admin row that
+        carries admin power even with the right token. On the Phase 2 line
+        that refusal writes ONE failure event naming the account, with the
+        reason of a wrong token, and the row stays as it was."""
+        school = School.objects.create(name="Door School 3")
+        admin = make_user(
+            "admin.door3@example.com",
+            password=None,
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+            is_active=False,
+            is_staff=True,
+            email_verified_at=None,
+            activation_token="inv-token-3",
+            activation_expires=timezone.now() + timedelta(days=1),
+        )
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+
         response = self.client.post(
-            reverse("auth-register-student"),
-            {
-                "token": "no-such-token",
-                "password": NEW_PASSWORD,
-                "first_name": "Stu",
-                "last_name": "Dent",
-            },
+            reverse("auth-register-school-admin"),
+            {"email": admin.email, "token": "inv-token-3", "password": NEW_PASSWORD},
             format="json",
         )
-        self.assertEqual(response.status_code, 400, response.content)
+
+        new = AuditEvent.objects.exclude(pk__in=before)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(new.count(), 1)
         self.assert_event(
-            self.only_event(),
+            new.get(),
             outcome=AuditOutcome.FAILURE,
-            method="student_invitation",
-            account=None,
+            method="school_admin_invitation",
+            account=admin,
             reason="INVALID_CODE",
         )
+        admin.refresh_from_db()
+        self.assertFalse(admin.is_active)
+        self.assertIsNone(admin.email_verified_at)
+        self.assertEqual(admin.activation_token, "inv-token-3")
 
 
 class GoogleDoorTests(DoorBase):
@@ -515,6 +583,36 @@ class GoogleDoorTests(DoorBase):
             account=user,
             reason="ACCOUNT_DEACTIVATED",
         )
+
+    def test_a_never_verified_admin_power_account_is_refused_and_named(self):
+        """Merge-down b16: H-203 refuses a Google sign-in on a never-verified
+        account with admin power. On the Phase 2 line the refusal writes ONE
+        failure event naming that account (the neighbouring refusals do), and
+        nothing is written to the account."""
+        user = make_user(
+            "g.door@gmail.com",
+            password=None,
+            is_staff=True,
+            is_active=False,
+            email_verified_at=None,
+        )
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+
+        response = self.google()
+
+        new = AuditEvent.objects.exclude(pk__in=before)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(new.count(), 1)
+        self.assert_event(
+            new.get(),
+            outcome=AuditOutcome.FAILURE,
+            method="google",
+            account=user,
+            reason="GOOGLE_SIGN_IN_REFUSED",
+        )
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertIsNone(user.email_verified_at)
 
     def test_unverified_google_email(self):
         self.assertEqual(self.google(verified=False).status_code, 400)

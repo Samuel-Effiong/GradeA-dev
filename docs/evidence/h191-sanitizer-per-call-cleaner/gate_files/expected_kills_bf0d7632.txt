@@ -1,0 +1,3 @@
+S1: TIMEOUT counted killed (a wedged run); failing set not compared
+S2: 1 failing, as expected
+every mutant's failing set is the expected one

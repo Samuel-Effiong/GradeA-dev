@@ -1,0 +1,148 @@
+"""H-158: for every mutant, and at the red commit, the tests that fail
+must be the expected set and nothing else. Written on 2026-10-07 17:39 BEFORE any
+test run of H-158, by reading every one of the module's 30 tests against
+every mutant and against its fixture's real values. The only code
+executed was production functions called directly on inputs I built:
+number_questions_in_order on the tests' own inputs (every expected value
+of the eight function tests seen so), QuestionSerializer on single
+questions (which numbers it refuses; how a text is stored), the document
+builder and converter (the headings as printed, with and without the
+numbering) and the grading pairing (the fault and its cure). No mutant
+was applied to anything. A test is named Class.method.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of the module at the red commit>"""
+import re
+import sys
+from pathlib import Path
+
+F = "TheNumbererTest"
+E = "ExtractionNumbersInOrderTest"
+R = "TheExtractionRoutesSaveNumbersInOrderTest"
+G = "GenerationNumbersInOrderTest"
+S = "TheSerializersLastDefenceTest"
+O = "OurKeyDoesNotLookLikeATeachersEditTest"
+F1 = (F, "test_numbers_already_in_order_are_left_and_nothing_is_counted")
+F2 = (F, "test_a_repeat_is_numbered_in_the_models_order")
+F3 = (F, "test_a_paper_that_starts_at_five_starts_at_one")
+F4 = (F, "test_a_number_that_is_not_a_positive_integer_is_replaced_like_any_other")
+F5 = (F, "test_a_long_number_from_the_model_is_kept_only_in_part")
+F6 = (F, "test_an_entry_that_is_not_an_object_is_left_where_it_is")
+F7 = (F, "test_the_input_is_not_changed")
+F8 = (F, "test_a_value_that_is_not_a_list_is_returned_as_it_is")
+F_ALL = {F1, F2, F3, F4, F5, F6, F7, F8}
+E1 = (E, "test_the_questions_and_the_stored_ai_copy_are_in_order")
+E2 = (E, "test_the_models_own_numbers_are_kept_in_the_stored_ai_copy")
+E3 = (E, "test_they_are_kept_also_when_nothing_changed")
+E4 = (E, "test_the_document_is_built_from_the_numbers_in_order")
+E5 = (E, "test_one_log_line_with_ids_and_counts_and_no_question_text")
+E6 = (E, "test_no_such_log_line_when_nothing_changed")
+E7 = (E, "test_grading_then_pairs_each_question_with_its_own_answer")
+#: Added 2026-10-07 17:53 with the test of the commit after the runner (the
+#: real grading pipeline on the extracted questions; both of its halves
+#: seen by a direct call first), BEFORE any run. Read against all 18: it
+#: reads only the extracted questions' numbers, so it fails where
+#: extraction does not number them (N1) and nowhere else. The chain runs
+#: the red step with THIS test file on the red commit's code (the test
+#: was written after the red commit): it is red there.
+E8 = (E, "test_the_real_grading_pipeline_grades_three_questions_not_two")
+R1 = (R, "test_create_by_text")
+R2 = (R, "test_edit_by_text")
+R3 = (R, "test_upload")
+R4 = (R, "test_a_label_the_serializer_would_refuse_no_longer_costs_the_save")
+R_ALL = {R1, R2, R3, R4}
+G1 = (G, "test_the_draft_is_in_order_and_so_is_its_document")
+G2 = (G, "test_nothing_of_the_models_numbers_rides_in_the_draft")
+G3 = (G, "test_the_saved_assignment_is_in_order")
+G4 = (G, "test_a_draft_stored_before_this_row_is_put_in_order_at_its_save")
+S1 = (S, "test_a_repeated_number_is_refused_with_the_sentence")
+S2 = (S, "test_a_number_and_the_same_number_as_text_are_one_number")
+O1 = (O, "test_an_update_that_changes_nothing_is_not_an_override")
+#: Never in a set: S.test_numbers_in_order_pass,
+#: S.test_an_update_that_sends_no_questions_passes and
+#: O.test_the_comparison_does_run_on_this_row. They are controls and NOT
+#: evidence of this row's change. E6, G2 and O1 are green at the red
+#: commit as well (nothing to log, nothing to ride, a key the comparison
+#: does not read): N4 and N6 show E6 red, N12 and N15 show G2 red, N16
+#: shows O1 red.
+
+EXPECTED = {
+    # extraction keeps the model's numbers: the questions, the stored copy
+    # and the document are not in order, grading pairs two questions with
+    # one answer; and at every route the serializer then refuses the save
+    # (the repeat by the last defence, "2a" by the integer field). The key
+    # is still written and the line still logged.
+    "N1": {E1, E4, E7, E8} | R_ALL,
+    # the key is not stored: every test that reads it.
+    "N2": {E2, E3} | R_ALL,
+    # extraction never logs.
+    "N3": {E5},
+    # extraction always logs.
+    "N4": {E6},
+    # the line carries the questions where the count should be.
+    "N5": {E5},
+    # every number counts as changed: the three function tests that expect
+    # fewer than all three; the log lines that say 2; and a log line where
+    # none is expected.
+    "N6": {F1, F2, F4, E5, E6, G1, G4},
+    # 2.0 at position 2 counts as in its place.
+    "N7": {F4},
+    # the kept text is not bounded.
+    "N8": {F5},
+    # the input's own objects are numbered.
+    "N9": {F7},
+    # an entry that is not an object takes a position.
+    "N10": {F6},
+    # a value that is not a list is walked.
+    "N11": {F8},
+    # generation is not numbered: the draft's own check by the serializer
+    # (the last defence) refuses the repeat, so the three tests that
+    # generate with a repeat stop at the generate call. G4 generates in
+    # order and is cured at its save.
+    "N12": {G1, G2, G3},
+    # the draft save is not numbered: the serializer refuses the stored
+    # repeat.
+    "N13": {G4},
+    # no last defence.
+    "N14": {S1, S2},
+    # the model's numbers ride in the draft.
+    "N15": {G2},
+    # the override comparison reads the whole stored copy: our key makes
+    # an unchanged row look edited.
+    "N16": {O1},
+    # a question with no number keeps the text "None".
+    "N17": {F4},
+    # the draft paths never log.
+    "N18": {G1, G4},
+}
+#: the red commit 7be08a58 (tests only). Red: everything that needs the
+#: function, the numbering on a path, the key, a log line or the refusal.
+#: Green there: E6, G2, S's two controls, O's two.
+REPRO = F_ALL | {E1, E2, E3, E4, E5, E7, E8} | R_ALL | {G1, G3, G4, S1, S2}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), REPRO)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

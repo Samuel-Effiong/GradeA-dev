@@ -1,0 +1,38 @@
+start 2026-10-09 20:00:55 load=4.43 3.16 3.54
+pre-commit exit=0 20:03:10
+check yaml......................................................................................................Passed
+fix end of files................................................................................................Passed
+trim trailing whitespace........................................................................................Passed
+check python ast................................................................................................Passed
+check docstring is first........................................................................................Passed
+check for added large files.....................................................................................Passed
+check for merge conflicts.......................................................................................Passed
+check toml......................................................................................................Passed
+check json......................................................................................................Passed
+check xml.......................................................................................................Passed
+check for case conflicts........................................................................................Passed
+check builtin type constructor use..............................................................................Passed
+fix utf-8 byte order marker.....................................................................................Passed
+detect private key..............................................................................................Passed
+python tests naming.............................................................................................Passed
+debug statements (python).......................................................................................Passed
+check for broken symlinks...................................................................(no files to check)Skipped
+fix requirements.txt............................................................................................Passed
+black...........................................................................................................Passed
+mypy............................................................................................................Passed
+flake8..........................................................................................................Passed
+isort...........................................................................................................Passed
+bandit..........................................................................................................Passed
+Detect secrets..................................................................................................Passed
+Check gunicorn timeout stays in sync with Stripe webhook claim window...........................................Passed
+Check no logger/print call passes .email/.first_name/.last_name/.get_full_name() directly.......................Passed
+tracked changes after hooks: 0
+makemigrations: No changes detected
+modules exit=1 end 2026-10-09 20:06:49 load=4.41 6.11 5.04
+Ran 989 tests in 186.890s
+FAILED (failures=2, skipped=5)
+FAIL/ERROR headers: 2
+FAIL: test_every_site_is_on_the_named_list_with_its_count (users.tests_roads_that_sign_in_or_activate.RoadsThatSignInOrActivateTests.test_every_site_is_on_the_named_list_with_its_count)
+FAIL: test_a_clawback_racing_the_monthly_grant_expires_nothing_twice (audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_monthly_grant_expires_nothing_twice)
+tree clean after: yes
+SCRIPT-ENDED 20:06:49
