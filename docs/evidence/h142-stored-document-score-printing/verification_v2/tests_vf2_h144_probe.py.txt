@@ -1,0 +1,152 @@
+"""v2's probe for H-144 (d5). Copy to students/tests_vf2_h144_probe.py of
+the scratch worktree; never committed to the branch. Written 2026-10-06
+before any run, after reading b3c3e94c. Fixtures are d5's (ManualGradeBase:
+a paper graded 7 with the wording of that result stored).
+
+  T1  a queue that cannot be reached: the WHOLE "students" logger tree is
+      captured. The route's own line (students.views) is exactly one, with
+      the submission's id and the error's type and without the broker's
+      text. Printed for the record: how many other lines there are and how
+      many of them carry the broker's text (the launcher's existing line).
+  T2  the background task's record after a refused queue: FAILURE; its
+      error text is printed and must not carry the broker's text.
+      NEVER SEEN RED: no mutant of mine makes T2 fail; it states a fact and
+      the verdict does not lean on it.
+  T3  a manual grade of an UNRELEASED paper changes no key of the student's
+      reads (submission, assignment, course detail, course list).
+  T4  a manual grade to the SAME score also clears the stored wording and
+      queues the task again.
+
+Rule 19, which mutant shows which probe red: T1 under Y5 (the log call
+removed); T3 under Y11 (the student's serializer returns the stored
+document); T4 under Y12 (the route does not clear).
+"""
+
+import json
+import logging
+
+from django.core.cache import cache
+from django.urls import reverse
+from kombu.exceptions import OperationalError
+from unittest.mock import patch
+
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+)
+from students.tests_manual_grade_formatted_grade import ManualGradeBase
+
+BROKER_SAID = "vf2-the-broker-said-this"
+
+
+def plain(data):
+    return json.loads(json.dumps(data, default=str, sort_keys=True))
+
+
+def differing(before, after, prefix=""):
+    if isinstance(before, dict) and isinstance(after, dict):
+        out = []
+        for key in sorted(set(before) | set(after)):
+            out += differing(before.get(key), after.get(key), f"{prefix}{key}.")
+        return out
+    if isinstance(before, list) and isinstance(after, list) and len(before) == len(after):
+        out = []
+        for index, (b, a) in enumerate(zip(before, after)):
+            out += differing(b, a, f"{prefix}{index}.")
+        return out
+    return [] if before == after else [prefix.rstrip(".")]
+
+
+class VF2RefusedQueueProbe(ManualGradeBase):
+    def refused(self):
+        with patch("students.views.formatted_grade_async") as task:
+            task.delay.side_effect = OperationalError(BROKER_SAID)
+            with self.assertLogs("students", level="ERROR") as logs:
+                response = self.patch_grade()
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        return logs.records
+
+    def test_t1_the_whole_logger_tree_on_a_refused_queue(self):
+        records = self.refused()
+        formatter = logging.Formatter("%(name)s %(message)s")
+        mine = [r for r in records if r.name == "students.views"]
+        others = [r for r in records if r.name != "students.views"]
+        self.assertEqual(len(mine), 1, [r.getMessage() for r in mine])
+        line = formatter.format(mine[0])
+        self.assertIn(str(self.submission.pk), line)
+        self.assertIn("OperationalError", line)
+        self.assertNotIn(BROKER_SAID, line)
+        self.assertIsNone(mine[0].exc_info)
+        carrying = [r.name for r in others if BROKER_SAID in formatter.format(r)]
+        print(
+            f"VF2-T1 other ERROR lines under 'students': {len(others)}; "
+            f"carrying the broker's text: {len(carrying)} {sorted(set(carrying))}",
+            flush=True,
+        )
+
+    def test_t2_the_task_record_after_a_refused_queue(self):
+        self.refused()
+        task = (
+            BackgroundProcessingTask.objects.filter(
+                submission=self.submission,
+                task_type=BackgroundTaskType.FORMATTED_GRADE,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        self.assertIsNotNone(task)
+        self.assertEqual(task.status, BackgroundTaskStatus.FAILURE)
+        print(f"VF2-T2 the task record's error text: {task.error!r}", flush=True)
+        self.assertNotIn(BROKER_SAID, str(task.error))
+        self.assertNotIn(BROKER_SAID, str(task.meta))
+
+    def test_t4_a_manual_grade_to_the_same_score_clears_and_queues_again(self):
+        self.assertIsNotNone(self.stored_formatted())
+
+        _, queued = self.override(7)
+
+        self.assertIsNone(self.stored_formatted())
+        self.assertEqual(queued.args[0], str(self.submission.pk))
+
+
+class VF2UnreleasedManualGradeProbe(ManualGradeBase):
+    released = False
+
+    def student_reads_everything(self):
+        self.client.force_authenticate(self.student)
+        routes = {
+            "submission detail": (
+                reverse("student-submission-detail", kwargs={"pk": self.submission.pk}),
+                "raw_input",
+            ),
+            "assignment detail": (
+                reverse("assignment-detail", kwargs={"pk": self.assignment.pk}),
+                "student_submission_raw_input",
+            ),
+            "course detail": (
+                reverse("student-course-detail", kwargs={"pk": self.enrollment().pk}),
+                "final_grade",
+            ),
+            "course list": (reverse("student-course-list"), "results"),
+        }
+        out = {}
+        for name, (url, key) in routes.items():
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, name)
+            self.assertIn(key, response.data, name)
+            out[name] = plain(response.data)
+        return out
+
+    def test_t3_a_manual_grade_before_release_changes_nothing_a_student_reads(self):
+        cache.clear()
+        before = self.student_reads_everything()
+
+        self.override(9)
+
+        # no cache clear: the override is a save
+        after = self.student_reads_everything()
+        for name in before:
+            paths = differing(before[name], after[name])
+            print(f"VF2-T3 {name}: {paths}", flush=True)
+            self.assertEqual(paths, [], name)

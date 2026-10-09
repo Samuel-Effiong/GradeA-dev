@@ -1,0 +1,101 @@
+"""H-144: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-06 BEFORE any test run of H-144, by
+reasoning from the code and the tests; no mutant was applied to anything
+but a parser (the anchors-only check). A test is named Class.method.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of the module at the red commit>"""
+import re
+import sys
+from pathlib import Path
+
+O = "TheOldTextDoesNotStandBesideTheNewScore"
+U = "BeforeReleaseItIsClearedToo"
+W = "WhenTheTaskEnds"
+Q = "WhenTheTaskCannotBeQueued"
+O_CLEARS = (O, "test_the_route_clears_the_stored_formatted_grade")
+O_ANSWER = (O, "test_the_routes_own_answer_has_the_new_score_and_no_formatted_grade")
+O_STUDENT = (O, "test_a_released_student_reads_the_new_score_and_no_formatted_grade")
+U_CLEARS = (U, "test_the_route_clears_the_stored_formatted_grade")
+W_FAILED = (W, "test_a_failed_task_leaves_nothing_stale")
+Q_BROKER = (Q, "test_an_unreachable_queue_does_not_fail_the_grade")
+Q_OTHER = (Q, "test_nor_does_any_other_failure_to_queue")
+Q_LOG = (Q, "test_the_failure_is_logged_with_ids_and_nothing_else")
+Q_STUDENT = (Q, "test_the_student_reads_the_new_score_and_no_formatted_grade")
+#: always green, with or without the fix: the fixture's text reaches the
+#: student; the task is queued and the notice sent; a finished task gives
+#: the new statement (the task rewrites it from the row).
+
+EXPECTED = {
+    # not cleared: the old text is stored, answered and read; the two
+    # queue tests that look at the stored row fail on it. Q_LOG passes.
+    "N1": {O_CLEARS, O_ANSWER, O_STUDENT, U_CLEARS, W_FAILED, Q_BROKER, Q_OTHER, Q_STUDENT},
+    # cleared in memory only: the route's own answer is built from the
+    # object in memory, so O_ANSWER passes; U_CLEARS fails on its first
+    # line (the stored row).
+    "N2": {O_CLEARS, O_STUDENT, U_CLEARS, W_FAILED, Q_BROKER, Q_OTHER, Q_STUDENT},
+    # nothing is caught: the broker case answers 503 and logs nothing in
+    # the route's logger (three FAILs at assertLogs); the other error
+    # leaves the route as itself (an ERROR).
+    "N3": {Q_BROKER, Q_OTHER, Q_LOG, Q_STUDENT},
+    # only the broker's wrapper is caught: the other error escapes.
+    "N4": {Q_OTHER},
+    # the error itself in the log line: its text is there, its type not.
+    "N5": {Q_LOG},
+    # the wrapper's name in the log line, not the broker error's.
+    "N6": {Q_LOG},
+    # cleared only when released.
+    "N7": {U_CLEARS},
+    # ADDED 2026-10-07 15:18, AFTER a stopped run and BEFORE the next one,
+    # on the Senior Manager's ruling. The chain on 9c514393 stopped at
+    # (a) at 15:16:26: Q_LOG failed on the unmutated code, at its last
+    # line, assertNotIn(self.student.get_full_name(), logged). The
+    # fixture's student had no name, the full name was the empty string,
+    # and an empty string is in every string: my test's fault, not the
+    # code's. The mutants never ran. In the tests-only commit that
+    # follows, that class names its student, asserts the name and the
+    # e-mail are something, and two mutants are added so that each "not
+    # in the log" line is seen red for its own reason:
+    # N8 puts the student's full name into the logged line, N9 the e-mail.
+    # Re-derived on that date by reading all 14 tests against all 9
+    # mutants: only Q_LOG reads the logged text (the class's other three
+    # tests take the response and the row), so N8 and N9 fail Q_LOG and
+    # nothing else; and the named student changes no other test's result
+    # (no other assertion reads a name). N1 to N7 and the red commit's
+    # set are as written on 2026-10-06: at the red commit Q_LOG fails
+    # earlier, at assertLogs, because nothing is caught or logged there.
+    # The file as it was run is kept beside this one as
+    # expected_kills.py.as_run_578c9910.
+    "N8": {Q_LOG},
+    "N9": {Q_LOG},
+}
+#: the red commit (the tests, no fix): everything but the three controls.
+REPRO = {O_CLEARS, O_ANSWER, O_STUDENT, U_CLEARS, W_FAILED, Q_BROKER, Q_OTHER, Q_LOG, Q_STUDENT}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    wanted = REPRO
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), wanted)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
