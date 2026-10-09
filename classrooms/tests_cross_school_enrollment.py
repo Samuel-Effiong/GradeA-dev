@@ -33,6 +33,7 @@ from classrooms.services import (
     enroll_student_by_email,
     schools_associated_with,
 )
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -103,7 +104,7 @@ class CrossSchoolBase(APITestCase):
         cache.clear()
         self.client.force_authenticate(teacher)
         return self.client.post(
-            reverse("course-students", kwargs={"pk": course.id}), {"email": email}
+            reverse("course-students", kwargs={"pk": course.id}), add_by_email(email)
         )
 
     def bulk_add(self, teacher, course, raw):
@@ -416,7 +417,7 @@ class IdManipulationCannotBypassTheRule(CrossSchoolBase):
         response = self.client.post(
             reverse("course-students", kwargs={"pk": self.course_a.id}),
             {
-                "email": self.victim.email,
+                **add_by_email(self.victim.email),
                 "school": str(self.school_a.id),
                 "school_id": str(self.school_a.id),
                 "user_type": UserTypes.STUDENT,

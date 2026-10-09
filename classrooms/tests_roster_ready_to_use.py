@@ -30,6 +30,7 @@ from classrooms.services.enrollment import (
     CROSS_SCHOOL_REJECTION_MESSAGE,
     DEACTIVATED_ACCOUNT_MESSAGE,
 )
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserActivity, UserTypes
 
 User = get_user_model()
@@ -373,7 +374,7 @@ class SingleAddExistingStudentTests(SignInHelpers):
         return student
 
     def _add(self, email):
-        response = self.client.post(self.url, {"email": email}, format="json")
+        response = self.client.post(self.url, add_by_email(email), format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
         return response
 
@@ -515,7 +516,7 @@ class DeactivatedAccountIsNeverReenabledTests(SignInHelpers):
         dee = self.dee("signed_in")
 
         response = self.client.post(
-            self.single_url, {"email": "dee@example.com"}, format="json"
+            self.single_url, add_by_email("dee@example.com"), format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -535,7 +536,7 @@ class DeactivatedAccountIsNeverReenabledTests(SignInHelpers):
         )
 
         response = self.client.post(
-            self.single_url, {"email": "legacy.single@example.com"}, format="json"
+            self.single_url, add_by_email("legacy.single@example.com"), format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)

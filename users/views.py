@@ -73,10 +73,8 @@ from classrooms.models import (
     teacher_course_access_q,
 )
 from classrooms.permissions import IsSuperAdmin
-from classrooms.serializers import (
-    SchoolAdminRegistrationCompletionSerializer,
-    StudentRegistrationCompletionSerializer,
-)
+from classrooms.serializers import SchoolAdminRegistrationCompletionSerializer
+from classrooms.services import OLD_INVITATION_CLOSED_MESSAGE
 from students.models import BackgroundTaskStatus, BatchUploadSession
 from students.task_access import teacher_may_reach
 from students.task_context import get_session_context, get_task_context
@@ -111,6 +109,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     OTPSerializer,
     ResetPasswordSerializer,
     SettingsSerializer,
+    StudentNameSerializer,
     TaskCancelSerializer,
     TaskStatusSerializer,
     VerifyCustomUserSerializer,
@@ -127,10 +126,6 @@ from users.throttling import (
     VerifyEmailThrottle,
     clear_verify_failures,
     lock_verify_address,
-    log_register_student_refused_by_budget,
-    record_register_student_failure,
-    register_student_budget_retry_after,
-    register_student_failure_budget_spent,
     reserve_verify_attempt,
     verify_attempt_over_budget,
     verify_budget_spent,
@@ -139,6 +134,16 @@ from users.throttling import (
 from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
+
+#: H-153: one line per rename of a student, with ids only (who, whom,
+#: through which courses). Never a name and never an address. On this line
+#: it is the record of a rename; the audit event follows on the Phase 2 line.
+student_names_logger = logging.getLogger("users.student_names")
+
+#: H-153: what a caller is told when the new name is already held in a
+#: course the caller does not teach. The refusal that quotes the name is
+#: only ever sent to a teacher of the course where the clash is.
+NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 
 # H-43: the ONE reply /auth/otp gives for every 202 - an unknown address, a
 # sent code, and a locked reset alike - so its text says nothing about
@@ -347,6 +352,122 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise PermissionDenied("You can only modify your own account.")
 
         return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=["Users"],
+        summary="Rename a student (their teacher, or a super admin)",
+        request=StudentNameSerializer,
+        responses={200: StudentNameSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="student-name",
+        url_name="student-name",
+    )
+    def student_name(self, request, pk=None):
+        """H-153: a teacher names or renames a student.
+
+        A student does not name themselves, and the account edit above
+        refuses any change to a student's name whoever asks. This is the
+        one way a student's name changes after the account exists.
+
+        Who may: a teacher who can reach a course the student is CURRENTLY
+        in (enrolled or pending), so either of two teachers who share a
+        student; and a super admin, who is the only one for a student with
+        no current teacher. A school admin may not; nor the student.
+
+        What the answers tell: `get_object` answers 404 for every account
+        the caller cannot already read, existing or not, so 403 is only
+        ever said about an account the caller can see anyway.
+        """
+        student = self.get_object()
+        actor = request.user
+        is_super_admin = actor.is_superuser and actor.user_type == UserTypes.SUPER_ADMIN
+        if not is_super_admin and actor.user_type != UserTypes.TEACHER:
+            raise PermissionDenied(
+                "Only a student's teacher can change the student's name."
+            )
+        if student.user_type != UserTypes.STUDENT:
+            raise ValidationError({"detail": "Only a student can be renamed here."})
+
+        # The courses through which this teacher currently has the student.
+        through = []
+        if not is_super_admin:
+            through = list(
+                StudentCourse.objects.filter(
+                    teacher_course_access_q(actor, prefix="course__"),
+                    student=student,
+                    enrollment_status__in=(
+                        EnrollmentStatusType.ENROLLED,
+                        EnrollmentStatusType.PENDING,
+                    ),
+                ).values_list("course_id", flat=True)
+            )
+            if not through:
+                raise PermissionDenied(
+                    "Only a student's current teacher can change the student's name."
+                )
+
+        serializer = StudentNameSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        names = {
+            "first_name": serializer.validated_data["first_name"],
+            "middle_name": serializer.validated_data.get("middle_name", ""),
+            "last_name": serializer.validated_data["last_name"],
+        }
+
+        with transaction.atomic():
+            # One exact name per course, in EVERY course the student has a
+            # place in, whatever its status: the enrolment's own check
+            # (StudentCourse.clean, run on every save) counts every row, so
+            # anything narrower here would leave rows that can no longer
+            # be saved.
+            # The lock is on the enrolment rows only (`of`), and nothing
+            # that may be empty is joined: PostgreSQL refuses FOR UPDATE
+            # through a link that can be null, and a course's session can
+            # (docs/evidence/h38_part2/select_for_update_outer_join_regression.md;
+            # this route's first version joined the session and answered
+            # 500 on every rename).
+            enrolments = list(
+                StudentCourse.objects.select_for_update(of=("self",))
+                .filter(student=student)
+                .select_related("course")
+            )
+            held_elsewhere = False
+            for enrolment in enrolments:
+                clash = StudentCourse.find_name_conflicts(
+                    course=enrolment.course,
+                    exclude_student_id=student.pk,
+                    **names,
+                ).exists()
+                if not clash:
+                    continue
+                if is_super_admin or enrolment.course_id in through:
+                    full_name = " ".join(part for part in names.values() if part)
+                    raise ValidationError(
+                        {
+                            "detail": (
+                                f"A student with the exact name {full_name!r} "
+                                "is already enrolled in this course."
+                            )
+                        }
+                    )
+                held_elsewhere = True
+            if held_elsewhere:
+                raise ValidationError({"detail": NAME_HELD_ELSEWHERE_MESSAGE})
+
+            for field, value in names.items():
+                setattr(student, field, value)
+            student.save(update_fields=list(names))
+
+        student_names_logger.info(
+            "student_renamed actor=%s student=%s courses=%s",
+            actor.pk,
+            student.pk,
+            ",".join(str(course_id) for course_id in through) or "none",
+        )
+        return Response({"id": str(student.pk), **names}, status=status.HTTP_200_OK)
 
     # @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
@@ -650,6 +771,17 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
+def _holds_admin_power(user):
+    """H-164: any one of the three marks of an admin account.
+
+    They can differ: `create_superuser` sets is_staff and is_superuser and
+    leaves user_type at its default, TEACHER (H-19 read the same shape), and
+    the Django admin ticks the flags independently of the type."""
+    return bool(
+        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN
+    )
+
+
 def _reset_locked_response(otp_obj):
     """429 for POST /auth/reset-password while the reset code is locked.
 
@@ -851,6 +983,17 @@ returns a JWT pair, so the user is signed in straight away.
 
         user = user.first()
 
+        # H-164: a never-verified account with admin power is not activated
+        # or signed in by a code: the wrong-code refusal, the attempt spent,
+        # nothing written.
+        if not user.email_verified_at and _holds_admin_power(user):
+            refuse("Invalid email or token.")
+
+        # H-202: a verified account that was switched off is not switched back
+        # on or signed in by a code: the same refusal, nothing written.
+        if user.email_verified_at and not user.is_active:
+            refuse("Invalid email or token.")
+
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.")
 
@@ -994,14 +1137,45 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             if user.email_verified_at and user.is_active:
                 raise ParseError("Email already verified. Please login.")
 
-            # H-53: a locked address gets no new code (it could not be used
-            # until the lock ends), and the same reply as a send.
-            if not verify_lock_until(user.email):
-                send_user_activation_email(user)
+            # H-202: a verified account that was switched off is not mailed a
+            # code (verify would switch it back on): the neutral reply of an
+            # unknown address, nothing made or sent.
+            if user.email_verified_at and not user.is_active:
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
+
+            # H-164: a never-verified account with admin power gets no
+            # activation code (/auth/verify would make it active and sign it
+            # in): nothing is made or sent, and the reply below is the one an
+            # unknown address gets.
+            if user.email_verified_at or not _holds_admin_power(user):
+                # H-53: a locked address gets no new code (it could not be
+                # used until the lock ends), and the same reply as a send.
+                if not verify_lock_until(user.email):
+                    send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
-            if not user.email_verified_at:
+            # H-164: refused only when the account is also INACTIVE (a
+            # self-registered row, or an old-scheme pending student). An
+            # ACTIVE account that never verified its email is a student a
+            # teacher invited: it was created active with an emailed
+            # temporary password, and a student who lost that email needs
+            # this road. The reset itself proves the mailbox (see
+            # reset_password).
+            # An account with admin power that never verified its email gets no
+            # new first road by a mailbox code: refused as the inactive case is.
+            if not user.email_verified_at and (
+                not user.is_active or _holds_admin_power(user)
+            ):
                 raise ParseError("Email not verified.")
+
+            # H-202: a switched-off (verified) account makes and gets no reset
+            # code: the neutral reply of an unknown address.
+            if not user.is_active:
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
@@ -1181,6 +1355,24 @@ the plain rate limit (10 requests/hour per IP) does not.
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
+        # H-164: a switched-off account that never verified its email is not
+        # reset or stamped, whatever code exists (one issued while it was
+        # active), and neither is a never-verified account with admin power.
+        # The same generic refusal as an unknown address; nothing is
+        # written, so the code is left to expire by itself.
+        if not user.email_verified_at and (
+            not user.is_active or _holds_admin_power(user)
+        ):
+            raise ParseError("Invalid email, OTP code, or new password.")
+
+        # H-202: what is left inactive here is verified. A switched-off person
+        # sets no password and is not told it worked: the generic refusal,
+        # the attempt spent like a wrong guess (unless already locked).
+        if not user.is_active:
+            if not otp_obj.is_locked():
+                otp_obj.register_failure()
+            raise ParseError("Invalid email, OTP code, or new password.")
+
         if otp_obj.is_locked():
             return _reset_locked_response(otp_obj)
 
@@ -1201,7 +1393,19 @@ the plain rate limit (10 requests/hour per IP) does not.
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
+        # H-164: the code proves control of the mailbox exactly as the verify
+        # link does, so a successful reset stamps the email in the SAME save
+        # as the new password (never on the request, never on a wrong code).
+        # The new password replaces the temporary one an invited student was
+        # sent, so the flag that stood for it is cleared, as change_password
+        # does. The reset signs the student in, so it stamps last_login like
+        # every sign-in: otherwise a later add to another course would see
+        # "never signed in" and overwrite the password just chosen.
+        if not user.email_verified_at:
+            user.email_verified_at = timezone.now()
+        user.must_change_password = False
         user.save()
+        stamp_last_login(user)
 
         otp_obj.delete()
 
@@ -1522,13 +1726,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         - password: User's password
         - first_name: User's first name
         """,
-        request=StudentRegistrationCompletionSerializer,
+        request=None,
         responses={
-            200: OpenApiResponse(
-                description="Student registration completed successfully",
+            410: OpenApiResponse(
+                description="Closed (H-152): this sign-up is no longer used.",
             ),
-            400: OpenApiResponse(description="Invalid or expired token"),
-            500: OpenApiResponse(description="Internal Server Error"),
         },
     )
     @action(
@@ -1539,128 +1741,14 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
-        # Outside the try below: its catch-all would turn Throttled into a 500.
-        if register_student_failure_budget_spent():
-            log_register_student_refused_by_budget()
-            # `wait` sets Retry-After and appends "Expected available in N
-            # seconds." to the message.
-            raise Throttled(
-                wait=register_student_budget_retry_after(),
-                detail=(
-                    "Student registration is paused for a short while because "
-                    "of too many invalid activation codes. Please try again "
-                    "later; if your code has expired by then, ask for a new one."
-                ),
-            )
-        try:
-            with transaction.atomic():
-                serializer = StudentRegistrationCompletionSerializer(data=request.data)
-
-                if not serializer.is_valid():
-                    raise ValidationError(serializer.errors)
-
-                token = serializer.validated_data["token"]
-
-                # H-47: the token is the only thing identifying the row, so
-                # it must only ever match a student's invitation. A pending
-                # teacher's 6-digit verification code lives in the same
-                # column and used to complete that teacher's account here,
-                # with a password chosen by whoever sent the code.
-                user = CustomUser.objects.filter(
-                    activation_token=token,
-                    is_active=False,
-                    user_type=UserTypes.STUDENT,
-                ).first()
-
-                if not user:
-                    record_register_student_failure("no_match")
-                    raise ParseError("Invalid or expired activation token")
-
-                if (
-                    not user.activation_expires
-                    or user.activation_expires < timezone.now()
-                ):
-                    record_register_student_failure("expired")
-                    renewal_url = request.build_absolute_uri(
-                        "/course/student/renew-student-token"
-                    )
-
-                    return Response(
-                        {
-                            "detail": "Activation token has expired.",
-                            "renewal_url": renewal_url,
-                            "expired_token": token,
-                            "message": "Please request a new activation link",
-                        }
-                    )
-
-                first_name = serializer.validated_data["first_name"]
-                middle_name = serializer.validated_data.get("middle_name", "")
-                last_name = serializer.validated_data["last_name"]
-                pending_enrollments = list(
-                    StudentCourse.objects.filter(
-                        student=user, enrollment_status=EnrollmentStatusType.PENDING
-                    ).select_related("course")
-                )
-
-                conflicting_courses = [
-                    enrollment.course.name
-                    for enrollment in pending_enrollments
-                    if StudentCourse.find_name_conflicts(
-                        course=enrollment.course,
-                        first_name=first_name,
-                        last_name=last_name,
-                        middle_name=middle_name,
-                        exclude_student_id=user.id,
-                    ).exists()
-                ]
-
-                if conflicting_courses:
-                    raise ValidationError(
-                        {
-                            "detail": (
-                                "A student with this exact name is already enrolled in "
-                                f"the following course(s): {', '.join(conflicting_courses)}."
-                            )
-                        }
-                    )
-
-                user.first_name = first_name
-                user.middle_name = middle_name
-                user.last_name = last_name
-                user.profile_image = serializer.validated_data.get("profile_image")
-                user.set_password(serializer.validated_data["password"])
-                user.is_active = True
-                user.activation_token = None
-                user.activation_expires = None
-                user.email_verified_at = timezone.now()
-                user.save()
-
-                safe_delay(sync_user_to_mailerlite, str(user.id))
-
-                for enrollment in pending_enrollments:
-                    enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
-                    enrollment.save(update_fields=["enrollment_status"])
-
-                return Response(
-                    {"detail": "Student registration completed successfully"},
-                    status=status.HTTP_200_OK,
-                )
-        except (ParseError, ValidationError):
-            raise
-        except Exception as e:
-            logger.error("Student registration failed", exc_info=e)
-            return Response(
-                {
-                    "detail": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "Registration could not be completed. Please " "try again."
-                        ),
-                    )
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        """H-152: closed. Every request is answered the same way: a valid
+        code, an expired one, a wrong one and none at all cannot be told
+        apart, nothing is read from the request, nothing is written and
+        nobody is mailed. The per-address rate limit above still applies."""
+        return Response(
+            {"detail": OLD_INVITATION_CLOSED_MESSAGE},
+            status=status.HTTP_410_GONE,
+        )
 
     @extend_schema(
         tags=["Authentication"],

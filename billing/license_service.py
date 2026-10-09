@@ -40,6 +40,7 @@ from . import license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
+from .locks import lock_wallet_first
 from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     CONVERSION_FACTOR,
     BillingTransactionMethod,
@@ -522,7 +523,14 @@ class LicenseSubscriptionService:
         skip rollover and leave the teacher holding both the old live
         bucket and a new one simultaneously (a double-grant). This version
         is safe for both callers.
+
+        H-181: the wallet row is locked BEFORE the bucket, the order
+        consume_credits uses (billing/locks.py); the callers hold the
+        licence row (or, for the monthly refresh, update it) first, so the
+        order is licence, wallet, bucket. None of the three callers holds a
+        bucket lock before calling this.
         """
+        wallet = lock_wallet_first(wallet)
         current_bucket = (
             wallet.buckets.select_for_update()
             .filter(bucket_type=CreditBucketType.MONTHLY, is_processed=False)
@@ -1292,9 +1300,7 @@ class LicenseSubscriptionService:
             "top_content": (
                 f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
                 "Your account is ready - log in below with your email and the "
-                f"temporary password: {generated_password}\n\n"
-                "You'll be asked to choose your own password the first time "
-                "you log in."
+                f"temporary password: {generated_password}"
             ),
             "bottom_content": "",
             # Shared merge key with the school-admin invite email
