@@ -58,6 +58,7 @@ from students.tests_post_grading_submission_lock import _classroom
 from users.models import UserTypes
 
 AI_MODEL = "_AIProcessor__ai_model"
+REFUSALS = (AIFeatureNotAvailableError, InsufficientCreditsError)
 FEATURE = "Formatted Grade"
 TASK_TYPE = "formatted_grade"
 
@@ -226,7 +227,7 @@ class TheRowOfACharge(Base):
                 if "cost" in change:
                     self.assertIsNone(row.cost_usd)
                 if "finish" in change:
-                    self.assertIn(row.finish_reason, ("other", None))
+                    self.assertEqual(row.finish_reason, "other")
 
     @patch.object(AIProcessor, AI_MODEL)
     def test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else(
@@ -321,6 +322,31 @@ class TheRowOfACharge(Base):
         self.assertEqual(row.questions, len(assignment.questions))
         self.assertEqual(row.assignment_id, assignment.id)
         self.assertNotIn(str(student.id), repr(row.__dict__))
+
+    @patch.object(AIProcessor, AI_MODEL)
+    def test_images_and_pdfs_inside_messages_are_counted(self, ai_model):
+        ai_model.return_value = reply()
+        image = {"type": "image_url", "image_url": {"url": "data:image/png;base64,A"}}
+        pdf = {"type": "pdf_url", "pdf_url": {"url": "data:application/pdf;base64,A"}}
+        messages = [
+            {"role": "user", "content": [{"type": "text", "text": "x"}, image, pdf]},
+            {"role": "assistant", "content": None},
+        ]
+        with patch.object(AIProcessor, "estimate_total_token", return_value=10):
+            self.run_call(user_prompt=None, messages=messages)
+        row = self.only_row()
+        self.assertEqual(row.images, 1)
+        self.assertEqual(row.pdf_items, 1)
+
+    @patch.object(AIProcessor, AI_MODEL)
+    def test_a_pdf_part_in_the_prompt_is_counted_as_a_pdf_not_an_image(self, ai_model):
+        ai_model.return_value = reply()
+        pdf = {"type": "pdf_url", "pdf_url": {"url": "data:application/pdf;base64,A"}}
+        with patch.object(AIProcessor, "estimate_total_token", return_value=10):
+            self.run_call(user_prompt=[{"type": "text", "text": "x"}, pdf])
+        row = self.only_row()
+        self.assertEqual(row.pdf_items, 1)
+        self.assertEqual(row.images, 0)
 
 
 class TheBilledTeacherOnAStudentsUpload(Base):
@@ -578,10 +604,10 @@ class TheCallIsUnchanged(Base):
         nobody = self._make_user(UserTypes.TEACHER, "rec-nosub3@example.com")
         for user in (poor, nobody):
             with self.subTest(user=user.email):
-                with self.assertRaises(Exception) as on:
+                with self.assertRaises(REFUSALS) as on:
                     self.run_call(user=user)
                 with override_settings(AI_CALL_RECORD_ENABLED=False):
-                    with self.assertRaises(Exception) as off:
+                    with self.assertRaises(REFUSALS) as off:
                         self.run_call(user=user)
                 self.assertIs(type(on.exception), type(off.exception))
                 self.assertEqual(str(on.exception), str(off.exception))
@@ -832,13 +858,25 @@ class TheCanary(Base):
         with self.assertLogs(level="DEBUG") as logs:
             logging.getLogger("canary").debug("start")
             self.run_call(user_prompt=f"prompt {self.SENTINEL}")
-            ai_model.side_effect = TimeoutError(f"provider says {self.SENTINEL}")
+            # A call whose row cannot be written: here the recorder really logs.
+            with patch.object(
+                AICallRecord.objects,
+                "create",
+                side_effect=IntegrityError(f"{self.SENTINEL} row text"),
+            ):
+                self.run_call(user_prompt=f"prompt {self.SENTINEL}")
+            # The sentinel comes first: a column cut at 24 characters still holds it.
+            ai_model.side_effect = TimeoutError(f"{self.SENTINEL} provider says")
             with self.assertRaises(TimeoutError):
                 self.run_call(user_prompt=f"prompt {self.SENTINEL}")
         for row in AICallRecord.objects.all():
             for name, value in row.__dict__.items():
                 self.assertNotIn(self.SENTINEL, str(value), name)
         record_logs = [m for m in logs.output if "call_record" in m]
+        self.assertTrue(
+            [m for m in record_logs if "ai_call_record_failed" in m],
+            "the recorder logged nothing, so the log check below would be empty",
+        )
         self.assertNotIn(self.SENTINEL, " ".join(record_logs))
         self.assertEqual(AICallRecord.objects.count(), 2)
 
