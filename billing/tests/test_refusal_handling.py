@@ -57,6 +57,7 @@ from billing.models import (
 from billing.services import SubscriptionService
 from billing.stripe_service import StripeWebhookHandler
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -359,7 +360,14 @@ class D5TaskRetryTest(RefusalAssertions, TestCase):
             **extra,
         )
 
-    def assertTerminalRefusal(self, tracked, outcome, gate, refusal):
+    def assertTerminalRefusal(
+        self,
+        tracked,
+        outcome,
+        gate,
+        refusal,
+        credits_message=GENERIC_CREDITS_MESSAGE,
+    ):
         self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
         # A refusal is a handled, recorded outcome - not a task crash.
         self.assertFalse(outcome.failed(), repr(outcome.result))
@@ -372,7 +380,7 @@ class D5TaskRetryTest(RefusalAssertions, TestCase):
         self.assertNoCreditDetail(tracked.error)
         self.assertNoCreditDetail(result["message"])
         if refusal is InsufficientCreditsError:
-            self.assertEqual(tracked.error, GENERIC_CREDITS_MESSAGE)
+            self.assertEqual(tracked.error, credits_message)
 
     def test_extract_answer_background_task_does_not_retry_a_refusal(self):
         for label, make_teacher, refusal in REFUSED_TEACHERS:
@@ -396,7 +404,15 @@ class D5TaskRetryTest(RefusalAssertions, TestCase):
                         args=(str(submission.id), PROMPT_TEXT, str(student.id)),
                         kwargs={"processing_task_id": str(tracked.id)},
                     )
-                self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+                # H-180: this task is a STUDENT's upload, so a credit refusal
+                # reads the fixed student sentence, not the generic text.
+                self.assertTerminalRefusal(
+                    tracked,
+                    outcome,
+                    gate,
+                    refusal,
+                    credits_message=STUDENT_UPLOAD_NOT_PROCESSED,
+                )
 
     def test_upload_answers_engine_async_does_not_retry_a_refusal(self):
         for label, make_teacher, refusal in REFUSED_TEACHERS:

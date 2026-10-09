@@ -263,7 +263,13 @@ class StudentUploadDoorTest(APITestCase):
         # The permission class is the one that refuses a missing wallet; the
         # door must neither crash nor refuse on its own account.
         launch.return_value.id = "task-1"
-        _, student, _, assignment = _classroom("nowallet", 0)
+        teacher, student, _, assignment = _classroom("nowallet", 0)
+        # Creating a user makes an EMPTY wallet (users/signals.py); a teacher
+        # with no wallet at all needs it taken away. Both facts are asserted
+        # before the upload, or "without a wallet" would only be a name.
+        self.assertTrue(CreditWallet.objects.filter(user=teacher).exists())
+        CreditWallet.objects.filter(user=teacher).delete()
+        self.assertFalse(CreditWallet.objects.filter(user=teacher).exists())
 
         with patch(
             "users.permissions.HasCreditBalance.has_permission", return_value=True
