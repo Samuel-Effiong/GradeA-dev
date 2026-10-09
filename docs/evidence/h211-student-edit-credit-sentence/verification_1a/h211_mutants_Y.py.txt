@@ -1,0 +1,44 @@
+"""1a's mutants for H-211 (rule 19: my own tests must be seen red).
+Usage, in the checkout: python -B h211_mutants_Y.py <Y1|Y2|Y3|G1> [--check]
+Y1..Y3 change the edit handler of assignments/tasks.py (searched AFTER the
+marker comment "H-211: as in the upload task"); G1 changes the billing target
+of the gate in ai_processor/services.py. Applied in place; restore with git checkout.
+"""
+import sys
+
+TASKS = "assignments/tasks.py"
+MARK = "# H-211: as in the upload task"
+M = {
+    "Y1": (TASKS, MARK, 'getattr(user, "user_type", None) == UserTypes.STUDENT',
+           'getattr(user, "user_type", None) != UserTypes.STUDENT'),
+    "Y2": (TASKS, MARK, '            log_refusal(logger, f"Background task {processing_task_id}", exc)\n',
+           ""),
+    "Y3": (TASKS, MARK, "StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)",
+           "StudentUploadNotProcessedError(str(exc))"),
+    "G1": ("ai_processor/services.py", "", "            wallet = target_teacher.credit_wallet\n",
+           "            wallet = user.credit_wallet\n"),
+}
+
+
+def main():
+    code = sys.argv[1]
+    path, marker, old, new = M[code]
+    src = open(path, encoding="utf-8").read()
+    start = src.index(marker) if marker else 0
+    if marker and src.count(marker) != 1:
+        print("ABORT: marker count", src.count(marker)); sys.exit(7)
+    at = src.find(old, start)
+    if at < 0:
+        print("ABORT: anchor not found"); sys.exit(7)
+    if code == "G1" and src.count(old) != 1:
+        print("ABORT: G1 anchor count", src.count(old)); sys.exit(7)
+    out = src[:at] + new + src[at + len(old):]
+    if out == src:
+        print("ABORT: equal"); sys.exit(7)
+    if "--check" in sys.argv:
+        print(f"checked {code}: anchor found at char {at}, mutant differs"); return
+    open(path, "w", encoding="utf-8").write(out)
+    print(f"applied {code} to {path}")
+
+
+main()
