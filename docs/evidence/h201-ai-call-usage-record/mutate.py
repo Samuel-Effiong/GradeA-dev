@@ -479,9 +479,9 @@ EXPECTED = {
     "Q11": ["test_the_row_carries_the_teacher_and_never_the_student"],
     "Q12": ["test_a_field_the_reply_does_not_carry_is_null_never_zero"],
     "Q13": ["test_a_weird_value_in_the_reply_becomes_null_and_the_call_goes_on"],
-    # Q14 (state never reset): the state of an earlier call is still open in
-    # this thread. The last two depend on earlier tests of the same run having
-    # made a call in the thread (test classes run in name order).
+    # Q14 (state never reset): the state of the call the test itself made is
+    # still open in the thread. Each of the three makes its own call first, so
+    # none depends on which tests ran before it.
     "Q14": [
         "test_a_call_that_noted_nothing_carries_nothing_over_from_the_last",
         "test_off_also_leaves_no_state_behind",

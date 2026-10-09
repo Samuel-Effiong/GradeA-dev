@@ -821,6 +821,8 @@ class TheSwitch(Base):
     @patch.object(AIProcessor, AI_MODEL)
     def test_off_also_leaves_no_state_behind(self, ai_model):
         ai_model.return_value = reply()
+        self.run_call()  # a call of its own first: no help from earlier tests
+        self.assertIsNone(call_record.current_state())
         with override_settings(AI_CALL_RECORD_ENABLED=False):
             self.run_call()
         self.assertIsNone(call_record.current_state())
@@ -836,7 +838,10 @@ class TheStateIsPerCall(Base):
         thread.join()
         self.assertEqual(seen, [None])
 
-    def test_notes_made_with_no_call_open_do_nothing(self):
+    @patch.object(AIProcessor, AI_MODEL)
+    def test_notes_made_with_no_call_open_do_nothing(self, ai_model):
+        ai_model.return_value = reply()
+        self.run_call()  # a call of its own first, finished: nothing stays open
         call_record.note_estimate(5)
         call_record.note_task_id("x")
         call_record.note_response(reply())
