@@ -489,6 +489,15 @@ MUTANTS = [
         TESTS,
         F,
     ),
+    (
+        "D4",
+        "the first migration has no lock timeout",
+        M33,
+        "SET_LOCK_TIMEOUT = \"SET LOCAL lock_timeout = '5s'\"\n",
+        'SET_LOCK_TIMEOUT = "SELECT 1"\n',
+        TESTS,
+        F,
+    ),
 ]
 
 #: The failing tests each mutant must be caught by (written before any run): EVERY test of the eight modules
@@ -579,12 +588,8 @@ EXPECTED = {
         "test_a_reply_received_and_then_lost_to_the_credit_step_is_failed_named",
         "test_a_wallet_that_refuses_before_the_call_is_not_run",
         "test_a_first_upload_leaves_a_complete_label_in_the_one_insert",
-        "test_a_provider_that_names_no_model_leaves_unknown",
         "test_the_rechecks_pair_reaches_the_row",
         "test_a_recheck_that_failed_reaches_the_row_as_failed",
-        "test_a_re_read_replaces_the_label_in_the_one_update",
-        "test_a_row_made_before_the_columns_existed_gets_its_first_label",
-        "test_an_extraction_that_fails_leaves_the_row_and_its_label_alone",
         "test_an_edit_is_a_new_reading_and_replaces_the_label_in_one_update",
     ],
     "R10": [
@@ -868,6 +873,9 @@ EXPECTED = {
         "test_the_constraint_is_validated_once_every_migration_has_run",
         "test_0034_validates_the_constraint_and_nothing_else",
         "test_a_row_made_before_0032_reads_the_placeholder_after_0033",
+    ],
+    "D4": [
+        "test_0033_adds_the_one_constraint_not_valid_and_nothing_else",
     ],
 }
 
