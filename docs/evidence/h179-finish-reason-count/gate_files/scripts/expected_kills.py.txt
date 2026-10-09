@@ -1,0 +1,92 @@
+"""H-179: written on 2026-10-08 BEFORE any run of the row, by reading each of
+the module's 9 tests against every mutant and against the base (beta
+035e0a07, no cut-off line). Nothing here was seen by a run.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE 035e0a07>"""
+import re
+import sys
+from pathlib import Path
+
+C = "CutOffRepliesAreCounted"
+T_ONCE = (C, "test_a_reply_cut_off_at_the_limit_is_logged_once_with_its_task_type")
+T_THREE = (C, "test_the_line_has_exactly_the_three_fields_and_no_more")
+T_STOP = (C, "test_a_reply_that_stopped_normally_is_not_logged")
+T_NONE = (C, "test_no_reason_at_all_is_not_logged")
+T_BARE = (C, "test_a_reply_object_without_the_attribute_does_not_break_the_call")
+T_EMPTY = (C, "test_a_reply_with_no_choices_does_not_break_the_call")
+T_MOCK = (C, "test_a_mock_for_a_reason_is_treated_as_absent")
+T_MODEL = (C, "test_a_model_name_that_is_not_text_is_logged_as_none")
+T_SUPER = (C, "test_the_unmetered_super_admin_branch_logs_nothing")
+
+EXPECTED = {
+    "K1": {T_ONCE, T_THREE, T_MODEL},
+    "K2": {T_STOP},
+    "K3": {T_BARE},
+    "K4": {T_EMPTY},
+    "K5": {T_MODEL},
+    "K6": {T_SUPER},
+    "K7": {T_ONCE},
+}
+#: The BASE with the final tests: the three that need the line are red; the
+#: six that say "nothing is logged / nothing breaks" are green there.
+REPRO = {T_ONCE, T_THREE, T_MODEL}
+#: RULE 22: per test, fragments that must be in ITS OWN failure block at (r),
+#: written before the run. At the base there is no cut-off line, so the logged
+#: records list is EMPTY: the count test fails on its count (`0 != 1`), the
+#: two tests that unpack one record fail with ValueError "not enough values
+#: to unpack". A fixture or set-up error would show other text.
+REASON = {
+    T_ONCE: ("0 != 1", "self.assertEqual(len(records), 1)"),
+    T_THREE: ("not enough values to unpack", "(record,) = self.call(reply(\"length\"))"),
+    T_MODEL: ("not enough values to unpack", "(record,) = self.call(response)"),
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), REPRO)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
