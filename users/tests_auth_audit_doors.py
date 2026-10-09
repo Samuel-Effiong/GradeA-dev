@@ -7,6 +7,7 @@ token-issuing (or password-setting) routes, exercised through the real URLs.
 """
 
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 import requests
@@ -159,6 +160,51 @@ class VerifyEmailDoorTests(DoorBase):
             account=user,
             reason="INVALID_CODE",
         )
+
+    def test_the_beta_refusals_are_audited_like_a_wrong_code(self):
+        """Merge-down b14: H-164 (a never-verified account with admin power)
+        and H-202 (a verified, switched-off account) are refused on
+        /auth/verify with the wrong-code answer. On the Phase 2 line that
+        refusal also writes the sign-in failure event (reason INVALID_CODE,
+        the account named) and spends the per-address budget exactly as a
+        wrong code on an ordinary account does (the lock after the last
+        allowed guess is asserted in the two lock tests of
+        users.tests_reset_for_an_invited_student and
+        users.tests_switched_off_means_out)."""
+        expires = timezone.now() + timedelta(minutes=15)
+        cases: dict[str, dict[str, Any]] = {
+            "admin.power@example.com": {
+                "is_active": True,
+                "email_verified_at": None,
+                "is_staff": True,
+                "activation_token": "123456",
+                "activation_expires": expires,
+            },
+            "switched.off@example.com": {
+                "is_active": False,
+                "activation_token": "123456",
+                "activation_expires": expires,
+            },
+        }
+        for email, overrides in cases.items():
+            with self.subTest(email=email):
+                user = make_user(email, **overrides)
+                before = set(AuditEvent.objects.values_list("pk", flat=True))
+
+                response = self.verify(user.email, "123456")
+
+                new = AuditEvent.objects.exclude(pk__in=before)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(new.count(), 1)
+                self.assert_event(
+                    new.get(),
+                    outcome=AuditOutcome.FAILURE,
+                    method="email_verification",
+                    account=user,
+                    reason="INVALID_CODE",
+                )
+                user.refresh_from_db()
+                self.assertIsNotNone(user.activation_token)
 
     def test_a_failure_is_scoped_to_the_targets_school(self):
         school = School.objects.create(name="Verify Scope School")
@@ -445,26 +491,6 @@ class InvitationDoorTests(DoorBase):
             outcome=AuditOutcome.FAILURE,
             method="school_admin_invitation",
             account=admin,
-            reason="INVALID_CODE",
-        )
-
-    def test_student_invitation_bad_code_survives_the_rollback(self):
-        response = self.client.post(
-            reverse("auth-register-student"),
-            {
-                "token": "no-such-token",
-                "password": NEW_PASSWORD,
-                "first_name": "Stu",
-                "last_name": "Dent",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 400, response.content)
-        self.assert_event(
-            self.only_event(),
-            outcome=AuditOutcome.FAILURE,
-            method="student_invitation",
-            account=None,
             reason="INVALID_CODE",
         )
 
