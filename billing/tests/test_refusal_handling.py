@@ -404,15 +404,7 @@ class D5TaskRetryTest(RefusalAssertions, TestCase):
                         args=(str(submission.id), PROMPT_TEXT, str(student.id)),
                         kwargs={"processing_task_id": str(tracked.id)},
                     )
-                # H-180: this task is a STUDENT's upload, so a credit refusal
-                # reads the fixed student sentence, not the generic text.
-                self.assertTerminalRefusal(
-                    tracked,
-                    outcome,
-                    gate,
-                    refusal,
-                    credits_message=STUDENT_UPLOAD_NOT_PROCESSED,
-                )
+                self.assertTerminalRefusal(tracked, outcome, gate, refusal)
 
     def test_upload_answers_engine_async_does_not_retry_a_refusal(self):
         for label, make_teacher, refusal in REFUSED_TEACHERS:
@@ -432,7 +424,15 @@ class D5TaskRetryTest(RefusalAssertions, TestCase):
                         ),
                         kwargs={"processing_task_id": str(tracked.id)},
                     )
-                self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+                # H-180: this task is a STUDENT's upload, so a credit refusal
+                # reads the fixed student sentence, not the generic text.
+                self.assertTerminalRefusal(
+                    tracked,
+                    outcome,
+                    gate,
+                    refusal,
+                    credits_message=STUDENT_UPLOAD_NOT_PROCESSED,
+                )
 
 
 # ------------------------------------- D6: batch result records error=None
