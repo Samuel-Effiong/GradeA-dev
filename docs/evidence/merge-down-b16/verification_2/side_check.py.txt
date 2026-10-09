@@ -1,0 +1,17 @@
+import subprocess,sys
+M,L,B,BASE=sys.argv[1:5]
+def g(*a): return subprocess.run(["git",*a],capture_output=True,text=True).stdout
+def names(a,b): return set(x for x in g("-c","core.quotepath=off","diff","--name-only",a,b).split("\n") if x)
+def blob(c,f):
+    r=subprocess.run(["git","rev-parse",f"{c}:{f}"],capture_output=True,text=True); return r.stdout.strip() if r.returncode==0 else None
+bs,ls=names(BASE,B),names(BASE,L)
+bad=0
+for f in sorted(bs-ls):
+    if blob(M,f)!=blob(B,f): print("DIFF beta-only",f); bad+=1
+for f in sorted(ls-bs):
+    if blob(M,f)!=blob(L,f): print("DIFF line-only",f); bad+=1
+print("beta-only",len(bs-ls),"line-only",len(ls-bs),"both",len(bs&ls),"bad",bad)
+print("BOTH:",*sorted(bs&ls),sep="\n ")
+# files changed in merge vs both parents but in neither side's change set
+mm=names(L,M)|names(B,M)
+print("touched by merge but not in either set:",sorted(f for f in mm if f not in bs and f not in ls))

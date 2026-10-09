@@ -1,0 +1,24 @@
+import sys,types,subprocess,pathlib,re
+from collections import Counter
+commit=sys.argv[1]
+d=types.ModuleType("django");dt=types.ModuleType("django.test");dt.SimpleTestCase=object
+sys.modules["django"]=d;sys.modules["django.test"]=dt
+src=subprocess.run(["git","show",f"{commit}:users/tests_roads_that_sign_in_or_activate.py"],capture_output=True,text=True).stdout
+ns={"__file__":"/x/users/t.py"}
+exec(compile(src,"pin","exec"),ns)
+KINDS,ROADS,SKIP=ns["KINDS"],ns["ROADS"],ns["SKIP_DIRS"]
+files=subprocess.run(["git","ls-tree","-r","--name-only",commit],capture_output=True,text=True).stdout.split("\n")
+found=Counter()
+for f in files:
+    if not f.endswith(".py"): continue
+    parts=pathlib.PurePosixPath(f).parts
+    if SKIP&set(parts) or any(p.startswith(".") for p in parts[:-1]): continue
+    n=parts[-1]
+    if "test" in n or n.startswith("conftest") or n.startswith("settings_worktree"): continue
+    t=subprocess.run(["git","show",f"{commit}:{f}"],capture_output=True,text=True,errors="replace").stdout
+    for k,p in KINDS.items():
+        c=len(p.findall(t))
+        if c: found[(f,k)]=c
+pinned={k:v[0] for k,v in ROADS.items()}
+diff=sorted(f"{k}: found {found.get(k,0)}, pinned {pinned.get(k,0)}" for k in set(found)|set(pinned) if found.get(k,0)!=pinned.get(k,0))
+print(commit,"files scanned",len(files),"diff:",diff)

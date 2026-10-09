@@ -1,0 +1,13 @@
+20:07:22 b16 check start: loadavg 3.55 5.70 4.95 13/3005 1966397
+20:07:23 b16 check end exit=0: loadavg 3.55 5.70 4.95 24/3004 1966402
+20:07:23 b16 baseline start: loadavg 3.55 5.70 4.95 29/3004 1966404
+20:07:34 b16 baseline end exit=0: loadavg 3.76 5.68 4.95 6/3022 1966537
+20:07:34 b16 mutants start: loadavg 3.76 5.68 4.95 5/3022 1966539
+20:08:27 b16 mutants end exit=0: loadavg 3.18 5.21 4.83 3/3030 1967455
+20:08:27 pin check start: loadavg 3.18 5.21 4.83 7/3030 1967457
+20:08:27 pin check end exit=0: loadavg 3.18 5.21 4.83 7/3030 1967462
+20:08:27 pin baseline start: loadavg 3.18 5.21 4.83 5/3030 1967464
+20:08:32 pin baseline end exit=0: loadavg 3.25 5.19 4.82 7/3021 1967558
+20:08:32 pin mutants start: loadavg 3.25 5.19 4.82 10/3021 1967560
+20:08:57 pin mutants end exit=0: loadavg 2.96 4.96 4.76 5/3021 1968459
+20:08:57 tree is the frozen tip again
