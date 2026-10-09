@@ -1,0 +1,90 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user bc64ab59-a955-4752-95cc-a7fac4673dec.
+Cannot activate automatic trial for user bc64ab59-a955-4752-95cc-a7fac4673dec (validation): ValueError
+FFree trial plan not found: no trial activated for user 9ca894bd-48fe-44a2-81ba-d7efad014d44.
+Cannot activate automatic trial for user 9ca894bd-48fe-44a2-81ba-d7efad014d44 (validation): ValueError
+FFree trial plan not found: no trial activated for user d72a1289-90d0-4701-b287-2ad7f0f4b0eb.
+Cannot activate automatic trial for user d72a1289-90d0-4701-b287-2ad7f0f4b0eb (validation): ValueError
+FFFree trial plan not found: no trial activated for user d5e569ff-552b-4686-9c41-99b505647a8a.
+Cannot activate automatic trial for user d5e569ff-552b-4686-9c41-99b505647a8a (validation): ValueError
+.Free trial plan not found: no trial activated for user 6a3c380f-5df7-4de3-b3b2-88c0fa6c0c8d.
+Cannot activate automatic trial for user 6a3c380f-5df7-4de3-b3b2-88c0fa6c0c8d (validation): ValueError
+.Free trial plan not found: no trial activated for user b76a650e-b661-485c-8485-f054c0b76243.
+Cannot activate automatic trial for user b76a650e-b661-485c-8485-f054c0b76243 (validation): ValueError
+.Free trial plan not found: no trial activated for user 755fddc6-5ee8-4617-955d-1127f7f41170.
+Cannot activate automatic trial for user 755fddc6-5ee8-4617-955d-1127f7f41170 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4cbb18b6-21e9-448c-9695-62287004b895.
+Cannot activate automatic trial for user 4cbb18b6-21e9-448c-9695-62287004b895 (validation): ValueError
+.Free trial plan not found: no trial activated for user 96a98f0c-b0e7-439c-9340-8b939a8ba37d.
+Cannot activate automatic trial for user 96a98f0c-b0e7-439c-9340-8b939a8ba37d (validation): ValueError
+.Free trial plan not found: no trial activated for user 2828cb20-490a-4edf-abd3-be30c815b37d.
+Cannot activate automatic trial for user 2828cb20-490a-4edf-abd3-be30c815b37d (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:07,775 task_tracking 1863957 130834532658112 [request_id=-] Background task 9f9d4bb0-029d-4ebb-82d5-f168f1940ef3 failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 07e54cc3-c805-4bd9-8584-a363e4e7666e.
+Cannot activate automatic trial for user 07e54cc3-c805-4bd9-8584-a363e4e7666e (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:08,006 task_tracking 1863957 130834532658112 [request_id=-] Background task c39bbaa6-54b0-4f6f-9777-c40e56aade95 failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 0a87b534-c150-4063-9161-de7639b7d666.
+Cannot activate automatic trial for user 0a87b534-c150-4063-9161-de7639b7d666 (validation): ValueError
+.
+======================================================================
+FAIL: test_a1_auto_grade_failure_returns_class_only_and_logs_one_error (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_a1_auto_grade_failure_returns_class_only_and_logs_one_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 145, in test_a1_auto_grade_failure_returns_class_only_and_logs_one_error
+    error = self.one_error(cap, "auto_grade_due_assignment", aid)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 120, in one_error
+    self.assertEqual(
+AssertionError: 2 != 1 : expected exactly one ERROR record, got 2
+
+======================================================================
+FAIL: test_a2_auto_grade_broker_error_logs_the_class_without_frames (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_a2_auto_grade_broker_error_logs_the_class_without_frames)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 159, in test_a2_auto_grade_broker_error_logs_the_class_without_frames
+    error = self.one_error(cap, "auto_grade_due_assignment", aid)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 120, in one_error
+    self.assertEqual(
+AssertionError: 2 != 1 : expected exactly one ERROR record, got 2
+
+======================================================================
+FAIL: test_a3_a_chained_cause_or_context_text_is_not_kept (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_a3_a_chained_cause_or_context_text_is_not_kept) (chain='explicit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 186, in test_a3_a_chained_cause_or_context_text_is_not_kept
+    self.one_error(cap, "auto_grade_due_assignment", aid)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 120, in one_error
+    self.assertEqual(
+AssertionError: 2 != 1 : expected exactly one ERROR record, got 2
+
+======================================================================
+FAIL: test_a3_a_chained_cause_or_context_text_is_not_kept (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_a3_a_chained_cause_or_context_text_is_not_kept) (chain='implicit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 186, in test_a3_a_chained_cause_or_context_text_is_not_kept
+    self.one_error(cap, "auto_grade_due_assignment", aid)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 120, in one_error
+    self.assertEqual(
+AssertionError: 2 != 1 : expected exactly one ERROR record, got 2
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.655s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...
+Found 12 test(s).

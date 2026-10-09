@@ -36,7 +36,12 @@ from students.task_tracking import (
     update_processing_task,
 )
 
-from .exceptions import InvalidUploadFileError, UploadAlreadyInProgressError
+from .exceptions import (
+    FileUnreadableError,
+    InvalidUploadFileError,
+    SubmissionEmptyError,
+    UploadAlreadyInProgressError,
+)
 from .models import Assignment, AssignmentUploadFingerprint
 from .serializers import AssignmentSerializer
 from .services import AssignmentProcessingService
@@ -111,6 +116,12 @@ def upload_assignment_file(
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt_text
             )
+        except SubmissionEmptyError as exc:
+            # SUBMISSION_EMPTY speaks of student answers; an empty
+            # ASSIGNMENT file is simply one we can't read.
+            raise FileUnreadableError(params=dict(exc.params)) from exc
+        except InvalidUploadFileError:
+            raise  # coded (FR-A-06 S6b): it keeps its reason code
         except ParseError as exc:
             raise InvalidUploadFileError(exc.detail) from exc
 

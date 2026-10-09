@@ -41,6 +41,7 @@ from ai_processor.benchmark.dataset import (
     iter_dataset_errors,
     iter_expectation_errors,
 )
+from ai_processor.exceptions import ProviderFailureError
 from ai_processor.objective_grading import (
     CLAIMED_OUTCOMES,
     CORRECT,
@@ -606,9 +607,12 @@ class EvidenceDegradesOnFinalAttemptTest(SimpleTestCase):
             raise RuntimeError("boom")
 
         with patch.object(AIProcessor, "grade_student_submission", side_effect=record):
-            with self.assertRaisesRegex(Exception, "All 3 attempts failed"):
+            # S6d: coded PROVIDER_FAILURE, raised from the last error.
+            with self.assertRaises(ProviderFailureError) as ctx:
                 self.processor.extract_grade_with_retry(
                     MagicMock(), self.questions, self.answers, max_retries=3
                 )
+            self.assertIn("All 3 attempts failed", ctx.exception.detail)
+            self.assertIsInstance(ctx.exception.__cause__, RuntimeError)
 
         self.assertEqual(seen, [False, False, True])

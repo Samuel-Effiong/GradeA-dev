@@ -1,0 +1,19 @@
+# S02: a model answer is a marking guide
+# file: students/grading_gates.py (occurrence 1)
+# old: '    return isinstance(model_answer, str) and bool(model_answer.strip())'
+# new: '    return False'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 10.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_all_blank_paper_is_not_refused (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_an_all_blank_paper_is_not_refused)
+FAIL: test_async_grading_audits_provider_or_model_with_the_code (students.tests_s6d_provider_failure.ProviderFailureTests.test_async_grading_audits_provider_or_model_with_the_code) (failure='timeout')
+FAIL: test_async_grading_audits_provider_or_model_with_the_code (students.tests_s6d_provider_failure.ProviderFailureTests.test_async_grading_audits_provider_or_model_with_the_code) (failure='unusable')
+FAIL: test_sync_grade_answers_503_with_retry_after_and_no_provider_text (students.tests_s6d_provider_failure.ProviderFailureTests.test_sync_grade_answers_503_with_retry_after_and_no_provider_text)
+FAIL: test_batch_grading_emits_exactly_one_requested_event_per_submission (assignments.tests_grading_audit_events.GradeAllRequestedAuditEventTest.test_batch_grading_emits_exactly_one_requested_event_per_submission)
+FAIL: test_a_broker_outage_emits_no_requested_event (assignments.tests_grading_audit_events.GradeAsyncRequestedAuditEventTest.test_a_broker_outage_emits_no_requested_event)
+FAIL: test_a_successful_dispatch_emits_exactly_one_requested_event (assignments.tests_grading_audit_events.GradeAsyncRequestedAuditEventTest.test_a_successful_dispatch_emits_exactly_one_requested_event)
+FAIL: test_a_model_answer_alone_is_a_marking_guide (students.tests_s6d_rubric_gate.RubricMissingDefinitionTests.test_a_model_answer_alone_is_a_marking_guide)
+
+FAILED (failures=8, skipped=1)

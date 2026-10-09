@@ -165,6 +165,10 @@ MIXIN_PREFIXES = {
 #: Cache writes that are NOT response caches, so are deliberately not
 #: generation-versioned. (path, count of write calls, why).
 NON_RESPONSE_CACHE_WRITES = {
+    "audit/failed_auth_cap.py": (
+        2,
+        "failed-sign-in audit cap counters (Epic A S1b); keys audit:failed_auth:*",
+    ),
     "assignments/pdf_cache.py": (
         1,
         "rendered PDFs: keyed by updated_at, own exact-prefix invalidation "

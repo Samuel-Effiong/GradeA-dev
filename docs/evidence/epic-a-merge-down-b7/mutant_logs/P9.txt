@@ -1,0 +1,66 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user f6d9721b-4021-4f4d-af9a-1d52a661c053.
+Cannot activate automatic trial for user f6d9721b-4021-4f4d-af9a-1d52a661c053 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6f576baf-a297-46d2-80e0-5308e36e1ed6.
+Cannot activate automatic trial for user 6f576baf-a297-46d2-80e0-5308e36e1ed6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 54f63cc4-dea2-4282-8fa4-97b2ee0a2c50.
+Cannot activate automatic trial for user 54f63cc4-dea2-4282-8fa4-97b2ee0a2c50 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6a21f402-e61e-4e59-95fb-6c437d28e51c.
+Cannot activate automatic trial for user 6a21f402-e61e-4e59-95fb-6c437d28e51c (validation): ValueError
+.Free trial plan not found: no trial activated for user 4b32eb35-2b8c-4e5a-a65d-ac95ddfd9820.
+Cannot activate automatic trial for user 4b32eb35-2b8c-4e5a-a65d-ac95ddfd9820 (validation): ValueError
+.Free trial plan not found: no trial activated for user a9e45c7d-e9e8-4987-87a6-adf10e373bba.
+Cannot activate automatic trial for user a9e45c7d-e9e8-4987-87a6-adf10e373bba (validation): ValueError
+FFree trial plan not found: no trial activated for user d080ec8a-641c-4d59-8838-3b9686760558.
+Cannot activate automatic trial for user d080ec8a-641c-4d59-8838-3b9686760558 (validation): ValueError
+Free trial plan not found: no trial activated for user efd78d42-0ee2-43bc-93f4-5d0c9553a8ac.
+Cannot activate automatic trial for user efd78d42-0ee2-43bc-93f4-5d0c9553a8ac (validation): ValueError
+FFree trial plan not found: no trial activated for user ba854eba-9fa2-4f6e-b609-8ec629ed677f.
+Cannot activate automatic trial for user ba854eba-9fa2-4f6e-b609-8ec629ed677f (validation): ValueError
+.Free trial plan not found: no trial activated for user 1d4f8e4d-23d6-4e0a-9aef-7b7071691e03.
+Cannot activate automatic trial for user 1d4f8e4d-23d6-4e0a-9aef-7b7071691e03 (validation): ValueError
+....F...
+======================================================================
+FAIL: test_drift_is_detected_and_logged_as_an_error (billing.tests.test_price_drift_reconciliation.PriceDriftDetectionTests.test_drift_is_detected_and_logged_as_an_error)
+The regression: Stripe bills price_pro, we recorded the Standard
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/billing/tests/test_price_drift_reconciliation.py", line 143, in test_drift_is_detected_and_logged_as_an_error
+    self.assertIn(str(self.user.id), drift_lines[0])
+AssertionError: 'a9e45c7d-e9e8-4987-87a6-adf10e373bba' not found in 'ERROR:billing.tasks:PRICE DRIFT: subscription 0e546ebb-fd9b-40ec-b9c2-5a3a7e715dd7 (user drift@gmail.com) is being billed on Stripe price price_pro, but the local plan STANDARD expects price price_standard. The customer is paying for something other than what we recorded. No automatic correction has been made — this needs a human decision. Stripe subscription: sub_drift_1'
+
+======================================================================
+FAIL: test_only_the_drifted_subscription_is_reported (billing.tests.test_price_drift_reconciliation.PriceDriftDetectionTests.test_only_the_drifted_subscription_is_reported)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/billing/tests/test_price_drift_reconciliation.py", line 254, in test_only_the_drifted_subscription_is_reported
+    self.assertIn(str(self.user.id), drift_lines[0])
+AssertionError: 'd080ec8a-641c-4d59-8838-3b9686760558' not found in 'ERROR:billing.tasks:PRICE DRIFT: subscription bb38d467-9d32-477f-b5c2-8e51902a2b70 (user drift@gmail.com) is being billed on Stripe price price_pro, but the local plan STANDARD expects price price_standard. The customer is paying for something other than what we recorded. No automatic correction has been made — this needs a human decision. Stripe subscription: sub_drift_1'
+
+======================================================================
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_no_pii_in_logs.py", line 111, in test_no_log_or_print_call_passes_an_address_or_a_name
+    self.assertEqual(problems, [], "\n".join(problems))
+AssertionError: Lists differ: ['billing/tasks.py:1596: sub.user.email'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'billing/tasks.py:1596: sub.user.email'
+
+- ['billing/tasks.py:1596: sub.user.email']
++ [] : billing/tasks.py:1596: sub.user.email
+
+----------------------------------------------------------------------
+Ran 16 tests in 3.314s
+
+FAILED (failures=3)
+Preserving test database for alias 'default'...
+Found 16 test(s).

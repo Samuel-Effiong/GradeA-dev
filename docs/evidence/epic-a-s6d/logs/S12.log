@@ -1,0 +1,14 @@
+# S12: the service refuses empty text as SUBMISSION_EMPTY
+# file: students/services.py (occurrence 1)
+# old: '        raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})'
+# new: '        raise ValueError("There is no text to extract answers from.")'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 11.8
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_the_service_refuses_before_the_billed_extraction (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_the_service_refuses_before_the_billed_extraction) (text="''")
+ERROR: test_the_service_refuses_before_the_billed_extraction (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_the_service_refuses_before_the_billed_extraction) (text="'   '")
+ERROR: test_the_service_refuses_before_the_billed_extraction (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_the_service_refuses_before_the_billed_extraction) (text="'\\n\\t '")
+
+FAILED (errors=3, skipped=1)

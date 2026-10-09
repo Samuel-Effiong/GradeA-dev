@@ -1,0 +1,6 @@
+20:21:51 (r) billing/tests/test_wallet_lock_first_expiry.py audit/tests_background_attribution.py taken from 3b5f9fb5, the rest is d2ad0405
+20:21:51 (r) start: loadavg 1.94 2.15 3.20 9/3013 1979661
+20:22:31 (r) end: loadavg 2.49 2.30 3.21 1/2971 1979983
+20:22:31 (r) exit=1 (1 is the expected one)
+20:22:31 (r) the red set differs
+20:22:31 STOP: (r) the red set differs from the expected one

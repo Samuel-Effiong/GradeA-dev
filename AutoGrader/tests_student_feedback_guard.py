@@ -131,6 +131,12 @@ RAW_FEEDBACK_READERS = {
         "ai_processor/management/commands/grading_eval.py",
         "Command._collect",
     ): "operator command: counts, printed to the operator",
+    (
+        "students/services.py",
+        "emit_grading_completed",
+    ): "internal: reads the model name that served a grading, for the audit "
+    "event (staff only); returns nothing to anyone (merge-down b12b: slice "
+    "C's function, read by the guard the batches brought)",
 }
 
 #: Rule 2. (file, class) -> who it serves.

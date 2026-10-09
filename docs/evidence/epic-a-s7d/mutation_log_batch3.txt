@@ -1,0 +1,14 @@
+E1_inactive_not_coded {'killed': True, 'failing_tests': ['test_an_inactive_licence', 'test_an_inactive_licence_says_so']}
+E2_no_seats_form_lost {'killed': True, 'failing_tests': ['test_a_full_licence_says_so', 'test_the_seat_refusal_writes_and_sends_nothing']}
+E3_already_on_licence_reported_as_failed {'killed': True, 'failing_tests': ['test_teachers_already_on_the_licence_need_no_seat']}
+E4_no_savepoint_per_teacher {'killed': True, 'failing_tests': ['test_a_database_error_in_one_teachers_seat', 'test_an_error_after_the_account_exists', 'test_each_refusal_has_its_code']}
+E5_other_role_not_mapped {'killed': True, 'failing_tests': ['test_each_refusal_has_its_code']}
+E6_other_school_not_mapped {'killed': True, 'failing_tests': ['test_another_schools_paying_teacher_shows_no_billing_hint', 'test_each_refusal_has_its_code']}
+E7_not_business_not_mapped {'killed': True, 'failing_tests': ['test_each_refusal_has_its_code']}
+E8_individual_subscription_not_mapped {'killed': True, 'failing_tests': ['test_each_refusal_has_its_code']}
+E9_refusal_log_carries_the_exception {'killed': True, 'failing_tests': ['test_no_refusal_logs_the_address']}
+E10_malformed_id_escapes {'killed': True, 'failing_tests': ['test_every_bad_id_answers_alike_and_the_good_one_is_removed']}
+E11_not_on_licence_called_a_failure {'killed': True, 'failing_tests': ['test_every_bad_id_answers_alike_and_the_good_one_is_removed', 'test_removing_a_teacher_not_on_the_licence_says_so']}
+E12_a_string_is_read_as_a_list {'killed': True, 'failing_tests': ['test_no_teachers_on_either_route']}
+E13_removal_loses_its_remediation {'killed': True, 'failing_tests': ['test_no_teachers_on_either_route']}
+SURVIVORS: []

@@ -1,0 +1,6 @@
+started 2026-09-30T18:50:07+01:00 worktree head b2890d9 diff 6c997a0f6db6
+repro_b2890d9  rc=1 5s Ran 8 tests in 0.149s FAILED (failures=18, errors=48)
+
+dropped test_pickle_repro
+fix_modules    rc=0 42s Ran 84 tests in 8.906s OK
+finished 2026-09-30T18:51:00+01:00

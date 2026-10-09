@@ -84,7 +84,8 @@ EXTRACTION = json.dumps(
     }
 )
 
-UNREADABLE_PDF_ERROR = "Could not read this PDF"
+# b.pdf's coded FILE_UNREADABLE message (FR-A-06 S6b).
+UNREADABLE_PDF_ERROR = "couldn't read b.pdf"
 PROCESSING = AssignmentUploadFingerprint.Status.PROCESSING
 COMPLETED = AssignmentUploadFingerprint.Status.COMPLETED
 

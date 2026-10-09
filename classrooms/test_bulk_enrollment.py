@@ -95,7 +95,14 @@ class BulkEnrollmentTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["results"][0]["status"], "skipped")
-        self.assertEqual(response.data["results"][0]["error"], "Already enrolled")
+        # S7d (catalogue D2): coded, with the row number.
+        self.assertEqual(
+            response.data["results"][0]["reason_code"], "ROW_ALREADY_ENROLLED"
+        )
+        self.assertEqual(
+            response.data["results"][0]["error"],
+            "Row 1: Alice Wonderland is already in this course.",
+        )
 
     def test_bulk_add_missing_required_fields(self):
         """Test handling of missing names."""
@@ -161,6 +168,9 @@ class BulkEnrollmentTest(APITestCase):
         self.assertEqual(response.data["success_count"], 0)
         self.assertEqual(response.data["failure_count"], 1)
         self.assertEqual(response.data["results"][0]["status"], "failed")
+        # S7d (catalogue D2): coded, with the row number.
+        self.assertEqual(response.data["results"][0]["reason_code"], "ROW_NAME_MISSING")
         self.assertEqual(
-            response.data["results"][0]["error"], "First and last names are required."
+            response.data["results"][0]["error"],
+            "Row 1: a first and a last name are required.",
         )

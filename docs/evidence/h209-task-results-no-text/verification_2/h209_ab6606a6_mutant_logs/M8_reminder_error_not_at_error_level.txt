@@ -1,0 +1,59 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 43ec46cd-b6c8-47e6-aeb2-bc363f6f17ff.
+Cannot activate automatic trial for user 43ec46cd-b6c8-47e6-aeb2-bc363f6f17ff (validation): ValueError
+.Free trial plan not found: no trial activated for user c0e32853-dd0b-4bdb-9f82-80b817b542da.
+Cannot activate automatic trial for user c0e32853-dd0b-4bdb-9f82-80b817b542da (validation): ValueError
+.Free trial plan not found: no trial activated for user 7482d282-102a-4335-8fee-08e8a367a365.
+Cannot activate automatic trial for user 7482d282-102a-4335-8fee-08e8a367a365 (validation): ValueError
+.Free trial plan not found: no trial activated for user 20e560db-8e2d-43b7-9554-237996a83e7f.
+Cannot activate automatic trial for user 20e560db-8e2d-43b7-9554-237996a83e7f (validation): ValueError
+.Free trial plan not found: no trial activated for user 08685c2b-d0d4-4e43-9209-514117f7c10d.
+Cannot activate automatic trial for user 08685c2b-d0d4-4e43-9209-514117f7c10d (validation): ValueError
+.Free trial plan not found: no trial activated for user 4a18d492-0954-45b2-8a91-3841eac421f6.
+Cannot activate automatic trial for user 4a18d492-0954-45b2-8a91-3841eac421f6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7a293fab-fa6e-484a-9959-f887d7e48390.
+Cannot activate automatic trial for user 7a293fab-fa6e-484a-9959-f887d7e48390 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1e646fbe-3ff5-4d34-99d6-c9e0afd4ca73.
+Cannot activate automatic trial for user 1e646fbe-3ff5-4d34-99d6-c9e0afd4ca73 (validation): ValueError
+FFree trial plan not found: no trial activated for user 3d1af222-7147-4f29-93ea-33f23e29e9ae.
+Cannot activate automatic trial for user 3d1af222-7147-4f29-93ea-33f23e29e9ae (validation): ValueError
+.Free trial plan not found: no trial activated for user cd67e5c0-aeea-47a6-9a8c-0e67eac692fb.
+Cannot activate automatic trial for user cd67e5c0-aeea-47a6-9a8c-0e67eac692fb (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:01,565 task_tracking 1863905 126578916404160 [request_id=-] Background task 8b5739cd-d08e-41a2-991d-34c2aeb436bb failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 2f533929-f362-4c12-895f-7e17b6224c2d.
+Cannot activate automatic trial for user 2f533929-f362-4c12-895f-7e17b6224c2d (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:01,773 task_tracking 1863905 126578916404160 [request_id=-] Background task 3240aff9-29a4-4445-9e94-e5b4cdb0635b failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 44545d64-61b1-4ff6-97dc-7f8d5942dedf.
+Cannot activate automatic trial for user 44545d64-61b1-4ff6-97dc-7f8d5942dedf (validation): ValueError
+.
+======================================================================
+FAIL: test_r1_reminder_failure_returns_class_only_and_logs_one_error (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_r1_reminder_failure_returns_class_only_and_logs_one_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 202, in test_r1_reminder_failure_returns_class_only_and_logs_one_error
+    error = self.one_error(cap, "send_assignment_due_reminder", aid)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 120, in one_error
+    self.assertEqual(
+AssertionError: 0 != 1 : expected exactly one ERROR record, got 0
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.647s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

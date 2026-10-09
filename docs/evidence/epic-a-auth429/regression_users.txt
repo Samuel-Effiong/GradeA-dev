@@ -1,0 +1,203 @@
+# Trimmed: the last 200 lines. Full log (810K, over the repo's 500 KB limit):
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-auth429_regression_users_b512ddf_full.txt
+
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 1300, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 1300, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 1300, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Cannot activate automatic trial for user h53.burst@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 927, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 923, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+verify_email address locked after too many attempts
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 927, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 923, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 927, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 923, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 895, in verify
+    raise EnvelopedThrottled(
+users.exceptions.EnvelopedThrottled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 927, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 923, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 927, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 923, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+...........
+----------------------------------------------------------------------
+Ran 693 tests in 46.661s
+
+OK (skipped=4)
+Destroying test database for alias 'default'...

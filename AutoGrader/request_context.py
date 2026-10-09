@@ -50,6 +50,14 @@ _VALID_INBOUND_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 _request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
 
+# X-5: the request id above is ALWAYS minted by the server - it is the audit
+# trace id, and a client must not choose which trail its actions land in. A
+# client's own inbound X-Request-ID is kept apart, only if it is a UUID, as
+# untrusted context for joining frontend and backend logs.
+_client_request_id_var: ContextVar[Optional[str]] = ContextVar(
+    "client_request_id", default=None
+)
+
 
 def generate_request_id() -> str:
     return uuid.uuid4().hex
@@ -59,6 +67,32 @@ def is_valid_request_id(value: Optional[str]) -> bool:
     if not value:
         return False
     return bool(_VALID_INBOUND_ID_RE.match(value))
+
+
+def client_request_id_from_header(value: Optional[str]) -> Optional[str]:
+    """A client's inbound X-Request-ID as a canonical UUID string, or None.
+
+    Only a UUID is kept (no free text reaches logs or audit rows), and it is
+    only ever context - never the request id."""
+    if not is_valid_request_id(value):
+        return None
+    try:
+        return str(uuid.UUID(value))
+    except ValueError:
+        return None
+
+
+def get_client_request_id() -> Optional[str]:
+    """The current request's client-supplied UUID, or None."""
+    return _client_request_id_var.get()
+
+
+def set_client_request_id(value: Optional[str]) -> Token:
+    return _client_request_id_var.set(value)
+
+
+def reset_client_request_id(token: Token) -> None:
+    _client_request_id_var.reset(token)
 
 
 def get_request_id() -> Optional[str]:
@@ -82,7 +116,8 @@ def reset_request_id(token: Token) -> None:
 
 
 class RequestIDLogFilter(logging.Filter):
-    """Injects the current request id into every LogRecord as `request_id`.
+    """Injects the current request id into every LogRecord as `request_id`,
+    and the client's own UUID (X-5: context only) as `client_request_id`.
 
     Wired into LOGGING["handlers"]["console"]["filters"] in settings.py.
     Logging filters run on every record regardless of which logger emitted
@@ -93,4 +128,5 @@ class RequestIDLogFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = get_request_id() or "-"
+        record.client_request_id = get_client_request_id() or "-"
         return True
