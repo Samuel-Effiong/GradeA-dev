@@ -1,0 +1,24 @@
+1a, H-148 at 19f5c872 (the final tip): what each run must show. Written 2026-10-07 15:47:13 WAT (clock read), BEFORE any run of mine.
+No probe below has been seen red or green yet; none is evidence until its run shows it.
+
+Baseline (unmutated): classrooms.tests_vf1a_h148_probe (4 tests, mine) and classrooms.tests_teacher_names_student_on_add
+(25, the author's): Ran 29, OK.
+
+X1 to X4 run my probe module ALONE (Ran 4). Each must fail exactly the one method named, and no other.
+
+X1 (a stored name of spaces counts as a name: no strip)          -> test_qa_a_stored_name_of_spaces_only_is_filled
+X2 (the fill does not write the middle name)                      -> test_qb_an_account_with_only_a_middle_name_is_filled_and_loses_it
+X3 (the fill does not ask whether the account has a name)         -> test_qc_the_first_teachers_name_stands_for_the_second_teacher
+X4 (the name clash compares the first name exactly, not by case)  -> test_qd_a_classmates_name_in_another_case_is_refused_and_nothing_is_filled
+
+Why no other method fails, by reading every assertion of the four against each mutant:
+X1: qb, qc and qd start from empty strings, which are no name with or without the strip.
+X2: qa, qc and qd have no stored middle name and type none, so the middle name reads "" either way.
+X3: qa and qb are filled either way; in qd the forced fill still meets the classmate's name (compared without case) and is undone.
+X4: only qd has a classmate with the same name; qc's second course has no other student.
+
+qb SHOWS what the code does with an account that has only a middle name (it is filled and the middle name is replaced);
+it does not say that this is right. That is for the Senior Manager.
+
+Stop rule: a red baseline, a mutant not applied (the runner exits 8 before any test) or a differing set means RELEASE
+with the facts and no second attempt inside the grant.

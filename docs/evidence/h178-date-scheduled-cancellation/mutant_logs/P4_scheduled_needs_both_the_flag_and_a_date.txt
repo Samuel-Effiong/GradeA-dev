@@ -1,0 +1,299 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 642ee052-0624-444a-b16e-70b057bf3f19.
+Cannot activate automatic trial for user 642ee052-0624-444a-b16e-70b057bf3f19 (validation): ValueError
+FFree trial plan not found: no trial activated for user cbeb543f-e70b-4a62-b5ac-bf7a558acabd.
+Cannot activate automatic trial for user cbeb543f-e70b-4a62-b5ac-bf7a558acabd (validation): ValueError
+.Free trial plan not found: no trial activated for user f12967a3-51f3-4511-bf93-a85193ea7aff.
+Cannot activate automatic trial for user f12967a3-51f3-4511-bf93-a85193ea7aff (validation): ValueError
+FFree trial plan not found: no trial activated for user c1d91725-8789-47af-92f1-3d6665efc75a.
+Cannot activate automatic trial for user c1d91725-8789-47af-92f1-3d6665efc75a (validation): ValueError
+FFree trial plan not found: no trial activated for user f24c3fab-cd10-476b-aa5d-5abab4e14dd2.
+Cannot activate automatic trial for user f24c3fab-cd10-476b-aa5d-5abab4e14dd2 (validation): ValueError
+.Free trial plan not found: no trial activated for user f93cd9e1-9a24-4eb4-aaac-e5c93846c8e8.
+Cannot activate automatic trial for user f93cd9e1-9a24-4eb4-aaac-e5c93846c8e8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7627e8f0-0318-458b-83dd-838efcefcb53.
+Cannot activate automatic trial for user 7627e8f0-0318-458b-83dd-838efcefcb53 (validation): ValueError
+FFree trial plan not found: no trial activated for user 85befbfc-ae36-40bc-a454-ba1b21cd4fd5.
+Cannot activate automatic trial for user 85befbfc-ae36-40bc-a454-ba1b21cd4fd5 (validation): ValueError
+FFree trial plan not found: no trial activated for user 26d1cbdf-c2fb-4603-8d77-e3b326264ef4.
+Cannot activate automatic trial for user 26d1cbdf-c2fb-4603-8d77-e3b326264ef4 (validation): ValueError
+FFree trial plan not found: no trial activated for user 1ac78e06-b2dc-4357-8653-eaaaea9ca589.
+Cannot activate automatic trial for user 1ac78e06-b2dc-4357-8653-eaaaea9ca589 (validation): ValueError
+...Free trial plan not found: no trial activated for user 60821a0a-a250-43c2-a932-10c5011447fa.
+Cannot activate automatic trial for user 60821a0a-a250-43c2-a932-10c5011447fa (validation): ValueError
+.Free trial plan not found: no trial activated for user 992ab3dd-0717-4238-bbe6-312a48f5e875.
+Cannot activate automatic trial for user 992ab3dd-0717-4238-bbe6-312a48f5e875 (validation): ValueError
+.Free trial plan not found: no trial activated for user 68ee733b-c2b7-4dab-bdee-7e54bf49e587.
+Cannot activate automatic trial for user 68ee733b-c2b7-4dab-bdee-7e54bf49e587 (validation): ValueError
+.Free trial plan not found: no trial activated for user c655cea5-c9f1-45a7-a3fa-76e05bd9c044.
+Cannot activate automatic trial for user c655cea5-c9f1-45a7-a3fa-76e05bd9c044 (validation): ValueError
+.Free trial plan not found: no trial activated for user b008ab3e-03e6-4907-b41d-e76936799681.
+Cannot activate automatic trial for user b008ab3e-03e6-4907-b41d-e76936799681 (validation): ValueError
+.Free trial plan not found: no trial activated for user 55ce347d-046b-4c1a-9916-510bcfb0fe51.
+Cannot activate automatic trial for user 55ce347d-046b-4c1a-9916-510bcfb0fe51 (validation): ValueError
+.Free trial plan not found: no trial activated for user f26e967e-b8c3-4449-9d7d-22d7ce59826b.
+Cannot activate automatic trial for user f26e967e-b8c3-4449-9d7d-22d7ce59826b (validation): ValueError
+.....Free trial plan not found: no trial activated for user cd99c3a7-5cbb-43cd-9f08-5d0b35f66e36.
+Cannot activate automatic trial for user cd99c3a7-5cbb-43cd-9f08-5d0b35f66e36 (validation): ValueError
+.Free trial plan not found: no trial activated for user f6f11f3b-23b9-45ba-801c-f477a1e3da78.
+Cannot activate automatic trial for user f6f11f3b-23b9-45ba-801c-f477a1e3da78 (validation): ValueError
+.Free trial plan not found: no trial activated for user c68739ff-74c5-4936-9a4f-9c697d32b684.
+Cannot activate automatic trial for user c68739ff-74c5-4936-9a4f-9c697d32b684 (validation): ValueError
+.Free trial plan not found: no trial activated for user 254b7b62-0055-4df9-84e1-7998eddb8e83.
+Cannot activate automatic trial for user 254b7b62-0055-4df9-84e1-7998eddb8e83 (validation): ValueError
+.Free trial plan not found: no trial activated for user b3681caa-8466-4993-b537-2e79d3a050cd.
+Cannot activate automatic trial for user b3681caa-8466-4993-b537-2e79d3a050cd (validation): ValueError
+.Free trial plan not found: no trial activated for user ee4bd9bc-b5d8-4e1c-9070-a044be86b88d.
+Cannot activate automatic trial for user ee4bd9bc-b5d8-4e1c-9070-a044be86b88d (validation): ValueError
+.Free trial plan not found: no trial activated for user e7bda148-237f-4395-b33c-760a2b9adfae.
+Cannot activate automatic trial for user e7bda148-237f-4395-b33c-760a2b9adfae (validation): ValueError
+FFree trial plan not found: no trial activated for user 8ad732c8-41b2-4e5e-b054-1739e133f68b.
+Cannot activate automatic trial for user 8ad732c8-41b2-4e5e-b054-1739e133f68b (validation): ValueError
+.Free trial plan not found: no trial activated for user 6fcdae16-5b9b-47e2-adad-7fd44ae46f72.
+Cannot activate automatic trial for user 6fcdae16-5b9b-47e2-adad-7fd44ae46f72 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7bd2ae22-50f6-462a-a7de-2e97ddac10ac.
+Cannot activate automatic trial for user 7bd2ae22-50f6-462a-a7de-2e97ddac10ac (validation): ValueError
+.Free trial plan not found: no trial activated for user 247a8a76-bdf9-42ea-a4ec-5639df88b5de.
+Cannot activate automatic trial for user 247a8a76-bdf9-42ea-a4ec-5639df88b5de (validation): ValueError
+.Free trial plan not found: no trial activated for user 04108e3e-5036-484f-b33a-8925f2b9dd93.
+Cannot activate automatic trial for user 04108e3e-5036-484f-b33a-8925f2b9dd93 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1f212a53-30f3-4232-8db0-d88a4208c27d.
+Cannot activate automatic trial for user 1f212a53-30f3-4232-8db0-d88a4208c27d (validation): ValueError
+.Free trial plan not found: no trial activated for user a541bf2c-6bbd-4c9e-ac6e-48c3e1a9448d.
+Cannot activate automatic trial for user a541bf2c-6bbd-4c9e-ac6e-48c3e1a9448d (validation): ValueError
+.Free trial plan not found: no trial activated for user 6db1bb78-2acc-4a95-99a4-b2f8252bf399.
+Cannot activate automatic trial for user 6db1bb78-2acc-4a95-99a4-b2f8252bf399 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2d368a9e-21cc-49b0-9b22-4e0c4d054d67.
+Cannot activate automatic trial for user 2d368a9e-21cc-49b0-9b22-4e0c4d054d67 (validation): ValueError
+.Free trial plan not found: no trial activated for user 15fa42cd-5569-4525-9f13-a6b7eeba459f.
+Cannot activate automatic trial for user 15fa42cd-5569-4525-9f13-a6b7eeba459f (validation): ValueError
+.Free trial plan not found: no trial activated for user 4184aab7-b296-482e-bf36-ae7fa3657c5c.
+Cannot activate automatic trial for user 4184aab7-b296-482e-bf36-ae7fa3657c5c (validation): ValueError
+.Free trial plan not found: no trial activated for user 2bbee260-8771-49f9-bdd0-df2bbcd4b9cc.
+Cannot activate automatic trial for user 2bbee260-8771-49f9-bdd0-df2bbcd4b9cc (validation): ValueError
+.Free trial plan not found: no trial activated for user 8fc6e34f-7732-41ec-8d3f-9a31d5de4363.
+Cannot activate automatic trial for user 8fc6e34f-7732-41ec-8d3f-9a31d5de4363 (validation): ValueError
+.Free trial plan not found: no trial activated for user 11af3cf8-10d5-41c2-aba3-1fbad132d3a8.
+Cannot activate automatic trial for user 11af3cf8-10d5-41c2-aba3-1fbad132d3a8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 11568c07-cf70-4358-988d-d0ffffac0921.
+Cannot activate automatic trial for user 11568c07-cf70-4358-988d-d0ffffac0921 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1dbdab9f-dbae-48b6-8cf3-ddb867748189.
+Cannot activate automatic trial for user 1dbdab9f-dbae-48b6-8cf3-ddb867748189 (validation): ValueError
+.Free trial plan not found: no trial activated for user 87ff1322-3f6e-4444-9950-805dbe45cead.
+Cannot activate automatic trial for user 87ff1322-3f6e-4444-9950-805dbe45cead (validation): ValueError
+FFree trial plan not found: no trial activated for user 0ccb38ff-4045-4867-93c7-27abd3e9f2d9.
+Cannot activate automatic trial for user 0ccb38ff-4045-4867-93c7-27abd3e9f2d9 (validation): ValueError
+FFree trial plan not found: no trial activated for user 5129b872-84e3-4f04-b20a-f25950adb292.
+Cannot activate automatic trial for user 5129b872-84e3-4f04-b20a-f25950adb292 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9e93e44e-8162-49e0-ba3a-d9d2aff87466.
+Cannot activate automatic trial for user 9e93e44e-8162-49e0-ba3a-d9d2aff87466 (validation): ValueError
+.Free trial plan not found: no trial activated for user 78ad6931-73fe-4507-a917-e927f2e8c711.
+Cannot activate automatic trial for user 78ad6931-73fe-4507-a917-e927f2e8c711 (validation): ValueError
+EFree trial plan not found: no trial activated for user 83f0eaf4-08ed-4952-90fa-86667cc31dc7.
+Cannot activate automatic trial for user 83f0eaf4-08ed-4952-90fa-86667cc31dc7 (validation): ValueError
+FFree trial plan not found: no trial activated for user db2428dc-8612-4b9d-8bf1-dd24060be17a.
+Cannot activate automatic trial for user db2428dc-8612-4b9d-8bf1-dd24060be17a (validation): ValueError
+.Free trial plan not found: no trial activated for user e3a67ae4-3cbe-4dba-a7b3-e09854974de4.
+Cannot activate automatic trial for user e3a67ae4-3cbe-4dba-a7b3-e09854974de4 (validation): ValueError
+FFree trial plan not found: no trial activated for user 9edb3a35-bd73-4ca2-b266-aa979b91756b.
+Cannot activate automatic trial for user 9edb3a35-bd73-4ca2-b266-aa979b91756b (validation): ValueError
+FFree trial plan not found: no trial activated for user a8137ff9-59a9-482a-accf-835d91278c22.
+Cannot activate automatic trial for user a8137ff9-59a9-482a-accf-835d91278c22 (validation): ValueError
+.Free trial plan not found: no trial activated for user d76f0692-638a-4e33-8b57-8d5c5dddcfb7.
+Cannot activate automatic trial for user d76f0692-638a-4e33-8b57-8d5c5dddcfb7 (validation): ValueError
+.Free trial plan not found: no trial activated for user fea98412-3b1a-47ad-b294-b8f55927eb76.
+Cannot activate automatic trial for user fea98412-3b1a-47ad-b294-b8f55927eb76 (validation): ValueError
+FFree trial plan not found: no trial activated for user c50487fa-37b9-4185-84ae-4ddda3ad1290.
+Cannot activate automatic trial for user c50487fa-37b9-4185-84ae-4ddda3ad1290 (validation): ValueError
+FFree trial plan not found: no trial activated for user 1a812262-8cfd-4486-a44f-990e3471fade.
+Cannot activate automatic trial for user 1a812262-8cfd-4486-a44f-990e3471fade (validation): ValueError
+FFree trial plan not found: no trial activated for user 37b0c1d0-c33c-4951-8341-e105d21d17ad.
+Cannot activate automatic trial for user 37b0c1d0-c33c-4951-8341-e105d21d17ad (validation): ValueError
+.Free trial plan not found: no trial activated for user f1944021-2bb2-4083-b74e-e117aa00ff3b.
+Cannot activate automatic trial for user f1944021-2bb2-4083-b74e-e117aa00ff3b (validation): ValueError
+.Free trial plan not found: no trial activated for user 25ec196d-4308-4a56-924e-a5633ea41d8e.
+Cannot activate automatic trial for user 25ec196d-4308-4a56-924e-a5633ea41d8e (validation): ValueError
+.Free trial plan not found: no trial activated for user 7b760ad1-9fdd-4b5f-bdf6-ad4aac9b87ec.
+Cannot activate automatic trial for user 7b760ad1-9fdd-4b5f-bdf6-ad4aac9b87ec (validation): ValueError
+.Free trial plan not found: no trial activated for user 570f22cb-6c4d-427a-8e07-a69f6f97f01c.
+Cannot activate automatic trial for user 570f22cb-6c4d-427a-8e07-a69f6f97f01c (validation): ValueError
+FFree trial plan not found: no trial activated for user 3a45006b-efec-4035-8321-404ed9cecf1d.
+Cannot activate automatic trial for user 3a45006b-efec-4035-8321-404ed9cecf1d (validation): ValueError
+F
+======================================================================
+ERROR: test_falls_back_to_now_when_stripe_sends_no_canceled_at (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_falls_back_to_now_when_stripe_sends_no_canceled_at)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 620, in test_falls_back_to_now_when_stripe_sends_no_canceled_at
+    self.assertGreaterEqual(cancelled_at, before)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 1273, in assertGreaterEqual
+    if not a >= b:
+           ^^^^^^
+TypeError: '>=' not supported between instances of 'NoneType' and 'datetime.datetime'
+
+======================================================================
+FAIL: test_a_date_with_the_period_end_flag_off_stops_the_record_renewing (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_date_with_the_period_end_flag_off_stops_the_record_renewing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_date_scheduled_cancellation.py", line 140, in test_a_date_with_the_period_end_flag_off_stops_the_record_renewing
+    self.assertIs(sub.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_a_message_with_a_date_but_without_the_flag_is_scheduled (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_message_with_a_date_but_without_the_flag_is_scheduled)
+The flag is absent (a thin payload), the date is there: that says
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_date_scheduled_cancellation.py", line 181, in test_a_message_with_a_date_but_without_the_flag_is_scheduled
+    self.assertIs(self.reloaded().auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_a_repeat_of_the_same_message_writes_nothing (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_a_repeat_of_the_same_message_writes_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_date_scheduled_cancellation.py", line 166, in test_a_repeat_of_the_same_message_writes_nothing
+    self.assertIs(first.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_clearing_the_flag_does_not_undo_a_date_that_is_still_set (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_clearing_the_flag_does_not_undo_a_date_that_is_still_set)
+The customer's own cancellation (period end) was changed in
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_date_scheduled_cancellation.py", line 192, in test_clearing_the_flag_does_not_undo_a_date_that_is_still_set
+    self.assertIs(sub.auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_the_period_end_flag_alone_still_mirrors (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_the_period_end_flag_alone_still_mirrors)
+Green on the old code too: the existing behaviour is kept.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_date_scheduled_cancellation.py", line 223, in test_the_period_end_flag_alone_still_mirrors
+    self.assertIs(self.reloaded().auto_renew, False)
+AssertionError: True is not False
+
+======================================================================
+FAIL: test_the_recorded_date_is_stripes_own_when_it_gives_one (billing.tests.test_date_scheduled_cancellation.DateScheduledCancellationMirrorTests.test_the_recorded_date_is_stripes_own_when_it_gives_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_date_scheduled_cancellation.py", line 154, in test_the_recorded_date_is_stripes_own_when_it_gives_one
+    assert recorded is not None
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_dashboard_cancel_then_in_app_resume (billing.tests.test_cancellation_visibility.CancelResumeRoundTripTests.test_dashboard_cancel_then_in_app_resume)
+The cross-surface case the gap fix enables: cancelled in the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 896, in test_dashboard_cancel_then_in_app_resume
+    self.assertTrue(self._flag())
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_backfills_a_missing_date_on_an_already_cancelled_row (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_backfills_a_missing_date_on_an_already_cancelled_row)
+A row cancelled before cancelled_at existed still gets a date
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 674, in test_backfills_a_missing_date_on_an_already_cancelled_row
+    self.assertIsNotNone(self._reload().cancelled_at)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_dashboard_cancellation_is_mirrored_locally (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_dashboard_cancellation_is_mirrored_locally)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 570, in test_dashboard_cancellation_is_mirrored_locally
+    self.assertFalse(updated.auto_renew)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_frontend_sees_the_banner_after_a_dashboard_cancellation (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_frontend_sees_the_banner_after_a_dashboard_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 590, in test_frontend_sees_the_banner_after_a_dashboard_cancellation
+    self.assertTrue(data["cancellation"]["has_pending_cancellation"])
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_malformed_canceled_at_falls_back_instead_of_raising (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_malformed_canceled_at_falls_back_instead_of_raising)
+A bad timestamp must never be the reason a webhook 500s — that
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 638, in test_malformed_canceled_at_falls_back_instead_of_raising
+    self.assertFalse(updated.auto_renew)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_our_own_cancel_date_wins_over_the_echoed_event (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_our_own_cancel_date_wins_over_the_echoed_event)
+Our cancel endpoint sets Stripe first, so the resulting webhook
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 660, in test_our_own_cancel_date_wins_over_the_echoed_event
+    self.assertEqual(self._reload().cancelled_at, ours)
+AssertionError: None != datetime.datetime(2026, 10, 5, 16, 41, 46, 329748, tzinfo=datetime.timezone.utc)
+
+======================================================================
+FAIL: test_replay_of_an_already_synced_cancellation_writes_nothing (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_replay_of_an_already_synced_cancellation_writes_nothing)
+This event fires for changes our own code just made, and Stripe
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 717, in test_replay_of_an_already_synced_cancellation_writes_nothing
+    mock_save.assert_not_called()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'save' to not have been called. Called 1 times.
+Calls: [call(update_fields=['auto_renew', 'cancelled_at', 'updated_at'])].
+
+======================================================================
+FAIL: test_status_and_cancellation_sync_together (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_status_and_cancellation_sync_together)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 762, in test_status_and_cancellation_sync_together
+    self.assertFalse(updated.auto_renew)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_status_stays_active_which_is_why_status_sync_alone_missed_this (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_status_stays_active_which_is_why_status_sync_alone_missed_this)
+Pins the premise: the event carries no status change at all.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 582, in test_status_stays_active_which_is_why_status_sync_alone_missed_this
+    self.assertFalse(updated.auto_renew)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_unmapped_status_still_syncs_the_cancellation (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_unmapped_status_still_syncs_the_cancellation)
+An unmapped status ("paused") leaves stripe_status alone, but
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 781, in test_unmapped_status_still_syncs_the_cancellation
+    self.assertFalse(updated.auto_renew)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_uses_stripes_own_canceled_at_timestamp (billing.tests.test_cancellation_visibility.StripeDashboardCancellationSyncTests.test_uses_stripes_own_canceled_at_timestamp)
+Stripe knows when the cancellation was actually requested; the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h178-date-scheduled-cancellation/billing/tests/test_cancellation_visibility.py", line 610, in test_uses_stripes_own_canceled_at_timestamp
+    self.assertEqual(self._reload().cancelled_at, cancelled_on)
+AssertionError: None != datetime.datetime(2026, 3, 3, 12, 0, tzinfo=datetime.timezone.utc)
+
+----------------------------------------------------------------------
+Ran 66 tests in 2.255s
+
+FAILED (failures=17, errors=1)
+Preserving test database for alias 'default'...
+Found 66 test(s).
