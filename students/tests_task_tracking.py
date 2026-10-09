@@ -423,7 +423,11 @@ class MarkProcessingTaskFailureMessageTest(TestCase):
         self.assertEqual(self.processing_task.error, INSUFFICIENT_CREDITS_MESSAGE)
 
     @patch("students.task_tracking.logger")
-    def test_exception_instance_is_logged_server_side_with_traceback(self, mock_logger):
+    def test_exception_instance_is_logged_server_side_with_class_and_frames_only(
+        self, mock_logger
+    ):
+        # H-208: the line names the error's class and its stack frames; the
+        # error's own text and a traceback are not logged.
         exc = RuntimeError("boom")
 
         mark_processing_task_failure(
@@ -431,8 +435,12 @@ class MarkProcessingTaskFailureMessageTest(TestCase):
         )
 
         mock_logger.error.assert_called_once()
-        _, kwargs = mock_logger.error.call_args
-        self.assertIs(kwargs.get("exc_info"), exc)
+        args, kwargs = mock_logger.error.call_args
+        self.assertNotIn("exc_info", kwargs)
+        logged = args[0] % args[1:]
+        self.assertIn(str(self.processing_task.id), logged)
+        self.assertIn("RuntimeError", logged)
+        self.assertNotIn("boom", logged)
 
     def test_none_error_with_fallback_used_for_celery_reported_failures(self):
         # normalize_processing_task_status has no exception object to hand
