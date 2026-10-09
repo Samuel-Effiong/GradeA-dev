@@ -1,0 +1,8 @@
+15:37:45 c1797665: 5 runs start, loadavg 3.47 4.04 3.63 13/2524 441220
+15:38:34 c1797665 run 1 exit=0 (0 failing lines)
+15:39:20 c1797665 run 2 exit=0 (0 failing lines)
+15:40:03 c1797665 run 3 exit=0 (0 failing lines)
+15:40:49 c1797665 run 4 exit=0 (0 failing lines)
+15:41:31 c1797665 run 5 exit=0 (0 failing lines)
+15:41:31 c1797665: 0 of 5 runs RED
+15:41:31 H-191 RATE END

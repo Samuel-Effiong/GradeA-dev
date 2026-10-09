@@ -34,7 +34,6 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
-    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -60,13 +59,7 @@ from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
-from users.throttling import (
-    RegisterThrottle,
-    log_register_student_refused_by_budget,
-    record_register_student_failure,
-    register_student_budget_retry_after,
-    register_student_failure_budget_spent,
-)
+from users.throttling import RegisterThrottle
 
 from . import services
 from .filters import MyStudentsFilter
@@ -1351,8 +1344,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
 
         try:
+            typed = {
+                "first_name": serializer.validated_data["first_name"],
+                "middle_name": serializer.validated_data.get("middle_name", ""),
+                "last_name": serializer.validated_data["last_name"],
+            }
             student, is_new_student = services.enroll_student_by_email(
-                course=course, email=serializer.validated_data["email"]
+                course=course,
+                email=serializer.validated_data["email"],
+                fill_empty_name=True,
+                **typed,
             )
         except services.EnrollmentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -1374,10 +1375,20 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # H-148: which name stands. An account that already had a name
+        # keeps it whatever was typed; the teacher is shown it here (and on
+        # the roster), and only when the add succeeded.
+        student_name = {
+            "first_name": student.first_name or "",
+            "middle_name": student.middle_name or "",
+            "last_name": student.last_name or "",
+        }
         return Response(
             {
                 "detail": "Student added to course successfully.",
                 "is_new_student": is_new_student,
+                "student_name": student_name,
+                "typed_name_used": student_name == typed,
             },
             status=status.HTTP_200_OK,
         )
@@ -1557,51 +1568,12 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_name="renew-activation-token",
     )
     def handle_expired_token(self, request, token=None, *args, **kwargs):
-        """Reissue an expired student activation link."""
-        # H-47: this door tests the same codes as /auth/register/student, so
-        # it spends the same global failure budget. Outside the try below:
-        # its catch-all would turn Throttled into a 500.
-        if register_student_failure_budget_spent():
-            log_register_student_refused_by_budget(door="renew")
-            raise Throttled(
-                wait=register_student_budget_retry_after(),
-                detail=(
-                    "Activation-link renewal is paused for a short while "
-                    "because of too many invalid activation codes. Please "
-                    "try again later."
-                ),
-            )
-        serializer = ExpiredTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        try:
-            services.renew_student_activation(token=serializer.validated_data["token"])
-        except services.EnrollmentError as exc:
-            record_register_student_failure("renew_refused")
-            raise ParseError(str(exc)) from exc
-        except Exception as exc:
-            logger.error("Failed to renew activation token", exc_info=exc)
-            return Response(
-                {
-                    "detail": describe_user_error(
-                        exc,
-                        fallback_message=(
-                            "We couldn't renew the activation link. Please "
-                            "try again."
-                        ),
-                    )
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
+        """H-152: closed with the door it served (/auth/register/student).
+        Every request gets the same answer; no code is read, renewed or
+        mailed, and nobody is told anything about a code."""
         return Response(
-            {
-                "detail": (
-                    "A new activation link has been sent to the student's "
-                    "email. Expires in 24 hours"
-                )
-            },
-            status=status.HTTP_200_OK,
+            {"detail": services.OLD_INVITATION_CLOSED_MESSAGE},
+            status=status.HTTP_410_GONE,
         )
 
     @extend_schema(

@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth.password_validation import validate_password
+from django.core.validators import MinLengthValidator
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
@@ -428,6 +429,20 @@ class CustomUserSerializer(serializers.ModelSerializer):
                 ),
                 code="user_update_error",
             ) from e
+
+
+class StudentNameSerializer(serializers.Serializer):
+    """H-153: the body of a teacher's rename of a student. The names follow
+    the rule of the forms that add a student (at least two letters; the
+    middle name optional). Nothing else can be sent through it."""
+
+    first_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
+    middle_name = serializers.CharField(max_length=150, default="", allow_blank=True)
+    last_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
 
 
 class GoogleUserSerializer(CustomUserSerializer):

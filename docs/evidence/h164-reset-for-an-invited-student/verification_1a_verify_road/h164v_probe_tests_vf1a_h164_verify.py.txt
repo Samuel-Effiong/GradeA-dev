@@ -1,0 +1,249 @@
+"""1a's own attack on H-164's verify-road delta (a never-verified account with
+admin power gets no activation code and cannot be verified or signed in by
+/auth/verify).
+
+  x0  my w1 (second form) kept as the "seen": a never-verified command-line
+      superuser asks for a VERIFY_EMAIL code and sends it to /auth/verify.
+      As the road was open it answered 202 with tokens; it is asserted open
+      here, so it must now be RED.
+  x1a the code request: the same neutral 202 as for a real unknown address
+      (status and bytes), no code stored, no mail.
+  x1b a code planted on the account (as an old one would be): /auth/verify
+      answers exactly as for a wrong code, and writes nothing.
+  x2  five refused verifies spend the budget AND lock the address (read from
+      the lock key itself), and the next one is a 429.
+  x3  an ordinary inactive, never-verified user still gets a code and is
+      activated and signed in by it (202 with tokens).
+  x4  a licence-invited teacher (active, never verified) still gets a code and
+      is verified and signed in by it.
+  x6  CHARACTERISATION, another road: Google sign-in for the same
+      command-line superuser (same address, Google says verified) answers 200
+      with tokens and stamps the email. Asserted as I read it (open).
+
+Copied into users/tests_vf1a_h164_verify.py of a scratch checkout.
+Usage: python manage.py test users.tests_vf1a_h164_verify
+"""
+
+from unittest.mock import patch
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.test import override_settings
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.throttling import SimpleRateThrottle
+
+from billing.license_service import LicenseSubscriptionService
+from classrooms.models import School
+from users.models import UserTypes
+from users.throttling import verify_lock_until
+
+User = get_user_model()
+
+LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+MANY = {
+    "otp_request": "1000/hour",
+    "login": "1000/min",
+    "anon": "1000/min",
+    "verify_email": "1000/min",
+}
+PLANTED = "123456"
+
+
+@override_settings(CACHES=LOCMEM)
+class VF1aH164Verify(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        throttles = patch.dict(SimpleRateThrottle.THROTTLE_RATES, MANY)
+        throttles.start()
+        self.addCleanup(throttles.stop)
+        mail = patch("users.services.send_email_task")
+        self.mail = mail.start()
+        self.addCleanup(mail.stop)
+        for target in ("users.views.sync_user_to_mailerlite",):
+            patcher = patch(target)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        licence_mail = patch("billing.license_service.send_email_task")
+        licence_mail.start()
+        self.addCleanup(licence_mail.stop)
+        self.ip = 0
+
+    # fixtures ----------------------------------------------------------
+    def superuser(self, email="vf1a.v.cmdline@v-school.example"):
+        account = User.objects.create_superuser(
+            email=email,
+            password="Power-pass-7",  # pragma: allowlist secret
+        )
+        self.assertIsNone(account.email_verified_at)
+        return account
+
+    def plant(self, account):
+        User.objects.filter(pk=account.pk).update(
+            activation_token=PLANTED,
+            activation_expires=timezone.now() + timezone.timedelta(minutes=15),
+        )
+
+    def request_code(self, email):
+        self.ip += 1
+        return self.client.post(
+            reverse("auth-otp"),
+            {"email": email, "otp_type": "VERIFY_EMAIL"},
+            format="json",
+            REMOTE_ADDR=f"10.167.0.{self.ip}",
+        )
+
+    def verify(self, email, token):
+        return self.client.post(
+            reverse("auth-verify"), {"email": email, "token": token}, format="json"
+        )
+
+    # tests -------------------------------------------------------------
+    def test_x0_the_old_road_is_open_asserted_so_it_is_red_now(self):
+        account = self.superuser()
+
+        asked = self.request_code(account.email)
+        self.assertEqual(asked.status_code, status.HTTP_202_ACCEPTED)
+        account.refresh_from_db()
+        self.assertIsNotNone(account.activation_token, "no code was issued")
+
+        answer = self.verify(account.email, account.activation_token)
+
+        self.assertEqual(
+            answer.status_code,
+            status.HTTP_202_ACCEPTED,
+            f"the verify route answered {answer.status_code}: {answer.data!r}",
+        )
+        self.assertIn("access", answer.data)
+
+    def test_x1a_the_code_request_is_the_unknown_address_answer_and_makes_nothing(self):
+        account = self.superuser()
+        unknown = self.request_code("vf1a.v.nobody@v-school.example")
+        self.mail.reset_mock()
+
+        answer = self.request_code(account.email)
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(answer.status_code, unknown.status_code)
+        self.assertEqual(answer.content, unknown.content)
+        account.refresh_from_db()
+        self.assertIsNone(account.activation_token, "a code was stored")
+        self.mail.delay.assert_not_called()
+
+    def test_x1b_a_planted_code_is_refused_like_a_wrong_code_and_nothing_is_written(self):
+        account = self.superuser()
+        self.plant(account)
+
+        wrong = self.verify(account.email, "654321")
+        answer = self.verify(account.email, PLANTED)
+
+        self.assertEqual(wrong.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(answer.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(answer.content, wrong.content)
+        account.refresh_from_db()
+        self.assertIsNone(account.email_verified_at)
+        self.assertTrue(account.is_active)
+        self.assertEqual(account.activation_token, PLANTED)
+
+    def test_x2_refused_verifies_spend_the_budget_and_lock_the_address(self):
+        account = self.superuser()
+        self.plant(account)
+        limit = settings.VERIFY_EMAIL_MAX_FAILURES
+
+        for number in range(limit):
+            answer = self.verify(account.email, PLANTED)
+            self.assertEqual(
+                answer.status_code, status.HTTP_400_BAD_REQUEST, f"attempt {number + 1}"
+            )
+
+        self.assertIsNotNone(verify_lock_until(account.email), "the address is not locked")
+        after = self.verify(account.email, PLANTED)
+        self.assertEqual(after.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_x3_an_ordinary_inactive_user_is_still_activated_by_a_code(self):
+        user = User.objects.create_user(
+            email="vf1a.v.ordinary@v-school.example",
+            password="Own-pass-1",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            is_active=False,
+        )
+
+        asked = self.request_code(user.email)
+        self.assertEqual(asked.status_code, status.HTTP_202_ACCEPTED)
+        user.refresh_from_db()
+        self.assertIsNotNone(user.activation_token, "no code was issued")
+        self.assertEqual(self.mail.delay.call_count, 1)
+
+        answer = self.verify(user.email, user.activation_token)
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED, answer.data)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertIsNotNone(user.email_verified_at)
+
+    def test_x4_a_licence_invited_teacher_is_still_verified_by_a_code(self):
+        school = School.objects.create(name="VF1a Verify High")
+        admin = User.objects.create_user(
+            email="vf1a.v.admin@v-school.example",
+            password="Admin-pass-2",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                "vf1a.v.teacher@v-school.example", school, admin
+            )
+        self.assertIsNotNone(teacher)
+        teacher.refresh_from_db()
+        self.assertIsNone(teacher.email_verified_at)
+
+        asked = self.request_code(teacher.email)
+        self.assertEqual(asked.status_code, status.HTTP_202_ACCEPTED)
+        teacher.refresh_from_db()
+        self.assertIsNotNone(teacher.activation_token, "no code was issued")
+
+        answer = self.verify(teacher.email, teacher.activation_token)
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED, answer.data)
+        self.assertIn("access", answer.data)
+        teacher.refresh_from_db()
+        self.assertIsNotNone(teacher.email_verified_at)
+
+    def test_x6_google_sign_in_still_signs_in_a_never_verified_superuser(self):
+        account = self.superuser("vf1a.v.google@gmail.com")
+        info = {
+            "email": account.email,
+            "email_verified": True,
+            "given_name": "Power",
+            "family_name": "User",
+        }
+
+        with patch("requests.post") as mocked_post, patch(
+            "users.views.id_token.verify_oauth2_token"
+        ) as mocked_verify:
+            mocked_post.return_value.raise_for_status.return_value = None
+            mocked_post.return_value.json.return_value = {
+                "id_token": "fake-id-token",
+                "access_token": "fake-access-token",
+                "refresh_token": "fake-refresh-token",
+                "expires_in": 3600,
+            }
+            mocked_verify.return_value = info
+            answer = self.client.post(
+                reverse("auth-google-auth"), {"code": "oauth-code"}, format="json"
+            )
+
+        self.assertEqual(
+            answer.status_code,
+            status.HTTP_200_OK,
+            f"google sign-in answered {answer.status_code}: {getattr(answer, 'data', None)!r}",
+        )
+        self.assertIn("access", answer.data)
+        account.refresh_from_db()
+        self.assertIsNotNone(account.email_verified_at)

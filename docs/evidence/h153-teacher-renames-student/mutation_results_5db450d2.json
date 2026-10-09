@@ -1,0 +1,440 @@
+{
+  "M01_nothing_is_saved": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_student_with_no_name_is_named_this_way",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_either_of_two_teachers_may_and_the_other_sees_the_new_name",
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_their_teacher_renames_them",
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_student_with_no_name_is_named_this_way",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_either_of_two_teachers_may_and_the_other_sees_the_new_name",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now"
+    ],
+    "pycache_left": 0
+  },
+  "M02_the_middle_name_is_not_taken": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_a_clash_there_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_their_teacher_renames_them",
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_student_with_no_name_is_named_this_way",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_either_of_two_teachers_may_and_the_other_sees_the_new_name",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now"
+    ],
+    "pycache_left": 0
+  },
+  "M03_a_first_name_of_one_letter_is_accepted": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_each_name_must_have_two_letters_and_cannot_be_blank"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_each_name_must_have_two_letters_and_cannot_be_blank"
+    ],
+    "pycache_left": 0
+  },
+  "M04_the_last_name_is_not_trimmed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_each_name_must_have_two_letters_and_cannot_be_blank",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional"
+    ],
+    "pycache_left": 0
+  },
+  "M05_other_fields_sent_with_the_name_are_saved_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here"
+    ],
+    "pycache_left": 0
+  },
+  "M06_the_answer_does_not_carry_the_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it"
+    ],
+    "pycache_left": 0
+  },
+  "M07_everyone_who_can_read_the_account_is_treated_as_a_super_admin": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_the_student_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_whose_student_has_withdrawn_or_completed_may_not",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_refused_rename_writes_no_such_line"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_refused_rename_writes_no_such_line",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_whose_student_has_withdrawn_or_completed_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_the_student_may_not"
+    ],
+    "pycache_left": 0
+  },
+  "M08_the_role_is_not_asked_only_the_course": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not"
+    ],
+    "pycache_left": 0
+  },
+  "M09_a_super_admin_is_not_let_in": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_only_a_student_can_be_renamed_here"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_only_a_student_can_be_renamed_here"
+    ],
+    "pycache_left": 0
+  },
+  "M10_any_account_that_exists_can_be_reached": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_with_no_course_of_the_student_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_an_outsider_cannot_tell_a_student_from_no_account_at_all",
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_their_former_teacher_may_not"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_their_former_teacher_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_with_no_course_of_the_student_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_an_outsider_cannot_tell_a_student_from_no_account_at_all"
+    ],
+    "pycache_left": 0
+  },
+  "M11_any_account_can_be_reached_by_anyone": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_classmate_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_with_no_course_of_the_student_may_not"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_their_former_teacher_may_not",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_refused_rename_writes_no_such_line",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_classmate_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_whose_student_has_withdrawn_or_completed_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_with_no_course_of_the_student_may_not",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_an_outsider_cannot_tell_a_student_from_no_account_at_all",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_the_student_may_not"
+    ],
+    "pycache_left": 0
+  },
+  "M12_a_teacher_needs_no_current_place_of_the_student": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_whose_student_has_withdrawn_or_completed_may_not"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_whose_student_has_withdrawn_or_completed_may_not"
+    ],
+    "pycache_left": 0
+  },
+  "M13_a_pending_place_does_not_count": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in"
+    ],
+    "pycache_left": 0
+  },
+  "M14_any_teachers_course_counts_as_the_callers": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now"
+    ],
+    "pycache_left": 0
+  },
+  "M15_an_account_that_is_not_a_students_can_be_renamed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_only_a_student_can_be_renamed_here"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_only_a_student_can_be_renamed_here"
+    ],
+    "pycache_left": 0
+  },
+  "M16_no_clash_is_looked_for": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_a_clash_there_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name"
+    ],
+    "pycache_left": 0
+  },
+  "M17_a_clash_elsewhere_is_quoted_to_the_caller": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts"
+    ],
+    "pycache_left": 0
+  },
+  "M18_a_clash_in_the_callers_own_course_is_not_quoted": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_a_clash_there_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name"
+    ],
+    "pycache_left": 0
+  },
+  "M19_a_course_the_student_has_withdrawn_from_is_not_checked": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts"
+    ],
+    "pycache_left": 0
+  },
+  "M20_a_withdrawn_classmate_does_not_hold_the_name": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name"
+    ],
+    "pycache_left": 0
+  },
+  "M21_the_students_own_name_counts_as_a_clash": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_keeping_the_students_own_name_is_no_clash"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_keeping_the_students_own_name_is_no_clash"
+    ],
+    "pycache_left": 0
+  },
+  "M22_no_line_is_written": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course"
+    ],
+    "pycache_left": 0
+  },
+  "M23_the_line_carries_the_name_instead_of_the_students_id": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course"
+    ],
+    "pycache_left": 0
+  },
+  "M24_the_line_names_no_course": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address"
+    ],
+    "pycache_left": 0
+  },
+  "M25_the_lock_goes_through_the_session_join_again": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 28,
+    "expected": [
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_student_with_no_name_is_named_this_way",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_either_of_two_teachers_may_and_the_other_sees_the_new_name",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now",
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_keeping_the_students_own_name_is_no_clash",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course",
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_their_teacher_renames_them",
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_a_clash_there_is_refused_and_quoted"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_a_clash_there_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_their_teacher_renames_them",
+      "users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_student_with_no_name_is_named_this_way",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_either_of_two_teachers_may_and_the_other_sees_the_new_name",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it",
+      "users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address",
+      "users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name",
+      "users.tests_teacher_renames_student.TheNameClashRuleTest.test_keeping_the_students_own_name_is_no_clash",
+      "users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now"
+    ],
+    "pycache_left": 0
+  }
+}

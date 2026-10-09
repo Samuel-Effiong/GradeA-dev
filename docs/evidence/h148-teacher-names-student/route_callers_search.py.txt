@@ -1,0 +1,101 @@
+"""H-148: every call of the add-by-email route in the whole test tree.
+
+Read-only. Run in the H-148 worktree, on the Release Engineer's grant (it
+walks every tracked .py file through `git grep`). Writes nothing into the
+tree; prints to stdout.
+
+The terms, so that the search can be judged and not only its hits:
+  T1  the route's name:            course-students
+  T2  the raw path, any spelling:  students  followed by an optional slash
+                                   and a quote ("/students", "students/",
+                                   f".../students", "/students" + ...)
+  T3  the route's own definition:  url_path="students"
+  T4  the body helper:             add_by_email
+  T5  the form:                    AddStudentToCourseSerializer
+  T6  the service under the route: enroll_student_by_email
+  T7  the class-list import:       bulk-add-students | bulk_add_students
+Then, for every hit of T1 or T2 that is inside a function that is not a
+test method (a helper that wraps the post, or a setUp), the helper's name is
+searched for in the whole tree as well (T8), and every site is printed
+with the lines after it, so the body it sends can be read.
+"""
+
+import ast
+import re
+import subprocess
+import sys
+
+
+def grep(pattern):
+    out = subprocess.run(
+        ["git", "grep", "-nE", pattern, "--", "*.py"],
+        capture_output=True,
+        text=True,
+    ).stdout
+    hits = []
+    for line in out.splitlines():
+        path, number, text = line.split(":", 2)
+        if path.startswith("docs/"):
+            continue
+        hits.append((path, int(number), text))
+    return hits
+
+
+TERMS = {
+    "T1 route name": r"course-students",
+    "T2 raw path": r"students/?[\"']",
+    "T3 route definition": r"url_path=[\"']students[\"']",
+    "T4 body helper": r"add_by_email",
+    "T5 form": r"AddStudentToCourseSerializer",
+    "T6 service": r"enroll_student_by_email",
+    "T7 import route": r"bulk-add-students|bulk_add_students",
+}
+
+print("HEAD", subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip())
+found = {}
+for label, pattern in TERMS.items():
+    found[label] = grep(pattern)
+    files = sorted({h[0] for h in found[label]})
+    print(f"\n=== {label}: /{pattern}/ : {len(found[label])} lines in {len(files)} files")
+    for path in files:
+        print("   ", path, len([h for h in found[label] if h[0] == path]))
+
+# T2 is wide on purpose (dashboard routes end in /students too). Keep the
+# lines that can be the add route: not a dashboard or my-students path.
+NOT_THE_ROUTE = re.compile(r"dashboard/students|my-students|my_students|bulk-add-students|direct-add")
+sites = sorted(
+    set(found["T1 route name"])
+    | {h for h in found["T2 raw path"] if not NOT_THE_ROUTE.search(h[2])}
+)
+print(f"\n=== candidate sites of the add route (T1, and T2 without dashboard/my-students/bulk/direct): {len(sites)}")
+print("=== T2 lines set aside as another route:", len([h for h in found["T2 raw path"] if NOT_THE_ROUTE.search(h[2])]))
+
+helpers = set()
+sources = {}
+for path, number, text in sites:
+    if path not in sources:
+        sources[path] = open(path, encoding="utf-8").read()
+    owner = "(module level)"
+    try:
+        tree = ast.parse(sources[path])
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.lineno <= number <= node.end_lineno:
+                owner = node.name  # the innermost wins: walk goes outside-in
+    except SyntaxError as exc:
+        owner = f"(unparsed: {exc})"
+    lines = sources[path].splitlines()
+    after = " | ".join(l.strip() for l in lines[number - 1 : number + 6])
+    sends_name = "first_name" in after or "add_by_email" in after
+    print(f"\n{path}:{number} in {owner}  sends a name within 6 lines: {sends_name}\n    {after[:420]}")
+    if not owner.startswith("test_") and not owner.startswith("("):
+        helpers.add(owner)
+
+print("\n=== T8 functions that hold a site and are not test methods:", sorted(helpers))
+for name in sorted(helpers - {"setUp", "setUpTestData", "setUpClass"}):
+    callers = grep(r"\b" + re.escape(name) + r"\(")
+    files = sorted({h[0] for h in callers})
+    print(f"\n--- callers of {name}(: {len(callers)} lines in {len(files)} files")
+    for path in files:
+        print("   ", path, len([h for h in callers if h[0] == path]))
+print("\n=== attributes holding the route (self.url and the like) are read by hand from the sites above")
+sys.exit(0)

@@ -1,0 +1,18 @@
+1a, H-180, tip 4216575f24db419acf7645996553ecdd77ed765a (4216575f). WRITTEN before any run, 12:42:15 on 2026-10-09 (clock read by date).
+Two tests, class students.tests_vf1a_h180.VF1aH180:
+  p1 = test_p1_door_passes_at_its_number_the_gate_refuses_the_student_reads_the_sentence
+  p2 = test_p2_a_batch_each_file_affordable_not_together_door_queues_all_tasks_refuse_generic
+
+Unmutated tip ("base"): Ran 2, OK. Both green. (If either is red here it is a fixture fault of mine, not evidence; no mutant is run then.)
+
+Mutants (one change each; Rule 19: each probe must be seen red; Rule 22: the fragment must be inside THAT test's own failure block):
+  Q1 task never shows a student the sentence   : FAILED (failures=1): p1 only.  p1 fragment: self.assertIn(STUDENT_SENTENCE, text)
+  Q2 task shows the sentence to every requester: FAILED (failures=1): p2 only.  p2 fragment: entry["error"], INSUFFICIENT_CREDITS_MESSAGE
+  Q3 error helper no longer passes the sentence: FAILED (failures=1): p1 only.  p1 fragment: self.assertIn(STUDENT_SENTENCE, text)
+  Q4 door refuses a balance equal to estimate  : FAILED (failures=1): p1 only.  p1 fragment: 402 != 200   (and the message: the door refused at its own number)
+  Q5 door counts a running total               : FAILED (failures=1): p2 only.  p2 fragment: 402 != 202   (and the message: the door refused the batch)
+
+Reasons, by hand trace:
+ - p1 funds the teacher with exactly the door's number E (learned from a funded request), so the door queues (S4 of the author: equal passes). The task's gate asks for G > E (system prompt, questions, roster are added), refuses, the provider is never reached. Q1/Q3 make the polled text the generic credit message, so the sentence is missing: assertIn red. Q4 makes the door refuse E itself: the request answers 402. Q2 and Q5 do not touch p1: the single file passes, the requester is a student.
+ - p2 funds the teacher with E+1000 (below 2E), the door queues all three files (N1), 1000 credits are then left by a direct charge, each task meets the gate. Q2 gives the teacher the student's sentence: the session result's error differs from the generic message. Q5 takes the first file's estimate off the running balance: file 2 has 1000 left, the door answers 402. Q1/Q3/Q4 do not touch p2: a teacher requester keeps the generic text; E+1000 > E passes even under Q4.
+ - What each test prints (for the report): P1_POLLED_META, P1_STORED_ERROR, P1_NUMBERS (door and gate numbers), P2_SESSION_RESULT x3, P2_POLLED_META x3.

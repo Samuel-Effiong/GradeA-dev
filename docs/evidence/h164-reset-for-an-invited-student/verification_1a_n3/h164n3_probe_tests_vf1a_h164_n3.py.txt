@@ -1,0 +1,191 @@
+"""1a's own attack on H-164's N3 delta (admin-power accounts, licence teachers).
+
+  w1  THE ROAD AROUND THE REFUSAL (first form: asserted "not 200", PASSED in
+      the first chain, reason unseen; now asserted as read: 202 with tokens).
+      A never-verified command-line superuser asks for a VERIFY_EMAIL code and
+      sends it to /auth/verify.
+  w2a control: a licence re-add BEFORE any reset sends a fresh temporary
+      password (so the re-add path is live and w2b is not vacuous).
+  w2b after a reset the re-add sends nothing and the chosen password still
+      signs in.
+  w3  a flag set AFTER creation and after a code was issued: a licence-invited
+      teacher asks for a code (202), is then made staff, then the code is used:
+      the reset is refused with the unknown-address answer, nothing stamped;
+      a new request is refused with "Email not verified." and issues no new code.
+
+Copied into users/tests_vf1a_h164_n3.py of a scratch checkout.
+Usage: python manage.py test users.tests_vf1a_h164_n3
+"""
+
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.test import override_settings
+from django.utils import timezone
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.throttling import SimpleRateThrottle
+
+from billing.license_service import LicenseSubscriptionService
+from classrooms.models import School
+from users.models import PasswordResetOTP, UserTypes
+
+User = get_user_model()
+
+LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+MANY = {
+    "otp_request": "1000/hour",
+    "login": "1000/min",
+    "anon": "1000/min",
+    "verify_email": "1000/min",
+}
+NEW_PASSWORD = "vf1a-n3-chosen-passphrase"  # pragma: allowlist secret
+
+
+@override_settings(CACHES=LOCMEM)
+class VF1aH164N3(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        throttles = patch.dict(SimpleRateThrottle.THROTTLE_RATES, MANY)
+        throttles.start()
+        self.addCleanup(throttles.stop)
+        reset_mail = patch("users.views.safe_delay")
+        self.reset_mail = reset_mail.start()
+        self.addCleanup(reset_mail.stop)
+        for target in (
+            "users.services.send_email_task",
+            "users.views.sync_user_to_mailerlite",
+        ):
+            patcher = patch(target)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        licence_mail = patch("billing.license_service.send_email_task")
+        self.licence_mail = licence_mail.start()
+        self.addCleanup(licence_mail.stop)
+        self.school = School.objects.create(name="VF1a N3 High")
+        self.admin = User.objects.create_user(
+            email="vf1a.n3.admin@n3-school.example",
+            password="Admin-pass-1",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=self.school,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+        self.ip = 0
+
+    # fixtures ----------------------------------------------------------
+    def invite_teacher(self, email="vf1a.n3.teacher@n3-school.example"):
+        with self.captureOnCommitCallbacks(execute=True):
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                email, self.school, self.admin
+            )
+        self.assertIsNotNone(teacher)
+        teacher.refresh_from_db()
+        self.assertTrue(teacher.must_change_password)
+        self.assertIsNone(teacher.email_verified_at)
+        return teacher
+
+    def re_add(self, teacher):
+        with self.captureOnCommitCallbacks(execute=True):
+            again = LicenseSubscriptionService._get_or_invite_teacher(
+                teacher.email, self.school, self.admin
+            )
+        self.assertIsNotNone(again)
+        self.assertEqual(again.pk, teacher.pk)
+
+    def post_otp(self, email, otp_type):
+        self.ip += 1
+        return self.client.post(
+            reverse("auth-otp"),
+            {"email": email, "otp_type": otp_type},
+            format="json",
+            REMOTE_ADDR=f"10.166.0.{self.ip}",
+        )
+
+    def reset(self, email, code):
+        return self.client.post(
+            reverse("auth-reset-password"),
+            {"email": email, "otp": code, "new_password": NEW_PASSWORD},
+            format="json",
+        )
+
+    # tests -------------------------------------------------------------
+    def test_w1_a_mailbox_code_signs_in_a_never_verified_superuser(self):
+        """CHARACTERISATION (second form, after the first chain's w1 passed
+        for a reason I did not see): what I read in the verify route says a
+        mailbox code signs in ANY active never-verified account, admin power
+        included. Asserted as read: HTTP 202 (the verify route answers a
+        success with 202, users/views.py line 1011) with tokens. The first form
+        asserted "not 200" and so passed on a success: my slip."""
+        account = User.objects.create_superuser(
+            email="vf1a.n3.cmdline@n3-school.example",
+            password="Power-pass-9",  # pragma: allowlist secret
+        )
+        self.assertIsNone(account.email_verified_at)
+
+        asked = self.post_otp(account.email, "VERIFY_EMAIL")
+        self.assertEqual(asked.status_code, status.HTTP_202_ACCEPTED)
+        account.refresh_from_db()
+        self.assertIsNotNone(account.activation_token, "no code was issued")
+
+        answer = self.client.post(
+            reverse("auth-verify"),
+            {"email": account.email, "token": account.activation_token},
+            format="json",
+        )
+
+        self.assertEqual(
+            answer.status_code,
+            status.HTTP_202_ACCEPTED,
+            f"the verify route answered {answer.status_code}: {answer.data!r}",
+        )
+        self.assertIn("access", answer.data)
+
+    def test_w2a_a_re_add_before_any_reset_sends_a_fresh_temporary_password(self):
+        teacher = self.invite_teacher()
+        self.assertEqual(self.licence_mail.delay.call_count, 1)
+        before = User.objects.get(pk=teacher.pk).password
+
+        self.re_add(teacher)
+
+        self.assertEqual(self.licence_mail.delay.call_count, 2)
+        self.assertNotEqual(User.objects.get(pk=teacher.pk).password, before)
+
+    def test_w2b_after_a_reset_a_re_add_sends_nothing_and_keeps_the_password(self):
+        teacher = self.invite_teacher()
+        otp, _ = PasswordResetOTP.objects.get_or_create(user=teacher)
+        answer = self.reset(teacher.email, otp.generate_code())
+        self.assertEqual(answer.status_code, status.HTTP_200_OK)
+        chosen = User.objects.get(pk=teacher.pk).password
+        self.assertEqual(self.licence_mail.delay.call_count, 1)
+
+        self.re_add(teacher)
+
+        self.assertEqual(self.licence_mail.delay.call_count, 1, "a second password mail")
+        self.assertEqual(User.objects.get(pk=teacher.pk).password, chosen)
+
+    def test_w3_a_flag_set_after_the_code_was_issued_closes_the_road(self):
+        teacher = self.invite_teacher()
+        asked = self.post_otp(teacher.email, "RESET_PASSWORD")
+        self.assertEqual(asked.status_code, status.HTTP_202_ACCEPTED)
+        otp = PasswordResetOTP.objects.get(user=teacher)
+        code = otp.code
+        sent_before = self.reset_mail.call_count
+        User.objects.filter(pk=teacher.pk).update(is_staff=True)
+        teacher.refresh_from_db()
+        before = teacher.password
+
+        used = self.reset(teacher.email, code)
+        unknown = self.reset("vf1a.n3.nobody@n3-school.example", code)
+        again = self.post_otp(teacher.email, "RESET_PASSWORD")
+
+        self.assertEqual(used.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(used.content, unknown.content)
+        teacher.refresh_from_db()
+        self.assertIsNone(teacher.email_verified_at)
+        self.assertEqual(teacher.password, before)
+        self.assertEqual(again.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.reset_mail.call_count, sent_before, "a new code was mailed")

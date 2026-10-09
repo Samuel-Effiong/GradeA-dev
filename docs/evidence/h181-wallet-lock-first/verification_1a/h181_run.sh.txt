@@ -1,0 +1,80 @@
+#!/bin/bash
+# 1a: H-181 (wallet lock first) verification (rules 12, 13, 16 revised, 17, 18, 19). Usage: h181_run.sh <setup|all|base|old|R1..R7|L1..L7|hooks>
+# Rule 16 revised: the WHOLE script inside ONE systemd-inhibit (re-exec); "all" is the chain base, old, R1..R7, L1..L7, hooks.
+# Every test run writes straight to its log file, stdin from /dev/null, nothing piped. One test process at a time.
+# A kill is read from the log's own "Ran" line and named failing tests, never from the exit code alone.
+set -u
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP 1a H-181 check" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+PC=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/pre-commit
+OUT=/home/bond-servant-in-training/Documents/Projects/GAP-1a-records/runs
+G=/home/bond-servant-in-training/Documents/Projects/GAP-1a-records
+SC=/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch
+W=$SC/vf_h181
+SRC=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h181-wallet-lock-first
+TIP=5b0ddded6fea19c4c3972cca18d0a5e9e3dff116; T8=5b0ddded; BASE=035e0a07; Y=${1:-}
+MOD=billing.tests.test_vf1a_h181_order
+if [ "$Y" = setup ]; then
+  [ -e "$W" ] && { echo "ABORT $W exists"; exit 9; }
+  git -C "$SRC" worktree add --detach "$W" $TIP || exit 9
+  cd "$W" || exit 9
+  ln -s "$(readlink -f "$SRC/.env")" .env
+  for S in settings_worktree:test_vf_h181 settings_worktree_mut:test_vf_h181_mut; do
+    printf 'from AutoGrader.settings import *  # noqa: F401,F403\nfrom AutoGrader.settings import DATABASES\n\nDATABASES["default"].setdefault("TEST", {})\nDATABASES["default"]["TEST"]["NAME"] = "%s"\n' "${S#*:}" > "${S%%:*}.py"
+  done
+  cp $G/h181_probe_test_vf1a_h181_order.py billing/tests/test_vf1a_h181_order.py
+  git rev-parse --short=8 HEAD; git status --porcelain
+  exit 0
+fi
+cd "$W" || exit 9
+[ "$(git rev-parse HEAD)" = $TIP ] && [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "ABORT tree"; exit 9; }
+cmp -s $G/h181_probe_test_vf1a_h181_order.py billing/tests/test_vf1a_h181_order.py || { echo "ABORT probe copy differs"; exit 9; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/ && /GAP/' | wc -l)" = 0 ] || { echo "ABORT another GAP test process"; exit 9; }
+wrap() { systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 env PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS= "$@"; }
+clearpyc() { find AutoGrader billing -name __pycache__ -type d -prune -exec rm -rf {} + ; echo "pycache dirs under AutoGrader and billing after clear: $(find AutoGrader billing -name __pycache__ -type d | wc -l)"; }
+show() { grep -E "^(FAIL|ERROR): |^Ran |^OK|^FAILED" "$1" | cut -c1-200; }
+one() {
+  local Y=$1 L BLOB s rc F
+  case $Y in
+  base)
+    L=$OUT/h181_$T8.log
+    { echo "# 1a H-181 baseline at $(git rev-parse HEAD), unmutated, PYTHONDONTWRITEBYTECODE=1"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; } > "$L"
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)" >> "$L"
+    echo "== base exit=$rc"; show "$L"
+    ;;
+  old)
+    L=$OUT/h181_old_code_$T8.log
+    { echo "# 1a H-181 OLD code: billing/services.py and billing/license_service.py from $BASE, the rest at the tip"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; git checkout $BASE -- billing/services.py billing/license_service.py; git diff --stat --cached | tail -3; } > "$L" 2>&1
+    grep -q "lock_wallet_first" billing/services.py billing/license_service.py && { git checkout $TIP -- billing/services.py billing/license_service.py; git reset -q; echo "ABORT old: lock_wallet_first still present"; exit 8; }
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree_mut --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    git checkout $TIP -- billing/services.py billing/license_service.py; git reset -q
+    { echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)"; echo "restored: services $([ "$(git show $TIP:billing/services.py | sha256sum)" = "$(sha256sum < billing/services.py)" ] && echo True || echo False) licence $([ "$(git show $TIP:billing/license_service.py | sha256sum)" = "$(sha256sum < billing/license_service.py)" ] && echo True || echo False)"; clearpyc; echo "tracked changes after restore: $(git status --porcelain --untracked-files=no | wc -l)"; } >> "$L" 2>&1
+    echo "== old exit=$rc"; show "$L"; tail -3 "$L"
+    ;;
+  R[1-7]|L[1-7])
+    case ${Y:1:1} in 7) F=billing/license_service.py;; *) F=billing/services.py;; esac
+    BLOB=$(git show $TIP:$F | sha256sum | cut -d' ' -f1)
+    L=$OUT/h181_mutant_${Y}_$T8.log
+    { echo "# 1a H-181 mutant $Y at $(git rev-parse HEAD), my order module, PYTHONDONTWRITEBYTECODE=1"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; "$PY" -B $G/h181_mutants_Z.py $Y; echo "mutated sha differs: $([ "$(sha256sum $F | cut -d' ' -f1)" != "$BLOB" ] && echo True || echo False)"; git diff --stat; } > "$L" 2>&1
+    grep -q "^mutated sha differs: True$" "$L" && grep -q "^applied $Y to $F$" "$L" || { git checkout $TIP -- $F; echo "ABORT $Y: mutant not applied, no test run; see $L" | tee -a "$L"; exit 8; }
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree_mut --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    git checkout $TIP -- $F
+    { echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)"; echo "restored_sha256_matches_commit_blob: $([ "$(sha256sum $F | cut -d' ' -f1)" = "$BLOB" ] && echo True || echo False)"; clearpyc; echo "tracked changes after restore: $(git status --porcelain --untracked-files=no | wc -l)"; } >> "$L" 2>&1
+    echo "== $Y exit=$rc"; sed -n 3,5p "$L"; show "$L"; tail -3 "$L"
+    ;;
+  hooks)
+    L=$SC/h181_hooks_$T8.txt
+    nice -n 10 "$PC" run --from-ref $BASE --to-ref $TIP > "$L" 2>&1 < /dev/null; rc=$?
+    echo "== hooks exit=$rc passed=$(grep -c Passed "$L") failed=$(grep -c Failed "$L") tracked changes after hooks: $(git status --porcelain --untracked-files=no | wc -l)"
+    ;;
+  *) echo "unknown $Y"; exit 9;;
+  esac
+}
+if [ "$Y" = all ]; then
+  for m in base old R1 R2 R3 R4 R5 R6 R7 L1 L2 L3 L4 L5 L6 L7 hooks; do one $m; done
+else
+  one "$Y"
+fi

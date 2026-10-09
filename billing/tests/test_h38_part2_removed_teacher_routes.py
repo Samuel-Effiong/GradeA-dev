@@ -58,6 +58,7 @@ from classrooms.models import (
     StudentCourse,
     Topic,
 )
+from classrooms.tests_support_add_by_email import add_by_email
 from classrooms.views import StudentCourseViewSet
 from students.models import (
     BackgroundProcessingTask,
@@ -143,7 +144,7 @@ class TeacherRemovalBase(TestCase):
 
         response = teacher_client.post(
             f"{API}/course/{self.course_id}/students",
-            {"email": "pupil@h38.test"},
+            add_by_email("pupil@h38.test"),
             format="json",
         )
         assert response.status_code == 200, response.content

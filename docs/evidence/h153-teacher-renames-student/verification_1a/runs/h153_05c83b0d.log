@@ -1,0 +1,897 @@
+# 1a H-153 baseline at 05c83b0d3d8c11371c32be5bd6f3bf99d6729f4e, unmutated, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 2.72 2.77 3.60 16/2479 764710
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+Creating test database for alias 'default' ('test_vf_h153')...
+Found 31 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_ra_another_teachers_cached_pages_show_the_new_name (users.tests_vf1a_h153_probe.Vf1aCachedReadersProbe.test_ra_another_teachers_cached_pages_show_the_new_name) ... Free trial plan not found: no trial activated for user 3852a20f-ba37-4f0d-807a-11bf2957d4af.
+Cannot activate automatic trial for user 3852a20f-ba37-4f0d-807a-11bf2957d4af (validation): ValueError
+Free trial plan not found: no trial activated for user fa862796-4afd-4ccf-839f-674536668da6.
+Cannot activate automatic trial for user fa862796-4afd-4ccf-839f-674536668da6 (validation): ValueError
+Free trial plan not found: no trial activated for user 0fb8fc36-5cc0-4699-9331-1e633d555f79.
+Cannot activate automatic trial for user 0fb8fc36-5cc0-4699-9331-1e633d555f79 (validation): ValueError
+ok
+test_rb_the_students_own_cached_course_page_shows_the_new_name (users.tests_vf1a_h153_probe.Vf1aCachedReadersProbe.test_rb_the_students_own_cached_course_page_shows_the_new_name) ... Free trial plan not found: no trial activated for user 8db8463e-0a50-4677-8d20-fc746f7aaaf9.
+Cannot activate automatic trial for user 8db8463e-0a50-4677-8d20-fc746f7aaaf9 (validation): ValueError
+Free trial plan not found: no trial activated for user 8f61321e-2101-4343-8141-581ac16bb761.
+Cannot activate automatic trial for user 8f61321e-2101-4343-8141-581ac16bb761 (validation): ValueError
+Free trial plan not found: no trial activated for user 8211cbc3-e3c5-4336-a3cb-3bd8c9bec0d1.
+Cannot activate automatic trial for user 8211cbc3-e3c5-4336-a3cb-3bd8c9bec0d1 (validation): ValueError
+ok
+test_rc_a_middle_name_alone_can_be_changed (users.tests_vf1a_h153_probe.Vf1aCachedReadersProbe.test_rc_a_middle_name_alone_can_be_changed) ... Free trial plan not found: no trial activated for user ce67fcbd-8ef7-4f34-a436-13b3363462d0.
+Cannot activate automatic trial for user ce67fcbd-8ef7-4f34-a436-13b3363462d0 (validation): ValueError
+Free trial plan not found: no trial activated for user 86cf945b-2dc6-4b59-b1b7-65e3a94e9126.
+Cannot activate automatic trial for user 86cf945b-2dc6-4b59-b1b7-65e3a94e9126 (validation): ValueError
+Free trial plan not found: no trial activated for user 6c44d9ae-a40c-4088-9d69-6ba9eed9cab5.
+Cannot activate automatic trial for user 6c44d9ae-a40c-4088-9d69-6ba9eed9cab5 (validation): ValueError
+ok
+test_a_clash_there_is_refused_and_quoted (users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_a_clash_there_is_refused_and_quoted) ... Free trial plan not found: no trial activated for user a4c00755-922c-4dd7-99e7-9992a57a246a.
+Cannot activate automatic trial for user a4c00755-922c-4dd7-99e7-9992a57a246a (validation): ValueError
+Free trial plan not found: no trial activated for user 233ea463-2665-426f-af46-4e238fc132f7.
+Cannot activate automatic trial for user 233ea463-2665-426f-af46-4e238fc132f7 (validation): ValueError
+Free trial plan not found: no trial activated for user 5ad83630-f79c-4643-b89e-9906634c999d.
+Cannot activate automatic trial for user 5ad83630-f79c-4643-b89e-9906634c999d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 448, in student_name
+    raise ValidationError(
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string="A student with the exact name 'Ada King Lovelace' is already enrolled in this course.", code='invalid')}
+ok
+test_their_teacher_renames_them (users.tests_teacher_renames_student.ACourseWithNoSessionTest.test_their_teacher_renames_them) ... Free trial plan not found: no trial activated for user 59151013-528d-43b0-8e84-5c36eb9dbb84.
+Cannot activate automatic trial for user 59151013-528d-43b0-8e84-5c36eb9dbb84 (validation): ValueError
+Free trial plan not found: no trial activated for user c0f9f425-b833-4183-8dd0-5882b8101bec.
+Cannot activate automatic trial for user c0f9f425-b833-4183-8dd0-5882b8101bec (validation): ValueError
+Free trial plan not found: no trial activated for user d2189c18-a92e-4c1f-be01-07757a0cb78f.
+Cannot activate automatic trial for user d2189c18-a92e-4c1f-be01-07757a0cb78f (validation): ValueError
+ok
+test_a_super_admin_may (users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_a_super_admin_may) ... Free trial plan not found: no trial activated for user abd5499e-0204-4047-89dd-aed7cdc4c7fb.
+Cannot activate automatic trial for user abd5499e-0204-4047-89dd-aed7cdc4c7fb (validation): ValueError
+Free trial plan not found: no trial activated for user a38b8d7c-ca1d-4209-9551-3fce38844a1f.
+Cannot activate automatic trial for user a38b8d7c-ca1d-4209-9551-3fce38844a1f (validation): ValueError
+Free trial plan not found: no trial activated for user c463b872-6534-429c-91e1-bd7876da3a4c.
+Cannot activate automatic trial for user c463b872-6534-429c-91e1-bd7876da3a4c (validation): ValueError
+ok
+test_their_former_teacher_may_not (users.tests_teacher_renames_student.AStudentWithNoCurrentTeacherTest.test_their_former_teacher_may_not) ... Free trial plan not found: no trial activated for user 5f48c700-cb75-4d49-8fac-28b3fc147549.
+Cannot activate automatic trial for user 5f48c700-cb75-4d49-8fac-28b3fc147549 (validation): ValueError
+Free trial plan not found: no trial activated for user 7b9e9a43-9474-4928-bc29-9ad44315f13f.
+Cannot activate automatic trial for user 7b9e9a43-9474-4928-bc29-9ad44315f13f (validation): ValueError
+Free trial plan not found: no trial activated for user 8b2e4e0a-28f2-472c-9c5e-0a2eef04dcfe.
+Cannot activate automatic trial for user 8b2e4e0a-28f2-472c-9c5e-0a2eef04dcfe (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_a_pending_student_can_be_named_before_they_first_sign_in (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_pending_student_can_be_named_before_they_first_sign_in) ... Free trial plan not found: no trial activated for user d9c39a1a-3d9c-4a2f-bf90-2e909f7f626d.
+Cannot activate automatic trial for user d9c39a1a-3d9c-4a2f-bf90-2e909f7f626d (validation): ValueError
+Free trial plan not found: no trial activated for user d582c24e-31d2-4307-be9a-9231776fa7f2.
+Cannot activate automatic trial for user d582c24e-31d2-4307-be9a-9231776fa7f2 (validation): ValueError
+Free trial plan not found: no trial activated for user 07e0a127-7214-45af-b6a2-f0a52f8eff53.
+Cannot activate automatic trial for user 07e0a127-7214-45af-b6a2-f0a52f8eff53 (validation): ValueError
+ok
+test_a_student_with_no_name_is_named_this_way (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_a_student_with_no_name_is_named_this_way) ... Free trial plan not found: no trial activated for user 5cb2c931-edb6-4d4e-8e70-79a536bf307e.
+Cannot activate automatic trial for user 5cb2c931-edb6-4d4e-8e70-79a536bf307e (validation): ValueError
+Free trial plan not found: no trial activated for user 3e8133ae-dd31-45e5-95fe-e8414ddbf173.
+Cannot activate automatic trial for user 3e8133ae-dd31-45e5-95fe-e8414ddbf173 (validation): ValueError
+Free trial plan not found: no trial activated for user 0d6e0133-ce40-41f0-a308-0f5c494add12.
+Cannot activate automatic trial for user 0d6e0133-ce40-41f0-a308-0f5c494add12 (validation): ValueError
+ok
+test_each_name_must_have_two_letters_and_cannot_be_blank (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_each_name_must_have_two_letters_and_cannot_be_blank) ... Free trial plan not found: no trial activated for user f3592114-d0e7-4d76-a529-99ec748fedf5.
+Cannot activate automatic trial for user f3592114-d0e7-4d76-a529-99ec748fedf5 (validation): ValueError
+Free trial plan not found: no trial activated for user 76ee4f43-19d5-4160-84f8-6c5a08e0d50b.
+Cannot activate automatic trial for user 76ee4f43-19d5-4160-84f8-6c5a08e0d50b (validation): ValueError
+Free trial plan not found: no trial activated for user c7bbd6d1-b669-4d72-be4f-6acb00f2e846.
+Cannot activate automatic trial for user c7bbd6d1-b669-4d72-be4f-6acb00f2e846 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 413, in student_name
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='Ensure this value has at least 2 characters (it has 1).', code='min_length')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 413, in student_name
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'last_name': [ErrorDetail(string='Ensure this value has at least 2 characters (it has 1).', code='min_length')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 413, in student_name
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='This field may not be blank.', code='blank')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 413, in student_name
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='This field is required.', code='required')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 413, in student_name
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'last_name': [ErrorDetail(string='This field is required.', code='required')]}
+ok
+test_either_of_two_teachers_may_and_the_other_sees_the_new_name (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_either_of_two_teachers_may_and_the_other_sees_the_new_name) ... Free trial plan not found: no trial activated for user 597f06fb-5978-4d4d-b0e5-948db75515ef.
+Cannot activate automatic trial for user 597f06fb-5978-4d4d-b0e5-948db75515ef (validation): ValueError
+Free trial plan not found: no trial activated for user fe2b3925-a5ae-4611-b7f0-3d7f3b273054.
+Cannot activate automatic trial for user fe2b3925-a5ae-4611-b7f0-3d7f3b273054 (validation): ValueError
+Free trial plan not found: no trial activated for user 8750e369-640a-4055-8d0b-fdb6f39e7c10.
+Cannot activate automatic trial for user 8750e369-640a-4055-8d0b-fdb6f39e7c10 (validation): ValueError
+ok
+test_nothing_but_the_name_can_be_changed_here (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_nothing_but_the_name_can_be_changed_here) ... Free trial plan not found: no trial activated for user ddbbd95c-5d91-4258-a3aa-4505976cb4b3.
+Cannot activate automatic trial for user ddbbd95c-5d91-4258-a3aa-4505976cb4b3 (validation): ValueError
+Free trial plan not found: no trial activated for user 3c66919a-2241-406d-9662-9379aedba6aa.
+Cannot activate automatic trial for user 3c66919a-2241-406d-9662-9379aedba6aa (validation): ValueError
+Free trial plan not found: no trial activated for user 2c4baa24-4dd0-4df7-9f15-e16dcef18996.
+Cannot activate automatic trial for user 2c4baa24-4dd0-4df7-9f15-e16dcef18996 (validation): ValueError
+ok
+test_the_name_is_changed_and_the_answer_carries_it (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_changed_and_the_answer_carries_it) ... Free trial plan not found: no trial activated for user ae3e0a3c-b332-4109-924e-63b8bcbb56ce.
+Cannot activate automatic trial for user ae3e0a3c-b332-4109-924e-63b8bcbb56ce (validation): ValueError
+Free trial plan not found: no trial activated for user 00814c0a-e45b-48f9-a0ef-1f5ea8bd800c.
+Cannot activate automatic trial for user 00814c0a-e45b-48f9-a0ef-1f5ea8bd800c (validation): ValueError
+Free trial plan not found: no trial activated for user 2d659098-d035-436e-9359-e173b70aab47.
+Cannot activate automatic trial for user 2d659098-d035-436e-9359-e173b70aab47 (validation): ValueError
+ok
+test_the_name_is_trimmed_and_the_middle_name_is_optional (users.tests_teacher_renames_student.ATeacherRenamesTheirStudentTest.test_the_name_is_trimmed_and_the_middle_name_is_optional) ... Free trial plan not found: no trial activated for user e6cc04c0-da60-4591-b860-b2fc4a5e82f1.
+Cannot activate automatic trial for user e6cc04c0-da60-4591-b860-b2fc4a5e82f1 (validation): ValueError
+Free trial plan not found: no trial activated for user 53caa5ae-c682-4274-a3a0-eca774aa0362.
+Cannot activate automatic trial for user 53caa5ae-c682-4274-a3a0-eca774aa0362 (validation): ValueError
+Free trial plan not found: no trial activated for user ea17a734-94b8-4ef1-9ca6-81a2198154d6.
+Cannot activate automatic trial for user ea17a734-94b8-4ef1-9ca6-81a2198154d6 (validation): ValueError
+ok
+test_a_refused_rename_writes_no_such_line (users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_refused_rename_writes_no_such_line) ... Free trial plan not found: no trial activated for user cac20dd0-e996-474a-a19a-1960b4041fdd.
+Cannot activate automatic trial for user cac20dd0-e996-474a-a19a-1960b4041fdd (validation): ValueError
+Free trial plan not found: no trial activated for user b11a837b-d1be-4bd7-aaba-9e3e6cf686de.
+Cannot activate automatic trial for user b11a837b-d1be-4bd7-aaba-9e3e6cf686de (validation): ValueError
+Free trial plan not found: no trial activated for user 879f9af8-c4ea-4c83-aceb-8da8399cc7bc.
+Cannot activate automatic trial for user 879f9af8-c4ea-4c83-aceb-8da8399cc7bc (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 388, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's teacher can change the student's name.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_a_rename_writes_one_line_with_ids_and_no_name_or_address (users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_rename_writes_one_line_with_ids_and_no_name_or_address) ... Free trial plan not found: no trial activated for user 47144d29-1d50-4879-befe-56bd77ed4a2c.
+Cannot activate automatic trial for user 47144d29-1d50-4879-befe-56bd77ed4a2c (validation): ValueError
+Free trial plan not found: no trial activated for user bc9fd49f-f038-4a66-a5d4-a49f1fb224cb.
+Cannot activate automatic trial for user bc9fd49f-f038-4a66-a5d4-a49f1fb224cb (validation): ValueError
+Free trial plan not found: no trial activated for user 420469c1-5f72-40cc-9201-dc2f40bef1df.
+Cannot activate automatic trial for user 420469c1-5f72-40cc-9201-dc2f40bef1df (validation): ValueError
+ok
+test_a_super_admins_rename_is_recorded_with_no_course (users.tests_teacher_renames_student.EachRenameIsRecordedTest.test_a_super_admins_rename_is_recorded_with_no_course) ... Free trial plan not found: no trial activated for user 6ffc8492-419d-4f5a-bb5e-f32033d7232f.
+Cannot activate automatic trial for user 6ffc8492-419d-4f5a-bb5e-f32033d7232f (validation): ValueError
+Free trial plan not found: no trial activated for user 2d2d5359-8a5e-4578-8f32-f608811510df.
+Cannot activate automatic trial for user 2d2d5359-8a5e-4578-8f32-f608811510df (validation): ValueError
+Free trial plan not found: no trial activated for user 5429f9de-f6cd-4720-879d-b2103d47809a.
+Cannot activate automatic trial for user 5429f9de-f6cd-4720-879d-b2103d47809a (validation): ValueError
+ok
+test_a_clash_in_another_teachers_course_is_refused_without_the_name (users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_another_teachers_course_is_refused_without_the_name)
+The student is also in Biology, which this teacher cannot see. ... Free trial plan not found: no trial activated for user d4147c98-0a5a-4e47-ba00-4a8e1e1ccbfd.
+Cannot activate automatic trial for user d4147c98-0a5a-4e47-ba00-4a8e1e1ccbfd (validation): ValueError
+Free trial plan not found: no trial activated for user 39f3c09d-0a5d-4ae4-ba0e-a8dfbd0c4d5e.
+Cannot activate automatic trial for user 39f3c09d-0a5d-4ae4-ba0e-a8dfbd0c4d5e (validation): ValueError
+Free trial plan not found: no trial activated for user e982037b-cebb-4035-a1b8-7983e221f7e3.
+Cannot activate automatic trial for user e982037b-cebb-4035-a1b8-7983e221f7e3 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 458, in student_name
+    raise ValidationError({"detail": NAME_HELD_ELSEWHERE_MESSAGE})
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='This name cannot be used for this student.', code='invalid')}
+ok
+test_a_clash_in_the_teachers_own_course_is_refused_and_quoted (users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_clash_in_the_teachers_own_course_is_refused_and_quoted) ... Free trial plan not found: no trial activated for user 5c6fc32d-b8e2-4372-bea2-831c1453b912.
+Cannot activate automatic trial for user 5c6fc32d-b8e2-4372-bea2-831c1453b912 (validation): ValueError
+Free trial plan not found: no trial activated for user ebbc5bc3-aa56-4370-a458-04cbf17747a7.
+Cannot activate automatic trial for user ebbc5bc3-aa56-4370-a458-04cbf17747a7 (validation): ValueError
+Free trial plan not found: no trial activated for user f84724b4-bcb4-4403-8a91-89357308f3e1.
+Cannot activate automatic trial for user f84724b4-bcb4-4403-8a91-89357308f3e1 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 448, in student_name
+    raise ValidationError(
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string="A student with the exact name 'Ada King Lovelace' is already enrolled in this course.", code='invalid')}
+ok
+test_a_course_the_student_has_withdrawn_from_still_counts (users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_course_the_student_has_withdrawn_from_still_counts)
+For the same reason: the student's own withdrawn row is still a ... Free trial plan not found: no trial activated for user ea5dae14-ac21-4c52-a841-7366c5ec1905.
+Cannot activate automatic trial for user ea5dae14-ac21-4c52-a841-7366c5ec1905 (validation): ValueError
+Free trial plan not found: no trial activated for user 015748f4-4506-4576-8faf-f4f19a516bdd.
+Cannot activate automatic trial for user 015748f4-4506-4576-8faf-f4f19a516bdd (validation): ValueError
+Free trial plan not found: no trial activated for user 19fcdaa1-7048-4512-b378-37fd29bf9f51.
+Cannot activate automatic trial for user 19fcdaa1-7048-4512-b378-37fd29bf9f51 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 458, in student_name
+    raise ValidationError({"detail": NAME_HELD_ELSEWHERE_MESSAGE})
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='This name cannot be used for this student.', code='invalid')}
+ok
+test_a_withdrawn_classmate_still_holds_the_name (users.tests_teacher_renames_student.TheNameClashRuleTest.test_a_withdrawn_classmate_still_holds_the_name)
+The enrolment's own check (StudentCourse.clean, run on every ... Free trial plan not found: no trial activated for user c866041f-96d7-4f38-9fd1-ad0f5f9b94d0.
+Cannot activate automatic trial for user c866041f-96d7-4f38-9fd1-ad0f5f9b94d0 (validation): ValueError
+Free trial plan not found: no trial activated for user 1e53a059-1e1b-4700-9930-a9af8b82919e.
+Cannot activate automatic trial for user 1e53a059-1e1b-4700-9930-a9af8b82919e (validation): ValueError
+Free trial plan not found: no trial activated for user 1adee5d6-4123-4a19-8150-b9d06c67d15f.
+Cannot activate automatic trial for user 1adee5d6-4123-4a19-8150-b9d06c67d15f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 448, in student_name
+    raise ValidationError(
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string="A student with the exact name 'Ada King Lovelace' is already enrolled in this course.", code='invalid')}
+ok
+test_keeping_the_students_own_name_is_no_clash (users.tests_teacher_renames_student.TheNameClashRuleTest.test_keeping_the_students_own_name_is_no_clash) ... Free trial plan not found: no trial activated for user ea49303a-f830-4122-9d14-90f9bbdd6fb6.
+Cannot activate automatic trial for user ea49303a-f830-4122-9d14-90f9bbdd6fb6 (validation): ValueError
+Free trial plan not found: no trial activated for user 3eb8436a-173f-47cb-81c0-f94c6bd4eea4.
+Cannot activate automatic trial for user 3eb8436a-173f-47cb-81c0-f94c6bd4eea4 (validation): ValueError
+Free trial plan not found: no trial activated for user 97a66736-5b98-4cd7-bfab-4e324e2b0d12.
+Cannot activate automatic trial for user 97a66736-5b98-4cd7-bfab-4e324e2b0d12 (validation): ValueError
+ok
+test_a_classmate_may_not (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_classmate_may_not) ... Free trial plan not found: no trial activated for user 14103321-6659-440a-aca4-e29daf764165.
+Cannot activate automatic trial for user 14103321-6659-440a-aca4-e29daf764165 (validation): ValueError
+Free trial plan not found: no trial activated for user 73c39efa-88a7-40b2-8cf5-c7f03e5803e7.
+Cannot activate automatic trial for user 73c39efa-88a7-40b2-8cf5-c7f03e5803e7 (validation): ValueError
+Free trial plan not found: no trial activated for user e7ba6eae-c71f-423f-a22a-f284ea0f133d.
+Cannot activate automatic trial for user e7ba6eae-c71f-423f-a22a-f284ea0f133d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_a_former_teacher_may_not_though_the_student_has_another_teacher_now (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_former_teacher_may_not_though_the_student_has_another_teacher_now)
+Withdrawn from Algebra, enrolled in Biology: the student has a ... Free trial plan not found: no trial activated for user ee6fde1a-49b4-44f3-a2e7-fa44c0f8417d.
+Cannot activate automatic trial for user ee6fde1a-49b4-44f3-a2e7-fa44c0f8417d (validation): ValueError
+Free trial plan not found: no trial activated for user 8c65847d-9e32-4321-a04e-14d31bd3589e.
+Cannot activate automatic trial for user 8c65847d-9e32-4321-a04e-14d31bd3589e (validation): ValueError
+Free trial plan not found: no trial activated for user 16894421-7a8b-48a3-9f3c-fad6ca33515d.
+Cannot activate automatic trial for user 16894421-7a8b-48a3-9f3c-fad6ca33515d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 408, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's current teacher can change the student's name.
+ok
+test_a_school_admin_may_not (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_may_not) ... Free trial plan not found: no trial activated for user 79a4ca5e-ce58-4877-a3a2-3b49f7c89f36.
+Cannot activate automatic trial for user 79a4ca5e-ce58-4877-a3a2-3b49f7c89f36 (validation): ValueError
+Free trial plan not found: no trial activated for user 10294324-309b-439b-92fb-94ca7845f1ac.
+Cannot activate automatic trial for user 10294324-309b-439b-92fb-94ca7845f1ac (validation): ValueError
+Free trial plan not found: no trial activated for user ed38fa75-05cb-4d70-9a9e-b70271c7dda5.
+Cannot activate automatic trial for user ed38fa75-05cb-4d70-9a9e-b70271c7dda5 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 388, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's teacher can change the student's name.
+ok
+test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_school_admin_who_is_still_named_as_a_courses_teacher_may_not)
+An account that taught a course and was then made a school ... Free trial plan not found: no trial activated for user 19186c0b-a08e-492b-aba8-df1d198473f2.
+Cannot activate automatic trial for user 19186c0b-a08e-492b-aba8-df1d198473f2 (validation): ValueError
+Free trial plan not found: no trial activated for user be57e2d6-8df4-4f85-a921-6ae6b7b1e204.
+Cannot activate automatic trial for user be57e2d6-8df4-4f85-a921-6ae6b7b1e204 (validation): ValueError
+Free trial plan not found: no trial activated for user 3546a406-f6f5-4228-ad30-ff0993a96cf9.
+Cannot activate automatic trial for user 3546a406-f6f5-4228-ad30-ff0993a96cf9 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 388, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's teacher can change the student's name.
+ok
+test_a_teacher_whose_student_has_withdrawn_or_completed_may_not (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_whose_student_has_withdrawn_or_completed_may_not) ... Free trial plan not found: no trial activated for user 062a9cf5-4a16-4af7-ac5e-1d977efc9a43.
+Cannot activate automatic trial for user 062a9cf5-4a16-4af7-ac5e-1d977efc9a43 (validation): ValueError
+Free trial plan not found: no trial activated for user 3a9bf95f-6796-4e93-96e2-f6524627e4ef.
+Cannot activate automatic trial for user 3a9bf95f-6796-4e93-96e2-f6524627e4ef (validation): ValueError
+Free trial plan not found: no trial activated for user af370a7b-c528-406d-ad62-8ae59ce0b8cc.
+Cannot activate automatic trial for user af370a7b-c528-406d-ad62-8ae59ce0b8cc (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 408, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's current teacher can change the student's name.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 408, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's current teacher can change the student's name.
+ok
+test_a_teacher_with_no_course_of_the_student_may_not (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_a_teacher_with_no_course_of_the_student_may_not) ... Free trial plan not found: no trial activated for user 206912ea-c965-4fea-aea4-4f0743dbd0da.
+Cannot activate automatic trial for user 206912ea-c965-4fea-aea4-4f0743dbd0da (validation): ValueError
+Free trial plan not found: no trial activated for user 312c9137-ad80-4b55-b900-bc087b7a38bb.
+Cannot activate automatic trial for user 312c9137-ad80-4b55-b900-bc087b7a38bb (validation): ValueError
+Free trial plan not found: no trial activated for user bf66e8a6-b4d2-4366-b201-a03bcab6c3e3.
+Cannot activate automatic trial for user bf66e8a6-b4d2-4366-b201-a03bcab6c3e3 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_an_outsider_cannot_tell_a_student_from_no_account_at_all (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_an_outsider_cannot_tell_a_student_from_no_account_at_all)
+403 is only ever said about an account the caller can already ... Free trial plan not found: no trial activated for user 24f3ce98-6590-455b-8746-53eea987ae57.
+Cannot activate automatic trial for user 24f3ce98-6590-455b-8746-53eea987ae57 (validation): ValueError
+Free trial plan not found: no trial activated for user 61a27efd-8a4f-413a-8af5-756636bf0e8a.
+Cannot activate automatic trial for user 61a27efd-8a4f-413a-8af5-756636bf0e8a (validation): ValueError
+Free trial plan not found: no trial activated for user 296a93d7-3770-45a5-9160-9e4165fde9f0.
+Cannot activate automatic trial for user 296a93d7-3770-45a5-9160-9e4165fde9f0 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 384, in student_name
+    student = self.get_object()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+ok
+test_only_a_student_can_be_renamed_here (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_only_a_student_can_be_renamed_here) ... Free trial plan not found: no trial activated for user c52af683-9227-4d6d-b430-96b3fedcc313.
+Cannot activate automatic trial for user c52af683-9227-4d6d-b430-96b3fedcc313 (validation): ValueError
+Free trial plan not found: no trial activated for user a6e4a6ef-6d29-4939-9d78-49d434adf37d.
+Cannot activate automatic trial for user a6e4a6ef-6d29-4939-9d78-49d434adf37d (validation): ValueError
+Free trial plan not found: no trial activated for user e01d92e9-2e12-4644-bbe7-0967664542bb.
+Cannot activate automatic trial for user e01d92e9-2e12-4644-bbe7-0967664542bb (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 392, in student_name
+    raise ValidationError({"detail": "Only a student can be renamed here."})
+rest_framework.exceptions.ValidationError: {'detail': ErrorDetail(string='Only a student can be renamed here.', code='invalid')}
+ok
+test_the_student_may_not (users.tests_teacher_renames_student.WhoMayNotRenameTest.test_the_student_may_not) ... Free trial plan not found: no trial activated for user 16394834-077d-4779-91d9-305a296e674b.
+Cannot activate automatic trial for user 16394834-077d-4779-91d9-305a296e674b (validation): ValueError
+Free trial plan not found: no trial activated for user 641cf051-13f5-4a7c-8e7d-b53930c83175.
+Cannot activate automatic trial for user 641cf051-13f5-4a7c-8e7d-b53930c83175 (validation): ValueError
+Free trial plan not found: no trial activated for user d1f12d33-ab22-47af-baa1-9e09fcc6af88.
+Cannot activate automatic trial for user d1f12d33-ab22-47af-baa1-9e09fcc6af88 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h153/users/views.py", line 388, in student_name
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: Only a student's teacher can change the student's name.
+ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 3.678s
+
+OK
+Destroying test database for alias 'default' ('test_vf_h153')...
+ OK
+exit=0 wall_s=24 loadavg after: 3.20 2.88 3.62 7/2526 765057

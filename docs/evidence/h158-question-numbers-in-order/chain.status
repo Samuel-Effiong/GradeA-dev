@@ -1,0 +1,13 @@
+18:19:49 (r) assignments/tests_question_numbers_in_order.py taken from 7f5d1743, the rest is 7be08a58
+18:19:49 (r) start: loadavg 2.14 3.38 4.48 4/2293 1049112
+18:20:06 (r) end: loadavg 2.90 3.49 4.50 4/2310 1049336
+18:20:06 (r) exit=1 (1 is the expected one)
+18:20:06 (r) the red set is the expected one
+18:20:07 (a) start: loadavg 2.90 3.49 4.50 3/2313 1049353
+18:23:40 (a) end: loadavg 1.87 3.06 4.16 4/2273 1051888
+18:23:40 (a) exit=0
+18:23:40 (b) start: loadavg 1.87 3.06 4.16 3/2273 1051895
+18:25:41 (b) end: loadavg 2.80 2.87 3.94 3/2298 1055218
+18:25:41 (b) exit=0
+18:25:41 expected failing sets: every mutant's failing set is the expected one
+18:25:41 H-158 CHAIN END: (c) needs its own GRANT
