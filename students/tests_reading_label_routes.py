@@ -20,11 +20,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 
 from ai_processor import services
 from ai_processor.exceptions import ProviderFailureError
+from ai_processor.tests_reading_pinned import PINNED
 from students.models import StudentSubmission
 from students.services import update_submission_from_raw_text, upload_answers_engine
 from students.tests_post_grading_submission_lock import _classroom, _submission
@@ -125,6 +126,7 @@ def inserts_of_the_row(captured):
     ]
 
 
+@override_settings(**PINNED)
 class Base(TestCase):
     def setUp(self):
         self.teacher, self.student, self.course, self.assignment = _classroom("rl")

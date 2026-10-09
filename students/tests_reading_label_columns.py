@@ -150,10 +150,15 @@ class TheMigrationsTest(SimpleTestCase):
         migration = self._migration(M0033)
         self.assertEqual([type(op).__name__ for op in migration.operations], ["RunSQL"])
         operation = migration.operations[0]
-        self.assertIn("NOT VALID", operation.sql)
-        self.assertNotIn("VALIDATE", operation.sql.upper().replace("NOT VALID", ""))
-        self.assertIn(CONSTRAINT, operation.sql)
-        self.assertIn("DROP CONSTRAINT", operation.reverse_sql)
+        statements = operation.sql
+        self.assertEqual(statements[0], "SET LOCAL lock_timeout = '5s'")
+        self.assertEqual(len(statements), 2)
+        self.assertIn("NOT VALID", statements[1])
+        self.assertNotIn("VALIDATE", statements[1].upper().replace("NOT VALID", ""))
+        self.assertIn(CONSTRAINT, statements[1])
+        self.assertEqual(operation.reverse_sql[0], "SET LOCAL lock_timeout = '5s'")
+        self.assertIn("DROP CONSTRAINT", operation.reverse_sql[1])
+        self.assertTrue(migration.atomic)  # SET LOCAL lasts for the transaction
         self.assertEqual(
             [type(op).__name__ for op in operation.state_operations],
             ["AddConstraint"],
@@ -165,6 +170,7 @@ class TheMigrationsTest(SimpleTestCase):
         migration = self._migration(M0034)
         self.assertEqual([type(op).__name__ for op in migration.operations], ["RunSQL"])
         operation = migration.operations[0]
+        self.assertTrue(migration.atomic)
         self.assertIn("VALIDATE CONSTRAINT", operation.sql)
         self.assertIn(CONSTRAINT, operation.sql)
         self.assertNotIn("ADD CONSTRAINT", operation.sql)

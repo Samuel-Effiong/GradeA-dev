@@ -38,6 +38,7 @@ from ai_processor.reading_config import (
     ReadingConfig,
 )
 from ai_processor.reading_run import ReadingRun
+from ai_processor.tests_reading_pinned import PINNED
 from users.models import CustomUser, UserTypes
 
 BASE = Path(settings.BASE_DIR)
@@ -73,6 +74,7 @@ ALTERNATIVE = {
 }
 
 
+@override_settings(**PINNED)
 class TheVersionTest(SimpleTestCase):
     def test_the_six_settings_are_these_six(self):
         self.assertEqual(tuple(sorted(READING_SHAPING_SETTINGS)), SIX)
@@ -237,6 +239,7 @@ def _answers(*, blank_first=False):
     }
 
 
+@override_settings(**PINNED)
 class OneReadingPerExtractionTest(SimpleTestCase):
     """The reading is taken once, at the top of extract_answer_with_retry,
     and every site uses it."""

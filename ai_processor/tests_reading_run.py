@@ -18,10 +18,11 @@ through the real extraction with only the provider call replaced.
 
 import itertools
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from ai_processor.reading_run import ReadingRun
 from ai_processor.services import ANSWERS_EXTRACTION_PROMPT, MAIN_MODEL
+from ai_processor.tests_reading_pinned import PINNED
 from students import step_label
 
 UNKNOWN = "unknown"
@@ -343,6 +344,7 @@ class TheVoteTest(SimpleTestCase):
         self.assertEqual(answer, before)
 
 
+@override_settings(**PINNED)
 class TheLabelFieldsTest(SimpleTestCase):
     def _run_with_config(self):
         from ai_processor.reading_config import ReadingConfig

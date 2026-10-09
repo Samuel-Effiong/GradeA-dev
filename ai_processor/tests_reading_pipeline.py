@@ -35,6 +35,7 @@ from ai_processor.exceptions import ProviderFailureError
 from ai_processor.extraction_schemas import ANSWERED, BLANK, NOT_FOUND_IN_DOCUMENT
 from ai_processor.reading_run import ReadingRun
 from ai_processor.step_run import StepRun, StepScopeMissingError, current_step_run
+from ai_processor.tests_reading_pinned import PINNED
 from students.exceptions import TaskCancelledError
 from users.models import CustomUser, UserTypes
 
@@ -129,6 +130,7 @@ def label(result, run):
     return run.label_fields(result["answers"])
 
 
+@override_settings(**PINNED)
 class TheModelIsTheOneThatAnsweredTest(SimpleTestCase):
     def test_a_one_call_reading_is_labelled_with_the_named_model(self):
         provider = in_order(
@@ -192,7 +194,7 @@ class TheModelIsTheOneThatAnsweredTest(SimpleTestCase):
         self.assertEqual(fields["answers_config_version"], run.config.version)
 
 
-@override_settings(ANSWER_COMPLETENESS_ENFORCEMENT="strict")
+@override_settings(**PINNED)
 class OnlyKeptRepliesCountTest(SimpleTestCase):
     def test_a_try_the_completeness_check_threw_away_leaves_nothing(self):
         """Try 1 (by aaa/bad) has a drifted number, so strict mode rejects it
@@ -270,6 +272,7 @@ def pages(count):
     return [TEXT] + [IMAGE] * count
 
 
+@override_settings(**PINNED)
 class ALongPaperTest(SimpleTestCase):
     """Six pages are two parts of three."""
 
@@ -358,6 +361,7 @@ class ALongPaperTest(SimpleTestCase):
 BLANK_FIRST = payload(answer(1, "", BLANK), answer(2), answer(3))
 
 
+@override_settings(**PINNED)
 class TheRecheckTest(SimpleTestCase):
     """The four cases of ruling 3, then every way the re-check does not run.
     The paper has one page image and a blank first answer."""
@@ -504,6 +508,7 @@ class TheRecheckTest(SimpleTestCase):
                 self.assertEqual(fields["answers_recheck_model"], "not_run")
 
 
+@override_settings(**PINNED)
 class TheRecheckAfterThePaymentTest(TestCase):
     """The reply came and was named, then the credit step raised: the call
     left and a reply was received, so the name is kept and the result is
@@ -566,6 +571,7 @@ class TheRecheckAfterThePaymentTest(TestCase):
         self.assertEqual(fields["answers_recheck_model"], "not_run")
 
 
+@override_settings(**PINNED)
 class TheMarksAreMadeAtTheProviderCallTest(SimpleTestCase):
     def _call(self, provider, run=None, task_type="extract_answer"):
         function = services.ai_processor.get_ai_model_function()
@@ -639,6 +645,7 @@ class TheMarksAreMadeAtTheProviderCallTest(SimpleTestCase):
         self.assertNotIn("StepRun", json.dumps(provider.requests[0], default=repr))
 
 
+@override_settings(**PINNED)
 class TheScopeIsClosedAfterAFailureTest(SimpleTestCase):
     """Celery prefork reuses one context across tasks in a process: a scope
     left open by a task that died would show in the next task (the Checker's
@@ -664,6 +671,7 @@ class TheScopeIsClosedAfterAFailureTest(SimpleTestCase):
         self.assertIsNone(current_step_run())
 
 
+@override_settings(**PINNED)
 class AWholeRetryUsesOneRunTest(SimpleTestCase):
     def test_the_reading_and_the_recheck_are_two_separate_steps(self):
         run = ReadingRun()
