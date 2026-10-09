@@ -91,7 +91,13 @@ class SchoolAdminAuditEventListView(generics.ListAPIView):
     filterset_class = SchoolAdminAuditEventFilter
 
     def get_queryset(self):
-        return AuditEvent.objects.filter(
-            # IsSchoolAdmin has already rejected anonymous callers.
-            school_id=cast("CustomUser", self.request.user).school_id
-        ).order_by("-occurred_at")
+        # IsSchoolAdmin has already rejected anonymous callers.
+        school_id = cast("CustomUser", self.request.user).school_id
+        if school_id is None:
+            # AUDIT-NULL-SCHOOL: a user's school is nullable, and in Django
+            # `filter(school_id=None)` means IS NULL: an admin with no school
+            # would be shown every event that belongs to no school
+            # (individual teachers, system, anonymous ones, failed sign-ins
+            # with the address and the IP). They are shown nothing.
+            return AuditEvent.objects.none()
+        return AuditEvent.objects.filter(school_id=school_id).order_by("-occurred_at")

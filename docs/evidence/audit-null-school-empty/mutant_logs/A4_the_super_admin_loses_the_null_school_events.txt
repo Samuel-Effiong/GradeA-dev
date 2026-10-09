@@ -1,0 +1,82 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 6fcc3e59-36de-422d-86a4-887351590858.
+Cannot activate automatic trial for user 6fcc3e59-36de-422d-86a4-887351590858 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8c89abf6-acc4-4cde-851b-cd1e552b5c4f.
+Cannot activate automatic trial for user 8c89abf6-acc4-4cde-851b-cd1e552b5c4f (validation): ValueError
+.Free trial plan not found: no trial activated for user 557b831b-f92e-44d7-92e4-20a6b31168fe.
+Cannot activate automatic trial for user 557b831b-f92e-44d7-92e4-20a6b31168fe (validation): ValueError
+.Free trial plan not found: no trial activated for user 6b69380e-1d3c-479e-b34c-b8fb4b36ce79.
+Cannot activate automatic trial for user 6b69380e-1d3c-479e-b34c-b8fb4b36ce79 (validation): ValueError
+FFree trial plan not found: no trial activated for user 26cb2aea-3db1-43ee-90b7-ec78cfc0a8ad.
+Cannot activate automatic trial for user 26cb2aea-3db1-43ee-90b7-ec78cfc0a8ad (validation): ValueError
+.Free trial plan not found: no trial activated for user 23584c2a-4341-42a5-935e-3fc39714a4c0.
+Cannot activate automatic trial for user 23584c2a-4341-42a5-935e-3fc39714a4c0 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a school admin to access this endpoint.
+.Free trial plan not found: no trial activated for user 162bd3bb-531c-4269-bad1-779044cea1c5.
+Cannot activate automatic trial for user 162bd3bb-531c-4269-bad1-779044cea1c5 (validation): ValueError
+.Free trial plan not found: no trial activated for user e3ab942e-f171-4edb-84f7-d53b44d3957e.
+Cannot activate automatic trial for user e3ab942e-f171-4edb-84f7-d53b44d3957e (validation): ValueError
+.Free trial plan not found: no trial activated for user 9bf8586c-9892-4131-bdc7-b3fe0b05439c.
+Cannot activate automatic trial for user 9bf8586c-9892-4131-bdc7-b3fe0b05439c (validation): ValueError
+.Free trial plan not found: no trial activated for user 846b664e-8725-400b-9100-79d216b4b736.
+Cannot activate automatic trial for user 846b664e-8725-400b-9100-79d216b4b736 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Free trial plan not found: no trial activated for user d72d1c47-66a6-4142-8791-f7a3f72d65b9.
+Cannot activate automatic trial for user d72d1c47-66a6-4142-8791-f7a3f72d65b9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5c39ecaf-558a-4931-af7e-a2dc8b1d4ee4.
+Cannot activate automatic trial for user 5c39ecaf-558a-4931-af7e-a2dc8b1d4ee4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 016641d9-3209-4c9f-b7ff-950df65fbe9f.
+Cannot activate automatic trial for user 016641d9-3209-4c9f-b7ff-950df65fbe9f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.
+======================================================================
+FAIL: test_the_super_admin_still_sees_the_null_school_events (audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_the_super_admin_still_sees_the_null_school_events)
+Green on the old code too: platform staff see everything.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-null-school-empty/audit/tests_school_admin_without_a_school.py", line 111, in test_the_super_admin_still_sees_the_null_school_events
+    self.assertIn(str(event.id), ids)
+AssertionError: '9a725ca5-a8e6-4932-9a4a-10d565efea9d' not found in {'a73677aa-f999-41bf-9f98-2ed6963c9e09', 'ea311d57-4d4d-48a4-a39e-ddf5a3f9a111'}
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.916s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 13 test(s).
