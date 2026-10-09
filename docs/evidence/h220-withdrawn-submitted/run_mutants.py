@@ -40,6 +40,7 @@ SER = "assignments/serializers.py"
 TESTS = [
     "assignments.tests_student_submissions_withdrawn",
     "assignments.tests_student_submissions_list_order",
+    "assignments.tests_student_submissions_withdrawn_fresh",
 ]
 STATUS = "enrollment.enrollment_status == EnrollmentStatusType.WITHDRAWN"
 NONE = "                and submission is None\n"
@@ -111,6 +112,16 @@ MUTANTS = [
         f"            if {STATUS}:\n"
         "                submission = None\n"
         "\n            # Submission status",
+        1,
+        TESTS,
+    ),
+    (
+        "R8",
+        "a withdrawal reaches the teacher's cached detail (the bump)",
+        "classrooms/signals.py",
+        "[(SCOPE_USER, instance.student_id), (SCOPE_GLOBAL, None)]\n"
+        '        + _course_owner_scopes(getattr(instance, "course", None))\n',
+        "[(SCOPE_USER, instance.student_id), (SCOPE_GLOBAL, None)]\n",
         1,
         TESTS,
     ),
