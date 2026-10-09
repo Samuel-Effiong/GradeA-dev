@@ -3,14 +3,17 @@
 `StudentSubmission` gets six NOT NULL text columns (migration 0032, pure
 AddField with a database default, so an old row and a row inserted by older
 code after a code-only rollback read "unlabelled"), and the one check
-constraint on the re-check's pair (migration 0033, its own file so it can be
-rolled forward or back alone).
+constraint on the re-check's pair in two steps so that no scan of the table
+runs under a blocking lock: migration 0033 adds it NOT VALID (a catalog change,
+no row is read), migration 0034 validates it (a read of every row under a lock
+that does not block reads or writes).
 
   * the columns: names, lengths, both defaults, no index, read-only in the
     admin, in no serializer;
   * the constraint: every pair the design note's table allows is saved, every
-    other pair is refused by the DATABASE; the Python function that builds
-    the pairs (`step_label.pair_is_allowed`) and the constraint agree on every
+    other pair is refused by the DATABASE, a result word outside the five
+    included; the Python function that builds the pairs
+    (`step_label.pair_is_allowed`) and the constraint agree on every
     combination of words;
   * a row made before the migrations reads "unlabelled" after them, and the
     migrations reverse.
@@ -51,6 +54,7 @@ TABLE = "students_studentsubmission"
 CONSTRAINT = "answers_recheck_pair_allowed"
 M0032 = "0032_submission_answers_label"
 M0033 = "0033_submission_answers_recheck_pair_check"
+M0034 = "0034_submission_answers_recheck_pair_validate"
 
 
 def _column(name):
@@ -142,13 +146,30 @@ class TheMigrationsTest(SimpleTestCase):
                 self.assertEqual(op.field.default, UNLABELLED)
                 self.assertFalse(op.field.null)
 
-    def test_0033_is_the_one_check_constraint_and_nothing_else(self):
+    def test_0033_adds_the_one_constraint_not_valid_and_nothing_else(self):
         migration = self._migration(M0033)
+        self.assertEqual([type(op).__name__ for op in migration.operations], ["RunSQL"])
+        operation = migration.operations[0]
+        self.assertIn("NOT VALID", operation.sql)
+        self.assertNotIn("VALIDATE", operation.sql.upper().replace("NOT VALID", ""))
+        self.assertIn(CONSTRAINT, operation.sql)
+        self.assertIn("DROP CONSTRAINT", operation.reverse_sql)
         self.assertEqual(
-            [type(op).__name__ for op in migration.operations], ["AddConstraint"]
+            [type(op).__name__ for op in operation.state_operations],
+            ["AddConstraint"],
         )
-        self.assertEqual(migration.operations[0].constraint.name, CONSTRAINT)
+        self.assertEqual(operation.state_operations[0].constraint.name, CONSTRAINT)
         self.assertIn(("students", M0032), migration.dependencies)
+
+    def test_0034_validates_the_constraint_and_nothing_else(self):
+        migration = self._migration(M0034)
+        self.assertEqual([type(op).__name__ for op in migration.operations], ["RunSQL"])
+        operation = migration.operations[0]
+        self.assertIn("VALIDATE CONSTRAINT", operation.sql)
+        self.assertIn(CONSTRAINT, operation.sql)
+        self.assertNotIn("ADD CONSTRAINT", operation.sql)
+        self.assertEqual(operation.state_operations, [])
+        self.assertIn(("students", M0033), migration.dependencies)
 
     def test_0032_follows_the_grading_label_migration(self):
         migration = self._migration(M0032)
@@ -162,7 +183,7 @@ class TheMigrationsTest(SimpleTestCase):
         import students
 
         folder = Path(students.__file__).parent / "migrations"
-        for name in (M0032, M0033):
+        for name in (M0032, M0033, M0034):
             with self.subTest(name=name):
                 text = (folder / f"{name}.py").read_text(encoding="utf-8")
                 self.assertIn("To undo", text)
@@ -185,6 +206,9 @@ class TheDatabaseHoldsTheDefaultTest(TestCase):
                 self.assertEqual(nullable, "NO")
                 self.assertTrue(default and default.startswith(repr(UNLABELLED)))
                 self.assertEqual(length, MAX_LENGTHS[name])
+
+    def test_the_constraint_is_validated_once_every_migration_has_run(self):
+        self.assertIs(_constraint_validated(), True)
 
     def test_no_index_was_added_for_them(self):
         with connection.cursor() as cursor:
@@ -224,6 +248,7 @@ WORDS = (
     "found_writing",
     "unknown",
     "some/model",
+    "maybe",
 )
 
 
@@ -287,13 +312,25 @@ class TheConstraintOnThePairTest(TestCase):
         """Held twice: the function that builds the pairs and the constraint."""
         submission = _submission()
         for result, model in itertools.product(WORDS, WORDS):
-            if result in ("unknown", "some/model"):
-                continue  # not a result word at all; the function refuses it
             with self.subTest(pair=(result, model)):
                 self.assertEqual(
                     self._try(submission, result, model),
                     step_label.pair_is_allowed(result, model),
                 )
+
+    def test_a_result_word_outside_the_five_is_refused_beside_a_real_model(self):
+        """The Python rule and the database both hold that the result column
+        is one of the five words, whatever stands in the model column."""
+        submission = _submission()
+        for result in ("maybe", "unknown", "some/model", "", "FAILED"):
+            with self.subTest(result=result):
+                self.assertFalse(self._try(submission, result, "some/model"))
+                self.assertFalse(step_label.pair_is_allowed(result, "some/model"))
+        for result in step_label.RECHECK_RESULTS:
+            if result != "not_run":
+                with self.subTest(result=result):
+                    self.assertTrue(self._try(submission, result, "some/model"))
+                    self.assertTrue(step_label.pair_is_allowed(result, "some/model"))
 
     def test_a_new_row_with_a_forbidden_pair_is_refused_too(self):
         submission = _submission()
@@ -314,6 +351,7 @@ class TheConstraintOnThePairTest(TestCase):
 AT_0031 = [("students", "0031_submission_grading_label")]
 AT_0032 = [("students", M0032)]
 AT_0033 = [("students", M0033)]
+AT_0034 = [("students", M0034)]
 
 
 def _targets(students_target):
@@ -338,6 +376,15 @@ def _constraint_present():
             "SELECT count(*) FROM pg_constraint WHERE conname = %s", [CONSTRAINT]
         )
         return cursor.fetchone()[0]
+
+
+def _constraint_validated():
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT convalidated FROM pg_constraint WHERE conname = %s", [CONSTRAINT]
+        )
+        row = cursor.fetchone()
+    return None if row is None else row[0]
 
 
 class ARowMadeBeforeTheColumnsExistedTest(TransactionTestCase):
@@ -390,6 +437,18 @@ class ARowMadeBeforeTheColumnsExistedTest(TransactionTestCase):
         self.assertEqual(_constraint_present(), 0)
         self._migrate(AT_0033)
         self.assertEqual(_constraint_present(), 1)
+        # Step one: present, not yet validated, and already refusing a bad
+        # write while it reads no existing row.
+        self.assertIs(_constraint_validated(), False)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE %s SET answers_recheck_result = 'not_run', "
+                    "answers_recheck_model = 'x/model' WHERE id = %%s" % TABLE,
+                    [old.pk],
+                )
+        self._migrate(AT_0034)
+        self.assertIs(_constraint_validated(), True)
 
         with connection.cursor() as cursor:
             cursor.execute(
@@ -401,7 +460,10 @@ class ARowMadeBeforeTheColumnsExistedTest(TransactionTestCase):
         fresh = StudentSubmission.objects.get(pk=old.pk)
         self.assertEqual(fresh.answers, [{"question_number": 1}])
 
-        # The constraint rolls back alone, then the columns.
+        # Reversing the validation does nothing; reversing 0033 drops the
+        # constraint alone; then the columns.
+        self._migrate(AT_0033)
+        self.assertEqual(_constraint_present(), 1)
         self._migrate(AT_0032)
         self.assertEqual(_constraint_present(), 0)
         self.assertEqual(_columns_present(), 6)

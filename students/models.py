@@ -352,10 +352,20 @@ class StudentSubmission(models.Model):
                 name="unique_student_submission_per_assignment",
             ),
             # The re-check's pair (students.step_label.pair_is_allowed, held
-            # twice): "unlabelled" and "not_run" stand in the model column
-            # only beside the same word in the result column.
+            # twice): the result column holds one of the five result words,
+            # and "unlabelled" and "not_run" stand in the model column only
+            # beside the same word in the result column.
             models.CheckConstraint(
-                condition=(
+                condition=models.Q(
+                    answers_recheck_result__in=[
+                        "unlabelled",
+                        "not_run",
+                        "failed",
+                        "confirmed_blank",
+                        "found_writing",
+                    ]
+                )
+                & (
                     (
                         models.Q(answers_recheck_result="unlabelled")
                         & models.Q(answers_recheck_model="unlabelled")

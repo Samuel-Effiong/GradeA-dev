@@ -309,6 +309,35 @@ class ALongPaperTest(SimpleTestCase):
         # neither is the main model, so the first by alphabetical order.
         self.assertEqual(label(result, run)["answers_model"], "a/two")
 
+    def test_an_answer_the_check_dropped_has_no_vote_from_the_part_that_made_it(self):
+        """Two parts, two models. The first part's reply carries question 1
+        and two numbers the assignment does not have (8 and 9); the second
+        part's carries questions 2 and 3. The check drops 8 and 9. Saved:
+        question 1 from aaa/one, questions 2 and 3 from zzz/two, so zzz/two
+        wins two to one. A vote that also counted the dropped answers would
+        give aaa/one three to two. (With one model for every reply no vote
+        for a dropped answer could change the label: that is why this test
+        has two.)"""
+        part1 = payload(
+            answer(1, "a"),
+            answer(2, "", NOT_FOUND_IN_DOCUMENT),
+            answer(3, "", NOT_FOUND_IN_DOCUMENT),
+            answer(8, "extra"),
+            answer(9, "extra"),
+        )
+        part2 = payload(
+            answer(1, "", NOT_FOUND_IN_DOCUMENT),
+            answer(2, "b"),
+            answer(3, "c"),
+        )
+        with override_settings(ANSWER_COMPLETENESS_ENFORCEMENT="log"):
+            provider = in_order(reply(part1, "aaa/one"), reply(part2, "zzz/two"))
+            result, run = read(provider, pages(6))
+        self.assertEqual(len(provider.requests), 2)
+        self.assertEqual([a["question_number"] for a in result["answers"]], [1, 2, 3])
+        self.assertEqual([a["answer_html"] for a in result["answers"]], ["a", "b", "c"])
+        self.assertEqual(label(result, run)["answers_model"], "zzz/two")
+
     def test_a_part_read_again_after_unreadable_json_counts_the_good_reply(self):
         part1 = payload(answer(1, "a"), answer(2, "b"), answer(3, "c"))
         provider = in_order(
