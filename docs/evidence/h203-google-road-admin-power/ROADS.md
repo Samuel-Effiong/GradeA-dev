@@ -41,3 +41,6 @@ A road that sets a password and mails it signs nobody in by itself, but it hands
 | user manager `create_user` | creates only |
 | backfill command, remediation command, benchmark / QA scripts | operator tools |
 **Limit of the pin:** by text; `password=` as a dict key or a serializer field declaration is not seen, and a function that sets a password through a helper with another name is seen only if the name is added to `CREDENTIAL_MAIL`.
+
+## Road 14: what stays allowed (Senior Manager, 2026-10-09 13:10)
+"Switched off" means what H-202 means: VERIFIED and inactive. A pending, never-verified account WITHOUT admin power (for example a self-registered teacher who has not verified yet) can still be invited by a licence admin, as before. The control test that shows it: `billing/tests/test_licence_invite_admin_power.py::test_an_ordinary_never_verified_inactive_teacher_is_still_added`. A verified, onboarded teacher with admin power is also still added (`test_a_verified_staff_teacher_who_has_onboarded_is_still_added`).
