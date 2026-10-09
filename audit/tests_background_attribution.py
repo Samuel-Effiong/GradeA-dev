@@ -385,4 +385,8 @@ class ClawbackRaceTests(TransactionTestCase):
 
         self.race(self.clawback, monthly_grant)
 
-        self.assertTrue(all(n == 1 for n in self.expire_rows_per_bucket()))
+        rows = self.expire_rows_per_bucket()
+        # not vacuous: the clawback really expired the bucket (an empty list
+        # satisfies `all`)
+        self.assertNotEqual(rows, [])
+        self.assertTrue(all(n == 1 for n in rows))
