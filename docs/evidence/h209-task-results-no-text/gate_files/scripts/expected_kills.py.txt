@@ -1,0 +1,125 @@
+"""H-209: written on 2026-10-09 BEFORE any run of the row, by tracing each of
+the 8 tests of assignments/tests_task_results_carry_no_text.py against every
+mutant and against the base (994febe1 = H-208's tip, the old prints and
+returned tracebacks) by hand, reading the code. Nothing here was seen by a run.
+Lesson of H-208 applied: after ANY test change every set and reason is
+re-traced; the reason check reads logs/raw/<id>.out (the full failure bodies),
+never the condensed logs/<id>.log.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE 994febe1>"""
+import re
+import sys
+from pathlib import Path
+
+SW = "TheSwallowingTasksReturnNoText"
+GA = "TheGradeAllTaskKeepsTextOutOfItsMetaAndItsPrint"
+PM = "TheTaskModuleDoesNotPrint"
+T1 = (SW, "test_t1_auto_grade_due_assignment")
+T2 = (SW, "test_t2_send_assignment_due_reminder")
+T3 = (SW, "test_t3_send_new_assignment_posted_notification")
+G1 = (GA, "test_g1_the_stored_failure_meta_has_class_and_ids_only")
+G2 = (GA, "test_g2_the_traceback_is_not_printed")
+G3 = (GA, "test_g3_the_error_still_reaches_the_failure_tracker_and_is_raised")
+P1 = (PM, "test_p1_no_print_call_in_the_module")
+P2 = (PM, "test_p2_no_traceback_text_is_built_in_the_module")
+
+EXPECTED = {
+    # K1 the failure meta carries str(e): G1 (assertEqual on meta["error"]).
+    "K1": {G1},
+    # K2 a "detail" field again: G1 (assertNotIn("detail", meta)).
+    "K2": {G1},
+    # K3 print(e) in the grade-all except: G2 (the text is in the printed
+    # output) and P1 (a print call in the module).
+    "K3": {G2, P1},
+    # K4-K6 a scheduled task returns "Error: <text>": its own test (the
+    # result then lacks the class name "RuntimeError").
+    "K4": {T1},
+    "K5": {T2},
+    "K6": {T3},
+    # K7-K9 the log line lacks the frames: its own test ("tasks.py:" absent).
+    "K7": {T1},
+    "K8": {T2},
+    "K9": {T3},
+    # K10-K12 the line is a WARNING, not an ERROR: its own test (no record at
+    # ERROR level, so the count of ERROR records is 0, not 1).
+    "K10": {T1},
+    "K11": {T2},
+    "K12": {T3},
+    # K13 a print in the extraction task: P1 only.
+    "K13": {P1},
+    # K14 "import traceback" in the module: P2 only.
+    "K14": {P2},
+    # K15 grade-all no longer raises after recording the failure: G1 and G2
+    # (both assert result.failed() first; G2 since Verifier 1's finding) and G3
+    # (the control for the re-raise).
+    "K15": {G1, G2, G3},
+}
+#: The BASE 994febe1 with the final test module (taken from the tip): every
+#: test that looks at the new behaviour is red. Green on purpose (a control):
+#: G3 (the error still reaches the tracker and is raised: true before and
+#: after the change); it is killed only by K15.
+REPRO = {T1, T2, T3, G1, G2, P1, P2}
+#: RULE 22: fragments that must be in each red test's OWN failure block at
+#: (r), written before the run. T1-T3: the old result string carries the text
+#: (the class name is in it too, via the traceback, so the earlier checks pass);
+#: G1: the old meta holds str(e); G2: the old code prints the traceback;
+#: P1 and P2: the old module has print calls and format_exc.
+REASON = {
+    T1: ("self.assertNotIn(MARKER, result)", "H209-RESULT-TEXT-5d2e8b"),
+    T2: ("self.assertNotIn(MARKER, result)", "H209-RESULT-TEXT-5d2e8b"),
+    T3: ("self.assertNotIn(MARKER, result)", "H209-RESULT-TEXT-5d2e8b"),
+    G1: ('self.assertEqual(meta["error"], "RuntimeError")', "cannot open"),
+    G2: ('self.assertNotIn("Traceback", printed)', "Traceback"),
+    P1: ("self.assertEqual(calls, [])",),
+    P2: ('self.assertNotIn("format_exc", source)',),
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), REPRO)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
