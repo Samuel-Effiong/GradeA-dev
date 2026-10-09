@@ -527,10 +527,33 @@ class D8TaskFailureLoggingTest(TestCase):
                 self.assertEqual(record.levelno, logging.WARNING)
                 self.assertIsNone(record.exc_info)
 
-    def test_transient_failure_still_logs_error_with_frames_not_text(self):
+    def test_a_failure_in_the_task_body_logs_error_with_frames_not_text(self):
         # H-208: the line is still an ERROR and still locates the fault (the
         # stack FRAMES, which exist only for an error that was raised), but
-        # carries neither the error's text nor a traceback.
+        # carries neither the error's text nor a traceback. RuntimeError is not
+        # a broker outage, so it is named with its frames.
+        def the_task_body_that_fails():
+            raise RuntimeError("slow")
+
+        try:
+            the_task_body_that_fails()
+        except RuntimeError as error:
+            with self.assertLogs("students.task_tracking", level="DEBUG") as logs:
+                mark_processing_task_failure(str(uuid.uuid4()), error)
+        [record] = logs.records
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIsNone(record.exc_info)
+        message = record.getMessage()
+        self.assertTrue(message)
+        self.assertIn("error=RuntimeError", message)
+        self.assertIn("frames=", message)
+        self.assertIn("the_task_body_that_fails", message)
+        self.assertNotIn("slow", message)
+
+    def test_a_timeout_is_a_broker_outage_named_by_its_class_alone(self):
+        # The original test's error. TimeoutError is in BROKER_UNAVAILABLE_ERRORS
+        # (AutoGrader/dispatch.py), so the line names the class and nothing
+        # else: still an ERROR, no traceback, no text, no frames.
         def the_task_body_that_times_out():
             raise TimeoutError("slow")
 
@@ -543,9 +566,9 @@ class D8TaskFailureLoggingTest(TestCase):
         self.assertEqual(record.levelno, logging.ERROR)
         self.assertIsNone(record.exc_info)
         message = record.getMessage()
-        self.assertTrue(message)
         self.assertIn("error=TimeoutError", message)
-        self.assertIn("the_task_body_that_times_out", message)
+        self.assertNotIn("frames=", message)
+        self.assertNotIn("the_task_body_that_times_out", message)
         self.assertNotIn("slow", message)
 
 
