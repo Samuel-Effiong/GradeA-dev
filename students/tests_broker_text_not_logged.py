@@ -53,6 +53,7 @@ from users.models import CustomUser, UserTypes
 
 MARKER = "H208-BROKER-TEXT-7f3a9c"
 BROKER_TEXT = f"Error 111 connecting to broker-internal.example:6379. {MARKER}."
+OTHER_MARKER = "H208-OTHER-TEXT-2b6d10"
 
 # The helper that builds the part of the line about the error. Named by a
 # string: it exists only after the change, and the behaviour tests above it
@@ -156,6 +157,15 @@ class Base(TransactionTestCase):
         return BackgroundProcessingTask.objects.get(pk=task.pk)
 
 
+def a_fault_raised_while_the_broker_error_is_handled():
+    """A RuntimeError raised inside the `except` of a broker error, WITHOUT
+    `from`: the broker error is only its __context__ (implicit), not its cause."""
+    try:
+        raise RedisConnectionError(BROKER_TEXT)
+    except RedisConnectionError:
+        raise RuntimeError(f"unrelated fault. {OTHER_MARKER}")  # noqa: B904
+
+
 def _refuses(error):
     def delay(*args, **kwargs):
         raise error
@@ -232,6 +242,30 @@ class TheLauncherLine(Base):
         self.assertIn("ConnectionError", text)
         self.assertNotIn(MARKER, text)
         self.assertIsNone(re.search(r"\.py:\d+:", text))
+
+    def test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself(self):
+        task = self.a_tracked_task()
+        try:
+            a_fault_raised_while_the_broker_error_is_handled()
+        except RuntimeError as error:
+            # The deciding values: the broker error is only the implicit
+            # context, and the error has frames to show.
+            self.assertIsInstance(error.__context__, RedisConnectionError)
+            self.assertIsNone(error.__cause__)
+            self.assertIsNotNone(error.__traceback__)
+            with Captured() as logs:
+                mark_processing_task_failure(task.id, error)
+
+        text = logs.rendered("students.task_tracking")
+        self.assertTrue(text)
+        self.assertIn(str(task.id), text)
+        self.assertIn("error=RuntimeError", text)
+        self.assertIn("a_fault_raised_while_the_broker_error_is_handled", text)
+        self.assertNotIn("ConnectionError", text)
+        self.assertNotIn(MARKER, text)
+        self.assertNotIn(OTHER_MARKER, text)
+        self.assertNotIn("Traceback", text)
+        self.assertTrue(all(r.exc_info is None for r in logs.records))
 
 
 class TheCancelLine(Base):
@@ -318,7 +352,7 @@ class TheGradingFollowUpLine(Base):
         # the line of the grading path exists, names the submission and the class
         self.assertTrue(services_text)
         self.assertIn(str(self.submission.id), services_text)
-        self.assertIn("ConnectionError", everything)
+        self.assertIn("ConnectionError", services_text)
         # and nothing anywhere, the chained cause included, carries the text
         self.assertNotIn(MARKER, everything)
         self.assertNotIn("direct cause", everything)
@@ -360,4 +394,38 @@ class TheOneHelper(SimpleTestCase):
 
         self.assertIn("ValueError", text)
         self.assertIn("test_another_error_is_named_with_frames", text)
+        self.assertNotIn(MARKER, text)
+
+    def test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself(self):
+        try:
+            a_fault_raised_while_the_broker_error_is_handled()
+        except RuntimeError as error:
+            self.assertIsInstance(error.__context__, RedisConnectionError)
+            self.assertIsNone(error.__cause__)
+            text = self.helper()(error)
+
+        self.assertTrue(text)
+        self.assertIn("error=RuntimeError", text)
+        self.assertIn("a_fault_raised_while_the_broker_error_is_handled", text)
+        self.assertNotIn("ConnectionError", text)
+        self.assertNotIn(MARKER, text)
+        self.assertNotIn(OTHER_MARKER, text)
+
+    def test_a_wrapper_raised_from_a_broker_error_is_named_by_the_broker_class(self):
+        def the_wrapper_raised_from_the_broker_error():
+            try:
+                raise RedisConnectionError(BROKER_TEXT)
+            except RedisConnectionError as cause:
+                raise ProcessingTemporarilyUnavailable() from cause
+
+        try:
+            the_wrapper_raised_from_the_broker_error()
+        except ProcessingTemporarilyUnavailable as error:
+            self.assertIsInstance(error.__cause__, RedisConnectionError)
+            text = self.helper()(error)
+
+        self.assertTrue(text)
+        self.assertIn("error=ConnectionError", text)
+        self.assertNotIn("ProcessingTemporarilyUnavailable", text)
+        self.assertNotIn("the_wrapper_raised_from_the_broker_error", text)
         self.assertNotIn(MARKER, text)
