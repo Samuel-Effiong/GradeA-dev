@@ -32,7 +32,7 @@ One definition in `classrooms/models.py`: `ENROLLMENT_LIST_ORDER = ("created_at"
 - A mutant on the my-students prefetch does not exist, by design (see above).
 - No browser or frontend was involved.
 
-## Follow-up row (LOW, number from the Release Engineer, H-197): lists ordered by a non-unique key
+## Follow-up row (LOW, number from the Release Engineer, H-200): lists ordered by a non-unique key
 Add a unique tie-break to: `StudentSubmission` (`-submission_date`), `Topic` (`name`), `Assignment` (`title`), `Course` (`name`), `AssignmentGenerationMessage` (`created_at`), `PlanFeatureInclusion` (`plan`, `display_order`), `SubscriptionPlan` (`category`, `tier`). The unordered `submissions` prefetches (`classrooms/views.py` students list) belong to the same row. **Which of these routes are cached: not checked.** No work done on it here.
 
 ## What a frontend note can say
