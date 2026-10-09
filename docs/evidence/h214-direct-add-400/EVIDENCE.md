@@ -30,3 +30,7 @@ Mutants (against the fixed file):
 - M3 widen it to `except Exception: raise`: killed by the 500 control (the test client re-raises RuntimeError -> ERROR).
 Gate list for the grant: classrooms.tests_h214_direct_add_answers, classrooms.tests_cross_school_enrollment, classrooms.tests_h99_placeholder_email, classrooms.tests_h71_student_add_role, classrooms.tests_tenancy_and_roster, classrooms.tests_security_penetration, classrooms.tests_h203_admin_power_routes (after H-203 merges; its `DIRECT_REFUSALS` either-or then tightens to 400 in the same bundle), AutoGrader.tests_student_classmates_guard. Then one classrooms regression.
 No payload-shape change (rule 20 not touched: the success answer is the same).
+
+## Base update onto beta fafed57f (after the Phase 2 promotion)
+
+The branch took beta fafed57f by a clean merge (no conflicts). H-203's route test `classrooms/tests_h203_admin_power_routes.py` accepted 400 or 500 for the direct add; it now accepts only 400 (`DIRECT_REFUSALS`), the same row's change. Hand-checked: the refusals on that route are `serializers.ValidationError`, which H-214 lets through as 400. `classrooms.tests_h203_admin_power_routes` is in the gate list. pre-commit over the three touched files: all hooks passed.
