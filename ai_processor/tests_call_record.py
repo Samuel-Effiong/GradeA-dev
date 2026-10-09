@@ -51,7 +51,10 @@ from ai_processor.services import MAIN_MODEL, AIProcessor
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from billing.models import CreditLedger, CreditUsageLog, CreditWallet
-from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
+from billing.tests.test_execute_graded_task import (
+    TEST_PROMPT_VERSION,
+    ExecuteGradedTaskTestBase,
+)
 from students.exceptions import TaskCancelledError
 from students.tests_post_grading_submission_lock import _classroom
 from users.models import UserTypes
@@ -114,6 +117,7 @@ class Base(ExecuteGradedTaskTestBase):
             "feature": FEATURE,
             "task_type": TASK_TYPE,
             "user_prompt": "short prompt",
+            "prompt_version": TEST_PROMPT_VERSION,
         }
         arguments.update(kwargs)
         return self.processor.execute_graded_task(**arguments)
@@ -154,7 +158,7 @@ class TheRowOfACharge(Base):
         self.assertEqual(row.model_asked, MAIN_MODEL)
         self.assertEqual(row.billed_user_id, self.teacher.id)
         self.assertEqual(row.charged_credits, 500)
-        self.assertEqual(row.prompt_version, "unknown")
+        self.assertEqual(row.prompt_version, TEST_PROMPT_VERSION)
         self.assertIsNotNone(row.created_at)
         self.assertIsNotNone(row.duration_ms)
 

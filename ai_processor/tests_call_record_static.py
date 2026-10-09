@@ -142,7 +142,7 @@ class TheColumns(SimpleTestCase):
         self.assertTrue(field.null)
         self.assertFalse(field.choices)
 
-    def test_the_prompt_version_column_is_there_unfilled_with_both_defaults(self):
+    def test_the_prompt_version_column_has_both_defaults(self):
         field = AICallRecord._meta.get_field("prompt_version")
         self.assertFalse(field.null)
         self.assertEqual(field.default, "unknown")
@@ -217,8 +217,16 @@ class TheHooks(SimpleTestCase):
         self.assertEqual(
             index_of(note("note_response")) + 1, index_of(assigns("resolved_course"))
         )
-        self.assertEqual(
-            index_of(note("note_billed")) + 1, index_of(assigns("total_prompt"))
+        # After the billed note come the cancellation check, then the
+        # estimate (flattening the prompt moved into estimate_messages_cost).
+        billed = index_of(note("note_billed"))
+        self.assertEqual(billed + 2, index_of(assigns("estimated_cost")))
+        between = statements[billed + 1]
+        self.assertTrue(
+            isinstance(between, ast.Expr)
+            and isinstance(between.value, ast.Call)
+            and ast.unparse(between.value.func) == "ensure_task_not_cancelled",
+            ast.unparse(between),
         )
 
     def test_the_function_makes_no_other_call_into_the_module(self):
