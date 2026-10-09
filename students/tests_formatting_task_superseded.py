@@ -45,7 +45,6 @@ from students.tests_formatter_input import grading_result as a_grading_result
 from students.tests_formatter_input import make_people_and_submission
 from students.tests_manual_grade_formatted_grade import (
     FROM_THE_FORMATTER,
-    OLD_FORMATTED,
     ManualGradeBase,
 )
 
