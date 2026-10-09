@@ -42,6 +42,7 @@ from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from classrooms.tests_support_add_by_email import add_by_email
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -239,7 +240,7 @@ class ConcurrentEnrollmentConcurrencyTests(TransactionTestCase):
                 client = APIClient()
                 client.force_authenticate(teacher)
                 response = client.post(
-                    reverse("course-students", args=[course.pk]), {"email": email}
+                    reverse("course-students", args=[course.pk]), add_by_email(email)
                 )
                 assert response.status_code in (200, 201), response.content
 

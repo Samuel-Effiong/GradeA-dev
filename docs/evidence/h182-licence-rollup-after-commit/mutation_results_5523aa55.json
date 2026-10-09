@@ -1,0 +1,208 @@
+{
+  "N1_the_charge_writes_the_licence_inline": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised",
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge"
+    ],
+    "pycache_left": 0
+  },
+  "N2_the_charge_registers_no_roll_up": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_charge_rolls_up_what_it_charged_once_it_commits",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised",
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_charge_rolls_up_what_it_charged_once_it_commits",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_consumption_increments_the_license_counter",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_contract_renewal_still_resets",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_monthly_refresh_resets_the_consumption_window",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_refresh_is_idempotent_within_the_same_month",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_within_month_cap_still_binds"
+    ],
+    "pycache_left": 0
+  },
+  "N3_the_refund_registers_no_roll_up": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_never_takes_the_figure_below_zero"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_never_takes_the_figure_below_zero",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_refund_clamps_at_zero_after_cycle_reset",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_refund_reverses_the_license_counter"
+    ],
+    "pycache_left": 0
+  },
+  "N4_the_refund_writes_the_licence_inline": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit"
+    ],
+    "pycache_left": 0
+  },
+  "N5_the_roll_up_runs_at_once_not_after_commit": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge"
+    ],
+    "pycache_left": 0
+  },
+  "N6_a_failed_roll_up_is_raised": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised"
+    ],
+    "pycache_left": 0
+  },
+  "N7_a_failed_roll_up_is_not_logged_as_an_error": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised"
+    ],
+    "pycache_left": 0
+  },
+  "N8_the_refund_is_not_clamped_at_zero": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_never_takes_the_figure_below_zero"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_never_takes_the_figure_below_zero",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_refund_clamps_at_zero_after_cycle_reset"
+    ],
+    "pycache_left": 0
+  },
+  "N10_the_log_line_carries_the_errors_text": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised"
+    ],
+    "pycache_left": 0
+  },
+  "N11_the_charge_registers_its_roll_up_twice": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_charge_rolls_up_what_it_charged_once_it_commits",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised",
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_charge_rolls_up_what_it_charged_once_it_commits",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_failed_roll_up_is_logged_with_its_licence_and_amount_not_raised",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_consumption_increments_the_license_counter",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_refund_reverses_the_license_counter",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_contract_renewal_still_resets",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_monthly_refresh_resets_the_consumption_window",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_refresh_is_idempotent_within_the_same_month"
+    ],
+    "pycache_left": 0
+  },
+  "N12_the_refund_registers_its_roll_up_twice": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit"
+    ],
+    "pycache_left": 0
+  },
+  "N9_the_roll_up_adds_nothing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 24,
+    "expected": [
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_charge_rolls_up_what_it_charged_once_it_commits",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_licence_rollup_after_commit.LicenceBeforeWalletRaceTests.test_a_charge_racing_a_licence_overage_grant_does_not_deadlock",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_charge_rolls_up_what_it_charged_once_it_commits",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_a_refund_takes_it_back_after_commit",
+      "billing.tests.test_licence_rollup_after_commit.RollupAfterCommitTests.test_the_figure_is_not_touched_inside_the_charge",
+      "billing.tests.test_license_consumption_accounting.LicenseConsumptionRollupTests.test_consumption_increments_the_license_counter",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_contract_renewal_still_resets",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_monthly_refresh_resets_the_consumption_window",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_refresh_is_idempotent_within_the_same_month",
+      "billing.tests.test_license_multi_month_budget.LicenseMultiMonthBudgetTests.test_within_month_cap_still_binds"
+    ],
+    "pycache_left": 0
+  }
+}

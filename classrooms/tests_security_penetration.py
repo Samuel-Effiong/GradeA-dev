@@ -36,6 +36,7 @@ from classrooms.models import (
     Topic,
 )
 from classrooms.services import NOT_A_STUDENT_MESSAGE
+from classrooms.tests_support_add_by_email import add_by_email
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -405,7 +406,7 @@ class WriteAndPrivilegeAttacks(AttackBase):
         self.as_(self.teacher_a)
         response = self.client.post(
             reverse("course-students", kwargs={"pk": self.course_b.id}),
-            {"email": "victim@x.test"},
+            add_by_email("victim@x.test"),
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
