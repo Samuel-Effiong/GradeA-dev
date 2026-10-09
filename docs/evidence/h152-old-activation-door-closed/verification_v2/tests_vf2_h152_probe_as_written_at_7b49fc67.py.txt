@@ -1,0 +1,332 @@
+"""v2's probe for H-152 and its delta (ed). Copy to
+classrooms/tests_vf2_h152_probe.py of the scratch worktree; never committed
+to the branch. Written 2026-10-07 before any run of mine, after reading
+1a2995f2 (both closed routes, the conversion command, the sender, the queue
+helper, the login serializer, ed's two test modules and the runbook).
+
+ed's tests replace the routes' rate limit, give the command a queue that
+fails with Python's own ConnectionError, and check the saved password
+against the one handed to a replaced sender. These go one step further on
+each:
+
+  X1  both closed routes THROUGH their real rate limit. A leftover student
+      with a valid code gets 410 and the sentence on the door and on the
+      renewal; nothing of the row or the pending place changes; nothing is
+      mailed. The two routes share one bucket: after as many requests as
+      the limit allows (read from the throttle, not written here), every
+      one answered 410, the next is answered 429.
+  X2  the conversion, end to end: the password the QUEUED EMAIL carries,
+      sent to the real login route with the student's address, signs the
+      student in (a wrong one does not); after that login the pending
+      place is ENROLLED. The password exists in memory only and is never
+      printed.
+  X3  the queue fails with the broker's real error type, whose text here
+      carries a marker. The account is left exactly as it was; the
+      command's OUTPUT has the id, no address and not the broker's text.
+      Stated as a fact, and judged: the service's LOG record for the
+      failed dispatch does carry the broker's text (one record).
+  X4  the queue fails with an error that is NOT a broker outage (the
+      helper lets it through): the command stops with that error; the
+      account it stopped at is exactly as it was, the earlier one stays
+      converted, the later one is untouched; a second run with the queue
+      mended converts the two that are left and mails nobody twice.
+
+  X5  found by reading at the hand-over (ed's hint: rows the fixtures do
+      not make): a course may have NO teacher (the column allows it), and
+      the email's wording reads the teacher's name. A leftover student
+      whose pending place is in such a course: the preview lists the
+      account as one it "would convert" and shows nothing amiss; the real
+      run STOPS there with an AttributeError; that account is exactly as
+      it was; the account after it is untouched and nobody is mailed. A
+      second run stops at the same account again.
+
+Rule 19, every line of X1 to X5 read against each mutant (controls too):
+  U1 (the email carries another password than the one saved): X2 fails at
+     its login line (the wrong-password control before it still holds).
+     X1, X3, X4, X5 pass: none of them uses a password (in X5 the second
+     password is made, then the sender fails as before).
+  U2 (the conversion is not one transaction): X3 fails at "left exactly
+     as it was"; X4 and X5 fail at the same line for the account the run
+     stopped at. X1 and X2 pass.
+  U3 (the door has no rate limit): X1 fails at its last line (410 where
+     429 is written). X2, X3, X4, X5 pass.
+Expected failing, exact: U1 {X2}; U2 {X3, X4, X5}; U3 {X1}.
+"""
+
+import hashlib
+import logging
+from datetime import timedelta
+from io import StringIO
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.management import call_command
+from django.test import override_settings
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.crypto import get_random_string
+from kombu.exceptions import OperationalError
+from rest_framework.test import APITestCase
+
+from AutoGrader.dispatch import BROKER_UNAVAILABLE_ERRORS
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from classrooms.services import OLD_INVITATION_CLOSED_MESSAGE, notifications
+from users.models import UserTypes
+from users.throttling import RegisterThrottle
+
+User = get_user_model()
+
+LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+CODE = "123456"
+MARKER = "vf2-the-broker-said-this"
+BEFORE_THE_PASSWORD = "temporary password: "
+NOT_CONVERTED = "NOT converted (email could not be queued): student "
+
+
+class NotABrokerError(RuntimeError):
+    pass
+
+
+class Queue:
+    """Stands where the email task stands; keeps each call as sent."""
+
+    name = "send_email_task"
+
+    def __init__(self):
+        self.outage = set()  # addresses for which the broker is unreachable
+        self.broken = set()  # addresses for which the call itself is at fault
+        self.calls = []  # (address, keyword arguments) of each queued email
+
+    def delay(self, *args, **kwargs):
+        (address,) = kwargs["recipient_list"]
+        if address in self.outage:
+            raise OperationalError(f"cannot reach the broker ({MARKER})")
+        if address in self.broken:
+            raise NotABrokerError("not an outage")
+        self.calls.append((address, kwargs))
+        return object()
+
+    def addresses(self):
+        return [address for address, _ in self.calls]
+
+
+@override_settings(CACHES=LOCMEM)
+class VF2H152Probe(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.assertIn(OperationalError, BROKER_UNAVAILABLE_ERRORS)
+        self.assertFalse(issubclass(NotABrokerError, BROKER_UNAVAILABLE_ERRORS))
+        self.queue = Queue()
+        task = patch.object(notifications, "send_email_task", self.queue)
+        task.start()
+        self.addCleanup(task.stop)
+        self.teacher = User.objects.create_user(
+            email="owner@vf2-h152.test",
+            password=None,
+            first_name="Grace",
+            last_name="Hopper",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        session = Session.objects.create(name="VF2 H152", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="VF2 H152 course", teacher=self.teacher, session=session
+        )
+
+    def leftover(self, email, *, joined_minutes_ago):
+        student = User.objects.create_user(
+            email=email,
+            password=None,
+            user_type=UserTypes.STUDENT,
+            is_active=False,
+            activation_token=CODE,
+            activation_expires=timezone.now() + timedelta(hours=23),
+        )
+        User.objects.filter(pk=student.pk).update(
+            date_joined=timezone.now() - timedelta(minutes=joined_minutes_ago)
+        )
+        StudentCourse.objects.create(
+            student=student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+        return student
+
+    def snapshot(self, student):
+        row = User.objects.get(pk=student.pk)
+        return (
+            row.is_active,
+            row.activation_token,
+            row.activation_expires,
+            # not the stored hash itself: a failing comparison prints this
+            row.has_usable_password(),
+            hashlib.sha256(row.password.encode()).hexdigest()[:8],
+            row.must_change_password,
+            row.first_name,
+            row.last_name,
+            row.email_verified_at,
+            row.last_login,
+        )
+
+    def place(self, student):
+        return StudentCourse.objects.get(
+            student=student, course=self.course
+        ).enrollment_status
+
+    def run_command(self):
+        out = StringIO()
+        call_command("backfill_pending_student_invites", stdout=out)
+        return out.getvalue()
+
+    def assert_closed(self, response):
+        self.assertEqual(response.status_code, 410)
+        self.assertIn(OLD_INVITATION_CLOSED_MESSAGE, response.content.decode())
+
+    def test_x1_both_closed_routes_through_their_real_rate_limit(self):
+        student = self.leftover("left.over@vf2-h152.test", joined_minutes_ago=5)
+        before = self.snapshot(student)
+        door = reverse("auth-register-student")
+        body = {
+            "token": CODE,
+            "first_name": "Caller",
+            "last_name": "Chosen",
+            "password": get_random_string(16) + "aA1!",  # made here, never kept
+        }
+
+        self.assert_closed(self.client.post(door, body, format="json"))
+        self.assert_closed(
+            self.client.post(
+                reverse("course-renew-activation-token"), {"token": CODE}, format="json"
+            )
+        )
+        self.assertEqual(self.snapshot(student), before)
+        self.assertEqual(self.place(student), EnrollmentStatusType.PENDING)
+        self.assertEqual(self.queue.calls, [])
+
+        throttle = RegisterThrottle()
+        allowed, _period = throttle.parse_rate(throttle.get_rate())
+        self.assertGreater(allowed, 2)
+        self.assertLess(allowed, 200)
+        for _ in range(allowed - 2):  # two requests are already counted
+            self.assert_closed(self.client.post(door, body, format="json"))
+        self.assertEqual(self.client.post(door, body, format="json").status_code, 429)
+        self.assertEqual(self.snapshot(student), before)
+
+    def test_x2_the_mailed_password_signs_the_converted_student_in(self):
+        student = self.leftover("to.convert@vf2-h152.test", joined_minutes_ago=5)
+
+        text = self.run_command()
+
+        self.assertIn(f"convert: student {student.pk} ", text)
+        self.assertEqual(self.queue.addresses(), [student.email])
+        wording = self.queue.calls[0][1]["merge_data"]["top_content"]
+        self.assertIn(BEFORE_THE_PASSWORD, wording)
+        mailed = wording.split(BEFORE_THE_PASSWORD, 1)[1].strip()
+        self.assertGreaterEqual(len(mailed), 12)
+        row = User.objects.get(pk=student.pk)
+        self.assertTrue(row.is_active)
+        self.assertTrue(row.must_change_password)
+        self.assertIsNone(row.activation_token)
+        self.assertEqual(self.place(student), EnrollmentStatusType.PENDING)
+
+        login = reverse("login")
+        wrong = self.client.post(
+            login, {"email": student.email, "password": mailed + "x"}, format="json"
+        )
+        self.assertEqual(wrong.status_code, 401)
+        right = self.client.post(
+            login, {"email": student.email, "password": mailed}, format="json"
+        )
+        # no message here: a failure must not print the request
+        self.assertEqual(right.status_code, 200)
+        self.assertIn("access", right.data)
+        self.assertEqual(self.place(student), EnrollmentStatusType.ENROLLED)
+
+    def test_x3_the_brokers_real_error_and_what_is_written_where(self):
+        student = self.leftover("un.lucky@vf2-h152.test", joined_minutes_ago=5)
+        self.queue.outage = {student.email}
+        before = self.snapshot(student)
+
+        with self.assertLogs("AutoGrader.dispatch", level="ERROR") as logs:
+            text = self.run_command()
+
+        self.assertEqual(self.snapshot(student), before)
+        self.assertEqual(self.place(student), EnrollmentStatusType.PENDING)
+        self.assertIn(f"{NOT_CONVERTED}{student.pk}", text)
+        self.assertIn("1 NOT converted (email could not be queued", text)
+        self.assertNotIn("@", text)
+        self.assertNotIn(MARKER, text)
+        self.assertEqual(self.queue.calls, [])
+        formatter = logging.Formatter("%(name)s %(message)s")
+        carrying = [r for r in logs.records if MARKER in formatter.format(r)]
+        print(
+            f"VF2-X3 dispatch ERROR records: {len(logs.records)}; "
+            f"carrying the broker's text: {len(carrying)}",
+            flush=True,
+        )
+        self.assertEqual(len(carrying), 1)
+
+    def test_x4_an_error_that_is_not_an_outage_stops_the_run_cleanly(self):
+        first = self.leftover("first@vf2-h152.test", joined_minutes_ago=30)
+        second = self.leftover("second@vf2-h152.test", joined_minutes_ago=20)
+        third = self.leftover("third@vf2-h152.test", joined_minutes_ago=10)
+        self.queue.broken = {second.email}
+        before_second = self.snapshot(second)
+        before_third = self.snapshot(third)
+
+        with self.assertRaises(NotABrokerError):
+            self.run_command()
+
+        self.assertTrue(User.objects.get(pk=first.pk).is_active)
+        self.assertEqual(self.queue.addresses(), [first.email])
+        self.assertEqual(self.snapshot(second), before_second)
+        self.assertEqual(self.snapshot(third), before_third)
+
+        self.queue.broken = set()
+        text = self.run_command()
+
+        self.assertIn("Backfill complete: 2 converted,", text)
+        self.assertIn("still holding a code: 0", text)
+        self.assertNotIn(f"student {first.pk}", text)
+        self.assertTrue(User.objects.get(pk=second.pk).is_active)
+        self.assertTrue(User.objects.get(pk=third.pk).is_active)
+        self.assertEqual(
+            self.queue.addresses(), [first.email, second.email, third.email]
+        )
+
+    def test_x5_a_pending_place_in_a_course_with_no_teacher(self):
+        orphan_course = Course.objects.create(name="VF2 no teacher", teacher=None)
+        stuck = User.objects.create_user(
+            email="stuck@vf2-h152.test",
+            password=None,
+            user_type=UserTypes.STUDENT,
+            is_active=False,
+            activation_token=CODE,
+            activation_expires=timezone.now() + timedelta(hours=23),
+        )
+        User.objects.filter(pk=stuck.pk).update(
+            date_joined=timezone.now() - timedelta(minutes=30)
+        )
+        StudentCourse.objects.create(
+            student=stuck,
+            course=orphan_course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+        later = self.leftover("later@vf2-h152.test", joined_minutes_ago=10)
+        before_stuck = self.snapshot(stuck)
+        before_later = self.snapshot(later)
+
+        out = StringIO()
+        call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+        preview = out.getvalue()
+        self.assertIn(f"[dry-run] would convert: student {stuck.pk} ", preview)
+        self.assertIn("Backfill (dry run) complete: 2 converted,", preview)
+
+        for _ in range(2):  # the second run stops at the same account
+            with self.assertRaises(AttributeError):
+                self.run_command()
+            self.assertEqual(self.snapshot(stuck), before_stuck)
+            self.assertEqual(self.snapshot(later), before_later)
+            self.assertEqual(self.queue.calls, [])

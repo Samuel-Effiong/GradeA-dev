@@ -1,0 +1,12 @@
+# Y8: Sentry: settings pass before_send_log
+# file: AutoGrader/settings.py (occurrence 1)
+# old: '            before_send_log=scrub_log,\n'
+# new: ''
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry)
+
+FAILED (failures=1)

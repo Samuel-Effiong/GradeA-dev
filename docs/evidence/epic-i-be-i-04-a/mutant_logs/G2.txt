@@ -1,0 +1,46 @@
+test_a_list_setting_mutated_after_the_reading_is_not_seen (ai_processor.tests_grading_config.AReadingDoesNotChangeTest.test_a_list_setting_mutated_after_the_reading_is_not_seen) ... ok
+test_a_reading_cannot_be_assigned_to (ai_processor.tests_grading_config.AReadingDoesNotChangeTest.test_a_reading_cannot_be_assigned_to) ... ok
+test_a_setting_changed_after_the_reading_is_not_seen (ai_processor.tests_grading_config.AReadingDoesNotChangeTest.test_a_setting_changed_after_the_reading_is_not_seen) ... ok
+test_get_refuses_a_name_the_version_does_not_cover (ai_processor.tests_grading_config.AReadingDoesNotChangeTest.test_get_refuses_a_name_the_version_does_not_cover) ... ok
+test_get_returns_what_was_read (ai_processor.tests_grading_config.AReadingDoesNotChangeTest.test_get_returns_what_was_read) ... ok
+test_every_grading_setting_is_in_the_version_or_named_as_left_out (ai_processor.tests_grading_config.TheListIsCompleteTest.test_every_grading_setting_is_in_the_version_or_named_as_left_out) ... ok
+test_every_listed_constant_exists_in_the_grading_service (ai_processor.tests_grading_config.TheListIsCompleteTest.test_every_listed_constant_exists_in_the_grading_service) ... ok
+test_every_listed_name_is_a_declared_setting (ai_processor.tests_grading_config.TheListIsCompleteTest.test_every_listed_name_is_a_declared_setting) ... ok
+test_no_name_is_in_both_lists (ai_processor.tests_grading_config.TheListIsCompleteTest.test_no_name_is_in_both_lists) ... FAIL
+test_the_other_values_cover_every_name (ai_processor.tests_grading_config.TheListIsCompleteTest.test_the_other_values_cover_every_name)
+The loops below prove nothing for a name they skip. ... ok
+test_it_does_not_import_the_grading_service_at_module_level (ai_processor.tests_grading_config.TheModuleStaysLightTest.test_it_does_not_import_the_grading_service_at_module_level)
+ai_processor.services imports grading_cache, which will import ... ok
+test_a_long_release_is_cut_to_the_column (ai_processor.tests_grading_config.TheReleaseIsBesideTheVersionTest.test_a_long_release_is_cut_to_the_column) ... ok
+test_a_release_from_the_host_is_recorded_as_given (ai_processor.tests_grading_config.TheReleaseIsBesideTheVersionTest.test_a_release_from_the_host_is_recorded_as_given) ... ok
+test_no_release_from_the_host_is_the_word_none (ai_processor.tests_grading_config.TheReleaseIsBesideTheVersionTest.test_no_release_from_the_host_is_the_word_none) ... ok
+test_the_release_never_changes_the_version (ai_processor.tests_grading_config.TheReleaseIsBesideTheVersionTest.test_the_release_never_changes_the_version) ... ok
+test_the_word_matches_the_labels (ai_processor.tests_grading_config.TheReleaseIsBesideTheVersionTest.test_the_word_matches_the_labels) ... ok
+test_each_code_constant_changes_the_version (ai_processor.tests_grading_config.TheVersionMovesWithEverySettingTest.test_each_code_constant_changes_the_version) ... ok
+test_each_grade_shaping_setting_changes_the_version (ai_processor.tests_grading_config.TheVersionMovesWithEverySettingTest.test_each_grade_shaping_setting_changes_the_version) ... ok
+test_the_order_of_a_model_list_is_part_of_the_version (ai_processor.tests_grading_config.TheVersionMovesWithEverySettingTest.test_the_order_of_a_model_list_is_part_of_the_version) ... ok
+test_the_same_settings_give_the_same_version_twice (ai_processor.tests_grading_config.TheVersionMovesWithEverySettingTest.test_the_same_settings_give_the_same_version_twice) ... ok
+test_the_saved_answer_switch_and_lifetime_do_not_change_it (ai_processor.tests_grading_config.TheVersionMovesWithEverySettingTest.test_the_saved_answer_switch_and_lifetime_do_not_change_it) ... ok
+test_the_version_for_a_fixed_reading_is_pinned (ai_processor.tests_grading_config.TheVersionMovesWithEverySettingTest.test_the_version_for_a_fixed_reading_is_pinned)
+Fails when the way a version is computed changes: every version ... ok
+test_audit_metadata_would_keep_it (ai_processor.tests_grading_config.TheVersionsShapeTest.test_audit_metadata_would_keep_it)
+Audit metadata drops any string shaped like an email address ... ok
+test_it_fits_the_column (ai_processor.tests_grading_config.TheVersionsShapeTest.test_it_fits_the_column) ... ok
+test_it_is_the_prefix_and_twelve_hex_digits (ai_processor.tests_grading_config.TheVersionsShapeTest.test_it_is_the_prefix_and_twelve_hex_digits) ... ok
+
+======================================================================
+FAIL: test_no_name_is_in_both_lists (ai_processor.tests_grading_config.TheListIsCompleteTest.test_no_name_is_in_both_lists)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-i-be-i-04-a/ai_processor/tests_grading_config.py", line 123, in test_no_name_is_in_both_lists
+    self.assertEqual(set(GRADE_SHAPING_SETTINGS) & set(NOT_GRADE_SHAPING), set())
+AssertionError: Items in the first set but not the second:
+'GRADING_MAX_IMAGES_PER_CALL'
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.109s
+
+FAILED (failures=1)
+Found 25 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

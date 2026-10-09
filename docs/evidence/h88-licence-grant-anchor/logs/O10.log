@@ -1,0 +1,12 @@
+# O10: H-81: a late individual renewal counts to the cycle end
+# file: billing/services.py (occurrence 1)
+# old: '                min(user_subscription.billing_cycle_end, timezone.now()),\n'
+# new: '                timezone.now(),\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 12.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing)
+
+FAILED (failures=1)

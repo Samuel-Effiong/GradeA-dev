@@ -1,0 +1,22 @@
+#!/bin/bash
+# Waits for a 1-minute load of 4.00 or under, then runs the granted chain
+# once (0b's GRANT 11:47:40 on 2026-10-06). A refusal by the chain (exit 8)
+# is not a run and is tried again. Gives up at 11:58 without starting.
+# Detached from the session that starts it, so the session cannot cut the
+# chain short. Usage: wait_and_run.sh <tip-sha8>
+set -u
+D=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h123
+cd $D
+while :; do
+  L=$(cut -d" " -f1 /proc/loadavg); now=$(date +%H%M)
+  echo "$(date +%H:%M:%S) load $L" >> $D/wait_for_quiet.log
+  if awk -v l="$L" 'BEGIN{exit !(l<=4.00)}'; then
+    echo "$(date +%H:%M:%S) starting chain at load $L" >> $D/wait_for_quiet.log
+    ./chain.sh "$1" > $D/chain.out 2>&1 < /dev/null; rc=$?
+    echo "$(date +%H:%M:%S) chain exit=$rc" >> $D/wait_for_quiet.log
+    [ $rc -eq 8 ] || break
+  fi
+  if [ "$now" -ge 1158 ]; then echo "$(date +%H:%M:%S) GAVE UP: still over 4 at 11:58, nothing started" >> $D/wait_for_quiet.log; break; fi
+  sleep 20
+done
+echo "$(date +%H:%M:%S) WAITER END" >> $D/wait_for_quiet.log

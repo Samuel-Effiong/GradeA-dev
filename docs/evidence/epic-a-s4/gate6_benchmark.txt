@@ -1,0 +1,209 @@
+# Trimmed: the last 200 lines. Full log (632K, over the repo's 500 KB limit):
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-s4_gate6_benchmark_f8267bc_full.txt
+
+S4_GATE6 (ms)
+S4_GATE6 grade save, capture on: p50=5.68 p95=7.06
+S4_GATE6 grade save, capture off: p50=2.29 p95=3.13
+S4_GATE6 roster import of 30, capture on: p50=941.08 p95=1209.03
+S4_GATE6 roster import of 30, capture off: p50=869.10 p95=1097.93
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x22' is already enrolled in this course."]}
+Failed to bulk-add student at row 23 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x23' is already enrolled in this course."]}
+Failed to bulk-add student at row 24 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x24' is already enrolled in this course."]}
+Failed to bulk-add student at row 25 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x25' is already enrolled in this course."]}
+Failed to bulk-add student at row 26 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x26' is already enrolled in this course."]}
+Failed to bulk-add student at row 27 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x27' is already enrolled in this course."]}
+Failed to bulk-add student at row 28 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x28' is already enrolled in this course."]}
+Failed to bulk-add student at row 29 of course 9d771fca-4f4f-42e6-8691-a7386c7406f8
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 375, in import_roster
+    result, succeeded = _import_row_with_email(course=course, row=row)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/roster_import.py", line 265, in _import_row_with_email
+    student, invited = enroll_student_by_email(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 262, in enroll_student_by_email
+    _create_enrollment(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/services/enrollment.py", line 359, in _create_enrollment
+    return StudentCourse.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/models.py", line 416, in save
+    self.full_clean()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1679, in full_clean
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: {'__all__': ["A student with the exact name 'Bench Student9x29' is already enrolled in this course."]}
+.
+----------------------------------------------------------------------
+Ran 1 test in 18.999s
+
+OK
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+S4_GATE6 (ms)
+S4_GATE6 grade save, capture on: p50=5.68 p95=7.06
+S4_GATE6 grade save, capture off: p50=2.29 p95=3.13
+S4_GATE6 roster import of 30, capture on: p50=941.08 p95=1209.03
+S4_GATE6 roster import of 30, capture off: p50=869.10 p95=1097.93

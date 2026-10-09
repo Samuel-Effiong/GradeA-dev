@@ -1,0 +1,376 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user ai.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-30 16:51:02,562 services 3679719 138622876810176 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 16:51:02,562 services 3679719 138622876810176 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+ECannot activate automatic trial for user ai.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-30 16:51:02,785 services 3679719 138622876810176 [request_id=c461cd00e2a44cfc9fb967591abb09c1 client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 16:51:02,787 services 3679719 138622876810176 [request_id=c461cd00e2a44cfc9fb967591abb09c1 client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+FCannot activate automatic trial for user actor.acting@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user actor.rule@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+..Cannot activate automatic trial for user export.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user grade.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user grade.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user grade.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user grade.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user grade.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+audit event store_failed: action=STATE_CHANGE detail=RuntimeError
+.Cannot activate automatic trial for user grade.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user perm.deleted@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user perm.role@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FEECannot activate automatic trial for user perm.admin@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user perm.active@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user perm.inactive@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user perm.verify@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user perm.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user perm.super@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user publish-all.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user bulk.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user bulk.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user bulk.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user bulk.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user bulk.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.F....Cannot activate automatic trial for user signin.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user signin.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FECannot activate automatic trial for user sub.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user roster-audit-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user roster-audit-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user race.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F.F....F......
+======================================================================
+ERROR: test_the_celery_task_records_one_completed_event (audit.tests_history.AIGradingTests.test_the_celery_task_records_one_completed_event)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 453, in test_the_celery_task_records_one_completed_event
+    self.the_completed_event()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 424, in the_completed_event
+    self.assertEqual(event.after["score"], "15.00")
+                     ~~~~~~~~~~~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+
+======================================================================
+ERROR: test_download_pdf_records_what_left_and_how_big (audit.tests_history.DataExportTests.test_download_pdf_records_what_left_and_how_big)
+FR-A-01 'data export', SM-approved: the assignment PDF (questions
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 368, in test_download_pdf_records_what_left_and_how_big
+    event = events(AuditAction.DATA_EXPORT).get()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+ERROR: test_a_deleted_user_keeps_only_allow_listed_fields (audit.tests_history.PermissionChangeTests.test_a_deleted_user_keeps_only_allow_listed_fields)
+SM R5's condition: role, status and ids only - never an email,
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 719, in test_a_deleted_user_keeps_only_allow_listed_fields
+    event = events(AuditAction.PERMISSION_CHANGE).get()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+ERROR: test_a_school_admin_invitation_names_the_invitee (audit.tests_history.PermissionChangeTests.test_a_school_admin_invitation_names_the_invitee)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 650, in test_a_school_admin_invitation_names_the_invitee
+    self.assert_own_activation(admin)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 603, in assert_own_activation
+    flip = events(AuditAction.PERMISSION_CHANGE).get(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+ERROR: test_a_student_invitation_names_the_invitee (audit.tests_history.PermissionChangeTests.test_a_student_invitation_names_the_invitee)
+SM ruling: the invitee who proved the invitation code acts.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 632, in test_a_student_invitation_names_the_invitee
+    self.assert_own_activation(student)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 603, in assert_own_activation
+    flip = events(AuditAction.PERMISSION_CHANGE).get(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+ERROR: test_email_verification_names_the_account_that_proved_the_code (audit.tests_history.PermissionChangeTests.test_email_verification_names_the_account_that_proved_the_code)
+SM ruling: the activation is the account's own action.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 594, in test_email_verification_names_the_account_that_proved_the_code
+    flip = events(AuditAction.PERMISSION_CHANGE).get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+ERROR: test_only_a_privileged_account_is_recorded_when_created (audit.tests_history.PermissionChangeTests.test_only_a_privileged_account_is_recorded_when_created)
+SM ruling 4: ordinary accounts are covered by ACCOUNT_REGISTER
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 705, in test_only_a_privileged_account_is_recorded_when_created
+    created = events(AuditAction.PERMISSION_CHANGE).get()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+ERROR: test_a_seat_count_change_is_recorded (audit.tests_history.SubscriptionChangeTests.test_a_seat_count_change_is_recorded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 760, in test_a_seat_count_change_is_recorded
+    event = events(AuditAction.SUBSCRIPTION_CHANGE).get(metadata__source="save")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+audit.models.AuditEvent.DoesNotExist: AuditEvent matching query does not exist.
+
+======================================================================
+FAIL: test_the_synchronous_route_records_one_completed_event_for_the_requester (audit.tests_history.AIGradingTests.test_the_synchronous_route_records_one_completed_event_for_the_requester)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 441, in test_the_synchronous_route_records_one_completed_event_for_the_requester
+    event = self.the_completed_event()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 422, in the_completed_event
+    self.assertEqual(found.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_a_deleted_submission_is_a_grade_change_with_no_after (audit.tests_history.GradeChangeRouteTests.test_a_deleted_submission_is_a_grade_change_with_no_after)
+SM R5.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 299, in test_a_deleted_submission_is_a_grade_change_with_no_after
+    event = self.the_grade_change()
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 214, in the_grade_change
+    self.assertEqual(found.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_mark_reviewed_records_needs_review_only (audit.tests_history.GradeChangeRouteTests.test_mark_reviewed_records_needs_review_only)
+SM R1: the actor is the 'by', the event time the 'at'; the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 276, in test_mark_reviewed_records_needs_review_only
+    event = self.the_grade_change()
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 214, in the_grade_change
+    self.assertEqual(found.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_publish_records_the_flip_once (audit.tests_history.GradeChangeRouteTests.test_publish_records_the_flip_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 257, in test_publish_records_the_flip_once
+    event = self.the_grade_change()
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 214, in the_grade_change
+    self.assertEqual(found.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_update_grade_records_the_score_it_replaced (audit.tests_history.GradeChangeRouteTests.test_update_grade_records_the_score_it_replaced)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 236, in test_update_grade_records_the_score_it_replaced
+    event = self.the_grade_change()
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 214, in the_grade_change
+    self.assertEqual(found.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_a_role_change_is_recorded_and_a_session_revoke_is_not (audit.tests_history.PermissionChangeTests.test_a_role_change_is_recorded_and_a_session_revoke_is_not)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 690, in test_a_role_change_is_recorded_and_a_session_revoke_is_not
+    self.assertEqual(found.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_admin_actions_record_each_user_they_change (audit.tests_history.PermissionChangeTests.test_admin_actions_record_each_user_they_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 671, in test_admin_actions_record_each_user_they_change
+    self.assertEqual(list(new.values_list("target_id", flat=True)), [active.id])
+AssertionError: Lists differ: [] != [UUID('6997584d-73c3-47ec-b31e-9aef81fd90d0')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+UUID('6997584d-73c3-47ec-b31e-9aef81fd90d0')
+
+- []
++ [UUID('6997584d-73c3-47ec-b31e-9aef81fd90d0')]
+
+======================================================================
+FAIL: test_publish_all_gives_one_grade_change_per_student_published (audit.tests_history.PublishAllTests.test_publish_all_gives_one_grade_change_per_student_published)
+D3: 30 students published, 30 events; an already-published and
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 347, in test_publish_all_gives_one_grade_change_per_student_published
+    self.assertEqual(sorted(new.values_list("target_id", flat=True)), sorted(fresh))
+AssertionError: Lists differ: [] != [UUID('02ad7468-1a79-4377-a153-05ebee30eb0[1333 chars]0a')]
+
+Second list contains 30 additional elements.
+First extra element 0:
+UUID('02ad7468-1a79-4377-a153-05ebee30eb02')
+
+Diff is 1475 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_an_action_without_an_entry_carries_no_before_or_after (audit.tests_history.RegistryTests.test_an_action_without_an_entry_carries_no_before_or_after)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 200, in test_an_action_without_an_entry_carries_no_before_or_after
+    self.assertEqual((event.before, event.after), ({}, {}))
+AssertionError: Tuples differ: ({'score': 1}, {'score': 2}) != ({}, {})
+
+First differing element 0:
+{'score': 1}
+{}
+
+- ({'score': 1}, {'score': 2})
++ ({}, {})
+
+======================================================================
+FAIL: test_a_google_sign_in_activates_and_names_the_student (audit.tests_history.SignInActivationTests.test_a_google_sign_in_activates_and_names_the_student)
+Google finishing an unverified student's registration: one
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 554, in test_a_google_sign_in_activates_and_names_the_student
+    self.assert_activated_by(student)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 493, in assert_activated_by
+    self.assertEqual(found.count(), len(self.courses))
+AssertionError: 0 != 2
+
+======================================================================
+FAIL: test_a_password_sign_in_activates_and_names_the_student (audit.tests_history.SignInActivationTests.test_a_password_sign_in_activates_and_names_the_student)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 515, in test_a_password_sign_in_activates_and_names_the_student
+    self.assert_activated_by(student)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 493, in assert_activated_by
+    self.assertEqual(found.count(), len(self.courses))
+AssertionError: 0 != 2
+
+======================================================================
+FAIL: test_a_seat_taken_and_released_is_recorded (audit.tests_history.SubscriptionChangeTests.test_a_seat_taken_and_released_is_recorded)
+SM R4: an active allocation is a seat in use.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 782, in test_a_seat_taken_and_released_is_recorded
+    self.assertEqual(
+AssertionError: Lists differ: [] != [('create', '{"is_active": true, "license_[76 chars]e}')]
+
+Second list contains 2 additional elements.
+First extra element 0:
+('create', '{"is_active": true, "license_id": "ef85a0bf-f8d4-478d-a2fe-a4bad9bad244"}')
+
+- []
++ [('create',
++   '{"is_active": true, "license_id": "ef85a0bf-f8d4-478d-a2fe-a4bad9bad244"}'),
++  ('save', '{"is_active": false}')]
+
+======================================================================
+FAIL: test_bulk_add_students_emits_exactly_one_event (classrooms.tests_epic_a_roster_audit.RosterChangeAuditTest.test_bulk_add_students_emits_exactly_one_event)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/tests_epic_a_roster_audit.py", line 59, in test_bulk_add_students_emits_exactly_one_event
+    self.assertEqual(AuditEvent.objects.count(), 3)
+AssertionError: 1 != 3
+
+======================================================================
+FAIL: test_remove_student_emits_exactly_one_event (classrooms.tests_epic_a_roster_audit.RosterChangeAuditTest.test_remove_student_emits_exactly_one_event)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/classrooms/tests_epic_a_roster_audit.py", line 111, in test_remove_student_emits_exactly_one_event
+    self.assertEqual(removal.count(), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_a_publish_and_a_score_save_each_record_their_own_change (audit.tests_history.ConcurrentGradeWritesTests.test_a_publish_and_a_score_save_each_record_their_own_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history.py", line 934, in test_a_publish_and_a_score_save_each_record_their_own_change
+    self.assertEqual(
+AssertionError: {('is[56 chars]: True})} != {('is[56 chars]: True}), ('score',): ({'score': '15.00'}, {'score': '12.00'})}
+- {('is_published',): ({'is_published': False}, {'is_published': True})}
+?                                                                      ^
+
++ {('is_published',): ({'is_published': False}, {'is_published': True}),
+?                                                                      ^
+
++  ('score',): ({'score': '15.00'}, {'score': '12.00'})}
+
+======================================================================
+FAIL: test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history_guard.py", line 218, in test_no_unlisted_bulk_write_of_a_tracked_field
+    self.assertEqual(
+AssertionError: Lists differ: ["assignments/views.py:1807 in publish_all[625 chars]s']"] != []
+
+First list contains 8 additional elements.
+First extra element 0:
+"assignments/views.py:1807 in publish_all_grades(): tracked fields ['is_published']"
+
+Diff is 725 characters long. Set self.maxDiff to None to see it. : a queryset write skips the history signals. Route it through audit.history.record_bulk, or list it in ALLOWED with a reason.
+
+======================================================================
+FAIL: test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s4/audit/tests_history_guard.py", line 200, in test_the_suppression_allow_list_has_no_stale_entries
+    self.assertEqual(sorted(set(SUPPRESSION_ALLOWED) - seen), [])
+AssertionError: Lists differ: [('students/services.py', '_populate_and_save_grade')] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+('students/services.py', '_populate_and_save_grade')
+
+- [('students/services.py', '_populate_and_save_grade')]
++ []
+
+----------------------------------------------------------------------
+Ran 50 tests in 9.328s
+
+FAILED (failures=17, errors=8)
+Destroying test database for alias 'default'...
+Found 50 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

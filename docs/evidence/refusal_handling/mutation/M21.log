@@ -1,0 +1,140 @@
+# M21: renderer drops code beside message
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: users.tests_renderers billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest
+# exit 1
+
+Found 11 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Dashboard AI context section failed to load
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/dashboard/views.py", line 166, in dashboard_context_section
+    body = dashboard_context_json(build())
+                                  ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/dashboard/views.py", line 2748, in <lambda>
+    lambda: self.students(request, *args, **kwargs).data,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/dashboard/views.py", line 2415, in students
+    cache_key = versioned_key(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/cache_generation.py", line 299, in versioned_key
+    f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/cache_generation.py", line 125, in get_generation
+    key = generation_key(scope, entity_id)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/cache_generation.py", line 112, in generation_key
+    raise ValueError(f"scope {scope!r} requires an entity id")
+ValueError: scope 'sch' requires an entity id
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+FCustom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+FSuperadmin custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+FCannot activate automatic trial for user d2-feature-308da27e@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+FCannot activate automatic trial for user d2-credits-810d535c@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+F...F....
+======================================================================
+FAIL: test_school_admin_chat_refusal_is_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_school_admin_chat_refusal_is_403)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 292, in test_school_admin_chat_refusal_is_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 206, in assertCleanRefusalResponse
+    self.assertEqual(json.loads(body)["message"], response.data["error"])
+AssertionError: '1. Error: AI access denied: No active sub[43 chars]le\n' != 'AI access denied: No active subscription'
+- 1. Error: AI access denied: No active subscription
+? ----------
++ AI access denied: No active subscription
+-  2. Code: ai_feature_not_available
+-
+
+
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [dashboard-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 307, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 206, in assertCleanRefusalResponse
+    self.assertEqual(json.loads(body)["message"], response.data["error"])
+AssertionError: '1. Error: The AI analytics assistant is t[81 chars]le\n' != 'The AI analytics assistant is temporarily[33 chars]ter.'
+- 1. Error: The AI analytics assistant is temporarily unavailable. Please try again later.
+? ----------
++ The AI analytics assistant is temporarily unavailable. Please try again later.
+-  2. Code: ai_feature_not_available
+-
+
+
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [analytics-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 307, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 206, in assertCleanRefusalResponse
+    self.assertEqual(json.loads(body)["message"], response.data["error"])
+AssertionError: '1. Error: The AI analytics assistant is t[81 chars]le\n' != 'The AI analytics assistant is temporarily[33 chars]ter.'
+- 1. Error: The AI analytics assistant is temporarily unavailable. Please try again later.
+? ----------
++ The AI analytics assistant is temporarily unavailable. Please try again later.
+-  2. Code: ai_feature_not_available
+-
+
+
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 283, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 206, in assertCleanRefusalResponse
+    self.assertEqual(json.loads(body)["message"], response.data["error"])
+AssertionError: '1. Error: AI access denied: No active sub[43 chars]le\n' != 'AI access denied: No active subscription'
+- 1. Error: AI access denied: No active subscription
+? ----------
++ AI access denied: No active subscription
+-  2. Code: ai_feature_not_available
+-
+
+
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 283, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 206, in assertCleanRefusalResponse
+    self.assertEqual(json.loads(body)["message"], response.data["error"])
+AssertionError: "1. Error: There aren't enough AI credits [108 chars]ts\n" != "There aren't enough AI credits available [64 chars]run."
+- 1. Error: There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+? ----------
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+-  2. Code: insufficient_credits
+-
+
+
+======================================================================
+FAIL: test_refusal_code_beside_the_message_is_not_shown_as_text (users.tests_renderers.APIJSONRendererTests.test_refusal_code_beside_the_message_is_not_shown_as_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/tests_renderers.py", line 105, in test_refusal_code_beside_the_message_is_not_shown_as_text
+    self.assertEqual(payload["message"], "Not on your plan.")
+AssertionError: '1. Error: Not on your plan.\n 2. Code: ai_feature_not_available\n' != 'Not on your plan.'
+- 1. Error: Not on your plan.
+? ----------
++ Not on your plan.
+-  2. Code: ai_feature_not_available
+-
+
+
+----------------------------------------------------------------------
+Ran 11 tests in 6.597s
+
+FAILED (failures=6)
+Preserving test database for alias 'default'...

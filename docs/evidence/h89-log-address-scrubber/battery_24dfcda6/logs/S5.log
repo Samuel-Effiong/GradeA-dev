@@ -1,0 +1,13 @@
+# S5: the wrapped factory makes the record
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '        record = previous(*args, **kwargs)\n'
+# new: '        record = logging.LogRecord(*args, **kwargs)\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 19.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_record_whose_class_cannot_be_replaced_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_a_record_whose_class_cannot_be_replaced_fails_closed)
+FAIL: test_another_factorys_records_keep_their_class_and_are_scrubbed (AutoGrader.tests_log_scrubbing.InstallTests.test_another_factorys_records_keep_their_class_and_are_scrubbed)
+
+FAILED (failures=2)

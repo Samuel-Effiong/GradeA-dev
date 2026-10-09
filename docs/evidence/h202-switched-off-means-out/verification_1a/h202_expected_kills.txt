@@ -1,0 +1,25 @@
+H-202 (tip 5ad21e96; code 24388a48, lock test ecf65160): 1a's expected results,
+WRITTEN 2026-10-08 20:25:42 WAT, BEFORE ANY RUN. Module users.tests_vf1a_h202, 11 tests: y1 y2a y2b y3 y4 y5 y6 y7 y8 c1 c2.
+Mutants h202_mutants_P.py: P1 P2 P3 P4 P5 P6 P8 P9 P10 P11 P12 P13 (no P7).
+Rule 22: the failure fragment each red test must carry in its OWN block is written here. Every assertion counted per mutant (controls too).
+
+Unmutated tip: Ran 11, OK.
+Old code (users/views.py and users/admin.py from e11a0083, H-164's final tip, rest at the tip):
+   y1 ("a code was stored") y2a ("202 != 400") y2b ("attempt 1") y3 ("a reset code row was made") y4 ("200 != 400")
+   y5 ("try 1") y6 ("the active row's epoch did not rise") y7 ("200 != 401") y8 ("the epoch did not rise"); c1 c2 green.
+P1 verify-email arm removed:      y1 ("a code was stored")
+P2 verify arm removed:            y2a ("202 != 400"), y2b ("attempt 1")
+P3 verify arm bare raise:         y2b ("the address is not locked")
+P4 reset request arm removed:     y3 ("a reset code row was made")
+P5 reset step arm removed:        y4 ("200 != 400"), y5 ("try 1")
+P6 reset step does not spend:     y5 ("the budget was not spent")
+P8 bulk raises every epoch:       y6 ("an already inactive row's epoch moved")
+P9 bulk raises no epoch:          y6 ("the active row's epoch did not rise"), y7 ("200 != 401")
+P10 form revoke removed:          y8 ("the epoch did not rise")
+P11 reset request arm too wide:   c1 ("no reset code row")
+P12 verify arm too wide:          c2 ("400 != 202")
+P13 form revoke too wide:         y8 ("an edit of the name moved the epoch")
+Risk I name now: y8 is a real POST of the admin change form built from the page's own form; if the form data is wrong the POST
+answers 200 not 302 and y8 is red for a FIXTURE reason on the unmutated tip (the message then holds the form errors). That would be
+a probe fault, not the tip's, and I would say so.
+A kill is read from the log's own Ran line, the named failing tests, and the fragment inside each test's own block.

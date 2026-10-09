@@ -1,0 +1,12 @@
+# Q5: classrooms/serializers.py: the admin by id
+# file: classrooms/serializers.py (occurrence 1)
+# old: '            user.id,\n        )\n        return\n'
+# new: '            user.email,\n        )\n        return\n'
+# commit: 2c336a509a82d61dc35e647160844cee7aab6c0c
+# exit: 1
+# elapsed_s: 10.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+
+FAILED (failures=1)

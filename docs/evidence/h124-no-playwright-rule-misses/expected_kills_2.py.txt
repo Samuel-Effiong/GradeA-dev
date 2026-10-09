@@ -1,0 +1,193 @@
+"""H-124: for every mutant, the tests that fail (and, where a test loops
+over samples, the samples that fail) must be the expected set and nothing
+else. SECOND VERSION, for the tip after v2's pre-read (rule at 0dffc395):
+the first version (10:44:20, sha256 prefix 10f03799504b8c5c) was for
+860541a4 and its battery ran against it. This one adds N15 to N19 and the
+effect of the new samples on the older mutants. Written on 2026-10-06
+BEFORE any test run of the new tip, by reasoning from the rule and the
+samples; no mutant was applied to anything but a parser (the anchors-only
+check). --repro is now the red set of the second red commit, 4e22fda5;
+the first red commit's (77628465) ran against the first version.
+Usage: python expected_kills_2.py <battery_dir>   |   python expected_kills_2.py --repro <log>"""
+import re
+import sys
+from pathlib import Path
+
+E = "test_the_rule_sees_each_shape"
+O = "test_the_rule_allows_what_does_not_run_at_import"
+U = "test_the_rule_follows_a_starter_under_another_name"
+M = "test_the_rule_follows_methods"
+G = "test_the_rule_reads_getattr_with_the_starters_name"
+A = "test_the_wider_rule_still_allows_what_starts_nothing"
+K = "test_the_false_alarms_that_are_known_and_kept"
+L = "test_what_the_rule_still_does_not_see"
+S = "test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets"
+P = "test_the_rule_reads_through_staticmethod_and_classmethod"
+I = "test_the_rule_follows_a_class_made_at_import"
+D = "test_the_rule_follows_a_decorator_applied_without_brackets"
+B = "test_the_rule_follows_a_lambda_bound_to_a_name"
+
+ALIAS = "imported under another name"
+ALIAS_HELPER = "imported under another name, used in a helper"
+BOUND = "bound to a second name"
+BOUND_ANN = "bound to a second name with an annotation"
+BOUND_HELPER = "a helper bound to a second name"
+BOUND_CLASS = "bound to a name in a class body, asked of the class"
+BOUND_ATTR = "bound to an attribute of something"
+METHODS = {
+    "a static method",
+    "a class method",
+    "a method of an instance made at import",
+    "through a second method",
+    "by its bare name in the class body",
+}
+METHOD_LIKE_HELPER = "a method sharing its name with a helper that starts one"
+HELPER_LIKE_METHOD = "a helper sharing its name with a method that starts one"
+OTHER_OBJECT = "another object's method named like a method that starts one"
+LOCAL = "a helper with a local named like a starter"
+WRAPPED = {
+    (P, "a helper made a static method under its own name"),
+    (P, "a helper made a class method under another name"),
+}
+MADE = {(I, "its __init__ starts one"), (I, "its __new__ starts one")}
+DECORATORS = {(D, "on a function"), (D, "on a class")}
+LAMBDA = (B, "the lambda starts one")
+LAMBDA_HELPER = (B, "the lambda calls a helper that starts one")
+BOUND_IN_FUNCTION = (K, "a starter bound inside one function, and an unrelated function of that name")
+THREAD = (K, "a thread started at import beside a method start() that starts one")
+OTHER_METHOD_CLASS = (A, "a class made at import, with some other method that starts one")
+LAMBDA_NOT_CALLED = (A, "a lambda that starts one, bound and not called")
+PROPERTY = (L, "a property read at import")
+ENTER = (L, "__enter__ of an object used in a with")
+
+#: mutant -> {(test, sample)}; sample is None for a test without samples
+EXPECTED = {
+    # no other import name: the two samples that import a starter "as sp"
+    "N1": {(U, ALIAS), (U, ALIAS_HELPER)},
+    # no binding at all: all five bound samples
+    # (second version) also: the false alarm that rests on a binding, both
+    # wrapped helpers (they are bindings), and both lambdas
+    "N2": {(U, BOUND), (U, BOUND_ANN), (U, BOUND_HELPER), (U, BOUND_CLASS), (U, BOUND_ATTR)}
+    | {BOUND_IN_FUNCTION, LAMBDA, LAMBDA_HELPER}
+    | WRAPPED,
+    # any mention binds: "label" (read off a starter) and "starters" (a list
+    # holding one) become starters, and each is then called or indexed
+    # (second version) also two pinned limits whose value mentions a starter
+    # and whose target is one name: partial bound to a name, and the
+    # conditional expression. The tuple, := and for-loop limits stay unseen
+    # (no single-name assignment), and the bound lambdas are bound anyway.
+    "N3": {
+        (A, "a name bound to something read off a starter"),
+        (L, "kept in a list and called by index"),
+        (L, "functools.partial bound to a name and called later"),
+        (L, "bound through a conditional expression"),
+    },
+    # methods never join: all five method samples, and the new false alarm
+    # is no longer raised
+    # (second version) also the thread false alarm. A class made at import
+    # still counts: the class joins on the line after the mutated one.
+    "N4": {(M, s) for s in METHODS} | {(K, OTHER_OBJECT), THREAD},
+    # functions join the asked names too: T().available() is flagged again
+    "N5": {(A, METHOD_LIKE_HELPER)},
+    # methods join the bare names too: the bare helper of the same name
+    "N6": {(A, HELPER_LIKE_METHOD)},
+    # no bare-name match inside the class body
+    "N7": {(M, "by its bare name in the class body")},
+    # getattr unread: both getattr samples, and the scan loses the quoted file
+    "N8": {(G, "called at once"), (G, "in a helper"), (S, None)},
+    # the old first look: the scan reads neither temporary file
+    "N9": {(S, None)},
+    # annotated bindings forgotten
+    "N10": {(U, BOUND_ANN)},
+    # a value of the form module.starter binds nothing
+    "N11": {(U, BOUND)},
+    # a bare name as the value binds nothing: the four samples whose value
+    # is a bare starter or helper
+    # (second version) also the binding-in-a-function false alarm and both
+    # wrapped helpers (unwrapped, each value is a bare name)
+    "N12": {(U, BOUND_ANN), (U, BOUND_HELPER), (U, BOUND_CLASS), (U, BOUND_ATTR), BOUND_IN_FUNCTION} | WRAPPED,
+    "N13": {(U, BOUND_ATTR)},
+    # (second version) also both wrapped helpers: each is asked of its class
+    "N14": {(U, BOUND_CLASS)} | WRAPPED,
+    # no unwrapping: the value is a call, so nothing is bound
+    "N15": set(WRAPPED),
+    # the class never joins
+    "N16": set(MADE),
+    # decorators without brackets are not calls
+    "N17": set(DECORATORS),
+    # a lambda binds nothing
+    "N18": {LAMBDA, LAMBDA_HELPER},
+    # any method that reaches a starter makes its class count when made:
+    # the allowed sample, and the two pinned limits that make an object of
+    # such a class at import (the property and the with)
+    "N19": {OTHER_METHOD_CLASS, PROPERTY, ENTER},
+    # module functions never join: H-118's four samples that go through a
+    # helper, the two new ones that do, and the kept false alarm that
+    # depends on following a helper
+    "G1": {
+        (E, "through a function of the module (the old probe)"),
+        (E, "through two functions"),
+        (E, "in a decorator"),
+        (E, "in a default value"),
+        (U, ALIAS_HELPER),
+        (U, BOUND_HELPER),
+        (G, "in a helper"),
+        (K, LOCAL),
+        # (second version) both wrapped helpers, both decorators (each is a
+        # module function), and the lambda that goes through a helper
+        LAMBDA_HELPER,
+    }
+    | WRAPPED
+    | DECORATORS,
+    # function bodies read as run at import: every allowed sample whose
+    # function or method body calls a starter. No test module in the tree
+    # calls one inside a function, so the repo scan stays green.
+    "G2": {
+        (O, "inside a test"),
+        (O, "a function that is defined and not called"),
+        (A, "another name, called only inside a test"),
+        (A, "a method that is defined and not called"),
+        (A, METHOD_LIKE_HELPER),
+        (A, HELPER_LIKE_METHOD),
+        # (second version) the two new allowed samples (a method body and a
+        # lambda body that call a starter) and the two pinned limits whose
+        # method body calls one
+        OTHER_METHOD_CLASS,
+        LAMBDA_NOT_CALLED,
+        PROPERTY,
+        ENTER,
+    },
+    # the async starter forgotten: the two samples that use it
+    "G3": {(E, "through two functions"), (G, "in a helper")},
+}
+#: the second red commit, 4e22fda5: its rule is c9ae46b3's, so the four new
+#: "follows" tests fail, with both samples each, and nothing else
+REPRO = WRAPPED | MADE | DECORATORS | {LAMBDA, LAMBDA_HELPER}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \([\w.]+\)(?: \(shape=(['\"])(.*)\2\))?$", re.M)
+
+
+def failing(text):
+    return {(name, sample or None) for name, _quote, sample in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra, key=str)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing, key=str)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), REPRO)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

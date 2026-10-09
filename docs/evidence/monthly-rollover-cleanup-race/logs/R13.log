@@ -1,0 +1,12 @@
+# R13: licence refresh: bucket grace
+# file: billing/license_service.py (occurrence 1)
+# old: 'new_expiry=grace_expiry(next_refresh, license_sub.billing_cycle_end),'
+# new: 'new_expiry=next_refresh,'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 5.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_monthly_bucket_outlives_its_due_time_by_the_grace (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_monthly_bucket_outlives_its_due_time_by_the_grace)
+
+FAILED (failures=1)

@@ -1,0 +1,8 @@
+11:44:08 (a) start: loadavg 9.93 8.10 6.77 8/2135 175293
+11:48:27 (a) end: loadavg 12.42 10.29 7.98 7/2138 184892
+11:48:27 (a) exit=0
+11:48:28 (b) start: loadavg 12.42 10.29 7.98 8/2138 184899
+11:49:43 (b) end: loadavg 8.96 9.63 7.93 10/2165 186496
+11:49:43 (b) exit=0
+11:49:43 expected failing sets: every mutant's failing set is the expected one
+11:49:43 H-130 follow-up CHAIN END: (c) needs its own GRANT

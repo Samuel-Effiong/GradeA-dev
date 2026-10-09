@@ -1,0 +1,459 @@
+# Section 9 (`ocr_processor`) — verification evidence
+
+Preserved record of the §9 review and remediation of
+`docs/CODEBASE_AUDIT_SECTIONS.md`.
+
+**Status: GAPS FOUND — remediation committed, strict final gate PENDING.**
+Nothing here is the definitive gate. §8 is that gate, and it has not run yet.
+
+---
+
+## 1. What this section covers, and what changed
+
+| Part | Finding | Severity | State |
+|---|---|---|---|
+| A | A PNG/JPEG labelled `application/pdf` crashed `pdftoppm` → 500 | should-fix (§3) | Fixed; owner approved in principle |
+| B | Teacher multi-file sync upload: a later bad file returned a request-level 400 after earlier files were extracted, charged and saved; a retry re-charged and duplicated them | **blocker** (§3/§5) | Fixed, pending gate |
+| C | `upload_answers_engine_async` retried a deterministic bad file 3 more times | should-fix (§6) | Fixed, pending gate |
+| D | Extraction ran outside any refund scope: a failed save or rejected response kept its charge | billing (owner decision) | Fixed, pending gate |
+| — | `ocr_processor` app is empty boilerplate | cleanup | **Not touched** (owner: separate item) |
+
+### Owner decisions (2026-09-14)
+
+1. **Retry guard:** a per-course SHA-256 file fingerprint; no frontend change.
+2. **Response:** keep today's shapes — 201 all succeeded, 207 mixed
+   (`successful` / `failed` / `summary`), 400 all failed. Adds
+   `already_uploaded` to each successful entry.
+3. **Base:** build on Section 7's branch at its gated commit, confirmed with
+   that session.
+4. **Refunds:** a file that ends as failed is never charged.
+
+### Design as built
+
+- `AssignmentUploadFingerprint` (additive migration `0039`): unique on
+  `(course, sha256)`. A row is:
+  - claimed before any AI call;
+  - completed in the same transaction that saves the assignment;
+  - deleted if the upload fails;
+  - deleted with its assignment (CASCADE), so a deleted assignment can be
+    uploaded again.
+
+  A claim older than 40 minutes is stale and may be taken over; that window
+  is longer than `upload_assignment_async`'s 35-minute hard limit. A claim
+  token stops a request that lost its claim from completing or releasing
+  the newer claimant's.
+- `assignments/file_uploads.upload_assignment_file` is the one per-file path,
+  used by both the sync view and `upload_assignment_async`. Extraction and the
+  save run inside `billing_refund_scope`.
+- `InvalidUploadFileError` and `UploadAlreadyInProgressError`
+  (`assignments/exceptions.py`) are on the user-facing allowlist.
+  `InvalidUploadFileError` is also in `UPLOAD_REFUSALS`, so it is never
+  retried. Server-side rasterizer faults (missing poppler, timeout) still
+  retry.
+
+**Known limits, not changed:**
+- Within a file that finally *succeeds*, a charge from an earlier internal
+  extraction attempt that was rejected is kept.
+- Cancelling after the save has committed keeps the charge.
+
+Both behave as before this change.
+
+## 2. Commits
+
+Branch `task/section-9-remediation`, on Section 7's `ec28d90`. That commit is
+Section 7's `0c1a9c7` merged with beta `30b7b95`, confirmed by the Section 7
+session as the commit to build on.
+
+| Commit | Content |
+|---|---|
+| `d481fd6` | Part A — refuse `is_pdf=False`; poppler read errors → 400 |
+| `de0c750` | Parts B–D — per-file outcomes, fingerprint, refund scope, retry policy |
+| `e70fde5` | Comment-only fix flagged by flake8-eradicate (E800) |
+| `cada6c5` | Real-provider test |
+
+The rebase was conflict-free in code. The only conflict over the session was
+the audit task-table rows (keep Section 8's row 8 and this section's row 9).
+`UPLOAD_REFUSALS` auto-merged with Section 7's `AssignmentNotOpenError`.
+
+## 3. Composition with other sections
+
+- **Section 5** (`ai_processor/services.py`, now on beta): Part A only edits
+  `PDFService.extract`. It keeps what Section 5's tests pin there:
+  - the method takes no arguments beyond `self`;
+  - it returns one entry per page;
+  - the module-level `pdf_service` object still exists.
+
+  Its `UnreadableUploadTest` accepts `(ParseError, PDFPageCountError)`, and
+  "image bytes named .pdf" now raises `ParseError`.
+- **Section 7** (`assignments/tasks.py`, `students/views.py`): this section's
+  exceptions live in a new `assignments/exceptions.py`, so there is no edit to
+  `students/exceptions.py`. `UploadAlreadyInProgressError` covers only the
+  teacher assignment-file path; Section 7's
+  `SubmissionProcessingInProgressError` stays the only guard on student
+  upload-async.
+
+## 4. Real-provider verification — PASSED
+
+`RUN_REAL_AI=1 python manage.py test assignments.tests_real_upload_billing`,
+2026-09-14 20:26:45–20:27:07 (+01:00), on `60f28c3` + the then-uncommitted
+test file (committed unchanged as `cada6c5`).
+
+The run used a real wallet, subscription and ledger on PostgreSQL, with one
+real billed extraction.
+
+| Step | Result |
+|---|---|
+| Batch: `quiz.png` (legible worksheet) + `broken.pdf` (not a PDF) | **207**; `quiz.png` created, `already_uploaded: false`; `broken.pdf` failed |
+| Charges after first request | kept `[15545]`, refunded `[]` — the good file charged once, the bad file never reached the AI |
+| Identical replay | **207**; same assignment id, `already_uploaded: true`; `broken.pdf` failed again |
+| Charges after replay | kept `[15545]`, refunded `[]` — **no new charge**; still 1 assignment |
+
+Exit 0, 1 test OK.
+
+## 5. Earlier runs whose raw logs were lost — NOT counted
+
+A session restart on 2026-09-14 wiped the scratchpad. The runs below did
+happen, but their complete output no longer exists. Under this project's
+evidence rule they are **not** counted. Every one is re-run on the committed
+tree (§7–§8).
+
+- Part A alone, pre-rebase: 3 mutants killed; full suite 3866 OK (12 skipped),
+  run with `--keepdb`. This part of the record did survive, in the previous
+  version of this file.
+- Parts B–D, pre-rebase working tree: 121 targeted tests OK; 10 mutants
+  (M4–M13) killed, restores sha-verified.
+- On the rebased `6f5014d`: 138 targeted tests OK (1 skipped: an unrelated
+  Redis-cache test), `check` clean, `makemigrations --check` clean, migration
+  safety "additive only". Pre-commit then flagged E800, fixed in `e70fde5`.
+
+## 6. Pre-commit on the current tip
+
+`pre-commit run --files <all 14 Section 9 files>` on `cada6c5`: exit 0, tree
+clean.
+
+## 7. Mutation re-run on the committed tree
+
+The run started 2026-09-14 21:47:48 (+01:00) on committed `6d21d63` (clean
+tree, `dirty_lines=0`). That commit's code is identical to `cada6c5`; the
+difference is docs only.
+
+- Each mutant is one exact-string replacement that must match exactly once.
+- After each mutant, the file is restored from a uniquely named copy and its
+  sha256 is verified.
+- **KILLED** counts only real `FAIL:` / `ERROR: test_…` lines, never an
+  import or collection error.
+- An unmutated baseline of every targeted class ran first: **30 tests, OK**.
+
+About 4 minutes in, the run was deliberately stopped with SIGINT so the
+Section 8 strict gate, which had started 3 minutes earlier, ran on a quiet
+host. The interrupt restored the file under test. Afterwards
+`git status --porcelain` was empty and `git diff HEAD` was empty.
+
+| Mutant | Break | Result |
+|---|---|---|
+| M1 | PDF: remove the `is_pdf` refusal | **KILLED** — 6 failures |
+| M2 | PDF: stop catching poppler read errors | **KILLED** — 2 errors |
+| M3 | PDF: catch everything (blames server faults on the file) | **KILLED** — 2 errors |
+| M4 | View: a per-file refusal escapes the loop again | **KILLED** — 4 failures, 1 error (bad file first/middle/last, all-invalid, replay) |
+| M5 | Claim: an already-uploaded file is extracted again | **KILLED** — 3 failures (both replays, task path) |
+| M6 | No refund scope around extraction and save | **KILLED** — 3 failures (failed save, unusable response ×2) |
+| M7 | A failed upload never releases its claim | **KILLED** — 5 failures |
+| M8 | A live claim held by another request is ignored | **KILLED** — 3 failures (concurrent retry, racing batches, live claim) |
+| M9 | A stale claim is never taken over | **KILLED** — 1 error |
+| M10 | A lost claim's save is kept | **KILLED** — 1 failure |
+| M11 | Bad files retried again (removed from `UPLOAD_REFUSALS`) | **KILLED** — 1 failure, 2 errors (includes the real Celery worker on Redis) |
+| M12 | Answer task no longer wraps the file refusal | _interrupted — re-run pending_ |
+| M13 | The file's own message is replaced by the fallback | _not reached — re-run pending_ |
+
+**11/11 run killed; all restores sha-verified. M12–M13 still to run.**
+
+> **Caveat: this run is INTERIM and is not counted as the mutation gate.**
+> Every mutant above (20:47:48–~20:51Z) overlapped the first minutes of the
+> Section 8 strict gate, which Section 8 then aborted for that reason.
+> Concurrent test processes share one Redis server, and 11 test modules
+> flush fixed Redis databases (the H-1 session is fixing that). So a
+> contended run's failures cannot be proven to come from the mutant alone.
+> All 13 mutants are re-run on a quiet host, after the Section 8 gate and
+> before the Section 9 strict gate, and that re-run is the one counted.
+
+### 7a. Counted run: quiet host — 13/13 KILLED
+
+- **When:** 2026-09-14 23:12:48–23:16:10 (+01:00).
+- **What:** committed `d59add7`, whose code is identical to `6d21d63`, on a
+  clean tree.
+- **Quiet host:** the Section 8 gate process had ended at 22:44. Immediately
+  before launch, `pgrep -af "manage.py test"` returned nothing. The H-1 and
+  Section 8 sessions confirmed they were holding all DB and Redis test
+  activity.
+- **Baseline:** the unmutated run of every targeted class passed, 30 tests
+  OK.
+
+| Mutant | Result (failing tests) |
+|---|---|
+| M1 remove `is_pdf` refusal | **KILLED** — 6 failures |
+| M2 stop catching poppler read errors | **KILLED** — 2 errors |
+| M3 catch everything | **KILLED** — 2 errors |
+| M4 per-file refusal escapes the loop | **KILLED** — 4 failures, 1 error |
+| M5 already-uploaded file extracted again | **KILLED** — 3 failures |
+| M6 no refund scope | **KILLED** — 3 failures |
+| M7 failed upload never releases its claim | **KILLED** — 5 failures |
+| M8 live claim ignored | **KILLED** — 3 failures (concurrency tests, 94 s) |
+| M9 stale claim never taken over | **KILLED** — 1 error |
+| M10 lost claim's save kept | **KILLED** — 1 failure |
+| M11 bad files retried again | **KILLED** — 1 failure, 2 errors (includes real Celery worker on Redis) |
+| M12 answer task no longer wraps the refusal | **KILLED** — 1 failure, 2 errors (includes real Celery worker on Redis) |
+| M13 file's own message replaced by fallback | **KILLED** — 3 failures |
+
+Every restore was sha256-verified, and the tree had `dirty_lines_after=0`.
+Script exit 0.
+
+## 8. Strict final gate — PASSED on `d59add7`
+
+The gate ran on the owner's procedure, on commit
+`d59add730bff61a220a180e5d99b99dcca87a402` (branch
+`task/section-9-remediation`, base Section 7's gated `ec28d90`). Its code is
+identical to `6d21d63` and `cada6c5`; the difference is docs only.
+
+**Setup and host**
+
+- Dedicated detached worktree `../Grade-Automator-Plus-s9-final-gate-d59add7`,
+  used by no other session.
+- Fresh test DB `test_s9_final_gate_d59add7`, no `--keepdb`, `--parallel 1`.
+- Run under `systemd-inhibit --what=sleep:idle`.
+- The host was quiet. The mutation run just before it and the gate itself
+  were serialised with the Section 8 and H-1 sessions, which held all DB and
+  Redis test activity (§7a).
+
+| Step | Result |
+|---|---|
+| Test DB before | `pg_database` rows **0**, connections **0** |
+| Fingerprint before | HEAD `d59add7…`, index sha256 `a77e6c41…f45a8`, content sha256 `a300634e…677f`, status lines **0** |
+| `pre-commit run --all-files` | **exit 0** |
+| `scripts/check_migration_safety.py --base beta` | **exit 0**; `0039` additive |
+| `manage.py check` | **exit 0** |
+| `makemigrations --check --dry-run` | **exit 0** |
+| Full suite (23:17:34 → 23:48:40, +01:00) | **4194 tests, OK (skipped=22), exit 0**; `FAIL`/`ERROR` lines **0** |
+| Teardown | `Destroying test database` present; "other sessions" lines **0** |
+| Test DB after | `pg_database` rows **0**, connections **0** |
+| Fingerprint after | **identical** to before (all four values) |
+| Files newer than start | 1990, **all** under `.mypy_cache/` (gitignored, written by pre-commit's mypy hook); no tracked file changed |
+
+- **Full, unfiltered output:** 55,929 lines, sha256
+  `5d4815b27395b6aeaa1466f2641d646f0d78eeefd108b8108f21029c2df90abc`.
+- **Skips:** the 22 skipped are Section 7's gate's 21 plus this section's
+  opt-in real-provider test (`RUN_REAL_AI`). That is consistent with the
+  counts, but individual skip reasons were not printed at this verbosity.
+
+**Where the raw output lives:** `docs/evidence/section_9_final_gate/`, with
+the precedent set by Section 5's post-merge gate:
+- `full_suite.log.gz`, `precommit_all_files.log.gz`, the counted
+  `mutations_quiet_host.log.gz`, `chain.log.gz`, and
+  `real_provider_batch_upload.log.gz`;
+- `gate_report.txt` and both fingerprints;
+- `RAW_LOG_SHA256SUMS.txt`, the sha256 of each log before compression;
+- `RAW_LOG_LINE_COUNTS.txt`;
+- `SHA256SUMS.txt`, covering the stored files.
+
+**What this gate does and does not prove.** It proves Section 9 on top of
+Section 7's `ec28d90`. `beta` has since moved to `91f752b`: it now carries
+Section 8 (`fb9b29c`) but still not Section 7. A read-only trial merge of
+`d59add7` with beta `71d4175` merges code cleanly, and `assignments/tasks.py`
+and `AutoGrader/error_messages.py` both auto-merge. It conflicts only in
+`docs/CODEBASE_AUDIT_SECTIONS.md` and `docs/HARDENING_BACKLOG.md`.
+
+**Merging into `beta` is the owner's decision.** The integrated tip that
+finally lands needs its own gate, per the Section 7 / Section 8 practice.
+
+## 9. Integrated gate — PASSED on `7641ed7` (Section 9 + beta + Section 7)
+
+The owner approved it on 2026-09-15: merge current beta into the Section 9
+branch and gate the merged commit, including evidence that the Redis
+isolation fix (H-9, `29cc1c7`) is present and still holds. Nothing was
+merged into beta.
+
+### 9.1 How the integrated commit was built
+
+| Commit | What |
+|---|---|
+| `2d7c3b6` | Merge beta `29cc1c7` (H-9). Two document conflicts. |
+| `40486f8` | Scale tests (`assignments/tests_upload_batch_scale.py`), added because no stress test covered the upload path |
+| `187b1a6` | Merge Section 7 at its gated commit `7dc6c70` (its strict gate passed: 4170 OK, 21 skipped; confirmed by the Section 7 session). Clean. |
+| `f314569` | Merge beta `9240fc6` (docs only). Clean. |
+| **`7641ed7`** | Fix (below). **The gated commit.** |
+
+**The two document conflicts in `2d7c3b6`:**
+- `docs/CODEBASE_AUDIT_SECTIONS.md`: Section 8's row was taken from beta,
+  which is a strict superset of the older row plus the newer E800 recount;
+  Section 9's row was kept from this branch.
+- `docs/HARDENING_BACKLOG.md`: H-11 was kept from this branch (Section 7's
+  progress) and H-12 was taken from beta (32 files / 347 hits).
+
+A script checked every resolved row against Section 7's own resolution of
+the same merge (`9568d7f`), and all were byte-identical. The only text
+dropped was the superseded "33 files / 351 hits" count.
+
+**Ancestry verified:** `29cc1c7`, `7dc6c70` and `9240fc6` are all ancestors
+of `7641ed7`.
+
+**The fix, and the first attempt that is NOT counted.** Phase A first ran on
+`f314569`:
+- 186 of 187 targeted tests passed, 13/13 mutants were killed, and 4 live
+  tests passed.
+- **The failure was H-9's guard,
+  `test_no_test_module_builds_its_own_broker_client`.** It flagged
+  `assignments/tests_upload_task_retry_policy.py:339`. That real-worker
+  test's `tearDown` deleted its queue with a raw redis client built from the
+  broker URL, which under H-9's per-process broker prefix deletes nothing.
+  The file predates H-9 and was not on beta, so H-9's own sweep never
+  reached it.
+- **`7641ed7` deletes the queue through `celery_app.connection_for_write()`.**
+  This is the same fix Section 7 made in `7dc6c70`. The guard and the
+  real-worker class passed before committing, and everything below was then
+  re-run on `7641ed7`.
+
+### 9.2 Phase A, on `7641ed7` (review worktree, per-process Redis prefix)
+
+A host check before each step confirmed that every other running test tree
+contained `29cc1c7`. The only overlap was Section 7's post-merge run on
+`d260e1b`.
+
+| Category | What ran | Result |
+|---|---|---|
+| Baseline / regression | 15 targeted modules (Section 9's suites; upload pipeline; `assignments.tests_security`; students upload, post-grading lock, async edit path, submission tenancy and concurrency, grading redelivery live; `AutoGrader.tests_redis_test_isolation`, `tests_celery_signals`, `tests_uploads`) | **187 tests, OK** (1 skipped), 0 FAIL/ERROR |
+| Concurrency | concurrent retries, stale/live/taken-over claims, 6-way scale race, grading redelivery on a live worker, submission concurrency | included above, all OK |
+| Adversarial | forged files (image labelled PDF, garbage PDF), bad file in first/middle/last position, all-invalid batch, hostile uploads | included above, all OK |
+| Failure | provider outage, unusable response (charged then refunded), failed save (refunded, released), deterministic bad file never retried | included above, all OK |
+| Stress / scale | 30-file batch (24 good, 6 bad); six concurrent replays of it | OK — 1.28 s; 1.45 s with **exactly 24 provider calls**; final replay all `already_uploaded`, no new charge |
+| Mutation | 13 mutants, exact-string, sha-verified restore | **13/13 KILLED**, tree clean after |
+| Real infrastructure | real PostgreSQL 18.6, Redis 8.0.5, real Celery worker on the prefixed broker | OK (in A1) |
+| Live / end-to-end (billed) | `RUN_REAL_AI=1`: `tests_real_upload_billing`, `tests_real_extraction` (image and PDF) | **4 tests, OK** — batch 207, **15,723 credits kept once**, none refunded; identical replay 207, charges unchanged |
+| Security / isolation | tenancy and hostile-upload suites; H-9 isolation module, including the broker guard | OK (in A1) |
+
+### 9.3 Phase B: final gate, as two FULL suites simultaneously from `7641ed7`
+
+**Setup:**
+- Two detached, locked worktrees
+  (`…-s9-gate-a-7641ed7`, `…-s9-gate-b-7641ed7`).
+- Fresh test DBs `test_s9_gate_a_7641ed7` / `test_s9_gate_b_7641ed7`, no
+  `--keepdb`, `--parallel 1`, both under `systemd-inhibit`.
+- Both suites launched at 04:26:33 and finished by 05:04:06 (+01:00).
+
+| | Side A | Side B |
+|---|---|---|
+| Pre-checks (side A tree) | `pre-commit run --all-files` 0 · `check_migration_safety --base beta` 0 · `check` 0 · `makemigrations --check` 0 | — (same commit) |
+| Test DB before | absent, 0 connections | absent, 0 connections |
+| Fingerprint before = after | index `f3eb2380…82f3`, content `843ca28b…251d`, 0 status lines — **identical** | same values — **identical** |
+| Tests | **4203 — OK (skipped=22)** | **4203 — OK (skipped=22)** |
+| Duration | 2,221.8 s | 2,226.3 s |
+| Exit | **0** | **0** |
+| FAIL / ERROR lines | 0 | 0 |
+| "other sessions" teardown lines | 0 | 0 |
+| `Destroying test database` | present | present |
+| Test DB after | gone, 0 connections | gone, 0 connections |
+| Files changed during run (outside `.mypy_cache`) | 0 | 0 |
+| Log lines / sha256 | 59,480 / `c0fe7ce8…4432` | 59,124 / `9760698c…216b` |
+
+**Counts reconcile.**
+- *Tests:* 4203 = Section 7's gated 4170 + Section 9's 33 tests (31 at
+  `d59add7`, plus the 2 scale tests).
+- *Skips:* 22 = Section 7's 21 + Section 9's opt-in real-provider test.
+
+**Redis isolation after the merge.** Keys per per-process prefix were
+counted on the app's Redis every 240 s while both suites ran: side A was
+`gaplus-t355180`, side B was `gaplus-t355178`.
+
+| Probe | Both alive | A keys | B keys | Other prefixes / keys |
+|---|---|---|---|---|
+| 04:26:53 | yes | 1 | 1 | 15 / 266 |
+| 04:30:53 | yes | 199 | 185 | 15 / 266 |
+| 04:34:54 | yes | 117 | 111 | 16 / 363 |
+| 04:38:54 | yes | 65 | 65 | 16 / 356 |
+| 04:42:54 | yes | 612 | 612 | 16 / 318 |
+| 04:46:55 | yes | 1048 | 1032 | 16 / 865 |
+| 04:50:55 | yes | 693 | 675 | 16 / 1232 |
+| 04:54:55 | yes | 80 | 80 | 16 / 912 |
+| 04:58:55 | yes | 1 | 1 | 16 / 333 |
+| 05:02:56 | yes | 20 | 19 | 16 / 254 |
+| after both | — | 69 | 69 | 16 / 254 |
+
+**What the sampling shows:**
+- Both namespaces were live at the same time throughout. Each count rose
+  and fell independently, and neither run's keys were wiped by the other.
+- Keys under other prefixes (earlier finished processes, plus Section 7's
+  concurrent post-merge run) rose and fell with that other run, and ended at
+  254 against 266 at the start. The 12-key drop is consistent with the 300 s
+  cache TTL expiry H-9 recorded, and was not attributed further.
+- The ~69 keys left under each side's prefix afterwards are the generation
+  counters H-9 records as expected (no TTL by H-1 design).
+
+**Raw evidence:** `docs/evidence/section_9_integrated_gate/`.
+- **Logs** (compressed, with `RAW_LOG_SHA256SUMS.txt` for the uncompressed
+  originals, `RAW_LOG_LINE_COUNTS.txt`, and `SHA256SUMS.txt` for the stored
+  files): both full suites, the pre-checks, phase A's targeted, mutation and
+  live logs, both chain logs (the uncounted first attempt and the counted
+  run), and the quick check.
+- **Plain text:** the phase B report and all four fingerprints.
+
+**Beta moved during the gate** to `6a8e714`, Section 7's landing: merge
+`d260e1b` of the same `7dc6c70` plus docs. Its code is identical to what
+`7641ed7` already contains. The only code differing between beta and
+`7641ed7` is Section 9's own 13 files, and a trial merge is clean.
+
+## 10. Promotion to beta and post-promotion cleanup (owner-approved, 2026-09-15/16)
+
+The owner approved promoting the Section 9 integrated branch into beta,
+having confirmed the integrated gate above was sufficient. Before promotion,
+the resulting beta code was confirmed identical to the gated Section 9
+commit (`git diff` against the merge target showed no code differences,
+only unrelated changes from other sections that had landed on beta in the
+interim).
+
+**Promoted:** merge `bbfd20c` on beta, merging `514a932` ("Remove the empty
+`ocr_processor` app" — the first of the owner's requested cleanup items,
+built directly on the gated `7641ed7` via `87acd13`). `git diff bbfd20c
+514a932` shows only H-16 files (an independent, unrelated section's work
+that landed on beta separately, before the promotion) — zero Section 9
+code difference.
+
+The owner then requested three further cleanup items, done on
+`task/section-9-cleanup` after the promotion:
+
+1. **Empty app removal** — done as part of the promoted commit above
+   (`514a932`).
+2. **Cross-section leftovers** — the four items this section's row had
+   "carried forward" from earlier work (§0/§5/§12), all closed:
+   - `ebb6104`: all backend docs (8 markdown files, 2 rendered HTML
+     mirrors) updated for the app's removal; also corrects the
+     pre-existing misstatement that `OCRService` performs OCR (it only
+     measures decoded image dimensions for AI cost estimation).
+   - `950fec3`: `uploads.py`'s stale "25 MB" comment now reads 50 MB.
+   - `6091e10`: `error_messages.py` no longer blames the uploaded file
+     when Poppler is missing/misconfigured on the server —
+     `PopplerNotInstalledError` / `PDFInfoNotInstalledError` get a
+     distinct, non-file-blaming message. New regression tests
+     (`AutoGrader/tests_error_messages.py`) and mutation-verified:
+     reverting the split made both new tests fail as expected.
+   - `51272a4`: removed the dead `AIProcessor.create_file` method (no
+     callers anywhere in the repository, confirmed by `git grep`).
+3. **Evidence/backlog documentation review** — this section. The
+   Section 9 row in `docs/CODEBASE_AUDIT_SECTIONS.md` had a stale
+   "pending before merge: the 13-mutant re-run and the strict fresh-DB
+   final gate" note contradicting the "13/13 mutants killed" and
+   integrated-gate-PASSED text earlier in the same row (§9 above); that
+   contradiction is now removed and replaced with a landing record.
+   `docs/HARDENING_BACKLOG.md`'s H-11 row now notes it is not a blocker
+   for the Section 9 promotion specifically, while keeping the **High -
+   release-blocking** priority and OPEN status for production overall
+   (Section 7 still owns H-11; not closed by this work).
+
+**Two documented behavioral limits from §"Design as built" above remain
+true and unchanged by this cleanup:** a rejected AI attempt within a file
+that later succeeds still incurs its charge; cancellation after an
+assignment is saved still incurs its charge.
+
+Regression evidence for the cleanup commits: `AutoGrader/tests_error_messages.py`
+(22 tests, OK); `ai_processor` app suite (793 tests, OK) after the dead-code
+removal; `AutoGrader` + `ai_processor` + `assignments` combined suite (1682
+tests, OK) after the docs/comment/error-message changes. `manage.py check`
+and `makemigrations --check --dry-run` clean throughout; `pre-commit` clean
+on every touched file.

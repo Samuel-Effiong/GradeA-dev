@@ -22,8 +22,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         emails = []
 
-        if options.get("file"):
-            path = options.get("file")
+        path = options.get("file")
+        if path:
             try:
                 with open(path, "r") as f:
                     for line in f:
@@ -35,8 +35,9 @@ class Command(BaseCommand):
                 return
 
         # emails passed as args
-        if options.get("emails"):
-            emails.extend(options.get("emails"))
+        arg_emails = options.get("emails")
+        if arg_emails:
+            emails.extend(arg_emails)
 
         if not emails:
             self.stdout.write(self.style.WARNING("No emails provided. Nothing to do."))

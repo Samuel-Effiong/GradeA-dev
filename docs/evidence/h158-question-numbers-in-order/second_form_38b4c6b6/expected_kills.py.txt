@@ -1,0 +1,149 @@
+"""H-158 (second form, after the Senior Manager's ruling of 19:32: renumber
+only when the numbers are NOT already distinct positive integers).
+Written on 2026-10-07 19:59 BEFORE any run of the new tip, by reading every
+one of the module's 40 tests against every mutant and the two red
+commits. Seen by direct calls before the run (no test loader, no
+database): every expected value of the function tests, in the form the
+tests write it (a paper 5, 6, 8 kept with its key; 3, 1, 2 kept; 1, "2",
+"10" kept; a repeat among text and integers renumbered; a repeat in a
+paper that starts at five renumbered whole; a non-object among distinct
+numbers; each odd shape; the long label; the input not changed; non-lists).
+NOT seen: the routes' status codes, the stored key, the serializer's
+error list, the new mutants' sets, anything through a database.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the ORIGINAL code 7be08a58>
+       python expected_kills.py --repro2 <log: final tests on the first-form code 7f5d1743>"""
+import re
+import sys
+from pathlib import Path
+
+F = "TheNumbererTest"
+E = "ExtractionNumbersInOrderTest"
+R = "TheExtractionRoutesSaveNumbersInOrderTest"
+G = "GenerationNumbersInOrderTest"
+S = "TheSerializersLastDefenceTest"
+O = "OurKeyDoesNotLookLikeATeachersEditTest"
+T1 = (F, "test_numbers_already_in_order_are_left_and_nothing_is_counted")
+T2 = (F, "test_a_repeat_is_numbered_in_the_models_order")
+T3 = (F, "test_a_paper_that_starts_at_five_keeps_its_numbers")
+T4 = (F, "test_distinct_numbers_out_of_order_are_left_as_they_are")
+T5 = (F, "test_distinct_digit_strings_are_distinct_numbers")
+T6 = (F, "test_a_number_and_the_same_number_as_text_are_a_repeat")
+T7 = (F, "test_a_repeat_in_a_paper_that_starts_at_five_numbers_all_of_it")
+T8 = (F, "test_a_number_that_is_not_a_positive_integer_is_replaced_like_any_other")
+T9 = (F, "test_a_long_number_from_the_model_is_kept_only_in_part")
+T10 = (F, "test_an_entry_that_is_not_an_object_is_left_where_it_is")
+T11 = (F, "test_an_entry_that_is_not_an_object_does_not_make_a_paper_a_repeat")
+T12 = (F, "test_the_input_is_not_changed")
+T13 = (F, "test_a_value_that_is_not_a_list_is_returned_as_it_is")
+T14 = (F, "test_a_string_of_very_many_digits_does_not_break_the_numbering")
+T15 = (F, "test_a_nine_digit_string_is_still_a_number")
+T_ALL = {T14, T15, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13}
+E1 = (E, "test_the_questions_and_the_stored_ai_copy_are_in_order")
+E2 = (E, "test_the_models_own_numbers_are_kept_in_the_stored_ai_copy")
+E3 = (E, "test_they_are_kept_also_when_nothing_changed")
+E3B = (E, "test_a_paper_numbered_five_to_eight_is_saved_as_it_is")
+E4 = (E, "test_the_document_is_built_from_the_numbers_in_order")
+E5 = (E, "test_one_log_line_with_ids_and_counts_and_no_question_text")
+E6 = (E, "test_no_such_log_line_when_nothing_changed")
+E7 = (E, "test_grading_then_pairs_each_question_with_its_own_answer")
+E8 = (E, "test_the_real_grading_pipeline_grades_three_questions_not_two")
+R1 = (R, "test_create_by_text")
+R2 = (R, "test_edit_by_text")
+R3 = (R, "test_upload")
+R4 = (R, "test_a_label_the_serializer_would_refuse_no_longer_costs_the_save")
+R1B = (R, "test_create_by_text_keeps_a_paper_numbered_five_to_eight")
+R2B = (R, "test_edit_by_text_keeps_a_paper_numbered_five_to_eight")
+R3B = (R, "test_upload_keeps_a_paper_numbered_five_to_eight")
+G1 = (G, "test_the_draft_is_in_order_and_so_is_its_document")
+G1B = (G, "test_a_draft_numbered_five_to_eight_is_kept_and_saved_so")
+G2 = (G, "test_nothing_of_the_models_numbers_rides_in_the_draft")
+G3 = (G, "test_the_saved_assignment_is_in_order")
+G4 = (G, "test_a_draft_stored_before_this_row_is_put_in_order_at_its_save")
+S1 = (S, "test_a_repeated_number_is_refused_with_the_sentence")
+S2 = (S, "test_a_number_and_the_same_number_as_text_are_one_number")
+O1 = (O, "test_an_update_that_changes_nothing_is_not_an_override")
+#: Never in a set (controls): S.test_numbers_in_order_pass,
+#: S.test_an_update_that_sends_no_questions_passes,
+#: O.test_the_comparison_does_run_on_this_row.
+FIVE_TO_EIGHT = {T3, T4, T5, T11, E3B, R1B, R2B, R3B, G1B}
+REPEAT_ROUTES = {R1, R2, R3}
+
+EXPECTED = {
+    "N1": {E1, E4, E7, E8, R1, R2, R3, R4},
+    "N2": {E2, E3, E3B, R1, R2, R3, R4, R1B},
+    "N3": {E5},
+    "N4": {E6, E3B},
+    "N5": {E5},
+    "N6": {T2, T6, T8, E5, G1, G4},
+    "N7": {T8},
+    "N8": {T9},
+    "N9": {T12},
+    "N10": {T10},
+    "N11": {T13},
+    "N12": {G1, G2, G3},
+    "N13": {G4},
+    "N14": {S1, S2},
+    "N15": {G2},
+    "N16": {O1},
+    "N17": {T8},
+    "N18": {G1, G4},
+    # NEW, for the ruling of 19:32:
+    # a repeat among positive integers is kept: every test with a repeat
+    # (and the input-not-changed test, which uses one).
+    "N19": {T2, T6, T7, T10, T12, E1, E2, E4, E5, E7, E8, R1, R2, R3, G1, G2, G3, G4},
+    # a label/zero/null among distinct numbers is kept: the odd-shapes test
+    # and the "2a" route (the serializer then refuses the save).
+    "N20": {T8, R4},
+    # the keep branch is off (the first form's behaviour): exactly the
+    # tests of the ruling.
+    "N21": set(FIVE_TO_EIGHT),
+    # zero counts as positive.
+    "N22": {T8},
+    # a string of digits is not a number.
+    "N23": {T5},
+    # ADDED 20:19, before any run, for Verifier 2's question (int() of a string of
+    # more than 4300 digits raises): the length guard removed. Red: the huge
+    # string raises (T14). The nine-digit control (T15) is green: nine digits
+    # are within int()'s limit. No other test has a long digit string.
+    "N24": {T14},
+}
+#: ORIGINAL code 7be08a58 with the FINAL test file: red = everything that
+#: needs the function, the key, the log or the refusal. Green there: T-less
+#: E6, G2, G1B, R2B, R3B (nothing is renumbered at that code, so a kept paper
+#: is kept), the three S/O controls, O1.
+REPRO = T_ALL | {E1, E2, E3, E3B, E4, E5, E7, E8, R1, R2, R3, R4, R1B, G1, G3, G4, S1, S2}
+#: FIRST-FORM code 7f5d1743 with the final tests: red = the ruling's tests.
+REPRO2 = set(FIVE_TO_EIGHT)
+#: the third red commit 22e1559c: the two tests of Verifier 2's question on the
+#: second form's code a04f3908 (+ its runner). Red: only the huge string.
+REPRO3 = {T14}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] in ("--repro", "--repro2", "--repro3"):
+    wanted = {"--repro": REPRO, "--repro2": REPRO2, "--repro3": REPRO3}[sys.argv[1]]
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), wanted)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

@@ -1,0 +1,1834 @@
+# Hardening Backlog
+
+Tracked follow-up work carried out of the codebase audit
+(`docs/CODEBASE_AUDIT_SECTIONS.md`). Everything here is **work to be done**,
+not debt to be admired: each item carries a scope, acceptance criteria, and
+the verification evidence required before it can be closed.
+
+An item is closed only when its acceptance criteria are met **and** the
+evidence below has been produced and recorded in the item's own notes.
+"Tests pass" is not evidence on its own — the audit repeatedly found suites
+that passed while the behaviour they claimed to cover was broken.
+
+## Verification standard — the gate, not a wish-list
+
+Set by the owner, 2026-09-09. **No item closes on "the tests pass."** Every
+fix is treated as a production-ready change and must be battle-tested against
+the actual stack and realistic failure conditions.
+
+The required order is:
+
+> **implement → verify on real infrastructure → stress → attack →
+> mutation-test → failure-test → regression-test → measure →
+> document evidence → close**
+
+| # | Requirement | Means |
+|---|---|---|
+| 1 | **Real infrastructure** | Real PostgreSQL and real Redis. Mocks and LocMem are not evidence — a LocMem run of a `delete_pattern` test passes while proving nothing, because LocMem has no `delete_pattern`. |
+| 2 | **Real service layer / live endpoints** | Exercised through the actual services and running API (gunicorn), not only the Django test client. |
+| 3 | **Functional** | Normal paths, asserted on values and row identity — never on status codes alone. A leaking endpoint returns 200 like a correct one. |
+| 4 | **Adversarial / security** | Written from the attacker's side; the test attempts the breach and asserts it failed. |
+| 5 | **Concurrency & stress** | Realistic volumes, real threads, barrier-synchronised, multiple tenants operating simultaneously, including large imports. |
+| 6 | **Mutation** | Revert or weaken each protection; the relevant tests must fail. Record the counts. An unproven fix is not a fix. |
+| 7 | **Failure simulation** | Redis unavailable / slow / recovering, DB contention, retries, partial failures, interrupted operations. |
+| 8 | **Integrity properties** | Transactional integrity, idempotency, race-condition safety, recovery behaviour. |
+| 9 | **Measurement** | Before/after Redis commands and SCANs, DB queries, latency percentiles, memory, CPU, connection usage. Numbers, not adjectives. |
+| 10 | **Targeted attacks** | Cross-tenant leakage, stale data, missed invalidation, collateral deletion, cache stampedes, duplicate operations, authorization bypasses. |
+| 11 | **Production-scale cases** | Realistic volumes, not small fixtures. |
+| 12 | **Regression + integrated run** | Relevant suites green, then a final full-stack verification. |
+| 13 | **Documented evidence** | Acceptance criteria written down BEFORE the work; evidence recorded against them at close. |
+
+Where a requirement genuinely does not apply to an item, the item must
+**state so and why** — silence is not an exemption.
+
+## Owners
+
+Owners are assigned by **management**. The "Proposed" column is a suggestion
+based on which section the work sits in, not an assignment — it is there to
+speed that decision up, not to pre-empt it.
+
+| ID | Item | Priority | Proposed owner | Status |
+|---|---|---|---|---|
+| H-1 | System-wide cache invalidation architecture | **Highest** | Backend/infra lead | **OPEN: step 4 (wildcard removal) in batch-2b verification** on `task/h1-step4-wildcard-removal` (`24d5ec0`), not landed (status refreshed 2026-09-30). Earlier: **Stage 2: COMPLETE (33/33 applicable migrated). Stage 3 item 7 (user-row fan-out): FIXED. Stage 3 item 2 (stampede protection): DECIDED 2026-09-15 — none for now, by measurement, with re-evaluation triggers. H-1 OVERALL: OPEN** — Stage 3 legacy wildcard removal in progress, under its own full gate. |
+| H-2 | Full-suite exit code / test DB connection leaks | High | Whoever owns CI | **Closed** — fixed, verified with three consecutive clean full runs and failure/mutation simulation |
+| H-3 | `student123!` account remediation | High | Product + backend | **Code live on beta; production run pending founder.** The command landed via batch-1 (`e7e4bdf`) and the token_epoch follow-up via batch-2a (`755aa27`). The founder hasn't run the dry-run/execute on any deployment; on main it needs the main release first (status refreshed 2026-09-30). |
+| H-4 | Duplicated `delete_cache_patterns` implementations | Medium | Folds into H-1 | **FIXED on branch `task/h1-step4-wildcard-removal` (`8f950b7`), not landed**; rides batch-2b with H-1 step 4 (status refreshed 2026-09-30). |
+| H-5 | `full_clean()` on the grading hot path | Medium | Section 7 (students) | **FIXED on branch `task/h5-full-clean-hot-path` (`1c0742f`; 1a VERIFIED-WITH-NOTES `dd9d875`), not landed**; not yet in any batch (status refreshed 2026-09-30). |
+| H-6 | `CourseCategoryViewSet` — unrouted and broken. If it were ever routed as written, its paged answer builds the course serializer without the request (`classrooms/views.py`, `category_courses`), which would send every course's roster with students' addresses to any signed-in user; fix or delete before routing (ed, by reading, 2026-10-06) Added 2026-10-07 (Verifier 1's note N2 on H-147, SM's ruling): the course and session serializers give the STAFF shape when built without a request; no routed view does that today, the unrouted category view would | Medium | Section 3 (classrooms) | Not started |
+| H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
+| H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
+| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **CLOSED (owner, 2026-09-15)** — verified on `29cc1c7`: two full suites ran concurrently on the same Redis, 4,153 tests OK each, exit 0, clean teardown, both per-process namespaces live; old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Overlapping runs are safe only between trees that contain `29cc1c7` |
+| H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
+| H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item). Not a blocker for the Section 9 promotion to beta (owner, 2026-09-15); remains release-blocking for production |
+| H-12 | Commented-out code (flake8 E800) burn-down | Low | Each file's section owner (history in H-12) | **CLOSED (2026-09-16)** — repository-wide, 0 files / 0 hits, `--per-file-ignores` removed, register deleted; landed on beta at `a7c81a4`; see `docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md` |
+| H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **CLOSED: landed on beta with Section 7 (`ac731a9`, 2026-09-14)** (status refreshed 2026-09-30). Decision: refuse (409); see item. |
+| H-14 | School-admin summary rebuild cost (cache family 23) | Medium | Section 8 (dashboard) | **CLOSED: landed on beta via batch-1 (`e7e4bdf`, 2026-09-29)**; see `docs/evidence/H14_SCHOOL_ADMIN_SUMMARY_EVIDENCE.md` (status refreshed 2026-09-30). Was — 1.4 s cold rebuild at 240 courses/school, growing with rows processed; performance issue, not a stampede justification (owner, 2026-09-15) |
+| H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
+| H-16 | Teacher submission list issues 63 queries per page | Low | Section 7 (students) | **CLOSED: landed on beta (`ec26b2e`, 2026-09-15)** (status refreshed 2026-09-30) — `select_related` on the list queryset; 63/304 → flat 4; see item |
+| H-17 | Course payload leaked draft assignments and classmates' real emails to student viewers | **High - security** | Section 3 (classrooms) | **CLOSED (2026-09-16)** — `CourseSerializer` served every assignment (draft/unpublished included) and every enrolled student's real email address to a student viewer, regardless of assignment status or whose row it was. Fixed: `get_assignments`/`get_assignment_count` filter to `PUBLISHED` for a student viewer; `get_students` nulls out `email` for every row but the viewer's own. 15 dedicated tests (`classrooms/tests_course_payload_student_exposure.py`), 2 mutation tests (both killed), 250-test `classrooms` regression clean, query counts flat across roster size (roster=2 and roster=6 both 7/8/7/7). Landed on beta `ee30f08` (merge of `task/course-detail-data-exposure` gated commit `1d920f8`). Teacher/other-viewer payloads unchanged. |
+| H-18 | Assignment writes accepted any course, any topic, and any field the AI emitted | **High - security** | Section 4 (assignments) | **CLOSED: landed on beta via the fast-path batch (`6039b87`, 2026-09-21)** (status refreshed 2026-09-30) — `AssignmentTextSerializer.course` was an unscoped writable PK, so a teacher could create an assignment in another teacher's course or move their own into it, through THREE doors: create/create-async, PATCH, and PATCH update-async (which built the serializer with no request in context). Separately, AI extraction and generation output was saved through `AssignmentSerializer` whole, so injected text could write `status`, `teacher`, `course`, `topic`, `due_date` and more, at four sinks plus stored pre-fix draft snapshots. Fixed: `validate_course` (fail-closed), `update_async` passes context, `ai_assignment_content_only()` at three entry points, `teacher` read-only, and `TopicSerializer`/`CourseSerializer` validators fail closed. Gated on `6811527`; see `docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md` |
+| H-19 | Superadmin authority granted on a single flag in four places | **High - security** | Section 1 (users) + Section 3 (classrooms) + Section 5 (ai_processor) | **CLOSED: landed on beta via the fast-path batch (`6039b87`, 2026-09-21)** (status refreshed 2026-09-30) — `create_superuser()` leaves `user_type=TEACHER`, so `is_superuser` alone let a Django-admin account read and edit every user's Settings and any school's token usage; and `user_type=SUPER_ADMIN` alone let an account skip `HasCreditBalance` and take `execute_graded_task`'s unmetered branch - free, unlimited billed AI. All four now require both flags, as `IsSuperAdmin` does. The deny-side `or` in `license_service.py:319` and `users/serializers.py:175` is correct and unchanged. Gated on `6811527`; same evidence file |
+| H-21 | Unrestricted discovery and activation of free/internal plans (unlimited free credits) | **High - security/billing** | Session `fix-free-plan` (task/free-plan-activation) | **LANDED on beta via the fast-path batch (`9a4629c`, 2026-09-21)**; the item's pre-production conditions (QA Gate 8, independent Gate-4 replay) are **pending confirmation** (status refreshed 2026-09-30) — any teacher could POST a free plan id to `/user-subscriptions` or `/subscription` repeatedly; each call replaced their subscription and granted a full monthly credit bucket (replay: 10 repeats = 100,000,000 raw credits spent). School admins could take TRIAL and the internal benchmark plan; `/subscription/plan` listed every plan to every non-student; inactive plans activated; a Stripe-billed subscriber could be moved to BETA in the app while Stripe kept billing; a licensed teacher could activate their school's license plan. Fixed by `billing/plan_policy.py` (explicit allow-lists for the self-service catalog and admin assignment, price and Stripe-price floors as extra refusals, never price as the eligibility rule), superadmin-only POST routes with a both-flags serializer check and a scoped plan lookup, and `SubscriptionService.activate_plan_without_payment` as the single no-payment path (active plans only; BETA teacher-only and once per user ever including pre-existing history; refused over a live Stripe subscription; license-track guard; all under a `CustomUser` row lock). Plan listings and `select-plan` now share one definition. Evidence: `docs/evidence/FREE_PLAN_ACTIVATION_EVIDENCE.md` — 97 dedicated tests, 26/26 mutants killed, 20 simultaneous requests x 10 rounds, injected DB/Redis/Stripe failures, real Stripe test-mode proof (app and Stripe state unchanged, 0 Stripe writes), replay 10/10 exploited on `b744c9f` and 10/10 refused on the fix, and an N+1 removal (809 -> 9 queries, 343 KB -> 2.7 KB at 808 plans). OPEN: **Gate 8 DEPLOYED-REAL on QA is required before any promotion to production** (billing tier: LOCAL-REAL + QA smoke is enough to land on beta, not enough for prod); independent Gate-4 replay by the red-team session; full-repository gate deferred to the batched integration gate; production plan configuration unverified (impact SQL in the evidence doc). |
+| H-22 | Cross-teacher tenancy leaks: `my-students` served other teachers' course names, description, teacher name and grade; `/users/<id>` enrollment filters were a yes/no oracle on other tenants' enrollments | **Medium - security** | fix-tenant-leak (session 57) | **CLOSED: landed on beta via the fast-path batch (`0fe09a4`, 2026-09-21)**; Gate 4 PASS in `3180ec3` (status refreshed 2026-09-30) — both endpoints joined every enrollment a shared student had. Fixed by scoping the `my_students` prefetches to `course__teacher=user` plus a new `MyStudentsFilter`, and by replacing `CustomUserViewSet.filterset_fields` with a scoped `UserEnrollmentFilter`; the unrouted `StudentViewSet` copy was deleted (V-5, owner sign-off). 42 dedicated tests (22 fail on `b744c9f`), 16 mutants (15 killed, 2 equivalent), 20 threads x 10 rounds, 6,000-student scale with query counts flat at 5. Branch `task/my-students-prefetch-leak` tip `948d710`; Gates 4, 8 and 10 still open — see `docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md`. |
+| H-23 | ~95 pre-existing school-side (teacher/admin/subscription-owner, no students) email-logging call sites found across `billing/access_control.py`, `license_service.py`, `services.py`, `stripe_service.py`, `tasks.py`, `views.py`, `qa_time_travel.py`, `management/commands/backfill.py` and `users/signals.py`, mostly at INFO — same leaky-logging shape as the 11 confirmed student/user PII leaks fixed under Epic A's BE-A-04 cleanup, but not students, so out of that cleanup's scope | Medium — privacy/compliance, not tenancy | Proposed: whoever owns Epic A follow-up (audit-lead) or a dedicated session | **Not started.** Found and verified as true positives (not scanner noise) by privacy-guard (2026-09-22) during the Epic A BE-A-04 AST-based lint-rule build. Grandfathered into `scripts/pii_log_baseline.txt` (same convention as the H-12 E800 per-file burn-down) so the new PII-logging CI lint rule doesn't fail on pre-existing code — the lint rule catches any *new* instance of this pattern going forward; this item is the backlog for cleaning up the ~95 that already exist. |
+| H-28 | P1b: irreversible Stripe mutations run inside `transaction.atomic` in the licence billing paths. If the database transaction rolls back after Stripe has already accepted the change (plan change, seat change, cancel), Stripe and our records disagree: the customer can be charged, or an invoice left open, for a change we do not record | Medium-High: billing divergence | Hardening Engineer (grade-automator-plus-d5) | **Parked, WIP (logged 2026-09-30 by the SM; revisit after batch-2b).** Branch `task/p1b-divergence`: Change 1 commit 1 has reproduce-first tests (18/18 fail on `b744c9f`); commit 2 adds the `LicenseStripeMutationIntent` model (no behaviour change); the SM's ruling on resolving ESCALATED intents is recorded (`7bd028a`); commit 3 is in progress, checkpointed as `cfd8d9e`. `cfd8d9e` was committed with --no-verify as a parked save-point; the next real commit must pass all hooks. Not verified. Its billing migration 0070 collides with H-56's and H-62's, so whichever lands later needs a merge migration. |
+| H-38 | A teacher removed from a school keeps reading, writing and deleting that school's data: `remove_teachers` deactivates the credit allocation but never clears `user.school` and never touches the courses the teacher built in the school's sessions, and `course.teacher == user` (permanent) was the only ownership test at ~30 sites across assignments, classrooms, students, dashboard, users and billing | **High - security** | Hardening Engineer (grade-automator-plus-d5) | **CLOSED: landed on beta via batch-1 (`e7e4bdf`, 2026-09-29)**; the founder-run exposure query and follow-ups are in H-38-F1 (status refreshed 2026-09-30). Reproduce-first on beta: 33 probes, 23 open. One landing, as decided: part 1 clears the school link on removal; part 2 routes every teacher-scoped site through one shared rule (`teacher_course_access_q` / `reachable_courses` / `teacher_can_reach_course` in `classrooms/models.py`, which ANDs `course__teacher=user`, so it can only narrow earlier tenancy fixes), plus a static sweep test (`classrooms/tests_teacher_access_sweep.py`) that fails on any unlisted direct-owner scoping. The course owner stays in place (founder decision). Mutation: 20/20 killed on the original sites, then 8/8 on the rebase sites. **Two regressions/gaps caught before landing and recorded plainly:** (1) an earlier version of the fix put the helper's OR clause under `select_for_update()` in `save_generated_assignment_draft`, so Postgres rejected the outer join and AI draft saving 500'd for EVERY teacher; a loose test assertion hid it; fixed by an unlocked access check then a pk lock, with strict assertions and an active-teacher positive control now the pattern on every H-38 route (`docs/evidence/h38_part2/select_for_update_outer_join_regression.md`); (2) rebasing onto `4b902fc` brought in 5 new direct-owner sites (H-22's my_students prefetches, `MyStudentsFilter`, `UserEnrollmentFilter`, and H-18's `AssignmentTextSerializer.validate_course`), all reproduced as real removed-teacher leaks and fixed; 2 harness-only lines allowlisted with reasons; plus a 6th leak found in core review, `roster_import._find_existing_student_by_name` (a removed teacher's no-email roster row attached a same-named School A student), reproduced and fixed, its allowlist entry removed (`docs/evidence/h38_part2/rebase_sweep_hits.md`). Evidence: `docs/evidence/h38_teacher_removal/`, `docs/evidence/h38_part2/`. OPEN: Gate 10 full-suite run (slot from Integration & Release), independent verification, and the production exposure query (`docs/evidence/h38_part2/production_exposure.sql`, read-only, founder-run). Follow-ups in H-38-F1. |
+| H-38-F1 | H-38 follow-ups: courses left with a removed owner, and removed-teacher paths still guarded only by the static sweep | Medium | Proposed: Hardening + product (reassignment) | **Not started (logged 2026-09-28).** (a) **Admin "reassign course" feature**: because the owner stays in place, a removed teacher's school courses become unreachable to every teacher; a school admin needs a way to reassign them to another teacher, and the dashboard should show orphaned courses. Product decision needed on who may reassign and what history moves. (b) **Async upload race (T1)**: the Celery task `upload_assignment_async` re-fetches the course through `reachable_courses`, but no test covers a teacher removed AFTER the request is accepted and BEFORE the task runs. Probe design: create the batch session through the real route as an active teacher, remove the teacher through `remove_teachers`, then run the task synchronously (`upload_assignment_async.apply(...)`) with the queued arguments, and assert it refuses, writes no Assignment, and marks the processing task failed rather than raising a 5xx-shaped error; add the active-teacher positive control (same sequence without removal writes the assignment). (c) **Other sweep-only sites** that still lack a behavioural removed-teacher probe: `CourseViewSet.remove_student`'s object-level guard in isolation, and the StudentCourse submissions prefetch; each needs a strict probe plus a positive control. (`batch_upload` got its dynamic probe in the H-38 landing.) (d) The unrouted `StudentViewSet` flagged by the mutation pass was already deleted on beta (`e0b1640`, V-5); nothing left to do. See `docs/evidence/h38_part2/mutation_results_final.md`. |
+| H-41 | `students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once` failed for real on a GitHub Actions CI run (`AssertionError: 'FAILED' != GradingState.DONE`) under `--parallel 4`, and the same failure was never seen locally, including 3 full-suite reproduction attempts on this box deliberately constrained to match or exceed CI's real CPU pressure (`taskset -c 0-3` x2, `taskset -c 0-1` x1 — all 4553 tests, all clean) | Medium — real but unreproduced; contained by H-39-adjacent tblib fix so it can no longer crash the whole run, but the underlying race is still open | Proposed: whoever owns the live-Celery redelivery test next | **Open: known flake, unreproduced** (status refreshed 2026-09-30). gate-runner (2026-09-23): CPU core count/oversubscription on this box is ruled out as the trigger (reproduction attempted up to 4x oversubscribed, never reproduced) - the remaining suspect is network-latency variance specific to GitHub Actions' Docker-networked Postgres/Redis service containers (reached over the docker bridge, not a true localhost socket the way this box's isolated env is), which this box cannot faithfully reproduce without artificial network jitter (e.g. `tc netem`) injected into the repro, not yet attempted. This is a genuinely timing-sensitive live-broker test (`WAIT = 45s`, real Celery worker, real Redis redelivery) - a single occurrence on one CI run is weak evidence of a reliable defect, but not zero. Until reproduced, treat as a flake candidate to watch for recurrence on real CI runs, not a proven bug in the `--parallel` prefix work (H-9's fork-prefix fixes were independently verified via `multiprocessing.get_context("fork")` probes and are not implicated by this failure's causal chain - see the tblib/pickle analysis this entry is filed alongside). |
+| H-42 | `send_user_activation_email` (`users/services.py`) routes school admins to `FRONTEND_DOMAIN` (the teacher app) alongside teachers, same as the now-fixed school-admin invitation email was doing — but the school-admin frontend is a genuinely separate app that refuses other roles | Medium (wrong domain) escalated to **High — real dead-end account** once traced end to end | privacy-guard | **CLOSED (2026-09-23)** — investigation confirmed the wrong-domain bug was the smaller half: `POST /auth/otp` (`otp_type=VERIFY_EMAIL`) is `AllowAny`, takes only an email, and has no `user_type` restriction, so it was reachable for a pending school admin (`SchoolWithAdminSerializer`-created, `is_active=False`, no usable password, real 7-day `activation_token`). Hitting it overwrote that token with a 15-minute generic one and emailed a `/verify-email` link (wrong domain) whose completion endpoint (`/auth/verify`) has no password field at all — and once it set `is_active=True` and cleared the token, `/register/school-admin`'s `is_active=False` filter could never match again. Net effect: an active, verified account with an unusable password and no remaining path to ever set one. Reproduced end-to-end with a failing test against unfixed code first (`classrooms/test_school_admin_otp_deadend.py`), then fixed: `send_user_activation_email()` now recognizes `SCHOOL_ADMIN` and delegates to a new `resend_school_admin_invitation()` (`classrooms/serializers.py`), which reissues a fresh 7-day token and resends the real invitation email instead of ever building the generic, password-less activation email for this user_type — mirroring the existing precedent for invited teachers, who don't go through the generic flow either. 7 dedicated tests, full regression 4571/4571 (256.6s, `--parallel 4`), independently verified by the SM (own worktree, own full-regression run, matching numbers). Landed on beta by fast-forward (`2f2b9bc` → `2bad9c6`) and pushed to origin, user-approved.
+| H-39 | No test-suite guard against real outbound network calls — a test that forgets to mock a third-party call (Stripe, etc.) silently succeeds locally against real credentials and only fails later, on CI, against fake ones | High — this exact gap cost a two-CI-run diagnosis | Proposed: whoever owns test infrastructure next (gate-runner nominated it) | **CLOSED: landed on beta (`be78221`, 2026-09-28)**; 1a VERIFIED-WITH-NOTES `3856e40` (status refreshed 2026-09-30). Reinforced-priority per gate-runner (2026-09-23), directly motivated by `task/flaky-stripe-timeout-diagnosis`: `billing.tests.test_free_plan_activation_security.ActivationFailureRecoveryTests.test_stripe_timeout_on_the_allowed_checkout_leaves_no_local_change` mocked `stripe.checkout.Session.create` but not `stripe.Customer.create`; the real call silently succeeded locally (`.env`'s `LOCAL_STRIPE_SECRET_KEY` is a real Stripe test-mode key) and deterministically failed on CI (fake placeholder key rejected by Stripe's own auth check). A guard that fails any test making a real outbound HTTP call (e.g. patching `socket.socket`/`urllib3` at the test-runner level with an allowlist for the local Postgres/Redis sockets) would have caught this on the very first local run instead of needing two failed CI pushes to diagnose. Complements, does not replace, `scripts/isolated-test-env.sh` (which gives CI-matching fake credentials but doesn't itself block a stray real call from a differently-named env var). |
+| H-40 | Epic A: a broker-dispatch failure at grading request time leaves no audit trail — `students/task_tracking.py:launch_processing_task` calls `mark_processing_task_failure` and re-raises when Celery's broker (Redis) is unreachable, but `GRADING_REQUESTED` is only emitted after `launch_processing_task` returns successfully, so a request that never got queued produces no `AuditEvent` at all | Low — narrow edge case (broker down at the exact moment of a grading request), but a gap in an audit/compliance feature's own coverage is worth tracking rather than silently accepting | Proposed: whoever does the next pass over the grading call sites (audit-lead, if this stays with Epic A) | **Not started.** Found during `task/epic-a-grading-audit` (2026-09-23) while instrumenting `GRADING_REQUESTED`; confirmed out of scope for that pass per Senior Manager. Fix would be emitting a `FAILURE`/`DENIED` `GRADING_REQUESTED` event in `launch_processing_task`'s except block (or at each of its ~11 call sites, filtered by task type per the same "don't instrument the shared factory generically" rule used for the success path) rather than leaving the failure branch unaudited. |
+| H-46 | 178 real (non-false-positive) mypy errors newly surfaced by wiring django-stubs/djangorestframework-stubs into the mypy pre-commit hook (`task/mypy-django-stubs`) — genuinely new `file:line` sites the plugin now understands well enough to flag, that had zero mypy complaint at all before (distinct from the 581 pre-plugin false positives the same change resolved) | Mixed — see triage in this cell; not blocking, ratcheted via `pyproject.toml` `[[tool.mypy.overrides]]` (`ignore_errors = true` per pre-existing-error module) so these don't block unrelated commits | Proposed: section owners of the files involved (mostly billing/, students/, assignments/, classrooms/) | **Not started — logging/triage only, per this branch's scope; no fix attempted.** Full `file:line` list and pattern breakdown: `docs/evidence/mypy_django_stubs/EVIDENCE.md` section 5 (and `newly_surfaced_errors.txt` in that directory). Triage by risk: **(a) Higher priority — likely real bugs:** nullable-field/FK access without a None-guard (`Item "None" of "X \| None" has no attribute "Y"`, largest cluster, concentrated in test files but flagging real optionality the production code paths share) and `Decimal \| None` passed to `float()` (~15 sites across `students/tests*.py`, `billing/tests/test_grading_refund_scope.py`) — a `None` slipping through either shape at runtime would raise, so these are worth a closer look even though most current sites are in tests. **(b) Lower priority — likely safe:** `request.user` (typed `CustomUser \| AnonymousUser`) passed into a typed FK lookup (~35 sites, mostly `classrooms/views.py`, `billing/views.py`, `assignments/views.py`, `students/views.py`) — these are almost all behind DRF permission classes that already guarantee an authenticated, non-anonymous user by the time the lookup runs, a runtime guarantee mypy has no way to see; likely a narrowing/cast cleanup, not a bug hunt. **(c) Needs a closer look — not yet triaged either way:** Stripe SDK argument-type mismatches (`str \| None` where the `stripe` stubs expect `str`, in `billing/stripe_service.py`, `billing/license_service.py`, `billing/live_qa/scenarios_license.py`) and the six `.annotate()`-result TypedDict `[union-attr]` sites in `classrooms/views.py` (mypy tracks the annotated fields as a TypedDict and doesn't yet see them dotted onto the base type the way the runtime code accesses them — could be a stubs-precision gap or a genuine access-pattern issue). |
+| H-43 | `POST /auth/otp` (`users/views.py`) answers every call `202`, but the response `detail` string differs: `"If an account with that email exists, an OTP has been sent."` when no account matches, vs. `"An OTP has been sent if an account with that email exists."` when one does (either `otp_type`, including the H-22 locked-reset branch, which already shares the second wording). Same status, different text — an unauthenticated client that string-matches the body gets an account-existence oracle | Low — existence only, not credentials/PII; rides the existing `otp_request` throttle bucket, so rate-limited but not prevented | Security Engineer (grade-automator-plus-ed) | **IN BUNDLE 3 (`task/beta-batch-3`: `3af18a1`, record `7b2f816`), not yet on beta** (status refreshed 2026-09-30). Found 2026-09-28 by the Verification Engineer while verifying H-22 (`authz-l2-otp-counter`) — pre-existing on beta, not introduced or touched by that branch, not folded into it. Fix: make all three `detail` strings byte-identical; no behavior change, since an OTP is already only sent when an account exists. Deferred to its own branch after `task/verify-email-not-you` lands (SM decision, 2026-09-28). |
+| H-45 | `AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix` fails intermittently (`AssertionError: 1 != 2`, one of the two expected keys not removed) under a full `--parallel 4` suite run, but not in isolation | Low — test-infrastructure flake, not a product defect; the test and the hygiene code it covers were untouched by the branch it surfaced on | Proposed: whoever owns test infrastructure next (H-39 track) | **Closed as explained and fixed by H-94 (2026-10-02, bundle 6); recorded 2026-10-06.** It is the same test with the same symptom (it fails only inside a full `--parallel 4` run, never alone), and H-94's diagnosis (another worker's sweep deletes the lookalike key between the write and the assertion) explains the count `1 != 2`. Limit: H-45's own failure was never reproduced on demand, so this rests on the same test, the same symptom and H-94's explanation, not on a before-and-after reproduction. Earlier: **Open: known flake** (status refreshed 2026-09-30). Found 2026-09-28 by the Verification Engineer verifying `task/h39-network-guard`: reproduced 0/3 alone and 0/2 under `AutoGrader.tests_redis_hygiene --parallel 4` in isolation, only seen once inside the full 4677-test suite. SM's suspect: key-prefix interference from another suite sharing the same Redis at the time — the machine-wide full-suite lock only serialises full runs against each other, targeted runs from other worktrees still overlap on the same real Redis instance. Not cross-checked against plain beta under equivalent load (would cost another full-suite run); accepted as noted rather than blocking on it. Worth a repro attempt (e.g. deliberately run a concurrent targeted Redis-touching suite alongside the full run) when someone picks it up. |
+| H-51 | `POST assignments/upload-async` (`assignments/views.py`, `upload_async`) creates the `BatchUploadSession` and then checks each file's size **inside** the dispatch loop, after the earlier files' processing tasks have been created and launched. A later oversized file returns 413, but the earlier files are already queued: the client is told the upload failed while part of it runs, and the session is left half-queued (its `total_files` counts files that were never dispatched). `batch-upload` (`students/views.py`) already does it correctly: it validates every file up front, before any session or task exists | Medium: live on beta; inconsistent state and a misleading 413, no data leak | Hardening Engineer (grade-automator-plus-d5), batch-3 | **Not started (logged 2026-09-29).** Found during the Epic A S6/S7 route inventory (`docs/phase2/architecture/08a_epic_a_s6_s7_reason_codes_and_batch_design.md` §3), confirmed on beta `e7e4bdf` (session created, then size check inside the loop, then task launch). Fix: validate every file before creating the session, as `batch-upload` does. Acceptance: a test proving that an oversized **later** file produces a 413 with **no** `BatchUploadSession` and **no** processing tasks created or launched, plus a positive control where all files are within the limit. |
+| H-52 | `AutoGrader/cache_generation.bump_generation(scope, entity_id)` bumps one counter directly and skips the on-commit re-bump that H-25 (`task/cache-commit-race`) adds to `bump_many`. Today that's safe, because no production code outside `cache_generation.py` calls it (0 callers on `e7e4bdf`, `168d57e`, `a86354b` and `bd2f016`), and its one internal caller is `_bump_now`'s non-pipelined fallback, which already runs under `bump_many`'s on-commit. A future direct caller inside a transaction would silently lose commit-race protection | Low: latent, 0 production callers | Hardening Engineer (grade-automator-plus-d5), batch-3 | **Not started (logged 2026-09-29).** Found by the Verification Engineer while pre-reading H-25. Kept out of H-25 by SM ruling, so its verified delta is unchanged. Fix: make it private (`_bump_generation`) and add a guard test that production code never calls it directly. Do **not** route it through `bump_many`: `_bump_now`'s fallback calls it, so that would recurse and queue duplicate on-commit bumps. |
+| H-53 | `POST /auth/verify` (account activation) has no per-account failure budget. It has only the per-IP 5/hour `VerifyEmailThrottle`, against a 6-digit code valid for 15 minutes, so with enough IPs someone who registered with another person's address can guess the code and activate the account without the email link (same pattern as AUTHZ-L2) | Medium: security (account activation without mailbox control) | Security Engineer (grade-automator-plus-ed), batch-3 | **IN BUNDLE 3 (`task/beta-batch-3`: `d883ce5`, record `c45950e`), not yet on beta** (status refreshed 2026-09-30). Logged 2026-09-29. Fix: an L2-style per-account lock (5 wrong codes → the code is invalidated and must be re-sent), with a strict-code test and a mutation. |
+| H-54 | L2 follow-up: the 429 message's `HH:MM UTC` is not pinned against the server time zone. The Verification Engineer's localtime mutant (formatting the lock expiry in local time instead of UTC) survives because it is **equivalent while `TIME_ZONE=UTC`**, so a later time-zone setting change would silently show the wrong time | Low: test gap, no defect today | Security Engineer (grade-automator-plus-ed) | **Not started; unblocked** (L2 landed on beta `755aa27`) (status refreshed 2026-09-30). Logged 2026-09-29. Fix: pin the message's `HH:MM UTC` in a test under `override_settings(TIME_ZONE='Africa/Lagos')`, which kills the localtime mutant. |
+| H-55 | H-3 remediation follow-up: the `token_epoch` increment is not pinned. The Verification Engineer's set-to-1 mutant (the remediation sets the epoch to 1 instead of incrementing it) survives, because the test starts from an epoch where the two agree | Low: test gap, no defect today | Security Engineer (grade-automator-plus-ed), batch-3 | **DONE in bundle 5** (merged into `task/beta-batch-5` at `138c28a8`; 1a VERIFIED; test only). Earlier: **Not started (logged 2026-09-29).** Fix: pre-set the epoch to 3, assert it is 4 after `--execute`, and assert that an epoch-1 token is still rejected. This kills the set-to-1 mutant. |
+| H-56 | Nine NOT NULL columns, added by eight migrations newer than production (origin/main `9c21bee`), have only a Django-side default and no database default: `users_customuser` `failed_login_attempts` (0036), `must_change_password` (0037), `token_epoch` (0039); `billing_creditwallet` `dispute_deficit_credits` and `is_consumption_blocked` (0063), `refund_deficit_credits` (0064); `billing_stripeevent` `recovery_attempts` (0067); `assignments_assignment` `updated_at` (0038); `dashboard_studentriskalertstate` `alert_pending` (0003). Code older than a column's migration omits it from INSERT, and the INSERT fails with a NOT NULL violation: user creation, wallet `get_or_create`, every Stripe webhook, assignment creation, the daily risk task. **A code-only rollback is therefore not safe** | Medium-High: rollback safety for a live release | Hardening Engineer (grade-automator-plus-d5), batch-3, after H-1 step 4 | **IN BUNDLE 3 (`task/beta-batch-3`: `1f52219`, record `e4f3932`; 1a VERIFIED-WITH-NOTES), not yet on beta.** All 14 NOT NULL columns get DB-level defaults (users 0040, assignments 0040, billing 0070, dashboard 0004), plus the rollback guard test (status refreshed 2026-09-30). Logged 2026-09-29; scope decided by the SM the same day. Found by the Integration & Release Engineer, whose tested stop-gap SQL for a rollback is `~/Documents/Projects/GAP-rollback-set-defaults.sql` (outside the repo). Scope: `db_default` on **all 14** NOT NULL AddFields newer than `9c21bee`. That is the 9 above plus 5 on tables created in the same commit `df305cc`, which no rollback target can have without the column: `paymentdispute.deficit_by_wallet` (0066), `pricereconciliationresult` `previous_local_product`/`synced`/`synced_fields` and `pricereconciliationrun.synced_count` (0069). We run Django 5.2.6, so use model `db_default` (`assignments.updated_at`: `db_default=Now()`) plus the generated AlterField migrations. Guard test: scan AddField/AlterField (not CreateModel) in every migration after 9c21bee's per-app head (users 0035, billing 0058, assignments 0037, classrooms 0016, students 0025, dashboard 0002, ai_processor 0005). Fail on any NOT NULL field without `db_default`, with an **empty allow-list**. Reproduce-first raw INSERTs omitting the column, for the 9 rollback-relevant columns only: they fail before and succeed after. Verification by the Verification Engineer. *(An earlier count of 27 used a stale local `main`, de92b08, and is withdrawn.)* |
+| H-57 | `PATCH /license-subscriptions/<id>` with `max_seats` returns 200 but silently ignores the field, so the caller believes the seat count changed when it did not | Low-Medium: silent no-op on a billing field | Security Engineer (grade-automator-plus-ed), batch-3 | **DONE in bundle 5** (merged into `task/beta-batch-5` at `6b627cc4`; v2 VERIFIED, with H-60). Frontend contract change: a PATCH that changes `custom_price_cents` on a Stripe-billed licence now answers 400 (OFFLINE unchanged; an unchanged echo is accepted). Earlier: **Not started (logged 2026-09-29).** Found by the Security Engineer during the licence-seat hotfix (`324164f`). Fix: either reject `max_seats` with a 400 that points to `update_seats`, or apply it through the same seat check as `update_seats`. Plus a strict-code test and a mutation. |
+| H-58 | Licence creation counts a duplicated teacher email twice against `max_seats`: the same address listed twice in the create request uses two seats, so a school can be refused (or charged) for seats it does not need | Low-Medium: billing correctness | Security Engineer (grade-automator-plus-ed), batch-3 | **IN BUNDLE 3 (`task/beta-batch-3`: `39fee13`, record `28c4b03`), not yet on beta** (status refreshed 2026-09-30). Logged 2026-09-29. Found by the Verification Engineer while reviewing the licence-seat hotfix (`324164f`). Fix: de-duplicate teacher emails (case-insensitively, after normalisation) before the seat count, with a test that a duplicated address uses exactly one seat. |
+| H-59 | The licence create serializer falls back to `max_seats = 0` when the field is omitted, while the model default is 1. On the STRIPE billing method that can create a checkout with quantity 0, and the payment webhook then refuses the licence **after the customer has paid** | Medium: billing (payment taken, licence refused) | Security Engineer (grade-automator-plus-ed), batch-3 | **IN BUNDLE 3 (`task/beta-batch-3`: `39fee13`, record `28c4b03`), not yet on beta** (status refreshed 2026-09-30). Logged 2026-09-29. Found by the Verification Engineer while reviewing the licence-seat hotfix (`324164f`). Fix: make the serializer fallback match the model default (1), or require `max_seats` and reject 0 with a 400 before any checkout is created, with a test that an omitted `max_seats` never reaches Stripe with quantity 0. |
+| H-60 | `update_seats` returns Stripe's raw `ValueError` text in its 400 response body, so provider internals reach the client (the same shape as QA-ERR-03's "no raw library text") | Low: information exposure, no credentials | Security Engineer (grade-automator-plus-ed), batch-3 | **DONE in bundle 5** (merged into `task/beta-batch-5` at `6b627cc4`; v2 VERIFIED, with H-57). Earlier: **Not started (logged 2026-09-29).** Found by the Verification Engineer (note N3) while reviewing the licence-seat hotfix (`324164f`). Fix: map the failure to a plain, fixed client message and keep Stripe's text in the server logs only, with a test using a sentinel string in the raised error that asserts the sentinel never appears in the response. |
+| H-61 | Test fixtures use addresses on a real mail domain: 39 `.py` files, almost all tests, hold 136 distinct `@gmail.com` literals (e.g. `users/tests_activity_middleware_load.py`). They are synthetic test strings, not real people's data, but they land in test logs (the app logs the address when a test user is created) and would reach a real inbox if a test ever reached a real mail backend | Low: latent only. Today the test network guard and the locmem email backend stop any send | Owner TBD | **Not started (logged 2026-09-30).** Found by the Hardening Engineer while trimming the H-1 step 4 per-module logs into evidence (`cc14bb0`); logged as H-61 by the SM. Fix: move test fixtures to `example.com` or the `.test` TLD, plus a guard test that rejects a real mail domain in test-fixture email literals (reserved domains only, with any exception allow-listed with a reason). Out of scope: the OpenAPI example in `billing/stripe_view_schemas.py` and one code comment in `users/serializers.py`, which never create a user, though moving them too costs nothing. |
+| H-62 | Overage lock: failed paid overage purchases are replayed automatically, so a purchase that failed after payment is completed instead of lost | Medium: billing (paid purchase not delivered) | Hardening Engineer (grade-automator-plus-d5) | **Parked, near-complete, unverified (logged 2026-09-30 by the SM; revisit after batch-2b).** Branch `task/overage-lock` at `47a7c3d`: Gate 2 complete (56 of 56 mutants killed), the SM's Gate 4 ruling recorded (independent red team, not N/A), A01-A04 mutation results and `test_event_replay` coverage. Not merged; not verified. The branch's commits call this item "H-23"; that label is superseded, since H-23 is the email-logging item above. The branch's billing migration 0070 collides with H-56's (`0070_db_defaults_for_rollback`), so whichever lands second needs a merge migration. |
+| H-63 | The student dashboard's per-row status and its Graded tile define "graded" differently: the per-row GRADED (`assignments/services.py` `get_student_assignment_status`) needs `graded_at` and `is_published`, while the Graded tile (`dashboard/views.py` `_assignment_status_counts`) needs `is_published` and a `score_percentage`. A manual score without `graded_at` would be a Graded tile but a SUBMITTED row | Low: display consistency | Hardening Engineer (d5) | **Not started (logged 2026-09-30 by the SM; found during the student-tiles partition, `2eb7c3e`).** Unreachable through today's write paths, checked at beta `463e222`: the grading service is the only production writer of `feedback` and sets `score_percentage`, `feedback` and `graded_at` together (`students/services.py` ~328-335), and `update_grade` refuses a submission without `feedback` ("Submission has not be graded yet", `students/views.py` ~995), so a manual score always lands on a submission that already has `graded_at`. Fix when next touched: one shared "grade released" definition used by both. |
+| H-64 | A student's PENDING enrolments become ENROLLED at their first login through a bulk `QuerySet.update()`, which sends no signal and so bumps no cache generation. A classmate's cached course roster (the course list and detail keyed on the course's `crs` scope since the H-1 stage 3 rework) shows the old enrolment status for up to its 5-minute TTL | Low: brief staleness of a status shown to classmates | Hardening Engineer (d5) | **Not started (logged 2026-09-30 by the SM).** Found by the Verification Engineer while reviewing the batch-2b candidate; pre-existing (the activation predates the rework). Fix when next touching enrolment: bump each affected course's `crs` scope (and the student's own `usr`) after that update, with a freshness test through the real login. |
+| H-65 | Beat jobs that grant or expire credits could overlap with themselves: a slow run still going when the next one started. Each such job now takes a Redis lock (`beat_locks`), and an overlapping run re-checks state. 1a's notes: N1 a 5-minute lock-lifetime gap (small follow-up, with the SM); N2 the cycle-end ruling (see H-81) | Medium: billing (double grant or double expiry) | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `d6bc400b`; 1a VERIFIED-WITH-NOTES). |
+| H-66 | The paid overage handler (`_handle_overage_checkout_completed`) runs its idempotency check `_overage_already_granted` only when the session carries a `payment_intent`. A `"paid"` session without one would take the wallet lock but have no idempotency key, so two different event ids for it would both grant | Low: forge-only today (Gate 4 (b) for H-62 found no real signed event can reach it; a forged payload needs database write access) | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `499a3950`; 1a VERIFIED). Earlier: **Not started (logged 2026-09-30 by the SM).** 1a's S1 in `docs/evidence/p1_overage_lock/VERIFICATION_h62_gate4_redteam.md`: make the second layer unconditional. Refuse a `"paid"` session with no `payment_intent` with an ERROR log and no grant, as unpaid sessions already are, so a future flow change (coupons, a $0 session, a wider `AUTO_REPLAYABLE`) cannot silently remove the key. Test it through the handler and the replay path. |
+| H-67 | Django's system checks never run on deploy. The production `Dockerfile` CMD starts gunicorn only (`Dockerfile:84`), and no pre-deploy `migrate` or `check` step is in the repo. So an error-level check, `billing.E001` today and `audit.E001` once Epic A lands, is never evaluated, and a misconfiguration it exists to catch goes live silently | Low-Medium: silent misconfiguration on deploy | The founder decides (Railway configuration); the SM recommends the Railway route | **Not started (logged 2026-09-30 by the SM).** Source: v2's floor-check record, N1. Options: (a) a Railway pre-deploy command, `python manage.py check --deploy --fail-level ERROR` or `check --fail-level ERROR` (the SM's recommendation; founder, in Railway); (b) `python manage.py check --fail-level ERROR && gunicorn …` in the Dockerfile CMD. Either way, a failing check must stop the deploy rather than start a server with the error. |
+| H-68 | `register_student`'s failure-budget 429 (`users/views.py`, `register_student_failure_budget_spent`) is a plain DRF `Throttled` with no `code` and no coded envelope, so a client can't tell it from `RegisterThrottle`'s per-IP 429. Fix additively: `EnvelopedThrottled` plus a user-facing reason code | Low | Security Engineer (ed) | **Delivered on Epic A only** (S7d section B, phase2/epic-a `16377731`, v2 VERIFIED). Not on beta; it arrives with Phase 2. Source: SM ruling 2026-09-30. |
+| H-69 | Survey every management command that writes data in production, and propose which must emit audit events (e.g. `remediate_student123_passwords`, `backfill_pending_student_invites`, `resolve_*`). Found in the bundle 4 → Epic A merge-down dry run: `resolve_licence_stripe_intent` resolves intents by queryset `.update()` with no audit event | Low-Medium | Security Engineer (ed) | **Survey DONE in bundle 5** (`docs/evidence/h69-command-audit-survey/SURVEY.md`, merged at `d97b7e7c`, docs only). Its two code items are also in bundle 5: H1, `backfill.py` moved out of `management/commands/` (merged at `f4e6e5d3`, v2 VERIFIED-WITH-NOTES), and H2, a production guard on `grading_benchmark` (merged at `5d977d0c`, v2). **Open:** the audit-event emits (the `resolve_licence_stripe_intent` emit is an Epic A task) and the survey's "dry run as default" rows (see H-90). |
+| H-70 | Roster import (bulk-add-students) has no email validation. An invalid address such as `abc` creates a student account and queues an undeliverable invite. Fix: validate emails per row (the QA proposal's `ROW_EMAIL_INVALID`) | Low-Medium: data quality | TBD | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: ed, 2026-09-30. |
+| H-71 | Teacher-facing student-add paths disclosed the role of an existing account (`classrooms/serializers.py` 'cannot be added as a {school admin/super admin}'; `classrooms/services/enrollment.py` 'belongs to a {role} account'; single add, bulk import, direct add). Replaced with neutral wording | Low: information exposure | Security Engineer (ed) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `fc9a830f`; v2 VERIFIED). Source: 1a, 2026-09-30. |
+| H-72 | Answer-extraction and upload Celery tasks don't re-check H-38 reachability at run time. An upload queued just before `remove_teachers` still processes into the former school's course and charges the removed teacher. Fix: apply `students/task_access.teacher_may_reach` at run time in those tasks; skip without charge; stored text 'This course wasn't found.' | Low (a short window) | Security Engineer (ed) | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: 1a N4 on the H-38 tasks fix, 2026-09-30. |
+| H-73 | The raw-cache-write guard (`tests_cache_invalidation_coverage`) only counted calls on a name `cache`. Writes through the raw django-redis client (`get_redis_connection`: the `beat_locks` helper and any future ones) were invisible to it. The guard now covers raw-client use | Low | Security Engineer (ed) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `4cdd5ac1`; v2 VERIFIED). Source: d5 / 0b, 2026-09-30. |
+| H-74 | `expire_active_trials` must skip trials that carry a Stripe subscription in trialing state and leave them to the Stripe webhooks. Not reachable today (only live QA creates card-on-file trials), but if card-on-file trials are enabled, an expiry before Stripe's trial-end payment would switch off a paying customer, and bundle 4's F6 query would miss it | Low (latent) | Hardening Engineer (d5) | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: 1a N1, 2026-09-30. |
+| H-75 | Dead code in billing: `StripePriceService.create_custom_price` and `change_license_price` have no callers (the former still wraps Stripe `{exc}` in a `ValueError`). Remove | Low | Security Engineer (ed) | **Addition (ed, 2026-10-02):** `StripeSubscriptionMutationService.change_license_price` (`billing/stripe_service.py`) calls `change_license_plan` and is called only from tests; confirm it is dead and remove it, or document its intended caller. Earlier: **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: v2, 2026-09-30. |
+| H-76 | `apply_immediate_plan_change` retired the old monthly bucket with `expires_at=now` but no `is_processed=True`, unlike its three sibling rollovers. The 05:00 cleanup then wrote an EXPIRE for credits already rolled into CARRY_OVER, so the ledger double-counted (balances unaffected). One-line fix plus a test | Low: ledger double count | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `c4ac9e08`; 1a VERIFIED-WITH-NOTES). N1: the same defect at the licence-enrolment sibling site, with the SM. N2: historical EXPIRE rows for already-rolled buckets exist in production; correcting the ledger is a separate founder decision. Source: d5, 2026-09-30. |
+| H-77 | Remove the rollover fix's now-redundant cycle-end CAP exclusion (`next_credit_grant_at__lt=F("billing_cycle_end")` in `process_annual_plan_credit_grants`' filter, and the matching re-check in `process_mid_cycle_credit_grant`) | Low | Hardening Engineer (d5) | **CLOSED (won't do), per the SM.** 1a's round-2 ruling: mutants R5/R6 are equivalent, but keep the code, because it documents the cap and still stands if the two comparisons are ever changed separately. |
+| H-78 | `billing/license_service.py` `_get_or_invite_teacher` checked the individual subscription BEFORE the other-school check. A school admin adding a teacher who belongs to ANOTHER school and pays for their own subscription got the "has their own subscription" message, which leaked another tenant's teacher's billing status. The school is now checked first (the `:1372` site was folded in). The texts are identical to Epic A S7d's fix of the same ordering | Medium: privacy (cross-tenant) | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `be4ceee2`; 1a VERIFIED-WITH-NOTES, delta VERIFIED). Source: v2 (S7d prep), SM 2026-09-30. |
+| H-79 | renew-student-token's failure-budget 429 has no reason code. It needs founder/QA-approved wording before it can be coded (`REGISTRATION_PAUSED`'s text is registration-specific) | Low | TBD, after the wording is approved | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: SM 2026-09-30. |
+| H-80 | `billing/license_service.py` and `users/signals.py` logged teacher and admin email addresses in about 30 logger calls (enrolment errors, carry-forward failures, invitation queued/failed, wallet created, removal and offline-overage notices, the `failed_results` dicts at ERROR, and five success-path info lines). They now log user, licence and school ids, and a source guard pins that no logger call in the guarded files formats an address. The SM also folded in ids-only reason lines for the free-trial refusals in `billing/services.py` | Low-Medium: privacy | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `489c6784`; 1a VERIFIED). Follow-ups: H-89 (output filter), H-91 (the remaining files). Source: d5, 2026-10-01. |
+| H-81 | Add a renewal-time ERROR detection (ids only) for a monthly grant still owed at the cycle end. The grant is lost only if every daily run from the due time to the cycle end skips; 1a's 12-month-chain test in the H-65 verification documents it. Also the last monthly grant of a contract: if Beat is down over the final due date and stays down until the cycle end, the end-of-cycle refusal means that grant is never made and nothing is logged (1a's H-82 O2). The detection must report it as owed | Low | Hardening Engineer (d5) | **DONE in bundle 6** (merged into `task/beta-batch-6` at `ac2ec323`; 1a VERIFIED-WITH-NOTES, on H-88's branch). Delivered as detection for due times more than 7 days before the cycle end; a genuine anchored point inside the last 7 days is H-98. Earlier: **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: 1a's H-65 N2 and H-82 O2, SM 2026-10-01 and 2026-10-02. |
+| H-82 | Annual individual subscriptions starting on the 29th–31st got 13 monthly grants in 12 months, because the next grant time was derived from the previous one and drifted to the 28th. The grant time is now derived from a fixed anchor (`billing/refresh_timing.py`) | Medium: money (pre-existing) | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `83fe58ca`; 1a VERIFIED). The licence-allocation form of the same drift is H-88. Source: 1a (H-65 verification), SM 2026-10-01. |
+| H-83 | The CI workflows (tests, pre-commit, migration-safety) don't run on staging; add staging to their branch triggers. Gate 10 covers staging locally for now | Low | TBD | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: 0b / SM, 2026-10-01 (staging refresh 5). |
+| H-84 | `migration-safety.yml` runs only on `pull_request`, so direct pushes to beta, staging and main skip it (seen on beta `67a0681`). Add a push trigger for those branches; it can share a task with H-83 | Low | TBD | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: 0b / SM, 2026-10-01. |
+| H-85 | When a school admin invites an unattached (school-less) teacher who has an active individual subscription, the refusal tells the admin "has an active individual subscription", which discloses one user's paid status to any school admin. Pre-existing and outside H-78's scope | Low-Medium: privacy | Hardening Engineer (d5) | **DONE in bundle 6** (merged into `task/beta-batch-6` at `76cc9b97`; 1a VERIFIED). **Decided 2026-10-02: neutral message, kept as built.** The refusal now reads "This teacher can't be added to your school yet. Please ask them to contact support." Earlier: **FOUNDER DECISION PENDING:** acceptable as is, or the wording becomes generic. Source: 1a (H-78 verification), SM 2026-10-01. |
+| H-86 | license_service: refusals raised inside `_enroll_teacher_internal` (e.g. the seat limit) reached `_invite_and_enroll_one_teacher`'s "Skipped enrolling" line as the exception class only, with no teacher id. An ids-only reason line is added (1a's H-78 R3) | Low: privacy / ops | Hardening Engineer (d5) | **DONE in bundle 5** (merged into `task/beta-batch-5` at `489c6784`; 1a VERIFIED, with H-80). Source: d5 / 1a, 2026-10-01. |
+| H-87 | `SubscriptionPlanViewSet` lists every `is_active` plan to any signed-in non-student, including internal plans such as "Grading Benchmark Plan" (`billing/views.py`: `SubscriptionPlan.objects.filter(is_active=True)` for list/retrieve, `IsAuthenticated + IsNotStudent`). Restrict it to purchasable or allow-listed plans; the self-service listing (`plan_policy.self_service_plans`) is already allow-listed | Medium | TBD | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Found during H2 (the benchmark command creates that plan). Source: ed, at the SM's request, 2026-10-01. |
+| H-88 | Licence allocations' `next_credit_grant_at` is seeded and refreshed as now + 1 month (`license_service` `_refresh_teacher_credits` and the enrol, re-enrol, reactivate and offline-renewal seeds), so enrolments on the 29th–31st drift to the 28th and get 13 refreshes in 12 months. The fix needs a grant anchor (a new nullable `SchoolCreditAllocation.grant_anchor_at`, reset on enrol, re-enrol and reactivate, falling back to `created_at`) and shares H-82's helper | Medium: money | Hardening Engineer (d5) | **DONE in bundle 6** (merged into `task/beta-batch-6` at `ac2ec323`; 1a VERIFIED-WITH-NOTES). Carries migration `billing 0073` (one nullable AddField, `SchoolCreditAllocation.grant_anchor_at`). With it on the same branch: H-93 and H-81. Earlier: **In progress, bundle 6** (`task/h88-licence-grant-anchor`; not in bundle 5). Split from H-82. Source: d5's survey for H-82, SM 2026-10-01. |
+| H-89 | Tracebacks can carry email addresses in the exception text (11 `exc_info` sites in `billing/license_service.py` and `users/signals.py`, and any other module). Add one logging filter that scrubs email addresses from record messages and formatted exception text, applied to every handler, with a guard test | Medium: security | Hardening Engineer (d5) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `94f08711`; 1a VERIFIED-WITH-NOTES). A log record factory scrubs addresses from every log record, with Sentry hooks for events; off under the test runner. At the bundle 7 merge-down it replaces Epic A's narrower BE-A-04 scrubber. `print()` calls are not reached: H-111. Earlier: **Owner changed 2026-10-02 (SM): d5.** Coded on `task/h89-log-address-scrubber` (a log record factory installed from settings, plus Sentry hooks); gate and verification pending; bundle 7. Earlier: **Not started (logged 2026-10-02 with bundle 5's docs commit).** Not scheduled. Source: d5's H-80 work, SM 2026-10-02. |
+| H-90 | `extraction_benchmark` (and `grading_benchmark` with `--teacher-email`) can be run by hand against a production database with no guard; in live or record mode it makes real model calls billed to the named real teacher's credits, and replay runs that teacher's tier check, credit estimate and usage-log path. Add the same DEBUG / explicit-flag guard as H2 and an operator confirmation naming the teacher id. After H2, `grading_benchmark --teacher-email` is already refused outside DEBUG without the flag or the switch (a test pins it); what remains for it is the operator confirmation. Group with H-69's "dry run as default" rows | Low | Security Engineer (ed) | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Not scheduled. Source: SM / ed, 2026-10-02. |
+| H-91 | Ids-only logs outside H-80's guarded files: `billing/services.py` has 19 logger calls that format an address (`user.email`, `target_user.email`, `granted_by.email`) and one that logs an exception's text; the other billing and users modules are unchecked. Extend the H-80 guard's GUARDED list file by file, fixing each file's lines as it joins. H-89's output filter is the backstop, not a substitute. First step: a no-run static sweep with the guard over every app, giving a per-file count | Medium: privacy | Hardening Engineer (d5) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `87389416`; 1a VERIFIED). It also ends a worker log line that printed a pupil's full name on every grading (`assignments/tasks.py`). Beta does not take Epic A's pre-commit hook and baseline in this bundle; at the merge-down, seven files can leave the epic's `scripts/pii_log_baseline.txt`. Earlier: **Coded and gated on `task/h91-ids-only-logs-everywhere`; moved to bundle 7 when bundle 6 closed (2026-10-02).** Its repo-wide guard `AutoGrader/tests_no_pii_in_logs.py` is the same rule as Epic A's `check-no-pii-in-logs` hook; whether beta also takes that pre-commit hook and a baseline is the SM's call. At the merge-down that carries H-91, seven files can leave the epic's `scripts/pii_log_baseline.txt`. Earlier: **Not started (logged 2026-10-02 with bundle 5's docs commit).** Bundle 6, after H-88. Source: d5's H-80 work, SM 2026-10-02. |
+| H-92 | `docs/backend/backend-reference.html` and `grade-automator-backend-reference.html` are stale renders (they still list the removed `backfill` command); regenerate the HTML references from the Markdown sources | Low: docs | TBD | **Not started (logged 2026-10-02 with bundle 5's docs commit).** Source: v2's H1 note 1, SM 2026-10-02. |
+| H-93 | Licence consumption window reopened only after a full calendar month, so a refresh on a clamped date (28 Feb, 30 Apr) left it shut and two months of usage counted against one budget. Fixed: the window reopens on the licence's monthly points (`billing_cycle_start` + k months), at the first teacher refresh after each one: 12 windows a year whatever the teachers' anchor days | Medium: money | Hardening Engineer (d5) | **DONE in bundle 6** (merged into `task/beta-batch-6` at `ac2ec323`; 1a VERIFIED-WITH-NOTES, on H-88's branch). Source: d5, SM ruling on 1a's O1, 2026-10-02. |
+| H-94 | `AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix` raced under `--parallel`: another worker's `sweep_dead_prefixes` deleted the lookalike key (a dead pid) between the write and the assertion, since all workers share one Redis. It failed once in beta's CI on `74bfc8d3` (bundle 5's push; green on the re-run). The racy tests no longer assert that a dead pid's key is present, and two tests are added | Low: test reliability | Hardening Engineer (d5) | **DONE in bundle 6** (merged into `task/beta-batch-6` at `93cb8648`; v2 VERIFIED-WITH-NOTES; test only). |
+| H-95 | (Epic A only.) `audit.tests_volume_report.MeasuredTests.test_every_windowed_count_has_an_index_path` asserted which index a cost-based planner picks on a near-empty table, so it could fail on a planner tie (it did once, in the bundle 5 merge-down's regression) | Low: test reliability | Security Engineer (ed) | **DONE on Epic A** (test only, `21645f8c`, merged into phase2/epic-a at `3fff1382`; on staging since refresh 7). Beta has no such test. |
+| H-96 | (Epic A only.) The two concurrent-sweep tests in `audit.tests_retention_sweep` no longer exercise real overlap, because the Beat lock skips the second run; add a test of the undecorated sweep under overlap, so the sweep's own safety stays tested | Low | TBD | **Not started (logged 2026-10-02 with bundle 6's docs commit).** Source: v2's note on the bundle 5 merge-down, SM 2026-10-02. |
+| H-97 | `redis_test_hygiene._clients()` ignores its db argument when the cache URL names a database (the local and CI layout), so the sweep and `delete_own_keys` cover only that database. Test modules that use `real_redis_caches` on databases 11–15 leave their `gaplus-t<pid>:` keys behind for good. Build each client for its database explicitly, with a test that a dead pid's key in another database is swept; then sweep the leftovers once. Production is not affected (cache, Celery broker and result backend all use the one URL). It also takes v2's note that one hygiene test uses two fixed key names | Medium: test infrastructure | Hardening Engineer (d5) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `9a98714f`; v2 VERIFIED-WITH-NOTES). Its mutants D1–D4 were recorded before its last test change; H-109's like-for-like battery shows them killed on the final module. Earlier: **In progress, bundle 7** (`task/h97-redis-hygiene-all-databases`; coded and gated once, re-gate pending; v2 verifies). The one-off sweep of the dev machine's leftovers happened in the first gate (186 dead-pid keys in databases 3, 6, 14 and 15). Source: d5 (H-94's evidence), SM 2026-10-02. |
+| H-98 | H-81's owed-grant detection ignores any due time within 7 days of the cycle end, to avoid false reports for drifted legacy rows. A genuine anchored point in that window, left unserved by an outage running to the end, is therefore not reported and the renewal does not make it up. Now that the anchor is stored, report an unserved point that sits on the stored anchor's chain even inside the 7 days; keep ignoring an unanchored (legacy) row | Low-Medium | Hardening Engineer (d5) | **DONE in batch 8** (merged into `task/beta-batch-8` at `5236b7dd` from `5c570868`; 1a VERIFIED-WITH-NOTES). Design approved 2026-10-05 (SM), with a one-full-day margin (`task/h98-owed-refresh-last-week`). The case inside that margin is H-117. Earlier: **Not started (logged 2026-10-02 with bundle 6's docs commit).** Source: 1a's N1 on H-88's verification, SM 2026-10-02. |
+| H-99 | A student added without an email got the placeholder address `first.last<N>@student.local` with N = `secrets.randbelow(10000)` (`classrooms/serializers.py`), and the serializer then looked that address up. Two same-named no-email students could draw the same suffix (1 in 10,000 per pair): the existing account was then attached (same school, or no school at all: across two unrelated teachers) or the row refused (another school). Fixed: a 64-bit token; a placeholder address is only ever created, never looked up; a caller-supplied placeholder address is refused on every add route with the neutral sentence | **High**: data integrity / privacy | Security Engineer (ed) | **DONE in bundle 6** (merged into `task/beta-batch-6` at `78a099c4`; v2 VERIFIED-WITH-NOTES). Accounts already merged in production by a past collision are NOT repaired; a read-only detection query is with the founder. Found from one failure of `RemovedTeacherRosterNameMatchTests` in an Epic A regression (1 of 2438). Reaches Epic A by the bundle 6 merge-down, where a refused bulk row takes S7d's row form. |
+| H-100 | `_find_existing_student_by_name` (`classrooms/services/roster_import.py`) ends in an unordered `.first()`, and `SessionViewSet.perform_create` uses `admin_schools.first()`; with several matches the choice is by random pk. Make both deterministic (an explicit `order_by`) | Low | TBD | **Not started (logged 2026-10-02 with bundle 6's docs commit).** Source: ed (H-99's read), SM 2026-10-02. |
+| H-101 | (Epic A.) An intent escalated by the stale-intent Beat check and then escalated again by a flow still holding a stale in-memory copy gets a second PENDING → ESCALATED audit event (the alert is re-sent too, as before the resolve-intent slice). Make the audited move conditional on the row not being ESCALATED already, with `before` from the stored row. Not reachable from a request (the Beat check claims after 10 minutes; a request has 75 s / 100 s) | Medium | Security Engineer (ed) | **DONE on Epic A** (merged into phase2/epic-a at `7b4a6eaf`; v2 verified; on staging since refresh 9, 2026-10-05). From its verification: H-105. Earlier: **In progress, the next Epic A slice** (`task/epic-a-escalation-event-once`; gate (a) green, v2 verifies; staging refresh 9). Source: v2's R3 on the resolve-intent slice, SM 2026-10-02. |
+| H-102 | The direct-add view (`CourseViewSet.direct_add_student`) answers a refusal raised while SAVING (already enrolled, the cross-school gate, all placeholder attempts colliding) with a 500 and the generic 'We couldn't add this student to the course. Please try again.', because its `except Exception` catches DRF's `ValidationError`; the same refusals on single add are 400s. Make it a 400 with the refusal's own neutral text | Low | TBD | **Not started (logged 2026-10-02 with bundle 6's docs commit).** Source: ed (H-99), SM 2026-10-02. |
+| H-103 | The masking of a legacy placeholder address (`@student.local`) in API output is case-sensitive | Low | TBD | **Not started (logged 2026-10-02 with bundle 6's docs commit).** Source: v2's H-99 notes, SM 2026-10-02. |
+| H-104 | `users`' serializer skips its email domain rules for any address ending `@student.local`, whatever the user type | Low | TBD | **Not started (logged 2026-10-02 with bundle 6's docs commit).** Source: v2's H-99 note N3, SM 2026-10-02. |
+| H-105 | (Epic A.) On a second escalation of an already-ESCALATED licence Stripe intent, `failure_reason` is overwritten and `escalated_at` reset, so the first reason (for example the Beat check's 'Stale for over …') is lost from the row. Append the new reason and keep the first `escalated_at`. (The second reconciliation alert in that case is accepted as it is.) | Low | Security Engineer (ed) | **Not started (logged 2026-10-05 with bundle 7's docs commit).** Not scheduled. Source: v2's note on H-101, SM 2026-10-02. |
+| H-106 | Old security-evidence keys (`secreplay…`, `secbill…`, `oauthreplay…`, `verifyreplay…`) remain in Redis databases 1 and 7–15 on the dev machine. Decide whether they can be deleted and by what rule. Nobody deletes them meanwhile | Low | TBD | **Not started (logged 2026-10-05 with bundle 7's docs commit).** Source: v2's H-97 note, SM 2026-10-02. |
+| H-107 | A parallel test run could hang until its timeout, with no result line. Two causes, both in the test tooling. (A) Pool workers inherited the test runner's SIGTERM handler, which raises SystemExit; a pool terminate landing mid-test was swallowed by unittest as a test error, the worker went back to wait on the task queue's lock, and neither it nor the parent ever exited. (B) When the run's output was a pipe, Playwright's Node driver (started by the PDF renderer's tests) left that pipe non-blocking; once the reader fell behind, the parent's next write raised BlockingIOError, the parent left Django's result loop, and the traceback could not be printed to the same full pipe. Fixed: each worker restores the default SIGTERM disposition; the parent's result stream waits and retries, and gives up with a clear error after 120 s of an unread pipe. Reproduced on H-91's label list at `--parallel 2` on 2026-10-02 (twice) and 2026-10-05; hidden by strace; a hit showed as a run with no 'Ran' line, never as a false green. The handler was on beta, on Epic A and in staging's tree; CI had the same exposure until this fix | **High**: test tooling | Hardening Engineer (d5) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `7ac6fb48`; 1a VERIFIED-WITH-NOTES). With it, rule 18 (every test run writes its output straight to a file; parallel runs carry a log-silence watchdog), which the fixes do not retire. **Limit:** on a full non-blocking pipe, worker log lines are still lost silently (about 1,090 of 2,582 in the stated slow-pipe run); that is H-110's ground. A (observed and shown by a 20-line script) and the BlockingIOError (observed) are facts; who sets the pipe non-blocking is demonstrated outside the suite, not observed inside a run. |
+| H-108 | The comment on the catcher in `_invite_and_enroll_one_teacher` (`billing/license_service.py`) said the individual-subscription refusal carries the address. Since H-85 that refusal is one neutral sentence with no address. The not-business refusal still carries it, and so does the enrolment-site school-mismatch refusal (not reachable in practice there), so the catcher must never log the exception text. Comment only | Low | Security Engineer (ed) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `085adecd`; 1a static read). The epic has a second copy of the comment in `add_teachers_batch`'s catcher (S7d, epic-only); it is corrected in the bundle 7 merge-down. |
+| H-109 | `AutoGrader/tests_redis_hygiene_databases.py` (H-97) held eight source lines with a literal URL that has a password-shaped part. The test URLs are now built from parts, so the source holds no such URL and a failing assertion cannot print one. The nineteen inputs are the same strings in the same order. Test only | Low | Hardening Engineer (d5) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `c823cdca`; v2 VERIFIED-WITH-NOTES). Its like-for-like battery also showed that H-97's mutants D1–D4, recorded before H-97's last test change, are killed on the final test module. |
+| H-110 | The production PDF renderer (`assignments/pdf_renderer.py`, in Celery workers and web processes) starts Playwright's Node driver with the process's own stderr. From the first render on, that pipe is non-blocking for every process of the service. With the pipe full: a log line is lost (Celery) or arrives cut and late (gunicorn); a bare print to stderr raises BlockingIOError in gunicorn; a raw write to fd 2 raises in both. Confirmed locally with a real gunicorn and a real Celery worker (2026-10-05). Not tested: whether the hosting platform's log pipe ever fills. Proposed fix: give the driver its own stderr pipe with a drain thread into our logger, pinned by a test that `os.get_blocking(2)` stays True after a real render; it also removes H-107's trigger. main does not have the renderer; only beta and staging are exposed. **Fix before the renderer is promoted to main** | Medium | Security Engineer (ed) | **DONE in batch 9** (merged into `task/beta-batch-9` at `cc9682b8` from `0da886f0`; 1a VERIFIED-WITH-NOTES at `ba4c84e1`). **Required before the PDF renderer is promoted to main.** Known limit from 1a's record (N5): during a browser start the private Playwright hook is replaced for the whole process, so another Playwright start in another thread in that window would get the renderer's pipe; no service code does that. Earlier: coded and gated on `task/h110-renderer-driver-stderr`. Evidence: `docs/evidence/h110-renderer-driver-stderr/EVIDENCE.md`. Known limit: the driver-stderr reader is not rate-limited (not blocking, SM 2026-10-06; row H-126). Source: H-107's finding B, SM 2026-10-05. |
+| H-111 | The six `print()` calls in `assignments/tasks.py` become logger calls. A `print()` is not a log record, so H-89's scrubber does not reach it; one of them prints a formatted traceback when the upload task fails, and exception text can carry an address. In a Celery worker stdout is normally redirected into the logger; confirm that the worker's start command leaves that redirect on | Low | Hardening Engineer (d5) | **Not started (logged 2026-10-05 with bundle 7's docs commit).** Not scheduled. Source: 1a (H-91's verification), SM 2026-10-05. |
+| H-112 | `docs/evidence/h1_stampede/harness.tar.gz` (committed `a9baf3e5`, 2026-09-15) held one password in two forms on four lines of two shell scripts: percent-encoded inside a database URL (three lines) and plain on an exported `PGPASSWORD` line. By the scripts' own use it is the Postgres superuser's password of the machine the September 2026 measurement ran on (host 127.0.0.1). The archive is rebuilt so the four lines read from required variables; the other six members are byte-identical. **The value stays in origin/beta's history from `a9baf3e5`; taking it out of the tree does not take it off the remote.** Whether it is still in use, and changing it, is the founder's. origin/main never had the file. The rebuilt scripts were not run | Medium (until the founder answers) | Integration & Release (0b) | **DONE in bundle 7** (merged into `task/beta-batch-7` at `cb0927f1`; v2 REJECTED the first attempt, which missed the plain form, then VERIFIED-WITH-NOTES). From it: every pattern check now opens archives and covers assignment forms and encoded against decoded values (`credscan.py`, kept outside the repo; to be proposed as a pre-commit hook). |
+| H-113 | A masked read of the literal-shaped assignment values the widened scan lists outside test files (names containing PASS, PWD, SECRET, TOKEN, or a KEY of a secret kind), on beta `141c8031` and phase2/epic-a `db6f5155` | Medium until read | Security Engineer (ed) | **READ, 2026-10-05: nothing new for the founder beyond H-112's value.** The five values in `scripts/isolated-test-env.sh` are identical to the two CI workflows' fake values. One open point with the founder: whether any deployed environment was ever given that same CI `FIELD_ENCRYPTION_KEY`. Limits: only the scan's two patterns; plain-KEY names filtered by name, not read; test files not read. From it: H-114, H-115, H-116. |
+| H-114 | `users/views.py`: the Google sign-in view posts the authorisation code to Google's token endpoint with `requests.post` and no timeout, so a slow or hanging upstream holds a gunicorn thread until the worker's own timeout. Add a timeout; when the row is taken up, grep for other outbound HTTP calls without one (requests, httpx, urllib) and list them | Low | Security Engineer (ed) | **Not started (logged 2026-10-05 with bundle 7's docs commit).** Not scheduled. Source: ed (H-113's read), SM 2026-10-05. |
+| H-115 | `ai_processor/benchmark/isolation_run8/isolation_harness.py` and the three scripts under `docs/evidence/free_plan_activation` (`attack_replay.py`, `scale_measure.py`, `stripe_refusal_real.py`) create an ACTIVE user with a known, committed password in whatever database they are pointed at. Harmless on a test database; a guessable account if ever run against a shared environment. Make them refuse a database that is not a test database, or generate the password at run time | Low | Security Engineer (ed) | **Not started (logged 2026-10-05 with bundle 7's docs commit).** Not scheduled. Source: ed (H-113's read), SM 2026-10-05. |
+| H-116 | `AutoGrader/settings.py` loads `FIELD_ENCRYPTION_KEY` with an empty-string default (also on main and on Epic A). Today it fails closed: with an empty or malformed key the encrypted-fields library raises ImproperlyConfigured when `users.models` is imported, so no process starts and the Google tokens are never stored unencrypted. But the refusal comes from the library ('defined incorrectly'), not from settings. Load it with no default, as SECRET_KEY is; note in `.example.env` that an empty value is invalid. To settle when taken up: the library returns the stored text unchanged when decryption fails, so after a wrong or changed key the Google sign-in callers would read back ciphertext with no error; read what they then do | Low | Security Engineer (ed) | **Not started (logged 2026-10-05 with bundle 7's docs commit).** Not scheduled. Read only so far. Source: ed (H-113's read), SM 2026-10-05. |
+| H-117 | With Beat healthy, a licence allocation whose monthly anchor falls within a day of the licence's billing-cycle end never gets that cycle's final monthly refresh: the 03:00 daily task serves a due time only on a run that starts between the due time and the cycle's end, and the renewal then overwrites the due time. To answer by reading first: how an allocation comes to be anchored that way; what the teacher loses; whether the renewal's own grant makes it whole. A read-only production count, if needed, is stated by d5 and run by the founder. If credits are lost to a paying school it is a product defect for the founder; a behaviour change in the task needs the founder's word. H-98's report deliberately does not cover this case (its one-full-day margin) | Medium until read | Hardening Engineer (d5) | **CLOSED 2026-10-05 (SM): by design, no entitlement lost.** Read by d5 (`billing/license_service.py`, `billing/tasks.py`, `billing/models.py`; nothing run, no production access). The anchor is written at enrolment, re-enrolment, reactivation and at the licence's renewal, which re-anchors every active allocation; so only a teacher enrolled or reactivated mid-cycle within the 24 hours before the cycle's monthly anniversary is affected, and only in that first cycle. The teacher still gets one allocation a month (each earlier point, and the renewal at the end); had the skipped point been served they would have had two full allocations within a day. The only difference is carry-over: the renewal rolls over the unused part of the previous month's bucket, not of a nearly full new one (nil on a plan with `carry_over_percent` 0). The old bucket does not lapse in the gap. NOT checked: the carry-over percentages configured on production plans; how many allocations are in this case. A count query exists in d5's report to the SM; it is not run and not reviewed, and is not to be given to the founder as it stands. Product question for the founder, low priority: should a mid-cycle enrollee's short last period get a full allocation at all? Source: d5's H-98 design question, SM 2026-10-05. |
+| H-118 | `assignments/tests_pdf_renderer.py` probed at import whether headless Chromium works: it started Playwright's driver and a real Chromium inside the importing process, on that process's own stderr. In a parallel run that process is the test runner's parent, so for the length of the probe the run's output pipe was non-blocking for every holder (H-107's cause B). H-110 does not remove this, because the probe does not go through the renderer. Changed, test only: the probe runs in a subprocess with its own stderr, and a guard (`AutoGrader/tests_no_playwright_at_import.py`) fails when a test module starts Playwright at import | Low | Hardening Engineer (d5) | **DONE in batch 8** (merged into `task/beta-batch-8` at `e578e3db` from `dc5d94b3`; v2 VERIFIED-WITH-NOTES). Its owning-app run failed once on a machine at load average 22 and passed in the SM-approved second run on a quiet machine (H-123). The guard's source rule misses four shapes (H-124). Source: ed's reading for H-110, SM 2026-10-05. |
+| H-119 | The "Migration safety" check on the GradeA-dev repository is red on every beta tip since at least 2026-09-30. It runs only for the founder's open pull request 2 (beta into dev) and fails on 14 old migration files: `students/0026`, `assignments/0038` and `0040`, and `billing/0009, 0011, 0013, 0014, 0016, 0017, 0021, 0022, 0023, 0025, 0059`. A check that is always red hides a new red. Scope ruled by the SM: acknowledge `students/0026` only, with the marker `docs/MIGRATIONS.md` asks for (four comment lines, no operation); the other 13 wait for the founder's answer on that pull request. Nobody closes, merges or edits the pull request | Low | Hardening Engineer (d5) | **DONE in batch 8 for the 0026 marker only** (merged into `task/beta-batch-8` at `4df1b61a` from `0cfde2f0`; 1a static read). **The check stays red: 13 files still fail.** 0b's first report said one file, read from the log's tail; the full log has 14. Source: 0b's CI watch of bundle 7, SM 2026-10-05. |
+| H-120 | `scripts/check_migration_safety.py` flags every AlterField whose field is NOT NULL with no default, whatever the field was before, so a change that only edits choices, help text or length on a column that was already NOT NULL is reported as non-additive and needs a marker that says nothing true about it. Change: flag an AlterField only when the column actually becomes NOT NULL, and make the message say what was found. By d5's reading (no run) that clears 7 of the 13 files still failing (H-119); the other 6 are really non-additive. Three more faults: it flags a many-to-many AddField, does not see a column's type change, and does not look inside SeparateDatabaseAndState. It changes a CI gate, so it needs its own tests (none exist today), a mutation battery and a verifier. Existing markers stay | Low | Hardening Engineer (d5) | **Done in batch 11** (merged at `be05f953` from `e25c1579`; v2 VERIFIED-WITH-NOTES at `5c48475a`). The check now judges a changed column by its state before the migration, sees a type change, skips many-to-many fields and looks inside SeparateDatabaseAndState; it has its own tests and mutation battery. **Dated correction, 2026-10-06 (SM, from v2's reading):** the version of this row pushed with batch 10 said the 13 failing files on the GradeA-dev pull request 2 "become 6". That was wrong. They become TWELVE: 7 cleared, 6 remain, and 6 newly reported by the new type-change rule (`billing/0010`, `0031`, `0034`, `0036`, `0039`, `students/0027`). The check is right; v2 ran the script end to end against origin/dev and saw exactly those twelve FAIL lines. All twelve are already applied on beta and each needs the founder's own acknowledgement; nobody on the team acknowledges any. `students/0027`'s header comment about being "additive" is out of date and is not edited. Its limits are rows H-135, H-138 and H-143. Source: d5's reading for H-119, SM 2026-10-05. |
+| H-121 | CI installs Playwright's Python package but no browser, so the 43 real-Chromium PDF tests in `assignments` skip on every CI run, and a green CI says nothing about the renderer; it is proven today on one laptop only. The 43 are an inference, exact in count (71 CI skips against 28 local), not read by name, because CI runs at verbosity 1. Steps: one CI run at verbosity 2 to confirm the 43 by name; install Chromium in the Tests workflow, cached; make a Chromium skip a failure in CI by a flag, as `CI_REQUIRE_REDIS` does. **Done before the PDF renderer is promoted to main**, the same condition as H-110 | Medium | Hardening Engineer (d5) | **Not started; waits for the SM's word** (it costs download time and CI minutes on two repositories; the founder is being told). **Since batch 9 the count is 47, not 43:** CI on `8bbf44f9` skips 75 tests against 28 locally; H-110 added four tests that need the browser. Again an inference from the counts, not read by name. **Required before the PDF renderer is promoted to main.** Source: 0b's count from the CI logs, SM 2026-10-05. |
+| H-122 | Epic A, docs: two documents on `phase2/epic-a` still described the epic's old Sentry scrubber arrangement, which the bundle 7 merge-down replaced with beta's H-89 scrubber: `docs/phase2/architecture/04_epic_a_implementation_plan.md` and the docstring of `scripts/check_no_pii_in_logs.py` | Low | Security Engineer (ed) | **DONE on Epic A** (merged into `phase2/epic-a` at `9a581258` from `818649d1`; read by 0b). It reaches staging with the next refresh. Source: v2's note 3 on the bundle 7 merge-down, SM 2026-10-05. |
+| H-123 | `assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others` asserts an absolute wall-clock limit (healthy renders under 4.0 s), so it fails on a busy machine without any defect: on 2026-10-05 it failed at 7.2 s while the load average was 22, and passed serially on the same tip an hour earlier. Change, test only: a limit relative to a baseline measured in the same run, or a comparison against the slow render's own time | Low | Hardening Engineer (d5) | **DONE in batch 9** (merged into `task/beta-batch-9` at `9fb6d4fe` from `05f21b04`; v2 VERIFIED-WITH-NOTES at `80c679d6`; test only). The limit is now taken from a baseline measured in the same run. Two deliberate-load runs are in its evidence: the first (12 busy loops outranking the test) ended red with "too loaded to judge", which shows the ceiling; the second (8 loops at the test's own niceness, load 10 to 13) passed with a limit of 11.08 s. Cost of the design (v2's N1): on this machine the limit was looser than the old 4.0 s in every run (4.15 to 11.08 s), so a slowdown that is not a stall has more room to pass. Team rule from the same event: a whole-tree credential scan takes the run slot like a test run. Source: the red H-118 owning-app run, SM 2026-10-05. |
+| H-124 | The source rule in `AutoGrader/tests_no_playwright_at_import.py` (H-118) misses four shapes that start Playwright at import: a starter imported under another name; a starter bound to a name by assignment; a static or class method that reaches a starter and is called at import; `getattr(module, "sync_playwright")()`. Today only the fresh-interpreter test catches them, and only in `assignments/tests_pdf_renderer.py`. Work: the four shapes as red tests first; the rule then follows aliases, methods and getattr with a literal name; the two known false alarms fixed or stated; one mutant per new branch | Low | Hardening Engineer (d5) | **DONE in batch 9** (merged into `task/beta-batch-9` at `52d9628c`; v2's verdict in its record under `docs/evidence/h124-no-playwright-rule-misses/`; test only). The rule now follows a starter under another name, bound by assignment, reached through a method, or read with `getattr` and a literal name, and four more shapes from v2's pre-read; what it still does not see is pinned by tests as known limits. Source: v2's note 1 on H-118, SM 2026-10-05. |
+| H-125 | `scripts/strict_gate.py`: (1) its per-test parser miscounts when a log line is mixed into a test's line, and the result does not feed the verdict: in batch 8's strict run the per-test table held 5706 rows against 5709 tests run, three of them not test ids, the cross-check read False, and the verdict was PASS; (2) the script applies no memory cap (rule 13) and does not take the machine's full-suite lock, so a run started with it bypasses both unless the caller wraps it. Make the parser exact or drop the table; decide whether a failed cross-check fails the gate; put the cap and the lock inside the script. Its "Ran" and "OK" figures are read from the log and are not in doubt | Low | Integration & Release Engineer (0b) | **Not started (logged 2026-10-06 with batch 8's docs commit).** Source: 0b's check of batch 8's strict run, SM 2026-10-06. |
+| H-126 | The reader thread H-110 adds (`assignments/pdf_renderer.py`) forwards every line the Playwright driver writes to its own stderr into our logger, with no rate limit. A Node crash with a long stack trace, or a driver that writes in a loop, can therefore put many lines into our logger. It cannot block or hang a process (the reader is a daemon and the pipe is the driver's own); the cost is log volume only. Accepted by the SM as not blocking H-110; not tested beyond reading the code | Low | Security Engineer (ed) | **Open**, found in H-110's review (SM 2026-10-06). Evidence: `docs/evidence/h110-renderer-driver-stderr/EVIDENCE.md`, "Known limit". To tighten when this row is done (1a's note N2 in H-110's `VERIFICATION.md`): the two long-line reader tests write 200,000 bytes, which pins the "logged once" bound only loosely (they catch a repeat only when the pipe reads fall smaller than 64 KiB); 400,000 bytes would pin it however the reads fall. |
+| H-127 | Two student-facing routes return the WHOLE saved feedback of a published grade instead of the student whitelist (`assignments/serializers.py` `get_performance_summary`; `dashboard/views.py`), and the student's submissions list returns teacher review fields before publication. So a student can read, for their own paper, the second grader's dissent, review flags, the grading model and teacher-directed rationale. Also ruled into this row: the stored `formatted_grade` reaches the student whole and can restate teacher content. Live on beta; one route at least is on main. The founder's representative decided there is NO hot fix to main: the fix is required content of the next full promotion of beta to main | Medium: privacy | Security Engineer (ed); verifier 1a | **DONE in batch 10** (merged into `task/beta-batch-10` at `88c88611` from `a2e5ddc7`; 1a's verdict at `d027ac91` in `docs/evidence/h127-student-feedback-whitelist/`). A student's routes now pass the saved result, and the stored `formatted_grade`, through one projection that keeps the student's fields only; a guard test names every production read of those columns. **Not on main: required content of the next promotion of beta to main.** What main shows students until then, and the note for the frontend, are in the item's `EVIDENCE.md`. Cached responses can outlive the fix for up to 15 minutes at deployment. Follow-ups: H-130, H-131, H-132, H-133. Source: ed's report, SM 2026-10-06. |
+| H-128 | A failed second opinion saves the raw error text in the feedback, which can hold the teacher's credit balance; it becomes a fixed code | Low | Security Engineer (ed) | **DONE in batch 10**, with H-127 (merged at `88c88611`). Source: ed's report, SM 2026-10-06. |
+| H-129 | Student and teacher names are sent to the AI provider in four kinds of request (by the Security Engineer's reading; beta and Epic A alike): (1) the feedback formatter, three prompts, the student's full name; (2) reading a student's answers from an upload: the first and last name of EVERY enrolled student in the course, so the AI can match the name on the paper, and the page images usually show the handwritten name; (3) the student summary, the student's full name; (4) the dashboard assistants: the teacher's sends, on every question, up to 200 students' full names each with average score, at-risk flag, risk reasons, trend and submission figures (`dashboard/services.py` `TeacherAIContextService`, `MAX_STUDENT_ROWS = 200`); the school admin's sends up to 100 teachers' names with per-teacher performance figures; the super admin's sends a page of teacher names. No address in any request read. Every provider call already sends `data_collection` "deny"; the code relies on that routing rule, not on de-identification. Not traced: the billing analytics assistant route (`billing/views.py`). The assistant can be switched off without a deploy (`DASHBOARD_CUSTOM_AI_PROMPT_ENABLED`) | Medium until decided | Founder decision | **Closed by founder decision 2026-10-06: accepted as it is.** No de-identification of these requests; the provider's "do not collect" rule is accepted as sufficient; no dashboard-assistant switch-off (the founder's representative, as relayed by the SM). The standing decision of 2026-09-26 on de-identification was made for Epic H. Nothing was changed. Source: the Security Engineer's reading, SM 2026-10-06. |
+| H-130 | A student's course final grade is computed from every graded row, released or not (`classrooms/signals.py`). Related: the founder's rule of 2026-10-06 that a student should not know a grade exists before the teacher releases it (H-133) | Medium until read | Hardening Engineer (d5), reading first | **Done in batch 11** (merged at `7944259e` from `b151d846`; v2 VERIFIED-WITH-NOTES at `7d0eff4c`). A student reads the same answer document, course final grade and letter before and after grading while nothing is released; the final grade is computed from released work only. Not on main: required content of the next promotion of beta to main. Found in the work: H-139, H-140, H-141, H-142. **Follow-up in the same batch (merged at `a716c862` from `572b536b`; v2 VERIFIED-WITH-NOTES at `5c48c505`), tests only:** the batch's first full run (2026-10-07, at `079ae209`) failed one test, `AutoGrader.tests_cache_bespoke_1114` `test_a_teachers_assignment_edit_does_NOT_change_this_payload`, which pinned the behaviour this row replaced: since this row a student's unreleased answer document follows the assignment's current title. The cache was read and found fresh (an assignment's save bumps every enrolled student). Three tests replace the one. The row's own regression had not run the AutoGrader app; team rule 20 now requires the cache tests for such a change. A narrow case is row H-149. Found by Verifier 1 (1a), SM 2026-10-06. |
+| H-131 | The grade formatter is sent the teacher-directed parts of the grading result, and its prompt tells it to surface all teacher flags, so student-facing wording can restate them. H-127 projects the stored `formatted_grade` for students but does not change what the formatter is sent | Low until decided | Founder / product decision | **Open: waits for the decision.** Source: SM 2026-10-06. |
+| H-132 | `formatted_grade` is a dictionary saved into a TextField through `str()`, so the stored and served value is Python-form text (single quotes, True/False/None), not JSON; the student dashboard's feedback field is served the same way. Fixing it changes the type the frontend receives, so it needs a frontend note and a data conversion; H-127 keeps the present form | Low | To be named | **Not scheduled.** Found by Verifier 1 and the Security Engineer while reading for H-127, SM 2026-10-06. |
+| H-133 | "Before release, a student must see a graded paper exactly as a submitted one" (the founder's rule of 2026-10-06). Known tells on beta, by the Security Engineer's reading: the resubmission refusal says "already been graded" (`students/services.py`); `remaining_attempts` drops to 0 at grading; `grading_state` and the `?grading_state=` / `?is_published=` filters on the student's list; `scheduled_grading_at`, `grading_task_name`, `is_grading_scheduled` on the student's list. Related: H-130 (final grade; answer document header), H-127 (review fields, `graded_at`). On main the dashboard status also says GRADED before release | Medium | Security Engineer (ed), after H-127 | **Done in batch 11, with two things left open** (merged at `baf58b24` from `d08f98d9`; 1a VERIFIED-WITH-NOTES at `b4a3b70e`). **Closed:** on the student's list the grading state reads IDLE until release and the three scheduling fields are empty (the student's detail page carries none of the four); on the list and the detail page `max_points` is the assignment's total as on a submitted paper; a student who filters the list by grading state is refused (403); a refused upload or edit tells a student one of two sentences that do not name grading ("This submission can no longer be changed." / "This submission can't be changed right now. Please try again later."), a teacher is still told the reason; every such refusal carries a code (`submission_closed`, `submission_busy`, `submission_attempts_used`) in the 409 answer, in the queued task's result and on the tracked task row that a polling client reads. The rule of 2026-09-14 that a graded paper is closed stays; no resubmission until release. **Open until H-141:** the answer to an ACCEPTED upload or edit on a paper that is not graded still shows a scheduled grading time, the task name, and a FAILED or stale RUNNING grading state. **Left by the founder's choice (A):** `remaining_attempts` still drops to 0 when a paper is graded. A note for the frontend is in the batch 11 package (the two sentences, the codes and where they are, the list fields, the 403). Not on main: required content of the next promotion of beta to main. Owner ed; verifier 1a. Source: SM 2026-10-06; wording of this row by the SM's ruling of 2026-10-07 on Verifier 1's note N1. |
+| H-134 | A teacher can set a student's course final grade by hand (`PATCH /student-course/<id>` writes `StudentCourse.final_grade`), but the value cannot be told apart from the computed one (no flag, no second column, no history) and is silently overwritten by the next save or delete of any of that student's submissions in the course. After H-130 a student never reads the hand-set value. Question for the founder: is a manual final grade meant to be a feature? | Low | Founder / product decision | **Open: waits for the decision; not scheduled.** Found by d5 reading for H-130, SM 2026-10-06. |
+| H-135 | `scripts/check_migration_safety.py` does not read `RunSQL` or `RunPython` operations: a migration whose work is raw SQL or a data step passes the check unread. Example: `billing/0060_backfill_audit_identity`, a data backfill in RunPython, passes without being judged. (Correction, 2026-10-06: an earlier version of this row named `billing/0059` as the example; that file has neither. Reported by d5, whose error it was.) Stated as a limit by H-120 | Low | Hardening Engineer (d5) | **Not scheduled.** Source: SM 2026-10-06. |
+| H-136 | The team's credential pattern check opened `.gz`, `.tar` and `.zip` archives but not `.xz`, and since batch 8 the large full-run logs are committed as `.xz` (the added-file hook's size limit), so those archives were invisible to the check as committed. For batches 8 and 9 the committer and the verifier each scanned the unpacked logs by hand and their records say so | Low; this week | Integration & Release Engineer (0b); verifier v2 | **Fixed in the tool on 2026-10-06** (it now opens `.xz`, `.bz2`, `.tar.xz` and `.tar.bz2`; a test plants made-up patterns, built at run time, in nine archive forms; the old tool fails that test in five places). **v2 VERIFIED-WITH-NOTES the same day** (its own probe: eight further archive forms found, two cut-off archives reported as unreadable, the old tool blind to all of them, no value ever printed), so the by-hand rule for `.xz` evidence is lifted (SM). v2's notes are in H-137. The tool is not in the repository yet: H-137. Found by the Next Stage Checker on a log of its own stage, SM 2026-10-06. |
+| H-137 | The credential pattern check lives outside the repository, in a folder only sessions on the team's laptop can see. Bring it into the repository under `scripts/` with its test, as its own task branch off beta. Two REQUIRED fixes from v2's notes on H-136, because a silent skip is the worst behaviour a checker can have: (1) a line longer than 4000 characters must be scanned, or at the very least reported as skipped with its file and line number (run logs are stored compressed now, so long lines are the likeliest real miss); (2) an archive nested deeper than the limit is reported as not opened. Two limits go into its docstring: text after the end of a compressed stream is not read; archive types the tool does not claim (`.lzma`, `.7z`, `.zst`, zip files under other suffixes) are not opened. Also seen by v2, the same family: a file with a NUL byte in its first 4096 bytes is skipped in silence | Low | Integration & Release Engineer (0b); verifier v2 | **Done in beta batch 12a** (`task/h137-credscan-into-repo`, v2 VERIFIED-WITH-NOTES at `1d47223b`, record at `12305b74`). `scripts/credscan.py` and `AutoGrader/tests_credscan.py` are in the repository; no production code path uses the tool. Long lines are scanned around each of the five words (a name is followed to its start and end, the pattern tried once there, a value cut off by the end of what is read is reported as `VALUE-CUT-AT-WINDOW`, never as a shorter literal); an archive nested too deep is reported as not opened; a file taken for binary is reported as not read. Two corrections on the way, both in the evidence: the first fix hid a real hit (found by v2 by reading) and a bare value could be cut short in silence (v2's second point). Stated limit: an address with a password part further than the read window from any of the five words on a long line is not seen. Seven LITERAL rows the old tool passed over were judged without seeing a value: none is a credential (follow-up H-156). The team switches to this tool once the batch that carries it is pushed. Source: SM 2026-10-06. |
+| H-138 | A migration that drops a database foreign-key constraint passes `scripts/check_migration_safety.py` without a word (`billing/0059` does it on six relations of the two financial audit tables). Loosening is additive in the house rule's sense, but it should at least be reported for a person to acknowledge | Low | Hardening Engineer (d5) | **Not scheduled.** From d5's reading for H-120. Source: SM 2026-10-06. |
+| H-139 | A stored answer document shows a score as "7.0" or "7.00" depending on which path wrote it: grading prints the score from the value in memory, a float, and the rebuild on a read prints it from the database, a decimal (`students/services.py`). It is in what the teacher reads; the student's form is not affected. Existing behaviour, not touched by H-130 | Low | Hardening Engineer (d5); verifier v2 | **Built, not yet run or verified; batch 12** (`task/stored-document-score-printing`, frozen `b95d0323`, one fix with H-140 and H-142: two decimals on every path). Found by d5 in H-130's chain. Source: SM 2026-10-06. **Moved to batch 13 by the SM on 2026-10-07:** the row's one app regression went red on an old test (`students.tests...test_teacher_can_update_grade`, 500 where 200 is due: the manual-grade route now rebuilds the stored answer document and the builder raises on stored answers that are not a list of dictionaries). The gate had been green; the red run is kept. The correction (the route guards the document build and always saves the grade) comes first; the builder's own tolerance is H-165. **Done in beta batch 15** as part of the score-printing stack (`task/regrade-clears-formatted-grade`, merged tip `099870f8`; Verifier 2 VERIFIED-WITH-NOTES at `2ee3cbee`, code under test `c8ec622d`; bottom `aea4854e`, H-144 `81cd0e08`, H-145 `76b69102`, H-146 `c8ec622d`; evidence `docs/evidence/h142-stored-document-score-printing/` and the `h144`, `h145`, `h146` folders). Two decimals on every path. |
+| H-140 | In the stored answer document a score of zero prints as an empty value, so a paper graded zero and released shows the student "Score:" with nothing after it, beside a grading date. A display fault, not a leak | Low | Hardening Engineer (d5); verifier v2 | **Built, not yet run or verified; batch 12** (with H-139 and H-142: a graded zero prints 0.00). Found by v2 reading for H-130. Source: SM 2026-10-06. **Moved to batch 13 by the SM on 2026-10-07:** the row's one app regression went red on an old test (`students.tests...test_teacher_can_update_grade`, 500 where 200 is due: the manual-grade route now rebuilds the stored answer document and the builder raises on stored answers that are not a list of dictionaries). The gate had been green; the red run is kept. The correction (the route guards the document build and always saves the grade) comes first; the builder's own tolerance is H-165. **Done in beta batch 15** as part of the score-printing stack (`task/regrade-clears-formatted-grade`, merged tip `099870f8`; Verifier 2 VERIFIED-WITH-NOTES at `2ee3cbee`, code under test `c8ec622d`; bottom `aea4854e`, H-144 `81cd0e08`, H-145 `76b69102`, H-146 `c8ec622d`; evidence `docs/evidence/h142-stored-document-score-printing/` and the `h144`, `h145`, `h146` folders). A graded zero prints 0.00. |
+| H-141 | The student's own UPLOAD route answers the student with the STAFF serializer, built without the request (`students/views.py`), so a student is sent the teacher's field set. (Corrected 2026-10-07, Verifier 1's note N1: the row first said the upload AND edit routes; only the upload route was wrong. The edit route already answered rightly and is now tested for it.) Grade fields are empty there because an upload is refused on a graded or being-graded paper. Read by the Security Engineer in the code at `b4a3b70e`, not run: on a paper that is NOT graded, and so not refused, that answer shows (a) a teacher's scheduled grading run for the paper (`scheduled_grading_at`, `grading_task_name`, `is_grading_scheduled`) and (b) `grading_state` FAILED after a failed run, or RUNNING on a stale claim. It needs a student re-upload with attempts left. No score or feedback. This is what H-133 left open | Low-Medium (raised from Low by the SM, 2026-10-07) | Security Engineer (ed); verifier 1a | **Done in beta batch 12a** (`task/h141-student-upload-answer`, 1a VERIFIED-WITH-NOTES at `44a23f98`, record at `933a65fc`). The upload answers with a dedicated student-safe serializer of the same keys, and a guard test knows each submission serializer's audience. For the frontend: the upload answer's score is null until release (it was 0.0 or "0.00"). The gate's reproduce-first step showed 17 red tests where 18 were written (one test checks nothing on the old code; it is shown red under two mutants). A separate old fault seen on the way is H-162. Main still has the fault. Source: SM 2026-10-06. |
+| H-142 | After a teacher changes a grade by hand (update-grade), the stored answer document is not rebuilt and still prints the OLD score; a released student reads the stored document, so the paper can show one score while the score field shows another. The probe was red as written, so it is real; by the author's reading main has it too | Medium | Hardening Engineer (d5); verifier v2 | **Built, not yet run or verified; batch 12** (with H-139 and H-140: the manual-grade route rebuilds the stored document). Found by d5 reading for H-139 and H-140. Source: SM 2026-10-06. **Moved to batch 13 by the SM on 2026-10-07:** the row's one app regression went red on an old test (`students.tests...test_teacher_can_update_grade`, 500 where 200 is due: the manual-grade route now rebuilds the stored answer document and the builder raises on stored answers that are not a list of dictionaries). The gate had been green; the red run is kept. The correction (the route guards the document build and always saves the grade) comes first; the builder's own tolerance is H-165. **Done in beta batch 15** as part of the score-printing stack (`task/regrade-clears-formatted-grade`, merged tip `099870f8`; Verifier 2 VERIFIED-WITH-NOTES at `2ee3cbee`, code under test `c8ec622d`; bottom `aea4854e`, H-144 `81cd0e08`, H-145 `76b69102`, H-146 `c8ec622d`; evidence `docs/evidence/h142-stored-document-score-printing/` and the `h144`, `h145`, `h146` folders). The manual-grade route rebuilds the stored document. |
+| H-143 | Three gaps in the migration safety check's rules: a decimal whose whole part shrinks because only the decimal places grow; a unique or primary-key constraint added to an existing column; a column renamed through `db_column`. None occurs in today's migration files | Low | Hardening Engineer (d5) | **Not scheduled.** Found by v2 reading for H-120. Source: SM 2026-10-06. |
+| H-144 | After a manual grade the formatted grade is regenerated by a background task, so the old formatted text stands beside the new score until the task finishes (for good if it fails), and for a released paper the "grade updated" notice is sent before the task has run | Low | Hardening Engineer (d5); verifier v2 | **Built, not yet run or verified; batch 12** (`task/h144-manual-grade-clears-formatted-grade`, frozen `b3c3e94c`, stacked on the score-printing fix: the manual grade clears the formatted grade in the same save). Source: SM 2026-10-06. **Moved to batch 13 by the SM on 2026-10-07:** it stacks on the score-printing row (H-139, H-140, H-142), whose regression went red; its own first gate run also stopped on a faulty test of its author's, corrected since. **Done in beta batch 15** as part of the score-printing stack (`task/regrade-clears-formatted-grade`, merged tip `099870f8`; Verifier 2 VERIFIED-WITH-NOTES at `2ee3cbee`, code under test `c8ec622d`; bottom `aea4854e`, H-144 `81cd0e08`, H-145 `76b69102`, H-146 `c8ec622d`; evidence `docs/evidence/h142-stored-document-score-printing/` and the `h144`, `h145`, `h146` folders). The manual grade clears the formatted grade in the same save. |
+| H-145 | Two formatting tasks for one submission race, and the later-finishing one wins whichever result it worded (existing behaviour). After H-144, a formatting task queued before a teacher's manual grade and finishing after it can write a non-empty formatted grade back, with the old score sentence if it had loaded the row earlier | Low | Hardening Engineer (d5); verifier v2 | **Built, not yet run or verified; batch 12** (`task/h145-formatting-task-superseded`, frozen `1f76431d`, stacked on H-144: an overtaken formatting task writes nothing, by a stamp). It ships as built, with no setting: the founder's representative states (2026-10-06) that web and worker switch to a new release together. Source: SM 2026-10-06. **Moved to batch 13 by the SM on 2026-10-07:** it stacks on the score-printing row (H-139, H-140, H-142), whose regression went red; its own first gate run also stopped on a faulty test of its author's, corrected since. **Done in beta batch 15** as part of the score-printing stack (`task/regrade-clears-formatted-grade`, merged tip `099870f8`; Verifier 2 VERIFIED-WITH-NOTES at `2ee3cbee`, code under test `c8ec622d`; bottom `aea4854e`, H-144 `81cd0e08`, H-145 `76b69102`, H-146 `c8ec622d`; evidence `docs/evidence/h142-stored-document-score-printing/` and the `h144`, `h145`, `h146` folders). An overtaken formatting task writes nothing, by a stamp. |
+| H-146 | An AI regrade of a paper that already has a formatted grade does not clear it, so the old wording with the old score sentence stands beside the new score until the regrade's own formatting task writes, and for good if that task fails (exists today) | Low-Medium | Hardening Engineer (d5); verifier v2 | **Built, not yet run or verified; batch 12** (`task/regrade-clears-formatted-grade`, frozen `be79f8ab`, stacked on H-145: grading clears the formatted grade in its own save). Found by Verifier 2's pre-read of H-145. Source: SM 2026-10-06. **Moved to batch 13 by the SM on 2026-10-07:** it stacks on the score-printing row (H-139, H-140, H-142), whose regression went red; its own first gate run also stopped on a faulty test of its author's, corrected since. **Done in beta batch 15** as part of the score-printing stack (`task/regrade-clears-formatted-grade`, merged tip `099870f8`; Verifier 2 VERIFIED-WITH-NOTES at `2ee3cbee`, code under test `c8ec622d`; bottom `aea4854e`, H-144 `81cd0e08`, H-145 `76b69102`, H-146 `c8ec622d`; evidence `docs/evidence/h142-stored-document-score-printing/` and the `h144`, `h145`, `h146` folders). Grading clears the formatted grade in its own save. |
+| H-147 | The course response uses one serializer for teacher and student, and the roster inside it is the staff student serializer with only classmates' email blanked for a student (`classrooms/serializers.py`), so a student is sent each classmate's id, first and last name, whether the account is active, profile image, enrolment status and whether the address is a made-up one. No grade. Also: the session answer a student can read carries the school's id and the creating staff account's id (ids only) | Low | Security Engineer (ed); verifier 1a | **Done in beta batch 12a** (`task/h147-no-classmates`, 1a VERIFIED-WITH-NOTES at `cc648b44`, record at `2507838b`). Decided 2026-10-06 by the founder's representative: a student sees nothing of their classmates. Built: in the course answers a student gets their own roster entry and the bare class size; in a course's nested assignments a student gets the student's shape (ten of the teacher's fields are gone, of which only the count of submissions was about classmates; four keys are new); a student's session answer no longer carries the school's id or the creating staff account's id; a nested assignment's status means the student's own; a guard test classifies every roster site. Notes from the verifier, by the SM's rulings: N1, three code comments still say a student is shown classmates (comment-only correction, H-163); N2, see the line added to H-6's row; N3, the frontend list of the ten keys is in batch 12a's package; N5, five of the row's tests have been seen red by nobody and are not evidence until H-163 shows them red. Main still has the fault. Source: SM 2026-10-06. |
+| H-148 | The name on the teacher's roster, which an uploaded paper is matched against, could not be set by the teacher when adding a student by email, while a student's own rename has been refused since July. (Corrected 2026-10-07, Verifier 1's note N1: the row first opened "a student can change their own first and last name"; that has been refused since July.) Decided 2026-10-06 and 2026-10-07 by the founder's representative: a student can NOT rename themselves; only the teacher names or renames a student | Low | Security Engineer (ed); verifier 1a | **Done in beta batch 12s** (`task/h148-teacher-names-student`, Verifier 1 VERIFIED-WITH-NOTES at `19f5c872`, record at `b8098a65`), by the user's order of 2026-10-08 13:02 WAT ("push to beta the fix that asks for names with the email for adding of student"). Adding a student by email now needs the teacher to type a first and a last name (BREAKING for a client that sends an email alone: 400; the middle name is optional); a typed name fills an empty stored name and never replaces a name already there; the answer gains `student_name` and `typed_name_used`; the class-list import fills an empty name too; three invitation emails (school admin, licensed teacher, and the student's own login invitation, which a student gets when a teacher adds them by email) lose the sentence saying the person will be asked to choose a new password. A teacher still cannot correct a wrongly entered name: the rename route (H-153) is stacked on H-152 (the old activation door), and both stay held for the user's decision. Stated limit: two teachers adding the same nameless account at the same moment can both fill its name (H-168). Source: SM 2026-10-08. |
+| H-149 | Unreleased answer document: a student whose enrolment row was DELETED can read the old assignment title or due date for up to 5 minutes (the assignment's save bumps students by enrolment row; the student reads their own submission with no enrolment check). No production code deletes an enrolment row (leaving a course keeps the row as WITHDRAWN); no grade is involved. Cure: add the course generation (`crs`) to the student's key in `StudentSubmissionViewSet.retrieve`, with a test seen red first | Low | Hardening Engineer (d5) | **Not scheduled.** Found 2026-10-07 by d5 while reading for batch 11's red cache test; stated as a known limit in `AutoGrader/tests_cache_bespoke_1114.py`. Source: SM 2026-10-07. |
+| H-150 | The student's submission detail (`students/serializers.py`, `StudentSubmissionDetailStudentVersionSerializer`) declared `assignment_title`, `assignment_due_date` and `course_title` with sources written with two underscores (`"assignment__title"` etc.), which name no attribute; the fields are read-only, so the framework left the three keys out of the answer. Older than H-130; not a leak. First logged as a product question; on 2026-10-07 the user decided the three keys are to be sent | Low | Hardening Engineer (d5); verifier v2 | **Done in beta batch 12a** (`task/student-detail-three-keys`, v2 VERIFIED-WITH-NOTES at `9d0467d3`, record at `9d0b4e1e`). A student's submission detail now sends `assignment_title`, `assignment_due_date` (the standard date form, or null) and `course_title` (the course's name); nothing is removed; a teacher's answer is unchanged. Stated limit: a student may read an old course name for up to five minutes after an assignment is moved to another course or after a write that sends no signal; nothing about a grade. Found by Verifier 2 by reading at `d87a56f6`. Source: SM 2026-10-07. |
+| H-151 | Product question: the direct add of a student requires at least two letters in the first name and in the last name, so a student whose real first or last name is one letter is refused; the add-by-email form will follow the same rule when H-148 is built, so that the two forms agree. Decide whether one letter should be allowed on both | Low | Not assigned (the user decides) | **Not scheduled.** From the Security Engineer's design choice on H-148. Source: SM 2026-10-07. |
+| H-152 | The old activation door is closed: `POST /auth/register/student` and the renewal route answer 410 with one fixed neutral sentence; the conversion command's dry run gains a count of accounts with no name; an account whose invitation email cannot be queued is NOT converted and is listed by id, so a second run picks it up (a delta ordered by the SM); one account never stops the run and the invitation needs no teacher on the course (a second cure, found by Verifier 2 by reading); a runbook is written for the founder's data action. Left behind and harmless: code nothing calls any more (the renewal service, two forms, the old link builders) | Medium | Security Engineer (ed); verifier v2 (moved from 1a by the SM) | **Done in beta batch 13** (`task/h152-old-activation-door-closed`, Verifier 2 VERIFIED-WITH-NOTES at `8b23502b`, record at `7a7b8bd2`), after the user's word of 2026-10-08 ("there are no leftover account": his statement, not a count the team made). `POST /auth/register/student` and the renewal of the old link answer 410 with one fixed neutral sentence and read nothing from the request; 27 old tests that tested the removed door are removed, each named in the evidence. The conversion command's dry run gains a count of accounts with no name; an account whose invitation email could not be queued is not converted; one account never stops a run. **The conversion command is NOT to be run by the team.** Source: SM 2026-10-08. |
+| H-153 | A teacher renames a student: either teacher who can reach a course the student is in may rename; a school admin is refused; a student with no teacher can be renamed by the super admin only; each rename is logged with ids only. The first gate was red: the new route locked enrolment rows through a join that can be empty and PostgreSQL refused the lock, so every permitted rename answered 500; corrected (the lock is taken on the enrolment rows alone) and gated again; the red run is kept (guard test: H-166) | Medium | Security Engineer (ed); verifier 1a | **Done in beta batch 13** (`task/h153-teacher-renames-student`, Verifier 1 VERIFIED-WITH-NOTES at `05c83b0d`, record at `01f95d9f`; it carries H-152's final tip). A teacher who can reach a course the student is in may rename the student; a school admin is refused; a student with no teacher can be renamed by the super admin only; each rename is logged with ids only. No page calls the new route yet (the frontend adds the call); the rename is a log line only until H-170. Source: SM 2026-10-08. |
+| H-154 | A repeated or stray evaluation in the AI's grading reply is added into the saved score more than once (the score can exceed the maximum). Read on origin/beta and origin/main by d5 on 2026-10-07: both have it | High | Hardening Engineer (d5); verifier v2 | **Done in beta batch 12a, its first row** (`task/ai-reply-repeated-evaluation`, v2 VERIFIED-WITH-NOTES, record at `ae80b50d`; code and tests as at `42eccc7b`). `_finalize_grading_result` keeps one evaluation per question, the LOWEST of a model's repeated marks (the rule was accepted by the user on 7 October 2026), drops strays, says so in the saved note and flags the paper for review (`ai_reply_corrected`). Fix-forward only: saved rows keep their score until regraded. Known limit: an assignment can hold the same question number twice (H-158). Two gate runs stopped on the author's expected files, not on the code, and are kept in the evidence. Main still has the fault. Found by the Next-stage Checker (finding 5 of BE-I-04 slice C). Source: SM 2026-10-07. |
+| H-155 | A guard test for AssignmentSerializer; defence in depth, tests only, no behaviour change. It fails if any route hands request data to AssignmentSerializer, or if it is built by hand without the H-18 allow-list (`ai_assignment_content_only`) applied first. Background: a client cannot set its five write-only fields today (read on beta `d7143538` and on `752baa2a`; "not a finding"); what protects is a convention with no test | Low | Security Engineer (ed) | **Not started; batch 13.** Source: SM 2026-10-07. |
+| H-156 | `scripts/credscan.py` lists as LITERAL the parser field `token:"word"` inside a minified script bundled into a documentation page (`docs/backend/backend-reference.html`, twelve hits on two lines) and the English words PASS and PASSED in prose (`docs/CODEBASE_AUDIT_SECTIONS.md`, two lines). None is a credential by context (judged without seeing a value on `d7143538`). Follow-up: class such hits as code or prose by a stated rule, never by value; a change of rule needs its own tests and mutants | Low | Integration & Release Engineer (0b) | **Not scheduled.** From 0b's value-free reading for H-137. Source: SM 2026-10-07. |
+| H-157 | A cancellation is not swallowed by a broad catch. (1) In `ai_processor/services.py`, `_verify_blank_answers` re-raises TaskCancelledError before its broad `except Exception` (as `extract_answer_with_retry` already does); today a task cancelled at that moment is logged as a failed re-read and goes on to the next check, which does stop it before any save and before any further paid call. (2) A sweep of the other 23 cancellation checks in that file for a broad catch around them, held by a guard test. No security effect | Low | Security Engineer (ed) | **Not started; batch 13** (reading first). Found by the Next-stage Checker; "not a finding" as it stands. Source: SM 2026-10-07. |
+| H-158 | An assignment can be saved with the same question number twice; grading keys everything by number. Effect by reading: the maximum counts the pair once, both questions are graded against one answer, and after H-154 the two evaluations are folded as a repeat (the lower kept, the paper flagged for review). Cure proposed: refuse a duplicate number at save; renumber or refuse in the single-pass extraction. Who can cause it: an AI path or the Django admin, not a teacher's request | Medium | Hardening Engineer (d5); verifier v2 | **Done in beta batch 13** (`task/h158-question-numbers-in-order`, second form, Verifier 2 VERIFIED-WITH-NOTES at `850cecff`, record at `6aa13949`). A paper the AI reads can no longer lose a question because the AI gave two questions the same number; a paper with sound numbers of its own keeps them; otherwise it is numbered 1, 2, 3 in order. Limits: a sectioned paper (Section A 1, Section B 1) is stored 1 to N and the match to a student's "B 1" rests on the model (H-171: the one paid check failed on a connection error and has not been made); a question's text that refers to another number is not rewritten. Source: SM 2026-10-07 and 2026-10-08. |
+| H-159 | A teacher is charged for an AI call whose result the assignment serializer then refuses: nothing saved, no refund. By reading only: the synchronous text edit, the two background text tasks and the generation route have neither a refund scope nor an enclosing transaction; the file upload refunds and the synchronous create rolls back | Medium (proposed) | Hardening Engineer (d5) | **Not started; batch 13.** Not run. Found by d5 reading for H-158. Source: SM 2026-10-07. |
+| H-160 | Phase 2 line only. BE-I-04 slice C's vote counts a reply's items as received (its stated limit). After the merge-down of beta batches 8 to 12, close it by counting over H-154's kept evaluations; then say the backup flag's meaning in the 03a architecture note. The vote is not changed in the merge-down itself | Low | Next-stage Builder; checker the Next-stage Checker | **Not started; after the merge-down and before the follow-on's slice 1.** The Checker's probe PC5 is its ready red test. Source: SM 2026-10-07. |
+| H-161 | Two old oddities in email verification: (a) the email-verification route switches on a never-verified account that a super admin switched off before it was ever used; (b) the reset-code request answers "Email not verified." where it otherwise answers neutrally, which tells an outsider that an address has an unverified account | Low | Security Engineer (ed) | **Not started; batch 13** (reading first; settled together with H-164's design note). Seen in passing while reading for the runbook. Source: SM 2026-10-07. |
+| H-162 | A student's POST to the submissions collection raises NotImplementedError (`create` on the submissions view): a server error where a refusal is due. Old; nothing of a submission is sent | Low | Security Engineer (ed) | **Not started; batch 13.** From Verifier 1's note N2 on H-141. Source: SM 2026-10-07. |
+| H-163 | (a) Three code comments still say a student is shown classmates: `classrooms/views.py` (`extra_cache_scopes` and `my_courses`) and `classrooms/signals.py` (`clear_student_course_cache`); what a classmate's enrolment changes in a student's answer is now the class size alone. (b) Five H-147 tests have been seen red by nobody and are not evidence until shown red: three in the exposure module (the flat query count, the school admin and super admin refusal, the student's own email) and the guard's two scanner self-tests | Low | Security Engineer (ed) | **Not started; batch 13.** From Verifier 1's notes N1 and N5 on H-147. Source: SM 2026-10-07. |
+| H-164 | "Forgot password" does not work for an invited student who has never signed in: the reset-code request answers 400 "Email not verified." for an account that was never verified, so a student whose invitation email is lost has no ordinary way in. The user decided on 7 October 2026 that it shall work | Medium (for now) | Security Engineer (ed) | **Done in beta batch 14** (`task/h164-reset-for-an-invited-student`, final tip `e11a0083`, Verifier 1 VERIFIED-WITH-NOTES at `b6282c7f`, `42742c40` and `f12f12d0`, one per part; users app Ran 732 OK). A reset code now works for an invited student and for a licence-invited teacher, and a reset stamps the email as verified. NOT for a switched-off never-verified account (Verifier 1's first finding, closed inside this row), and NOT for a never-verified account that holds admin power (staff, superuser flag or SUPER_ADMIN type): neither the reset road nor the email-code road (`/auth/otp` VERIFY_EMAIL and `/auth/verify`) opens for it. NOT cured: the Google sign-in road still signs in a never-verified admin-power account (H-203); the code-request answers differ by state (H-198). Evidence: `docs/evidence/h164-reset-for-an-invited-student/`. |
+| H-165 | The answer document builder raises on a stored answers value that is not a list of dictionaries (grading, the read rebuild). By reading: beta's two writers cannot store such a shape today, but the live service's "edit a submission by text" path saves the answers before the document is built, so such rows can exist on production; nobody has counted. After a promotion that carries H-130, the student of such a paper gets an error on every read of it until its grade is released, and grading of it fails | Medium | Hardening Engineer (d5) | **Done in beta batch 12b** (`task/h165-answer-document-unreadable-answers`, v2 VERIFIED-WITH-NOTES at `96a40e5e`, record at `55df7e95`). The answer document no longer raises on a stored answer it cannot print: it says what it could not print, and the paper goes to the teacher's review queue. A stored 0 or false counts as no answers at all, on a short and a long paper; the step that reuses saved evaluations leaves out an entry that is not an object. The markup question it raised is H-176. Source: SM 2026-10-07. |
+| H-166 | A guard test that fails when a `select_for_update()` without `of=` is taken on a query that joins a link that may be empty; PostgreSQL refuses such a lock. It has bitten twice: H-38 part 2 (`docs/evidence/h38_part2/select_for_update_outer_join_regression.md`) and H-153's first gate | Low | Security Engineer (ed) | **Not started; batch 13.** Source: SM 2026-10-07. |
+| H-167 | The error-reporting set-up sends each frame's local variables to the error-reporting service, so a secret that is in a local variable when an error is raised can leave with the report (the queue's address with its password in a connection pool's printed form is one instance; a temporary password in a queued email's arguments another). First logged as: whether the queue helper `safe_delay`'s failure log line can hold the broker's address with its password. Cure, tests first: no frame variables and no request body in a report; a password, secret or token pattern added to the H-89 scrubber; the report's request part scrubbed too | High | Security Engineer (ed) | **Done in beta batch 12b** (`task/h167-no-frame-variables-to-sentry`, Verifier 1 VERIFIED-WITH-NOTES at `a1397c5b`, record at `0343ed80`, final tip `0f467bfc`). An error report carries no frame variables and no request body; a password, secret or token pattern joins the H-89 scrubber, and the report's request, tags, user and contexts are scrubbed too. Main does not have the H-89 scrubber at all: on main only the two settings apply (the hot fix, H-177). Guard against a second set-up call: H-175. Source: SM 2026-10-07. |
+| H-168 | The add-by-email locks the course and a rename locks the enrolment rows, not the account: two teachers adding the same nameless account at once can both fill its name (the later write stands), and a rename and an add, or two renames, can bring one exact name into one course at the same moment. Cure: one lock on the student's account row for add and rename (with `of=("self",)`, H-166's lesson) | Low (Medium-Low if the author's reading shows a duplicate name then misroutes an uploaded paper) | Security Engineer (ed) | **Not started; batch 13.** By reading; from Verifier 1's notes N3 on H-148 and N2 on H-153. Source: SM 2026-10-07. |
+| H-169 | H-148's committed logs quote five generated temporary passwords of accounts in a test database that no longer exists (a failing assertion prints them). They open nothing. The row: the tests assert on the sentence without quoting the value, and logs of that kind are stored masked | Low | Security Engineer (ed) | **Not started; batch 13** (tests only). From Verifier 1's Gate 1 note on batch 12. Source: SM 2026-10-07. |
+| H-170 | Phase 2 line only. A teacher's rename of a student (H-153) is recorded as a log line. After the merge-down the rename writes an audit event through the emitter: ids and the names of the changed fields only, never the names themselves | Low | Next-stage Builder | **Not started; after the merge-down.** From Verifier 1's note N4 on H-153. Source: SM 2026-10-07. |
+| H-171 | The answers prompt is given each question's original label. Decided after one live check with a sectioned paper, which needed the founder's word for a paid call (given 2026-10-07: one real run, d5's plan). Text: GAP-d5-runs/dupq/DESIGN_NOTE.md | Low | Hardening Engineer (d5) | **Not started; the paid check waits for its grant.** Follow-up to H-158. Source: SM 2026-10-07. |
+| H-172 | The "teacher overrode the AI" flag never sets on rows made by today's code: the comparison needs `ai_generated` True and a stored payload, which no path writes together. The dashboard counts it. A second copy of the check calls a name that does not exist | Low | Hardening Engineer (d5) | **Not started.** Text: GAP-d5-runs/dupq/DESIGN_NOTE.md. Source: SM 2026-10-07. |
+| H-173 | `scripts/credscan.py` recognises an address with an EMPTY user name (the form with nothing between the double slash and the colon that starts the password part, the usual Redis address with a password), alone and inside NAME=value lines, but no test pins it: every address-form test builds its address with a user name. The row: one test for the empty-user form and one mutant that makes the user part mandatory | Low | Release Engineer (0b) | **Not started; batch 13.** Source: SM 2026-10-07. |
+| H-174 | A trial converted to a paid plan read "subscription scheduled to cancel", and "Keep subscription" did not clear it: both conversion functions never set `auto_renew`, and resume repaired the local flag only when Stripe was cancelling | High | Security Engineer (ed) | **Done in beta batch 12b** (`task/h174-converted-trial-reads-cancelling`, Verifier 1 VERIFIED-WITH-NOTES at `e94dc5c3`, record at `594a4647`). Both conversions set the plan to renew and clear any cancellation date; "keep" corrects a stale local record but leaves alone a cancellation Stripe has scheduled by date or recorded (status `cancellation_scheduled`); choosing another plan no longer claims an undone cancellation when only the local record was corrected; a repeat cancel on a paid record never cancelled tells Stripe and stamps the date. Three older tests reversed, each named in the evidence. Records already converted are not reached until the customer acts (no correction command). The wider gap is H-178. Source: SM 2026-10-07 from the user's order. |
+| H-175 | A guard test that `sentry_sdk.init` exists nowhere else in production code and under no other name | Low | Security Engineer (ed) | **Not started; batch 13.** From Verifier 1's note N4 on H-167. Source: SM 2026-10-07. |
+| H-176 | The markup cleaner passes a value that is not text through as it is; the document is converted afterwards. Reading only first (after H-158's gate), with one question before all others: can a stored answer entry that is a list or an object holding markup reach a page as markup, that is, is this a way round the cleaner. If yes it is a security row and the Security Engineer reviews the cure | Severity after reading | Hardening Engineer (d5) | **Not started.** From Verifier 2's note 6 on H-165. Source: SM 2026-10-07. |
+| H-177 | The first hot fix to main (the live line) under the no-hot-fix rule, from the user's two approvals of 2026-10-07: the two error-reporting keywords in main's `sentry_sdk.init`, and H-174's whole production patch. One branch from main `9c21bee8` (`task/main-hotfix-sentry-and-h174`), its own gate, regressions and full run, Verifier 1's delta, a pull-request package. Nobody pushes main but the Senior Manager, after the user's final word | High | Security Engineer (ed) | **In progress** (step 0 on main's own files done 2026-10-07 20:11, exactly as written). Not part of the beta push. Source: SM 2026-10-07. |
+| H-178 | Our code nowhere handles a Stripe cancellation scheduled BY DATE (`cancel_at`) as opposed to at the period end (`cancel_at_period_end`). (1) "Keep subscription" cannot undo it (H-174 only stops "keep" from correcting such a record away, and says so); (2) the webhook does not mirror the date into the local record; (3) the page does not show it. A customer whose cancellation was scheduled by date is shown a normal subscription. Reading first, then tests first. Goes into the main package's "not cured" list | Medium | Security Engineer (ed) | **Part A done in beta batch 14** (`task/h178-date-scheduled-cancellation`, final tip `f4d77b84`, Verifier 2 VERIFIED-WITH-NOTES at `26e16742`; billing app Ran 2140 OK): a cancellation Stripe schedules for a date (`cancel_at`) is now mirrored and shown; "Keep subscription" still cannot undo it and says so. **Part B and three questions for the user stay OPEN**; H-197 (`canceled_at` read two opposite ways) is a separate row. Evidence: `docs/evidence/h178-date-scheduled-cancellation/`. Source: SM 2026-10-07 from Verifier 1's cancel_at finding. |
+| H-181 | Lock order: the six individual-plan functions in `billing/services.py` and the licence rollover helper in `billing/license_service.py` could lock a credit bucket before the teacher's wallet, while the charge path locks the wallet first, so two paths could wait on each other (a lock-order deadlock). Cure: the wallet is locked first (`billing/locks.py`, `lock_wallet_first`), before any bucket | Medium | Security Engineer (ed) | **Done in beta batch 14** (`task/h181-wallet-lock-first`, tip `6fe3a08e` with Verifier 1's record, VERIFIED-WITH-NOTES at `5b0ddded`). Evidence: `docs/evidence/h181-wallet-lock-first/`. |
+| H-182 | The licence row (the roll-up of what a school's teachers have used) was written while the charge held the wallet and bucket locks, a second lock-order hazard. Cure: the roll-up is registered once, after the commit | Medium | Security Engineer (ed) | **Done in beta batch 14** (`task/h182-licence-rollup-after-commit`, final tip `44da6f58`, Verifier 1 VERIFIED-WITH-NOTES at `046a90f6`; billing app Ran 2146 OK). Evidence: `docs/evidence/h182-licence-rollup-after-commit/`. |
+| H-195 | The cause of one 139-second hang on the cured text cleaner (H-191) is unknown: in the author's second series one of five runs hung in the end-to-end test; later series were green (5 of 5; 14 of 15). The thread-stack dump on the deadline path is now in the tests (`assignments/tests_sanitizer_threads.py`) | Low | Hardening Engineer (d5) | **Open.** Numbered by 0b 2026-10-08. |
+| H-196 | The order of the students in the course detail (and other enrolment lists) is undefined and follows the query plan: the same students came in a different order under different plans (d5's probe, 2026-10-08), so a cached read and a later read can differ, which made a cache race test fail once on CI (beta `5e37ac2b`, attempt 1; attempt 2 green). Cure: a defined order (oldest enrolment first, then id) | Medium | Hardening Engineer (d5) | **Done in beta batch 15** (`task/h196-defined-roster-order`, merged tip `3f53bced`, Verifier 2 VERIFIED-WITH-NOTES at `2f9dfc1d`; chain Ran 939 OK, 7 of 7 mutants; c_h196 Ran 1887 OK). The students of a course (detail, list, my-students) now come oldest enrolment first, then by id. NOT cured: H-213 (the assignment detail's `student_submissions`) and H-200. Evidence: `docs/evidence/h196-roster-order/`. |
+| H-197 | Stripe's `canceled_at` is read two opposite ways: `billing/stripe_service.py` webhook mirror (a payload with the flag off, `cancel_at` empty and only `canceled_at` set is NOT scheduled; auto_renew True) against the H-174 reactivation service (the same payload IS a cancellation "recorded" at the provider). By reading only; UNVERIFIED whether a live subscription can be in that state | Low until a live read, then Medium | Security Engineer (ed), inside H-178 Part B | **Open.** Found by Verifier 2. |
+| H-198 | `POST /auth/otp` (code request) answers differently for an unknown address (neutral 202), a verified active one (400 "Email already verified") and an unverified one (400 "Email not verified"): it tells a guesser the state of an address. Old behaviour, kept so H-164 told nothing new | Low | Security Engineer (ed) | **Open.** |
+| H-199 | Posture note for the founder, not a fix: there is no second step at sign-in for a super admin anywhere, and `create_superuser` leaves the user type TEACHER so the three admin-power markers can disagree. What a stolen super-admin password gets, and the smallest second step (an emailed one-time code at sign-in for any admin-power account) | Note | Security Engineer (ed) | **Open.** |
+| H-200 | Other lists ordered by a non-unique key (the same family as H-196) | Low | Hardening Engineer (d5) | **Open;** text from d5. |
+| H-202 | A verified account that was switched off on purpose could get an email code on the code-request roads, `/auth/verify` set it active again and handed out tokens, and a switched-off account could set a password through the reset road; the Django admin's switch-off did not raise the token epoch. On beta and on main | High | Security Engineer (ed) | **Done in beta batch 14** (`task/h202-switched-off-means-out`, final tip `13e79e12`, Verifier 1 VERIFIED-WITH-NOTES at `5ad21e96`; users app Ran 757 OK). All three roads refuse a verified, switched-off account and answer like an unknown address; the admin switch-off is one UPDATE that raises the token epoch of the rows that are active. NOT cured: an account switched off BEFORE this ships keeps its old token epoch, so tokens from before that switch-off can work again after a later switch-on until they expire (access 1 day, refresh 2 days). Evidence: `docs/evidence/h202-switched-off-means-out/`. |
+| H-203 | Google sign-in still signs in a never-verified admin-power account: a never-verified command-line superuser's address through Google, with Google saying "email verified", gets tokens and is stamped verified. Old behaviour, found by Verifier 1 | Medium-High | Security Engineer (ed) | **Done, batch 16** (`task/h203-google-road-admin-power`, tip `5fe68114`; widened by the SM's rulings of 9 Oct to the licence invitation road and four new pin kinds; gate on `0631283a`: 23 of 23 red for their written reasons, 21 mutants killed as written, 2 killed by other tests than written, none survived; users, classrooms and billing regression Ran 3381 OK; Verifier 2 VERIFIED at `eeea349d`, 19 of 19 of his mutants killed). Not cured, accepted: a dormant never-verified SCHOOL_ADMIN still activates through Google by the ruling's definition; the direct-add route answers 500 for a refused add (H-214); his probe a3 does not pin the status. |
+| H-205 | Page reading has no working backup model: for answer and assignment extraction and grading the fallback list is `deepseek/deepseek-v4-pro` only (`ai_processor/services.py` 4583-4587), which the provider lists as text-only; an image request to it was refused with a 404. When the main model is unavailable every page read fails. Not known: how often the fallback is used, what the teacher or student is shown | Medium (reliability) | to be named by the SM | **Open.** |
+| H-179 | A cut-off AI reply (finish reason "length") left no trace, so the loss could not be counted. Now one WARNING line per metered provider call (task type, the reply's model and the reason; no prompt, assignment or reply text) | Low | Hardening Engineer (d5); verifier v2 | **Done in beta batch 15** (`task/h179-finish-reason-count`, merged tip `c0294cc9`, Verifier 2 VERIFIED-WITH-NOTES at `e61cbe5a`; chain Ran 942 OK, 7 of 7 mutants; c_h179 Ran 6142 OK). Not shown: whether production logs let anyone count the lines; the unmetered super-admin path is not counted by design. Evidence: `docs/evidence/h179-finish-reason-count/`. |
+| H-180 | A student's upload refused because the teacher is out of credits was shown the money text. Now a fixed sentence with no money word and no number; the teacher's later files read the generic credit message | Medium | Hardening Engineer (d5); verifier v1 | **Done in beta batch 15** (`task/h180-student-upload-credit-door`, merged tip `22090331`, Verifier 1 VERIFIED-WITH-NOTES at `4216575f`; chain on the third run: Ran 930 OK, 18 of 18 mutants (M16's set differs by one test, ruled to stand); c_h180 Ran 5880 OK). NOT cured: H-211, the batch-total limit of the upload door (N1; Epic B's hold cures it). Not shown: the student site's handling of the 402 body; a batch whose first file succeeds and second is refused. Evidence: `docs/evidence/h180-student-upload-credit-door/`. |
+| H-207 | Phase 2 line: remove the code left dead by the closed student door (H-152): the REGISTRATION_PAUSED reason code and the register-student failure-budget helpers in `users/throttling.py`, the S4 "student_invitation" audit method and the settings that feed them. Marked with a comment naming this row in the merge-down | Low | Next-stage Builder (tests first, after the merge-down bundle) | **Open.** |
+| H-208 | Log lines that carry a broker error's text and a traceback: `students/task_tracking.py` (`mark_processing_task_failure`, `cancel_processing_task`, `normalize_processing_task_status`), `AutoGrader/dispatch.py` (the dispatch line), `students/services.py` (`_dispatch_followups`). Fix: ids and the class name only. Found by Verifier 2's probe on the score-print stack | Low-Medium | Hardening Engineer (d5) | **Done, batch 16** (`task/h208-broker-text-not-logged`, tip `5b9e9956`, code gated at `994febe1` after five chain runs: the stops were d5's written sets and checker, told in the row's EVIDENCE.md; c_h208 Ran 6100 OK; Verifier 2 VERIFIED, 7 of 7 mutants killed as he wrote them). Not cured: Celery's own failure log (H-218). |
+| H-209 | The grade-all task (`assignments/tasks.py`, the except block about lines 172-185) prints a full traceback to stdout and stores `str(e)` and the traceback in the Celery result state. Reading first | to be set by a reading | Hardening Engineer (d5) | **Done, batch 16** (`task/h209-task-results-no-text`, tip `7d328eac`, code gated at `ab6606a6`, stacked on H-208; chain 15 of 15 mutants as written on the first run; c_h209 Ran 6108 OK; Verifier 2 VERIFIED, 14 of 14 mutants killed as written). Not cured: Celery's own failure log still carries the text (H-218); H-219 (read answered in Verifier 2's record). |
+| H-210 | `register_school_admin` has only the per-network RegisterThrottle: no per-address failure budget and no pause (the closed student door had a global budget). Its token is 32 random bytes, so guessing is infeasible; posture, not an exposure | Low | to be named by the SM | **Open.** |
+| H-211 | A student's answer-edit credit refusal stores the generic credits text instead of the fixed student sentence | Low-Medium | Hardening Engineer (d5) | **Done, batch 16** (`task/h211-student-edit-credit-sentence`, tip `fc35d036`, code `c6a1856c`, stacked on H-180; chain on its second run Ran 972 OK, 6 of 6 mutants; c_h211 Ran 5884 OK; Verifier 1 VERIFIED-WITH-NOTES). Not cured: the synchronous student edit and upload routes keep the generic wallet text (H-216, built, not in this batch); the empty-wallet door still gives a student the generic text. |
+| H-212 | The per-address rate limit on the closed student door (`users/views.py` `register_student`, `throttle_classes=[RegisterThrottle]`) has no test on either line (Verifier 2's mutant D4 survives) | Low | tests only, on beta first | **Open.** |
+| H-213 | The teacher's assignment detail `student_submissions` (`assignments/serializers.py`, one entry per enrolled student) is built from an unordered query; seen red by Verifier 2's finding f1 (insertion order against the ruled order). Not cured by H-196 | Low-Medium | Hardening Engineer (d5) | **Open.** |
+| H-214 | The direct-add route answers 500 instead of 400 when it refuses an existing account or a cross-school one (a DRF ValidationError swallowed by `except Exception`); the sibling routes of the view may share the catch-all | Low-Medium | Security Engineer (ed), after H-203 | **Open.** |
+| H-191 | The text cleaner in `assignments/prosemirror_converter.py` was ONE module-level `bleach.Cleaner` used by every thread; its html5lib parser is not thread-safe and production runs gunicorn gthread with 4 threads. Seen: the library's own "We should never reach this point" error on CI once (run 37779788548, `students.tests_grading_redelivery_live`), becoming a failed submission. Cure: a fresh cleaner per call (about 52 microseconds, about 3 percent). Observed: the crash and the wedge 5 of 5 on the old code in the author's runs; mixed text (one user's text in another's output) observed by Verifier 2's probe (counts 3/66/470, 2/28/213, 3/79/1011), with the limit that no sample text was saved. Files: `assignments/prosemirror_converter.py` and `assignments/tests_sanitizer_threads.py` (docstring only since the gated tip bf0d7632). Limits (Verifier 2): the kills of the shared cleaner are by deadline or timeout, the tests are timing-dependent, his parity tests are not in the branch | High | Hardening Engineer (d5); verifier v2 | **Done in beta batch 13h, its only row** (`task/h191-sanitizer`, tip `b7bccf3c`, Verifier 2 VERIFIED-WITH-NOTES). Not yet on main: main (`4bf62c6d`) still has the shared cleaner, so the next promotion carries this cure. Evidence: `docs/evidence/h191-sanitizer-per-call-cleaner/`. |
+
+**Note on rule 18 and three earlier mutation batteries (SM ruling 2026-10-05).** The mutation batteries of H-107 (13 mutants), H-109 (5 mutants) and H-97 (the same runner as H-109) collected each mutant's test output through a pipe that the runner read continuously, not straight to a file as rule 18 now asks of every inner run. The results stand, without a re-run: the runners counted a kill only on a non-zero exit AND a "Ran" line in the output AND no load failure, and would have recorded a silent exit as BROKEN; every committed mutant log carries named `FAIL:`/`ERROR:` headers and unittest's "FAILED" line, which is printed only after the "Ran" line. Short of the rule as now worded: those logs do not keep the "Ran" line itself, and H-109's expectation, written before its run, was counts, not test names. H-98's battery, first run in the same form, was re-run in file form before its merge into batch 8. From 2026-10-05 on: inner runs write to files, each mutant's log keeps its "Ran" line, and expected kills are written down as test names before the run.
+
+**Rule 18, what a whole log is (SM ruling 2026-10-06).** The rule's purpose is that a log cannot be a cut copy. A raw log meets it when it holds exactly one "Ran" line and its result line, with nothing after them but teardown or footer lines; this replaces "ends with its Ran and OK/FAILED lines". Reason: with the output going to a file, Django's own stdout lines are flushed when the process ends and land after the result line (seen in 1a's two logs for H-110).
+
+---
+
+# H-1 — System-wide cache invalidation architecture
+
+> ## STATUS, stated precisely
+> **H-1 Stage 2: COMPLETE — 33/33 applicable families migrated.**
+> **H-1 overall: OPEN — Stage 3 hardening outstanding.**
+>
+> The 100% migration figure does **not** mean H-1 is production-complete.
+> Stage 3 contains substantive engineering, not paperwork:
+>
+> 1. dashboard-wide legacy-disabled verification (the dashboard as a system,
+>    not 33 isolated family proofs);
+> 2. selective stampede protection — jitter + single-flight for the measured
+>    expensive families only, no locking on cheap ones;
+> 3. **H-9** Redis test isolation;
+> 4. **H-2** PostgreSQL test teardown / leaked connections;
+> 5. clean cross-app regression from the repaired tree;
+> 6. final repository-wide release gate from the committed tree.
+>
+> Only after all six does removing the legacy wildcards become reviewable.
+
+**Priority: highest. Treat as an architecture task, not a tuning exercise.**
+
+> **Architecture decided (owner, 2026-09-09): Option D — hybrid generation
+> versioning.** The detailed design, the measured cache-stampede evaluation,
+> and the acceptance/measurement plan are in
+> **`docs/H1_CACHE_INVALIDATION_DESIGN.md`**. Its one blocking pre-check —
+> production Redis's `maxmemory-policy` — is **RESOLVED: `volatile-lru`**,
+> which is the favourable answer: counters written without a TTL are not
+> eligible for eviction, so the stale-revival failure mode is structurally
+> impossible. See §6 of that document.
+
+## What is actually wrong
+
+Measured against **real Redis** (not LocMem) with a realistic 10,000-key
+cache and a real bulk import through the live service layer:
+
+| Measurement | Value |
+|---|---|
+| SCAN commands per imported row | **29** |
+| Total Redis commands per imported row | **432** |
+| Cache keys destroyed by a **25-row** import | **10,000 — the entire keyspace** |
+| Extrapolated to a 2,000-row import | **~58,000 SCANs, ~864,000 Redis commands** |
+
+The earlier "~22,000 scans" figure quoted during the Section 3 audit was an
+underestimate derived from signal counts. The measured figure is worse.
+
+The headline is not the scan count. It is the third row: **a 25-row roster
+import flushed every cached entry for every tenant in the system.** Patterns
+like `*user*` and `courses:*` match every user's cached page, so invalidation
+triggered by one teacher's course discards the cache of every unrelated
+school. That converts a routine import into a system-wide cold cache.
+
+### Contributing defects, each independently confirmed
+
+1. **Wildcard patterns are unbounded by tenant.** `*user*`, `*school*`,
+   `*course*` match across every user and school. Nothing scopes an
+   invalidation to the rows that actually changed.
+
+2. **Patterns overlap heavily.** Static analysis of the four signal modules
+   found a single key matched by up to **four** distinct patterns:
+   `studentcourses:user_id__1:query__abc` is matched by `*course*`,
+   `*studentcourse*`, `*user*` and `studentcourses:*`. Each is a separate
+   full keyspace SCAN deleting the same key.
+
+3. **Per-row invalidation.** Every `StudentCourse` save fires a receiver
+   clearing ~11 patterns. Bulk paths save row-by-row, so the cost is
+   multiplied by the row count. `AutoGrader.cache_utils.batched_cache_invalidation`
+   exists precisely to coalesce this and **no bulk path uses it**.
+
+4. **Four separate implementations** of `delete_cache_patterns`
+   (`AutoGrader/cache_utils.py`, `classrooms/signals.py`,
+   `students/signals.py` via the shared helper, `assignments/signals.py`),
+   which have already drifted: only some batch, only some catch Redis
+   errors, only some warn on a backend without pattern support. See H-4.
+
+5. **Wildcards can and do hit non-cache functionality.** `KEY_PREFIX="gaplus"`
+   keeps Celery broker/result keys safe, but *anything written through the
+   Django cache* is in range. This has already caused a live defect:
+   `users/middleware.py` carries a 20-line comment explaining that the
+   activity heartbeat and presence-set keys are **deliberately named to avoid
+   the substring "user"**, because `clear_user_cache`'s `delete_pattern("*user*")`
+   was wiping both on every unrelated user save — defeating a write throttle
+   and silently zeroing the concurrent-user metric. The current mitigation is
+   a naming convention with no enforcement: the next key containing "user"
+   reintroduces it. DRF throttle keys (`throttle_<scope>_<ident>`) are in the
+   same keyspace and are one scope-name away from the same collision.
+
+6. **Cache stampede is unmitigated.** After a flush, every concurrent user
+   misses simultaneously and rebuilds at once. The dashboard and course
+   endpoints fan out into many sub-queries per page, so the rebuild is
+   expensive precisely when everything requests it together.
+
+7. **Cache and Celery share one Redis.** The same import run issued 25
+   `lpush`/`subscribe`/`unsubscribe` pairs (task dispatch) interleaved with
+   the 10,000 `del`s. Cache invalidation load and task dispatch contend for
+   the same instance.
+
+## Scope
+
+Do the design work before the code work. The instruction stands: **first
+establish what must actually be invalidated, then design the strategy.**
+
+1. **Inventory** — every cache write site, key shape, TTL, and every
+   invalidation call site with the patterns it clears and the model events
+   that trigger it.
+2. **Derive the true dependency map** — for each cached response, which
+   model changes can actually invalidate it. Most current patterns are far
+   wider than this map.
+3. **Design** the replacement. Options to evaluate explicitly, with the
+   trade-offs recorded:
+   - **Key versioning / generation counters** (e.g. a per-user or per-course
+     version integer folded into the key) — invalidation becomes an `INCR`,
+     O(1), with no SCAN and no collateral damage. Stale entries expire by TTL.
+   - **Tag-based invalidation** via sets of keys per entity.
+   - **Targeted key deletion** where the key set is enumerable.
+   - Keep `delete_pattern` only where a bounded, tenant-scoped prefix makes
+     it cheap and safe.
+4. **Namespace design** — cache keys must be structurally separated from
+   throttles, locks, counters and presence data so that no invalidation can
+   reach them by construction, replacing today's naming convention.
+5. **Batching** — bulk import/create/update/delete paths must coalesce
+   invalidation into one operation.
+6. **Stampede control** — decide and implement (staggered TTL/jitter,
+   lock-and-rebuild, or serve-stale-while-revalidate).
+7. **Consolidate** to one implementation (subsumes H-4).
+
+## Acceptance criteria
+
+- A 2,000-row bulk import issues **O(1) invalidation operations, not O(rows)** —
+  target: fewer than 100 Redis commands attributable to invalidation, down
+  from ~864,000.
+- Invalidation triggered by one tenant **cannot** evict another tenant's
+  cached entries. Proven by assertion on surviving keys, not by inspection.
+- No invalidation path can delete a throttle, lock, counter, presence or
+  Celery key. Proven structurally (namespace separation), not by naming.
+- A mutation that changes data **always** invalidates the responses that
+  depend on it — no stale read survives a committed mutation.
+- Redis unavailable or slow: every database operation still succeeds; the
+  system degrades to stale reads, never to failed writes (the principle
+  already established in `classrooms/signals.py`).
+- Cache rebuild after a flush does not produce a thundering herd — bounded
+  concurrent rebuilds under the load harness.
+- Exactly one `delete_cache_patterns` implementation remains.
+
+## Required evidence
+
+- **Functional**: cached and uncached responses are byte-identical; every
+  mutation type invalidates what it should.
+- **Adversarial**: deliberately attempt stale reads, cross-tenant cache
+  leakage, incorrect entries, missed invalidations, races between a mutation
+  and a concurrent read, throttle/lock interference, and stampedes. Each
+  attack asserts it failed.
+- **Stress/concurrency**: real Postgres + real Redis; large bulk import
+  concurrent with active readers; measured Redis command counts, CPU, memory,
+  latency percentiles, and connection counts before and after.
+- **Mutation**: removing batching, removing namespace separation, widening a
+  pattern, and removing stampede control must each fail specific tests, with
+  counts recorded.
+- **Live stack**: measured through gunicorn against real Postgres/Redis, as
+  the Section 3 load test was — not the Django test client alone.
+- **Failure simulation**: Redis down during import; Redis recovering
+  mid-import; Redis slow (latency injection); invalidation failing partway.
+- **Regression**: full suite green, with before/after counts.
+
+## Phase 1 progress — dependency map (started 2026-09-09)
+
+The redesign cannot begin until it is known what must actually be
+invalidated. This is that work; it is **partially complete**.
+
+### Cache write sites, by app
+
+| App | `cache.set` / `get_or_set` sites |
+|---|---|
+| `dashboard` | **24** |
+| `users` | 4 |
+| `billing` | 2 |
+| `students`, `classrooms`, `assignments`, `ai_processor`, `AutoGrader` | 1 each |
+
+`dashboard` holds the large majority of cached responses (TTLs of 5, 15 and
+60 minutes) and is also where the heaviest aggregate queries live — so it is
+both the biggest beneficiary of caching and the biggest victim of a flush.
+The redesign must start from `dashboard`'s key shapes, not `classrooms`'.
+
+### Key namespaces in use
+
+`courses:`, `schooladmins:`, `studentadmins:`, `superadmins:`,
+`teacheradmins:`, `studentsubmissions:`, `settings:`, `user:`, `image_url:`,
+plus `UserCacheMixin`'s `<model>s:user_id__<id>:query__<md5>` shape.
+
+Most are already `<entity>:user_id__<id>` — i.e. **the per-user scoping the
+patterns then throw away** by matching `*user*` across all of them. A
+per-user generation counter would fit the existing key shape with no
+restructuring, which makes key-versioning the leading candidate.
+
+### Non-cache keys sharing the keyspace — CONFIRMED BY TEST
+
+`AutoGrader/tests_cache_collateral_damage.py` (9 tests, real Redis) seeds
+every non-cache key shape the project writes through the Django cache, fires
+each invalidation receiver, and asserts survival:
+
+| Key | Purpose | Consequence if deleted |
+|---|---|---|
+| `billing:planchange:<user id>` | idempotency lock | a second concurrent billing mutation gets through |
+| `billing:license_overage:<sub id>` | idempotency lock | duplicate overage grant |
+| `presence:beat:<type>:<id>` | write throttle | activity rows written on every request |
+| `presence:online` | presence set | concurrent-user metric silently zeroed |
+| `throttle_<scope>_<ident>` | DRF rate limits | rate limit reset |
+| `healthcheck` | liveness probe | health check flaps |
+
+**Current result: no live collateral damage — all 9 pass.** The billing
+locks and presence keys survive today only because none of their names
+contain a substring any pattern matches. That is a naming convention with
+nothing enforcing it, which is why these tests now enforce it.
+
+Two findings from this:
+
+* **Mutation-proved load-bearing**: adding a single `"*billing*"` pattern to
+  `users/signals.py` destroys **both billing idempotency locks** and the
+  suite fails. One careless pattern is all it takes to turn cache
+  invalidation into a double-billing bug.
+* **A latent defect is pinned**: `throttle_user_<pk>` — DRF's built-in
+  `UserRateThrottle` scope — **is** matched by `*user*` and is deleted today.
+  It is harmless only because that throttle class is not enabled. A test
+  asserts this, so enabling `UserRateThrottle` fails loudly instead of
+  silently resetting every user's rate limit on every user save.
+
+### Coverage map — COMPLETE (measured, real Redis)
+
+Every cache-key format the application writes, tested against every wildcard
+pattern the signal receivers fire, with **Redis itself** doing the glob
+matching (`AutoGrader/tests_cache_invalidation_coverage.py`, 5 tests).
+
+| Metric | Value |
+|---|---|
+| Distinct cache-key formats | **35** |
+| Never reached by any pattern | **6** |
+| Reached by more than one pattern (redundant) | **27** |
+| Total pattern-matches for 35 keys | **67** (~1.9 scans per key, per invalidation event) |
+| Keys matched by `*user*` alone | **29 of 35** |
+
+**The single most important number is the last one.** `*user*` matches 29 of
+the 35 key families, so `users/signals.py::clear_user_cache` — which fires on
+**every `CustomUser` and `Settings` save** — is a de-facto full cache flush.
+User saves are among the commonest writes in the system (registration,
+profile edit, settings change, and the `create_default_settings_and_wallet`
+signal chain each trigger one). The 25-row-import result is not a bulk-import
+quirk; it is what happens on ordinary traffic.
+
+Worst redundancy, confirmed on a key the app really writes:
+`studentcourses:user_id__<id>:query__<md5>` is matched by `*user*`,
+`*course*`, `*studentcourse*` **and** `studentcourses:*` — four full keyspace
+SCANs, three of them deleting a key an earlier one already deleted.
+
+### UNDER-invalidation — the finding this sweep existed to catch
+
+Six key formats are reached by **no pattern at all**. Two are fine; four are
+a correctness bug.
+
+**Genuine gaps — four `dashboard` responses that no mutation ever clears:**
+
+| Key | TTL | Goes stale when |
+|---|---|---|
+| `teacher_performance_<school>_<page>_<size>` | 300s | any teacher's assignments/grades change |
+| `teacher_detail_<school>_<teacher>` | 300s | that teacher's data changes |
+| `assignment_activity_<school>_<year>` | 900s | any assignment is created/edited |
+| `department_overview_<school>` | 300s | roster or course changes |
+
+They break the `<entity>:user_id__<id>` naming convention every pattern is
+written against, so nothing reaches them. A school admin can watch a teacher
+publish an assignment and see the old numbers for up to 15 minutes.
+
+Severity: **stale-within-tenant, not cross-tenant.** The keys are correctly
+scoped by `school.id`, so one school cannot read another's numbers — this is
+a freshness bug, not a disclosure bug. That distinction matters for
+prioritisation and is asserted, not assumed.
+
+**Not gaps — two caches with their own invalidation, recorded so the
+distinction is not lost:**
+
+* `assignmentpdf:<version>:<assignment id>:<view>:<stamp>` — `assignments/pdf_cache.py`
+  clears its own prefix directly.
+* `grading_answer_cache:<digest>` — content-addressed: the key *is* a digest
+  of the input, so changed input means a different key and there is nothing
+  to invalidate.
+
+### Cross-tenant cached data — swept, no leak found
+
+Every key format is scoped by `user_id` or by `school.id`. No cached response
+is keyed only by a page number or a filter that two tenants could share, so
+**no cached entry is readable across a tenant boundary**. The cross-tenant
+exposure in this system is the opposite direction: one tenant's write
+*destroys* another tenant's cache (availability/performance), rather than
+exposing it (confidentiality). Asserted by
+`test_over_invalidation_one_users_key_is_cleared_by_another`.
+
+**Phase 1 is complete.** The two open pieces from the previous pass — the
+dashboard map and the under-invalidation sweep — are done above.
+
+---
+
+## Design options — for review before implementation
+
+Compared objectively; the recommendation is at the end, but the decision is
+yours. "Ops" = Redis operations per invalidation event.
+
+### Option A — per-entity generation counters (key versioning)
+
+Fold a version integer into the key (`courses:v<n>:user_id__<id>:...`);
+invalidate by `INCR`ing that entity's counter. Old keys are orphaned and
+expire by TTL.
+
+| Dimension | Assessment |
+|---|---|
+| Correctness | Strong. A bumped counter changes every dependent key atomically. |
+| Tenant isolation | Strong — a counter is per user/school, so a bump cannot reach another tenant. |
+| Redis ops | **O(1)**: one `INCR`, no SCAN. Best of the four. |
+| Latency | One round trip per invalidation; reads need the counter, so +1 GET per read unless cached in-process. |
+| Memory | Orphaned entries live until TTL — a transient increase after heavy churn. |
+| Concurrency | `INCR` is atomic; no lost updates. |
+| Bulk imports | Naturally O(1) — 2,000 rows still bump one counter per affected entity. |
+| Stale risk | Low, provided every dependent key includes the counter. Missing one is a silent stale bug. |
+| Stampede | Unchanged — a bump invalidates a whole family at once. Needs separate mitigation. |
+| Complexity | Moderate: every read site must fetch and embed the counter. |
+| Migration | Easy — new keys simply have a new shape; old ones expire. No flush needed. |
+| Failure behaviour | Redis down: counter read fails → treat as cache miss → serve from DB. Degrades correctly. |
+
+### Option B — targeted key deletion
+
+Compute the exact affected keys and `DEL` them.
+
+| Dimension | Assessment |
+|---|---|
+| Correctness | Only as good as the enumeration; anything forgotten goes stale. |
+| Tenant isolation | Strong — you delete exactly what you name. |
+| Redis ops | O(affected keys); a single `DEL` can take many keys, so usually small. |
+| Latency | Very low when the set is small. |
+| Memory | Best — no orphans. |
+| Concurrency | Fine. |
+| Bulk imports | **Poor unless batched** — the per-row problem returns as a per-row DEL list. |
+| Stale risk | **Highest of the four.** The 35-key map above shows the enumeration is already non-obvious; the four dashboard keys were missed by exactly this kind of reasoning. |
+| Stampede | Unchanged. |
+| Complexity | High: every key format must be derivable from the mutation, including paginated and query-hashed variants — `UserCacheMixin` keys embed an **MD5 of the query params**, which is not enumerable at all. |
+| Migration | Incremental. |
+| Failure behaviour | Same as today. |
+
+**The `UserCacheMixin` query hash is close to disqualifying for B on its
+own**: you cannot enumerate keys you cannot predict.
+
+### Option C — tag / set-based invalidation
+
+Maintain a Redis SET per entity holding the keys that depend on it;
+invalidate by reading the set and deleting its members.
+
+| Dimension | Assessment |
+|---|---|
+| Correctness | Strong — solves B's enumeration problem by recording dependencies at write time. |
+| Tenant isolation | Strong. |
+| Redis ops | O(1) SMEMBERS + one DEL of N keys — no SCAN. |
+| Latency | Two round trips; still far below today. |
+| Memory | Extra: a set per entity, and sets need pruning or they grow unboundedly as keys expire underneath them. |
+| Concurrency | Set writes race with key writes; a key can be cached but not yet tagged (small stale window) unless done in a transaction/pipeline. |
+| Bulk imports | Good — one set read per entity, batchable. |
+| Stale risk | Low-moderate: the race above, plus tag drift if a write path forgets to tag. |
+| Stampede | Unchanged. |
+| Complexity | **Highest** — every cache write must also tag, and tag GC must be built and operated. |
+| Migration | Harder — needs backfill or a period where untagged keys are unreachable. |
+| Failure behaviour | Redis down: tagging fails → untagged keys become un-invalidatable until TTL. Worst failure mode of the four. |
+
+### Option D — hybrid: versioning for user/school families, dedicated prefixes elsewhere
+
+A for the 29 `user_id`/`school`-scoped families; keep the two
+self-managing caches (PDF, grading digest) as they are; give the four
+orphaned dashboard keys the standard scoped shape so they join the scheme.
+
+| Dimension | Assessment |
+|---|---|
+| Correctness | Strong, and it fixes the four under-invalidated keys as a side effect. |
+| Tenant isolation | Strong. |
+| Redis ops | O(1) for the common case; unchanged for the two specialised caches. |
+| Complexity | Moderate — one mechanism plus two documented exceptions, rather than one mechanism forced everywhere. |
+| Migration | Same as A. |
+| Everything else | As A. |
+
+### Recommendation, with the reasoning exposed
+
+**D (hybrid, versioning-based)** — but on evidence, not convenience:
+
+* 29 of 35 key families are already `<entity>:user_id__<id>`, so the scoping
+  a counter needs **already exists in the key shape**; A/D fit the codebase
+  as written rather than requiring it to be rewritten.
+* B is undermined by the `UserCacheMixin` MD5 query hash — unpredictable keys
+  cannot be enumerated for targeted deletion.
+* C is the most powerful but has the worst failure behaviour (a Redis blip
+  during tagging silently creates un-invalidatable keys) and the largest
+  operational surface, for a system whose current problem is over-eager
+  invalidation rather than under-reach.
+* D handles the two self-managing caches honestly instead of forcing them
+  into a scheme that buys them nothing.
+
+**Not decided by this analysis, and needing your call:** cache stampede.
+None of A–D addresses it — invalidating a family still expires everything at
+once. It should be chosen separately (jitter, lock-and-rebuild, or
+serve-stale-while-revalidate), and `dashboard`'s expensive aggregates are the
+place it matters.
+
+**Open risk for whichever option is chosen:** every read site must adopt the
+new scheme. A single missed read site is a permanently stale response. The
+35-key map above is the checklist that makes that auditable, and the coverage
+test should be inverted after implementation to assert that every key format
+is reachable by its owning mechanism.
+
+## Baseline — preserve for the before/after comparison
+
+These are the numbers the redesign must be measured against. **Do not
+re-baseline after the change**; the point is to prove improvement, not to
+move the goalposts.
+
+| Measurement | Baseline (2026-09-08/09) |
+|---|---|
+| SCAN commands per imported row | 29 |
+| Total Redis commands per imported row | 432 |
+| Cache keys destroyed by a 25-row import | 10,000 (entire keyspace) |
+| Extrapolated 2,000-row import | ~58,000 SCANs, ~864,000 commands |
+| Distinct cache-key formats | 35 |
+| Key families matched by `*user*` | 29 of 35 |
+| Never-invalidated key formats | 6 (4 are gaps) |
+| Redundantly-invalidated key formats | 27 |
+| Total pattern-matches per invalidation sweep | 67 |
+
+Post-implementation testing must additionally cover **realistic multi-tenant
+scenarios and large bulk operations**, not the 25-row case that exposed the
+problem: reproduce the original failure at scale first, then demonstrate the
+redesign removes the flush/performance cliff.
+
+## Reproduction
+
+The measurements above came from a `TransactionTestCase` with
+`override_settings(CACHES=...)` pointed at a dedicated Redis DB, seeding
+10,000 realistic keys, calling `redis.config_resetstat()`, running
+`import_roster` through the real service layer, then reading
+`INFO commandstats` and `DBSIZE`. Rebuild this as a permanent, committed
+benchmark so the improvement is measured rather than asserted.
+
+---
+
+# H-2 — Full-suite exit code / test DB connection leaks
+
+**The suite passes and still exits non-zero, so CI would go red on a green
+run.**
+
+Observed: `classrooms students users assignments dashboard` →
+**1,422 tests, OK, 0 failures**, then teardown fails with
+`database "test_..." is being accessed by other users — There are 13 other
+sessions using the database`, exit 1.
+
+Isolated: **`classrooms` alone runs 235 tests and exits 0**, so this section
+is not the source. The leak comes from threaded / `LiveServerTestCase`
+suites elsewhere — `users/tests_activity_middleware_load.py`,
+`users/tests_login_lockout.py`, `students/tests_grading_idempotency.py`,
+`assignments/tests_load.py`, `assignments/tests_security.py`.
+
+The pattern that fixes it is already in the tree:
+`classrooms/tests_concurrency_and_resilience.ThreadSafeTransactionTestCase`
+closes connections in `tearDown` as well as in each worker thread.
+
+> **CORRECTION (2026-09-13): the diagnosis above was wrong.** The leak comes
+> from one test, not five suites.
+> `assignments/tests_security.py` `ConcurrentAccessRevocationTest` starts
+> 13 threads and none of them closed its own connection. That is the
+> "13 other sessions". Two earlier fixes were tried, disproven and reverted:
+> `CONN_MAX_AGE=0` in test mode (still 13 sessions), and a shared
+> `tearDown` mixin (`connections.close_all()` is thread-local, so it cannot
+> close a worker thread's connection). The actual fix is
+> `try/finally: connection.close()` inside each worker. Full evidence is in
+> `docs/evidence/H2_TEST_TEARDOWN_EVIDENCE.md`.
+>
+> **Status: Closed — fixed, verified with three consecutive clean full runs
+> and failure/mutation simulation.** (Owner sign-off 2026-09-13.)
+> gate3/4/5: 1,804 tests OK each, exit 0, 0 leftover sessions and 0
+> leftover DBs. Mutant with the two `close()` calls removed: all 58 tests
+> still pass, exit 1 with "13 other sessions". Restore verified by checksum.
+> The fingerprint helper skipped six untracked documentation files with
+> spaces in their paths. The owner reviewed this and does not consider it
+> grounds to invalidate the runs, since those files are not code. All
+> future gates use the NUL-safe fingerprint.
+
+**Scope**: ~~promote that base class to a shared location and adopt it in
+every threaded/live-server suite~~ (superseded, see the correction); confirm
+each worker closes its own connection.
+
+**Acceptance**: the full suite exits **0**, repeatably, including after the
+threaded suites run; no lingering `test_*` connections in `pg_stat_activity`
+after a run.
+
+**Evidence**: regression (three consecutive clean full runs); failure
+simulation (a deliberately leaking test is detected rather than silently
+tolerated). Adversarial/stress/live-stack: not applicable — record why.
+
+---
+
+# H-9 — the whole test suite shares one Redis DB (test isolation)
+
+**Found 2026-09-12 while investigating a cross-app regression failure.**
+
+> **REGRESSION (2026-09-14) — H-9 reopened.** The 2026-09-12 fix below
+> isolated the project-wide test cache, but twelve modules that must run on
+> real Redis wrote their own `CACHES` override. That override replaced the
+> fix entirely. It used the unscoped `django_redis.cache.RedisCache`: eleven
+> modules on a fixed database number (3–15) with the shared `gaplus` prefix,
+> and `users/tests_activity_middleware_load` on the default database. Their
+> `cache.clear()` is FLUSHDB, so two concurrent test runs wiped each other's
+> cache entries and H-1 generation counters. It surfaced for real: a
+> Section 9 mutation run overlapped the Section 8 strict gate on shared
+> Redis for ~3 minutes, and Section 8 aborted and re-ran.
+>
+> The four original acceptance tests kept passing throughout, because they
+> only exercised the default cache. A dedicated database number is not
+> isolation: every run of the same module picks the same number.
+>
+> **Fix** (branch `task/h9-redis-db-isolation`):
+> - `AutoGrader.test_cache.real_redis_caches(location)` returns a
+>   real-Redis override with the prefix-scoped backend and the
+>   per-process prefix. All twelve modules use it.
+> - `tests_cache_generation` builds raw keys with `cache.make_key()`.
+> - `tests_cache_superadmin_1522` scans only its own prefix.
+> - `SuiteOverridesCannotBypassIsolationTests` fails the suite if any test
+>   module configures the unscoped backend again, and proves two processes
+>   sharing one fixed database cannot wipe each other.
+>
+> **Scope widened (owner, 2026-09-14, relayed via Section 9):** every
+> session must be able to run full strict gates at the same time as other
+> sessions without interference. So the Celery broker and result backend
+> are namespaced too. Under `manage.py test` each process gets kombu
+> `global_keyprefix` and `result_backend_transport_options.global_keyprefix`
+> equal to its cache prefix. That isolates queues, exchange bindings and
+> kombu's global `unacked` hash and index, which acks_late redelivery uses.
+> Production `visibility_timeout` is unchanged. The real-worker tests
+> delete their queues through kombu, not a raw client.
+> `CeleryBrokerIsolationTests` checks the prefixes are applied, proves a
+> same-named queue purged by another process leaves our messages intact,
+> and fails if any test builds a raw client from `CELERY_BROKER_URL`.
+> The settings branch covers every test run (main checkout, worktrees,
+> CI, two runs in one worktree), so `scripts/task-worktree.sh` only
+> documents it.
+>
+> **Acceptance proof (owner's):** two FULL strict test runs from the
+> committed fix, overlapping in time on the same Redis, each on its own
+> fresh PostgreSQL test DB. Both must pass with exit 0 and clean
+> teardown, and mid-run sampling must show both process prefixes live at
+> once.
+>
+> **Status: CLOSED (owner, 2026-09-15).** Every closure criterion below is
+> met and independently verified on `29cc1c7`, including two concurrent full
+> suites (4,153 tests each); see `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`
+> §5. The
+> serial-runs restriction below is lifted by the passing proof, but only for
+> test runs from a tree that contains this fix. Branches that predate it still
+> run the flushing suites and must merge beta before overlapping.
+>
+> _Previous status:_ IMPLEMENTED / MERGED / VERIFICATION PENDING (owner,
+> 2026-09-14). The fix is `4820e33`, merged with current beta on
+> `task/h9-redis-db-isolation`. The owner approves landing it on beta,
+> subject to the verification below completing successfully.
+>
+> **Operational restriction, in force until the overlap proof passes:**
+> full-suite gates, mutation runs and live-worker tests from different
+> sessions must not overlap in time. Merging the fix does NOT lift it;
+> only the proof does.
+>
+> **Order:** Section 9's host-quiet gate, then targeted H-9 verification
+> on current beta, then the concurrent full-run proof, then the H-1
+> stampede measurement on current beta, then the closure decision.
+>
+> **Moves to CLOSED only when ALL hold:**
+> 1. the targeted tests pass (the changed modules plus both Celery
+>    real-worker/broker modules);
+> 2. two FULL test runs, running simultaneously, both pass;
+> 3. each uses its own isolated, fresh PostgreSQL test DB;
+> 4. real Redis is used throughout;
+> 5. Redis sampling during the overlap shows both runs' independent
+>    namespaces live at the same time;
+> 6. no cross-run deletion or contamination occurs;
+> 7. both tear down cleanly with zero leaked DB connections;
+> 8. the final regression stays clean.
+>
+> H-9 closure is **not** blocked by the repository-wide Item 9 (E800)
+> cleanup. The two only share files. Whichever lands on beta second
+> rebases and preserves BOTH the H-9 and the H-12 backlog and pre-commit
+> changes.
+
+`REDIS_LOCAL_URL=redis://127.0.0.1:6379/0`, so **every pre-existing test
+suite in the project shares Redis DB 0** with any other process using it -
+including a second concurrent development session running its own tests.
+
+## The failure it produces
+
+A 6-app regression run reported one failure:
+`assignments.tests_pdf_cache.InvalidationScopeTest.test_a_whole_course_of_saves_does_not_cool_one_warm_assignment`,
+asserting `None != b'%PDF-warm'`.
+
+Isolation results — the test is **not** broken:
+
+| Scenario | Result |
+|---|---|
+| the test alone | OK |
+| the whole `assignments` app (521 tests) | OK |
+| `students` -> `tests_pdf_cache` | OK |
+| H-1 cache suites -> `tests_pdf_cache` | OK |
+| **6-app run (~30 min)** | **FAILS** |
+
+Ruled out by A/B revert: reverting H-1's assignment generation bump does
+**not** fix it, so H-1 is not the cause.
+
+**Mechanism demonstrated, not hypothesised.** A `cache.clear()` issued
+between `store_pdf` and `get_cached_pdf` reproduces the exact assertion:
+
+```
+DEMO no interference                 -> b'%PDF-warm'
+DEMO after concurrent cache.clear()  -> None   (matches the observed failure)
+```
+
+Any concurrent process calling `cache.clear()` or a wildcard
+`delete_pattern` on DB 0 can therefore fail an unrelated suite. A 30-minute
+run gives a wide window; every short run passes, which is exactly the
+observed pattern.
+
+## Second, related finding
+
+Redis DB 0 currently holds live `gaplus:1:cachegen:usr:*` keys left by an
+earlier test run. Generation counters are written with **no TTL** by design
+(so `volatile-lru` cannot evict them - see
+`docs/H1_CACHE_INVALIDATION_DESIGN.md` §6), which in the test environment
+means they **accumulate across runs and are never reclaimed**. Harmless
+today because entity UUIDs differ per test database, but it is unbounded
+litter in the shared dev instance and a source of cross-run state.
+
+## FIXED (2026-09-12)
+
+`AutoGrader/test_cache.py` + a settings branch under `manage.py test`:
+
+* each test **process** gets its own `KEY_PREFIX` (`gaplus-t<pid>`);
+* `PrefixScopedRedisCache.clear()` deletes only that prefix instead of
+  issuing `FLUSHDB`.
+
+**A prefix, not a Redis database slot.** Redis ships with 16 databases, so a
+PID-modulo scheme collides at ~1/16 for two concurrent runs and cannot scale
+to CI parallelism. A prefix has no ceiling.
+
+**Why a test-only backend is acceptable**: only `clear()` differs, and no
+production code path calls it (grep-verified - production invalidation goes
+through `delete_pattern` or generation bumps). Every other operation,
+including `delete_pattern` and the `incr`/`SET NX` behaviour H-1's counters
+depend on, is the real django-redis implementation against real Redis.
+
+### Evidence
+
+* both acceptance tests flipped from `expectedFailure` to passing;
+* **two genuinely concurrent runs** - `assignments.tests_pdf_cache` beside
+  the H-1 cache suites - both returned OK, which is the failure this was
+  diagnosed from;
+* 4/4 tests in `tests_redis_test_isolation.py`.
+
+### One correction worth recording
+
+The acceptance test did not pass immediately after the fix, and the reason
+was the test, not the fix: its helper subprocess ran as a plain script, so
+`"test" in sys.argv` was false and it picked up the **production** backend,
+whose `clear()` is still `FLUSHDB`. It was measuring "a non-test process
+flushes us", not "a concurrent test session flushes us". The helper now sets
+`sys.argv` to look like a test run, which is the scenario the requirement
+actually describes.
+
+### Residual exposure, out of scope by design
+
+A non-test process - a `manage.py shell`, a stray script - calling
+`cache.clear()` still issues `FLUSHDB` and would wipe a running suite. That
+is a developer action against the development cache, not a concurrent test
+session, and is documented in the test module rather than guarded.
+
+## Original requirement (owner, 2026-09-12) — stronger than changing one URL
+
+> **Concurrent test sessions must not be able to modify, flush, or
+> invalidate one another's Redis-backed test state.**
+
+The property to satisfy is **concurrent-process isolation**, not sequential
+test isolation. It covers everything Redis-backed that a test run touches:
+
+* the Django cache;
+* H-1 generation counters (`cachegen:*`);
+* cache-based locks (`billing:planchange:*`, `billing:license_overage:*`);
+* throttle state (`throttle_*`);
+* presence/heartbeat keys (`presence:*`);
+* any Celery broker/result state sharing the instance.
+
+## Scope
+
+* give the test suite its own Redis DB, or better a per-run DB, the way the
+  H-1 suites already do - they use dedicated DBs 6-12 and **none of them
+  flaked** in the run that exposed this;
+* flush the chosen DB at session start, never mid-run;
+* verify the isolation holds with **multiple concurrent processes**, not one
+  process running suites in sequence.
+
+## Acceptance
+
+* two concurrent full-suite runs on one machine do not interfere;
+* the PDF invalidation-scope test passes in a 6-app run, three times running;
+* `AutoGrader/tests_redis_test_isolation.py`'s two `expectedFailure` tests
+  become **unexpected successes** - which turns the suite red and forces the
+  markers to be removed. That is the signal the fix landed.
+
+## The reproduction is retained as the regression test
+
+`AutoGrader/tests_redis_test_isolation.py` holds the deterministic
+demonstration, per the owner's instruction to keep it:
+
+| Test | Today | Why |
+|---|---|---|
+| `test_the_mechanism_a_cache_clear_destroys_a_warm_entry` | passes | documents the mechanism in-process |
+| `test_generation_counters_are_also_destroyed_by_a_flush` | passes | shows the blast radius reaches H-1's invariant |
+| `test_a_concurrent_process_cannot_flush_our_cache` | **expectedFailure** | the acceptance test: a separate OS process, using the project's own settings, flushes our state |
+| `test_a_concurrent_process_cannot_reset_our_generation_counters` | **expectedFailure** | same requirement for the H-1 counters |
+
+The two acceptance tests spawn a **real second interpreter** and are
+deterministic - the other process clears, then we read. No race, no sleep.
+`expectedFailure` rather than `skip` so the fix cannot land silently.
+
+## Generation-counter accumulation: do NOT add a TTL
+
+Explicit owner instruction. The non-expiring counter is part of H-1's
+correctness invariant: under `volatile-lru` a TTL'd counter becomes
+evictable while the entries it guards survive, resetting the generation and
+reviving stale data - the exact failure class H-1 was designed to remove
+(`docs/H1_CACHE_INVALIDATION_DESIGN.md` §6).
+
+Solve the accumulation through **isolated, disposable test Redis state**
+plus teardown of the test instance after a run. For a long-lived development
+Redis, track counter cardinality and memory as their own line item. Do not
+change production semantics to tidy a shared development database.
+
+---
+
+# H-10 — `super-admin/dashboard/students` issues 487 queries
+
+Found while measuring H-1 families 15-22. **Not a cache defect** — caching
+only hides it on the requests that hit.
+
+Measured at 10 schools / 240 courses / 17,464 submissions, through the live
+endpoint on real Postgres:
+
+| Metric | Value |
+|---|---|
+| Queries | **487** for a **413-byte** response |
+| Wall | 1,938ms |
+| SQL | 433ms |
+| **Python** | **1,505ms** |
+| Signature | `240x COUNT(*) assignments` + `240x COUNT(*) studentcourse` |
+
+One pair of COUNT queries per course. It scales linearly with course count,
+so a tenant with 10x the courses sees ~10x the queries — and the Python time
+dominates, so it is not fixed by a faster database.
+
+**Scope**: replace the per-course counts with annotated aggregates
+(`Count(..., distinct=True)` on a single queryset), the same fix applied to
+the classrooms N+1s in Section 3.
+
+**Acceptance**: query count does not grow with course count (assert
+flatness, not an absolute budget — an absolute number drifts and gets
+bumped); response byte-identical before and after; wall time reduced.
+
+**Evidence**: functional (identical payload), performance (before/after
+query count and latency at the measured scale), mutation (reverting the
+annotation fails the flatness test), regression. Adversarial/failure
+classes: not applicable — record why.
+
+## Owner decision (2026-09-14): the fix is the Section 8 remediation
+
+H-10 points at the Section 8 dashboard remediation (session
+grade-automator-plus-01), so there is no competing H-1 fix. Per that session,
+the remediation covers three places:
+- `_expected_submission_total(courses)` replaces the per-course
+  `assignments.count() * enrollments.count()` in the super-admin and
+  school-admin students views;
+- `TeacherPerformanceStatsService().build(teachers)` replaces the
+  per-teacher N+1 in teacher_performance, teacher_detail and the weekly
+  digest;
+- `dashboard/tests_dashboard_remediation.py` adds flatness, parity and
+  tenant tests.
+
+**Closed only when all three hold** (owner):
+1. the dashboard fix's own tests pass;
+2. the H-1 cache suites pass against the resulting code;
+3. a fresh real measurement shows the **query count stays effectively flat
+   as the dataset grows**. A single faster request is not evidence.
+
+Recorded so far, not closing: on the uncommitted reconciled tree
+(`1373eae` + Section 8 patch), the six H-1 cache suites passed (80 OK), and
+an interim full suite passed (3,931 OK, 14 skipped). That full run used
+`--keepdb`, so it is **not** final-gate evidence: `--keepdb` skips the
+test-DB drop, which is the only point where a leaked connection shows up.
+
+**Condition 3 — fresh real measurement (2026-09-14).** The same test was run
+on `1373eae` (before) and `ec67363` (Section 8 remediation). Requests were
+uncached, on real Postgres: one school, 2 courses per teacher, 3 students
+per course.
+
+| Endpoint | Queries at 2 / 6 / 18 teachers, `1373eae` | Queries at 2 / 6 / 18 teachers, `ec67363` |
+|---|---|---|
+| super-admin students | 14 / 30 / 78 | **6 / 6 / 6** |
+| school-admin students | 13 / 29 / 77 | **5 / 5 / 5** |
+| school-admin teacher_performance | 24 / 60 / 168 | **10 / 10 / 10** |
+| super-admin teachers | 8 / 16 / 40 | **8 / 8 / 8** |
+| school-admin teacher_detail | 19 / 19 / 19 | 14 / 14 / 14 |
+
+The query count is flat on `ec67363` and grew linearly before it, so
+condition 3 is met **for `ec67363`**. At 18 teachers, teacher_performance went
+from 169.5ms to 20.9ms; latency is indicative only, as other runs were active.
+
+## CLOSED (2026-09-14)
+
+The owner told us to merge the dashboard work and close H-10 once the
+resulting `beta` tree passed verification. Sections 7 and 8 were merged into
+`beta` as `2715c642fc4b` (tree `2a68fe26…`), and the owner's strict gate
+passed on that exact commit: **4,031 tests OK** (14 skipped), exit 0, fresh
+DB with no `--keepdb`, DB dropped, 0 connections, machine kept awake, tree
+unchanged.
+
+All three conditions now hold **on `beta`**:
+1. **Dashboard tests pass:** `tests_dashboard_remediation` 47,
+   `tests_dashboard_audit_fixes` 23, `tests_rigor` 35, `dashboard.tests` 73,
+   all ok.
+2. **H-1 cache suites pass** inside the same gate: fan-out 29,
+   dashboard-wide 11, wiring 15, plus the rest.
+3. **Query count is flat** (table above). `dashboard/` on `beta` is
+   byte-identical to the measured code.
+
+Evidence: `docs/evidence/H10_INTEGRATION_GATE_EVIDENCE.md`.
+
+---
+
+# H-3 — `student123!` account remediation
+
+Deferred by the owner as non-urgent and isolated; tracked here so it does not
+vanish. **Data already gathered (production, read-only):**
+
+- **116 of 122 student accounts authenticate with `student123!`** — verified
+  by running `check_password` against every row, not inferred from the email
+  pattern.
+- All 116 are `is_active=True`, and login has **no email-verification gate**,
+  so these are live credentials.
+- **97** have generated `@student.local` addresses; **19 have real email
+  addresses** — the exposed cohort, since an attacker needs no guessing.
+- They hold **124 enrollments and 558 submissions**, so deletion is not an
+  option.
+- **`last_login IS NULL` on all 116** — not one has ever signed in.
+
+That last fact is the whole plan: resetting all 116 to an unusable password
+has **zero user impact**. The code fix is already shipped
+(`set_unusable_password()`), so only existing rows are affected.
+
+**Scope**: a management command, dry-run by default, requiring `--execute`,
+reporting the affected count and writing an auditable record of what it
+changed.
+
+**Acceptance**: zero accounts authenticate with the literal afterwards; no
+account is deleted; enrollments and submissions are untouched; the command is
+idempotent.
+
+**Evidence**: functional (dry-run reports without writing); adversarial (the
+literal no longer authenticates on the live login endpoint); failure
+simulation (interrupted mid-run leaves a consistent state and can be
+re-run); regression. Mutation: removing the reset must fail the test that
+asserts no account authenticates.
+
+---
+
+# H-4 — Duplicated `delete_cache_patterns` implementations
+
+Four implementations exist and have already drifted: only some batch, only
+some catch Redis connection errors, only some warn when the backend lacks
+pattern support, and they differ in how broadly they catch exceptions
+(`classrooms/signals.py` deliberately narrow so real bugs still surface;
+`AutoGrader/cache_utils.py` catches bare `Exception`).
+
+**Folds into H-1** — consolidation is part of that design, not a separate
+change. Listed separately so it cannot be lost if H-1 is staged.
+
+**Acceptance**: exactly one implementation; every caller uses it; the narrow
+exception behaviour is preserved (a `TypeError` from a bad pattern must still
+propagate, as pinned today).
+
+---
+
+# H-5 — `full_clean()` on the grading hot path
+
+`StudentCourse.save()` calls `full_clean()` unconditionally, so every
+`save(update_fields=["final_grade"])` from the grading signal runs full model
+validation — including the name-conflict lookup — **inside a
+`select_for_update()` block on the grading hot path.**
+
+**Scope**: measure the cost under concurrent grading first, then decide
+whether to scope validation to the fields being written or move it to the
+serializer boundary. Do not change validation semantics blindly — the
+name-conflict rule is load-bearing for roster integrity.
+
+**Acceptance**: no reduction in validation coverage for user-supplied input;
+measured reduction in queries and lock-hold time on the grading path.
+
+**Evidence**: functional (name-conflict rules still enforced on every user
+entry point); stress/concurrency (concurrent grade recalculation, real
+threads, measuring lock contention); mutation (removing the remaining
+validation fails roster-integrity tests); regression.
+
+---
+
+# H-6 — `CourseCategoryViewSet` is unrouted and broken
+
+Not registered in any `urls.py`, and its `category_courses` action reads
+`category.courses` — a relation that **does not exist**: `CourseCategory` has
+no link to `Course` at all. It would raise `AttributeError` if ever routed.
+Left untouched pending your decision on whether categories have a future.
+
+**Scope**: decide first — build the relation and route it, or remove the
+viewset and serializer. Both are small; the decision is the work.
+
+**Acceptance**: either a working, tenant-scoped, tested endpoint, or the dead
+code removed with the model's fate recorded (the `CourseCategory` model and
+its admin registration also become questionable if the endpoint goes).
+
+**Evidence**: if built — functional, adversarial (tenant scoping, as every
+other classrooms endpoint now has), regression. If removed — regression plus
+a grep-proof that nothing references it.
+
+---
+
+# H-7 — `direct_add_student` response shape and status code
+
+Returns `{"message", "detail"}` where every sibling endpoint returns
+`{"detail"}` alone, and returns **200 for a creation** where 201 is correct.
+Untouched because response-shape changes are an API contract change.
+
+**Scope**: confirm with the frontend which fields are consumed, then align.
+
+**Acceptance**: consistent error envelope across classrooms endpoints; 201 on
+creation; frontend updated in the same release.
+
+**Evidence**: functional; regression; live-stack confirmation against the
+real frontend. Adversarial/stress: not applicable — record why.
+
+---
+
+# H-8 — Test file naming and stray docs
+
+`classrooms/` mixes `test_*.py` and `tests_*.py`; the standards doc
+(`docs/CODE_REVIEW_STANDARDS.md` §9) specifies `tests.py` / `tests_<topic>.py`.
+`classrooms/test_documentation.md` is a markdown doc living in an app
+package and probably belongs under `docs/`.
+
+**Scope**: rename with `git mv` so history follows; move the doc.
+
+**Acceptance**: naming consistent across the app; the pre-commit
+`name-tests-test` exclusion still correct; suite green.
+
+**Evidence**: regression only — record that the other classes do not apply.
+
+---
+
+## Note on scope discipline
+
+# H-11 — Synchronous billed AI calls inside `students` request handlers
+
+**Found by the §7 review pass (2026-09-13) while auditing
+`students/views.py`, which no audit section had listed.** Recorded here so
+it cannot fall between sections again: it is release-blocking, it has an
+owner, and it has its own gate.
+
+Three actions on `StudentSubmissionViewSet` run the billed AI pipeline
+inside the HTTP request, against standards §7 ("nothing in a
+request/response cycle does synchronous work that belongs in a Celery
+task - AI grading calls..."):
+
+| Action | What runs in the request | Async twin that already exists |
+|---|---|---|
+| `POST submissions/<assignment>/upload` (`upload_answers`) | file → AI answer extraction → save | `upload-async` |
+| `POST submissions/<pk>/grade` (`grade`) | the full grading pipeline (several sequential AI calls with retries, up to `GRADING_TASK_TIME_LIMIT_SECONDS`) | `grade-async` |
+| `PATCH submissions/<pk>` (`partial_update`) | raw text → AI re-extraction → save | none |
+
+Consequences today: a gunicorn worker is held for the whole AI run
+(minutes for `grade`), the request can outlive the proxy timeout while
+the charge has already been made, a client retry after a timeout is a
+second billed run (the grading claim stops the double *grade*, but the
+sync `grade` view then answers 409 for a run the client cannot poll), and
+the sync `upload` path has no tracked task, so nothing the frontend can
+poll records its failure.
+
+Also recorded from the same audit, all in `students/views.py` /
+`serializers.py`, to be resolved with this item because they share the
+endpoints:
+
+* **V-2** `upload_answers` and `partial_update` answer HTTP 500 for every
+  failure, including user-caused ones (bad file, extraction returned no
+  answers) - only the two post-grading closure errors now map to 409.
+* **V-3** `get_permissions` routes `partial_update` (PATCH) to
+  teacher-only while its docstring and the OpenAPI text describe it as the
+  student's edit path. Either the docstring or the mapping is wrong;
+  decide which before the endpoint moves async.
+* **V-4** `partial_update` ends with a full-row `submission.save()` - the
+  same stale-instance clobber class fixed in the service layer (F-4).
+* **V-5** `StudentViewSet` is defined but not routed (`students/urls.py`
+  registers only submissions); dead or missing, decide which.
+  **DECIDED 2026-09-17 (owner): delete.** Deleted in
+  `task/my-students-prefetch-leak` commit `e0b1640`; it also carried the
+  unscoped cross-teacher `enrollments__course` pattern fixed there.
+* **V-6** `teacher_feedback` declares `IsTeacherOrReadOnly` on the action
+  but `get_permissions` overrides it to teacher+credits (already commented
+  in code; the dead kwarg should go once V-3 is decided).
+
+**Owner:** Section 7 (students) for the backend; the frontend owner for
+the client switch-over. Proposed by the §7 reviewer; assignment is
+management's.
+
+**Scope:** make the three sync actions either (a) thin dispatchers that
+create a tracked task and return 202 with a task id (the `-async` twins
+already do this), or (b) removed once the frontend has switched - decided
+with the frontend, since (a) changes their response contract. Map
+user-caused failures to 4xx with the existing `describe_user_error` text.
+Resolve V-2..V-6 in the same change.
+
+**Acceptance criteria:**
+1. No `students` view calls `ai_processor.*`, `grade_engine` or
+   `upload_answers_engine` synchronously (static check: a test that greps
+   `students/views.py` for those names, so it cannot regress silently).
+2. Every submission-mutating action creates a `BackgroundProcessingTask`
+   the frontend can poll, and its failure is recorded on that row with a
+   user-safe message.
+3. A client retry after a timeout cannot produce a second billed run
+   (idempotency proven under redelivery, as for R-1).
+4. V-2..V-6 each closed with a test.
+
+**Required evidence (per the verification standard above):** functional
+through the live API; adversarial (retry/replay after timeout, the same
+tenancy probes as `students/tests_submission_tenancy.py`); concurrency
+(N parallel clients, one billed run); failure simulation (broker down →
+503, not 500; AI provider timeout → refund, task FAILURE); mutation;
+regression; evidence recorded in `docs/evidence/`.
+
+**Until closed:** the sync endpoints keep working exactly as today, with
+the §7 pass's server-side rules applied to them (post-grading lock,
+tenancy scoping, 409 for closure errors).
+
+**Progress (2026-09-14, commit `0320c87`, gated in `ec28d90` — evidence
+§13/§14):** scope narrowed by the owner to migration/retirement for
+upload and grade (their async twins exist) plus wiring the existing
+extraction task into an async edit path.
+
+Done:
+* `POST submissions/<pk>/update-async` — queues the rewired
+  `extract_answer_background_task` as a tracked task, 202 + task id.
+* One service (`update_submission_from_raw_text`) behind PATCH and the
+  async route: closure rules before the billed call and again under the
+  row lock, refund scope over extraction + persist, column-scoped save.
+* Idempotency claim on the tracked row (`claim_processing_task_start`):
+  a Redis redelivery of a running extraction skips instead of billing
+  twice; a stale claim from a dead worker is taken over.
+* Duplicate-request guards on `update-async` (submission row lock) and
+  `upload-async` (student user row lock): a client retrying after a
+  proxy timeout gets 409 instead of a second billed run.
+* V-2 (400 for user-caused failures on the three sync routes), V-3 (PATCH
+  follows its docstring: own student or course teacher, credit-checked),
+  V-4 (column-scoped save), V-6 (dead permission kwarg removed).
+* Real provider call for the edit path (OpenRouter, once): charged once.
+
+Remaining (H-11 stays OPEN and release-blocking):
+1. **Client dependency check** — this repository holds no frontend; the
+   only references to the synchronous `upload`, `grade` and PATCH routes
+   are in `docs/backend/`. The frontend owner must confirm the client
+   uses `upload-async`, `grade-async`/`schedule-grade-async` and
+   `update-async`, and that no other client calls the sync routes.
+2. **Retire** the synchronous AI execution in `upload_answers`, `grade`
+   and `partial_update` once (1) is confirmed — delete, or keep as thin
+   dispatchers returning 202 if a compatibility window is needed.
+3. **V-5** `StudentViewSet` unrouted: delete or route (file deletion needs
+   sign-off). **Owner signed off on deletion 2026-09-17; deleted in
+   `e0b1640`.**
+4. The same tracked-row idempotency claim for `upload_answers_engine_async`
+   (the upload task still marks started unconditionally; Section 9 is
+   changing that task, so this is coordinated with it).
+5. The retirement change goes through the full ten-state gate: real
+   provider, proxy-timeout scenarios, duplicate/replayed requests,
+   concurrency, credit charged exactly once, failure after charge, task
+   retries, real HTTP end-to-end.
+
+### Owner scope clarification (2026-09-14) and progress
+
+The owner ruled: no new duplicate async implementations for upload and
+grade - they already have `upload-async`, `grade-async` and
+`schedule-grade-async`. H-11 is a **migration/retirement** task for those
+two, plus wiring the existing `extract_answer_background_task` into an
+async edit path. The synchronous routes are **not** to be removed until
+the frontend/client dependency is confirmed.
+
+**Done in the §7 branch (2026-09-14):**
+
+* `POST submissions/<pk>/update-async` — queues the (previously unrouted
+  and broken: it wrote to fields that do not exist) extraction task,
+  rewired to the same service the synchronous PATCH now uses
+  (`students.services.update_submission_from_raw_text`): closure rules
+  checked before the billed call and again under the row lock, one refund
+  scope over extraction + persistence, column-scoped save. `202 + task_id`.
+* Duplicate-request guards (a client retrying after a proxy timeout must
+  not queue a second billed run): `update-async` locks the submission row,
+  `upload-async` locks the student's user row; both refuse (409) while an
+  extraction task for the target is PENDING/STARTED.
+* Task-level idempotency claim on the tracked row
+  (`students.task_tracking.claim_processing_task_start`): a Redis
+  redelivery of a running extraction skips; a stale STARTED claim (dead
+  worker, older than `EXTRACTION_TASK_STALE_AFTER_SECONDS`) is taken over.
+* V-2 closed: user-caused failures answer 400 with their own text (500
+  only for genuine faults) on `upload`, `PATCH` and `grade`.
+  V-3 decided: `PATCH`/`update-async` follow the docstring — the
+  submission's own student and the course teacher, both queryset-scoped.
+  V-4 closed by the shared service. V-6 closed (dead kwarg removed).
+  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off
+  (owner signed off 2026-09-17; deleted in `e0b1640`).
+* Evidence: `students/tests_async_edit_path.py` — route, tenancy,
+  duplicate guards, task success/refusal/retry/refund, redelivery on a
+  real Celery worker, 12 concurrent live-HTTP clients → exactly one task,
+  and an opt-in **real provider** call (`RUN_REAL_AI=1`, run once:
+  answer extracted from the text, wallet charged exactly once). Mutation
+  M25–M30 in `docs/evidence/SECTION_7_GATE_EVIDENCE.md` §13.
+
+**Client dependency check (what could be done from this repository):**
+no frontend code lives here; the only references to the synchronous
+routes are the backend docs (`docs/backend/students-and-submissions.md`,
+`BACKEND_REFERENCE.md`, which already lists them as finding P3) and this
+app's own tests. **Confirmation from the frontend owner is still
+required** before retirement.
+
+**Remaining to close H-11:**
+1. Frontend/client confirmation that `upload-async`, `grade-async` /
+   `schedule-grade-async` and `update-async` are what clients call.
+2. Retire `POST .../upload`, `POST .../grade` and `PATCH .../<pk>` (or
+   turn them into thin dispatchers returning 202) — a response-contract
+   change, done with the frontend.
+3. Give `upload_answers_engine_async` the same tracked-row idempotency
+   claim the edit task now has (the grading task has its own claim; the
+   upload task still relies on the request-level guard alone). Section 9
+   is changing that task concurrently; do this after their change lands.
+4. Full ten-state gate on the retirement change, per the owner's list:
+   real provider, proxy timeouts, duplicate/replayed requests, concurrent
+   submissions, task tracking, credit charged exactly once, failure after
+   charge, retries, and a timed-out client retry never creating a second
+   billed run.
+
+# H-12 — Commented-out code burn-down (flake8-eradicate E800)
+
+`docs/CODE_REVIEW_STANDARDS.md` §2 lists flake8-eradicate as enforced, but
+`.pre-commit-config.yaml` had `E800` in its `--ignore` list, so it never was.
+
+**History:**
+
+- **§7 pass:** turned the rule ON and carved out, by name, the files that
+  still carried legacy commented-out blocks. That was 930 E800 hits
+  repo-wide, 500+ of them in `dashboard/`.
+- **§8 pass:** cleaned all of `dashboard/` (84 hits on the merged tree) and
+  removed its six entries.
+  - Four files were cleaned: `views.py`, `serializers.py`, `tests_rigor.py`,
+    and `urls.py`, which was already clean.
+  - Two entries were for files §8 deleted (`at_risk_improvements.py`,
+    `AT_RISK_IMPLEMENTATION_GUIDE.py`), so that also settles the
+    documentation-as-code question.
+  - Every removal was proved comment-only by an AST comparison.
+
+**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**
+
+- §10 templates: `templates/assignment_to_prosemirror.py` (2 hits) cleaned; AST-identical, E800 0
+- §0 cross-cutting (AutoGrader/urls.py): `AutoGrader/urls.py` (6 hits) cleaned; AST-identical, E800 0
+- §1 users: `users/models.py`, `users/serializers.py`, `users/services.py`, `users/tests_throttle_client_identity.py`, `users/views.py` (27 hits) cleaned; AST-identical, E800 0
+- §3 classrooms: `classrooms/models.py`, `classrooms/serializers.py`, `classrooms/test_bulk_enrollment.py`, `classrooms/test_views.py`, `classrooms/views.py` (26 hits) cleaned; AST-identical, E800 0
+- §4 assignments (admin, serializers, tests_rigor): `assignments/admin.py`, `assignments/serializers.py`, `assignments/tests_rigor.py` (17 hits) cleaned; AST-identical, E800 0
+- §2 billing (licensing, Stripe and credit services): `billing/access_control.py`, `billing/license_service.py`, `billing/license_views.py`, `billing/models.py`, `billing/services.py`, `billing/stripe_service.py`, `billing/stripe_view_schemas.py`, `billing/tasks.py` (77 hits) cleaned; AST-identical, E800 0
+- §2 billing (serializers, views, tests and tools): `billing/serializers.py`, `billing/views.py`, `billing/tests/tests.py`, `billing/live_qa/invariants_individual.py`, `billing/management/commands/backfill.py` (67 hits) cleaned; AST-identical, E800 0
+- §0 cross-cutting (AutoGrader/settings.py): `AutoGrader/settings.py` (29 hits) cleaned; AST-identical, E800 0
+- §4 assignments (tasks, views): `assignments/tasks.py`, `assignments/views.py` (47 hits) cleaned; AST-identical, E800 0
+- §5 ai_processor: `ai_processor/services.py` (47 hits) cleaned; AST-identical, E800 0
+
+**Owner decision (2026-09-14):** the rule covers the **whole repository**.
+The carve-out list was a temporary register, not a policy, and is now
+retired — see closure below.
+
+**CLOSED (2026-09-16).** Item 9's repository-wide burn-down finished: all 32
+files that ever carried an E800 exemption are cleaned, the last being
+`ai_processor/services.py` (47 hits). Full detail, including the strict
+final gate and the post-merge verification on `beta`, is in
+`docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md`. Landed on `beta` at
+`a7c81a4` (fast-forward from `53e31c3`).
+
+**Acceptance, all met:**
+
+- `--per-file-ignores` is empty and removed from `.pre-commit-config.yaml`;
+- `flake8 --select=E800 .` is clean, with only migrations excluded;
+- this register is deleted (the file/hits table and its staged-plan rules
+  above; the history above it is kept as the record of how H-12 got here).
+
+**The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
+whole flake8 hook, not only E800. It predates H-12 and is unaffected by its
+closure. Migrations are generated by `makemigrations`, and hand-editing them
+to satisfy a linter risks changing schema history, so this exclusion is
+justified and is **not** part of the burn-down.
+
+# H-13 — Uploads while grading is RUNNING — DECIDED
+
+**Owner decision (2026-09-14): refuse additional uploads while grading is
+in progress.** No implicit replacement or re-grade. The same decision
+extends the graded-row lock to **teacher proxy uploads**: a graded
+submission is immutable through every ordinary upload path, because
+"new answers + old grade" is not an acceptable production state. A
+correction after grading needs a future explicit replace/re-grade
+workflow with its own authorization, audit trail, credit behaviour and
+concurrency rules.
+
+**Implemented** (`students.services._check_submission_open`):
+* graded (`graded_at` set) → `SubmissionAlreadyGradedError`, every path;
+* live grading claim (RUNNING and younger than `GRADING_CLAIM_STALE_AFTER`,
+  the same staleness rule the claim itself uses, so a dead worker's claim
+  does not lock the row out) → `SubmissionBeingGradedError`, every path;
+* attempt limit → students only.
+Applied under the row lock for student and proxy uploads, pre-checked
+before the billed extraction where the student is known (student paths),
+and mapped to 409 at `upload`, `upload-async` and `PATCH raw_input`; the
+batch task records it as a final, non-retried failure.
+
+**Evidence:** `students/tests_post_grading_submission_lock.py` (service,
+API, task, 8-thread proxy and student concurrency, grade-commit race,
+stale-claim exception) and mutation checks M22-M24 in
+`docs/evidence/SECTION_7_GATE_EVIDENCE.md` §11.
+
+# H-14 — School-admin summary rebuild cost (cache family 23)
+
+**Found 2026-09-15** by the H-1 post-H-10 stampede measurement
+(`docs/evidence/H1_STAMPEDE_MEASUREMENT.md`).
+
+The school-admin summary rebuilds in **1,429 ms** at a realistic large
+school (240 courses/school, 6,000 students), up from 211 ms at 24
+courses/school. Its query count is flat (17), so this is not an N+1: the
+cost grows with the rows each query processes. The entry is invalidated by
+any activity in the school (`sch`), so admins of busy schools will often
+load it cold.
+
+**Owner decision (2026-09-15):** tracked as a performance issue. It does
+**not** by itself justify stampede protection, given the per-user cache
+design and expected concurrency.
+
+**Acceptance:** cold rebuild measured before and after at the same seeds,
+identical payload, query count still flat, and the H-1 freshness tests for
+family 23 still passing with legacy invalidation disabled.
+
+---
+
+# H-15 — `global`-scoped per-user cache families invalidate as a herd
+
+**Found 2026-09-15** by the same measurement.
+
+Student `my_courses` (family 11) and the superadmin dashboards (16, 21) are
+cached per user but depend on the `global` generation. Any change anywhere
+therefore expires every user's copy at once, and they rebuild independently.
+Single-flight cannot help, because every key is different. Measured at
+realistic scale: 50 students' `my_courses` after one `global` bump took
+p50 792 ms / p95 1,262 ms (all 50 rebuilt).
+
+**Scope:** narrow each family's dependency to what its payload actually
+reads (e.g. family 11 on its courses' and teachers' generations instead of
+`global`), derived from code, not names.
+
+**Acceptance:** herd size and latency re-measured; freshness proved with
+legacy invalidation disabled; no cross-tenant staleness.
+
+---
+
+# H-16 — Teacher submission list issues 63 queries per page — COMPLETE
+
+**Found 2026-09-15** by the same measurement. **Assigned to Section 7 and
+fixed 2026-09-15.**
+
+The teacher's `student-submission-list` (UserCacheMixin) ran 63 queries per
+cold build at every data size: a per-row query pattern. It was not slow at
+the measured sizes (~47 ms) but grew with page size — up to 304 queries at
+`page_size=100`.
+
+Cause: `StudentSubmissionViewSet.get_queryset` returned a bare queryset for
+the `list` action, and `StudentSubmissionListSerializer` reads each row's
+`student`, `assignment` and `assignment.course` — three relations fetched
+lazily, once per row.
+
+Fix: `select_related("student", "assignment__course")`, added to
+`get_queryset` for the `list` action only. Both relations are non-nullable
+foreign keys, so the joins are `INNER JOIN` and cannot widen the tenant
+filter already applied.
+
+**Acceptance:** query count flat in page size (asserted, not budgeted),
+identical payload, freshness unchanged. All three met.
+
+**Evidence:** `docs/evidence/H16_SUBMISSION_LIST_QUERIES_EVIDENCE.md` —
+query count 63/154/304 → flat 4 (5 with the assignment filter, itself
+flat) across page sizes 1–100 and two data sizes; payload byte-identical
+to the unoptimised serializer for every one of 32 request shapes; tenancy
+unaffected (proven, not assumed); 3/3 mutants killed, restored by
+checksum; regression 318 tests OK across `students` and every cache suite
+touching this endpoint; scoped to `students/views.py` (14 insertions, 2
+deletions) plus a new test module, nothing else.
+
+---
+
+---
+
+# H-18 — assignment writes accepted any course, any topic, and any AI-emitted field
+
+**Found 2026-09-17** by a cross-role data-leakage audit, then widened twice:
+once by reading the views (a third entry point the audit missed), once by a
+sweep of every writable relation (the AI-output sink).
+
+**What was wrong.** `AssignmentTextSerializer.course` was a plain writable PK
+field with no ownership check, while `get_queryset()` only scopes which
+EXISTING assignment a teacher can reach. Knowing a course UUID was enough to
+plant a PUBLISHED assignment in another teacher's course - visible at once to
+that teacher and their students - or to move one's own assignment into it.
+Three doors shared the serializer: create/create-async, PATCH, and
+update-async, which built it without a request in context. Separately, the AI's
+raw JSON was saved through `AssignmentSerializer`, whose writable fields
+include `status`, `teacher`, `course`, `topic` and `due_date`, so text inside a
+typed assignment or an uploaded document could set them.
+
+**Scope of the fix.** `validate_course` on the serializer (fail-closed without
+a request, so no view can forget it); `update_async` uses `get_serializer`;
+`ai_assignment_content_only()` reduces AI output to the 9 content fields at
+extraction, at generation, and again when a stored draft snapshot is saved;
+`AssignmentSerializer.teacher` is read-only. Two fail-open ownership
+validators in `classrooms/serializers.py` were hardened at the same time.
+
+**Acceptance criteria and evidence.** All met; see
+`docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md`, which opens with the
+10-gate table and the 8 completion answers:
+- every entry point refuses a foreign course and a foreign topic, for a course
+  in another school AND a same-school colleague's course;
+- legitimate own-course and own-topic flows unchanged on every path;
+- AI output cannot write any protected field at any sink, including pre-fix
+  stored snapshots;
+- 30/31 mutants killed, both survivors explained (one two-layer defence, one
+  real test gap that was closed);
+- 20 threads x 10 rounds; provider-failure and Celery-redelivery recovery;
+  query counts flat to 6,000 students;
+- independent HTTP replay by the red team.
+
+**Open:** Gate 8 (deployed end-to-end) is PARTIAL - everything is LOCAL-REAL.
+
+---
+
+# H-19 — superadmin authority granted on a single flag in four places
+
+**Found 2026-09-17**: two places by the audit, two more by this item's own
+sweep of every superadmin check in the codebase.
+
+**What was wrong.** `IsSuperAdmin` requires `is_superuser` AND
+`user_type == SUPER_ADMIN`. Four checks did not:
+
+| Where | Single flag | Effect |
+|---|---|---|
+| `users/views.py` `SettingsViewSet.get_queryset` | either | read and edit every user's Settings |
+| `classrooms/views.py` `monthly_token_usage` | either | read any school's token usage |
+| `users/permissions.py` `HasCreditBalance` | `user_type` | skip the credit-balance check |
+| `ai_processor/services.py` `execute_graded_task` | `user_type` | unmetered, unbilled AI |
+
+`CustomUserManager.create_superuser()` sets `is_superuser` but leaves
+`user_type=TEACHER`, so an account made for Django admin reached the first
+two. The reverse shape - `user_type=SUPER_ADMIN` without `is_superuser`,
+produced by promoting a teacher through the users API or unticking the flag in
+Django admin - reached the last two and ran billed AI for free through
+background jobs that load `course.teacher`.
+
+**Scope of the fix.** All four require both flags. A single-flag account is not
+refused outright by the credit gate: it falls through to the ordinary wallet
+check. The unmetered branch refuses it with `AIFeatureNotAvailableError`, a
+user-facing refusal, rather than the `ValueError` that views report as a
+server fault.
+
+**Deliberately unchanged:** `billing/license_service.py:319` and
+`users/serializers.py:175` use `or` on the deny side, where either flag is
+stricter; `CustomUserViewSet.create`'s inner either-flag check is unreachable
+behind `IsSuperAdmin` and is recorded as a consistency clean-up candidate.
+
+**Acceptance criteria and evidence.** Same evidence file. All three attacker
+shapes refused; true superadmin and school-admin flows unchanged; one real
+billed provider call proves the unmetered path still works with zero billing
+rows; 14 mutants across the four checks, all killed.
+
+**Related, owned elsewhere:** making the newly-refused background paths record
+their refusal cleanly (weekly-summary swallow, `error=None`, retry-3x) belongs
+to the refusal-handling cluster, not to this item.
+
+---
+
+# AUTHZ-L2 follow-up — reset-code guess budget hardening (LOW; H-number for the SM to assign)
+
+AUTHZ-L2 made the password-reset guess budget per account: at most 5 guesses
+per 30-minute lock cycle (about 4 per 15-minute code-expiry window if the
+attacker avoids the lock), so **~384 guesses/day** worst case, however many IPs
+the attacker uses. Against a 6-digit code (1,000,000 values) that is under
+0.04%/day per targeted account. That is fine for a drive-by attacker but a
+patient one reaches meaningful odds over months against one high-value
+account, and the same budget can be burned deliberately to keep a victim's
+reset locked (recovery denial; login with the existing password is unaffected).
+
+**Options (any subset):**
+- An escalating lock (30 min, then hours, then a day after repeated lock
+  cycles on one account), which bends the daily rate down to a handful.
+- An 8-digit reset code (100x the space; changes email copy and the frontend
+  input length).
+- An audit event on lock. The audit app is not on `beta`, so the fix emits a
+  structured `password_reset_otp_locked` warning on the `users.models` logger
+  (user id and attempt count only). Replace or complement it with the audit
+  emitter once that lands, and alert on repeated locks for one account.
+
+**Acceptance:** worst-case guesses per account per day measurably lower than
+384, or the code space larger; every lock visible to an operator. Evidence
+as for AUTHZ-L2 (adversarial many-IP loop, mutation).
+
+---
+
+# H-41 — grading-redelivery concurrency test flakes under load
+
+**Found**: seen failing once on CI, never reproduced locally until now.
+
+`students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.
+test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once`
+failed during the staging@fc96d9a full-suite redo (2026-09-28, machine load
+~30 from concurrent unrelated sessions): `'FAILED' != GradingState.DONE`.
+Isolated rerun of the whole module immediately after, load ~20: 4/4 pass.
+
+**Status**: load-induced, consistent with the CI sighting — treated as a
+pre-existing flake, not a regression on whichever branch triggers it. No fix
+scoped yet; recorded so a repeat sighting has a home instead of being
+re-diagnosed from scratch each time.
+
+**Acceptance**: TBD once the actual scheduling contention (if fixable) is
+understood; at minimum, note here whether it reproduces isolated under
+deliberately induced load.
+
+---
+
+# H-44 — `pdf_renderer` concurrent-render test is a wall-clock flake
+
+**Found 2026-09-28** during authz-oauth-takeover Gate 10 verification.
+
+`assignments.tests_pdf_renderer.ConcurrentRenderingTest.
+test_one_slow_render_does_not_stall_the_others` asserts the slowest of 6
+concurrent renders finishes under 4.0s. On this shared 4-physical-core
+machine that fails whenever load is elevated — confirmed on plain
+beta@4b902fc (3/3 failures, ~7s each) and on task/authz-oauth-takeover@27d36f0
+(2/3 failures, same signature); `git diff --stat 4b902fc 27d36f0 --
+assignments/` is empty, so it isn't branch-specific.
+
+**Fix direction**: make the assertion independent of the wall clock — measure
+relative ordering (the slow render finishes last; healthy ones finish close
+together) or inject a fake clock — rather than raising the 4.0s threshold,
+which only shifts where the flake reappears under heavier load.
+
+**Priority**: low, behind the test-speed stream's current queue.
+
+**Acceptance**: passes reliably at machine load comparable to a loaded
+CI/dev box; a genuine stall (the behaviour this test guards against) must
+still fail it.
+
+---
+
+# H-48 — thin-webhook signature tests made live Stripe calls and passed on a 500 — FIXED
+
+**Found 2026-09-28** by the H-39 network guard on its first real CI run
+(beta `be78221`, Tests run 36444904862): two blocked connections to
+`api.stripe.com:443`, suite still green.
+
+`ThinWebhookRealSignatureTests` inherited
+`test_a_rolled_secret_still_verifies_while_both_are_live` and
+`test_a_signature_just_inside_the_tolerance_is_accepted` without patching
+`stripe.Event.retrieve`. The thin view verifies, then fetches the event from
+Stripe; unmocked, that is a real network call. With the guard it fails and
+the view returns 500; before the guard, CI called Stripe for real. Both
+tests asserted only `!= 400`, so a 500 passed.
+
+**Fix**: `retrieve` patched for the whole thin class in `setUp`; every
+accepted-path assertion (fat and thin) is now `== 200`.
+Evidence: `docs/evidence/h48_thin_webhook_mock/EVIDENCE.md`.
+
+---
+
+# H-49 — validation 400s log a full traceback at ERROR — LOW
+
+**Found 2026-09-28** in the same CI run: `classrooms/views.py`
+`_validate_uuid_query_param` (via `monthly_token_usage`) turns a bad
+`school_id` into a `ValidationError` 400, and the request is logged as
+"API Exception" with the full `badly formed hexadecimal UUID string`
+traceback at ERROR. GitHub Actions surfaces those as error annotations on a
+green run, and in production they would page as errors for ordinary client
+mistakes.
+
+**Scope**: client-error (4xx) responses should log at WARNING/INFO without a
+traceback; genuine 5xx keep ERROR. Backlog only.
+
+---
+
+# H-50 — webhook cycle tests made live Stripe PaymentIntent calls — FIXED
+
+**Found 2026-09-29** by the H-39 guard during the beta-batch-1 full run
+(a112eda): two blocked connections to `api.stripe.com`
+`/v1/payment_intents/pi_test_{1,2}?expand=latest_charge`, suite green.
+
+`billing/tests/test_subscription_cycle_integrity.py`
+`test_webhook_preserves_cycle_for_same_interval` and
+`test_webhook_resets_cycle_for_interval_crossing` pass a real
+`payment_intent` id into `_handle_individual_upgrade_checkout_completed`,
+which reaches `resolve_stripe_receipt_url` →
+`stripe.PaymentIntent.retrieve`. Only `stripe.Subscription`/`Invoice` were
+patched, despite the module docstring claiming every Stripe call is mocked.
+`resolve_stripe_receipt_url` swallows `StripeError` by design, so the blocked
+(or, before H-39, real) call never failed the test. Present on beta before
+the batch; not introduced by it.
+
+**Fix**: `stripe.PaymentIntent` patched in both tests, and the lookup
+asserted (`retrieve("pi_test_N", expand=["latest_charge"])`).
+Evidence: `docs/evidence/h50_cycle_receipt_mock/EVIDENCE.md`.
+
+---
+
+Several of these were found during Section 3 but are **not** Section 3
+changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
+H-5 is Section 7. They were deliberately kept out of the security work so
+that diff stayed reviewable. That decision is what this document exists to
+make safe: the work was postponed, not dropped.
+
+---
+
+## H-28 — irreversible Stripe mutations inside `transaction.atomic` (P1b)
+
+**Owner:** fix-p1b. **Gate-8 class:** environment-sensitive / billing.
+**Status:** Phase 1 (investigation) in progress; no code written; design
+proposal owed to the Fixes Coordinator and then the Senior Manager before
+any implementation.
+
+**Scope.** Not a fixed list of sites: the whole class across `billing/` —
+every irreversible Stripe mutation running inside a `transaction.atomic`
+and/or while holding a `select_for_update`, at the webhook layer AND the
+view layer. Scope widened by the Senior Manager, 2026-09-17, after the
+view-layer site below was found outside the original audit.
+
+**The bug.** Django rolls back the DB half of a failed operation; Stripe
+does not. A mutation that succeeds inside a transaction that later aborts
+leaves Stripe changed and the DB unchanged — permanently, with no retry
+that repairs it.
+
+**Two failure modes, deliberately not given one remedy.** Webhook-layer
+sites die by the Postgres 60 s `idle_in_transaction_session_timeout`
+(shorter than stripe-python's 80 s default) and **can be redelivered**.
+View-layer sites die by gunicorn's request timeout and are **never
+redelivered**, so divergence there is silent and permanent. Five of the six
+confirmed sites are view-layer.
+
+**Confirmed sites** (read against `b744c9f`; not yet reproduced by test):
+`license_service.py:3465` `convert_license_to_offline` (worst —
+irreversible `Subscription.delete`); `:2224`/`:2249` `update_seats`;
+`:2062` `change_license_plan` -> `stripe_service.py:1680`; `:1969`
+`cancel_license_subscription`; `views.py:754`/`:766` `cancel`;
+`stripe_service.py:3397`/`:3399`/`:3406` via the `@transaction.atomic`
+`handle_checkout_completed`.
+
+**In-tree reference pattern.** `stripe_service.py:975-1070`
+(`reactivate_if_cancelling`) already does it correctly: Stripe mutation
+OUTSIDE the transaction, a short local transaction, a compensating revert
+on local-save failure, and a loud `MANUAL RECONCILIATION NEEDED` log when
+the compensation itself fails. The design applies this pattern rather than
+inventing one.
+
+**Acceptance:** every confirmed site either moves its mutation out of the
+transaction, becomes idempotent, or becomes reconcilable, with the choice
+justified per flow; runtime proof via
+`assert_no_call_inside_transaction` that no mutation executes inside an
+open transaction; permanent regression tests; the full 10 gates at the
+environment-sensitive bar (Gate 8 DEPLOYED-REAL).
+
+**Companion deliverable:** `docs/evidence/h28_p1b/SPEC_audit_stripe_divergence.md`
+— a read-only `audit_*` command cross-checking both subscription models
+against Stripe. Dual-purpose: the P1b "has this already happened?"
+detector, and a permanent reconciliation safety net. Build-ready; blocked
+only on production read access. Writes nothing to Stripe, repairs nothing.
+
+**Evidence:** `docs/evidence/h28_p1b/`.

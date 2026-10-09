@@ -1,0 +1,4 @@
+mut_db_rows_before_drop 1 connections 0
+dropped test_s5_mut_eb6f3a0
+mut_db_rows_after 0
+remaining_test_s5_databases []

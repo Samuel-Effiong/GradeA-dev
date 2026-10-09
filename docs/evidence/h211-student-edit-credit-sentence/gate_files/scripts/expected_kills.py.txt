@@ -1,0 +1,101 @@
+"""H-211: written on 2026-10-09 BEFORE any run of the row, by tracing each of
+the 4 tests of the row's two modules against every mutant and against the base
+(the H-180 tip 90b5c763) BY HAND, including the wallets the signal in
+users/signals.py gives every user (an EMPTY wallet, also for a student; the
+false premise "a student has no wallet" cost H-180 a test and a written set).
+Nothing here was seen by a run.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE 90b5c763>"""
+import re
+import sys
+from pathlib import Path
+
+E = "EditRefusalTest"
+W = "StudentWalletIsNotTheOneBilledTest"
+T1 = (E, "test_a_student_who_started_the_edit_reads_the_fixed_sentence")
+T2 = (E, "test_a_teacher_who_started_the_edit_keeps_the_generic_text")
+T3 = (E, "test_a_refusal_before_the_user_is_loaded_does_not_break_the_handler")
+R1 = (W, "test_a_rich_student_with_a_poor_teacher_is_refused_and_not_billed")
+
+EXPECTED = {
+    # E1: nobody gets the sentence: the student's test (T1) fails; T2 (teacher)
+    # and T3 (no user) expect the generic text and pass.
+    "E1": {T1},
+    # E2: everybody gets it, also a teacher (T2) and a refusal with no user
+    # (T3: `user` is None, the generic text is expected).
+    "E2": {T2, T3},
+    # E3: `user = None` removed: in T3 the lookup raises before `user` exists,
+    # the handler reads it: UnboundLocalError, the task fails. T1/T2 load the
+    # user first. {T3}.
+    "E3": {T3},
+    # E4: the returned message is the generic one: T1's last-but-one
+    # assertion (the result's message) fails after the row's text matched.
+    "E4": {T1},
+    # E5: the row stores the generic text: T1 fails at its first comparison.
+    "E5": {T1},
+    # P1: the door bills the richer of the student's wallet and the teacher's:
+    # only the test with a rich student and a poor teacher lets it through.
+    # Every other test has an EMPTY student wallet (the signal), so max()
+    # equals the teacher's balance.
+    "P1": {R1},
+}
+#: The BASE 90b5c763 with the final tests: only T1 is red (the edit task
+#: stores the generic text there). Green on purpose, controls: T2 (a teacher
+#: keeps the generic text), T3 (no user: generic), R1 (the door already bills
+#: the teacher only; killed only by P1).
+REPRO = {T1}
+#: RULE 22: the fragments that must be in T1's own failure block at (r),
+#: written before the run: the assertion line and the generic text it got.
+REASON = {
+    T1: ("self.assertEqual(tracked.error, STUDENT_SENTENCE)", "AI credits"),
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), REPRO)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

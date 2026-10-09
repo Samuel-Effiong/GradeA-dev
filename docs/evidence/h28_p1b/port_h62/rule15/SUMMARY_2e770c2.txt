@@ -1,0 +1,7 @@
+started 2026-09-30T17:43:43+01:00 tip 2e770c2
+changed_modules    2e770c2  rc=0      43s Ran 195 tests in 39.765s OK
+mutation_battery   2e770c2  rc=1    1212s 25/29 killed with verified restore
+
+dropped test_h28_mut
+app_billing        2e770c2  rc=1     221s Ran 1882 tests in 216.255s FAILED (failures=2, errors=3)
+finished 2026-09-30T18:08:27+01:00

@@ -1,0 +1,8 @@
+users.tests_exception_handler.CustomExceptionHandlerTests.test_a_drf_exception_keeps_its_status_and_is_marked_handled ... ok
+users.tests_exception_handler.CustomExceptionHandlerTests.test_a_handled_exception_is_logged_too ... ok
+users.tests_exception_handler.CustomExceptionHandlerTests.test_an_unhandled_exception_becomes_a_500_carrying_the_original ... ok
+users.tests_exception_handler.CustomExceptionHandlerTests.test_every_exception_is_logged_with_request_context ... ok
+users.tests_exception_handler.CustomExceptionHandlerTests.test_the_unhandled_response_body_carries_no_exception_text ... ok
+users.tests_exception_handler.CustomExceptionHandlerTests.test_validation_errors_keep_their_field_payload ... ok
+Ran 6 tests in 0.013s
+OK

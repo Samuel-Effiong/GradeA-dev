@@ -1,0 +1,256 @@
+# M15: 402 for credits, 403 for feature
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest
+# exit 1
+
+Found 5 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Dashboard AI context section failed to load
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 166, in dashboard_context_section
+    body = dashboard_context_json(build())
+                                  ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 2748, in <lambda>
+    lambda: self.students(request, *args, **kwargs).data,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 2415, in students
+    cache_key = versioned_key(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/AutoGrader/cache_generation.py", line 299, in versioned_key
+    f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/AutoGrader/cache_generation.py", line 125, in get_generation
+    key = generation_key(scope, entity_id)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/AutoGrader/cache_generation.py", line 112, in generation_key
+    raise ValueError(f"scope {scope!r} requires an entity id")
+ValueError: scope 'sch' requires an entity id
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+.Custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+Superadmin custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+.Cannot activate automatic trial for user d2-feature-ce2dd534@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+Cannot activate automatic trial for user d2-credits-f47fff4c@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user d11-teacher-01129a48@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d11-teacher-b89a9554@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+F
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 283, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb/grade-all]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb/schedule_grade_all_submission]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/course/3d846ad2-cae3-40ed-91a3-89c425749a0d/student-summary]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb/batch-upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341/grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341/grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341/schedule-grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341/teacher_feedback]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341/update-grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb/upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/668a5d8f-e30e-4a00-a1bd-c08e5f234ecb/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PUT /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PATCH /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/12a04513-49ea-464e-b644-736983e64341/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 403 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}'
+
+----------------------------------------------------------------------
+Ran 5 tests in 12.866s
+
+FAILED (failures=19)
+Preserving test database for alias 'default'...

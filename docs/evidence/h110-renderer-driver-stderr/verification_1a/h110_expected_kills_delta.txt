@@ -1,0 +1,11 @@
+Written 2026-10-06 10:38:52 WAT by 1a, before any run of mine at a tip that holds 66f76d72.
+(The first note, h110_expected_kills.txt of 00:03:29, was for the runs at c10ee47d and stands unchanged.)
+These runs are the author's two modules only (28 tests), without my probe module.
+
+Baseline: 28 tests OK.
+
+Mutant Y12 (the reader thread is not a daemon thread; h110_mutant_Y12.py, unchanged) is expected to fail exactly one test:
+  assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_a_process_that_has_rendered_still_ends_by_itself
+by its own 30-second limit ("the interpreter did not end within 30 s"). No other test is expected to fail:
+the two other fresh-interpreter tests that leave the driver alive kill their child after 30 seconds without a failure,
+and the third kills the driver itself. So the run takes about 90 seconds longer than the baseline.

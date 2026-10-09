@@ -1,0 +1,7 @@
+AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation ... ok
+AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production ... ok
+AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented ... ok
+AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix ... ok
+AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form ... ok
+Ran 5 tests in 3.830s
+OK

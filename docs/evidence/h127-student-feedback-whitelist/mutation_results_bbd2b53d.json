@@ -1,0 +1,506 @@
+{
+  "A1_assignment_detail_returns_the_saved_column": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_a_published_grade_is_shown_as_the_student_projection",
+      "students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_the_older_ai_feedback_column_is_projected_too",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one",
+      "students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_a_published_grade_is_shown_as_the_student_projection",
+      "students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_the_older_ai_feedback_column_is_projected_too"
+    ],
+    "pycache_left": 0
+  },
+  "A2_student_dashboard_returns_the_saved_column": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentDashboardAssignmentsFeedbackTest.test_a_published_grade_is_shown_as_the_student_projection",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one",
+      "students.tests_student_feedback_routes.StudentDashboardAssignmentsFeedbackTest.test_a_published_grade_is_shown_as_the_student_projection"
+    ],
+    "pycache_left": 0
+  },
+  "A3_student_submission_detail_returns_the_saved_column": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_scoping.StudentFeedbackScopingTest.test_second_opinion_is_never_visible_to_the_student",
+      "students.tests_student_feedback_scoping.StudentFeedbackScopingTest.test_internal_and_teacher_only_fields_are_stripped",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_student_detail_serializer_projects_both_columns"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_student_detail_serializer_projects_both_columns",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "students.tests_student_feedback_scoping.StudentFeedbackScopingTest.test_internal_and_teacher_only_fields_are_stripped",
+      "students.tests_student_feedback_scoping.StudentFeedbackScopingTest.test_second_opinion_is_never_visible_to_the_student"
+    ],
+    "pycache_left": 0
+  },
+  "A4_a_value_that_is_not_a_dictionary_is_returned_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSafeFeedbackFunctionTest.test_a_value_that_is_not_a_dictionary_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSafeFeedbackFunctionTest.test_a_value_that_is_not_a_dictionary_is_shown_as_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "F1_the_student_page_returns_the_formatted_grade_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_student_detail_serializer_projects_both_columns"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_student_detail_serializer_projects_both_columns",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_empty_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_would_run_code_is_only_ever_read_never_run"
+    ],
+    "pycache_left": 0
+  },
+  "F2_the_allow_list_is_widened_to_for_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "pycache_left": 0
+  },
+  "F3_text_that_cannot_be_read_is_shown_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_would_run_code_is_only_ever_read_never_run",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_empty_value_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_empty_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_would_run_code_is_only_ever_read_never_run"
+    ],
+    "pycache_left": 0
+  },
+  "F4_a_literal_that_is_not_a_dictionary_is_shown_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "F5_no_size_limit": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "F6_unknown_sections_are_copied": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "pycache_left": 0
+  },
+  "F7_an_unreleased_formatted_grade_is_shown": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_unreleased_grade_shows_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_unreleased_grade_shows_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "B1_the_list_replaces_no_review_field": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "pycache_left": 0
+  },
+  "B2_the_list_does_not_replace_review_reasons": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "pycache_left": 0
+  },
+  "B3_the_list_does_not_replace_needs_review": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "pycache_left": 0
+  },
+  "B4_the_list_does_not_replace_severity_and_tier": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "pycache_left": 0
+  },
+  "B5_the_list_does_not_replace_grading_confidence": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "pycache_left": 0
+  },
+  "B6_an_unreleased_grade_shows_when_it_was_made": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field"
+    ],
+    "pycache_left": 0
+  },
+  "B7_the_teacher_loses_the_review_fields_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_the_teacher_still_sees_the_review_queue_fields"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_the_teacher_still_sees_the_review_queue_fields"
+    ],
+    "pycache_left": 0
+  },
+  "C1_a_student_may_filter_on_needs_review": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue"
+    ],
+    "pycache_left": 0
+  },
+  "C2_a_student_may_filter_on_review_tier": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue"
+    ],
+    "pycache_left": 0
+  },
+  "C3_a_student_may_order_by_review_severity": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue"
+    ],
+    "pycache_left": 0
+  },
+  "C4_nobody_is_refused": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue"
+    ],
+    "pycache_left": 0
+  },
+  "C5_the_teacher_is_refused_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_the_teacher_can_still_filter_and_order_the_review_queue"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_the_teacher_can_still_filter_and_order_the_review_queue"
+    ],
+    "pycache_left": 0
+  },
+  "D1_the_follow_up_sends_the_whole_result": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading"
+    ],
+    "pycache_left": 0
+  },
+  "D2_teacher_feedback_sends_the_whole_result": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_teacher_feedback"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_teacher_feedback"
+    ],
+    "pycache_left": 0
+  },
+  "D3_update_grade_sends_the_whole_result": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_update_grade"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_update_grade"
+    ],
+    "pycache_left": 0
+  },
+  "D4_the_function_leaves_nothing_out": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "students.tests_formatter_input.GradingResultForFormatterTest.test_only_the_second_opinion_block_is_left_out",
+      "students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_teacher_feedback",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_update_grade"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading",
+      "students.tests_formatter_input.GradingResultForFormatterTest.test_only_the_second_opinion_block_is_left_out",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_teacher_feedback",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_update_grade"
+    ],
+    "pycache_left": 0
+  },
+  "E1_out_of_credits_saves_the_text": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_out_of_credits"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_out_of_credits"
+    ],
+    "pycache_left": 0
+  },
+  "E2_any_other_failure_saves_the_text": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_access_refused",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_provider_error",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_evidence_rejected",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_incomplete_response",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_anything_else"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_access_refused",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_anything_else",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_evidence_rejected",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_incomplete_response",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_provider_error"
+    ],
+    "pycache_left": 0
+  },
+  "E3_the_batch_failure_forgets_its_cause": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_provider_error",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_evidence_rejected",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_incomplete_response"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_evidence_rejected",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_incomplete_response",
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_provider_error",
+      "ai_processor.tests_second_opinion_pipeline.SecondOpinionPipelineTest.test_b_is_subject_to_evidence_enforcement"
+    ],
+    "pycache_left": 0
+  },
+  "E4_the_out_of_credits_text_is_not_logged": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_out_of_credits"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_out_of_credits"
+    ],
+    "pycache_left": 0
+  },
+  "E5_a_provider_failure_is_not_told_apart": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 70,
+    "expected": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_provider_error"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "ai_processor.tests_second_opinion_error_code.SecondOpinionErrorCodeTest.test_provider_error"
+    ],
+    "pycache_left": 0
+  }
+}

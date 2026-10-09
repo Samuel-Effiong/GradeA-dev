@@ -1,0 +1,5 @@
+chain.log.gz  lines=45
+full_suite.log.gz  lines=55929
+mutations_quiet_host.log.gz  lines=84
+precommit_all_files.log.gz  lines=25
+real_provider_batch_upload.log.gz  lines=109

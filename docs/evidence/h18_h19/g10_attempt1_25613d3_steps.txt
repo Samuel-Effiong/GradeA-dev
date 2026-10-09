@@ -1,0 +1,34 @@
+[2026-09-17T11:30:22+01:00] gate start commit=25613d3c7fb148bdaa3ccb9a440fe75d9d55586b
+HEAD 25613d3c7fb148bdaa3ccb9a440fe75d9d55586b
+index_sha256 030576edf09601626da22d734166cdd04a7e3e8c3138a7754789da3859cb46b2
+tracked_content_sha256 d337f1bd09e2d128310f3ba822b610000f61e207c2b741afcd69d91895b246a7
+porcelain_lines 0
+pg_database rows for test_h18_h19_final_gate: 0
+pg_stat_activity connections to test_h18_h19_final_gate: 0
+68 objects imported automatically (use -v 2 for details).
+
+postgres: PostgreSQL 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0, 64-bit
+redis: 8.0.5
+python: 3.12.10  django: 5.2.6
+[2026-09-17T11:30:28+01:00] pre-commit --all-files
+[2026-09-17T11:32:51+01:00] precommit_exit=0
+[2026-09-17T11:32:51+01:00] check_migration_safety --base beta
+[2026-09-17T11:32:52+01:00] migration_safety_exit=0
+[2026-09-17T11:32:52+01:00] makemigrations --check --dry-run
+[2026-09-17T11:32:55+01:00] makemigrations_exit=0
+[2026-09-17T11:32:55+01:00] manage.py check
+[2026-09-17T11:32:58+01:00] check_exit=0
+[2026-09-17T11:32:58+01:00] full suite start (fresh DB, no --keepdb)
+[2026-09-17T12:17:58+01:00] full_suite_exit=1
+[2026-09-17T12:17:59+01:00] Ran 4262 tests in 2682.776s
+[2026-09-17T12:17:59+01:00] FAILED (failures=1, skipped=22)
+[2026-09-17T12:17:59+01:00] other-sessions lines: 0
+[2026-09-17T12:17:59+01:00] destroying lines: 1
+HEAD 25613d3c7fb148bdaa3ccb9a440fe75d9d55586b
+index_sha256 030576edf09601626da22d734166cdd04a7e3e8c3138a7754789da3859cb46b2
+tracked_content_sha256 d337f1bd09e2d128310f3ba822b610000f61e207c2b741afcd69d91895b246a7
+porcelain_lines 0
+[2026-09-17T12:17:59+01:00] fingerprint UNCHANGED
+pg_database rows for test_h18_h19_final_gate: 0
+pg_stat_activity connections to test_h18_h19_final_gate: 0
+[2026-09-17T12:18:00+01:00] gate end

@@ -1,0 +1,5 @@
+a4f379be5511	D1	the database goes into the URL's path	KILLED	FAILED (failures=20, errors=3)	True	8.3
+a4f379be5511	D2	the clients are not built with from_url(location, db=db)	KILLED	FAILED (failures=16)	True	8.1
+a4f379be5511	D4	a unix:// URL's database is its db parameter	KILLED	FAILED (errors=1)	True	8.8
+a4f379be5511	D3	all 16 databases are visited	KILLED	FAILED (failures=1, errors=7)	True	3.9
+f1e0e9d7cfd4	D5	a socket URL keeps its credentials (v2's finding)	KILLED	FAILED (failures=12)	True	7.1

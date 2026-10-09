@@ -1,0 +1,213 @@
+"""v2 mutants for H-165 (d5: the answer document builder does not raise on
+stored answers it cannot print), beside d5's U1 to U19.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT, with v2's probe
+copied to students/tests_vf2_h165_probe.py), inside the rule 16/13/12
+wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h165_mutants.py check |
+baseline | (no args: every mutant).
+
+Every inner run writes its OWN file: "baseline.txt", and for a mutant
+"<mutant>_<who judged it>.txt".
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of the mutated module's directory is deleted before each mutant
+and after each restore; `baseline` deletes it first. Database tests:
+--keepdb (database test_vf2_s1, left for 0b to drop).
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+SS = "students/services.py"
+AI = "ai_processor/services.py"
+D5 = ["students.tests_answers_unreadable"]
+PROBE = ["students.tests_vf2_h165_probe"]
+BASELINE = D5 + PROBE
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+# Written 2026-10-07 before any run of this row by v2 (rules 18 and 19),
+# after reading bbd01981: every line of Y1 to Y4 read against each mutant,
+# setUp and the controls included (the reading is in the probe's own
+# docstring). For each mutant the tests that must ALL be among the failing
+# ones, and (the probe has four tests in one class, none inherited) no
+# other. KILLED only with the run's own "Ran" line and every named test
+# failing. d5's tests are not run under M1 to M5 (rule 15).
+Y1 = "test_y1_some_left_out_through_the_real_pipeline"
+Y2 = "test_y2_with_the_objective_step_off_the_same_paper_is_not_graded"
+Y3 = "test_y3_a_graded_paper_whose_answers_were_then_damaged"
+Y4 = "test_y4_the_refusal_comes_before_a_claim_that_is_held"
+EXPECTED = {
+    # The refusal writes its own reason alone. Y3's paper had a reason of
+    # another kind, which is gone. Y4's paper had none.
+    "M1_the_refusal_drops_the_reasons_already_on_the_paper": {
+        "v2's probe": (PROBE, (Y3,)),
+    },
+    # The refusal is made after the claim. Y3: a graded paper can be
+    # claimed, so its state is RUNNING after the refusal. Y4: the claim is
+    # held, so "already being graded" is raised instead of the refusal.
+    "M2_the_refusal_comes_after_the_claim": {
+        "v2's probe": (PROBE, (Y3, Y4)),
+    },
+    # Grading's save does not add the reason (d5's U9, here against the
+    # real pipeline). Y1's reason line.
+    "M3_grading_does_not_add_the_reason": {
+        "v2's probe": (PROBE, (Y1,)),
+    },
+    # NOT a fault put in: a cure of the limit Y2 states (the reuse step
+    # skips entries that are not objects). Y2 says the paper is not
+    # graded; with the cure it is.
+    "M4_the_reuse_step_skips_entries_that_are_not_objects": {
+        "v2's probe": (PROBE, (Y2,)),
+    },
+    # The builder walks the stored value again (the fault as it was, for a
+    # mixed list). Y1 fails at the save.
+    "M5_the_builder_walks_the_stored_value_again": {
+        "v2's probe": (PROBE, (Y1,)),
+    },
+}
+PREDICTED_TO_SURVIVE = set()
+# Which mutant shows which probe red (rule 19): Y1: M3, M5. Y2: M4.
+# Y3: M1, M2. Y4: M2.
+
+MUTANTS = {
+    "M1_the_refusal_drops_the_reasons_already_on_the_paper": (SS, [
+        ("        for reason in row.review_reasons or []\n",
+         "        for reason in []\n"),
+    ]),
+    "M2_the_refusal_comes_after_the_claim": (SS, [
+        ("def grade_engine(user, submission, processing_task_id=None):\n"
+         "    if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:\n"
+         "        _refuse_unreadable_answers(submission)\n\n",
+         "def grade_engine(user, submission, processing_task_id=None):\n"),
+        ("    submission.refresh_from_db(fields=[\"grading_state\", \"grading_started_at\"])\n",
+         "    submission.refresh_from_db(fields=[\"grading_state\", \"grading_started_at\"])\n"
+         "    if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:\n"
+         "        _refuse_unreadable_answers(submission)\n"),
+    ]),
+    "M3_grading_does_not_add_the_reason": (SS, [
+        ("    if left_out:\n        tiers.append(\"critical\")\n",
+         "    if False:\n        tiers.append(\"critical\")\n"),
+    ]),
+    "M4_the_reuse_step_skips_entries_that_are_not_objects": (AI, [
+        ("            for a in (answers or [])\n"
+         "            if self._question_number_key(a.get(\"question_number\")) not in claimed_keys\n",
+         "            for a in (answers or [])\n"
+         "            if isinstance(a, dict)\n"
+         "            and self._question_number_key(a.get(\"question_number\")) not in claimed_keys\n"),
+    ]),
+    "M5_the_builder_walks_the_stored_value_again": (SS, [
+        ("        for ans in printable:\n",
+         "        for ans in submission.answers:\n"),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits)."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SS)
+    clear_pycache(AI)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            # r2: one file per judgement. The first form wrote both judgements
+            # of a mutant to the same file, so the second overwrote the first.
+            slug = re.sub(r"[^a-z0-9]+", "_", who.lower()).strip("_")
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_{slug}.txt")
+            predicted = (name, who) in PREDICTED_TO_SURVIVE
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif predicted:
+                status = "KILLED_NOT_AS_PREDICTED"
+            elif all(test in failing for test in expected):
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if predicted else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

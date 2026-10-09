@@ -1,0 +1,170 @@
+# M19: EmptyWalletError is an APIException
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0 @ 5ba3887876bee484297dbf5aa757ff01a8eddbcd
+# labels: billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest users.tests_credit_balance_permission
+# exit 1
+
+Found 20 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d11-teacher-794fbe2b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+
+
+django.request ERROR 2026-09-17 18:40:11,132 log 1957949 124291312970688 [request_id=854a6f274324487b97277dbf41278e4b] Internal Server Error: /api/v1/submissions/f40eb48d-3f18-4054-9299-c105d330265b
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/response.py", line 74, in rendered_content
+    ret = renderer.render(self.data, accepted_media_type, context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 731, in render
+    context = self.get_context(data, accepted_media_type, renderer_context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 664, in get_context
+    raw_data_patch_form = self.get_raw_data_form(data, view, 'PATCH', request)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 545, in get_raw_data_form
+    if not self.show_form_for_method(view, method, request, instance):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 435, in show_form_for_method
+    view.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+ECannot activate automatic trial for user d11-teacher-992ccbde@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+ERROR: test_browsable_api_renders_the_refusal_instead_of_crashing (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_browsable_api_renders_the_refusal_instead_of_crashing)
+An HTML request to a credit-guarded endpoint: the 402 page is
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 712, in test_browsable_api_renders_the_refusal_instead_of_crashing
+    response = self.client.patch(
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/test.py", line 315, in patch
+    response = super().patch(
+               ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/test.py", line 221, in patch
+    return self.generic('PATCH', path, data, content_type, **extra)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/test.py", line 237, in generic
+    return super().generic(
+           ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/client.py", line 671, in generic
+    return self.request(**r)
+           ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/test.py", line 289, in request
+    return super().request(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/test.py", line 241, in request
+    request = super().request(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/client.py", line 1087, in request
+    self.check_exception(response)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/test/client.py", line 802, in check_exception
+    raise exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/response.py", line 74, in rendered_content
+    ret = renderer.render(self.data, accepted_media_type, context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 731, in render
+    context = self.get_context(data, accepted_media_type, renderer_context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 664, in get_context
+    raw_data_patch_form = self.get_raw_data_form(data, view, 'PATCH', request)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 545, in get_raw_data_form
+    if not self.show_form_for_method(view, method, request, instance):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/renderers.py", line 435, in show_form_for_method
+    view.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+
+----------------------------------------------------------------------
+Ran 20 tests in 142.996s
+
+FAILED (errors=1)
+Preserving test database for alias 'default'...

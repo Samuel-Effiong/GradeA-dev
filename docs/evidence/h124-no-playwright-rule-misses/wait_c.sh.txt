@@ -1,0 +1,23 @@
+#!/bin/bash
+# Waits for a 1-minute load of 4.00 or under, then runs the granted (c)
+# once (0b's GRANT 13:03:53 on 2026-10-06). A refusal by the script
+# (exit 8) is not a run and is tried again. Gives up at 13:12 without
+# starting (0b then asks the other project for more time). Detached from
+# the session. Usage: wait_c.sh <tip-sha8>
+set -u
+D=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h124
+cd $D
+while :; do
+  L=$(cut -d" " -f1 /proc/loadavg); now=$(date +%H%M)
+  echo "$(date +%H:%M:%S) load $L" >> $D/c_wait.log
+  if awk -v l="$L" 'BEGIN{exit !(l<=4.00)}'; then
+    echo "$(date +%H:%M:%S) starting (c) at load $L" >> $D/c_wait.log
+    ./c_h124.sh "$1" > $D/c_h124.out 2>&1 < /dev/null; rc=$?
+    echo "$(date +%H:%M:%S) c_h124 exit=$rc" >> $D/c_wait.log
+    [ $rc -eq 8 ] || break
+    rm -f $D/c_autograder_p2_$1.load.txt
+  fi
+  if [ "$now" -ge 1312 ]; then echo "$(date +%H:%M:%S) GAVE UP: still over 4 at 13:12, nothing started" >> $D/c_wait.log; break; fi
+  sleep 20
+done
+echo "$(date +%H:%M:%S) C END" >> $D/c_wait.log

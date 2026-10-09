@@ -1,0 +1,68 @@
+{
+ "M20 HasCreditBalance user_type only": {
+  "failing": [
+   "test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate.test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate"
+  ],
+  "guard": "credit gate both-flags",
+  "ran": "11",
+  "restore_detail": {
+   "users/permissions.py": true
+  },
+  "restored": true,
+  "seconds": 43,
+  "summary": "FAILED (failures=2)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M21 HasCreditBalance is_superuser only": {
+  "failing": [
+   "test_createsuperuser_account_does_not_bypass_the_credit_gate.test_createsuperuser_account_does_not_bypass_the_credit_gate"
+  ],
+  "guard": "credit gate both-flags",
+  "ran": "11",
+  "restore_detail": {
+   "users/permissions.py": true
+  },
+  "restored": true,
+  "seconds": 45,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M22 AI type-only refusal branch removed": {
+  "failing": [
+   "test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider.test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider",
+   "test_type_only_account_is_refused_before_any_provider_call.test_type_only_account_is_refused_before_any_provider_call",
+   "test_type_only_course_owner_task_fails_cleanly_without_billing.test_type_only_course_owner_task_fails_cleanly_without_billing"
+  ],
+  "guard": "unmetered AI both-flags",
+  "ran": "11",
+  "restore_detail": {
+   "ai_processor/services.py": true
+  },
+  "restored": true,
+  "seconds": 43,
+  "summary": "FAILED (failures=13)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M23 AI refusal condition inverted": {
+  "failing": [
+   "test_real_superadmin_is_still_unmetered.test_real_superadmin_is_still_unmetered",
+   "test_real_superadmin_task_still_runs_unmetered.test_real_superadmin_task_still_runs_unmetered",
+   "test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider.test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider",
+   "test_type_only_account_is_refused_before_any_provider_call.test_type_only_account_is_refused_before_any_provider_call",
+   "test_type_only_course_owner_task_fails_cleanly_without_billing.test_type_only_course_owner_task_fails_cleanly_without_billing"
+  ],
+  "guard": "unmetered AI both-flags",
+  "ran": "11",
+  "restore_detail": {
+   "ai_processor/services.py": true
+  },
+  "restored": true,
+  "seconds": 43,
+  "summary": "FAILED (failures=14, errors=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ }
+}

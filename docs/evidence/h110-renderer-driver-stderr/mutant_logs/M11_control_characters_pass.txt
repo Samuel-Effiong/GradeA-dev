@@ -1,0 +1,15 @@
+...................F.......
+======================================================================
+FAIL: test_control_characters_are_replaced (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_control_characters_are_replaced)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 184, in test_control_characters_are_replaced
+    self.assertNotIn("\x1b", message)
+AssertionError: '\x1b' unexpectedly found in '[PDF] Playwright driver stderr: red \x1b[31malert\x07'
+
+----------------------------------------------------------------------
+Ran 27 tests in 7.932s
+
+FAILED (failures=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

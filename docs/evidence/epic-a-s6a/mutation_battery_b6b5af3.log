@@ -1,0 +1,100 @@
+=== S6a mutation battery on b6b5af31e02d9426e490b906f80719aa03951dc8 started 2026-09-30T15:14:49+01:00
+
+--- control: unmutated tree (creates the test DB)
+test_exit=0
+Ran 94 tests in 3.759s
+OK
+
+--- mutant M1_renderer_shows_envelope_keys (users/renderers.py)
+applied
+test_exit=1
+      1 FAIL: test_a_coded_body_flattens_to_its_display_sentence_alone
+      1 FAIL: test_a_refused_request_gets_the_plan_refusal_without_the_reason
+     13 FAIL: test_every_user_facing_code_answers_its_own_envelope
+      3 FAIL: test_the_old_refusals_keep_their_message_and_legacy_code
+Ran 94 tests in 2.525s
+FAILED (failures=18)
+restored_sha256=004fb7f1da1b53fd7021c96f2b1110212cdb1c789c6d6782408514bf6d475a69 MATCHES blob
+
+--- mutant M2_reference_dropped (AutoGrader/reason_codes.py)
+applied
+test_exit=1
+      1 FAIL: test_a_refused_request_gets_the_plan_refusal_without_the_reason
+      1 FAIL: test_qa_err_04_an_inbound_request_id_is_the_reference
+      3 FAIL: test_qa_err_04_reference_is_the_request_id
+Ran 94 tests in 2.684s
+FAILED (failures=5)
+restored_sha256=a8e85339bfa9e3ec6581fb3e4e7976990dedec8873fa1dea3a9599616f022838 MATCHES blob
+
+--- mutant M3_emitter_accepts_any_upper_code (audit/emitter.py)
+applied
+test_exit=1
+      1 FAIL: test_a_malformed_reason_code_is_rejected
+      1 FAIL: test_a_well_formed_code_outside_the_catalogue_is_rejected
+Ran 94 tests in 3.016s
+FAILED (failures=2)
+restored_sha256=4ff2df96778bb8a283b85a3bdb888998f4ee67b12fe3064f8f11c3fc419adbf6 MATCHES blob
+
+--- mutant M4_params_not_whitelisted (AutoGrader/reason_codes.py)
+applied
+test_exit=1
+      1 FAIL: test_a_param_outside_the_spec_is_refused
+Ran 94 tests in 3.453s
+FAILED (failures=1)
+restored_sha256=a8e85339bfa9e3ec6581fb3e4e7976990dedec8873fa1dea3a9599616f022838 MATCHES blob
+
+--- mutant M5_legacy_code_dropped (AutoGrader/reason_codes.py)
+applied
+test_exit=1
+      1 ERROR: test_a_refused_request_gets_the_plan_refusal_without_the_reason
+      3 ERROR: test_the_old_refusals_keep_their_message_and_legacy_code
+      2 FAIL: test_every_user_facing_code_answers_its_own_envelope
+Ran 94 tests in 2.837s
+FAILED (failures=2, errors=4)
+restored_sha256=a8e85339bfa9e3ec6581fb3e4e7976990dedec8873fa1dea3a9599616f022838 MATCHES blob
+
+--- mutant M6_refusal_response_answers_everything (billing/refusals.py)
+applied
+test_exit=1
+      1 FAIL: test_refusal_response_still_answers_refusals_only
+Ran 94 tests in 2.731s
+FAILED (failures=1)
+restored_sha256=c291aa2fcbb2330028c0d899f58302936a5f6b2f96bf12459b702f0f51defc21 MATCHES blob
+
+--- mutant M7_decorator_no_credits_mapping (billing/access_control.py)
+applied
+test_exit=1
+      2 FAIL: test_a_balance_reason_gets_the_credits_refusal
+Ran 94 tests in 2.956s
+FAILED (failures=2)
+restored_sha256=bae44d855e821c84b99d05b7038429166b29292972cbcd77d5ea364e225494eb MATCHES blob
+
+--- mutant M8_detail_leaks_into_message (AutoGrader/error_messages.py)
+applied
+test_exit=0
+Ran 94 tests in 4.667s
+OK
+restored_sha256=623d058f676bc3a3ee39d55c6481a4e823a7c4b6ca32ca168973b5d91a1d0938 MATCHES blob
+
+--- mutant M9_handler_ignores_coded_errors (users/exceptions.py)
+applied
+test_exit=1
+      1 ERROR: test_qa_err_04_an_inbound_request_id_is_the_reference
+      1 ERROR: test_qa_err_04_reference_is_the_request_id
+     13 FAIL: test_every_user_facing_code_answers_its_own_envelope
+Ran 94 tests in 3.755s
+FAILED (failures=13, errors=2)
+restored_sha256=248e167e773696e203609808701c73c2293eb7d9963d8ccc1c6b876a94e251b0 MATCHES blob
+
+--- mutant M10_provider_counts_as_user_facing (AutoGrader/error_messages.py)
+applied
+test_exit=1
+      1 FAIL: test_only_user_and_validation_classes_are_user_facing
+Ran 94 tests in 3.549s
+FAILED (failures=1)
+restored_sha256=623d058f676bc3a3ee39d55c6481a4e823a7c4b6ca32ca168973b5d91a1d0938 MATCHES blob
+
+final_status_lines=0
+
+dropped test_mut_s6a
+=== finished 2026-09-30T15:16:14+01:00; disposable worktree removed

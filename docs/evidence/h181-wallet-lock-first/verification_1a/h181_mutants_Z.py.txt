@@ -1,0 +1,107 @@
+"""1a's mutants for H-181 (rule 19: my own order test must be seen red, per site).
+
+Usage, in the checkout: python -B h181_mutants_Z.py <R1..R7|L1..L7> [--check]
+Applied in place; restore with git checkout. Expected failing tests: h181_expected_kills.txt.
+
+Seven sites of `wallet = lock_wallet_first(wallet)`: S1 to S6 are the six
+individual-plan functions in billing/services.py, S7 is the licence helper
+`_rollover_and_grant_monthly_bucket` in billing/license_service.py.
+
+R<n>: the lock at site n is removed (`wallet = wallet` stays).
+L<n>: the lock at site n is moved LATE: removed from its place and put right
+      after the first top-level statement of the function that locks a bucket
+      (`select_for_update` in its source), so a bucket is locked first.
+"""
+
+import ast
+import sys
+
+SERVICES = "billing/services.py"
+LICENCE = "billing/license_service.py"
+SITES = {
+    1: (SERVICES, "activate_subscription"),
+    2: (SERVICES, "apply_immediate_plan_change"),
+    3: (SERVICES, "process_mid_cycle_credit_grant"),
+    4: (SERVICES, "process_rollover_and_renewal"),
+    5: (SERVICES, "finalize_trial_conversion_via_stripe"),
+    6: (SERVICES, "finalize_trial_to_paid_conversion"),
+    7: (LICENCE, "_rollover_and_grant_monthly_bucket"),
+}
+LOCK = "wallet = lock_wallet_first(wallet)"
+
+
+def find_function(tree, name):
+    found = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == name
+    ]
+    if len(found) != 1:
+        print(f"ABORT: function {name} found {len(found)} times")
+        sys.exit(7)
+    return found[0]
+
+
+def lock_statement(function, lines):
+    """The top-level statement of `function` that is the wallet lock."""
+    hits = [
+        stmt
+        for stmt in function.body
+        if lines[stmt.lineno - 1].strip() == LOCK and stmt.end_lineno == stmt.lineno
+    ]
+    if len(hits) != 1:
+        print(f"ABORT: the lock statement found {len(hits)} times in {function.name}")
+        sys.exit(7)
+    return hits[0]
+
+
+def mutate(kind, site):
+    path, name = SITES[site]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    lines = source.split("\n")
+    tree = ast.parse(source)
+    function = find_function(tree, name)
+    lock = lock_statement(function, lines)
+    index = function.body.index(lock)
+    indent = lines[lock.lineno - 1][: len(lines[lock.lineno - 1]) - len(lines[lock.lineno - 1].lstrip())]
+    if kind == "R":
+        lines[lock.lineno - 1] = f"{indent}wallet = wallet"
+    else:
+        later = [
+            stmt
+            for stmt in function.body[index + 1 :]
+            if "select_for_update" in "\n".join(lines[stmt.lineno - 1 : stmt.end_lineno])
+        ]
+        if not later:
+            print(f"ABORT: no bucket-locking statement after the lock in {name}")
+            sys.exit(7)
+        target = later[0]
+        moved = lines[lock.lineno - 1]
+        new = lines[: lock.lineno - 1] + lines[lock.lineno : target.end_lineno] + [moved] + lines[target.end_lineno :]
+        lines = new
+    mutated = "\n".join(lines)
+    ast.parse(mutated)
+    return path, source, mutated
+
+
+def main():
+    code = sys.argv[1]
+    kind, site = code[0], int(code[1:])
+    if kind not in ("R", "L") or site not in SITES:
+        print("usage: R1..R7 or L1..L7")
+        sys.exit(2)
+    path, source, mutated = mutate(kind, site)
+    if mutated == source:
+        print(f"ABORT {code}: the mutant equals the source")
+        sys.exit(7)
+    if "--check" in sys.argv:
+        print(f"checked {code}: one lock statement in {SITES[site][1]}, mutant parses and differs")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {code} to {path}")
+
+
+if __name__ == "__main__":
+    main()

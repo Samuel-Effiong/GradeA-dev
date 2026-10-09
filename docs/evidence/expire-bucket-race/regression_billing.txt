@@ -1,0 +1,201 @@
+# Trimmed: the last 200 lines. Full log: ~/Documents/Projects/GAP-evidence-logs/expire-bucket-race_regression_billing_full.txt
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+.A: error processing event evt_idempotency_test (checkout.session.completed).
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/billing/webhooks.py", line 399, in _run_handler_inline
+    handler(event["data"]["object"])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/billing/tests/test_webhook_idempotency.py", line 387, in slow_failing_handler
+    raise RuntimeError("handler failed after Stripe gave up waiting")
+RuntimeError: handler failed after Stripe gave up waiting
+....Trial user nowallet@test.com (subscription 3ae70e0e-fda9-4fc4-aa05-b23bc00d9869) has no CreditWallet! This should never happen. Skipping.
+..Failed to create Settings for user nosettings@test.com: DB error
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/users/signals.py", line 241, in create_default_settings_and_wallet
+    Settings.objects.get_or_create(user=user)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: DB error
+...Cannot activate automatic trial for user wallet@test.com (validation): User wallet@test.com has already used the free trial. Free trial can only be activated once per account.
+.Failed to activate automatic trial for user fail@test.com: DB error
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/users/signals.py", line 321, in create_default_settings_and_wallet
+    SubscriptionService.activate_automatic_free_trial(user)
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-expire-bucket-race/billing/services.py", line 1904, in activate_automatic_free_trial
+    trial_bucket = CreditBucket.objects.create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: DB error
+....
+----------------------------------------------------------------------
+Ran 1668 tests in 121.470s
+
+OK
+Destroying test database for alias 'default'...
+Found 1668 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+H38P2 assignments/views.py:1238 generate (positive control - active teacher) WRITE(paid AI) status=201 changed=True
+H38P2 assignments/views.py:782 upload (positive control - active teacher) WRITE status=201 changed=True
+H38P2 dashboard/views.py custom-ai-prompt (positive control - active teacher) READ(paid AI) status=200 changed=False
+H38P2 assignments/views.py:1461 generated-drafts save (positive control - active teacher) WRITE status=201 changed=True
+H38P2 classrooms/services/roster_import.py _find_existing_student_by_name (positive control - active teacher) WRITE status=200 changed=True
+H38P2 assignments/views.py associate-topic WRITE status=404 changed=False
+H38P2 assignments/views.py:310 delete DELETE status=404 changed=False
+H38P2 assignments/views.py:1238 generate WRITE(paid AI) status=404 changed=False
+H38P2 assignments/views.py grade-all WRITE(paid AI) status=404 changed=False
+H38P2 assignments/views.py:310 list READ status=200 changed=False
+H38P2 assignments/views.py:310 patch WRITE status=404 changed=False
+H38P2 assignments/views.py publish-all-grades WRITE status=404 changed=False
+H38P2 assignments/views.py:310 retrieve READ status=404 changed=False
+H38P2 assignments/views.py:782 upload WRITE status=404 changed=False
+H38P2 assignments/views.py:966 upload-async WRITE status=404 changed=False
+H38P2 classrooms/views.py topics create WRITE status=400 changed=False
+H38P2 classrooms/views.py:1723 course topics WRITE status=404 changed=False
+H38P2 classrooms/views.py:2392 topic delete DELETE status=404 changed=False
+H38P2 classrooms/views.py:2392 topics list READ status=200 changed=False
+H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=False
+H38P2 classrooms/views.py:2392 topic patch WRITE status=404 changed=False
+H38P2 classrooms/views.py:2099 student-course delete DELETE status=404 changed=False
+H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=False
+H38P2 classrooms/views.py:2099 student-course patch WRITE status=404 changed=False
+H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+H38P2 dashboard/views.py teacher assignments/{id} READ status=404 changed=False
+H38P2 dashboard/views.py teacher courses/{id} READ status=404 changed=False
+H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+H38P2 dashboard/views.py teacher students/{course} READ status=404 changed=False
+H38P2 assignments/views.py:1461 generated-drafts save WRITE status=404 changed=False
+H38P2 assignments/views.py:1788 download-pdf teacher view READ status=404 changed=False
+H38P2 assignments/views.py:1788 download-pdf teacher view (object-level guard in isolation) READ status=403 changed=False
+H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+H38P2 classrooms/services/roster_import.py _find_existing_student_by_name WRITE status=200 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+H38P2 assignments/serializers.py validate_course create WRITE status=400 changed=False
+H38P2 assignments/serializers.py validate_course create-async WRITE status=400 changed=False
+H38P2 classrooms/filters.py my-students ?enrollments__course READ status=200 changed=False
+H38P2 classrooms/views.py my-students enrollments prefetch READ status=200 changed=False
+H38P2 classrooms/filters.py my-students ?enrollments__course__session READ status=200 changed=False
+H38P2 assignments/serializers.py validate_course patch WRITE status=400 changed=False
+H38P2 users/filters.py /users/<id>?enrollments__course READ status=404 changed=False
+H38P2 users/filters.py /users/<id>?enrollments__course__session READ status=404 changed=False
+H38P2 students/views.py:158 batch-upload WRITE status=404 changed=False
+H38P2 students/views.py:358 delete DELETE status=404 changed=False
+H38P2 students/views.py grade WRITE(paid AI) status=404 changed=False
+H38P2 students/views.py:358 list READ status=200 changed=False
+H38P2 students/views.py publish WRITE status=404 changed=False
+H38P2 students/views.py:358 retrieve READ status=404 changed=False
+H38P2 students/views.py teacher_feedback READ status=402 changed=False
+H38P2 students/views.py update-grade WRITE status=402 changed=False
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

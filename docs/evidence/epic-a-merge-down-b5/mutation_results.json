@@ -1,0 +1,46 @@
+{
+  "R1_settings_failure_logs_the_exception_text": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_logger_call_formats_an_address"
+    ]
+  },
+  "R2_wallet_failure_logs_the_exception_text": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_logger_call_formats_an_address"
+    ]
+  },
+  "R3_the_retention_sweep_has_no_beat_lock": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_beat_task_is_locked_or_exempt",
+      "test_every_guarded_beat_task_skips_while_another_run_holds_it",
+      "test_the_next_run_does_the_skipped_runs_work",
+      "test_the_retention_sweep_is_skipped_and_records_nothing",
+      "test_the_retention_sweep_is_skipped_with_an_error",
+      "test_the_two_sweeps_do_not_block_each_other"
+    ]
+  },
+  "R4_the_pii_sweep_has_no_beat_lock": {
+    "killed": true,
+    "failing_tests": [
+      "test_every_beat_task_is_locked_or_exempt",
+      "test_every_guarded_beat_task_skips_while_another_run_holds_it",
+      "test_the_next_run_does_the_skipped_runs_work",
+      "test_the_pii_sweep_is_skipped_and_records_nothing",
+      "test_the_pii_sweep_is_skipped_with_an_error"
+    ]
+  },
+  "R5_billing_tasks_loses_the_audit_metrics_import": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_clean_expiration_emits_no_anomaly",
+      "test_a_failed_bucket_expiration_emits_the_anomaly_exactly_once"
+    ]
+  },
+  "R6_billing_tasks_loses_the_beat_lock_imports": {
+    "killed": true,
+    "failing_tests": []
+  }
+}

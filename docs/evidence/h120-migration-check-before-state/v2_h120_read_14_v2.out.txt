@@ -1,0 +1,72 @@
+== assignments/0038_assignment_updated_at: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AddField assignment.updated_at: DateTimeField NOT NULL
+== assignments/0040_db_defaults_for_rollback: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField assignment.updated_at: DateTimeField NOT NULL  ->  DateTimeField NOT NULL db_default
+== billing/0009_betaprofile_uuid_and_more: 4 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AddField betaprofile.uuid: UUIDField NOT NULL default=uuid4 max_length=32
+  AlterField betaprofile.initial_beta_credits: PositiveIntegerField NOT NULL default=10000000  ->  PositiveIntegerField NOT NULL default=20000000
+  AlterField creditbucket.bucket_type: CharField NOT NULL max_length=20 choices=3  ->  CharField NOT NULL max_length=20 choices=4
+  AlterField creditbucket.expires_at: DateTimeField NULL  ->  DateTimeField NULL
+== billing/0011_remove_betaprofile_uuid_betaprofile_uid_and_more: 3 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  RemoveField betaprofile.uuid
+  AddField betaprofile.uid: UUIDField NULL default=uuid4 max_length=32
+  AlterField betaprofile.id: CharField NOT NULL default='00000000-0000-0000-0000 max_length=100 primary_key unique  ->  BigAutoField NOT NULL primary_key unique
+== billing/0013_remove_betaprofile_id_alter_betaprofile_uid: 2 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  RemoveField betaprofile.id
+  AlterField betaprofile.uid: UUIDField NULL default=uuid4 max_length=32  ->  UUIDField NOT NULL default=uuid4 max_length=32 primary_key unique
+== billing/0014_rename_uid_betaprofile_id: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  RenameField betaprofile.uid -> id
+== billing/0016_planfeature_alter_subscriptionplan_options_and_more: 21 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  CreateModel PlanFeature (3 fields)
+  AlterModelOptions subscriptionplan
+  RemoveField subscriptionplan.overage_block_price
+  AddField subscriptionplan.category: CharField NOT NULL default='INDIVIDUAL' max_length=20 choices=2
+  AddField subscriptionplan.highlight: CharField NULL max_length=20 choices=2
+  AddField subscriptionplan.interval: CharField NOT NULL default='MONTHLY' max_length=20 choices=2
+  AddField subscriptionplan.is_contact_sales: BooleanField NOT NULL default=False
+  AddField subscriptionplan.overage_credit_price_cents: PositiveIntegerField NOT NULL default=0
+  AddField subscriptionplan.price_cents: PositiveIntegerField NOT NULL default=0
+  AddField subscriptionplan.product_id: CharField NULL max_length=100
+  AddField subscriptionplan.stripe_price_id: CharField NULL max_length=100
+  AddField subscriptionplan.tagline: CharField NOT NULL max_length=100
+  AddField subscriptionplan.tier: CharField NOT NULL default='STANDARD' max_length=20 choices=5
+  AlterField subscriptionplan.carry_over_expiry_months: PositiveSmallIntegerField NOT NULL default=0  ->  PositiveSmallIntegerField NOT NULL default=0
+  AlterField subscriptionplan.carry_over_max: PositiveIntegerField NOT NULL default=0  ->  PositiveIntegerField NOT NULL default=0
+  AlterField subscriptionplan.carry_over_percent: DecimalField NOT NULL max_digits=5 decimal_places=2  ->  DecimalField NOT NULL default=0 max_digits=5 decimal_places=2
+  AlterField subscriptionplan.max_overage_blocks: PositiveSmallIntegerField NOT NULL default=0  ->  PositiveSmallIntegerField NOT NULL default=0
+  AlterField subscriptionplan.monthly_credits: PositiveIntegerField NOT NULL default=0  ->  PositiveIntegerField NULL default=0
+  AlterField subscriptionplan.overage_block_size: PositiveIntegerField NOT NULL default=0  ->  PositiveIntegerField NOT NULL default=0
+  CreateModel PlanFeatureInclusion (5 fields)
+  AddField subscriptionplan.features (many-to-many): ManyToManyField NOT NULL to=billing.planfeature
+== billing/0017_remove_subscriptionplan_overage_credit_price_cents_and_more: 2 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  RemoveField subscriptionplan.overage_credit_price_cents
+  AlterField subscriptionplan.overage_block_size: PositiveIntegerField NOT NULL default=0  ->  PositiveIntegerField NOT NULL default=0
+== billing/0021_alter_creditbucket_bucket_type_and_more: 4 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField creditbucket.bucket_type: CharField NOT NULL max_length=20 choices=4  ->  CharField NOT NULL max_length=20 choices=5
+  AlterField creditledger.ledger_type: CharField NOT NULL max_length=20 choices=5  ->  CharField NOT NULL max_length=20 choices=6
+  AlterField licensesubscription.contract_months: PositiveSmallIntegerField NOT NULL default=12 choices=3  ->  PositiveSmallIntegerField NOT NULL default=12 choices=4
+  AlterField subscriptionplan.name: CharField NOT NULL max_length=20 choices=4 unique  ->  CharField NOT NULL max_length=20 choices=5 unique
+== billing/0022_usersubscription_is_trial_usersubscription_trial_end_and_more: 3 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AddField usersubscription.is_trial: BooleanField NOT NULL default=False
+  AddField usersubscription.trial_end: DateTimeField NULL db_index
+  AlterField creditbucket.bucket_type: CharField NOT NULL max_length=20 choices=5  ->  CharField NOT NULL max_length=20 choices=5
+== billing/0023_alter_subscriptionplan_name: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField subscriptionplan.name: CharField NOT NULL max_length=20 choices=5 unique  ->  CharField NOT NULL max_length=20 choices=8 unique
+== billing/0025_alter_subscriptionplan_name: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField subscriptionplan.name: CharField NOT NULL max_length=20 choices=8 unique  ->  CharField NOT NULL max_length=100 choices=13 unique
+== billing/0059_append_only_audit_tables: 10 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField creditledger.user: ForeignKey NOT NULL db_index to=users.CustomUser  ->  ForeignKey NULL db_index to=users.CustomUser db_constraint=False
+  SeparateDatabaseAndState: database half (0 op(s)):
+    state half (2 op(s)):
+      st| RemoveField creditledger.user
+      st| AddField creditledger.user_id: UUIDField NULL max_length=32 db_index
+  AddField creditledger.user_email: CharField NULL max_length=254
+  AddField creditusagelog.user_id: UUIDField NULL max_length=32 db_index
+  AddField creditusagelog.user_email: CharField NULL max_length=254
+  AlterField creditledger.bucket: ForeignKey NULL db_index to=billing.creditbucket  ->  ForeignKey NULL db_index to=billing.creditbucket db_constraint=False
+  AlterField creditusagelog.wallet: ForeignKey NOT NULL db_index to=billing.creditwallet  ->  ForeignKey NOT NULL db_index to=billing.creditwallet db_constraint=False
+  AlterField creditusagelog.bucket: ForeignKey NOT NULL db_index to=billing.creditbucket  ->  ForeignKey NOT NULL db_index to=billing.creditbucket db_constraint=False
+  AlterField creditusagelog.course: ForeignKey NULL db_index to=classrooms.course  ->  ForeignKey NULL db_index to=classrooms.course db_constraint=False
+  AlterField creditusagelog.school: ForeignKey NULL db_index to=classrooms.school  ->  ForeignKey NULL db_index to=classrooms.school db_constraint=False
+== students/0026_alter_backgroundprocessingtask_task_type: 1 operation(s); source mentions: ['expand-contract-step']
+  AlterField backgroundprocessingtask.task_type: CharField NOT NULL max_length=64 choices=8  ->  CharField NOT NULL max_length=64 choices=9

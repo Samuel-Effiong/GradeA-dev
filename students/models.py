@@ -3,10 +3,30 @@ import uuid
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
-# from idlelib.pyparse import trans
+from students.grading_label import FIRST_FORM_NOTE, UNLABELLED
 
 
-# Create your models here.
+class GradingState(models.TextChoices):
+    """
+    Idempotency guard for the grading pipeline (students.services.grade_engine).
+
+    Celery is configured with acks_late=True and a Redis broker visibility
+    timeout — if a grading run (several sequential AI calls, each with its
+    own retries) takes longer than that timeout, Redis will redeliver the
+    same task message to a second worker while the first is still running.
+    Without a claim, both workers run the full (billed) pipeline
+    concurrently on the same submission. RUNNING with a fresh
+    grading_started_at is the claim; a second worker/request sees RUNNING
+    and backs off instead of re-running the pipeline. See
+    students.services._claim_submission_for_grading.
+    """
+
+    IDLE = "IDLE", _("Idle")
+    RUNNING = "RUNNING", _("Running")
+    DONE = "DONE", _("Done")
+    FAILED = "FAILED", _("Failed")
+
+
 class StudentSubmission(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.ForeignKey(
@@ -60,8 +80,149 @@ class StudentSubmission(models.Model):
     graded_at = models.DateTimeField(
         null=True, blank=True, help_text=_("The time student submission was graded")
     )
+    grading_state = models.CharField(
+        max_length=20,
+        choices=GradingState.choices,
+        default=GradingState.IDLE,
+        db_index=True,
+        help_text=_(
+            "Idempotency claim for the grading pipeline. RUNNING means a "
+            "worker currently holds the claim; see GradingState's docstring."
+        ),
+    )
+    grading_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "When the current (or most recent) grading claim was acquired. "
+            "Used to detect and reclaim a stale RUNNING claim left behind "
+            "by a crashed worker."
+        ),
+    )
     grading_confidence = models.IntegerField(null=False, blank=True, default=0)
     extraction_confidence = models.IntegerField(null=False, blank=True, default=0)
+
+    # ------------------------------------------------------------------
+    # The grade's label (BE-I-04): what produced this grade.
+    #
+    # FIRST FORM OF THE GRADING RECORD. A later stage improves on it: a
+    # table of grading runs, built beside re-grading or feedback editing
+    # and filled from these fields. Until then a re-grade overwrites the
+    # label with the newer run's, as it overwrites the score.
+    #
+    # Written by students.services._populate_and_save_grade in the same
+    # UPDATE as the score, and by nothing else: a teacher changing a grade
+    # by hand does not touch them, because they describe the AI's marking.
+    # The words they can hold are in students/grading_label.py.
+    #
+    # NOT NULL with a database default (rule 11, H-56), so a code-only
+    # rollback still inserts, and every row made before the label existed
+    # reads "unlabelled" without any copying job.
+    # ------------------------------------------------------------------
+    grading_prompt_version = models.CharField(
+        max_length=128,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Version of the grading instructions the AI was given: the "
+            "prompt file's stem, a colon, and a hash of its text. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_config_version = models.CharField(
+        max_length=128,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Version of the grading settings in force, read once at the "
+            "start of the run (ai_processor/grading_config.py). " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_strictness = models.CharField(
+        max_length=32,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "How strictly the work was marked. 'not_yet_set' until the "
+            "strictness scale exists. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_model = models.CharField(
+        max_length=255,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "The AI model that marked the most answers, as the provider "
+            "named it; 'deterministic' when no AI was involved; 'unknown' "
+            "when the provider did not say. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_fallback_used = models.CharField(
+        max_length=16,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Whether a backup model produced any part of the grade: 'yes', "
+            "'no', 'unknown', or 'not_applicable' when no AI call was made "
+            "and no saved answer was reused. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_release = models.CharField(
+        max_length=64,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "The release of the system that did the grading, or 'none' "
+            "when the host does not say. Covers what the settings version "
+            "cannot: text and rules written directly in the code. " + FIRST_FORM_NOTE
+        ),
+    )
+
+    needs_review = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=_(
+            "The two independent AI graders disagreed on at least one "
+            "question (see feedback['second_opinion']) — the teacher's "
+            "review queue filters on this. Cleared by mark-reviewed or a "
+            "manual grade override."
+        ),
+    )
+    review_reasons = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Why this submission needs (or needed) review — per-question "
+            "grader-disagreement entries, and the teacher's resolution "
+            "once reviewed."
+        ),
+    )
+    review_severity = models.FloatField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "0-1 tier-weighted sort key for the review queue: the tier "
+            "picks the band (critical 0.67-1.0, moderate 0.33-0.67, "
+            "borderline 0-0.33) and the disagreement's point gap orders "
+            "within it. Weighted rather than the raw gap fraction because "
+            "a disagreement is also 'critical' when the graders are 2+ "
+            "rubric levels apart, which can happen at a small gap - "
+            "ordering on the raw fraction buried those below milder ones. "
+            "?needs_review=true&ordering=-review_severity."
+        ),
+    )
+    review_tier = models.CharField(
+        max_length=16,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "Worst disagreement severity on this submission (critical / "
+            "moderate / borderline), denormalised from review_reasons so "
+            "the queue can filter on it - review_reasons is a JSONField "
+            "and cannot be filtered. ?needs_review=true&review_tier=critical."
+        ),
+    )
 
     ai_score = models.DecimalField(
         max_digits=6,
@@ -81,7 +242,13 @@ class StudentSubmission(models.Model):
         blank=True,
         help_text=_("The time student submission was graded by AI"),
     )
-    ai_grading_completed_at = models.DateField(
+    # DateTimeField, paired with ai_graded_at above: the superadmin AI
+    # performance dashboard reports their difference as the average grading
+    # duration. This was a DateField until migration 0027 - a date minus a
+    # timestamp is (midnight - the real time), so every reported duration
+    # was negative garbage. 0028 backfills historical rows from graded_at,
+    # which the same save sets milliseconds later.
+    ai_grading_completed_at = models.DateTimeField(
         null=True,
         blank=True,
         help_text=_("The time the ai finished grading the student submission"),
@@ -114,6 +281,13 @@ class StudentSubmission(models.Model):
         help_text=_("The name of the Celery task handling the scheduled grading"),
     )
 
+    attempt_count = models.PositiveSmallIntegerField(
+        default=0,
+        null=True,
+        blank=True,
+        help_text="Number of times the student has submitted this assignment.",
+    )
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -123,6 +297,24 @@ class StudentSubmission(models.Model):
         ]
 
         ordering = ["-submission_date"]
+
+        indexes = [
+            # Backs assignment.submissions / assignment__course__teacher=user
+            # queries that then sort by the default ordering above -
+            # Meta.ordering alone does not create a DB index, so without
+            # this the sort had nothing to use once a teacher had enough
+            # submissions for it to matter.
+            models.Index(
+                fields=["assignment", "-submission_date"],
+                name="submission_assignment_date_idx",
+            ),
+            # graded_at had no index at all despite being the filter column
+            # for "ungraded submissions" checks (assignments/views.py,
+            # assignments/tasks.py, dashboard/views.py,
+            # students/services.py) and range queries in the grading
+            # benchmark eval command.
+            models.Index(fields=["graded_at"], name="submission_graded_at_idx"),
+        ]
 
     def get_answer(self):
         return self.answers
@@ -165,6 +357,11 @@ class BatchUploadSession(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     total_files = models.IntegerField(default=0)
+    # FR-A-07 (S7c, 08a §4.5): set when credits run out mid-batch. Items
+    # still to run check it before any provider call and stop, uncharged,
+    # with INSUFFICIENT_CREDITS_MID_BATCH; a resume (S7b retry) clears it.
+    # Nullable, so a code-only rollback still inserts sessions (H-56).
+    credits_exhausted_at = models.DateTimeField(null=True, blank=True)
 
     results = models.JSONField(default=list)
 
@@ -196,7 +393,132 @@ class BatchUploadSession(models.Model):
                 }
             )
 
+        # Read-modify-write on a JSON list, called concurrently by every task
+        # a "Grade All" / batch upload fans out. Without the row lock two
+        # workers read the same list, each append their own entry, and the
+        # second save silently drops the first worker's result - the batch
+        # then reports fewer results than files and the frontend polls a
+        # session that can never complete. select_for_update serialises
+        # the appends on the row (the surrounding atomic() is what makes
+        # the lock hold until the save commits).
         with transaction.atomic():
-            session = BatchUploadSession.objects.select_related().get(id=self.id)
+            session = BatchUploadSession.objects.select_for_update().get(id=self.id)
             session.results.append(new_entry)
             session.save(update_fields=["results"])
+
+
+class BackgroundTaskType(models.TextChoices):
+    ASSIGNMENT_EXTRACTION = "assignment_extraction", _("Assignment Extraction")
+    ASSIGNMENT_REEXTRACTION = "assignment_reextraction", _("Assignment Re-extraction")
+    BATCH_ASSIGNMENT_UPLOAD = "batch_assignment_upload", _("Batch Assignment Upload")
+    ANSWER_EXTRACTION = "answer_extraction", _("Answer Extraction")
+    BATCH_ANSWER_UPLOAD = "batch_answer_upload", _("Batch Answer Upload")
+    SUBMISSION_GRADING = "submission_grading", _("Submission Grading")
+    BATCH_SUBMISSION_GRADING = "batch_submission_grading", _("Batch Submission Grading")
+    FORMATTED_GRADE = "formatted_grade", _("Formatted Grade")
+    # Unlike every type above, this one has no assignment/submission/batch FK
+    # to hang off - a student summary is scoped to a (student, course) pair,
+    # which BackgroundProcessingTask has no column for. Those two ids live in
+    # `meta` instead, and students.task_context.get_task_context reads them
+    # back from there.
+    STUDENT_SUMMARY = "student_summary", _("Student Summary")
+
+
+class BackgroundTaskStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    STARTED = "STARTED", _("Started")
+    CANCELLED = "CANCELLED", _("Cancelled")
+    SUCCESS = "SUCCESS", _("Success")
+    FAILURE = "FAILURE", _("Failure")
+
+
+class BackgroundProcessingTask(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    celery_task_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text=_("The Celery task id for the running background process."),
+    )
+    requested_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="background_processing_tasks",
+    )
+    batch_session = models.ForeignKey(
+        "students.BatchUploadSession",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="processing_tasks",
+    )
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="processing_tasks",
+    )
+    submission = models.ForeignKey(
+        "students.StudentSubmission",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="processing_tasks",
+    )
+    task_type = models.CharField(max_length=64, choices=BackgroundTaskType.choices)
+    status = models.CharField(
+        max_length=20,
+        choices=BackgroundTaskStatus.choices,
+        default=BackgroundTaskStatus.PENDING,
+        db_index=True,
+    )
+    file_name = models.CharField(max_length=255, null=True, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+    error = models.TextField(null=True, blank=True)
+    # FR-A-07 (S7a, 08a §4.3; 03a §4.5 minus the Epic B `job` FK). NOT NULL
+    # columns carry a db_default, so a code-only rollback still inserts
+    # (H-56); item_index and trace_id are nullable, since rows made before
+    # S7a have neither.
+    reason_code = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_default="",
+        help_text=_(
+            "The failure's FR-A-06 reason code, or empty for a success or an "
+            "unclassified fault (shown as error_class SYSTEM)."
+        ),
+    )
+    retry_count = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=_("How many times this item was retried in place (S7b)."),
+    )
+    item_index = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("The item's 1-based position in its batch, in upload order."),
+    )
+    trace_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "The dispatching request's server trace id, the item's reference "
+            "(QA-ERR-04); it resolves to the item's audit events."
+        ),
+    )
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.file_name or self.celery_task_id or str(self.id)
+        return f"{self.task_type}::{label}"

@@ -1,0 +1,86 @@
+............FFF...............................
+======================================================================
+FAIL: test_prelaunch_guard_refuses_low_disk (__main__.EndToEnd.test_prelaunch_guard_refuses_low_disk)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 528, in test_prelaunch_guard_refuses_low_disk
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 506, in assertRefusedCleanly
+    self.assertEqual(self.repo.result.returncode, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:34:28+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 999999999.0, "ram_available_gb": 10.47, "min_ram_gb": 0.0, "test_processes": [], "refused": ["disk free 14.8 GB < 999999999.0 GB"]}
+[2026-09-17T18:34:28+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:28+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:28+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 368f9cc4a90630da8bdb84e23fa0ac085757b56e
+[2026-09-17T18:34:28+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:28+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:28+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:28+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:28+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:28+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:28+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:28+01:00] run 1: CLEAN []
+[2026-09-17T18:34:28+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_prelaunch_guard_refuses_low_ram (__main__.EndToEnd.test_prelaunch_guard_refuses_low_ram)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 532, in test_prelaunch_guard_refuses_low_ram
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 506, in assertRefusedCleanly
+    self.assertEqual(self.repo.result.returncode, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:34:28+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.49, "min_ram_gb": 999999999.0, "test_processes": [], "refused": ["RAM available 10.5 GB < 999999999.0 GB"]}
+[2026-09-17T18:34:29+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:29+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:29+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 855cc72c0bfae9fc8cbdd6761eb33d862244fe79
+[2026-09-17T18:34:29+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:29+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:29+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:29+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:29+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:29+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:29+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:29+01:00] run 1: CLEAN []
+[2026-09-17T18:34:29+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_prelaunch_guard_refuses_when_slots_are_full (__main__.EndToEnd.test_prelaunch_guard_refuses_when_slots_are_full)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 536, in test_prelaunch_guard_refuses_when_slots_are_full
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 506, in assertRefusedCleanly
+    self.assertEqual(self.repo.result.returncode, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:34:29+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 0, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.51, "min_ram_gb": 0.0, "test_processes": [], "refused": ["0 heavy slots in use + 1 > cap 0"]}
+[2026-09-17T18:34:29+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:29+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:29+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 2c6b9b5499eacdbad49d3b4db99320d8c09b8b3c
+[2026-09-17T18:34:29+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:29+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:29+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:29+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:30+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:30+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:30+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:30+01:00] run 1: CLEAN []
+[2026-09-17T18:34:30+01:00] VERDICT: PASS []
+
+stderr:
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 24.105s
+
+FAILED (failures=3)

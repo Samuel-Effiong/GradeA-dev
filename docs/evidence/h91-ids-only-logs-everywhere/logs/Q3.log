@@ -1,0 +1,12 @@
+# Q3: assignments/tasks.py: the print names the submission, not the student
+# file: assignments/tasks.py (occurrence 1)
+# old: 'print(f"Starting grading of Submission {submission.id}")'
+# new: 'print(f"Starting grading of Submission {submission.student.get_full_name}")'
+# commit: 2c336a509a82d61dc35e647160844cee7aab6c0c
+# exit: 1
+# elapsed_s: 11.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+
+FAILED (failures=1)

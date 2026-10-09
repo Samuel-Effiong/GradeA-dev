@@ -1,0 +1,6 @@
+67 objects imported automatically (use -v 2 for details).
+
+pg_database rows for test_s5_final_gate_eb6f3a0 before: 0
+postgres: PostgreSQL 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1) on x86_64-pc-linux-gnu
+redis: 8.0.5
+python: 3.12.10  django: 5.2.6

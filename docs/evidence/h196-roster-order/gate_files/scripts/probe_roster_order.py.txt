@@ -1,0 +1,145 @@
+"""H-196 probe (d5): is the order of `students` in the course detail and the
+course list defined, or does it follow the database's physical order / plan?
+
+WRITTEN BEFORE ANY RUN (rule 19). Setup: a teacher, one course, 12 students
+enrolled through the real enroll_student_by_email. Every read has the cache
+patched out (get -> None, set -> True), so each read is a fresh query.
+
+Reads (ids of `students`, in the order the API gives them):
+  D0 detail, L0 list (item for the course)           -- before any write
+  then ONE ordinary write: an UPDATE of the first-listed student's enrollment
+  row (ai_summary), which writes a new row version
+  D1 detail, L1 list                                  -- after the write
+  then the same detail read under four planner settings (SET LOCAL, rolled
+  back with the test): P_seq (indexscan/bitmapscan off), P_idx (seqscan off),
+  P_merge (hashjoin + nestloop off), P_nohash (hashjoin off)
+
+What I expect, and what each result means:
+  * set of ids equal on every read and 12 long (control; if not, the probe is
+    broken, say nothing about order).
+  * "(b) BY PHYSICAL ORDER": D1 != D0 (or L1 != L0): an ordinary write moved
+    a student in the roster. Red on the old code.
+  * "(b) BY PLAN ONLY": D1 == D0 and L1 == L0, but some P_* differs from D0:
+    the order follows the plan the database picks. Red on the old code.
+  * "NOT (b)" by these mechanisms: all equal. The probe is green on the old
+    code, and run (ii) is the next step. My expectation: I do not know which
+    of the first two it will be; if hash join returns in the order of the
+    enrollment scan and the update is a HOT update on an index scan, D1 may
+    equal D0 and only P_merge will differ.
+The test fails (red) when ANY compared order differs; the message lists which
+reads differ, as lists of 8-char id prefixes.
+"""
+
+import json
+import os
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.db import connection
+from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from classrooms.models import Course, Session, StudentCourse
+from classrooms.services.enrollment import enroll_student_by_email
+from django.contrib.auth import get_user_model
+from users.models import UserTypes
+
+User = get_user_model()
+N = 12
+
+
+class RosterOrderProbe(TestCase):
+    def setUp(self):
+        self.enterContext(
+            patch("classrooms.services.notifications.safe_delay", lambda *a, **k: None)
+        )
+        self.teacher = User.objects.create_user(
+            email="h196-t@x.test",
+            password="password123",  # nosec  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+            first_name="Probe",
+            last_name="Teacher",
+            last_login=timezone.now(),
+        )
+        term = Session.objects.create(name="Probe term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Probe course", teacher=self.teacher, session=term
+        )
+        for i in range(N):
+            student = User.objects.create_user(
+                email=f"h196-s{i}@x.test",
+                password="password123",  # nosec  # pragma: allowlist secret
+                user_type=UserTypes.STUDENT,
+                is_active=True,
+                first_name=f"First{i}",
+                last_name=f"Last{i}",
+                last_login=timezone.now(),
+            )
+            enroll_student_by_email(course=self.course, email=student.email)
+
+    def _get(self, url):
+        client = APIClient()
+        client.force_authenticate(self.teacher)
+        with patch.object(cache, "get", lambda *a, **k: None), patch.object(
+            cache, "set", lambda *a, **k: True
+        ):
+            response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        return response.data
+
+    def detail_ids(self):
+        data = self._get(reverse("course-detail", args=[self.course.pk]))
+        return [str(s["id"]) for s in data["students"]]
+
+    def list_ids(self):
+        data = self._get(reverse("course-list"))
+        items = data["results"] if isinstance(data, dict) and "results" in data else data
+        item = next(c for c in items if str(c["id"]) == str(self.course.pk))
+        return [str(s["id"]) for s in item["students"]]
+
+    def plan(self, settings_sql):
+        with connection.cursor() as cur:
+            for sql in settings_sql:
+                cur.execute(sql)
+        try:
+            return self.detail_ids()
+        finally:
+            with connection.cursor() as cur:
+                cur.execute("RESET ALL")
+
+    def test_roster_order_is_the_same_after_a_write_and_under_any_plan(self):
+        reads = {"D0": self.detail_ids(), "L0": self.list_ids()}
+        for name, ids in reads.items():
+            self.assertEqual(len(ids), N, name)  # deciding value, non-empty
+        first = reads["D0"][0]
+        updated = StudentCourse.objects.filter(
+            student_id=first, course=self.course
+        ).update(ai_summary="probe write")
+        self.assertEqual(updated, 1)
+        reads["D1"] = self.detail_ids()
+        reads["L1"] = self.list_ids()
+        reads["P_seq"] = self.plan(
+            ["SET enable_indexscan=off", "SET enable_bitmapscan=off"]
+        )
+        reads["P_idx"] = self.plan(["SET enable_seqscan=off"])
+        reads["P_merge"] = self.plan(
+            ["SET enable_hashjoin=off", "SET enable_nestloop=off"]
+        )
+        reads["P_nohash"] = self.plan(["SET enable_hashjoin=off"])
+        for name, ids in reads.items():
+            self.assertEqual(sorted(ids), sorted(reads["D0"]), name)  # control
+        out = os.environ.get("H196_PROBE_OUT")
+        if out:
+            with open(out, "w") as fh:
+                json.dump({k: [i[:8] for i in v] for k, v in reads.items()}, fh, indent=1)
+        differs = sorted(k for k, v in reads.items() if v != reads["D0"])
+        self.assertEqual(
+            differs,
+            [],
+            "orders that differ from D0: "
+            + "; ".join(f"{k}={[i[:8] for i in reads[k]]}" for k in differs)
+            + f" | D0={[i[:8] for i in reads['D0']]}",
+        )

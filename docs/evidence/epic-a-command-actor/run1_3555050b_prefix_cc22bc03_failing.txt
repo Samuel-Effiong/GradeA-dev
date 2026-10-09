@@ -1,0 +1,23 @@
+12:15:32 tests_command_actor (unittest.loader._FailedTest.tests_command_actor) ... ERROR
+12:15:32
+12:15:32 ======================================================================
+12:15:32 ERROR: tests_command_actor (unittest.loader._FailedTest.tests_command_actor)
+12:15:32 ----------------------------------------------------------------------
+12:15:32 ImportError: Failed to import test module: tests_command_actor
+12:15:32 Traceback (most recent call last):
+12:15:32   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+12:15:32     module = __import__(module_name)
+12:15:32              ^^^^^^^^^^^^^^^^^^^^^^^
+12:15:32   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/audit/tests_command_actor.py", line 17, in <module>
+12:15:32     from audit.context import (
+12:15:32 ImportError: cannot import name 'command_actor' from 'audit.context' (/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-command-actor/audit/context.py)
+12:15:32
+12:15:32
+12:15:32 ----------------------------------------------------------------------
+12:15:32 Ran 1 test in 0.004s
+12:15:32
+12:15:32 FAILED (errors=1)
+12:15:32 Found 1 test(s).
+12:15:32 Skipping setup of unused database(s): default.
+12:15:32 System check identified no issues (0 silenced).
+12:15:33 systemd-run failed with exit status 1.

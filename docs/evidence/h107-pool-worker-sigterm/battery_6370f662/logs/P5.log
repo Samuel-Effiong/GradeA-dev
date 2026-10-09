@@ -1,0 +1,12 @@
+# P5: a reader that takes nothing ends the wait (no bound: a new hang)
+# file: AutoGrader/testing/patient_stream.py (occurrence 1)
+# old: '        if not writable:\n'
+# new: '        if False:\n'
+# commit: 6370f662bae94068ef0e1f8f880bf6127997a711
+# exit: 1
+# elapsed_s: 22.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_it_gives_up_loudly_after_its_patience_not_never (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_it_gives_up_loudly_after_its_patience_not_never)
+
+FAILED (failures=1)

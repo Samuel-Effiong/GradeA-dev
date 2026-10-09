@@ -1,0 +1,32 @@
+.....................F........................
+======================================================================
+FAIL: test_refuses_non_local_environment (__main__.EndToEnd.test_refuses_non_local_environment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 629, in test_refuses_non_local_environment
+    self.assertRefusesDeployed({"environment": "prod"}, fragment="ENVIRONMENT")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 555, in assertRefusesDeployed
+    self.assertEqual(code, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:36:22+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.66, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:36:22+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:36:22+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:36:22+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base a05fdd0173eccb0a74c6ba54a70bd201efccc10c
+[2026-09-17T18:36:22+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:36:22+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:36:22+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:36:22+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:36:22+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:36:23+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:36:23+01:00] run 1: full suite: exit 0
+[2026-09-17T18:36:23+01:00] run 1: CLEAN []
+[2026-09-17T18:36:23+01:00] VERDICT: PASS []
+
+stderr:
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.608s
+
+FAILED (failures=1)

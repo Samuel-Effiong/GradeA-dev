@@ -1,0 +1,6 @@
+started 2026-09-30T16:29:39+01:00 head b136236 worktree-diff-sha256 5844cc5c91cf
+repro_b136236           rc=1 17s Ran 18 tests in 3.634s FAILED (failures=18)
+
+dropped test_h28_repro
+commit3_modules         rc=1 26s Ran 58 tests in 9.153s FAILED (failures=16)
+finished 2026-09-30T16:30:24+01:00

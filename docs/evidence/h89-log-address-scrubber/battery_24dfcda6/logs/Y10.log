@@ -1,0 +1,12 @@
+# Y10: Sentry: an event's threads are scrubbed
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    "threads",\n'
+# new: ''
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 12.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_threads_of_an_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_threads_of_an_event)
+
+FAILED (failures=1)

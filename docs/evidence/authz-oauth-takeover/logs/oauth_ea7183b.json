@@ -1,0 +1,23 @@
+{
+  "finding": "authz OAuth pre-registration account-linking takeover (users/views.py google_auth)",
+  "commit": "ea7183be3f8745ac5d3ce126404f8791694a3d52",
+  "label": "LOCAL-REAL (app+DB); external Google IdP stubbed",
+  "timestamp": "2026-09-26T22:31:04.348964+00:00",
+  "attack": {
+    "victim_email": "rtauth-oauth-victim-be424eaa@gmail.com",
+    "register_status": 200,
+    "attacker_login_before_google_status": 401,
+    "google_signin_status": 200,
+    "attacker_login_after_google_status": 200,
+    "account_active_after": true,
+    "account_has_usable_password_after": true,
+    "vuln_pre_registration_takeover": true
+  },
+  "control": {
+    "fresh_email": "rtauth-oauth-fresh-112dbe2f@gmail.com",
+    "google_signin_status": 200,
+    "has_usable_password": false,
+    "attacker_guess_login_status": 401,
+    "control_ok_no_password_set": true
+  }
+}

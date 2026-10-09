@@ -1,0 +1,88 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user fe8a1a0f-9343-408d-b170-fa4f6ab0191c.
+Cannot activate automatic trial for user fe8a1a0f-9343-408d-b170-fa4f6ab0191c (validation): ValueError
+.Free trial plan not found: no trial activated for user d9e80191-0afd-4fa7-abdc-eb065f36315f.
+Cannot activate automatic trial for user d9e80191-0afd-4fa7-abdc-eb065f36315f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FFree trial plan not found: no trial activated for user f03e41b9-c074-4a3d-9de7-f3511292ab1c.
+Cannot activate automatic trial for user f03e41b9-c074-4a3d-9de7-f3511292ab1c (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FFree trial plan not found: no trial activated for user 3f448fb2-0920-49b8-875a-7420ce7c9ff4.
+Cannot activate automatic trial for user 3f448fb2-0920-49b8-875a-7420ce7c9ff4 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/views.py", line 2023, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+FFree trial plan not found: no trial activated for user ed2720a1-69c1-4685-b9e2-adef42f86511.
+Cannot activate automatic trial for user ed2720a1-69c1-4685-b9e2-adef42f86511 (validation): ValueError
+.
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='staff_teacher_active')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 149, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(stamped.called, "the sign-in was stamped")
+AssertionError: True is not false : the sign-in was stamped
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='superuser_flag_inactive')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 149, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(stamped.called, "the sign-in was stamped")
+AssertionError: True is not false : the sign-in was stamped
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='super_admin_type_inactive')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 149, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(stamped.called, "the sign-in was stamped")
+AssertionError: True is not false : the sign-in was stamped
+
+======================================================================
+FAIL: test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves (users.tests_vf1a_h203.VF1aH203.test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves) (shape='command_line_superuser')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/users/tests_vf1a_h203.py", line 149, in test_v1_a_never_verified_account_with_admin_power_is_refused_and_nothing_leaves
+    self.assertFalse(stamped.called, "the sign-in was stamped")
+AssertionError: True is not false : the sign-in was stamped
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.330s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...
+Found 3 test(s).

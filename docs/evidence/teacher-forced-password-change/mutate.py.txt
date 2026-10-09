@@ -1,0 +1,139 @@
+"""Mutation battery for the teacher-forced-password-change work: password
+generation/email (billing/license_service.py), forced-change enforcement
+(users/authentication.py), and the change-password clear (users/views.py).
+Each mutant weakens ONE protection; a test named for that protection must
+fail. Restores from collision-safe copies and verifies by md5 (never git
+checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-teacher-forced-password-change"
+SCR = os.path.dirname(os.path.abspath(__file__))
+LS, AUTH, UV = "billing/license_service.py", "users/authentication.py", "users/views.py"
+LABELS = "users.tests_forced_password_change billing.tests.test_license_service.TestTeacherInvitePasswordGeneration"
+
+MUTANTS = [
+    ("P1", "new-teacher branch: password not generated (still unusable)",
+     [(LS,
+       'user.set_password(generated_password)\n            user.must_change_password = True\n            user.save()\n        finally:',
+       'user.set_unusable_password()\n            user.save()\n        finally:')],
+     "test_new_teacher_gets_a_usable_generated_password"),
+    ("P2", "resend branch: must_change_password not set",
+     [(LS, 'user.set_password(generated_password)\n                user.must_change_password = True\n                user.save(update_fields=["password", "must_change_password"])',
+           'user.set_password(generated_password)\n                user.save(update_fields=["password"])')],
+     "test_resending_an_invitation_to_a_still_inactive_teacher_issues_a_fresh_password"),
+    ("L1", "activation link reverted to the dead /register/teacher path",
+     [(LS, 'f"https://{frontend_domain}/verify-email?"\n            f"email={teacher.email}&token={teacher.activation_token}"',
+           'f"https://{frontend_domain}/register/teacher?"\n            f"token={teacher.activation_token}&email={teacher.email}"')],
+     "test_activation_link_uses_the_shared_verify_email_page"),
+    ("A1", "must_change_password check inverted (never enforces)",
+     [(AUTH, 'if not getattr(user, "must_change_password", False):\n            return result',
+             'if getattr(user, "must_change_password", False):\n            return result')],
+     "test_flagged_user_is_blocked_from_an_arbitrary_protected_endpoint"),
+    ("A2", "change-password removed from the allow-list",
+     [(AUTH, '        "auth-change-password",\n        "auth-logout",',
+             '        "auth-logout",')],
+     "test_flagged_user_can_still_reach_change_password"),
+    ("A3", "logout removed from the allow-list",
+     [(AUTH, '        "auth-change-password",\n        "auth-logout",',
+             '        "auth-change-password",')],
+     "test_flagged_user_can_still_reach_logout"),
+    ("A4", "PasswordChangeRequired default_code changed (frontend can't match it)",
+     [(AUTH, 'default_code = "password_change_required"',
+             'default_code = "authentication_failed"')],
+     "test_flagged_user_is_blocked_from_an_arbitrary_protected_endpoint"),
+    ("A5", "PasswordChangeRequired status_code changed from 403",
+     [(AUTH, "    status_code = 403",
+             "    status_code = 401")],
+     "test_flagged_user_is_blocked_from_an_arbitrary_protected_endpoint"),
+    ("C1", "change-password no longer clears must_change_password",
+     [(UV, "        user.set_password(new_password)\n        user.must_change_password = False\n        user.save()",
+           "        user.set_password(new_password)\n        user.save()")],
+     "test_after_changing_password_the_flag_clears_and_access_is_normal"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", *LABELS.split(), "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log_pwdchange.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_pwdchange_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        print(out[-3000:])
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results_pwdchange.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

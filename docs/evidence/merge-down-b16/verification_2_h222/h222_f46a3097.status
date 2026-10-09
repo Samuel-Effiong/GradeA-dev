@@ -1,0 +1,9 @@
+20:48:27 check start: loadavg 1.56 1.69 2.45 6/2414 1999684
+20:48:27 check end exit=0: loadavg 1.56 1.69 2.45 7/2417 1999693
+20:48:27 baseline start: loadavg 1.56 1.69 2.45 7/2416 1999695
+20:48:34 baseline end exit=0: loadavg 1.59 1.70 2.45 2/2397 1999785
+20:48:34 a3 start: loadavg 1.59 1.70 2.45 7/2397 1999787
+20:48:47 a3 end exit=0: loadavg 1.82 1.74 2.45 5/2374 1999940
+20:48:47 mutants start: loadavg 1.82 1.74 2.45 5/2374 1999942
+20:50:01 mutants end exit=0: loadavg 1.21 1.56 2.34 1/2371 2000682
+20:50:01 tree is the frozen tip again

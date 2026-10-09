@@ -1,0 +1,22 @@
+baseline exit=0
+N1	extraction saves the questions as numbered	KILLED	FAILED (failures=8)	True	6.1
+N2	the model's own numbers are kept in the stored AI copy	KILLED	FAILED (errors=6)	True	5.7
+N3	extraction logs one line when a number changed	KILLED	FAILED (failures=1)	True	6.8
+N4	extraction logs nothing when no number changed	KILLED	FAILED (failures=1)	True	5.7
+N5	the log line carries a count, not the questions	KILLED	FAILED (failures=1)	True	5.8
+N6	a number already in its place is not counted as changed	KILLED	FAILED (failures=14)	True	5.8
+N7	only an integer counts as already in its place	KILLED	FAILED (failures=1)	True	5.3
+N8	a kept number is bounded in length	KILLED	FAILED (failures=1)	True	5.4
+N9	the input is not changed	KILLED	FAILED (failures=1)	True	5.9
+N10	an entry that is not an object takes no number	KILLED	FAILED (failures=1)	True	5.5
+N11	a value that is not a list is returned as it is	KILLED	FAILED (failures=2, errors=1)	True	5.4
+N12	a generated draft is numbered	KILLED	FAILED (failures=3)	True	5.8
+N13	a stored draft is numbered at its save	KILLED	FAILED (failures=1)	True	6.1
+N14	the serializer refuses a repeated number	KILLED	FAILED (failures=2)	True	5.7
+N15	nothing of the model's numbers rides in a draft	KILLED	FAILED (failures=1)	True	5.6
+N16	the override comparison reads three named keys of the stored AI copy	KILLED	FAILED (failures=1)	True	5.5
+N17	a question with no number keeps none (not the text 'None')	KILLED	FAILED (failures=2)	True	5.9
+N18	a draft path logs one line when a number changed	KILLED	FAILED (failures=2)	True	5.8
+
+18/18 killed with verified restore
+exit=0 wall_s=121

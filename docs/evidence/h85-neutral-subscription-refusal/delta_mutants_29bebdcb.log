@@ -1,0 +1,6 @@
+baseline exit=0
+N6	the invite refusal still logs its reason by id	KILLED	FAILED (failures=3)	True	4.3
+N8	the enrolment refusal still logs its own reason by id (1a's Y7)	KILLED	FAILED (failures=2)	True	3.6
+
+2/2 killed with verified restore
+exit=0 wall_s=13

@@ -1,0 +1,14 @@
+K1: 5 failing, as expected
+K2: 4 failing, as expected
+K3: 2 failing, as expected
+K4: 4 failing, as expected
+K5: 1 failing, as expected
+K6: 2 failing, as expected
+K7: 1 failing, as expected
+K8: 2 failing, as expected
+K9: 2 failing, as expected
+K10: 2 failing, as expected
+K11: 1 failing, as expected
+K12: 3 failing, as expected
+K13: 2 failing, as expected
+every mutant's failing set is the expected one

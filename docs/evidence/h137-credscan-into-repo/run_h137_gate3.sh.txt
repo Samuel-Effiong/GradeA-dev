@@ -1,0 +1,50 @@
+#!/bin/bash
+# H-137 third gate, after Verifier 2's two findings (0b's own item; a grant to myself, logged first). Usage: bash run_h137_gate3.sh <tip>
+# 0 the red run: the test module against the tool as moved ($RED), 0b the same module against the tool of the FIRST fix ($FIRST), 0c against the SECOND fix ($SECOND),
+# 1 the module + the repo-wide guard list, 2 the 26 mutants. No database is used by the module. Outputs carry the tip in their names.
+# Rules 12/13/16/17. RULE 18: every run writes stdout+stderr straight to a file, stdin from /dev/null; nothing is piped.
+set -u
+TIP=$1; RED=840619b4; FIRST=5bff2762; SECOND=8d78a179; T8=$(echo $1 | cut -c1-8)
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h137-credscan-into-repo || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h137-credscan-into-repo
+CAP='systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0'
+export PYTHONFAULTHANDLER=1 PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+[ -z "$(git status --porcelain)" ] || { echo "tree not clean"; exit 1; }
+[ ! -e $E/modules_and_guards_$T8.txt ] || { echo "logs of this gate exist already"; exit 1; }
+restore_tree() { git checkout HEAD -- scripts/credscan.py 2>/dev/null; rm -rf scripts/__pycache__; }
+trap restore_tree EXIT
+show() { grep -E "^(Ran |OK|FAILED \()" "$1" | cut -c1-200; echo "distinct failing tests: $(grep -E "^(FAIL|ERROR): " "$1" | sed -E "s/^(FAIL|ERROR): (test_[A-Za-z_0-9]+) .*/\\2/" | sort -u | wc -l)"; grep -E "^(FAIL|ERROR): " "$1" | sed -E "s/^(FAIL|ERROR): (test_[A-Za-z_0-9]+) .*/\\2/" | sort | uniq -c | head -40; }
+GUARDS="AutoGrader.tests_no_playwright_at_import AutoGrader.tests_student_feedback_guard AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension"
+echo "load at start: $(cat /proc/loadavg) $(date +%T)"
+echo "=== 0. the red run: the module against the tool as at $RED $(date +%T)"
+git show $RED:scripts/credscan.py > scripts/credscan.py; rm -rf scripts/__pycache__
+$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree AutoGrader.tests_credscan < /dev/null > $E/red_run_tool_as_moved_$T8.txt 2>&1
+echo "red run exit=$? (non-zero expected)"
+git checkout HEAD -- scripts/credscan.py; rm -rf scripts/__pycache__
+[ -z "$(git status --porcelain -- . ":!$E")" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+show $E/red_run_tool_as_moved_$T8.txt
+echo "=== 0b. the red run of the new tests: the module against the tool of the first fix, $FIRST $(date +%T)"
+git show $FIRST:scripts/credscan.py > scripts/credscan.py; rm -rf scripts/__pycache__
+$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree AutoGrader.tests_credscan < /dev/null > $E/red_run_tool_of_first_fix_$T8.txt 2>&1
+echo "second red run exit=$? (non-zero expected)"
+git checkout HEAD -- scripts/credscan.py; rm -rf scripts/__pycache__
+[ -z "$(git status --porcelain -- . ":!$E")" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+show $E/red_run_tool_of_first_fix_$T8.txt
+echo "=== 0c. the red run of the cut-value test: the module against the tool of the second fix, $SECOND $(date +%T)"
+git show $SECOND:scripts/credscan.py > scripts/credscan.py; rm -rf scripts/__pycache__
+$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree AutoGrader.tests_credscan < /dev/null > $E/red_run_tool_of_second_fix_$T8.txt 2>&1
+echo "third red run exit=$? (non-zero expected)"
+git checkout HEAD -- scripts/credscan.py; rm -rf scripts/__pycache__
+[ -z "$(git status --porcelain -- . ":!$E")" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+show $E/red_run_tool_of_second_fix_$T8.txt
+echo "=== 1. the module + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree AutoGrader.tests_credscan $GUARDS < /dev/null > $E/modules_and_guards_$T8.txt 2>&1
+echo "exit=$? $(date +%T)"; show $E/modules_and_guards_$T8.txt
+if grep -qE "^FAILED \(" $E/modules_and_guards_$T8.txt || ! grep -qE "^OK" $E/modules_and_guards_$T8.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 26 (rules 17 and 18) $(date +%T)"
+MUT_TAG=$T8 $CAP nice -n 10 timeout -k 60 1800 python $E/mutate.py < /dev/null > $E/mutation_log_$T8.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; cut -c1-300 $E/mutation_log_$T8.txt
+[ -z "$(git status --porcelain -- . ":!$E")" ] && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+echo "load at end: $(cat /proc/loadavg) $(date +%T)"

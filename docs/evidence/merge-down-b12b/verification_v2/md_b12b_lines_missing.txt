@@ -1,0 +1,24 @@
+epic files 1062 beta files 914 both 15
+== ai_processor/services.py [beta] missing 16
+    def _stamp_as_a_models(evaluations, model_name) -> None:
+    """Mark a REPLY's evaluations as a model's, in place.
+    The system knows its own evaluations by two fields
+    (_held_by_the_system), and a reply is free text: it can carry
+    either. So `graded_by` is ASSIGNED here, not defaulted, and
+    `from_cache` is removed. Without this a reply's repeat carrying
+    the mark and a higher score would outrank an honest one, a
+    returned evaluation carrying it could lower a grade the model was
+    never asked about, and the same mark would skip the snap to a
+    rubric level and keep the evaluation out of the saved-answer
+    store (H-154; found by Verifier 2). The response schema refuses
+    extra fields where a provider honours it; this does not lean on
+    that.
+    evaluation["graded_by"] = model_name or "llm"
+    self._stamp_as_a_models(evaluations, batch_model)
+    self._stamp_as_a_models(evaluations, model_name)
+== students/services.py [epic] missing 3
+    from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
+    if not isinstance(extracted_answers, list):
+    existing_submission, student_upload=is_student_self_upload
+== students/services.py [beta] missing 1
+    from ai_processor.services import REPLY_CORRECTED, ai_processor, is_readable_answer

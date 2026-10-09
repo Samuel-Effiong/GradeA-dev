@@ -1,0 +1,405 @@
+{
+  "S1_frame_variables_are_not_turned_off": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_turns_frame_variables_off",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_frame_has_variables"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_turns_frame_variables_off",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_frame_has_variables"
+    ],
+    "pycache_left": 0
+  },
+  "S2_frame_variables_are_turned_on": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_turns_frame_variables_off",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_frame_has_variables"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_turns_frame_variables_off",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_frame_has_variables"
+    ],
+    "pycache_left": 0
+  },
+  "S3_the_request_body_setting_is_not_passed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_sends_no_request_body",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_body_is_within_bounds"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_sends_no_request_body",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_body_is_within_bounds"
+    ],
+    "pycache_left": 0
+  },
+  "S4_small_request_bodies_are_sent": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_sends_no_request_body",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_body_is_within_bounds"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_sends_no_request_body",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatTheSdkDoesWithOurCallTests.test_with_our_call_no_body_is_within_bounds"
+    ],
+    "pycache_left": 0
+  },
+  "S5_default_pii_is_sent": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_still_sends_no_default_pii",
+      "AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry",
+      "AutoGrader.tests_sentry_sends_no_variables.TheInitCallTests.test_it_still_sends_no_default_pii"
+    ],
+    "pycache_left": 0
+  },
+  "G1_the_named_value_pattern_is_not_run": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text"
+    ],
+    "pycache_left": 0
+  },
+  "G2_it_is_run_only_on_a_text_with_an_at_sign": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text"
+    ],
+    "pycache_left": 0
+  },
+  "G3_the_value_ends_at_a_comma": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text"
+    ],
+    "pycache_left": 0
+  },
+  "G4_the_value_ends_at_a_space": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text"
+    ],
+    "pycache_left": 0
+  },
+  "G5_only_lower_case_names": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one"
+    ],
+    "pycache_left": 0
+  },
+  "G6_passwd_is_not_one_of_the_names": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names"
+    ],
+    "pycache_left": 0
+  },
+  "G7_secret_is_not_one_of_the_names": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left"
+    ],
+    "pycache_left": 0
+  },
+  "G8_token_is_not_one_of_the_names": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left"
+    ],
+    "pycache_left": 0
+  },
+  "G9_the_name_is_not_kept": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_as_a_frames_variable_text_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_a_breadcrumb_and_a_log_item_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.APoolsPrintedFormTests.test_in_an_exceptions_text_and_a_message_it_is_replaced",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_a_text_with_no_at_sign_is_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_an_address_and_a_url_password_are_still_replaced_beside_it",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_each_of_the_four_names",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_names_case_and_a_longer_name_that_ends_in_one",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_the_value_is_taken_to_the_end_of_its_line_and_no_further",
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_two_lines_each_with_one",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_a_message_built_with_a_pool",
+      "AutoGrader.tests_sentry_sends_no_variables.WhatALogLinePrintsTests.test_an_exceptions_text"
+    ],
+    "pycache_left": 0
+  },
+  "G10_a_name_with_nothing_after_it_is_replaced": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_text_that_only_looks_alike_is_unchanged"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheNamedValuePatternTests.test_text_that_only_looks_alike_is_unchanged"
+    ],
+    "pycache_left": 0
+  },
+  "H1_the_request_is_left_alone": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_what_holds_none_of_them_is_kept"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_what_holds_none_of_them_is_kept"
+    ],
+    "pycache_left": 0
+  },
+  "H2_the_tags_are_left_alone": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_scrubbed_too"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left"
+    ],
+    "pycache_left": 0
+  },
+  "H3_the_user_is_left_alone": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_scrubbed_too"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_scrubbed_too",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left"
+    ],
+    "pycache_left": 0
+  },
+  "H4_the_contexts_are_left_alone": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_what_holds_none_of_them_is_kept"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_each_part_by_itself",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_none_of_the_made_values_is_left",
+      "AutoGrader.tests_sentry_sends_no_variables.TheRestOfTheEventTests.test_what_holds_none_of_them_is_kept"
+    ],
+    "pycache_left": 0
+  }
+}

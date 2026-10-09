@@ -1,0 +1,99 @@
+import json, os, re, sys, time, requests
+B = "http://127.0.0.1:18765/api/v1"
+S = os.path.dirname(os.path.abspath(__file__))
+PW = "SmokePass!234"  # pragma: allowlist secret
+PROV = os.path.join(S, "provider_requests.jsonl")
+PDF = "/home/bond-servant-in-training/Documents/Projects/GAP-smoke-0a-a7d667c/sample_teacher.pdf"
+R = []   # (id, name, PASS/FAIL, detail)
+
+def prov_count():
+    return sum(1 for _ in open(PROV)) if os.path.exists(PROV) else 0
+def rec(i, name, ok, detail): R.append((i, name, "PASS" if ok else "FAIL", detail)); print(f"[{'PASS' if ok else 'FAIL'}] {i} {name}: {detail}", flush=True)
+def login(email, pw=PW):
+    return requests.post(f"{B}/auth/login", json={"email": email, "password": pw})
+_TOK = {}
+def tok(email):
+    if email not in _TOK:
+        for _ in range(8):
+            r = login(email)
+            if r.status_code != 429: break
+            time.sleep(5)   # the app's own login throttle; wait it out
+        assert r.status_code == 200, (email, r.status_code, r.text[:200])
+        _TOK[email] = {"Authorization": "Bearer " + r.json()["data"]["access"]}
+    return _TOK[email]
+def body(r):
+    try: j = r.json()
+    except Exception: return r.text[:300]
+    return j
+
+seed = json.load(open(os.path.join(S, "seed_ids.json")))
+# ---- 1. LOGIN -------------------------------------------------------------
+r = requests.get(f"{B}/health"); rec("L0", "health endpoint", r.status_code == 200 and r.json()["data"]["checks"] == {"database": "ok", "cache": "ok"}, f"{r.status_code} {r.json()['data']['checks']}")
+for i, (em, t) in enumerate([("smoke-ta@smoke.test", "TEACHER"), ("smoke-tc@smoke.test", "TEACHER"), ("smoke-shared@smoke.test", "STUDENT")], 1):
+    for _ in range(8):
+        r = login(em)
+        if r.status_code != 429: break
+        time.sleep(5)
+    d = r.json().get("data", {}) if r.status_code == 200 else {}
+    rec(f"L{i}", f"login {t} {em}", r.status_code == 200 and d.get("user", {}).get("user_type") == t and bool(d.get("access")) and bool(d.get("refresh")), f"HTTP {r.status_code}, user_type={d.get('user', {}).get('user_type')}, access+refresh tokens present={bool(d.get('access')) and bool(d.get('refresh'))}")
+r = login("smoke-ta@smoke.test", "wrong-password"); rec("L4", "wrong password is refused, not a 500", r.status_code in (400, 401), f"HTTP {r.status_code}: {json.dumps(body(r))[:160]}")
+r = requests.get(f"{B}/student-course/my-students"); rec("L5", "no token -> 401 on a protected route", r.status_code == 401, f"HTTP {r.status_code}")
+r = requests.get(f"{B}/users/me", headers=tok("smoke-ta@smoke.test")); rec("L6", "token works: users/me returns the caller", r.status_code == 200 and "smoke-ta@smoke.test" in json.dumps(body(r)), f"HTTP {r.status_code}")
+# ---- 2. MY-STUDENTS ---------------------------------------------------------
+ha, hb = tok("smoke-ta@smoke.test"), tok("smoke-tb@smoke.test")
+ra = requests.get(f"{B}/student-course/my-students", headers=ha); ja = body(ra); txt = json.dumps(ja)
+emails_a = sorted({x.get("email") for x in ja["data"]["results"]} if "data" in ja else set()) if ra.status_code == 200 else []
+rec("M1", "teacher A sees own student, not B's private student", ra.status_code == 200 and "smoke-shared@smoke.test" in txt and "smoke-only-b@smoke.test" not in txt, f"HTTP {ra.status_code}, students={emails_a}")
+rec("M2", "shared student's row leaks nothing of teacher B's course", "Private Tutoring B" not in txt and "B CONFIDENTIAL" not in txt and "Bravo" not in txt, "searched whole payload for B's course name, notes and teacher surname")
+unknown = "00000000-0000-4000-8000-000000000000"
+r_foreign = requests.get(f"{B}/student-course/my-students", headers=ha, params={"enrollments__course": seed["cb"]})
+r_unknown = requests.get(f"{B}/student-course/my-students", headers=ha, params={"enrollments__course": unknown})
+strip = lambda r: json.dumps(body(r), sort_keys=True)
+rec("M3", "filtering by B's course id looks identical to a made-up id (no oracle)", r_foreign.status_code == r_unknown.status_code and strip(r_foreign) == strip(r_unknown), f"foreign HTTP {r_foreign.status_code} vs unknown HTTP {r_unknown.status_code}, bodies equal={strip(r_foreign) == strip(r_unknown)}")
+rb = requests.get(f"{B}/student-course/my-students", headers=hb); tb = json.dumps(body(rb))
+rec("M4", "teacher B sees both of their students and nothing of C/A", rb.status_code == 200 and "smoke-shared@smoke.test" in tb and "smoke-only-b@smoke.test" in tb and "Empty-wallet C" not in tb and "Algebra A" not in tb, f"HTTP {rb.status_code}")
+rs = requests.get(f"{B}/student-course/my-students", headers=tok("smoke-shared@smoke.test")); rec("M5", "a student cannot use the teacher-only endpoint", rs.status_code in (401, 403), f"HTTP {rs.status_code}")
+# ---- 3. UPLOAD / EXTRACT -----------------------------------------------------
+before = prov_count()
+with open(PDF, "rb") as f:
+    r = requests.post(f"{B}/assignments/upload-async", headers=ha, data={"course": seed["ca"]}, files={"assignments": ("sample_teacher.pdf", f, "application/pdf")})
+j = body(r); ok202 = r.status_code == 202 and "tasks" in j.get("data", j)
+rec("U1", "upload accepted asynchronously (202 + task id)", ok202, f"HTTP {r.status_code}: {json.dumps(j)[:200]}")
+task_id = None
+if ok202:
+    d = j.get("data", j); task_id = d["tasks"][0]["task_id"]
+    final = None
+    for _ in range(90):
+        rs = requests.get(f"{B}/tasks/status/{task_id}", headers=ha); sj = body(rs); sd = sj.get("data", sj) if isinstance(sj, dict) else {}
+        st = str(sd.get("status") or sd.get("state") or "").upper()
+        if st in ("SUCCESS", "FAILURE", "FAILED", "COMPLETED", "REVOKED"): final = (st, sd); break
+        time.sleep(1)
+    rec("U2", "extraction task finishes successfully in the worker", final is not None and final[0] in ("SUCCESS", "COMPLETED"), f"final={final[0] if final else 'TIMEOUT'} {json.dumps(final[1])[:220] if final else ''}")
+    ra2 = requests.get(f"{B}/assignments", headers=ha, params={"course": seed["ca"]}); t2 = json.dumps(body(ra2))
+    rec("U3", "the extracted assignment exists in teacher A's course", ra2.status_code == 200 and "Smoke Quiz: Fractions" in t2, f"HTTP {ra2.status_code}, title found={'Smoke Quiz: Fractions' in t2}")
+mid = prov_count(); rec("U4", "extraction reached ONLY the local fake provider", mid - before >= 1, f"{mid - before} provider request(s) recorded by the fake; real OpenRouter key was replaced by a dummy")
+with open(PDF, "rb") as f:
+    r = requests.post(f"{B}/assignments/upload-async", headers=ha, data={"course": seed["ca"]}, files={"assignments": ("sample_teacher.pdf", f, "application/pdf")})
+time.sleep(6)
+rec("U5", "re-uploading the same file makes no second AI call (dedupe)", prov_count() == mid, f"provider requests before={mid} after={prov_count()}, HTTP {r.status_code}")
+json.dump({"task_id": task_id}, open(os.path.join(S, "drive_state.json"), "w"))
+# ---- 4. REFUSAL PATH ---------------------------------------------------------
+hc = tok("smoke-tc@smoke.test"); p0 = prov_count()
+with open(PDF, "rb") as f:
+    r = requests.post(f"{B}/assignments/upload-async", headers=hc, data={"course": seed["cc"]}, files={"assignments": ("sample_teacher.pdf", f, "application/pdf")})
+j = body(r); code = (j.get("code") if isinstance(j, dict) else None) or (j.get("error", {}) or {}).get("code") if isinstance(j, dict) else None
+rec("R1", "no-credit teacher upload -> 402 insufficient_credits (not 400/500)", r.status_code == 402 and "insufficient_credits" in json.dumps(j), f"HTTP {r.status_code}: {json.dumps(j)[:200]}")
+rec("R2", "the refusal message is plain text, no HTML markup", "<b>" not in json.dumps(j) and "<" not in json.dumps(j), "no '<' in body")
+rec("R3", "a refusal costs nothing and calls no AI", prov_count() == p0, f"provider requests before={p0} after={prov_count()}")
+r = requests.post(f"{B}/assignments/generate/{seed['ca']}", headers=ha, json={"prompt": "make a quiz"}); j = body(r)
+rec("R4", "feature not on plan -> 403 for generate-assignment (no AI call)", r.status_code in (402, 403) and prov_count() == p0, f"HTTP {r.status_code}: {json.dumps(j)[:200]}")
+hs = tok("smoke-shared@smoke.test")
+with open(PDF, "rb") as f:
+    r = requests.post(f"{B}/submissions/{seed['asg_c']}/upload-async", headers=hs, files={"file": ("answers.pdf", f, "application/pdf")}, data={})
+j = body(r); jt = json.dumps(j).lower()
+leak = [w for w in ("trial", "expired", "wallet", "credit", "refill", "subscription", "balance") if w in jt]
+rec("R5", "student on an out-of-credit teacher's assignment gets a refusal (402/403), not a 500", r.status_code in (402, 403), f"HTTP {r.status_code}: {json.dumps(j)[:220]}")
+rec("R6", "that student-facing message reveals nothing about the teacher's billing", not leak, f"billing words found: {leak}")
+rec("R7", "still no AI call after the student refusal", prov_count() == p0, f"provider requests before={p0} after={prov_count()}")
+json.dump(R, open(os.path.join(S, "drive_results.json"), "w"), indent=1)
+print("\nSUMMARY:", sum(1 for x in R if x[2] == "PASS"), "pass,", sum(1 for x in R if x[2] == "FAIL"), "fail")

@@ -1,0 +1,1084 @@
+{
+  "generated_at": "2026-09-14T11:38:34Z",
+  "documents": 3,
+  "records": [
+    {
+      "scenario": "AE-906",
+      "extraction": {
+        "scenario": "AE-906",
+        "name": "live-6-pages-mixed",
+        "assignment_id": "0c72620e-c562-4d49-9eec-e38e479cfb15",
+        "answers_payload": [
+          {
+            "question_number": "Q1",
+            "question_text": "What is the capital city of Iceland?",
+            "source_page": 1,
+            "transcription_notes": "Question text and answer 'Reykjavik' handwritten below it on page 1.",
+            "answer_html": "<p>Reykjavik</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          },
+          {
+            "question_number": "Q2",
+            "question_text": "Name the largest moon of Saturn.",
+            "source_page": 2,
+            "transcription_notes": "Question text and answer 'Titan' handwritten below it on page 2.",
+            "answer_html": "<p>Titan</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          },
+          {
+            "question_number": "Q3",
+            "question_text": "Which gas is about 78% of Earth's atmosphere?",
+            "source_page": 3,
+            "transcription_notes": "Question text printed on page 3 with blank underlined space below it; no writing present.",
+            "answer_html": "",
+            "answer_status": "BLANK",
+            "confidence": 90
+          },
+          {
+            "question_number": "Q4",
+            "question_text": "What is the chemical symbol for tungsten?",
+            "source_page": 4,
+            "transcription_notes": "Printed question text followed by handwritten answer 'W' on page 4.",
+            "answer_html": "<p>W</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 100
+          },
+          {
+            "question_number": "Q5",
+            "question_text": "In which year did Apollo 11 land?",
+            "source_page": 5,
+            "transcription_notes": "Printed question text followed by handwritten answer '1969' on page 5.",
+            "answer_html": "<p>1969</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 100
+          },
+          {
+            "question_number": "Q9",
+            "question_text": "Which river flows through Budapest?",
+            "source_page": null,
+            "transcription_notes": "Not found in this page range.",
+            "answer_html": "",
+            "answer_status": "NOT_FOUND_IN_DOCUMENT",
+            "confidence": 80
+          }
+        ],
+        "notes": "Q3 is blank on the LAST page of chunk 1.",
+        "tags": [
+          "live",
+          "chunked",
+          "boundary",
+          "blank",
+          "not-found"
+        ],
+        "known_gap": "",
+        "pages": 6,
+        "pages_per_chunk": 3,
+        "expected_execution_path": "chunked",
+        "execution_path": "chunked",
+        "chunk_count": 2,
+        "expected_chunks": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ]
+        ],
+        "retry_extraction_calls": 0,
+        "calls": [
+          {
+            "kind": "extraction",
+            "pages": [
+              1,
+              2,
+              3
+            ],
+            "claimed": [
+              1,
+              3
+            ],
+            "schema_sent": true,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 15181,
+            "seconds": 12.71,
+            "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": 1,\n      \"transcription_notes\": \"Question text and answer 'Reykjavik' handwritten below it on page 1.\",\n      \"answer_html\": \"<p>Reykjavik</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": 2,\n      \"transcription_notes\": \"Question text and answer 'Titan' handwritten below it on page 2.\",\n      \"answer_html\": \"<p>Titan</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 3,\n      \"transcription_notes\": \"Question text printed on page 3 with blank underlined space below it; no writing present.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"BLANK\",\n      \"confidence\": 90\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Not found in this page range.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 80\n    },\n    {\n      \"question_number\": \"Q5\",\n      \"question_text\": \"In which year did Apollo 11 land?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Not found in this page range.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 80\n    },\n    {\n      \"question_number\": \"Q9\",\n      \"question_text\": \"Which river flows through Budapest?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Not found in this page range.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 80\n    }\n  ],\n  \"extraction_confidence\": 85,\n  \"feedback\": \"No student name or ID visible on any of the three pages. Pages 1-3 processed: Q1 and Q2 answered, Q3 blank on page 3. Q4, Q5, Q9 not present in this chunk.\"\n}",
+            "error": null
+          },
+          {
+            "kind": "extraction",
+            "pages": [
+              4,
+              5,
+              6
+            ],
+            "claimed": [
+              4,
+              6
+            ],
+            "schema_sent": true,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 15248,
+            "seconds": 10.27,
+            "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"No content for this question visible on pages 4-6; previously answered on earlier pages.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": null,\n      \"transcription_notes\": \"No content for this question visible on pages 4-6; previously answered on earlier pages.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not present on pages 4-6.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": 4,\n      \"transcription_notes\": \"Printed question text followed by handwritten answer 'W' on page 4.\",\n      \"answer_html\": \"<p>W</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q5\",\n      \"question_text\": \"In which year did Apollo 11 land?\",\n      \"source_page\": 5,\n      \"transcription_notes\": \"Printed question text followed by handwritten answer '1969' on page 5.\",\n      \"answer_html\": \"<p>1969</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q9\",\n      \"question_text\": \"Which river flows through Budapest?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not present on pages 4-6.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    }\n  ],\n  \"extraction_confidence\": 100,\n  \"feedback\": \"Pages 4-6 contain answers only for Q4 and Q5. Q1 and Q2 have no continuation here. Q3 and Q9 are absent from these pages and therefore marked NOT_FOUND_IN_DOCUMENT. Page 6 is blank of answers. No student identity information on these pages.\"\n}",
+            "error": null
+          },
+          {
+            "kind": "blank_verification",
+            "pages": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "claimed": null,
+            "schema_sent": false,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 15328,
+            "seconds": 12.65,
+            "raw_response": "{\n  \"findings\": [\n    {\n      \"question_number\": \"Q3\",\n      \"observed\": \"Question text followed by a single blank underlined answer line with no marks, text, or writing of any kind visible on the page.\",\n      \"page\": 3,\n      \"verbatim_fragment\": null,\n      \"content_found\": false\n    },\n    {\n      \"question_number\": \"Q9\",\n      \"observed\": \"No page or section for Q9 is present in the provided images; only questions up to Q5 and a blank continuation sheet are shown.\",\n      \"page\": null,\n      \"verbatim_fragment\": null,\n      \"content_found\": false\n    }\n  ]\n}",
+            "error": null
+          }
+        ],
+        "expected": [
+          {
+            "question": "Q1",
+            "status": "ANSWERED",
+            "answer": "Reykjavik",
+            "pages": [
+              1
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q2",
+            "status": "ANSWERED",
+            "answer": "Titan",
+            "pages": [
+              2
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q3",
+            "status": "BLANK",
+            "answer": null,
+            "pages": [
+              3
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q4",
+            "status": "ANSWERED",
+            "answer": "W",
+            "pages": [
+              4
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q5",
+            "status": "ANSWERED",
+            "answer": "1969",
+            "pages": [
+              5
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q9",
+            "status": "NOT_FOUND_IN_DOCUMENT",
+            "answer": null,
+            "pages": [],
+            "fragments": []
+          }
+        ],
+        "actual": [
+          {
+            "question": "Q1",
+            "status": "ANSWERED",
+            "source_page": 1,
+            "answer_html": "<p>Reykjavik</p>",
+            "transcription_notes": "Question text and answer 'Reykjavik' handwritten below it on page 1."
+          },
+          {
+            "question": "Q2",
+            "status": "ANSWERED",
+            "source_page": 2,
+            "answer_html": "<p>Titan</p>",
+            "transcription_notes": "Question text and answer 'Titan' handwritten below it on page 2."
+          },
+          {
+            "question": "Q3",
+            "status": "BLANK",
+            "source_page": 3,
+            "answer_html": "",
+            "transcription_notes": "Question text printed on page 3 with blank underlined space below it; no writing present."
+          },
+          {
+            "question": "Q4",
+            "status": "ANSWERED",
+            "source_page": 4,
+            "answer_html": "<p>W</p>",
+            "transcription_notes": "Printed question text followed by handwritten answer 'W' on page 4."
+          },
+          {
+            "question": "Q5",
+            "status": "ANSWERED",
+            "source_page": 5,
+            "answer_html": "<p>1969</p>",
+            "transcription_notes": "Printed question text followed by handwritten answer '1969' on page 5."
+          },
+          {
+            "question": "Q9",
+            "status": "NOT_FOUND_IN_DOCUMENT",
+            "source_page": null,
+            "answer_html": "",
+            "transcription_notes": "Not found in this page range."
+          }
+        ],
+        "discrepancies": [],
+        "error": null,
+        "model_config": {
+          "main_model": "x-ai/grok-4.3",
+          "fallback_models": [
+            "deepseek/deepseek-v4-pro"
+          ],
+          "blank_verification_model": null,
+          "served_by": [
+            "x-ai/grok-4.3"
+          ]
+        },
+        "elapsed_seconds": 35.63,
+        "credits": {
+          "before": 1000000.0,
+          "after": 954243.0,
+          "consumed": 45757.0,
+          "tokens_reported": 45757,
+          "invariant_holds": true
+        }
+      },
+      "grading": {
+        "scenario": "AE-906",
+        "error": null,
+        "graded_statuses": {
+          "Q1": "ANSWERED",
+          "Q2": "ANSWERED",
+          "Q3": "BLANK",
+          "Q4": "ANSWERED",
+          "Q5": "ANSWERED",
+          "Q9": "NOT_FOUND_IN_DOCUMENT"
+        },
+        "scores": {
+          "Q1": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>Reykjavik</p>"
+          },
+          "Q2": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>Titan</p>"
+          },
+          "Q3": {
+            "score_awarded": 0,
+            "max_points": 5,
+            "level_achieved": "not_attempted",
+            "student_answer": ""
+          },
+          "Q4": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>W</p>"
+          },
+          "Q5": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>1969</p>"
+          },
+          "Q9": {
+            "score_awarded": 0,
+            "max_points": 5,
+            "level_achieved": "not_attempted",
+            "student_answer": ""
+          }
+        },
+        "answers_not_found": [
+          "Q9"
+        ],
+        "summary": {
+          "total_score": 20,
+          "max_total_points": 30,
+          "percentage": 66.67
+        },
+        "grading_model": "x-ai/grok-4.3",
+        "second_opinion": {
+          "model": "deepseek/deepseek-v4-pro",
+          "selected": {
+            "Q1": [
+              "subjective_type"
+            ],
+            "Q2": [
+              "subjective_type"
+            ],
+            "Q4": [
+              "subjective_type"
+            ],
+            "Q5": [
+              "subjective_type"
+            ]
+          },
+          "agreements": [
+            "Q1",
+            "Q2",
+            "Q4",
+            "Q5"
+          ],
+          "disagreements": []
+        },
+        "calls": [
+          {
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 9372,
+            "seconds": 19.77,
+            "error": null
+          },
+          {
+            "model": "deepseek/deepseek-v4-pro",
+            "total_tokens": 9700,
+            "seconds": 118.06,
+            "error": null
+          }
+        ],
+        "elapsed_seconds": 137.83,
+        "credits": {
+          "before": 954243.0,
+          "after": 935171.0,
+          "consumed": 19072.0,
+          "tokens_reported": 19072,
+          "invariant_holds": true
+        }
+      }
+    },
+    {
+      "scenario": "AE-905",
+      "extraction": {
+        "scenario": "AE-905",
+        "name": "live-answer-spans-chunk-seam",
+        "assignment_id": "c3bf06e2-f775-4a38-b783-bb2d23a254ff",
+        "answers_payload": [
+          {
+            "question_number": "Q1",
+            "question_text": "What is the capital city of Iceland?",
+            "source_page": 1,
+            "transcription_notes": "Page 1 shows printed question Q1 followed by handwritten answer 'Reykjavik' directly below it.",
+            "answer_html": "<p>Reykjavik</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          },
+          {
+            "question_number": "Q2",
+            "question_text": "Name the largest moon of Saturn.",
+            "source_page": 2,
+            "transcription_notes": "Page 2 shows printed question Q2 followed by handwritten answer 'Titan' directly below it.",
+            "answer_html": "<p>Titan</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          },
+          {
+            "question_number": "Q3",
+            "question_text": "Which gas is about 78% of Earth's atmosphere?",
+            "source_page": 3,
+            "transcription_notes": "Page 3 shows printed question Q3 followed by handwritten text 'The major component is' and note '(continued overleaf)'. | Continuation of answer visible on page 4 after '...continued from previous page' marker: handwritten word 'Nitrogen'. | Answer continues across a page-chunk boundary; the parts were joined in page order.",
+            "answer_html": "<p>The major component is</p>\n<p>Nitrogen</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 90
+          },
+          {
+            "question_number": "Q4",
+            "question_text": "What is the chemical symbol for tungsten?",
+            "source_page": 5,
+            "transcription_notes": "Full question text and answer visible on page 5: printed question followed by handwritten 'W'.",
+            "answer_html": "<p>W</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          }
+        ],
+        "notes": "The document that exposed the split-answer defect: before 2026-09-14 the real model returned only 'The major component is'.",
+        "tags": [
+          "live",
+          "chunked",
+          "cross-chunk",
+          "split-answer"
+        ],
+        "known_gap": "",
+        "pages": 5,
+        "pages_per_chunk": 3,
+        "expected_execution_path": "chunked",
+        "execution_path": "chunked",
+        "chunk_count": 2,
+        "expected_chunks": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5
+          ]
+        ],
+        "retry_extraction_calls": 0,
+        "calls": [
+          {
+            "kind": "extraction",
+            "pages": [
+              1,
+              2,
+              3
+            ],
+            "claimed": [
+              1,
+              3
+            ],
+            "schema_sent": true,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 15296,
+            "seconds": 17.16,
+            "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": 1,\n      \"transcription_notes\": \"Page 1 shows printed question Q1 followed by handwritten answer 'Reykjavik' directly below it.\",\n      \"answer_html\": \"<p>Reykjavik</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": 2,\n      \"transcription_notes\": \"Page 2 shows printed question Q2 followed by handwritten answer 'Titan' directly below it.\",\n      \"answer_html\": \"<p>Titan</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 3,\n      \"transcription_notes\": \"Page 3 shows printed question Q3 followed by handwritten text 'The major component is' and note '(continued overleaf)'.\",\n      \"answer_html\": \"<p>The major component is</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 90\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question Q4 and its answer region not located anywhere in pages 1-3.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    }\n  ],\n  \"extraction_confidence\": 85,\n  \"feedback\": \"No student name or ID visible on any of the three pages. No roster list was supplied in the prompt. Q1 and Q2 fully answered on pages 1-2. Q3 answer started on page 3 but marked as continued overleaf. Q4 absent from this page range.\"\n}",
+            "error": null
+          },
+          {
+            "kind": "extraction",
+            "pages": [
+              4,
+              5
+            ],
+            "claimed": [
+              4,
+              5
+            ],
+            "schema_sent": true,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 13107,
+            "seconds": 13.76,
+            "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"No content for this question visible on pages 4-5; previously answered on earlier pages.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": null,\n      \"transcription_notes\": \"No content for this question visible on pages 4-5; previously answered on earlier pages.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 4,\n      \"transcription_notes\": \"Continuation of answer visible on page 4 after '...continued from previous page' marker: handwritten word 'Nitrogen'.\",\n      \"answer_html\": \"<p>Nitrogen</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": 5,\n      \"transcription_notes\": \"Full question text and answer visible on page 5: printed question followed by handwritten 'W'.\",\n      \"answer_html\": \"<p>W</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    }\n  ],\n  \"extraction_confidence\": 90,\n  \"feedback\": \"This is the final chunk (pages 4-5). Q1 and Q2 not present in this range. Q3 answer continues on page 4 with 'Nitrogen'. Q4 fully answered on page 5 with 'W'. No student name or ID in this chunk as expected. No questions skipped overall.\"\n}",
+            "error": null
+          }
+        ],
+        "expected": [
+          {
+            "question": "Q1",
+            "status": "ANSWERED",
+            "answer": "Reykjavik",
+            "pages": [
+              1
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q2",
+            "status": "ANSWERED",
+            "answer": "Titan",
+            "pages": [
+              2
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q3",
+            "status": "ANSWERED",
+            "answer": "Nitrogen",
+            "pages": [
+              3,
+              4
+            ],
+            "fragments": [
+              [
+                3,
+                "The major component is"
+              ],
+              [
+                4,
+                "Nitrogen"
+              ]
+            ]
+          },
+          {
+            "question": "Q4",
+            "status": "ANSWERED",
+            "answer": "W",
+            "pages": [
+              5
+            ],
+            "fragments": []
+          }
+        ],
+        "actual": [
+          {
+            "question": "Q1",
+            "status": "ANSWERED",
+            "source_page": 1,
+            "answer_html": "<p>Reykjavik</p>",
+            "transcription_notes": "Page 1 shows printed question Q1 followed by handwritten answer 'Reykjavik' directly below it."
+          },
+          {
+            "question": "Q2",
+            "status": "ANSWERED",
+            "source_page": 2,
+            "answer_html": "<p>Titan</p>",
+            "transcription_notes": "Page 2 shows printed question Q2 followed by handwritten answer 'Titan' directly below it."
+          },
+          {
+            "question": "Q3",
+            "status": "ANSWERED",
+            "source_page": 3,
+            "answer_html": "<p>The major component is</p>\n<p>Nitrogen</p>",
+            "transcription_notes": "Page 3 shows printed question Q3 followed by handwritten text 'The major component is' and note '(continued overleaf)'. | Continuation of answer visible on page 4 after '...continued from previous page' marker: handwritten word 'Nitrogen'. | Answer continues across a page-chunk boundary; the parts were joined in page order."
+          },
+          {
+            "question": "Q4",
+            "status": "ANSWERED",
+            "source_page": 5,
+            "answer_html": "<p>W</p>",
+            "transcription_notes": "Full question text and answer visible on page 5: printed question followed by handwritten 'W'."
+          }
+        ],
+        "discrepancies": [],
+        "error": null,
+        "model_config": {
+          "main_model": "x-ai/grok-4.3",
+          "fallback_models": [
+            "deepseek/deepseek-v4-pro"
+          ],
+          "blank_verification_model": null,
+          "served_by": [
+            "x-ai/grok-4.3"
+          ]
+        },
+        "elapsed_seconds": 30.93,
+        "credits": {
+          "before": 935171.0,
+          "after": 906768.0,
+          "consumed": 28403.0,
+          "tokens_reported": 28403,
+          "invariant_holds": true
+        }
+      },
+      "grading": {
+        "scenario": "AE-905",
+        "error": null,
+        "graded_statuses": {
+          "Q1": "ANSWERED",
+          "Q2": "ANSWERED",
+          "Q3": "ANSWERED",
+          "Q4": "ANSWERED"
+        },
+        "scores": {
+          "Q1": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>Reykjavik</p>"
+          },
+          "Q2": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>Titan</p>"
+          },
+          "Q3": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>The major component is</p>\n<p>Nitrogen</p>"
+          },
+          "Q4": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>W</p>"
+          }
+        },
+        "answers_not_found": [],
+        "summary": {
+          "total_score": 20,
+          "max_total_points": 20,
+          "percentage": 100.0
+        },
+        "grading_model": "x-ai/grok-4.3",
+        "second_opinion": {
+          "model": "deepseek/deepseek-v4-pro",
+          "selected": {
+            "Q1": [
+              "subjective_type"
+            ],
+            "Q2": [
+              "subjective_type"
+            ],
+            "Q3": [
+              "subjective_type"
+            ],
+            "Q4": [
+              "subjective_type"
+            ]
+          },
+          "agreements": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4"
+          ],
+          "disagreements": []
+        },
+        "calls": [
+          {
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 8230,
+            "seconds": 10.67,
+            "error": null
+          },
+          {
+            "model": "deepseek/deepseek-v4-pro",
+            "total_tokens": 9354,
+            "seconds": 74.5,
+            "error": null
+          }
+        ],
+        "elapsed_seconds": 85.17,
+        "credits": {
+          "before": 906768.0,
+          "after": 889184.0,
+          "consumed": 17584.0,
+          "tokens_reported": 17584,
+          "invariant_holds": true
+        }
+      }
+    },
+    {
+      "scenario": "AE-916",
+      "extraction": {
+        "scenario": "AE-916",
+        "name": "live-continuation-shares-a-page",
+        "assignment_id": "f00f88a2-01b5-4e1b-9105-bf3e7531befc",
+        "answers_payload": [
+          {
+            "question_number": "Q1",
+            "question_text": "What is the capital city of Iceland?",
+            "source_page": 1,
+            "transcription_notes": "Question text and answer 'Reykjavik' handwritten on page 1; no student name or ID visible at top.",
+            "answer_html": "<p>Reykjavik</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          },
+          {
+            "question_number": "Q2",
+            "question_text": "Name the largest moon of Saturn.",
+            "source_page": 2,
+            "transcription_notes": "Question text and answer 'Titan' handwritten on page 2.",
+            "answer_html": "<p>Titan</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 95
+          },
+          {
+            "question_number": "Q3",
+            "question_text": "Which gas is about 78% of Earth's atmosphere?",
+            "source_page": 3,
+            "transcription_notes": "Question text and partial answer 'The major component is' handwritten on page 3 with note '(continued overleaf)'; answer incomplete on this page. | Continuation of previously answered Q3 visible on this page as 'Nitrogen'. | Answer continues across a page-chunk boundary; the parts were joined in page order.",
+            "answer_html": "<p>The major component is</p>\n<p>Nitrogen</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 80
+          },
+          {
+            "question_number": "Q4",
+            "question_text": "What is the chemical symbol for tungsten?",
+            "source_page": 4,
+            "transcription_notes": "Question Q4 and answer 'W' visible on page 4.",
+            "answer_html": "<p>W</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 100
+          },
+          {
+            "question_number": "Q5",
+            "question_text": "In which year did Apollo 11 land?",
+            "source_page": 4,
+            "transcription_notes": "Question Q5 visible on page 4 with blank answer line and no writing present.",
+            "answer_html": "",
+            "answer_status": "BLANK",
+            "confidence": 100
+          },
+          {
+            "question_number": "Q6",
+            "question_text": "What is the square root of 289?",
+            "source_page": 5,
+            "transcription_notes": "Question Q6 and answer '17' visible on page 5.",
+            "answer_html": "<p>17</p>",
+            "answer_status": "ANSWERED",
+            "confidence": 100
+          },
+          {
+            "question_number": "Q9",
+            "question_text": "Which river flows through Budapest?",
+            "source_page": null,
+            "transcription_notes": "Question not present on pages 1-3.",
+            "answer_html": "",
+            "answer_status": "NOT_FOUND_IN_DOCUMENT",
+            "confidence": 100
+          }
+        ],
+        "notes": "The continuation of Q3 sits above a full answer (Q4) and a deliberate blank (Q5) on the first page of chunk 2, with Q9 absent altogether. The continuation must reach Q3 and only Q3, and every other status must be untouched.",
+        "tags": [
+          "live",
+          "chunked",
+          "cross-chunk",
+          "split-answer",
+          "status"
+        ],
+        "known_gap": "",
+        "pages": 5,
+        "pages_per_chunk": 3,
+        "expected_execution_path": "chunked",
+        "execution_path": "chunked",
+        "chunk_count": 2,
+        "expected_chunks": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5
+          ]
+        ],
+        "retry_extraction_calls": 0,
+        "calls": [
+          {
+            "kind": "extraction",
+            "pages": [
+              1,
+              2,
+              3
+            ],
+            "claimed": [
+              1,
+              3
+            ],
+            "schema_sent": true,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 15324,
+            "seconds": 101.71,
+            "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": 1,\n      \"transcription_notes\": \"Question text and answer 'Reykjavik' handwritten on page 1; no student name or ID visible at top.\",\n      \"answer_html\": \"<p>Reykjavik</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": 2,\n      \"transcription_notes\": \"Question text and answer 'Titan' handwritten on page 2.\",\n      \"answer_html\": \"<p>Titan</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 3,\n      \"transcription_notes\": \"Question text and partial answer 'The major component is' handwritten on page 3 with note '(continued overleaf)'; answer incomplete on this page.\",\n      \"answer_html\": \"<p>The major component is</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 80\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not present on pages 1-3.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q5\",\n      \"question_text\": \"In which year did Apollo 11 land?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not present on pages 1-3.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q6\",\n      \"question_text\": \"What is the square root of 289?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not present on pages 1-3.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q9\",\n      \"question_text\": \"Which river flows through Budapest?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not present on pages 1-3.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    }\n  ],\n  \"extraction_confidence\": 90,\n  \"feedback\": \"No student name or ID visible on any of the three pages. No roster list was supplied. Q1 and Q2 fully answered on pages 1-2. Q3 answer is partial and continues on a later page. Q4-Q6 and Q9 not present in this chunk.\"\n}",
+            "error": null
+          },
+          {
+            "kind": "extraction",
+            "pages": [
+              4,
+              5
+            ],
+            "claimed": [
+              4,
+              5
+            ],
+            "schema_sent": true,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 13679,
+            "seconds": 14.57,
+            "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Not found in this page range.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Not found in this page range.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 4,\n      \"transcription_notes\": \"Continuation of previously answered Q3 visible on this page as 'Nitrogen'.\",\n      \"answer_html\": \"<p>Nitrogen</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": 4,\n      \"transcription_notes\": \"Question Q4 and answer 'W' visible on page 4.\",\n      \"answer_html\": \"<p>W</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q5\",\n      \"question_text\": \"In which year did Apollo 11 land?\",\n      \"source_page\": 4,\n      \"transcription_notes\": \"Question Q5 visible on page 4 with blank answer line and no writing present.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"BLANK\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q6\",\n      \"question_text\": \"What is the square root of 289?\",\n      \"source_page\": 5,\n      \"transcription_notes\": \"Question Q6 and answer '17' visible on page 5.\",\n      \"answer_html\": \"<p>17</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q9\",\n      \"question_text\": \"Which river flows through Budapest?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Not found in this page range.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    }\n  ],\n  \"extraction_confidence\": 95,\n  \"feedback\": \"This is the final chunk (pages 4-5). Q3 answer continues with 'Nitrogen' on page 4. Q5 is blank on page 4. Q9 never appeared in any chunk and is treated as skipped. Q1 and Q2 have no content on these pages.\"\n}",
+            "error": null
+          },
+          {
+            "kind": "blank_verification",
+            "pages": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "claimed": null,
+            "schema_sent": false,
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 13068,
+            "seconds": 9.16,
+            "raw_response": "{\n  \"findings\": [\n    {\n      \"question_number\": \"Q5\",\n      \"observed\": \"On the page containing Q5, the question text is followed by a single blank underlined line with no marks, text, or writing of any kind visible.\",\n      \"page\": null,\n      \"verbatim_fragment\": null,\n      \"content_found\": false\n    },\n    {\n      \"question_number\": \"Q9\",\n      \"observed\": \"No page in the submission shows Q9 or any related content; only questions up to Q6 are present.\",\n      \"page\": null,\n      \"verbatim_fragment\": null,\n      \"content_found\": false\n    }\n  ]\n}",
+            "error": null
+          }
+        ],
+        "expected": [
+          {
+            "question": "Q1",
+            "status": "ANSWERED",
+            "answer": "Reykjavik",
+            "pages": [
+              1
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q2",
+            "status": "ANSWERED",
+            "answer": "Titan",
+            "pages": [
+              2
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q3",
+            "status": "ANSWERED",
+            "answer": "Nitrogen",
+            "pages": [
+              3,
+              4
+            ],
+            "fragments": [
+              [
+                3,
+                "The major component is"
+              ],
+              [
+                4,
+                "Nitrogen"
+              ]
+            ]
+          },
+          {
+            "question": "Q4",
+            "status": "ANSWERED",
+            "answer": "W",
+            "pages": [
+              4
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q5",
+            "status": "BLANK",
+            "answer": null,
+            "pages": [
+              4
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q6",
+            "status": "ANSWERED",
+            "answer": "17",
+            "pages": [
+              5
+            ],
+            "fragments": []
+          },
+          {
+            "question": "Q9",
+            "status": "NOT_FOUND_IN_DOCUMENT",
+            "answer": null,
+            "pages": [],
+            "fragments": []
+          }
+        ],
+        "actual": [
+          {
+            "question": "Q1",
+            "status": "ANSWERED",
+            "source_page": 1,
+            "answer_html": "<p>Reykjavik</p>",
+            "transcription_notes": "Question text and answer 'Reykjavik' handwritten on page 1; no student name or ID visible at top."
+          },
+          {
+            "question": "Q2",
+            "status": "ANSWERED",
+            "source_page": 2,
+            "answer_html": "<p>Titan</p>",
+            "transcription_notes": "Question text and answer 'Titan' handwritten on page 2."
+          },
+          {
+            "question": "Q3",
+            "status": "ANSWERED",
+            "source_page": 3,
+            "answer_html": "<p>The major component is</p>\n<p>Nitrogen</p>",
+            "transcription_notes": "Question text and partial answer 'The major component is' handwritten on page 3 with note '(continued overleaf)'; answer incomplete on this page. | Continuation of previously answered Q3 visible on this page as 'Nitrogen'. | Answer continues across a page-chunk boundary; the parts were joined in page order."
+          },
+          {
+            "question": "Q4",
+            "status": "ANSWERED",
+            "source_page": 4,
+            "answer_html": "<p>W</p>",
+            "transcription_notes": "Question Q4 and answer 'W' visible on page 4."
+          },
+          {
+            "question": "Q5",
+            "status": "BLANK",
+            "source_page": 4,
+            "answer_html": "",
+            "transcription_notes": "Question Q5 visible on page 4 with blank answer line and no writing present."
+          },
+          {
+            "question": "Q6",
+            "status": "ANSWERED",
+            "source_page": 5,
+            "answer_html": "<p>17</p>",
+            "transcription_notes": "Question Q6 and answer '17' visible on page 5."
+          },
+          {
+            "question": "Q9",
+            "status": "NOT_FOUND_IN_DOCUMENT",
+            "source_page": null,
+            "answer_html": "",
+            "transcription_notes": "Question not present on pages 1-3."
+          }
+        ],
+        "discrepancies": [],
+        "error": null,
+        "model_config": {
+          "main_model": "x-ai/grok-4.3",
+          "fallback_models": [
+            "deepseek/deepseek-v4-pro"
+          ],
+          "blank_verification_model": null,
+          "served_by": [
+            "x-ai/grok-4.3"
+          ]
+        },
+        "elapsed_seconds": 125.44,
+        "credits": {
+          "before": 889184.0,
+          "after": 847113.0,
+          "consumed": 42071.0,
+          "tokens_reported": 42071,
+          "invariant_holds": true
+        }
+      },
+      "grading": {
+        "scenario": "AE-916",
+        "error": null,
+        "graded_statuses": {
+          "Q1": "ANSWERED",
+          "Q2": "ANSWERED",
+          "Q3": "ANSWERED",
+          "Q4": "ANSWERED",
+          "Q5": "BLANK",
+          "Q6": "ANSWERED",
+          "Q9": "NOT_FOUND_IN_DOCUMENT"
+        },
+        "scores": {
+          "Q1": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>Reykjavik</p>"
+          },
+          "Q2": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>Titan</p>"
+          },
+          "Q3": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>The major component is</p>\n<p>Nitrogen</p>"
+          },
+          "Q4": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>W</p>"
+          },
+          "Q5": {
+            "score_awarded": 0,
+            "max_points": 5,
+            "level_achieved": "not_attempted",
+            "student_answer": ""
+          },
+          "Q6": {
+            "score_awarded": 5,
+            "max_points": 5,
+            "level_achieved": "correct",
+            "student_answer": "<p>17</p>"
+          },
+          "Q9": {
+            "score_awarded": 0,
+            "max_points": 5,
+            "level_achieved": "not_attempted",
+            "student_answer": ""
+          }
+        },
+        "answers_not_found": [
+          "Q9"
+        ],
+        "summary": {
+          "total_score": 25,
+          "max_total_points": 35,
+          "percentage": 71.43
+        },
+        "grading_model": "x-ai/grok-4.3",
+        "second_opinion": {
+          "model": "deepseek/deepseek-v4-pro",
+          "selected": {
+            "Q1": [
+              "subjective_type"
+            ],
+            "Q2": [
+              "subjective_type"
+            ],
+            "Q3": [
+              "subjective_type"
+            ],
+            "Q4": [
+              "subjective_type"
+            ],
+            "Q6": [
+              "subjective_type"
+            ]
+          },
+          "agreements": [
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4",
+            "Q6"
+          ],
+          "disagreements": []
+        },
+        "calls": [
+          {
+            "model": "x-ai/grok-4.3",
+            "total_tokens": 9686,
+            "seconds": 22.95,
+            "error": null
+          },
+          {
+            "model": "deepseek/deepseek-v4-pro",
+            "total_tokens": 9469,
+            "seconds": 72.5,
+            "error": null
+          }
+        ],
+        "elapsed_seconds": 95.45,
+        "credits": {
+          "before": 847113.0,
+          "after": 827958.0,
+          "consumed": 19155.0,
+          "tokens_reported": 19155,
+          "invariant_holds": true
+        }
+      }
+    }
+  ]
+}

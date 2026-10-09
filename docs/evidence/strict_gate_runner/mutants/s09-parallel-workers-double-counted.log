@@ -1,0 +1,13 @@
+...........................................F..
+======================================================================
+FAIL: test_parallel_workers_are_not_double_counted (__main__.SlotAccounting.test_parallel_workers_are_not_double_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 813, in test_parallel_workers_are_not_double_counted
+    self.assertEqual(total, 4)
+AssertionError: 20 != 4
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.370s
+
+FAILED (failures=1)

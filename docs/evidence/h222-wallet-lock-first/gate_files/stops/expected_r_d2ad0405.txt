@@ -1,0 +1,4 @@
+repro: 2 failing, as expected
+WRONG REASON: test_x1_expire_bucket_locks_the_wallet_before_the_bucket: not in its own failure: ['the hook was not reached once']
+WRONG REASON: test_x2_the_clawback_locks_the_wallet_before_its_buckets: not in its own failure: ['the hook was not reached once']
+the red set differs

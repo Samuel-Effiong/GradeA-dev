@@ -1,0 +1,6 @@
+16:05:25 repro 3d2e6b50 exit=1 (red expected)
+16:10:44 (a) exit=0
+16:10:44 (a) tests skipped for want of Chromium: 0
+16:15:03 (b) exit=0
+16:15:03 expected failing sets: every mutant's failing set is the expected one
+16:15:03 H-118 CHAIN END: (c) needs its own GRANT

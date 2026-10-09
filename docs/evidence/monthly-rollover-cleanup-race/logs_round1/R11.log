@@ -1,0 +1,12 @@
+# R11: licence task passes its start time
+# file: billing/tasks.py (occurrence 1)
+# old: '                    locked_allocation, now=now\n'
+# new: '                    locked_allocation\n'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 6.5
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK

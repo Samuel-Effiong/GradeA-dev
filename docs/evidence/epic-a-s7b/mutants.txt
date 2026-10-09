@@ -1,0 +1,27 @@
+R1_any_code_retried KILLED FAILED (failures=5) ['test_a_code_that_is_not_retryable_as_it_is_is_a_409', 'test_every_retryable_failure_is_retried_and_the_rest_listed']
+  restore ok
+R2_uploads_retried KILLED FAILED (errors=2) ['test_an_upload_item_answers_upload_the_file_again']
+  restore ok
+R3_claim_unfenced SURVIVED OK []
+  restore ok
+R4_count_not_bumped KILLED FAILED (failures=4) ['test_a_mid_batch_credit_stop_is_retried_after_a_top_up', 'test_a_provider_failure_is_retried_in_place', 'test_a_second_retry_counts_again_on_the_same_item', 'test_exactly_one_wins']
+  restore ok
+R5_code_not_cleared KILLED FAILED (failures=1) ['test_a_provider_failure_is_retried_in_place']
+  restore ok
+R6_any_teachers_session KILLED FAILED (failures=1) ['test_another_teachers_session_or_a_foreign_item_is_a_404']
+  restore ok
+R7_item_not_in_session KILLED FAILED (failures=1) ['test_another_teachers_session_or_a_foreign_item_is_a_404']
+  restore ok
+R8_no_audit KILLED FAILED (failures=1) ['test_a_provider_failure_is_retried_in_place']
+  restore ok
+R9_codes_filter_ignored KILLED FAILED (failures=1) ['test_only_the_named_codes_are_retried']
+  restore ok
+R10_trace_not_refreshed KILLED FAILED (failures=1) ['test_a_provider_failure_is_retried_in_place']
+  restore ok
+
+=== the module with the stale-copy test 19:36:57
+Ran 12 tests in 1.310s
+OK
+=== R3 again
+R3_claim_unfenced KILLED FAILED (failures=1) ['test_a_stale_copy_of_an_item_retried_since_is_refused']
+  restore ok

@@ -1,0 +1,15 @@
+# S11: the scrubber is off while tests run
+# file: AutoGrader/settings.py (occurrence 1)
+# old: 'LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING\n'
+# new: 'LOG_SCRUB_ADDRESSES = True\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 12.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs)
+FAIL: test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+FAIL: test_no_environment_or_variable_can_switch_it_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_no_environment_or_variable_can_switch_it_off)
+FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
+
+FAILED (failures=4)

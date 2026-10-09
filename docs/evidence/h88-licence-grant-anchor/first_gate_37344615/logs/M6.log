@@ -1,0 +1,12 @@
+# M6: the fallback is the later of creation and the cycle start
+# file: billing/license_service.py (occurrence 1)
+# old: '            max(allocation.created_at, license_sub.billing_cycle_start),\n            served_due,\n'
+# new: '            allocation.created_at,\n            served_due,\n'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 14.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal (billing.tests.test_licence_grant_anchor.RowsOlderThanTheAnchorTests.test_an_old_row_from_before_the_last_renewal_is_anchored_to_the_renewal)
+
+FAILED (failures=1)

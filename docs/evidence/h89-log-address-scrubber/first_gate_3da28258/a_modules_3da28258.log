@@ -1,0 +1,60 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+...Free trial plan not found: no trial activated for user dda166ac-16d9-4524-a765-707782372eb8.
+Cannot activate automatic trial for user dda166ac-16d9-4524-a765-707782372eb8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3f181a35-e89a-42da-bff1-662f223beb9e.
+Cannot activate automatic trial for user 3f181a35-e89a-42da-bff1-662f223beb9e (validation): ValueError
+..School 306cded4-0ccf-453c-b3de-d815a651ce94 already has active license subscription 6ae2040e-2b64-4a72-8ed5-ae98b5d02fae. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user ba186aee-0875-41e6-bf83-6c82686d3603.
+Cannot activate automatic trial for user ba186aee-0875-41e6-bf83-6c82686d3603 (validation): ValueError
+Free trial plan not found: no trial activated for user 64406521-911f-47ad-b174-0f0d94e855d6.
+Cannot activate automatic trial for user 64406521-911f-47ad-b174-0f0d94e855d6 (validation): ValueError
+.Free trial plan not found: no trial activated for user f253c565-c9f3-4be3-8c7e-8590031aac93.
+Cannot activate automatic trial for user f253c565-c9f3-4be3-8c7e-8590031aac93 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7626ce1d-d4cd-4e27-a0a9-77b9878cb1a7.
+Cannot activate automatic trial for user 7626ce1d-d4cd-4e27-a0a9-77b9878cb1a7 (validation): ValueError
+.............................[2026-10-02 16:12:31,904: ERROR/MainProcess] Refused [email] (user 4821)
+.......................................[2026-10-02 16:12:36,530: ERROR/MainProcess] Free trial plan not found: no trial activated for user d0f97bd6-f318-457d-b735-ea9be3a154d6.
+[2026-10-02 16:12:36,560: ERROR/MainProcess] Free trial plan not found: no trial activated for user 96f28003-a4f0-4943-ae38-8ba703c5a490.
+[2026-10-02 16:12:36,617: ERROR/MainProcess] Failed to renew credits for teacher 96f28003-a4f0-4943-ae38-8ba703c5a490 under license 73b38c80-2a25-44ec-bb03-84f8c41e8677: ValueError
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/license_service.py", line 1917, in process_license_renewal
+    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/tests/test_license_renewal_partial_failure.py", line 175, in _rollover
+    raise ValueError("simulated failure part-way through the grant")
+ValueError: simulated failure part-way through the grant
+.[2026-10-02 16:12:37,032: ERROR/MainProcess] Free trial plan not found: no trial activated for user b7a8ede1-8d1b-41ef-a7e4-00d97c49da54.
+[2026-10-02 16:12:37,068: ERROR/MainProcess] Free trial plan not found: no trial activated for user c55e9b1b-a32d-40b3-b351-e187a75970c7.
+.[2026-10-02 16:12:37,534: ERROR/MainProcess] Free trial plan not found: no trial activated for user 66a4b0d5-188d-435b-9dc9-2d401428f84a.
+[2026-10-02 16:12:37,567: ERROR/MainProcess] Free trial plan not found: no trial activated for user 8db43443-f57b-43a3-9bfc-7d2270c71483.
+[2026-10-02 16:12:37,622: ERROR/MainProcess] Failed to renew credits for teacher 8db43443-f57b-43a3-9bfc-7d2270c71483 under license a23fb32c-fa7e-4738-b8a2-fe1d8970139c: ValueError
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/license_service.py", line 1917, in process_license_renewal
+    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h89-log-address-scrubber/billing/tests/test_license_renewal_partial_failure.py", line 175, in _rollover
+    raise ValueError("simulated failure part-way through the grant")
+ValueError: simulated failure part-way through the grant
+.[2026-10-02 16:12:38,017: ERROR/MainProcess] Free trial plan not found: no trial activated for user 5ded8fa1-a756-495d-b05d-f156a4777ff8.
+[2026-10-02 16:12:38,052: ERROR/MainProcess] Free trial plan not found: no trial activated for user cd82b86a-636b-4a05-aaca-8db38cbae367.
+.[2026-10-02 16:12:38,571: ERROR/MainProcess] Free trial plan not found: no trial activated for user b1e70fcd-feba-4860-adb5-47595914bf78.
+....................................................................................[2026-10-02 16:13:41,566: ERROR/MainProcess] Free trial plan not found: no trial activated for user f3af0a59-8b2a-4de2-86dd-bf33badc552f.
+[2026-10-02 16:13:41,652: ERROR/MainProcess] Free trial plan not found: no trial activated for user c85a3027-31a7-410e-a345-92191b3c338b.
+[2026-10-02 16:13:41,718: ERROR/MainProcess] Free trial plan not found: no trial activated for user bb6ff2ec-f7c3-4ff6-bc26-d3cfb9eb47b7.
+[2026-10-02 16:13:41,756: ERROR/MainProcess] Free trial plan not found: no trial activated for user ffd4af28-6405-4309-a127-6f547c6fd736.
+...............Found 194 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+...............
+----------------------------------------------------------------------
+Ran 194 tests in 125.000s
+
+OK
+Destroying test database for alias 'default'...
+exit=0 wall_s=170

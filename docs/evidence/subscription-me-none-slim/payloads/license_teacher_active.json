@@ -1,0 +1,62 @@
+{
+  "body": {
+    "data": {
+      "admin_email": "sample-admin-ta@example.com",
+      "admin_name": "",
+      "days_until_next_credit_grant": null,
+      "display_monthly_allocation": 1,
+      "is_license_active": true,
+      "license_auto_renew": true,
+      "license_billing_cycle_end": "2026-10-28T14:01:46.430277Z",
+      "license_billing_cycle_start": "2026-09-28T14:01:46.430270Z",
+      "license_id": "22ef2f8e-2865-4808-9173-6fbc4281eaab",
+      "license_stripe_status": "ACTIVE",
+      "monthly_allocation": 1000,
+      "next_credit_grant_at": null,
+      "plan": {
+        "carry_over_expiry_months": 0,
+        "carry_over_percent": "0.00",
+        "category": "LICENSE",
+        "display_max_bank": null,
+        "display_monthly_credits": 40000,
+        "display_name": "LICENSE_02798c21",
+        "display_overage_block_size": 0,
+        "features": [],
+        "id": "313ff1bb-7776-46e7-8d77-22a5e60309c3",
+        "interval": "MONTHLY",
+        "is_active": true,
+        "max_overage_blocks": 0,
+        "name": "LICENSE_02798c21",
+        "overage_block_price": 0,
+        "price_cents": "999.00",
+        "price_id": "price_license_02798c21",
+        "tagline": "",
+        "tier": "CUSTOM"
+      },
+      "plan_display_name": "LICENSE_02798c21",
+      "school_name": "License School sample-admin-ta@example.com",
+      "status": "ACTIVE",
+      "subscription_source": "LICENSE_TEACHER",
+      "wallet_summary": {
+        "active_buckets_count": 0,
+        "bucket_breakdown": {
+          "CARRY_OVER": 0,
+          "MONTHLY": 0,
+          "OVERAGE": 0,
+          "TRIAL": 0
+        },
+        "credit_percentage_remaining": 0.0,
+        "display_total_remaining_credits": 0,
+        "id": "3ebc4ba7-708a-44a6-9b6b-4675cdb60863",
+        "monthly_credit_remaining": 0,
+        "monthly_credit_total": 1,
+        "overage_blocks_used": 0,
+        "total_remaining_credits": 0,
+        "user": "c2738f56-c1eb-47a2-9cb3-eda6aa45753a"
+      }
+    },
+    "message": "Request Successful",
+    "success": true
+  },
+  "http_status": 200
+}

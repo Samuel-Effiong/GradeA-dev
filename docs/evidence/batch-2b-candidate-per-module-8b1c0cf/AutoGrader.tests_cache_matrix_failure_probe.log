@@ -1,0 +1,3 @@
+AutoGrader.tests_cache_matrix_failure_probe.GenerationBumpRedisOutageProbe.test_redis_outage_during_a_bump_probe ... ok
+Ran 1 test in 0.798s
+OK

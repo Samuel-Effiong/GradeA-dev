@@ -1,0 +1,5 @@
+16:48:53 baseline start: loadavg 1.88 3.15 4.02 1/2513 758728
+16:48:58 baseline end exit=0: loadavg 1.81 3.11 4.00 2/2530 758861
+16:48:58 mutants start: loadavg 1.81 3.11 4.00 3/2530 758863
+16:49:17 mutants end exit=0: loadavg 1.78 3.04 3.96 2/2555 759198
+16:49:17 probe removed; tree is the frozen tip again

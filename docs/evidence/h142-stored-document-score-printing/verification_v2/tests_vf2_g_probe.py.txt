@@ -1,0 +1,54 @@
+"""v2's probe for the guard around the answer-document rebuild in the manual-grade route
+(score-printing stack, students/views.py, written 2026-10-09 BEFORE any run). Copy to
+students/tests_vf2_g_probe.py of the scratch worktree; never committed to the branch.
+
+G1  the builder raises (an error whose text is a marker): the teacher's grade still goes
+    through (200, new score saved, was_regraded), the stored answer document is left
+    exactly as it was, the old formatted grade is cleared, and the ONE error line in the
+    route's logger carries the submission's id and the error's TYPE and neither the
+    marker nor a traceback. Deciding values asserted first: the stored document is
+    non-empty; the record list is non-empty before any 'not in'.
+Rule 19, which mutant shows it red: G1 under G1 (the guard catches nothing), G3 (the log
+line carries str(exc)), G4 (logger.exception: a traceback with the text), Y9' (the route
+never rebuilds, so the guard is never reached), Y12 (the formatted grade is not cleared).
+"""
+from decimal import Decimal
+from unittest.mock import patch
+
+from students.models import StudentSubmission
+from students.tests_manual_grade_formatted_grade import ManualGradeBase
+
+MARKER = "vf2-builder-marker-text"
+
+
+class VF2GuardProbe(ManualGradeBase):
+    def test_g1_a_builder_that_raises_cannot_stop_the_grade(self):
+        before = self.stored()
+        self.assertTrue(before)
+        self.assertIsNotNone(self.stored_formatted())
+
+        with (
+            patch("students.views.formatted_grade_async") as task,
+            patch(
+                "students.views.student_submission_to_html",
+                side_effect=RuntimeError(MARKER),
+            ),
+        ):
+            task.delay.return_value.id = "vf2-fake-task-id-g1"
+            with self.assertLogs("students.views", level="ERROR") as logs:
+                response = self.patch_grade(4)
+
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        row = StudentSubmission.objects.get(pk=self.submission.pk)
+        self.assertEqual(row.score, Decimal("4"))
+        self.assertTrue(row.was_regraded)
+        self.assertEqual(row.raw_input, before)
+        self.assertIsNone(row.formatted_grade)
+        self.assertTrue(logs.records)
+        self.assertEqual(len(logs.records), 1)
+        record = logs.records[0]
+        line = record.getMessage()
+        self.assertIn(str(self.submission.pk), line)
+        self.assertIn("RuntimeError", line)
+        self.assertNotIn(MARKER, line)
+        self.assertIsNone(record.exc_info)

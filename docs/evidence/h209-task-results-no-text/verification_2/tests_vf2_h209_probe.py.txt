@@ -1,0 +1,324 @@
+"""Verifier 2's probes for H-209 (assignments/tasks.py: results and output
+carry the error's class and ids, never its text).
+
+Unlike d5's tests (a stand-in Assignment, a patched failure tracker) these go
+through the REAL task bodies on real rows: the real Assignment, submission,
+batch session and processing task of students.tests_h38_tasks_namespace's
+TasksFixture; ONLY the failing dependency is replaced (grade_engine_async.delay,
+timezone.localtime, grade_engine, the extraction service). Every failure raises
+an error whose text is a made-up marker; what is inspected is the task's
+returned value, every log record at every level (with the formatted traceback
+if the record carries one), what the task printed to stdout/stderr, and the
+stored processing-task row.
+
+Each failure test first shows that the failure path really ran (class name in
+the result or the stored row) and that what it inspects is non-empty.
+
+Copied to students/tests_vf2_h209_probe.py of a scratch checkout.
+"""
+
+import io
+import logging
+import traceback
+from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
+
+from django.utils import timezone
+from kombu.exceptions import OperationalError
+
+from assignments import tasks as tasks_module
+from assignments.tasks import (
+    auto_grade_due_assignment,
+    extract_assignment_background_task,
+    grade_all_submissions,
+    grade_batch_async,
+    send_assignment_due_reminder,
+    send_new_assignment_posted_notification,
+)
+from students.models import BackgroundTaskStatus
+from students.tests_h38_tasks_namespace import SENTINEL, TasksFixture
+
+MARKER = "VF2H209SECRET"
+NAME = "Ada_Lovelace"
+SECRET = f"cannot open student_answers_{NAME}.pdf {MARKER}"
+
+
+class Capture:
+    """Every record of every logger at every level, plus stdout and stderr."""
+
+    def __enter__(self):
+        self.records = []
+        self._out, self._err = io.StringIO(), io.StringIO()
+        original = logging.Logger.handle
+        records = self.records
+
+        def handle(logger_self, record):
+            text = ""
+            if record.exc_info:
+                text = "".join(traceback.format_exception(*record.exc_info))
+            records.append(
+                {
+                    "name": record.name,
+                    "level": record.levelno,
+                    "msg": record.getMessage(),
+                    "exc_info": bool(record.exc_info),
+                    "exc_text": text,
+                }
+            )
+            return original(logger_self, record)
+
+        self._patches = [
+            patch.object(logging.Logger, "handle", handle),
+            patch.object(logging.Logger, "isEnabledFor", lambda s, lvl: True),
+        ]
+        for p in self._patches:
+            p.start()
+        self._redirects = [redirect_stdout(self._out), redirect_stderr(self._err)]
+        for r in self._redirects:
+            r.__enter__()
+        return self
+
+    def __exit__(self, *exc):
+        for r in reversed(self._redirects):
+            r.__exit__(*exc)
+        for p in reversed(self._patches):
+            p.stop()
+
+    @property
+    def printed(self):
+        return self._out.getvalue() + self._err.getvalue()
+
+    def app_records(self):
+        """The records of the project's own loggers: Celery's own failure log
+        (celery.app.trace, written for any task that raises) is the task
+        machinery's, read separately in VF2H209Findings."""
+        return [r for r in self.records if not r["name"].startswith("celery")]
+
+    def celery_records(self):
+        return [r for r in self.records if r["name"].startswith("celery")]
+
+    def errors(self):
+        return [r for r in self.app_records() if r["level"] >= logging.ERROR]
+
+    def everything(self):
+        logged = "\n".join(
+            r["msg"] + "\n" + r["exc_text"] for r in self.app_records()
+        )
+        return logged + "\n" + self.printed
+
+
+def no_text(case, blob, what):
+    case.assertTrue(blob, f"premise: {what} is not empty")
+    case.assertNotIn(MARKER, blob, f"the made-up error text reached {what}")
+    case.assertNotIn(NAME, blob, f"a name from the error text reached {what}")
+    case.assertNotIn("Traceback", blob, f"a traceback reached {what}")
+
+
+class SwallowingTasksThroughTheRealBodies(TasksFixture):
+    def one_error(self, cap, task_name, assignment_id):
+        errors = cap.errors()
+        self.assertEqual(
+            len(errors), 1, f"expected exactly one ERROR record, got {len(errors)}"
+        )
+        error = errors[0]
+        self.assertEqual(error["name"], "assignments.tasks")
+        self.assertIn(task_name, error["msg"])
+        self.assertIn(f"assignment={assignment_id}", error["msg"])
+        self.assertFalse(error["exc_info"], "the ERROR record carries a traceback")
+        return error
+
+    def test_c1_control_auto_grade_queues_when_nothing_fails(self):
+        with patch("assignments.tasks.grade_engine_async.delay"), Capture() as cap:
+            result = auto_grade_due_assignment(str(self.assignment.id))
+        self.assertTrue(result.startswith("Auto-grading started for"), result)
+        self.assertEqual(cap.errors(), [], "control logged an ERROR")
+        self.assertEqual(cap.printed, "", "control printed something")
+
+    def test_a1_auto_grade_failure_returns_class_only_and_logs_one_error(self):
+        aid = str(self.assignment.id)
+        with patch(
+            "assignments.tasks.grade_engine_async.delay",
+            side_effect=RuntimeError(SECRET),
+        ), Capture() as cap:
+            result = auto_grade_due_assignment(aid)
+        self.assertEqual(result, "Error: RuntimeError", "the stored result is not class-only")
+        error = self.one_error(cap, "auto_grade_due_assignment", aid)
+        self.assertIn("error=RuntimeError", error["msg"])
+        self.assertIn("frames=", error["msg"], "no frames in the only report")
+        self.assertIn("tasks.py:", error["msg"])
+        no_text(self, cap.everything(), "a log record, the output or the result")
+
+    def test_a2_auto_grade_broker_error_logs_the_class_without_frames(self):
+        aid = str(self.assignment.id)
+        with patch(
+            "assignments.tasks.grade_engine_async.delay",
+            side_effect=OperationalError(SECRET),
+        ), Capture() as cap:
+            result = auto_grade_due_assignment(aid)
+        self.assertEqual(result, "Error: OperationalError", "the stored result is not class-only")
+        error = self.one_error(cap, "auto_grade_due_assignment", aid)
+        self.assertIn("error=OperationalError", error["msg"])
+        self.assertNotIn("frames=", error["msg"], "frames for a broker outage")
+        no_text(self, cap.everything(), "a log record, the output or the result")
+
+    def test_a3_a_chained_cause_or_context_text_is_not_kept(self):
+        aid = str(self.assignment.id)
+
+        def explicit(*a, **k):
+            try:
+                raise ValueError(SECRET)
+            except ValueError as inner:
+                raise RuntimeError("outer") from inner
+
+        def implicit(*a, **k):
+            try:
+                raise ValueError(SECRET)
+            except ValueError:
+                raise RuntimeError("outer")
+
+        for name, raiser in (("explicit", explicit), ("implicit", implicit)):
+            with self.subTest(chain=name):
+                with patch(
+                    "assignments.tasks.grade_engine_async.delay", side_effect=raiser
+                ), Capture() as cap:
+                    result = auto_grade_due_assignment(aid)
+                self.assertEqual(result, "Error: RuntimeError", "result not class-only")
+                self.one_error(cap, "auto_grade_due_assignment", aid)
+                no_text(self, cap.everything(), "a log record, the output or the result")
+
+    def test_c2_control_reminder_runs_when_nothing_fails(self):
+        with patch("assignments.tasks.send_email_task.delay"), Capture() as cap:
+            result = send_assignment_due_reminder(str(self.assignment.id), 24)
+        self.assertTrue(result.startswith("Queued"), result)
+        self.assertEqual(cap.errors(), [], "control logged an ERROR")
+
+    def test_r1_reminder_failure_returns_class_only_and_logs_one_error(self):
+        aid = str(self.assignment.id)
+        with patch.object(
+            timezone, "localtime", side_effect=RuntimeError(SECRET)
+        ), Capture() as cap:
+            result = send_assignment_due_reminder(aid, 24)
+        self.assertEqual(result, "Error: RuntimeError", "the stored result is not class-only")
+        error = self.one_error(cap, "send_assignment_due_reminder", aid)
+        self.assertIn("error=RuntimeError", error["msg"])
+        self.assertIn("frames=", error["msg"], "no frames in the only report")
+        no_text(self, cap.everything(), "a log record, the output or the result")
+
+    def test_c3_control_posted_runs_when_nothing_fails(self):
+        with patch("assignments.tasks.send_email_task.delay"), Capture() as cap:
+            result = send_new_assignment_posted_notification(str(self.assignment.id))
+        self.assertTrue(result.startswith("Queued"), result)
+        self.assertEqual(cap.errors(), [], "control logged an ERROR")
+
+    def test_p1_posted_failure_returns_class_only_and_logs_one_error(self):
+        aid = str(self.assignment.id)
+        with patch.object(
+            timezone, "localtime", side_effect=RuntimeError(SECRET)
+        ), Capture() as cap:
+            result = send_new_assignment_posted_notification(aid)
+        self.assertEqual(result, "Error: RuntimeError", "the stored result is not class-only")
+        error = self.one_error(cap, "send_new_assignment_posted_notification", aid)
+        self.assertIn("error=RuntimeError", error["msg"])
+        self.assertIn("frames=", error["msg"], "no frames in the only report")
+        no_text(self, cap.everything(), "a log record, the output or the result")
+
+
+class GradeAllAndFriendsThroughTheRealBodies(TasksFixture):
+    def grade_all(self, **grade_engine):
+        with patch("assignments.tasks.grade_engine", **grade_engine), patch.object(
+            grade_all_submissions, "update_state"
+        ) as update_state, Capture() as cap:
+            result = grade_all_submissions.apply(
+                args=(str(self.teacher.id), str(self.assignment.id), str(self.task.id))
+            )
+        return result, update_state, cap
+
+    def test_c4_control_grade_all_completes_and_logs_ids_only(self):
+        result, update_state, cap = self.grade_all(return_value=self.submission)
+        self.assertEqual(result.get(), {"status": "Completed", "assignment_id": str(self.assignment.id)})
+        self.assertEqual(cap.printed, "", "the task printed something")
+        progress = [r for r in cap.app_records() if r["msg"].startswith("Grade-all progress")]
+        self.assertEqual(len(progress), 1, "expected one progress line")
+        self.assertIn(f"assignment={self.assignment.id} 1/1", progress[0]["msg"])
+        self.assertEqual(cap.errors(), [], "control logged an ERROR")
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, BackgroundTaskStatus.SUCCESS)
+
+    def test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output(self):
+        result, update_state, cap = self.grade_all(side_effect=RuntimeError(SECRET))
+        self.assertTrue(result.failed(), "grade-all did not re-raise")
+        self.assertIsInstance(result.result, RuntimeError)
+        failures = [
+            c.kwargs["meta"]
+            for c in update_state.call_args_list
+            if c.kwargs.get("state") == "FAILURE"
+        ]
+        self.assertEqual(len(failures), 1)
+        self.assertEqual(
+            failures[0],
+            {
+                "error": "RuntimeError",
+                "assignment_id": str(self.assignment.id),
+                "current_submission_id": self.submission.id,
+            },
+            "the failure meta is not class and ids only",
+        )
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, BackgroundTaskStatus.FAILURE)
+        no_text(self, repr(self.task.meta) + repr(self.task.error), "the stored row")
+        errors = cap.errors()
+        self.assertEqual(len(errors), 1, f"expected exactly one ERROR record, got {len(errors)}")
+        self.assertIn("error=RuntimeError", errors[0]["msg"])
+        self.assertEqual(cap.printed, "", "the task printed something")
+        no_text(self, cap.everything() + "x", "a log record or the output")
+
+    def test_g2_batch_dispatch_logs_ids_only_and_prints_nothing(self):
+        with patch("assignments.tasks.grade_engine_async.delay"), Capture() as cap:
+            grade_batch_async.apply(
+                args=(str(self.teacher.id), str(self.assignment.id))
+            ).get()
+        queued = [r for r in cap.app_records() if r["msg"].startswith("Grading queued")]
+        self.assertEqual(len(queued), 1, "expected one queued line")
+        self.assertIn(f"submission={self.submission.id}", queued[0]["msg"])
+        self.assertEqual(cap.printed, "", "the task printed something")
+        self.assertTrue(cap.everything().strip(), "premise: something was logged")
+        self.assertNotIn(SENTINEL, cap.everything(), "a student name reached a log or the output")
+
+    def test_e1_a_failing_extraction_keeps_text_out_of_row_logs_and_output(self):
+        with patch.object(
+            tasks_module.AssignmentProcessingService,
+            "update_assignment_from_extraction",
+            side_effect=RuntimeError(SECRET),
+        ), patch.object(extract_assignment_background_task, "update_state"), Capture() as cap:
+            result = extract_assignment_background_task.apply(
+                args=(str(self.teacher.id), str(self.assignment.id), "content"),
+                kwargs={"processing_task_id": str(self.task.id)},
+            )
+        self.assertTrue(result.failed(), "extraction did not re-raise")
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, BackgroundTaskStatus.FAILURE)
+        no_text(self, repr(self.task.meta) + repr(self.task.error), "the stored row")
+        started = [r for r in cap.app_records() if r["msg"].startswith("Assignment extraction started")]
+        self.assertEqual(len(started), 1, "expected the start line")
+        self.assertEqual(cap.printed, "", "the task printed something")
+        self.assertEqual(len(cap.errors()), 1, "expected exactly one ERROR record")
+        no_text(self, cap.everything() + "x", "a log record or the output")
+
+
+class VF2H209Findings(TasksFixture):
+    """Not part of the baseline. The desired state, read as a finding: when
+    grade-all re-raises, Celery's own failure log (celery.app.trace) is written
+    by the task machinery with the exception's repr and its traceback."""
+
+    def test_f1_celerys_own_failure_log_for_a_failed_grade_all_carries_no_text(self):
+        with patch(
+            "assignments.tasks.grade_engine", side_effect=RuntimeError(SECRET)
+        ), patch.object(grade_all_submissions, "update_state"), Capture() as cap:
+            result = grade_all_submissions.apply(
+                args=(str(self.teacher.id), str(self.assignment.id), str(self.task.id))
+            )
+        self.assertTrue(result.failed())
+        records = cap.celery_records()
+        self.assertTrue(records, "premise: Celery logged the failure")
+        blob = "\n".join(r["msg"] + "\n" + r["exc_text"] for r in records)
+        self.assertNotIn(MARKER, blob, "the made-up error text reached celery's own failure log")

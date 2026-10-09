@@ -1,0 +1,65 @@
+"""v2, H-120: which of the migration files new against origin/dev should the
+changed check FAIL? v2's own statement of ALL its rules (not the check's
+code), Django's loader from disk, no database. A file is predicted FAIL if
+an operation that reaches the database is: RemoveField, RenameField,
+RenameModel, DeleteModel, AlterUniqueTogether, AlterIndexTogether; an
+AddField that is not many-to-many, NOT NULL, with neither default nor
+db_default; an AlterField meeting one of the three rules or with no known
+past; and the file has no acknowledgement marker. With a marker: ACK.
+Usage: H120_FILES=<list of paths> python -B h120_predict_pr2_v2.py"""
+import os, re, sys
+sys.path.insert(0, os.getcwd())
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
+import django
+django.setup()
+from django.db.migrations.loader import MigrationLoader
+from django.db.models.fields import NOT_PROVIDED
+
+ALWAYS = {"RemoveField", "RenameField", "RenameModel", "DeleteModel", "AlterUniqueTogether", "AlterIndexTogether"}
+MARK = re.compile(r"#\s*expand-contract-step\s*:\s*(expand|migrate|contract)", re.I)
+has_default = lambda f: f.has_default() or getattr(f, "db_default", NOT_PROVIDED) is not NOT_PROVIDED
+
+def reasons(ops, state, app):
+    out = []
+    for op in ops:
+        n = type(op).__name__
+        if n in ALWAYS:
+            out.append(n)
+        elif n == "AddField":
+            f = op.field
+            if not getattr(f, "many_to_many", False) and not f.null and not has_default(f):
+                out.append(f"AddField NOT NULL no default ({op.name})")
+        elif n == "AlterField":
+            try:
+                old = state.models[app, op.model_name_lower].fields[op.name]
+            except KeyError:
+                old = None
+            new = op.field
+            if old is None:
+                out.append(f"AlterField no known past ({op.name})")
+            else:
+                if old.null and not new.null and not has_default(new):
+                    out.append(f"NULL to NOT NULL ({op.name})")
+                if old.get_internal_type() != new.get_internal_type():
+                    out.append(f"type {old.get_internal_type()} to {new.get_internal_type()} ({op.name})")
+                for a in ("max_length", "max_digits", "decimal_places"):
+                    b, c = getattr(old, a, None), getattr(new, a, None)
+                    if b is not None and c is not None and c < b:
+                        out.append(f"{a} {b} to {c} ({op.name})")
+        elif n == "SeparateDatabaseAndState":
+            out += reasons(op.database_operations, state.clone(), app)
+        op.state_forwards(app, state)
+    return out
+
+loader = MigrationLoader(None)
+counts = {"FAIL": 0, "ACK": 0, "OK": 0}
+for path in [l.strip() for l in open(os.environ["H120_FILES"]) if l.strip()]:
+    app, _, rest = path.partition("/migrations/")
+    name = rest[:-3]
+    mig = loader.graph.nodes[(app, name)]
+    why = reasons(mig.operations, loader.project_state(nodes=[(app, name)], at_end=False), app)
+    verdict = "OK" if not why else ("ACK" if MARK.search(open(path).read()) else "FAIL")
+    counts[verdict] += 1
+    if verdict != "OK":
+        print(f"{verdict} {path}: {'; '.join(why)}")
+print(counts)

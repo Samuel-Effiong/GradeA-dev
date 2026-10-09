@@ -1,0 +1,131 @@
+"""H-124: for every mutant, the tests that fail (and, where a test loops
+over samples, the samples that fail) must be the expected set and nothing
+else. Written on 2026-10-06 BEFORE any test run of H-124, by reasoning from
+the rule and the samples; no mutant was applied to anything but a parser
+(the anchors-only check). Also the expected red set of the repro.
+Usage: python expected_kills.py <battery_dir>   |   python expected_kills.py --repro <log>"""
+import re
+import sys
+from pathlib import Path
+
+E = "test_the_rule_sees_each_shape"
+O = "test_the_rule_allows_what_does_not_run_at_import"
+U = "test_the_rule_follows_a_starter_under_another_name"
+M = "test_the_rule_follows_methods"
+G = "test_the_rule_reads_getattr_with_the_starters_name"
+A = "test_the_wider_rule_still_allows_what_starts_nothing"
+K = "test_the_false_alarms_that_are_known_and_kept"
+L = "test_what_the_rule_still_does_not_see"
+S = "test_the_scan_reads_a_file_that_names_a_starter_only_in_quotes_or_brackets"
+
+ALIAS = "imported under another name"
+ALIAS_HELPER = "imported under another name, used in a helper"
+BOUND = "bound to a second name"
+BOUND_ANN = "bound to a second name with an annotation"
+BOUND_HELPER = "a helper bound to a second name"
+BOUND_CLASS = "bound to a name in a class body, asked of the class"
+BOUND_ATTR = "bound to an attribute of something"
+METHODS = {
+    "a static method",
+    "a class method",
+    "a method of an instance made at import",
+    "through a second method",
+    "by its bare name in the class body",
+}
+METHOD_LIKE_HELPER = "a method sharing its name with a helper that starts one"
+HELPER_LIKE_METHOD = "a helper sharing its name with a method that starts one"
+OTHER_OBJECT = "another object's method named like a method that starts one"
+LOCAL = "a helper with a local named like a starter"
+
+#: mutant -> {(test, sample)}; sample is None for a test without samples
+EXPECTED = {
+    # no other import name: the two samples that import a starter "as sp"
+    "N1": {(U, ALIAS), (U, ALIAS_HELPER)},
+    # no binding at all: all five bound samples
+    "N2": {(U, BOUND), (U, BOUND_ANN), (U, BOUND_HELPER), (U, BOUND_CLASS), (U, BOUND_ATTR)},
+    # any mention binds: "label" (read off a starter) and "starters" (a list
+    # holding one) become starters, and each is then called or indexed
+    "N3": {(A, "a name bound to something read off a starter"), (L, "kept in a list and called by index")},
+    # methods never join: all five method samples, and the new false alarm
+    # is no longer raised
+    "N4": {(M, s) for s in METHODS} | {(K, OTHER_OBJECT)},
+    # functions join the asked names too: T().available() is flagged again
+    "N5": {(A, METHOD_LIKE_HELPER)},
+    # methods join the bare names too: the bare helper of the same name
+    "N6": {(A, HELPER_LIKE_METHOD)},
+    # no bare-name match inside the class body
+    "N7": {(M, "by its bare name in the class body")},
+    # getattr unread: both getattr samples, and the scan loses the quoted file
+    "N8": {(G, "called at once"), (G, "in a helper"), (S, None)},
+    # the old first look: the scan reads neither temporary file
+    "N9": {(S, None)},
+    # annotated bindings forgotten
+    "N10": {(U, BOUND_ANN)},
+    # a value of the form module.starter binds nothing
+    "N11": {(U, BOUND)},
+    # a bare name as the value binds nothing: the four samples whose value
+    # is a bare starter or helper
+    "N12": {(U, BOUND_ANN), (U, BOUND_HELPER), (U, BOUND_CLASS), (U, BOUND_ATTR)},
+    "N13": {(U, BOUND_ATTR)},
+    "N14": {(U, BOUND_CLASS)},
+    # module functions never join: H-118's four samples that go through a
+    # helper, the two new ones that do, and the kept false alarm that
+    # depends on following a helper
+    "G1": {
+        (E, "through a function of the module (the old probe)"),
+        (E, "through two functions"),
+        (E, "in a decorator"),
+        (E, "in a default value"),
+        (U, ALIAS_HELPER),
+        (U, BOUND_HELPER),
+        (G, "in a helper"),
+        (K, LOCAL),
+    },
+    # function bodies read as run at import: every allowed sample whose
+    # function or method body calls a starter. No test module in the tree
+    # calls one inside a function, so the repo scan stays green.
+    "G2": {
+        (O, "inside a test"),
+        (O, "a function that is defined and not called"),
+        (A, "another name, called only inside a test"),
+        (A, "a method that is defined and not called"),
+        (A, METHOD_LIKE_HELPER),
+        (A, HELPER_LIKE_METHOD),
+    },
+    # the async starter forgotten: the two samples that use it
+    "G3": {(E, "through two functions"), (G, "in a helper")},
+}
+#: the red commit 77628465: its rule is H-118's, its scan has the old first look
+REPRO = (
+    {(U, s) for s in (ALIAS, ALIAS_HELPER, BOUND, BOUND_ANN, BOUND_HELPER)}
+    | {(M, s) for s in METHODS}
+    | {(G, "called at once"), (G, "in a helper"), (A, METHOD_LIKE_HELPER), (K, OTHER_OBJECT), (S, None)}
+)
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \([\w.]+\)(?: \(shape=(['\"])(.*)\2\))?$", re.M)
+
+
+def failing(text):
+    return {(name, sample or None) for name, _quote, sample in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra, key=str)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing, key=str)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), REPRO)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

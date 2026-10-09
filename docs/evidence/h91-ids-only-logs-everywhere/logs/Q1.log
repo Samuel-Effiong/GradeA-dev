@@ -1,0 +1,12 @@
+# Q1: users/mailerlite_service.py: the user by id
+# file: users/mailerlite_service.py (occurrence 1)
+# old: '                user.id,\n'
+# new: '                user.email,\n'
+# commit: 2c336a509a82d61dc35e647160844cee7aab6c0c
+# exit: 1
+# elapsed_s: 14.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+
+FAILED (failures=1)

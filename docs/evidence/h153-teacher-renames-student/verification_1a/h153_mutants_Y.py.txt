@@ -1,0 +1,60 @@
+"""1a's mutants Y1 to Y4 for H-153 (rule 19: each probe of mine is seen red).
+Usage, in the checkout: python -B h153_mutants_Y.py <Y1|Y2|Y3|Y4>. Applied in
+place; restore with git checkout. Expected failing tests: h153_expected_kills.txt.
+
+Y1: the rename writes the name with a queryset update, so no save signal fires.
+Y2: a user's change does not move the generations of the user's teachers.
+Y3: a user's change does not move the user's own generation.
+Y4: the rename keeps the stored middle name whatever is sent.
+"""
+
+import ast
+import sys
+
+MUTANTS = {
+    "Y1": (
+        "users/views.py",
+        "            for field, value in names.items():\n"
+        "                setattr(student, field, value)\n"
+        "            student.save(update_fields=list(names))\n",
+        "            CustomUser.objects.filter(pk=student.pk).update(**names)\n",
+    ),
+    "Y2": (
+        "users/signals.py",
+        "    scopes = [(SCOPE_USER, teacher_id) for teacher_id, _ in teachers]\n",
+        "    scopes = []\n",
+    ),
+    "Y3": (
+        "users/signals.py",
+        "    scopes = [(SCOPE_USER, user_id), (SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)]\n",
+        "    scopes = [(SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)]\n",
+    ),
+    "Y4": (
+        "users/views.py",
+        '            "middle_name": serializer.validated_data.get("middle_name", ""),\n',
+        '            "middle_name": student.middle_name or "",\n',
+    ),
+}
+
+
+def main():
+    name = sys.argv[1]
+    path, old, new = MUTANTS[name]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    count = source.count(old)
+    if count != 1:
+        print(f"ABORT {name}: anchor found {count} times in {path}")
+        sys.exit(7)
+    mutated = source.replace(old, new, 1)
+    ast.parse(mutated)
+    if "--check" in sys.argv:
+        print(f"checked {name}: anchor once in {path}, mutant parses")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {name} to {path}")
+
+
+if __name__ == "__main__":
+    main()

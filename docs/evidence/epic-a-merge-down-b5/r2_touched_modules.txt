@@ -1,0 +1,554 @@
+14:10:23 Creating test database for alias 'default' ('test_epic_a_merge_down_b5')...
+14:10:25 Found 49 test(s).
+14:10:25 Operations to perform:
+14:10:25   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+14:10:25   Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+14:10:25 Synchronizing apps without migrations:
+14:10:25   Creating tables...
+14:10:25     Running deferred SQL...
+14:10:25 Running migrations:
+14:10:25   Applying contenttypes.0001_initial... OK
+14:10:25   Applying contenttypes.0002_remove_content_type_name... OK
+14:10:25   Applying auth.0001_initial... OK
+14:10:25   Applying auth.0002_alter_permission_name_max_length... OK
+14:10:25   Applying auth.0003_alter_user_email_max_length... OK
+14:10:25   Applying auth.0004_alter_user_username_opts... OK
+14:10:25   Applying auth.0005_alter_user_last_login_null... OK
+14:10:25   Applying auth.0006_require_contenttypes_0002... OK
+14:10:25   Applying auth.0007_alter_validators_add_error_messages... OK
+14:10:26   Applying auth.0008_alter_user_username_max_length... OK
+14:10:26   Applying auth.0009_alter_user_last_name_max_length... OK
+14:10:26   Applying auth.0010_alter_group_name_max_length... OK
+14:10:26   Applying auth.0011_update_proxy_permissions... OK
+14:10:26   Applying auth.0012_alter_user_first_name_max_length... OK
+14:10:26   Applying users.0001_initial... OK
+14:10:26   Applying admin.0001_initial... OK
+14:10:26   Applying admin.0002_logentry_remove_auto_add... OK
+14:10:26   Applying admin.0003_logentry_add_action_flag_choices... OK
+14:10:26   Applying classrooms.0001_initial... OK
+14:10:26   Applying ai_processor.0001_initial... OK
+14:10:26   Applying ai_processor.0002_initial... OK
+14:10:26   Applying ai_processor.0003_chatsession_user... OK
+14:10:26   Applying ai_processor.0004_chatsession_assistant_type... OK
+14:10:26   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+14:10:27   Applying classrooms.0002_initial... OK
+14:10:27   Applying classrooms.0003_coursecategory_course_categories... OK
+14:10:27   Applying classrooms.0004_course_teacher... OK
+14:10:27   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+14:10:27   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+14:10:27   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+14:10:27   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+14:10:27   Applying classrooms.0009_school... OK
+14:10:27   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+14:10:28   Applying classrooms.0011_remove_course_categories_topic... OK
+14:10:28   Applying classrooms.0012_studentcourse_auto_added... OK
+14:10:28   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+14:10:28   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+14:10:28   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+14:10:28   Applying classrooms.0016_school_is_active... OK
+14:10:28   Applying assignments.0001_initial... OK
+14:10:28   Applying assignments.0002_initial... OK
+14:10:29   Applying assignments.0003_initial... OK
+14:10:29   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+14:10:29   Applying assignments.0005_alter_assignment_options... OK
+14:10:29   Applying assignments.0006_assignment_estimated_time... OK
+14:10:29   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+14:10:29   Applying assignments.0008_alter_assignment_due_date... OK
+14:10:29   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+14:10:29   Applying assignments.0010_assignment_custom_ai_prompt... OK
+14:10:29   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+14:10:29   Applying assignments.0012_assignment_was_overridden... OK
+14:10:30   Applying assignments.0013_alter_assignment_ai_generated... OK
+14:10:30   Applying assignments.0014_assignment_self_assessment_and_more... OK
+14:10:30   Applying assignments.0015_alter_assignment_potential_issues... OK
+14:10:30   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+14:10:30   Applying assignments.0017_assignment_grading_status... OK
+14:10:30   Applying assignments.0018_assignment_topic... OK
+14:10:30   Applying assignments.0019_alter_assignment_title_and_more... OK
+14:10:30   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+14:10:30   Applying assignments.0021_assignment_overridden_at... OK
+14:10:30   Applying assignments.0022_assignment_raw_input... OK
+14:10:30   Applying assignments.0023_delete_rubric... OK
+14:10:31   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+14:10:31   Applying assignments.0025_alter_assignment_instructions... OK
+14:10:31   Applying assignments.0026_assignment_status... OK
+14:10:31   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+14:10:31   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+14:10:31   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+14:10:31   Applying assignments.0030_alter_assignment_status... OK
+14:10:31   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+14:10:31   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+14:10:31   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+14:10:31   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+14:10:32   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+14:10:32   Applying assignments.0036_backfill_assignment_rigor... OK
+14:10:32   Applying assignments.0037_assignment_course_title_index... OK
+14:10:32   Applying assignments.0038_assignment_updated_at... OK
+14:10:32   Applying assignments.0039_assignment_upload_fingerprint... OK
+14:10:32   Applying assignments.0040_db_defaults_for_rollback... OK
+14:10:32   Applying audit.0001_initial... OK
+14:10:32   Applying audit.0002_alter_auditevent_actor_role... OK
+14:10:32   Applying authtoken.0001_initial... OK
+14:10:33   Applying authtoken.0002_auto_20160226_1747... OK
+14:10:33   Applying authtoken.0003_tokenproxy... OK
+14:10:33   Applying authtoken.0004_alter_tokenproxy_options... OK
+14:10:33   Applying users.0002_customuser_activation_expires_and_more... OK
+14:10:33   Applying users.0003_passwordresetotp... OK
+14:10:33   Applying users.0004_customuser_email_verified_at... OK
+14:10:33   Applying users.0005_alter_passwordresetotp_code... OK
+14:10:33   Applying users.0006_alter_passwordresetotp_code... OK
+14:10:33   Applying users.0007_passwordchangeotp... OK
+14:10:33   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+14:10:34   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+14:10:34   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+14:10:34   Applying billing.0001_initial... OK
+14:10:35   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+14:10:36   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+14:10:36   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+14:10:36   Applying billing.0005_usersubscription_pending_plan... OK
+14:10:36   Applying billing.0006_alter_subscriptionplan_name... OK
+14:10:36   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+14:10:36   Applying billing.0008_betaprofile... OK
+14:10:37   Applying billing.0009_betaprofile_uuid_and_more... OK
+14:10:37   Applying billing.0010_alter_betaprofile_id... OK
+14:10:37   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+14:10:37   Applying billing.0012_populate_beta_profile_uuids... OK
+14:10:37   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+14:10:38   Applying billing.0014_rename_uid_betaprofile_id... OK
+14:10:38   Applying billing.0015_betaprofile_credits_used_feedback... OK
+14:10:38   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+14:10:38   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+14:10:38   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+14:10:38   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+14:10:39   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+14:10:39   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+14:10:39   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+14:10:39   Applying billing.0023_alter_subscriptionplan_name... OK
+14:10:40   Applying billing.0024_licensesubscription_custom_price_cents... OK
+14:10:40   Applying billing.0025_alter_subscriptionplan_name... OK
+14:10:40   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+14:10:40   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+14:10:40   Applying billing.0028_alter_usersubscription_is_trial... OK
+14:10:40   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+14:10:41   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+14:10:41   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+14:10:41   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+14:10:41   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+14:10:41   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+14:10:41   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+14:10:42   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+14:10:42   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+14:10:42   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+14:10:43   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+14:10:43   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+14:10:43   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+14:10:43   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+14:10:43   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+14:10:43   Applying billing.0044_alter_creditusagelog_feature... OK
+14:10:44   Applying billing.0045_billingtransaction... OK
+14:10:44   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+14:10:44   Applying billing.0047_subscriptionplan_carry_over_max... OK
+14:10:44   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+14:10:45   Applying billing.0049_billingtransaction_receipt_url... OK
+14:10:45   Applying billing.0050_creditusagelog_course... OK
+14:10:45   Applying billing.0051_creditusagelog_task_id_index... OK
+14:10:45   Applying billing.0052_creditusagelog_school... OK
+14:10:45   Applying billing.0053_backfill_creditusagelog_school... OK
+14:10:46   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+14:10:47   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+14:10:47   Applying billing.0056_liveqarun... OK
+14:10:47   Applying billing.0057_usersubscription_cancelled_at... OK
+14:10:47   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+14:10:49   Applying billing.0059_append_only_audit_tables... OK
+14:10:49   Applying billing.0060_backfill_audit_identity...
+14:10:49   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+14:10:49  OK
+14:10:49   Applying billing.0061_add_audit_table_time_indexes... OK
+14:10:49   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+14:10:50   Applying billing.0063_payment_disputes... OK
+14:10:50   Applying billing.0064_refund_credit_reversal... OK
+14:10:50   Applying billing.0065_backfill_ledger_payment_intent...
+14:10:50   attributed 0 ledger row(s) to their Stripe payment
+14:10:50  OK
+14:10:50   Applying billing.0066_dispute_deficit_by_wallet... OK
+14:10:50   Applying billing.0067_stripe_event_recovery... OK
+14:10:51   Applying billing.0068_price_reconciliation... OK
+14:10:51   Applying billing.0069_price_sync_audit... OK
+14:10:52   Applying billing.0070_db_defaults_for_rollback... OK
+14:10:52   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+14:10:52   Applying billing.0072_license_stripe_mutation_intent... OK
+14:10:54   Applying dashboard.0001_initial... OK
+14:10:55   Applying dashboard.0002_schoolatrisksnapshot... OK
+14:10:55   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+14:10:55   Applying dashboard.0004_db_defaults_for_rollback... OK
+14:10:55   Applying django_celery_beat.0001_initial... OK
+14:10:55   Applying django_celery_beat.0002_auto_20161118_0346... OK
+14:10:55   Applying django_celery_beat.0003_auto_20161209_0049... OK
+14:10:55   Applying django_celery_beat.0004_auto_20170221_0000... OK
+14:10:55   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+14:10:56   Applying django_celery_beat.0006_auto_20180322_0932... OK
+14:10:56   Applying django_celery_beat.0007_auto_20180521_0826... OK
+14:10:56   Applying django_celery_beat.0008_auto_20180914_1922... OK
+14:10:56   Applying django_celery_beat.0006_auto_20180210_1226... OK
+14:10:56   Applying django_celery_beat.0006_periodictask_priority... OK
+14:10:56   Applying django_celery_beat.0009_periodictask_headers... OK
+14:10:57   Applying django_celery_beat.0010_auto_20190429_0326... OK
+14:10:57   Applying django_celery_beat.0011_auto_20190508_0153... OK
+14:10:57   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+14:10:57   Applying django_celery_beat.0013_auto_20200609_0727... OK
+14:10:57   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+14:10:58   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+14:10:58   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+14:10:58   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+14:10:58   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+14:10:58   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+14:10:58   Applying django_celery_results.0001_initial... OK
+14:10:58   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+14:10:58   Applying django_celery_results.0003_auto_20181106_1101... OK
+14:10:58   Applying django_celery_results.0004_auto_20190516_0412... OK
+14:10:58   Applying django_celery_results.0005_taskresult_worker... OK
+14:10:59   Applying django_celery_results.0006_taskresult_date_created... OK
+14:10:59   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+14:10:59   Applying django_celery_results.0008_chordcounter... OK
+14:10:59   Applying django_celery_results.0009_groupresult... OK
+14:10:59   Applying django_celery_results.0010_remove_duplicate_indices... OK
+14:10:59   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+14:10:59   Applying django_celery_results.0012_taskresult_date_started... OK
+14:10:59   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+14:10:59   Applying django_celery_results.0014_alter_taskresult_status... OK
+14:10:59   Applying sessions.0001_initial... OK
+14:10:59   Applying users.0011_concurrentusersnapshot_useractivity... OK
+14:10:59   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+14:10:59   Applying users.0013_customuser_middle_name... OK
+14:10:59   Applying users.0014_alter_customuser_middle_name... OK
+14:11:00   Applying users.0015_customuser_bio_settings... OK
+14:11:00   Applying users.0016_remove_customuser_bio_delete_settings... OK
+14:11:01   Applying users.0017_settings... OK
+14:11:01   Applying users.0018_customuser_bio... OK
+14:11:01   Applying users.0019_betawhitelist... OK
+14:11:01   Applying users.0020_waitlist_betawhitelist_mode... OK
+14:11:01   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+14:11:01   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+14:11:01   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+14:11:01   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+14:11:01   Applying users.0025_customuser_profile_image... OK
+14:11:01   Applying students.0001_initial... OK
+14:11:02   Applying students.0002_initial... OK
+14:11:02   Applying students.0003_studentsubmission_graded_at_and_more... OK
+14:11:02   Applying students.0004_alter_studentsubmission_graded_at... OK
+14:11:03   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+14:11:03   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+14:11:04   Applying students.0007_studentsubmission_extraction_confidence... OK
+14:11:04   Applying students.0008_studentsubmission_formatted_grade... OK
+14:11:04   Applying students.0009_studentsubmission_raw_input... OK
+14:11:04   Applying students.0010_batchuploadsession... OK
+14:11:05   Applying students.0011_batchuploadsession_course_and_more... OK
+14:11:05   Applying students.0012_alter_batchuploadsession_task_type... OK
+14:11:05   Applying students.0013_studentsubmission_max_points_and_more... OK
+14:11:06   Applying students.0014_alter_studentsubmission_score_percentage... OK
+14:11:06   Applying students.0015_studentsubmission_is_published... OK
+14:11:06   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+14:11:06   Applying students.0017_backgroundprocessingtask... OK
+14:11:06   Applying students.0018_studentsubmission_attempt_count... OK
+14:11:06   Applying students.0019_alter_studentsubmission_attempt_count... OK
+14:11:07   Applying students.0020_studentsubmission_grading_state... OK
+14:11:07   Applying students.0021_studentsubmission_needs_review... OK
+14:11:07   Applying students.0022_studentsubmission_review_severity... OK
+14:11:08   Applying students.0023_studentsubmission_review_tier_and_more... OK
+14:11:08   Applying students.0024_repair_raw_input_json... OK
+14:11:08   Applying students.0025_student_submission_hot_path_indexes... OK
+14:11:08   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+14:11:08   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+14:11:08   Applying students.0028_backfill_ai_grading_completed_at... OK
+14:11:09   Applying students.0029_background_task_item_result... OK
+14:11:09   Applying students.0030_batch_session_credits_exhausted_at... OK
+14:11:10   Applying token_blacklist.0001_initial... OK
+14:11:10   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+14:11:10   Applying token_blacklist.0003_auto_20171017_2007... OK
+14:11:10   Applying token_blacklist.0004_auto_20171017_2013... OK
+14:11:10   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+14:11:11   Applying token_blacklist.0006_auto_20171017_2113... OK
+14:11:11   Applying token_blacklist.0007_auto_20171017_2214... OK
+14:11:11   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+14:11:12   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+14:11:12   Applying token_blacklist.0011_linearizes_history... OK
+14:11:12   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+14:11:12   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+14:11:12   Applying users.0026_customuser_registration_method... OK
+14:11:12   Applying users.0027_customuser_profile_image_url... OK
+14:11:12   Applying users.0028_alter_customuser_middle_name... OK
+14:11:12   Applying users.0029_usergooglecredentials... OK
+14:11:13   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+14:11:13   Applying users.0031_settings_notify_new_assignment_posted... OK
+14:11:14   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+14:11:15   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+14:11:15   Applying users.0034_passwordresetotp_attempts_and_more... OK
+14:11:15   Applying users.0035_settings_notify_assignment_edited... OK
+14:11:16   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+14:11:16   Applying users.0037_customuser_must_change_password... OK
+14:11:16   Applying users.0038_alter_customuser_must_change_password... OK
+14:11:16   Applying users.0039_customuser_token_epoch... OK
+14:11:19   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+14:11:19
+14:11:19 WARNINGS:
+14:11:19 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+14:11:19
+14:11:19 System check identified 1 issue (0 silenced).
+14:11:19 test_a_row_with_no_ip_or_agent_is_left_out_of_the_update_count (audit.tests_retention_sweep.PiiShortRetentionCutoffTests.test_a_row_with_no_ip_or_agent_is_left_out_of_the_update_count) ... ok
+14:11:19 test_ip_and_agent_are_nulled_past_cutoff_and_untouched_within_it (audit.tests_retention_sweep.PiiShortRetentionCutoffTests.test_ip_and_agent_are_nulled_past_cutoff_and_untouched_within_it) ... ok
+14:11:19 test_running_the_sweep_twice_reports_zero_on_the_second_run (audit.tests_retention_sweep.PiiShortRetentionCutoffTests.test_running_the_sweep_twice_reports_zero_on_the_second_run) ... ok
+14:11:19 test_the_row_itself_survives_regardless_of_its_own_retention_class (audit.tests_retention_sweep.PiiShortRetentionCutoffTests.test_the_row_itself_survives_regardless_of_its_own_retention_class)
+14:11:19 X-4: the sweep runs on a 90-day clock independent of ... ok
+14:11:19 test_a_general_row_is_never_swept_by_the_student_record_cutoff (audit.tests_retention_sweep.RowDeleteCutoffTests.test_a_general_row_is_never_swept_by_the_student_record_cutoff)
+14:11:19 A GENERAL row older than the general cutoff but younger than the ... ok
+14:11:19 test_general_row_past_cutoff_is_deleted_within_cutoff_survives (audit.tests_retention_sweep.RowDeleteCutoffTests.test_general_row_past_cutoff_is_deleted_within_cutoff_survives) ... ok
+14:11:19 test_running_the_sweep_twice_reports_zero_on_the_second_run (audit.tests_retention_sweep.RowDeleteCutoffTests.test_running_the_sweep_twice_reports_zero_on_the_second_run) ... ok
+14:11:19 test_student_record_row_past_cutoff_is_deleted_within_cutoff_survives (audit.tests_retention_sweep.RowDeleteCutoffTests.test_student_record_row_past_cutoff_is_deleted_within_cutoff_survives) ... ok
+14:11:19 test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+14:11:19 test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+14:11:20 test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+14:11:20 test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+14:11:20 test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+14:11:20 test_a_student_address_is_still_added (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_a_student_address_is_still_added)
+14:11:20 Control: the neutral wording blocks no real student. ... Free trial plan not found: no trial activated for user 88741847-5f30-489c-adcc-e311e81599eb.
+14:11:20 Cannot activate automatic trial for user 88741847-5f30-489c-adcc-e311e81599eb (validation): ValueError
+14:11:20 Free trial plan not found: no trial activated for user f2e1fe36-766c-4135-babe-68d8df98a30e.
+14:11:20 Cannot activate automatic trial for user f2e1fe36-766c-4135-babe-68d8df98a30e (validation): ValueError
+14:11:20 Free trial plan not found: no trial activated for user d8bbe1b7-2245-4c06-8675-87736d0c49fc.
+14:11:20 Cannot activate automatic trial for user d8bbe1b7-2245-4c06-8675-87736d0c49fc (validation): ValueError
+14:11:20 Free trial plan not found: no trial activated for user f3568b8a-fe6d-439d-ac67-0894685f9eb9.
+14:11:20 Cannot activate automatic trial for user f3568b8a-fe6d-439d-ac67-0894685f9eb9 (validation): ValueError
+14:11:20 Free trial plan not found: no trial activated for user e7906692-4864-4007-bbb4-0b94f018e6be.
+14:11:20 Cannot activate automatic trial for user e7906692-4864-4007-bbb4-0b94f018e6be (validation): ValueError
+14:11:21 ok
+14:11:21 test_every_role_gets_the_same_answer (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_every_role_gets_the_same_answer)
+14:11:21 The answer must not tell one staff role from another. ... Free trial plan not found: no trial activated for user 58dcf56b-9e75-4a9f-b188-d9606e36b152.
+14:11:21 Cannot activate automatic trial for user 58dcf56b-9e75-4a9f-b188-d9606e36b152 (validation): ValueError
+14:11:21 Free trial plan not found: no trial activated for user e3351ba4-bcb0-4448-86b9-9276dff0da7e.
+14:11:21 Cannot activate automatic trial for user e3351ba4-bcb0-4448-86b9-9276dff0da7e (validation): ValueError
+14:11:21 Free trial plan not found: no trial activated for user af64e9e1-e41b-4ce7-b185-24c2adad2060.
+14:11:21 Cannot activate automatic trial for user af64e9e1-e41b-4ce7-b185-24c2adad2060 (validation): ValueError
+14:11:21 Free trial plan not found: no trial activated for user bc05b078-1f88-4265-87de-c48d82882ce7.
+14:11:21 Cannot activate automatic trial for user bc05b078-1f88-4265-87de-c48d82882ce7 (validation): ValueError
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:21 ok
+14:11:21 test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) ... Free trial plan not found: no trial activated for user 6a90a3f0-f4f0-41a2-8a84-88b1878c415e.
+14:11:21 Cannot activate automatic trial for user 6a90a3f0-f4f0-41a2-8a84-88b1878c415e (validation): ValueError
+14:11:21 Free trial plan not found: no trial activated for user aeb2fb55-a7ee-445c-845d-671a21a97238.
+14:11:21 Cannot activate automatic trial for user aeb2fb55-a7ee-445c-845d-671a21a97238 (validation): ValueError
+14:11:21 Free trial plan not found: no trial activated for user 340b8bd9-e701-438c-8dee-0c60ec1467aa.
+14:11:21 Cannot activate automatic trial for user 340b8bd9-e701-438c-8dee-0c60ec1467aa (validation): ValueError
+14:11:21 Free trial plan not found: no trial activated for user f0df323c-37cd-4ce7-a6b8-b826954bf214.
+14:11:21 Cannot activate automatic trial for user f0df323c-37cd-4ce7-a6b8-b826954bf214 (validation): ValueError
+14:11:21 API Exception
+14:11:21 Traceback (most recent call last):
+14:11:21   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:21     response = handler(request, *args, **kwargs)
+14:11:21                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:21   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:21     raise ValidationError(serializer.errors)
+14:11:21 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 ok
+14:11:22 test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) ... Free trial plan not found: no trial activated for user 634f6845-bfdc-4091-b41d-4960aaa956bc.
+14:11:22 Cannot activate automatic trial for user 634f6845-bfdc-4091-b41d-4960aaa956bc (validation): ValueError
+14:11:22 Free trial plan not found: no trial activated for user 72115773-6cf1-4cbb-aeff-ef101bbd2762.
+14:11:22 Cannot activate automatic trial for user 72115773-6cf1-4cbb-aeff-ef101bbd2762 (validation): ValueError
+14:11:22 Free trial plan not found: no trial activated for user 02a6f40c-ec73-4416-8099-a7ec3424bb76.
+14:11:22 Cannot activate automatic trial for user 02a6f40c-ec73-4416-8099-a7ec3424bb76 (validation): ValueError
+14:11:22 Free trial plan not found: no trial activated for user cfa60a5f-b556-4d20-8088-770bf5db8688.
+14:11:22 Cannot activate automatic trial for user cfa60a5f-b556-4d20-8088-770bf5db8688 (validation): ValueError
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1335, in students
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 API Exception
+14:11:22 Traceback (most recent call last):
+14:11:22   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+14:11:22     response = handler(request, *args, **kwargs)
+14:11:22                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14:11:22   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/views.py", line 1396, in direct_add_student
+14:11:22     raise ValidationError(serializer.errors)
+14:11:22 rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+14:11:22 ok
+14:11:22 test_the_service_rule_raises_the_neutral_message_and_logs_ids_only (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_the_service_rule_raises_the_neutral_message_and_logs_ids_only) ... Free trial plan not found: no trial activated for user 8768e20b-46bb-43fb-954d-e677c95c2977.
+14:11:22 Cannot activate automatic trial for user 8768e20b-46bb-43fb-954d-e677c95c2977 (validation): ValueError
+14:11:23 Free trial plan not found: no trial activated for user 30133104-807b-4e9d-a9fd-088462b3c08c.
+14:11:23 Cannot activate automatic trial for user 30133104-807b-4e9d-a9fd-088462b3c08c (validation): ValueError
+14:11:23 Free trial plan not found: no trial activated for user 26f9bdde-dc92-4dfd-a8bc-9c29aa71e7b6.
+14:11:23 Cannot activate automatic trial for user 26f9bdde-dc92-4dfd-a8bc-9c29aa71e7b6 (validation): ValueError
+14:11:23 Free trial plan not found: no trial activated for user 210e5210-6fc7-4109-9801-ce62284f7208.
+14:11:23 Cannot activate automatic trial for user 210e5210-6fc7-4109-9801-ce62284f7208 (validation): ValueError
+14:11:23 ok
+14:11:23 test_the_pii_sweep_is_skipped_and_records_nothing (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_pii_sweep_is_skipped_and_records_nothing) ... ok
+14:11:23 test_the_retention_sweep_is_skipped_and_records_nothing (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_retention_sweep_is_skipped_and_records_nothing) ... ok
+14:11:23 test_the_two_sweeps_do_not_block_each_other (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_two_sweeps_do_not_block_each_other) ... ok
+14:11:23 test_each_sweep_runs_and_releases_its_lock (audit.tests_sweep_beat_lock.AnUncontendedSweepStillRunsTests.test_each_sweep_runs_and_releases_its_lock) ... ok
+14:11:23 test_the_next_run_does_the_skipped_runs_work (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_next_run_does_the_skipped_runs_work)
+14:11:23 A skip costs one schedule interval and no more: the sweeps select ... ok
+14:11:23 test_the_pii_sweep_is_skipped_with_an_error (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_pii_sweep_is_skipped_with_an_error) ... ok
+14:11:23 test_the_retention_sweep_is_skipped_with_an_error (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_retention_sweep_is_skipped_with_an_error) ... ok
+14:11:24 test_two_concurrent_delete_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_delete_sweeps_never_double_process_or_raise) ... Beat task audit.tasks.sweep_audit_retention: another run already holds the lock; skipping this one (key gaplus-t804131:1:beat-lock:audit.tasks.sweep_audit_retention, held by run direct:28ace294e7f0; this run direct:ae0aabb48f62).
+14:11:24 ok
+14:11:25 test_two_concurrent_pii_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_pii_sweeps_never_double_process_or_raise) ... Beat task audit.tasks.sweep_audit_pii_short_retention: another run already holds the lock; skipping this one (key gaplus-t804131:1:beat-lock:audit.tasks.sweep_audit_pii_short_retention, held by run direct:6e2c7b1eb838; this run direct:4cf2e8ecfd5a).
+14:11:25 ok
+14:11:25 test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+14:11:25 N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+14:11:25 test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+14:11:25 test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+14:11:25 test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+14:11:25 test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+14:11:26 So a hung run can never swallow the next scheduled one. ... ok
+14:11:26 test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+14:11:26 test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+14:11:26 test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+14:11:31 test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+14:11:31 test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+14:11:34 The worst-case lifetime the schedule guard relies on. ... ok
+14:11:36 test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+14:11:38 test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+14:11:38 test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t804131:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:0e899fce2be6).
+14:11:39 ok
+14:11:39 test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+14:11:39 Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+14:11:39 test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+14:11:39 Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+14:11:39 test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+14:11:39 test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+14:11:39 test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+14:11:39 test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+14:11:39 No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+14:11:39 test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+14:11:39 test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+14:11:39 test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+14:11:39 Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t804131:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:b1b3662d6d7b; this run direct:6b647c6e0aae).
+14:11:39 ok
+14:11:39
+14:11:39 ----------------------------------------------------------------------
+14:11:39 Ran 49 tests in 20.042s
+14:11:39
+14:11:39 OK
+14:11:39 Destroying test database for alias 'default' ('test_epic_a_merge_down_b5')...
+14:11:49  OK

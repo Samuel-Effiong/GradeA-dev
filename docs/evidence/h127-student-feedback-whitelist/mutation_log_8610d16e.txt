@@ -1,0 +1,15 @@
+34 mutants: anchors unique, all parse, expected tests named
+9 of 34 mutants selected
+A4_a_value_that_is_not_a_dictionary_is_returned_as_stored KILLED exit 1 ran 74 failed 1 expected-but-passed []
+D4_the_function_leaves_nothing_out KILLED exit 1 ran 74 failed 4 expected-but-passed []
+F2_the_allow_list_is_widened_to_for_teacher KILLED exit 1 ran 74 failed 3 expected-but-passed []
+F3_text_that_cannot_be_read_is_shown_as_stored KILLED exit 1 ran 74 failed 5 expected-but-passed []
+F4_a_literal_that_is_not_a_dictionary_is_shown_as_stored KILLED exit 1 ran 74 failed 1 expected-but-passed []
+F5_no_size_limit KILLED exit 1 ran 74 failed 1 expected-but-passed []
+F6_unknown_sections_are_copied KILLED exit 1 ran 74 failed 4 expected-but-passed []
+G1_any_value_under_an_allowed_name_is_copied KILLED exit 1 ran 74 failed 2 expected-but-passed []
+G2_a_list_is_copied_whatever_it_holds KILLED exit 1 ran 74 failed 2 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 9 of 9
