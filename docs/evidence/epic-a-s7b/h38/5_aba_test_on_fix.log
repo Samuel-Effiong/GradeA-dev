@@ -1,0 +1,7 @@
+# Trimmed: test results and the summary/failure blocks only (tests' logged tracebacks removed).
+# Full log: GAP-evidence-logs/epic-a-s7b-h38/5_aba_test_on_fix.log
+Creating test database for alias 'default'...
+System check identified some issues:
+System check identified 1 issue (0 silenced).
+Destroying test database for alias 'default'...
+Found 1 test(s).

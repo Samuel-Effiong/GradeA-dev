@@ -56,7 +56,10 @@ from students.models import (
 from users.models import CustomUser, UserTypes
 
 WAIT = 45  # seconds; generous for a contended host, never reached when healthy
-NOT_A_PDF = "not a PDF"
+# The coded message for the photo labelled as a PDF: FILE_NOT_A_PDF since
+# S7d (catalogue C; it was S6b's FILE_UNREADABLE). Its own text naming the
+# file, never the generic fallback.
+NOT_A_PDF = "photo.pdf is not a PDF"
 
 
 def payload(name, data, content_type):
@@ -157,6 +160,7 @@ class AnswerUploadTaskRefusesBadFilesTest(TestCase):
         self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
         # The file's own message, not the generic fallback.
         self.assertIn(NOT_A_PDF, tracked.error)
+        self.assertEqual(tracked.reason_code, "FILE_NOT_A_PDF")
 
     @patch(
         "assignments.tasks.upload_answers_engine",

@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from audit.emitter import resolve_trace_id
 from AutoGrader.celery import app as celery_app
 from AutoGrader.dispatch import (
     BROKER_UNAVAILABLE_ERRORS,
@@ -17,10 +18,18 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
+from AutoGrader.reason_codes import CodedError, reason_of
+from AutoGrader.safe_logging import describe_error_for_log
+from billing.errors import InsufficientCreditsError
 from billing.refusals import is_permanent_refusal, log_refusal
 
-from .exceptions import TaskCancelledError
-from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
+from .exceptions import InsufficientCreditsMidBatchError, TaskCancelledError
+from .models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    BatchUploadSession,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +54,19 @@ def create_processing_task(
     submission=None,
     file_name=None,
     meta=None,
+    item_index=None,
 ):
+    """A tracked item. `item_index` is its 1-based position in its batch
+    (upload order). Its trace_id is the dispatching request's server trace
+    (resolve_trace_id), so the item's `reference` resolves to its audit
+    events (FR-A-07 S7a, QA-ERR-04)."""
     return BackgroundProcessingTask.objects.create(
         requested_by=requested_by,
         batch_session=batch_session,
         assignment=assignment,
         submission=submission,
+        item_index=item_index,
+        trace_id=resolve_trace_id(),
         task_type=task_type,
         file_name=file_name,
         meta=meta or {},
@@ -117,6 +133,7 @@ def update_processing_task(
     error=None,
     started=False,
     finished=False,
+    reason_code=None,
 ):
     if not processing_task_id:
         return None
@@ -153,6 +170,10 @@ def update_processing_task(
         if error is not None:
             task.error = error
             update_fields.append("error")
+
+        if reason_code is not None:
+            task.reason_code = reason_code
+            update_fields.append("reason_code")
 
         if started and not task.started_at:
             task.started_at = timezone.now()
@@ -225,13 +246,18 @@ def mark_processing_task_success(processing_task_id, meta=None):
 def mark_processing_task_failure(
     processing_task_id, error, meta=None, *, fallback_message=None
 ):
+    # FR-A-07 (S7c): a credit refusal after part of the batch already ran is
+    # the mid-batch code, and it stops the rest of the batch.
+    error = batch_credit_refusal(processing_task_id, error)
     if is_permanent_refusal(error):
         log_refusal(logger, f"Background task {processing_task_id}", error)
     elif isinstance(error, BaseException):
+        # H-208: the error's class (and, for a fault that is not a broker
+        # outage, its frames), never its text or a traceback.
         logger.error(
-            "Background task %s failed",
+            "Background task %s failed: %s",
             processing_task_id,
-            exc_info=error,
+            describe_error_for_log(error),
         )
 
     return update_processing_task(
@@ -240,7 +266,29 @@ def mark_processing_task_failure(
         meta=meta,
         error=describe_task_error(error, fallback_message),
         finished=True,
+        # FR-A-07 (S7a): the failure's own code. An unclassified fault
+        # stores none and reads as error_class SYSTEM (session-results).
+        reason_code=failure_reason_code(error),
     )
+
+
+def failure_reason_code(error):
+    """The FR-A-06 code a failure carries (a CodedError or one of the two
+    refusals), or "" for an unclassified fault."""
+    reason = reason_of(error) if isinstance(error, BaseException) else None
+    return reason[0].value if reason else ""
+
+
+def record_refused_item(*, requested_by, task_type, error, **fields):
+    """An item refused before anything was dispatched for it (a file too
+    large for its batch): a tracked FAILURE with the refusal's code and
+    message, and no Celery task, so the rest of the batch still runs."""
+    item = create_processing_task(
+        requested_by=requested_by, task_type=task_type, **fields
+    )
+    mark_processing_task_failure(item.id, error)
+    item.refresh_from_db()
+    return item
 
 
 def mark_processing_task_cancelled(processing_task_id, meta=None):
@@ -399,14 +447,14 @@ def cancel_processing_task(processing_task):
                 terminate=True,
                 signal="SIGTERM",
             )
-        except BROKER_UNAVAILABLE_ERRORS:
+        except BROKER_UNAVAILABLE_ERRORS as exc:
             logger.error(
                 "Could not revoke celery task %s for cancelled processing task %s "
-                "- broker unavailable; the worker will observe the cancellation "
-                "at its next cooperative check",
+                "- broker unavailable (%s); the worker will observe the "
+                "cancellation at its next cooperative check",
                 processing_task.celery_task_id,
                 processing_task.id,
-                exc_info=True,
+                describe_error_for_log(exc),
             )
 
     return processing_task
@@ -427,14 +475,14 @@ def normalize_processing_task_status(processing_task):
     # reporting back, so when it can't be read we fall back to the row.
     try:
         state = AsyncResult(processing_task.celery_task_id, app=celery_app).state
-    except BROKER_UNAVAILABLE_ERRORS:
+    except BROKER_UNAVAILABLE_ERRORS as exc:
         logger.warning(
             "Could not read celery state for processing task %s (celery id %s) "
-            "- result backend unavailable; reporting tracked status %s",
+            "- result backend unavailable (%s); reporting tracked status %s",
             processing_task.id,
             processing_task.celery_task_id,
+            describe_error_for_log(exc),
             processing_task.status,
-            exc_info=True,
         )
         return processing_task.status
 
@@ -463,3 +511,80 @@ def normalize_processing_task_status(processing_task):
         return processing_task.status
 
     return processing_task.status
+
+
+# -- FR-A-07 S7c: credits running out mid-batch (08a §4.5) -------------------
+
+
+def _mid_batch_error(session_id):
+    items = BackgroundProcessingTask.objects.filter(batch_session_id=session_id)
+    total = (
+        BatchUploadSession.objects.filter(pk=session_id)
+        .values_list("total_files", flat=True)
+        .first()
+    )
+    completed = items.filter(status=BackgroundTaskStatus.SUCCESS).count()
+    return InsufficientCreditsMidBatchError(
+        params={"completed": completed, "total": total or items.count()},
+        # QA-approved (Epic A S7d, 2026-10-01): with nothing finished yet the
+        # item says credits ran out before any item finished, rather than
+        # after 0 of N (the none_finished template). Both S7c raise sites
+        # build the error here. The count is taken at each raise, so a later
+        # item of the same batch can read 1 of N if one finished meanwhile.
+        variant="none_finished" if completed == 0 else None,
+    )
+
+
+def batch_credit_refusal(processing_task_id, error):
+    """`error` itself, unless it is a plain credit refusal inside a batch in
+    which another item has already started or finished. That is the
+    mid-batch refusal (not the pre-flight one): the session is marked, so
+    the items still to run stop before any provider call."""
+    if not isinstance(error, InsufficientCreditsError) or isinstance(error, CodedError):
+        return error
+    session_id = (
+        BackgroundProcessingTask.objects.filter(pk=processing_task_id)
+        .values_list("batch_session_id", flat=True)
+        .first()
+    )
+    if not session_id:
+        return error
+    went_ahead = (
+        BackgroundProcessingTask.objects.filter(
+            batch_session_id=session_id,
+            status__in=(BackgroundTaskStatus.STARTED, BackgroundTaskStatus.SUCCESS),
+        )
+        .exclude(pk=processing_task_id)
+        .exists()
+    )
+    if not went_ahead:
+        return error
+    BatchUploadSession.objects.filter(
+        pk=session_id, credits_exhausted_at__isnull=True
+    ).update(credits_exhausted_at=timezone.now())
+    mid_batch = _mid_batch_error(session_id)
+    mid_batch.__cause__ = error
+    return mid_batch
+
+
+def ensure_batch_has_credits(processing_task_id):
+    """Stop an item whose batch already ran out of credits, BEFORE any
+    provider call (so it is never charged): it fails with the same
+    INSUFFICIENT_CREDITS_MID_BATCH as the item that ran out."""
+    session_id = (
+        BackgroundProcessingTask.objects.filter(pk=processing_task_id)
+        .values_list("batch_session_id", flat=True)
+        .first()
+    )
+    if (
+        session_id
+        and BatchUploadSession.objects.filter(
+            pk=session_id, credits_exhausted_at__isnull=False
+        ).exists()
+    ):
+        raise _mid_batch_error(session_id)
+
+
+def clear_batch_credit_stop(session_id):
+    """A resume (a retry after a top-up) lets the batch run again."""
+    BatchUploadSession.objects.filter(pk=session_id).update(credits_exhausted_at=None)

@@ -1,0 +1,10 @@
+4 mutants: anchors unique, all parse, expected tests named
+4 of 4 mutants selected
+A1_the_none_check_is_removed KILLED exit 1 ran 13 failed 2 expected-but-passed []
+A2_an_admin_with_no_school_is_shown_everything KILLED exit 1 ran 13 failed 2 expected-but-passed []
+A3_every_school_admin_is_shown_nothing KILLED exit 1 ran 13 failed 4 expected-but-passed []
+A4_the_super_admin_loses_the_null_school_events KILLED exit 1 ran 13 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 4 of 4

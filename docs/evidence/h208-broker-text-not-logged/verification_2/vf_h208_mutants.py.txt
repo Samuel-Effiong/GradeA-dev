@@ -1,0 +1,78 @@
+"""v2 mutants for H-208 (d5) at the tip in COMMIT (994febe1 expected). WRITTEN 2026-10-09 17:50 BEFORE reading d5's account of the differences
+and before any run. Run from the vf2-s1 worktree detached at COMMIT, inside the caller's wrappers, output to files, stdin /dev/null.
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h208_mutants.py check | baseline | mutants
+Each mutant: ONE counted-anchor edit; expected failing set EQUAL (set compare printed), and for each expected test the WRITTEN failure
+fragment must stand inside that test's own FAIL/ERROR block (rule 22). Restore verified by sha256 against the commit blob."""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]; LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+HLP, DSP, SVC, TRK = "AutoGrader/safe_logging.py", "AutoGrader/dispatch.py", "students/services.py", "students/task_tracking.py"
+B = "students.tests_broker_text_not_logged"
+LABELS = [B, "students.tests_task_tracking", "billing.tests.test_refusal_handling.D8TaskFailureLoggingTest"]
+# short names
+L2 = "test_a_broker_error_logs_no_frames_either"; L4 = "test_a_wrapped_broker_error_is_still_a_broker_error"
+L5 = "test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself"  # same name in launcher and helper classes: matched by CLASS too
+F1 = "test_a_refused_follow_up_queue_leaves_the_broker_text_out_of_every_line"
+H1 = "test_a_broker_error_is_named_by_its_class_alone"; H4 = "test_a_wrapper_raised_from_a_broker_error_is_named_by_the_broker_class"
+D1 = "test_a_dispatch_the_broker_refused_logs_the_task_and_the_class_only"; C1 = "test_an_unreachable_broker_at_revoke_logs_ids_and_the_class_only"
+S1 = "test_an_unreadable_result_backend_logs_ids_and_the_class_only"; D8T = "test_a_timeout_is_a_broker_outage_named_by_its_class_alone"
+NF = "not found in"; UF = "unexpectedly found in"
+# name -> (path, old, new, {(Class, test): fragment})
+M = {
+ "M1_broker_branch_off": (HLP, "        if isinstance(link, BROKER_UNAVAILABLE_ERRORS):", "        if False and isinstance(link, BROKER_UNAVAILABLE_ERRORS):",
+   {("TheLauncherLine", L2): "is not None", ("TheLauncherLine", L4): "'ConnectionError' " + NF, ("TheGradingFollowUpLine", F1): "'ConnectionError' " + NF,
+    ("TheOneHelper", H1): "'the_call_the_broker_refused' " + UF, ("TheOneHelper", H4): "'error=ConnectionError' " + NF,
+    ("D8TaskFailureLoggingTest", D8T): "'frames=' " + UF}),
+ "M2_cause_not_followed": (HLP, "        current = current.__cause__\n", "        current = None\n",
+   {("TheLauncherLine", L4): "'ConnectionError' " + NF, ("TheGradingFollowUpLine", F1): "'ConnectionError' " + NF, ("TheOneHelper", H4): "'error=ConnectionError' " + NF}),
+ "M12_context_followed_again": (HLP, "        current = current.__cause__\n",
+   "        current = current.__cause__ if current.__cause__ is not None else current.__context__\n",
+   {("TheLauncherLine", L5): "'error=RuntimeError' " + NF, ("TheOneHelper", L5): "'error=RuntimeError' " + NF}),
+ "V1_followup_line_without_helper": (SVC, "                describe_error_for_log(exc),\n                extra=", "                type(exc).__name__,\n                extra=",
+   {("TheGradingFollowUpLine", F1): "'ConnectionError' " + NF}),
+ "V2_safe_delay_prints_str": (DSP, "            describe_error_for_log(exc),\n        )", "            str(exc),\n        )",
+   {("TheSafeDelayLine", D1): "'ConnectionError' " + NF}),
+ "V3_cancel_prints_str": (TRK, "                processing_task.id,\n                describe_error_for_log(exc),\n            )", "                processing_task.id,\n                str(exc),\n            )",
+   {("TheCancelLine", C1): "'ConnectionError' " + NF}),
+ "V4_status_read_prints_str": (TRK, "            describe_error_for_log(exc),\n            processing_task.status,", "            str(exc),\n            processing_task.status,",
+   {("TheStatusLine", S1): "'ConnectionError' " + NF}),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear():
+    for d in ("AutoGrader", "students"): shutil.rmtree(pathlib.Path(d) / "__pycache__", ignore_errors=True)
+def run(name):
+    LOGS.mkdir(parents=True, exist_ok=True); log = LOGS / (name + ".txt")
+    with open(log, "wb") as fh:
+        p = subprocess.run([sys.executable, "-B", "manage.py", "test", *LABELS, "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                           stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    return p.returncode, log.read_text(errors="replace")
+def blocks(o):
+    out = {}
+    for m in re.finditer(r"^(?:FAIL|ERROR): (\w+) \(([\w.]+)\)\n-+\n(.*?)(?=^={70}|\Z)", o, re.M | re.S):
+        out[(m.group(2).split(".")[-2], m.group(1))] = m.group(3)
+    return out
+if sys.argv[1:] == ["check"]:
+    for n, (path, old, new, _e) in M.items():
+        s = open(path).read(); print(n, path, "count", s.count(old)); ast.parse(s.replace(old, new, 1))
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    clear(); rc, o = run("baseline"); ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    print("baseline |", ran, "|", "OK" if rc == 0 else "FAILED", "| expected: Ran 40 tests OK", flush=True); sys.exit(rc)
+for n, (path, old, new, exp) in M.items():
+    src = open(path).read()
+    if src.count(old) != 1: print(n, "APPLY_FAILED", src.count(old), flush=True); continue
+    ok = False
+    try:
+        clear(); open(path, "w").write(src.replace(old, new, 1)); rc, o = run(n)
+        bl = blocks(o); got = set(bl); want = set(exp)
+        reasons = {f"{c}.{t}": (frag in bl.get((c, t), "")) for (c, t), frag in exp.items()}
+        # the same-named test of two classes: compare by (class,test) with the class suffix match
+        ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+        status = "SURVIVED" if rc == 0 else ("BROKEN" if ran == "Ran ?" else ("KILLED_AS_WRITTEN" if got == want and all(reasons.values()) else "DIFFERS"))
+        print(n, "|", status, "|", ran, "| failing", sorted(f"{c}.{t}" for c, t in got), "| written", sorted(f"{c}.{t}" for c, t in want),
+              "| reasons", reasons, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True); clear()
+        ok = sha(open(path, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout)
+        print("  restore", path, "ok" if ok else "MISMATCH", flush=True)

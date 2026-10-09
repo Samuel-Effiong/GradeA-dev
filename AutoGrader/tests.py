@@ -38,7 +38,7 @@ class SendEmailTaskTests(SimpleTestCase):
         """A single transient failure should be retried, not dropped."""
         mock_send_impl.side_effect = [
             Exception("Provider timed out"),
-            "Email sent successfully to ['teacher@example.com']",
+            "Email sent successfully to 1 recipient(s)",
         ]
 
         result = send_email_task.apply(
@@ -54,9 +54,7 @@ class SendEmailTaskTests(SimpleTestCase):
         )
 
         self.assertEqual(mock_send_impl.call_count, 2)
-        self.assertEqual(
-            result.get(), "Email sent successfully to ['teacher@example.com']"
-        )
+        self.assertEqual(result.get(), "Email sent successfully to 1 recipient(s)")
 
     @patch("AutoGrader.tasks._send_email_impl")
     def test_gives_up_after_max_retries(self, mock_send_impl: Mock) -> None:

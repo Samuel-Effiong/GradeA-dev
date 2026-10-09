@@ -32,6 +32,7 @@ from ai_processor.benchmark.answers.provider import (
     timeout_error,
 )
 from ai_processor.benchmark.answers.scenarios import _numbering
+from ai_processor.exceptions import ProviderFailureError
 from ai_processor.extraction_schemas import (
     ANSWER_STATUSES,
     ANSWERED,
@@ -137,7 +138,10 @@ class PersistentChunkFailureTest(SimpleTestCase):
     def test_no_partial_result_is_returned(self):
         self.assertIsNone(self.outcome.result)
         self.assertIsNotNone(self.outcome.error)
-        self.assertIn("attempts failed", str(self.outcome.error))
+        # S6d: coded PROVIDER_FAILURE; the attempts are in the log-only detail.
+        error = self.outcome.error
+        assert isinstance(error, ProviderFailureError), error  # narrows for mypy
+        self.assertIn("attempts failed", error.detail)
 
     def test_the_real_cause_reaches_the_user_facing_message(self):
         message = classify_infra_error(self.outcome.error)

@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
+from audit import history
+
 from .models import (
     BetaWhitelist,
     CustomUser,
@@ -95,7 +97,9 @@ class CustomUserAdmin(UserAdmin):
     @admin.action(description="Mark selected users as active")
     def activate_users(self, request, queryset):
         users = list(queryset.only("pk", "school_id"))
-        updated = queryset.update(is_active=True)
+        # Epic A S4: one PERMISSION_CHANGE per user actually changed, naming
+        # the admin who ran the action.
+        updated = history.record_bulk(queryset, is_active=True)
         invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully activated.")
 
@@ -104,8 +108,11 @@ class CustomUserAdmin(UserAdmin):
         users = list(queryset.only("pk", "school_id"))
         # H-202: switching a user off revokes their sessions. One UPDATE; only
         # a row that is active NOW gets its token epoch raised (the right-hand
-        # side reads the row as it was before this statement).
-        updated = queryset.update(
+        # side reads the row as it was before this statement). Epic A S4: the
+        # same call also writes one PERMISSION_CHANGE per user actually changed
+        # (history.record_bulk passes the extra field to its one update).
+        updated = history.record_bulk(
+            queryset,
             is_active=False,
             token_epoch=Case(
                 When(is_active=True, then=F("token_epoch") + 1),

@@ -1,0 +1,4 @@
+Ran 4670 tests in 2551.123s
+OK (skipped=26)
+Preserving test database for alias 'default'...
+Found 4670 test(s).

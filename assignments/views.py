@@ -36,9 +36,14 @@ from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from assignments.exceptions import FileUnreadableError
 from assignments.upload_door import upload_refusal_if_unaffordable
+from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
@@ -51,8 +56,13 @@ from classrooms.models import (
 )
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
+from students.grading_gates import ensure_gradable
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
-from students.task_tracking import create_processing_task, launch_processing_task
+from students.task_tracking import (
+    create_processing_task,
+    launch_processing_task,
+    record_refused_item,
+)
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
@@ -99,6 +109,22 @@ from .tasks import (  # grade_all_submissions,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _not_graded_entries(submissions):
+    """publish-all's skipped list (catalogue F, Epic A S7d): one coded entry
+    per submission not yet graded (no graded_at, or no score), ids only."""
+    return [
+        coded_entry(
+            CodedError(ReasonCode.SUBMISSION_NOT_GRADED),
+            submission_id=str(submission_id),
+            student_id=str(student_id),
+            status="skipped",
+        )
+        for submission_id, student_id in submissions.order_by(
+            "submission_date", "pk"
+        ).values_list("pk", "student_id")
+    ]
 
 
 @extend_schema_view(
@@ -396,6 +422,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             auto_grade_on_due_date=auto_grade_on_due_date,
         )
 
+        emit(
+            AuditAction.ASSIGNMENT_CREATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course.id)},
+        )
+
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
 
@@ -466,6 +502,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             auto_grade_on_due_date=auto_grade_on_due_date,
         )
 
+        emit(
+            AuditAction.ASSIGNMENT_CREATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course.id)},
+        )
+
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
 
@@ -505,6 +551,22 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = AssignmentCreateResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    def perform_destroy(self, instance):
+        """DRF's default destroy() calls this - no override existed before,
+        so ASSIGNMENT_DELETE was never audited (Epic A §6)."""
+        assignment_id = instance.id
+        course_id = instance.course_id
+        instance.delete()
+        emit(
+            AuditAction.ASSIGNMENT_DELETE,
+            actor=self.request.user,
+            request=self.request,
+            target_type="Assignment",
+            target_id=assignment_id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course_id)} if course_id else {},
+        )
 
     def normalize(self, data):
         return json.loads(json.dumps(data, sort_keys=True))
@@ -577,6 +639,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             instance.save()
 
+        emit(
+            AuditAction.ASSIGNMENT_UPDATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=instance.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "course_id": str(instance.course_id),
+                "changed_fields": sorted(serializer.validated_data.keys()),
+            },
+        )
+
         serializer = AssignmentListSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -635,6 +710,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "auto_grade_on_due_date", instance.auto_grade_on_due_date
         )
         instance.save()
+
+        emit(
+            AuditAction.ASSIGNMENT_UPDATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=instance.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "course_id": str(instance.course_id),
+                "changed_fields": sorted(serializer.validated_data.keys()),
+            },
+        )
 
         if raw_input:
             text = f"""
@@ -1019,17 +1107,33 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             total_files=len(files),
         )
         tasks_data = []
-        for uploaded_file in files:
+        # FR-A-07 (S7a): every file is an item. A malformed or too-large file
+        # fails as ITS item, before anything is dispatched for it, and the
+        # rest still run: this used to raise mid-loop, after the earlier
+        # files' tasks were already queued (a half-queued session).
+        for item_index, uploaded_file in enumerate(files, start=1):
+            file_name = getattr(uploaded_file, "name", None) or f"file {item_index}"
+            refusal = None
             if not isinstance(uploaded_file, UploadedFile):
-                raise ParseError(
-                    (
-                        "The uploaded file appears to be malformed or corrupted. "
-                        "Please ensure it is a valid, readable file and try "
-                        "uploading again."
-                    )
+                refusal = FileUnreadableError(params={"file_name": file_name})
+            else:
+                try:
+                    validate_upload_size(uploaded_file)
+                except PayloadTooLarge as exc:
+                    refusal = exc
+            if refusal is not None:
+                refused = record_refused_item(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                    error=refusal,
+                    batch_session=session,
+                    file_name=file_name,
+                    item_index=item_index,
                 )
-
-            validate_upload_size(uploaded_file)
+                tasks_data.append(
+                    {"file_name": file_name, "task_id": None, "item_id": refused.id}
+                )
+                continue
 
             file_payload = AssignmentProcessingService.build_async_upload_payload(
                 uploaded_file
@@ -1041,6 +1145,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 batch_session=session,
                 file_name=uploaded_file.name,
                 meta={"step": "Queued for batch assignment extraction"},
+                item_index=item_index,
             )
             task = launch_processing_task(
                 upload_assignment_async,
@@ -1053,7 +1158,13 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 prompt_text=prompt_text,
                 file_name=uploaded_file.name,
             )
-            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
+            tasks_data.append(
+                {
+                    "file_name": uploaded_file.name,
+                    "task_id": task.id,
+                    "item_id": processing_task.id,
+                }
+            )
 
         data = {
             "session_id": session.id,
@@ -1619,6 +1730,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def grade_all_submission(self, request, pk=None):
 
         assignment = self.get_object()
+        # 409 RUBRIC_MISSING before any item is queued (S6d).
+        ensure_gradable(assignment)
 
         # Get only ungraded submissions (skip already graded ones)
         ungraded_submissions = assignment.submissions.filter(Q(graded_at__isnull=True))
@@ -1634,7 +1747,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         tasks_data = []
 
-        for submission in ungraded_submissions:
+        for item_index, submission in enumerate(ungraded_submissions, start=1):
             processing_task = create_processing_task(
                 requested_by=request.user,
                 task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
@@ -1643,6 +1756,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 submission=submission,
                 file_name=f"Submission for {submission.student.get_full_name()}",
                 meta={"step": "Queued for batch grading"},
+                item_index=item_index,
             )
             task = launch_processing_task(
                 grade_engine_async,
@@ -1650,6 +1764,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 str(request.user.id),
                 str(submission.id),
                 batch_id=session.id,
+            )
+            emit(
+                AuditAction.GRADING_REQUESTED,
+                actor=request.user,
+                request=request,
+                target_type="StudentSubmission",
+                target_id=submission.id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "submission_id": str(submission.id),
+                    "task_id": str(processing_task.id),
+                    "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+                },
             )
             tasks_data.append(
                 {
@@ -1681,6 +1809,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def schedule_grade_all_submission(self, request, pk=None):
         assignment = self.get_object()
+        # 409 RUBRIC_MISSING before anything is scheduled (S6d); the run
+        # re-checks, since the rubric can be removed meanwhile.
+        ensure_gradable(assignment)
 
         serializer = ScheduleGradingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1754,11 +1885,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         graded_submissions = assignment.submissions.filter(
             graded_at__isnull=False, score__isnull=False
         )
+        # Catalogue F (Epic A S7d): every submission this can't publish is
+        # listed as skipped with its code, not only counted.
+        skipped = _not_graded_entries(
+            assignment.submissions.exclude(pk__in=graded_submissions.values("pk"))
+        )
 
         total_graded = graded_submissions.count()
         if total_graded == 0:
+            # "Nothing to publish" stays a normal answer, as before.
             return Response(
-                {"message": "No graded submissions found to publish."},
+                {
+                    "message": "No graded submissions found to publish.",
+                    "skipped": skipped,
+                },
                 status=status.HTTP_200_OK,
             )
 
@@ -1767,7 +1907,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # bypasses post_save, so unlike the single-publish endpoint nothing
         # else would notify them or invalidate caches.
         newly_published = list(graded_submissions.filter(is_published=False))
-        updated_count = graded_submissions.update(is_published=True)
+        # Epic A S4 (D3): one GRADE_CHANGE per submission this actually
+        # publishes; already-published rows are updated but unchanged.
+        updated_count = history.record_bulk(graded_submissions, is_published=True)
 
         for submission in newly_published:
             # The snapshot was taken before the bulk write, so the in-memory
@@ -1794,6 +1936,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "message": f"Successfully published {updated_count} submissions.",
             "total_graded": total_graded,
             "ungraded_count": ungraded_count,
+            "skipped": skipped,
         }
 
         serializer = PublishAllGradesResponseSerializer(data)
@@ -1906,6 +2049,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # Epic A S4 (FR-A-01 "data export"): what left the system, how big.
+        # This renders the assignment's questions (and, for its teacher, the
+        # rubric) - no student work. No route exports student data yet.
+        emit(
+            AuditAction.DATA_EXPORT,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            metadata={"file_count": 1, "file_size_bytes": len(pdf_bytes)},
+        )
         return self._assignment_pdf_response(assignment, pdf_bytes)
 
     @staticmethod

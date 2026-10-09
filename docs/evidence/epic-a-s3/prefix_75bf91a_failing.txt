@@ -1,0 +1,209 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user s3.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user s3.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user s3.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user s3.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s3.super@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user s3.clawback.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user s3.clawback.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user s3.clawback.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user s3.rollover@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user s3.old.0@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s3.old.1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+EEECannot activate automatic trial for user s3.race.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user s3.race.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F
+======================================================================
+ERROR: test_an_anonymous_request_is_the_system (audit.tests_background_attribution.ActorRuleTests.test_an_anonymous_request_is_the_system)
+Nobody signed in initiated it: the actor is the system.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 133, in test_an_anonymous_request_is_the_system
+    with request_audit_state(SimpleNamespace(user=AnonymousUser())):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 301, in helper
+    return _GeneratorContextManager(func, args, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 105, in __init__
+    self.gen = func(*args, **kwds)
+               ^^^^^^^^^^^^^^^^^^^
+TypeError: request_audit_state() takes 0 positional arguments but 1 was given
+
+======================================================================
+ERROR: test_the_same_grant_in_a_superadmin_request_names_the_superadmin (audit.tests_background_attribution.ActorRuleTests.test_the_same_grant_in_a_superadmin_request_names_the_superadmin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 121, in test_the_same_grant_in_a_superadmin_request_names_the_superadmin
+    with request_audit_state(SimpleNamespace(user=admin)):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 301, in helper
+    return _GeneratorContextManager(func, args, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 105, in __init__
+    self.gen = func(*args, **kwds)
+               ^^^^^^^^^^^^^^^^^^^
+TypeError: request_audit_state() takes 0 positional arguments but 1 was given
+
+======================================================================
+ERROR: test_no_email_reaches_the_log (audit.tests_background_attribution.ClawbackThroughTheLedgerTests.test_no_email_reaches_the_log)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 251, in test_no_email_reaches_the_log
+    self.remove()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 222, in remove
+    with request_audit_state(SimpleNamespace(user=self.admin)):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 301, in helper
+    return _GeneratorContextManager(func, args, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 105, in __init__
+    self.gen = func(*args, **kwds)
+               ^^^^^^^^^^^^^^^^^^^
+TypeError: request_audit_state() takes 0 positional arguments but 1 was given
+
+======================================================================
+ERROR: test_one_credit_transaction_per_bucket_naming_the_remover (audit.tests_background_attribution.ClawbackThroughTheLedgerTests.test_one_credit_transaction_per_bucket_naming_the_remover)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 241, in test_one_credit_transaction_per_bucket_naming_the_remover
+    self.remove()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 222, in remove
+    with request_audit_state(SimpleNamespace(user=self.admin)):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 301, in helper
+    return _GeneratorContextManager(func, args, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 105, in __init__
+    self.gen = func(*args, **kwds)
+               ^^^^^^^^^^^^^^^^^^^
+TypeError: request_audit_state() takes 0 positional arguments but 1 was given
+
+======================================================================
+ERROR: test_the_ledger_nets_exactly_the_expired_credits (audit.tests_background_attribution.ClawbackThroughTheLedgerTests.test_the_ledger_nets_exactly_the_expired_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 228, in test_the_ledger_nets_exactly_the_expired_credits
+    self.remove()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 222, in remove
+    with request_audit_state(SimpleNamespace(user=self.admin)):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 301, in helper
+    return _GeneratorContextManager(func, args, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 105, in __init__
+    self.gen = func(*args, **kwds)
+               ^^^^^^^^^^^^^^^^^^^
+TypeError: request_audit_state() takes 0 positional arguments but 1 was given
+
+======================================================================
+ERROR: test_a_retention_sweep_records_its_counts (audit.tests_background_attribution.SweepSelfRecordTests.test_a_retention_sweep_records_its_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 173, in test_a_retention_sweep_records_its_counts
+    event = self.sweep_events().get()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 151, in sweep_events
+    return AuditEvent.objects.filter(action=AuditAction.AUDIT_RETENTION_SWEEP)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'AuditAction' has no attribute 'AUDIT_RETENTION_SWEEP'
+
+======================================================================
+ERROR: test_a_retention_sweep_that_deletes_nothing_still_records_itself (audit.tests_background_attribution.SweepSelfRecordTests.test_a_retention_sweep_that_deletes_nothing_still_records_itself)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 156, in test_a_retention_sweep_that_deletes_nothing_still_records_itself
+    event = self.sweep_events().get()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 151, in sweep_events
+    return AuditEvent.objects.filter(action=AuditAction.AUDIT_RETENTION_SWEEP)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'AuditAction' has no attribute 'AUDIT_RETENTION_SWEEP'
+
+======================================================================
+ERROR: test_the_pii_sweep_records_what_it_scrubbed_including_zero (audit.tests_background_attribution.SweepSelfRecordTests.test_the_pii_sweep_records_what_it_scrubbed_including_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 181, in test_the_pii_sweep_records_what_it_scrubbed_including_zero
+    self.assertEqual(self.sweep_events().get().metadata, {"scrubbed": 0})
+                     ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 151, in sweep_events
+    return AuditEvent.objects.filter(action=AuditAction.AUDIT_RETENTION_SWEEP)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'AuditAction' has no attribute 'AUDIT_RETENTION_SWEEP'
+
+======================================================================
+FAIL: test_a_celery_task_expiry_is_the_system (audit.tests_background_attribution.ActorRuleTests.test_a_celery_task_expiry_is_the_system)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 145, in test_a_celery_task_expiry_is_the_system
+    self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+AssertionError: 'TEACHER' != ActorRole.SYSTEM
+
+======================================================================
+FAIL: test_background_work_is_the_system_with_the_owner_as_target (audit.tests_background_attribution.ActorRuleTests.test_background_work_is_the_system_with_the_owner_as_target)
+A Celery grant, renewal or expiry runs outside any request.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 113, in test_background_work_is_the_system_with_the_owner_as_target
+    self.assertEqual(event.actor_role, ActorRole.SYSTEM)
+AssertionError: 'TEACHER' != ActorRole.SYSTEM
+
+======================================================================
+FAIL: test_the_suppressed_rollover_log_carries_no_email (audit.tests_background_attribution.RolloverLogTests.test_the_suppressed_rollover_log_carries_no_email)
+SM ruling: the same BE-A-04 leak, in the rollover's log line.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 285, in test_the_suppressed_rollover_log_carries_no_email
+    self.assertNotIn(teacher.email, text)
+AssertionError: 's3.rollover@example.com' unexpectedly found in "INFO:billing.license_service:License rollover fully suppressed by max_bank for teacher s3.rollover@example.com: requested 1000 ({'requested_rollover': 1000})."
+
+======================================================================
+FAIL: test_a_clawback_racing_the_cleanup_expires_each_bucket_once (audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_cleanup_expires_each_bucket_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 334, in test_a_clawback_racing_the_cleanup_expires_each_bucket_once
+    self.race(clawback, lambda: SubscriptionService.expire_bucket(stale))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 313, in race
+    self.assertEqual(errors, [])
+AssertionError: Lists differ: [TypeError("SubscriptionService.expire_buc[50 chars]e'")] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+TypeError("SubscriptionService.expire_bucket() got an unexpected keyword argument 'reference'")
+
+- [TypeError("SubscriptionService.expire_bucket() got an unexpected keyword argument 'reference'")]
++ []
+
+======================================================================
+FAIL: test_a_clawback_racing_the_monthly_grant_expires_nothing_twice (audit.tests_background_attribution.ClawbackRaceTests.test_a_clawback_racing_the_monthly_grant_expires_nothing_twice)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 375, in test_a_clawback_racing_the_monthly_grant_expires_nothing_twice
+    self.race(clawback, monthly_grant)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s3/audit/tests_background_attribution.py", line 313, in race
+    self.assertEqual(errors, [])
+AssertionError: Lists differ: [TypeError("SubscriptionService.expire_buc[50 chars]e'")] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+TypeError("SubscriptionService.expire_bucket() got an unexpected keyword argument 'reference'")
+
+- [TypeError("SubscriptionService.expire_bucket() got an unexpected keyword argument 'reference'")]
++ []
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.797s
+
+FAILED (failures=5, errors=8)
+Destroying test database for alias 'default'...
+Found 13 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,48 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 75e8b5b2-0165-46ef-949c-c0bc8b4611e0.
+Cannot activate automatic trial for user 75e8b5b2-0165-46ef-949c-c0bc8b4611e0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3e85179f-bbb5-48cf-a21e-1f519fd9d140.
+Cannot activate automatic trial for user 3e85179f-bbb5-48cf-a21e-1f519fd9d140 (validation): ValueError
+.Free trial plan not found: no trial activated for user 596019c6-c971-41ca-a3b8-5275299755eb.
+Cannot activate automatic trial for user 596019c6-c971-41ca-a3b8-5275299755eb (validation): ValueError
+.Free trial plan not found: no trial activated for user cea12371-eeb6-4c5b-8265-765512600906.
+Cannot activate automatic trial for user cea12371-eeb6-4c5b-8265-765512600906 (validation): ValueError
+.Free trial plan not found: no trial activated for user defa354d-5706-43ec-84fc-4c36324a624b.
+Cannot activate automatic trial for user defa354d-5706-43ec-84fc-4c36324a624b (validation): ValueError
+.Free trial plan not found: no trial activated for user d2d10004-d093-4a61-bd01-7cd02a1a158c.
+Cannot activate automatic trial for user d2d10004-d093-4a61-bd01-7cd02a1a158c (validation): ValueError
+.Free trial plan not found: no trial activated for user 58f35f1f-84dd-4e44-9a77-5dabbe6fd6d7.
+Cannot activate automatic trial for user 58f35f1f-84dd-4e44-9a77-5dabbe6fd6d7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 834c74bc-c376-4907-9fe3-57280127df31.
+Cannot activate automatic trial for user 834c74bc-c376-4907-9fe3-57280127df31 (validation): ValueError
+.Free trial plan not found: no trial activated for user a47c88eb-1036-432c-859c-a6b8f648ae2b.
+Cannot activate automatic trial for user a47c88eb-1036-432c-859c-a6b8f648ae2b (validation): ValueError
+.Free trial plan not found: no trial activated for user fa8650a9-521d-4d35-a1dd-7e1cac712a81.
+Cannot activate automatic trial for user fa8650a9-521d-4d35-a1dd-7e1cac712a81 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:08,758 task_tracking 1863293 136765131148224 [request_id=-] Background task 2dcc9336-3af8-4c9d-9e1c-4e12f04bc274 failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 8d663edd-0b3b-4787-a488-af75541ee2f9.
+Cannot activate automatic trial for user 8d663edd-0b3b-4787-a488-af75541ee2f9 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:08,964 task_tracking 1863293 136765131148224 [request_id=-] Background task 1ffcc29a-bcd0-42fd-a04a-35a8e95fdd17 failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user e747f846-2537-4a37-a7b4-f844e5924eba.
+Cannot activate automatic trial for user e747f846-2537-4a37-a7b4-f844e5924eba (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 12 tests in 2.572s
+
+OK
+Preserving test database for alias 'default'...
+Found 12 test(s).

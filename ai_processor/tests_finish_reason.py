@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 from ai_processor.services import AIProcessor
 from billing.tests.test_execute_graded_task import (
+    TEST_PROMPT_VERSION,
     ExecuteGradedTaskTestBase,
     make_ai_response,
 )
@@ -51,6 +52,7 @@ class CutOffRepliesAreCounted(ExecuteGradedTaskTestBase):
                     feature="Grading Assignment",
                     task_type=task_type,
                     user_prompt="prompt",
+                    prompt_version=TEST_PROMPT_VERSION,
                 )
         self.assertIs(returned, response)
         return [r for r in logged.records if r.msg.startswith(PREFIX)]

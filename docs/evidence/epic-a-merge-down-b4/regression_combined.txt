@@ -1,0 +1,202 @@
+# TRIMMED: last 200 of 32652 lines. Full log (sha256 dd89fe5489cc7fd8b4e1cf65a28c132bc803ff8985b856cbc44eb8b3926e4263) is outside the repo at
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-merge-down-b4_regression_combined_05dedbbf_full.txt (chmod 600). Step 3 at 05dedbbf: 2095 tests OK (skipped=18).
+01:35:48     raise FileUnreadableError(params={"file_name": file_name}) from exc
+01:35:48 assignments.exceptions.FileUnreadableError: We couldn't read bad-29.pdf. It may be damaged, password-protected or incomplete.
+01:35:48 ok
+01:35:48 test_a_file_already_uploaded_returns_the_existing_assignment_uncharged (assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_a_file_already_uploaded_returns_the_existing_assignment_uncharged) ... [2026-10-01 00:35:48,222: WARNING/MainProcess] Cannot activate automatic trial for user batch-task-fe85fdaf@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+01:35:48 ok
+01:35:48 test_an_unreadable_file_fails_uncharged_with_its_own_message (assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_an_unreadable_file_fails_uncharged_with_its_own_message) ... [2026-10-01 00:35:48,524: WARNING/MainProcess] Cannot activate automatic trial for user batch-task-a2a38735@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+01:35:48
+01:35:48
+01:35:48 students.task_tracking ERROR 2026-10-01 00:35:48,554 task_tracking 297848 138898962312128 [request_id=- client_request_id=-] Background task 1bf0daad-e595-497a-98af-dc2df1d0083d failed
+01:35:48
+01:35:48 Traceback (most recent call last):
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 513, in prepare_ai_content
+01:35:48     images = PDFService(uploaded_file).extract()
+01:35:48              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/ai_processor/services.py", line 5175, in extract
+01:35:48     raise PDFUnreadableError(
+01:35:48 ai_processor.services.PDFUnreadableError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+01:35:48
+01:35:48 The above exception was the direct cause of the following exception:
+01:35:48
+01:35:48 Traceback (most recent call last):
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 1077, in upload_assignment_async
+01:35:48     outcome = upload_assignment_file(
+01:35:48               ^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 116, in upload_assignment_file
+01:35:48     content = AssignmentProcessingService.prepare_ai_content(
+01:35:48               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 532, in prepare_ai_content
+01:35:48     raise FileUnreadableError(params={"file_name": file_name}) from exc
+01:35:48 assignments.exceptions.FileUnreadableError: We couldn't read photo.pdf. It may be damaged, password-protected or incomplete.
+01:35:48 [2026-10-01 00:35:48,559: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[68aaf145-ebe3-4561-84b9-9278a9bcfdf9] raised unexpected: FileUnreadableError('FILE_UNREADABLE', {'file_name': 'photo.pdf'}, None, None)
+01:35:48 Traceback (most recent call last):
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 513, in prepare_ai_content
+01:35:48     images = PDFService(uploaded_file).extract()
+01:35:48              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/ai_processor/services.py", line 5175, in extract
+01:35:48     raise PDFUnreadableError(
+01:35:48 ai_processor.services.PDFUnreadableError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+01:35:48
+01:35:48 The above exception was the direct cause of the following exception:
+01:35:48
+01:35:48 Traceback (most recent call last):
+01:35:48   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+01:35:48     R = retval = fun(*args, **kwargs)
+01:35:48                  ^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 1077, in upload_assignment_async
+01:35:48     outcome = upload_assignment_file(
+01:35:48               ^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 116, in upload_assignment_file
+01:35:48     content = AssignmentProcessingService.prepare_ai_content(
+01:35:48               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 532, in prepare_ai_content
+01:35:48     raise FileUnreadableError(params={"file_name": file_name}) from exc
+01:35:48 assignments.exceptions.FileUnreadableError: We couldn't read photo.pdf. It may be damaged, password-protected or incomplete.
+01:35:48 ok
+01:35:48 test_an_unusable_response_is_refunded_and_the_file_released (assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_an_unusable_response_is_refunded_and_the_file_released) ... [2026-10-01 00:35:48,734: WARNING/MainProcess] Cannot activate automatic trial for user batch-task-e692078c@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+01:35:48
+01:35:48
+01:35:48 ai_processor.services ERROR 2026-10-01 00:35:48,801 services 297848 138898962312128 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services WARNING 2026-10-01 00:35:48,801 services 297848 138898962312128 [request_id=- client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services INFO 2026-10-01 00:35:48,801 services 297848 138898962312128 [request_id=- client_request_id=-] Retrying...
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services ERROR 2026-10-01 00:35:48,838 services 297848 138898962312128 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services WARNING 2026-10-01 00:35:48,838 services 297848 138898962312128 [request_id=- client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services INFO 2026-10-01 00:35:48,838 services 297848 138898962312128 [request_id=- client_request_id=-] Retrying...
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services ERROR 2026-10-01 00:35:48,872 services 297848 138898962312128 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 ai_processor.services WARNING 2026-10-01 00:35:48,872 services 297848 138898962312128 [request_id=- client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48
+01:35:48
+01:35:48
+01:35:48
+01:35:48 students.task_tracking ERROR 2026-10-01 00:35:48,920 task_tracking 297848 138898962312128 [request_id=- client_request_id=-] Background task b3a19966-f662-40af-9d06-43ede744e3b2 failed
+01:35:48
+01:35:48 Traceback (most recent call last):
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 1077, in upload_assignment_async
+01:35:48     outcome = upload_assignment_file(
+01:35:48               ^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 133, in upload_assignment_file
+01:35:48     assignment_questions = AssignmentProcessingService.extract_assignment_data(
+01:35:48                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 944, in extract_assignment_data
+01:35:48     ai_processor.extract_assignment_with_retry(
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/ai_processor/services.py", line 1402, in extract_assignment_with_retry
+01:35:48     raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+01:35:48 Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48 [2026-10-01 00:35:48,926: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[fd901166-d5dc-4a30-83f9-16e1d658fb38] raised unexpected: Exception('All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)')
+01:35:48 Traceback (most recent call last):
+01:35:48   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+01:35:48     R = retval = fun(*args, **kwargs)
+01:35:48                  ^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 1077, in upload_assignment_async
+01:35:48     outcome = upload_assignment_file(
+01:35:48               ^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 133, in upload_assignment_file
+01:35:48     assignment_questions = AssignmentProcessingService.extract_assignment_data(
+01:35:48                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 944, in extract_assignment_data
+01:35:48     ai_processor.extract_assignment_with_retry(
+01:35:48   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/ai_processor/services.py", line 1402, in extract_assignment_with_retry
+01:35:48     raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+01:35:48 Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+01:35:48 ok
+01:35:49 test_an_unreadable_answer_file_executes_exactly_once (assignments.tests_upload_task_retry_policy.UploadTasksOnRealWorkerTest.test_an_unreadable_answer_file_executes_exactly_once) ... [2026-10-01 00:35:49,113: WARNING/MainProcess] Cannot activate automatic trial for user batch-worker-901aca07@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+01:35:49
+01:35:49
+01:35:49 students.task_tracking ERROR 2026-10-01 00:35:49,208 task_tracking 297848 138897925326528 [request_id=- client_request_id=-] Background task f01cea3e-ece5-43dd-9c6f-43fcddccb16d failed
+01:35:49
+01:35:49 Traceback (most recent call last):
+01:35:49   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 513, in prepare_ai_content
+01:35:49     images = PDFService(uploaded_file).extract()
+01:35:49              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:49   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/ai_processor/services.py", line 5175, in extract
+01:35:49     raise PDFUnreadableError(
+01:35:49 ai_processor.services.PDFUnreadableError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+01:35:49
+01:35:49 The above exception was the direct cause of the following exception:
+01:35:49
+01:35:49 Traceback (most recent call last):
+01:35:49   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 872, in upload_answers_engine_async
+01:35:49     content = AssignmentProcessingService.prepare_ai_content(
+01:35:49               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+01:35:49   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/services.py", line 532, in prepare_ai_content
+01:35:49     raise FileUnreadableError(params={"file_name": file_name}) from exc
+01:35:49 assignments.exceptions.FileUnreadableError: We couldn't read photo.pdf. It may be damaged, password-protected or incomplete.
+01:35:57 ok
+01:35:57 test_the_same_assignment_file_in_concurrent_tasks_is_charged_once (assignments.tests_upload_task_retry_policy.UploadTasksOnRealWorkerTest.test_the_same_assignment_file_in_concurrent_tasks_is_charged_once) ... [2026-10-01 00:35:57,498: WARNING/MainProcess] Cannot activate automatic trial for user batch-worker-6b5029a3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+01:35:57
+01:35:57
+01:35:57 students.task_tracking ERROR 2026-10-01 00:35:57,638 task_tracking 297848 138897950504640 [request_id=- client_request_id=-] Background task 8d06fcb6-1508-4290-8149-4c78f65e5ddb failed
+01:35:57
+01:35:57 Traceback (most recent call last):
+01:35:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 1077, in upload_assignment_async
+01:35:57     outcome = upload_assignment_file(
+01:35:57               ^^^^^^^^^^^^^^^^^^^^^^^
+01:35:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 110, in upload_assignment_file
+01:35:57     claim = _claim(course, sha256)
+01:35:57             ^^^^^^^^^^^^^^^^^^^^^^
+01:35:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 197, in _claim
+01:35:57     raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+01:35:57 assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+01:35:57 [2026-10-01 00:35:57,664: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[a400e9c3-59b8-44b6-b539-50190abdf894] raised unexpected: UploadAlreadyInProgressError('This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.')
+01:35:57 Traceback (most recent call last):
+01:35:57   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+01:35:57     R = retval = fun(*args, **kwargs)
+01:35:57                  ^^^^^^^^^^^^^^^^^^^^
+01:35:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/tasks.py", line 1077, in upload_assignment_async
+01:35:57     outcome = upload_assignment_file(
+01:35:57               ^^^^^^^^^^^^^^^^^^^^^^^
+01:35:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 110, in upload_assignment_file
+01:35:57     claim = _claim(course, sha256)
+01:35:57             ^^^^^^^^^^^^^^^^^^^^^^
+01:35:57   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4/assignments/file_uploads.py", line 197, in _claim
+01:35:57     raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+01:35:57 assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+01:35:58 ok
+01:35:58 test_a_validation_error_on_a_field_named_code_still_renders_as_before (users.tests_renderers.APIJSONRendererTests.test_a_validation_error_on_a_field_named_code_still_renders_as_before) ... ok
+01:35:58 test_manual_error_key_becomes_plain_error_message (users.tests_renderers.APIJSONRendererTests.test_manual_error_key_becomes_plain_error_message) ... ok
+01:35:58 test_manual_error_status_is_rendered_as_error (users.tests_renderers.APIJSONRendererTests.test_manual_error_status_is_rendered_as_error) ... ok
+01:35:58 test_refusal_code_beside_the_message_is_not_shown_as_text (users.tests_renderers.APIJSONRendererTests.test_refusal_code_beside_the_message_is_not_shown_as_text) ... ok
+01:35:58 test_success_response_promotes_detail_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_detail_to_message) ... ok
+01:35:58 test_success_response_promotes_message_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_message_to_message) ... ok
+01:35:58 test_unhandled_exception_never_leaks_raw_technical_detail (users.tests_renderers.APIJSONRendererTests.test_unhandled_exception_never_leaks_raw_technical_detail) ... ok
+01:35:58 test_validation_errors_keep_numbered_message_and_field_errors (users.tests_renderers.APIJSONRendererTests.test_validation_errors_keep_numbered_message_and_field_errors) ... ok
+01:35:58
+01:35:58 ----------------------------------------------------------------------
+01:35:58 Ran 2095 tests in 314.558s
+01:35:58
+01:35:58 OK (skipped=18)
+01:35:58 Destroying test database for alias 'default' ('test_epic_a_merge_down_b4')...
+01:35:59
+01:35:59 [scale] 30-file batch (24 good, 6 bad) took 1.32s
+01:35:59
+01:35:59 [scale] 6 concurrent 30-file batches took 1.88s; provider calls=24

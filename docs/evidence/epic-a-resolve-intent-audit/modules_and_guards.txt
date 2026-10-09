@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 5713 lines; full log (sha256 prefix 3f4ee62ac325fe77) at ~/Documents/Projects/GAP-evidence-logs/resolve_intent_aa72fffb_modules_and_guards.txt]
+16:09:02 API request failed with ROW_NAME_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_ALREADY_ENROLLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_NAME_CLASH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_STAFF_EMAIL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_ACCOUNT_DISABLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_EMAIL_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_DUPLICATE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_LIST_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with LICENCE_INACTIVE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with LICENCE_SEATS_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_EMAIL_NOT_BUSINESS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_EMAIL_OTHER_ROLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_IN_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_ALREADY_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_NOT_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_ADD_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_REMOVE_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with SUBMISSION_NOT_GRADED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 ok
+16:09:02 test_qa_err_03_no_exception_text_reaches_any_body (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_03_no_exception_text_reaches_any_body) ... API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02
+16:09:02
+16:09:02 django.request ERROR 2026-10-02 15:09:02,789 log 1151315 124819166956480 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+16:09:02
+16:09:02
+16:09:02 API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with RESET_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with VERIFY_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ACCOUNT_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with REGISTRATION_PAUSED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with FILE_NOT_A_PDF: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROSTER_NO_INPUT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROSTER_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROSTER_FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROSTER_TOO_MANY_ROWS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_NAME_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_ALREADY_ENROLLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_NAME_CLASH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_STAFF_EMAIL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_ACCOUNT_DISABLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_EMAIL_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_DUPLICATE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with ROW_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_LIST_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with LICENCE_INACTIVE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with LICENCE_SEATS_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_EMAIL_NOT_BUSINESS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_EMAIL_OTHER_ROLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_IN_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_ALREADY_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_NOT_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_ADD_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with TEACHER_REMOVE_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request failed with SUBMISSION_NOT_GRADED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+16:09:02 ok
+16:09:02 test_qa_err_04_an_inbound_request_id_is_never_the_reference (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_an_inbound_request_id_is_never_the_reference)
+16:09:02 X-5 wins over the first QA-ERR-04 reading (SM ruling): echoing a ... API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02
+16:09:02
+16:09:02 django.request ERROR 2026-10-02 15:09:02,826 log 1151315 124819166956480 [request_id=- client_request_id=-] Service Unavailable: /coded-client-id
+16:09:02
+16:09:02
+16:09:02 ok
+16:09:02 test_qa_err_04_reference_is_the_request_id (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_reference_is_the_request_id) ... API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 ok
+16:09:02 test_the_old_refusals_keep_their_message_and_legacy_code (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_the_old_refusals_keep_their_message_and_legacy_code) ... API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+16:09:02 API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+16:09:02 ok
+16:09:02 test_a_missing_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_missing_param_is_refused) ... ok
+16:09:02 test_a_non_scalar_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_non_scalar_param_is_refused) ... ok
+16:09:02 test_a_param_outside_the_spec_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_param_outside_the_spec_is_refused) ... ok
+16:09:02 test_a_subclass_fixes_its_code (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_subclass_fixes_its_code) ... ok
+16:09:02 test_an_audit_only_code_has_no_error_body (AutoGrader.tests_reason_codes.CodedErrorTests.test_an_audit_only_code_has_no_error_body) ... ok
+16:09:02 test_defaults_fill_a_param_the_raiser_left_out (AutoGrader.tests_reason_codes.CodedErrorTests.test_defaults_fill_a_param_the_raiser_left_out) ... ok
+16:09:02 test_detail_stays_out_of_the_message (AutoGrader.tests_reason_codes.CodedErrorTests.test_detail_stays_out_of_the_message) ... ok
+16:09:02 test_display_for_no_placeholder_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_for_no_placeholder_is_refused) ... ok
+16:09:02 test_display_may_stand_in_for_an_unknown_param (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_may_stand_in_for_an_unknown_param) ... ok
+16:09:02 test_display_shapes_the_message_but_never_the_params (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_shapes_the_message_but_never_the_params) ... ok
+16:09:02 test_display_values_must_be_text (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_values_must_be_text) ... ok
+16:09:02 test_only_user_and_validation_classes_are_user_facing (AutoGrader.tests_reason_codes.CodedErrorTests.test_only_user_and_validation_classes_are_user_facing) ... ok
+16:09:02 test_refusal_response_still_answers_refusals_only (AutoGrader.tests_reason_codes.CodedErrorTests.test_refusal_response_still_answers_refusals_only) ... ok
+16:09:02 test_the_message_is_rendered_from_the_spec (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_is_rendered_from_the_spec) ... ok
+16:09:02 test_the_message_layer_shows_the_message_and_never_the_detail (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_layer_shows_the_message_and_never_the_detail)
+16:09:02 The path background-task item text and _failure_response's ... ok
+16:09:02 test_a_variant_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.MessageVariantTests.test_a_variant_survives_being_rebuilt_from_its_args) ... ok
+16:09:02 test_an_unapproved_variant_is_refused (AutoGrader.tests_reason_codes.MessageVariantTests.test_an_unapproved_variant_is_refused) ... ok
+16:09:02 test_the_variant_renders_its_own_template (AutoGrader.tests_reason_codes.MessageVariantTests.test_the_variant_renders_its_own_template) ... ok
+16:09:02 test_a_row_code_always_carries_its_row (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_a_row_code_always_carries_its_row) ... ok
+16:09:02 test_every_approved_code_is_user_facing_with_its_approved_text (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_every_approved_code_is_user_facing_with_its_approved_text) ... ok
+16:09:02 test_no_neutral_code_names_a_role_or_a_school (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_no_neutral_code_names_a_role_or_a_school) ... ok
+16:09:02 test_the_individual_subscription_text_lives_in_one_constant (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_individual_subscription_text_lives_in_one_constant) ... ok
+16:09:02 test_the_seat_message_reads_as_both_approved_forms (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_seat_message_reads_as_both_approved_forms) ... ok
+16:09:02 test_a_chosen_remediation_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_a_chosen_remediation_survives_being_rebuilt_from_its_args)
+16:09:02 Celery's json backend rebuilds an error as cls(*args). ... ok
+16:09:02 test_an_approved_alternative_is_carried_to_the_body (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_approved_alternative_is_carried_to_the_body) ... ok
+16:09:02 test_an_unapproved_remediation_is_refused (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_unapproved_remediation_is_refused) ... ok
+16:09:02 test_nothing_to_do_is_null (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_nothing_to_do_is_null) ... ok
+16:09:02 test_the_default_is_the_specs (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_the_default_is_the_specs) ... ok
+16:09:02 test_a_coded_body_flattens_to_its_display_sentence_alone (AutoGrader.tests_reason_codes.RendererMessageTests.test_a_coded_body_flattens_to_its_display_sentence_alone) ... ok
+16:09:02 test_a_balance_reason_gets_the_credits_refusal (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal) ... AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+16:09:02 AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+16:09:02 ok
+16:09:02 test_a_refused_request_gets_the_plan_refusal_without_the_reason (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_refused_request_gets_the_plan_refusal_without_the_reason) ... AI access denied for user ANON (feature=None): User not authenticated
+16:09:02 ok
+16:09:02 test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+16:09:06 Two concurrent runs: the second one's start-of-run sweep and its ... ok
+16:09:08 test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+16:09:10 test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+16:09:10 test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+16:09:10 test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+16:09:10 test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+16:09:10 test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+16:09:10 test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+16:09:10 An expired counter reads as generation 1 and revives every stale ... ok
+16:09:10 test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+16:09:10 test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+16:09:10 test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+16:09:10 test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+16:09:10 test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address) ... ok
+16:09:10 test_the_guard_sees_each_kind_of_leak (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_the_guard_sees_each_kind_of_leak)
+16:09:10 Not vacuous: each shape the guard rejects, in a sample call. ... ok
+16:09:10 test_two_concurrent_delete_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_delete_sweeps_never_double_process_or_raise) ... Beat task audit.tasks.sweep_audit_retention: another run already holds the lock; skipping this one (key gaplus-t1151315:1:beat-lock:audit.tasks.sweep_audit_retention, held by run direct:315788daa126; this run direct:b9ca050ed758).
+16:09:10 ok
+16:09:10 test_two_concurrent_pii_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_pii_sweeps_never_double_process_or_raise) ... Beat task audit.tasks.sweep_audit_pii_short_retention: another run already holds the lock; skipping this one (key gaplus-t1151315:1:beat-lock:audit.tasks.sweep_audit_pii_short_retention, held by run direct:6faee1fe3702; this run direct:fd16333929e2).
+16:09:10 ok
+16:09:10 test_a_write_inside_the_report_is_refused (audit.tests_volume_report.ReadOnlyTests.test_a_write_inside_the_report_is_refused) ... ok
+16:09:11 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+16:09:12 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+16:09:14 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+16:09:14 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+16:09:16 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+16:09:16 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+16:09:18 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+16:09:18 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+16:09:18 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+16:09:18 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+16:09:18 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+16:09:18 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+16:09:18 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+16:09:18 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+16:09:18 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+16:09:19 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+16:09:19 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+16:09:19 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+16:09:19 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+16:09:21 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+16:09:23 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+16:09:23 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+16:09:26 Guard on the guard, on synthetic source. ... ok
+16:09:28 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+16:09:28 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+16:09:28 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+16:09:28 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+16:09:28 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+16:09:28 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+16:09:28 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+16:09:28 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+16:09:28 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+16:09:28 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+16:09:28 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+16:09:28 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+16:09:28 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+16:09:28 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+16:09:28 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+16:09:28 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+16:09:28 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+16:09:28 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+16:09:28 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+16:09:28 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+16:09:28 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+16:09:28 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+16:09:28 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+16:09:28
+16:09:28 ----------------------------------------------------------------------
+16:09:28 Ran 657 tests in 162.802s
+16:09:28
+16:09:28 OK
+16:09:28 Destroying test database for alias 'default' ('test_epic_a_resolve_intent_audit')...

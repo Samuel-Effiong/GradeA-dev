@@ -922,12 +922,12 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
 
     user_email = user.email
     user_id = user.id
-    school_name = school.name
+    school_id = school.id
 
     def _dispatch():
         try:
             send_email_task.delay(
-                subject=f"You've been added as the admin for {school_name}",
+                subject=f"You've been added as the admin for {school.name}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user_email],
@@ -937,10 +937,9 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
             )
         except Exception:
             logger.exception(
-                "Failed to queue school admin invitation email to user %s for "
-                "school %s.",
+                "Failed to queue school admin invitation email to user %s for school %s.",
                 user_id,
-                school_name,
+                school_id,
             )
 
     transaction.on_commit(_dispatch)
@@ -1247,9 +1246,5 @@ class BulkAddStudentSerializer(serializers.Serializer):
     file = serializers.FileField(required=False)
     raw_data = serializers.CharField(required=False, allow_blank=True)
 
-    def validate(self, attrs):
-        if not attrs.get("file") and not attrs.get("raw_data"):
-            raise serializers.ValidationError(
-                "Either a CSV file or raw text data must be provided."
-            )
-        return attrs
+    # "Neither a file nor text" is ROSTER_NO_INPUT, coded by the view (Epic A
+    # S7d, catalogue D1), no longer a field error here.

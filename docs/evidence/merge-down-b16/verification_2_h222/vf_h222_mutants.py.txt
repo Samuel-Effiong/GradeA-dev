@@ -1,0 +1,172 @@
+"""v2 mutants for H-222 (d5's tip 3b5f9fb5, to be judged on 0b's merged tip).
+
+Run from the vf2-s1 scratch worktree detached at COMMIT, inside the caller's
+rule 16/13/12 wrappers, output to files, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h222_mutants.py check | baseline | a3 | (no args: all mutants)
+
+Written 2026-10-09 20:38 WAT BEFORE any run, from reading the 3b5f9fb5 blobs,
+billing/locks.py and H-181's RaceTestCase.race().
+
+JUDGED: billing.tests.test_wallet_lock_first_expiry (X1, X2: deterministic
+order tests) and audit.tests_background_attribution.ClawbackRaceTests (A: real
+threads, timing dependent: INFORMATIVE ONLY, printed, never counted).
+Mode XSET: the X tests that fail must EQUAL the written set; A failures only printed.
+Fragments (rule 22) must appear inside the named test's OWN FAIL/ERROR block.
+
+WHY the fragments (read by hand, race()):
+ * helper never called -> worker 0 never hits the hook -> worker 1 waits 10 s,
+   then race() asserts a_started: "worker 1 never started its charge".
+ * helper called too late -> worker 0 pauses holding the bucket, the charge takes the
+   wallet and waits for it, worker 0's real lock waits for the wallet: Postgres
+   aborts one -> errors != [] -> "the charge and the function deadlocked".
+B0 base  = both production files as at d2ad0405 (M1+M2 together), tip's tests: X1,X2 both fail (never started).
+M1 the clawback's wallet lock removed        -> X2 only, "never started its charge" (X1 calls expire_bucket directly).
+M2 expire_bucket's wallet lock removed       -> X1 only, same fragment (X2: the clawback already holds the wallet).
+M3 expire_bucket: lock after the bucket get  -> X1 only, "deadlocked" (X2: wallet already held by the clawback).
+M4 clawback: lock after the bucket query     -> X2 only, "deadlocked" (X1 does not run the clawback).
+"""
+
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+SVC = "billing/services.py"
+LIC = "billing/license_service.py"
+XMOD = "billing.tests.test_wallet_lock_first_expiry"
+ACLS = "audit.tests_background_attribution.ClawbackRaceTests"
+LABELS = [XMOD, ACLS]
+X1 = "ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket"
+X2 = "ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets"
+NEVER = r"worker 1 never started its charge"
+DEAD = r"the charge and the function deadlocked"
+
+EXP_LOCK = "        lock_wallet_first(bucket.wallet)\n"
+EXP_GET = "        bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)\n"
+CL_LOCK = "        wallet = lock_wallet_first(teacher.credit_wallet)\n"
+CL_LOOP = "        for bucket in buckets:\n            bucket.expires_at = now\n"
+PLAIN = "        wallet = teacher.credit_wallet\n"
+
+# name -> [(path, old, new)...]
+MUTANTS = {
+    "B0_base_code_with_the_tip_tests": [(SVC, EXP_LOCK, ""), (LIC, CL_LOCK, PLAIN)],
+    "M1_clawback_has_no_wallet_lock": [(LIC, CL_LOCK, PLAIN)],
+    "M2_expire_bucket_has_no_wallet_lock": [(SVC, EXP_LOCK, "")],
+    "M3_expire_bucket_locks_wallet_after_bucket": [(SVC, EXP_LOCK + EXP_GET, EXP_GET + EXP_LOCK)],
+    "M4_clawback_locks_wallet_after_buckets": [
+        (LIC, CL_LOCK, PLAIN),
+        (LIC, CL_LOOP, "        wallet = lock_wallet_first(wallet)\n" + CL_LOOP)],
+}
+EXPECTED = {  # name -> (X tests failing, {test: fragment})
+    "B0_base_code_with_the_tip_tests": ([X1, X2], {X1: NEVER, X2: NEVER}),
+    "M1_clawback_has_no_wallet_lock": ([X2], {X2: NEVER}),
+    "M2_expire_bucket_has_no_wallet_lock": ([X1], {X1: NEVER}),
+    "M3_expire_bucket_locks_wallet_after_bucket": ([X1], {X1: DEAD}),
+    "M4_clawback_locks_wallet_after_buckets": ([X2], {X2: DEAD}),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache():
+    for p in (SVC, LIC):
+        shutil.rmtree(pathlib.Path(p).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    blocks = {}
+    for m in re.finditer(
+        r"^={70}\n(?:FAIL|ERROR): (\w+) \(([\w.]+)\)[^\n]*\n(.*?)(?=^={70}\n|\Z)",
+        o, re.M | re.S):
+        method, dotted, body = m.groups()
+        blocks[".".join(dotted.split(".")[-2:-1] + [method])] = body
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, blocks, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name, edits in MUTANTS.items():
+        srcs = {}
+        for path, old, new in edits:
+            s = srcs.get(path) or open(path).read()
+            print(name, path, "anchor count", s.count(old), flush=True)
+            srcs[path] = s.replace(old, new, 1)
+        for s in srcs.values():
+            ast.parse(s)
+    for t in (X1, X2):
+        cls, meth = t.split(".")
+        txt = open(XMOD.replace(".", "/") + ".py").read()
+        print(t, "found" if re.search(rf"^class {cls}\b", txt, re.M) and f"def {meth}(" in txt else "MISSING")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache()
+    rc, ran, summary, blocks, o = run(LABELS, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", sorted(blocks), flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+if sys.argv[1:] == ["a3"]:
+    bad = 0
+    for i in (1, 2, 3):
+        clear_pycache()
+        rc, ran, summary, blocks, o = run([ACLS], f"a_alone_{i}.txt")
+        print(f"ClawbackRaceTests alone run {i} |", ran, "|", summary, "|", sorted(blocks), flush=True)
+        bad += rc != 0
+    sys.exit(1 if bad else 0)
+
+for name in sys.argv[1:] or MUTANTS:
+    edits = MUTANTS[name]
+    paths = sorted({p for p, _, _ in edits})
+    srcs = {p: open(p).read() for p in paths}
+    ok = True
+    for p, old, new in edits:
+        if srcs[p].count(old) != 1:
+            print(name, "APPLY_FAILED", p, srcs[p].count(old), flush=True)
+            ok = False
+            break
+        srcs[p] = srcs[p].replace(old, new, 1)
+    if not ok:
+        continue
+    for s in srcs.values():
+        ast.parse(s)
+    want, frags = EXPECTED[name]
+    try:
+        clear_pycache()
+        for p in paths:
+            open(p, "w").write(srcs[p])
+        rc, ran, summary, blocks, _ = run(LABELS, f"{name}.txt")
+        xfail = sorted(t for t in blocks if t.startswith("ExpiryLocksTheWalletFirst."))
+        afail = sorted(t for t in blocks if not t.startswith("ExpiryLocksTheWalletFirst."))
+        if rc == 0:
+            status = "SURVIVED"
+        elif ran == "Ran ?" or not blocks:
+            status = "BROKEN"
+        else:
+            status = "KILLED" if xfail == sorted(want) else "KILLED_OTHER_SET"
+        bad = [t for t, rx in frags.items() if t in blocks and not re.search(rx, blocks[t])]
+        if status == "KILLED" and bad:
+            status = "FRAGMENT_MISSING"
+        print(name, "|", status, "|", ran, "|", summary, "| X failing", xfail,
+              "| written", sorted(want), "| fragment-missing", bad,
+              "| A (informative only)", afail, flush=True)
+    finally:
+        for p in paths:
+            subprocess.run(["git", "checkout", "--", p], check=True)
+        clear_pycache()
+        for p in paths:
+            good = sha(open(p, "rb").read()) == sha(
+                subprocess.run(["git", "show", f"{COMMIT}:{p}"], capture_output=True).stdout)
+            print("  restore", p, "ok" if good else "MISMATCH", "| __pycache__ cleared", flush=True)
