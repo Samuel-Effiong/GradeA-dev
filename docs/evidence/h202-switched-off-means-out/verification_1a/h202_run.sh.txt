@@ -1,0 +1,79 @@
+#!/bin/bash
+# 1a: H-202 verification (rules 12, 13, 16 revised, 17, 18, 19). Usage: h202_run.sh <setup|all|base|old|P1..P13|hooks>
+# The WHOLE script inside ONE systemd-inhibit (re-exec); "all" is the chain base, old, P1 P2 P3 P4 P5 P6 P8 P9 P10 P11 P12 P13, hooks.
+# Every test run writes straight to its own log file, stdin from /dev/null, nothing piped. One test process at a time.
+set -u
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP 1a H-164N3 check" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+PC=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/pre-commit
+OUT=/home/bond-servant-in-training/Documents/Projects/GAP-1a-records/runs
+G=/home/bond-servant-in-training/Documents/Projects/GAP-1a-records
+SC=/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch
+W=$SC/vf_h202
+SRC=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student
+TIP=5ad21e962e1ccd5156bd369c9cf3470759ec40e9; T8=5ad21e96; BASE=3f2ad13e; PREV=e11a0083; Y=${1:-}
+MOD=users.tests_vf1a_h202
+if [ "$Y" = setup ]; then
+  [ -e "$W" ] && { echo "ABORT $W exists"; exit 9; }
+  git -C "$SRC" worktree add --detach "$W" $TIP || exit 9
+  cd "$W" || exit 9
+  ln -s "$(readlink -f "$SRC/.env")" .env
+  for S in settings_worktree:test_vf_h202 settings_worktree_mut:test_vf_h202_mut; do
+    printf 'from AutoGrader.settings import *  # noqa: F401,F403\nfrom AutoGrader.settings import DATABASES\n\nDATABASES["default"].setdefault("TEST", {})\nDATABASES["default"]["TEST"]["NAME"] = "%s"\n' "${S#*:}" > "${S%%:*}.py"
+  done
+  cp $G/h202_probe_tests_vf1a_h202.py users/tests_vf1a_h202.py
+  git rev-parse --short=8 HEAD; git status --porcelain
+  exit 0
+fi
+cd "$W" || exit 9
+[ "$(git rev-parse HEAD)" = $TIP ] && [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "ABORT tree"; exit 9; }
+cmp -s $G/h202_probe_tests_vf1a_h202.py users/tests_vf1a_h202.py || { echo "ABORT probe copy differs"; exit 9; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/ && /GAP/' | wc -l)" = 0 ] || { echo "ABORT another GAP test process"; exit 9; }
+wrap() { systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 env PYTHONDONTWRITEBYTECODE=1 EXEMPT_EMAIL_DOMAINS= "$@"; }
+clearpyc() { find AutoGrader users classrooms billing -name __pycache__ -type d -prune -exec rm -rf {} + ; echo "pycache dirs after clear: $(find AutoGrader users classrooms billing -name __pycache__ -type d | wc -l)"; }
+show() { grep -E "^(FAIL|ERROR): |^Ran |^OK|^FAILED" "$1" | cut -c1-200; }
+one() {
+  local Y=$1 L BLOB s rc F
+  case $Y in
+  base)
+    L=$OUT/h202_$T8.log
+    { echo "# 1a H-164N3 baseline at $(git rev-parse HEAD), unmutated, PYTHONDONTWRITEBYTECODE=1"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; } > "$L"
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)" >> "$L"
+    echo "== base exit=$rc"; show "$L"
+    ;;
+  old)
+    L=$OUT/h202_old_code_$T8.log
+    { echo "# 1a H-164N3 OLD code: users/views.py from $PREV (H-164 final tip, before H-202), the rest at the tip"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; git checkout $PREV -- users/views.py users/admin.py; git diff --stat --cached | tail -3; } > "$L" 2>&1
+    grep -q "H-202" users/views.py users/admin.py && { git checkout $TIP -- users/views.py users/admin.py; git reset -q; echo "ABORT old: H-202 still present"; exit 8; }
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree_mut --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    git checkout $TIP -- users/views.py users/admin.py; git reset -q
+    { echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)"; echo "restored: views $([ "$(git show $TIP:users/views.py | sha256sum)" = "$(sha256sum < users/views.py)" ] && echo True || echo False) admin $([ "$(git show $TIP:users/admin.py | sha256sum)" = "$(sha256sum < users/admin.py)" ] && echo True || echo False)"; clearpyc; echo "tracked changes after restore: $(git status --porcelain --untracked-files=no | wc -l)"; } >> "$L" 2>&1
+    echo "== old exit=$rc"; show "$L"; tail -3 "$L"
+    ;;
+  P[0-9]|P1[0-3])
+    case $Y in P8|P9|P10|P13) F=users/admin.py;; *) F=users/views.py;; esac
+    BLOB=$(git show $TIP:$F | sha256sum | cut -d' ' -f1)
+    L=$OUT/h202_mutant_${Y}_$T8.log
+    { echo "# 1a H-164 verify-road mutant $Y at $(git rev-parse HEAD), PYTHONDONTWRITEBYTECODE=1"; echo "loadavg before: $(cat /proc/loadavg)"; clearpyc; "$PY" -B $G/h202_mutants_P.py $Y; echo "mutated sha differs: $([ "$(sha256sum $F | cut -d' ' -f1)" != "$BLOB" ] && echo True || echo False)"; git diff --stat; } > "$L" 2>&1
+    grep -q "^mutated sha differs: True$" "$L" && grep -q "^applied $Y to $F$" "$L" || { git checkout $TIP -- $F; echo "ABORT $Y: mutant not applied, no test run; see $L" | tee -a "$L"; exit 8; }
+    s=$(date +%s); wrap "$PY" -B manage.py test $MOD --settings=settings_worktree_mut --noinput --verbosity 2 >> "$L" 2>&1 < /dev/null; rc=$?
+    git checkout $TIP -- $F
+    { echo "exit=$rc wall_s=$(( $(date +%s)-s )) loadavg after: $(cat /proc/loadavg)"; echo "restored_sha256_matches_commit_blob: $([ "$(sha256sum $F | cut -d' ' -f1)" = "$BLOB" ] && echo True || echo False)"; clearpyc; echo "tracked changes after restore: $(git status --porcelain --untracked-files=no | wc -l)"; } >> "$L" 2>&1
+    echo "== $Y exit=$rc"; sed -n 3,5p "$L"; show "$L"; tail -3 "$L"
+    ;;
+  hooks)
+    L=$SC/h202_hooks_$T8.txt
+    nice -n 10 "$PC" run --from-ref $BASE --to-ref $TIP > "$L" 2>&1 < /dev/null; rc=$?
+    echo "== hooks exit=$rc passed=$(grep -c Passed "$L") failed=$(grep -c Failed "$L") tracked changes after hooks: $(git status --porcelain --untracked-files=no | wc -l)"
+    ;;
+  *) echo "unknown $Y"; exit 9;;
+  esac
+}
+if [ "$Y" = all ]; then
+  for m in base old P1 P2 P3 P4 P5 P6 P8 P9 P10 P11 P12 P13 hooks; do one $m; done
+else
+  one "$Y"
+fi

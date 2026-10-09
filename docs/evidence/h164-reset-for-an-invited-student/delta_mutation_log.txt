@@ -1,0 +1,19 @@
+13 mutants: anchors unique, all parse, expected tests named
+13 of 13 mutants selected
+R1_the_request_refuses_every_never_verified_account_again KILLED exit 1 ran 38 failed 3 expected-but-passed []
+R2_the_request_refuses_nobody KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R3_the_reset_does_not_stamp_the_email KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R4_the_request_stamps_the_email KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R5_the_reset_keeps_must_change_password KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R6_the_reset_does_not_stamp_last_login KILLED exit 1 ran 38 failed 2 expected-but-passed []
+R7_a_wrong_code_stamps_the_email KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R8_the_reset_guard_is_removed KILLED exit 1 ran 38 failed 3 expected-but-passed []
+R9_the_guard_refuses_every_switched_off_account KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R10_the_guard_answers_in_its_own_words KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R11_the_guard_deletes_the_issued_code KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R12_the_guard_stamps_the_email_before_refusing KILLED exit 1 ran 38 failed 1 expected-but-passed []
+R13_the_guard_sets_the_password_before_refusing KILLED exit 1 ran 38 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 13 of 13

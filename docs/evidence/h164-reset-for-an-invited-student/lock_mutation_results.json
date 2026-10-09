@@ -1,0 +1,15 @@
+{
+  "R30_verify_refuses_without_spending_the_attempt": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_refused_verify_on_an_admin_power_account_locks_the_address_like_a_wrong_guess"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.VerifyEmailAdminPowerTests.test_a_refused_verify_on_an_admin_power_account_locks_the_address_like_a_wrong_guess"
+    ],
+    "pycache_left": 0
+  }
+}

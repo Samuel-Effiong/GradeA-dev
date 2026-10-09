@@ -27,6 +27,7 @@ from classrooms.models import (  # EnrollmentStatusType,
     Session,
     StudentCourse,
 )
+from classrooms.tests_support_add_by_email import add_by_email
 from users.models import UserTypes
 
 User = get_user_model()
@@ -622,10 +623,10 @@ class CourseViewSetTest(ClassroomBaseAPITest):
 
         email = "student@example.com"
         # First enrollment
-        self.client.post(url, {"email": email})
+        self.client.post(url, add_by_email(email))
 
         # Second enrollment attempt
-        response = self.client.post(url, {"email": email})
+        response = self.client.post(url, add_by_email(email))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("already enrolled", str(response.data.get("detail", "")))
 
@@ -639,8 +640,8 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("course-students", kwargs={"pk": course.id})
 
-        first_response = self.client.post(url, {"email": "pending1@example.com"})
-        second_response = self.client.post(url, {"email": "pending2@example.com"})
+        first_response = self.client.post(url, add_by_email("pending1@example.com"))
+        second_response = self.client.post(url, add_by_email("pending2@example.com"))
 
         self.assertEqual(first_response.status_code, status.HTTP_200_OK)
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
@@ -662,7 +663,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("course-students", kwargs={"pk": course.id})
 
-        response = self.client.post(url, {"email": "brandnew@example.com"})
+        response = self.client.post(url, add_by_email("brandnew@example.com"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         merge_data = mock_send_email.call_args.kwargs["merge_data"]
@@ -690,11 +691,11 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         url_b = reverse("course-students", kwargs={"pk": course_b.id})
 
         email = "still.pending@example.com"
-        first = self.client.post(url_a, {"email": email})
+        first = self.client.post(url_a, add_by_email(email))
         self.assertEqual(first.status_code, status.HTTP_200_OK)
         mock_send_email.reset_mock()
 
-        second = self.client.post(url_b, {"email": email})
+        second = self.client.post(url_b, add_by_email(email))
         self.assertEqual(second.status_code, status.HTTP_200_OK)
 
         merge_data = mock_send_email.call_args.kwargs["merge_data"]
@@ -730,7 +731,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("course-students", kwargs={"pk": course.id})
 
-        response = self.client.post(url, {"email": student.email})
+        response = self.client.post(url, add_by_email(student.email))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         merge_data = mock_send_email.call_args.kwargs["merge_data"]

@@ -4237,7 +4237,8 @@ class StripeWebhookHandler:
     @staticmethod
     def _sync_cancellation_intent(user_sub, cancel_at_period_end, stripe_subscription):
         """
-        Mirrors Stripe's `cancel_at_period_end` onto the local
+        Mirrors Stripe's "scheduled to end" (`cancel_at_period_end`, or a
+        cancellation scheduled for a date, `cancel_at`: H-178) onto the local
         `auto_renew` / `cancelled_at` pair, and returns the field names
         it touched (empty when already in sync, so a replayed event
         writes nothing).
@@ -4248,7 +4249,8 @@ class StripeWebhookHandler:
 
         Args:
             user_sub (UserSubscription): the locked local row.
-            cancel_at_period_end (bool): Stripe's current flag.
+            cancel_at_period_end (bool): True when Stripe will end the
+                subscription, whether at the period's end or on a date.
             stripe_subscription (dict): the full event payload, read for
                 `canceled_at` so the recorded date is Stripe's own rather
                 than "whenever the webhook happened to land".
@@ -4282,7 +4284,7 @@ class StripeWebhookHandler:
                 )
             logger.info(
                 "customer.subscription.updated: subscription %s is now "
-                "scheduled to cancel at period end on Stripe — mirroring "
+                "scheduled to end on Stripe (period end or a date) — mirroring "
                 "to auto_renew=False locally.",
                 user_sub.id,
             )
@@ -4361,6 +4363,10 @@ class StripeWebhookHandler:
         # as "not cancelling", which would silently un-cancel a
         # subscription the user genuinely asked to end.
         cancel_at_period_end = stripe_subscription.get("cancel_at_period_end")
+        # H-178: a cancellation can also be scheduled for a DATE
+        # (`cancel_at`, which Stripe's dashboard can set) with the flag
+        # false. That subscription still ends, so it counts as scheduled.
+        cancel_at = stripe_subscription.get("cancel_at")
 
         user_sub = (
             UserSubscription.objects.filter(
@@ -4389,9 +4395,13 @@ class StripeWebhookHandler:
                     user_sub.is_active = False
                     update_fields.append("is_active")
 
-            if cancel_at_period_end is not None:
+            # A payload that carries neither key says nothing and changes
+            # nothing; one that carries only a date is "scheduled".
+            if cancel_at_period_end is not None or cancel_at:
                 update_fields += StripeWebhookHandler._sync_cancellation_intent(
-                    user_sub, bool(cancel_at_period_end), stripe_subscription
+                    user_sub,
+                    bool(cancel_at_period_end) or bool(cancel_at),
+                    stripe_subscription,
                 )
 
             if update_fields:

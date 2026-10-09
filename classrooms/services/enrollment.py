@@ -205,6 +205,17 @@ def check_existing_account_may_join(student, course):
 #: What a teacher is told when the address belongs to an account someone
 #: deactivated. Only reached after check_existing_account_may_join passes, so
 #: it never tells a teacher anything about another school's accounts.
+#: H-152: the one answer of both routes of the old code-based student
+#: sign-up (POST /auth/register/student and the renewal of a code), to every
+#: request, whatever it sends. User's decision of 2026-10-07: the door is
+#: closed outright. A student does not name themselves, and nothing mints
+#: such a code any more; what is left is converted by the one-off command
+#: backfill_pending_student_invites or healed by the teacher's next add.
+OLD_INVITATION_CLOSED_MESSAGE = (
+    "Invitations of this kind are no longer used. "
+    "Ask your teacher to add you to the class again."
+)
+
 DEACTIVATED_ACCOUNT_MESSAGE = (
     "This student's account is disabled. Contact support if they should have access."
 )
@@ -252,14 +263,32 @@ def was_never_activated(student):
     )
 
 
+def _has_no_name(student):
+    """No first name AND no last name. Half a name is a name."""
+    return (
+        not (student.first_name or "").strip() and not (student.last_name or "").strip()
+    )
+
+
 def enroll_student_by_email(
-    *, course, email, first_name="", middle_name="", last_name=""
+    *,
+    course,
+    email,
+    first_name="",
+    middle_name="",
+    last_name="",
+    fill_empty_name=False,
 ):
     """Add a student to `course` by email address, inviting them if needed.
 
-    The names are used only when a brand-new account is created (the bulk
-    roster import has them; the single add doesn't). An existing account's
-    names are never overwritten.
+    The names are used when a brand-new account is created. An existing
+    account's names are never overwritten. H-148: with `fill_empty_name`
+    (the single add and the class-list import, where the teacher gives
+    the name) an existing account that has NO name is given that name; a student cannot name
+    themselves and until this nobody could name such an account. The
+    enrolment's own rule (one exact name per course, StudentCourse.clean)
+    then applies to the filled name, and a refusal undoes the filling: all
+    of it is one transaction.
 
     Mirrors the license-teacher invite (billing/license_service.py): a
     newly invited student is active immediately with a system-generated
@@ -341,7 +370,16 @@ def enroll_student_by_email(
             )
             raise AccountDisabledError(DEACTIVATED_ACCOUNT_MESSAGE)
 
+        name_fields = []
+        if fill_empty_name and first_name and last_name and _has_no_name(student):
+            student.first_name = first_name
+            student.middle_name = middle_name
+            student.last_name = last_name
+            name_fields = ["first_name", "middle_name", "last_name"]
+
         if student.is_active and has_signed_in(student):
+            if name_fields:
+                student.save(update_fields=name_fields)
             _create_enrollment(
                 student=student,
                 course=course,
@@ -372,6 +410,7 @@ def enroll_student_by_email(
                 "must_change_password",
                 "activation_token",
                 "activation_expires",
+                *name_fields,
             ]
         )
 

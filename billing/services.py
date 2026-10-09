@@ -16,6 +16,8 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
 from users.mailerlite_service import queue_sync
 
+from .licence_rollup import roll_up_after_commit
+from .locks import lock_wallet_first
 from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CONVERSION_FACTOR,
     BetaProfile,
@@ -26,7 +28,6 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditLedgerType,
     CreditUsageLog,
     CreditWallet,
-    LicenseSubscription,
     PlanCategory,
     PlanTier,
     PlanType,
@@ -215,6 +216,9 @@ class SubscriptionService:
         # 3. Handle Wallet and Initial Credit Injection
         now = timezone.now()
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
+        # H-181: the wallet lock before any bucket lock, the order
+        # consume_credits uses (billing/locks.py).
+        wallet = lock_wallet_first(wallet)
 
         # --- Trial forfeiture phase ---
         # activate_subscription is the generic "grant this user a real
@@ -538,6 +542,9 @@ class SubscriptionService:
         user = user_sub.user
         now = timezone.now()
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
+        # H-181: the wallet lock before any bucket lock, the order
+        # consume_credits uses (billing/locks.py).
+        wallet = lock_wallet_first(wallet)
 
         # --- Roll over unused credits from the bucket being replaced ---
         active_monthly = (
@@ -690,6 +697,9 @@ class SubscriptionService:
         user = user_subscription.user
         now = now or timezone.now()
         wallet = user.credit_wallet
+        # H-181: the wallet lock before any bucket lock, the order
+        # consume_credits uses (billing/locks.py).
+        wallet = lock_wallet_first(wallet)
 
         # Re-check, under the lock, what process_annual_plan_credit_grants
         # selected on without one. Two overlapping runs (a redeploy overlap,
@@ -913,6 +923,9 @@ class SubscriptionService:
         now = timezone.now()
 
         wallet = user.credit_wallet
+        # H-181: the wallet lock before any bucket lock, the order
+        # consume_credits uses (billing/locks.py).
+        wallet = lock_wallet_first(wallet)
         old_monthly_bucket = (
             wallet.buckets.select_for_update()
             .filter(bucket_type="MONTHLY", is_processed=False)
@@ -1570,14 +1583,9 @@ class SubscriptionService:
                     .first()
                 )
                 if allocation:
-                    LicenseSubscription.objects.filter(
-                        pk=allocation.license_subscription_id
-                    ).update(
-                        total_credits_consumed=Greatest(
-                            F("total_credits_consumed") - amount, Value(0)
-                        ),
-                        updated_at=timezone.now(),
-                    )
+                    # H-182: after the refund commits, never inside the
+                    # wallet and bucket locks (billing/licence_rollup.py).
+                    roll_up_after_commit(allocation.license_subscription_id, -amount)
 
         logger.info(
             "Refunded %s credits across %s usage log(s) for task %s (%s)",
@@ -1671,6 +1679,9 @@ class SubscriptionService:
             )
         )
         wallet = user.credit_wallet
+        # H-181: the wallet lock before any bucket lock, the order
+        # consume_credits uses (billing/locks.py).
+        wallet = lock_wallet_first(wallet)
 
         trial_bucket = (
             wallet.buckets.select_for_update()
@@ -1824,6 +1835,9 @@ class SubscriptionService:
         )
 
         wallet = user.credit_wallet
+        # H-181: the wallet lock before any bucket lock, the order
+        # consume_credits uses (billing/locks.py).
+        wallet = lock_wallet_first(wallet)
 
         # --- STEP 1: Expire the existing TRIAL bucket ---
         trial_bucket = (

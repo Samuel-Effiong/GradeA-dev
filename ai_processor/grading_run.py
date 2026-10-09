@@ -54,6 +54,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 
 from ai_processor.grading_config import GradingConfig
+from ai_processor.vote import majority_model
 
 #: Kept equal to the words in students/grading_label.py (a test compares
 #: them); not imported, so ai_processor stays free of the students app.
@@ -169,15 +170,9 @@ class GradingRun:
             # No answer was marked by an AI. A kept call with no answer
             # cannot name the grader of anything.
             return MODEL_DETERMINISTIC
-        most = max(votes.values())
-        leaders = [model for model, count in votes.items() if count == most]
-        named = sorted(model for model in leaders if model is not None)
-        main = self.config.get("MAIN_MODEL")
-        if main in named:
-            return main
-        if named:
-            return named[0]
-        return MODEL_UNKNOWN
+        # The rule itself lives in ai_processor/vote.py, shared with the
+        # other steps' runs (AI-call record); None means no named winner.
+        return majority_model(votes, self.config.get("MAIN_MODEL")) or MODEL_UNKNOWN
 
     def label(self):
         """The six columns of the label (students.grading_label.LABEL_FIELDS)."""

@@ -77,11 +77,13 @@ def _register_student_failure_key(now=None):
     return f"register_student:failures:{bucket}"
 
 
+# DEAD since H-152 closed the old student door (nothing calls it); kept in this merge-down; removal is H-207.
 def register_student_failure_budget_spent():
     count = cache.get(_register_student_failure_key()) or 0
     return count >= settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT
 
 
+# DEAD since H-152 closed the old student door (nothing calls it); kept in this merge-down; removal is H-207.
 def register_student_budget_retry_after(now=None):
     """Seconds until the current window rolls over (for Retry-After)."""
     window = settings.REGISTER_STUDENT_FAILURE_WINDOW_SECONDS
@@ -89,6 +91,7 @@ def register_student_budget_retry_after(now=None):
     return max(1, int(window - (now % window)))
 
 
+# DEAD since H-152 closed the old student door (nothing calls it); kept in this merge-down; removal is H-207.
 def log_register_student_refused_by_budget(door="register"):
     logger.warning(
         "register_student refused: global failure budget spent",
@@ -101,6 +104,7 @@ def log_register_student_refused_by_budget(door="register"):
     )
 
 
+# DEAD since H-152 closed the old student door (nothing calls it); kept in this merge-down; removal is H-207.
 def record_register_student_failure(reason):
     key = _register_student_failure_key()
     # add() sets the TTL only when the key is new; incr() is atomic on Redis.
