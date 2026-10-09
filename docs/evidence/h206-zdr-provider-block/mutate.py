@@ -35,6 +35,7 @@ LOGS = pathlib.Path(os.environ.get("MUT_LOGS", HERE / "mutant_logs"))
 SV = "ai_processor/services.py"
 ST = "AutoGrader/settings.py"
 TL = "ai_processor/tools.py"
+IH = "ai_processor/benchmark/isolation_run8/isolation_harness.py"
 TESTS = ["ai_processor.tests_provider_block"]
 K = "keepdb"
 
@@ -187,6 +188,15 @@ MUTANTS = [
         TESTS,
         K,
     ),
+    (
+        "Z15",
+        "a raw create() call is added to the isolation harness (a listed file)",
+        IH,
+        '    print("Client timeout pinned: 300s, max_retries=3.", flush=True)\n',
+        '    print("Client timeout pinned: 300s, max_retries=3.", flush=True)\n    ai_services.ai_processor.client.chat.completions.create(model="x", messages=[])\n',
+        TESTS,
+        K,
+    ),
 ]
 
 _EXACT = "test_the_provider_block_that_reaches_the_sdk_is_exact_on_every_path"
@@ -203,14 +213,20 @@ _LIT = "test_the_data_collection_literal_exists_only_inside_the_helper"
 #: Written before any run: every test reckoned to fail under each mutant.
 EXPECTED = {
     "Z1": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT],
-    "Z2": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT],
+    "Z2": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT, _READ, _CHANGE],
     "Z3": [_OFF, _READ],
     "Z4": [_EXACT, _BOOL, _INSIDE, _OFF, _READ, _EXIST, _FRESH, _CHANGE],
     "Z5": [_FRESH, _CHANGE, _OFF, _READ],
     "Z6": [_EXACT, _OFF, _READ, _EXIST, _FRESH, _CHANGE],
     "Z7": [_EXACT, _BOOL, _EXIST, _FRESH, _READ, _CHANGE],
-    "Z8": [_EXACT, _INSIDE, _BOTH, _LIT],
-    "Z9": [_EXACT, _BOOL, _INSIDE, _LIT],
+    "Z8": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT, _READ, _CHANGE],
+    "Z9": [
+        _EXACT,
+        _BOOL,
+        _INSIDE,
+        _LIT,
+        "test_the_override_and_the_fallback_list_do_not_change_the_block",
+    ],
     "Z10": [_OFF, _READ],
     "Z11": [
         "test_the_old_claim_that_deny_refuses_providers_that_retain_is_gone",
@@ -229,6 +245,7 @@ EXPECTED = {
     ],
     "Z13": ["test_the_only_create_calls_are_the_two_in_ai_model"],
     "Z14": ["test_every_file_that_builds_a_client_or_a_request_is_on_the_named_list"],
+    "Z15": ["test_every_listed_file_other_than_services_has_zero_create_calls"],
 }
 
 #: A test module that could not be loaded.

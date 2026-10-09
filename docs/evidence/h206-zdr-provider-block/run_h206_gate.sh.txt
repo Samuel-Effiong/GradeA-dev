@@ -6,7 +6,7 @@
 #   RULE 22: each new red test is red for its WRITTEN reason (a fragment looked for in its own FAIL/ERROR block);
 # 1a makemigrations --check; 1b the seam by program (the diff of ai_processor/services.py removes exactly the old comment
 #   and the two literal provider blocks; nothing else is removed); 1 the module + near modules (everything that patches
-#   __ai_model or the SDK) + guards; 2 the 14 mutants (rule 17; own DB).
+#   __ai_model or the SDK) + guards; 2 the 15 mutants (rule 17; own DB).
 # The regression is 0b's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
@@ -52,7 +52,8 @@ grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: the module failed
 # RULE 22: each test below is red for its WRITTEN reason (a fragment written beforehand, looked for in its own block).
 # Tests that PASS at the base by design (guards that hold on the code as it is): the_rest_of_the_request_is_unchanged,
 # the_override_and_the_fallback_list_do_not_change_the_block, the_only_create_calls_are_the_two_in_ai_model,
-# every_file_..._is_on_the_named_list, every_listed_file_..._carries_a_mark_and_a_reason, a_file_marked_...
+# every_file_..._is_on_the_named_list, every_listed_file_..._carries_a_mark_and_a_reason,
+# every_listed_file_other_than_services_has_zero_create_calls, the_provider_host_appears_only_in_listed_files
 r() { python -I $RC $RF "$1" "$2" || RED_OK=0; }
 r test_the_provider_block_that_reaches_the_sdk_is_exact_on_every_path "'zdr': True"
 r test_zdr_is_the_boolean_true_not_a_string "None is not True"
@@ -93,7 +94,7 @@ echo "=== 1. own module + near modules + guards at $(git rev-parse --short=8 HEA
 eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
-echo "=== 2. mutants: 14 (own DB, rules 17 and 18) $(date +%T)"
+echo "=== 2. mutants: 15 (own DB, rules 17 and 18) $(date +%T)"
 eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 3000 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
 echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
 git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
