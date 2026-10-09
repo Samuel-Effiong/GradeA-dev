@@ -1,0 +1,161 @@
+"""H-208: written on 2026-10-09 BEFORE any run of the row, by tracing each of
+the 11 tests of the two modules against every mutant and against the base
+(beta 8567a7a0, no helper, the old log lines) by hand. Nothing here was seen by
+a run.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE 8567a7a0>"""
+import re
+import sys
+from pathlib import Path
+
+LL = "TheLauncherLine"
+CL = "TheCancelLine"
+SL = "TheStatusLine"
+DL = "TheSafeDelayLine"
+FL = "TheGradingFollowUpLine"
+OH = "TheOneHelper"
+TT = "MarkProcessingTaskFailureMessageTest"
+L1 = (LL, "test_a_refused_queue_logs_the_id_and_the_class_and_nothing_more")
+L2 = (LL, "test_a_broker_error_logs_no_frames_either")
+L3 = (LL, "test_another_error_logs_the_id_the_class_and_frames_without_its_text")
+L4 = (LL, "test_a_wrapped_broker_error_is_still_a_broker_error")
+C1 = (CL, "test_an_unreachable_broker_at_revoke_logs_ids_and_the_class_only")
+S1 = (SL, "test_an_unreadable_result_backend_logs_ids_and_the_class_only")
+D1 = (DL, "test_a_dispatch_the_broker_refused_logs_the_task_and_the_class_only")
+F1 = (FL, "test_a_refused_follow_up_queue_leaves_the_broker_text_out_of_every_line")
+H1 = (OH, "test_a_broker_error_is_named_by_its_class_alone")
+H2 = (OH, "test_another_error_is_named_with_frames_and_without_its_text")
+X1 = (TT, "test_exception_instance_is_logged_server_side_with_class_and_frames_only")
+# Added 2026-10-09 after the SM's ruling "follow __cause__ only" (before the
+# fifth chain run; written by tracing each test against each mutant by hand).
+L5 = (LL, "test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself")
+H3 = (OH, "test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself")
+H4 = (OH, "test_a_wrapper_raised_from_a_broker_error_is_named_by_the_broker_class")
+
+EXPECTED = {
+    # M1 broker branch off: a broker outage is named with frames: L2 (frames
+    # pattern), H1 (".py" in the text), L4 (a wrapper is then named by ITS
+    # class: "ConnectionError" is missing).
+    # (+H4: the wrapper is then named by its own class, not "ConnectionError")
+    "M1": {L2, L4, H1, H4},
+    # M2 the cause chain is not followed: only the wrapped case (L4).
+    # (+H4, the same wrapper at the helper level)
+    "M2": {L4, H4},
+    # M3 no frames for another error: L3 (frame pattern), H2 (function name),
+    # and X1 since it asserts the raised function's name (amended 2026-10-09
+    # after stop 2, before any further run).
+    # (+L5, H3: both assert the raising function's name in the line)
+    "M3": {L3, H2, X1, L5, H3},
+    # M4 the broker error's text is in the line: every test that looks for the
+    # marker on a broker path; L2 (frames only) and the non-broker L3/X1 do not.
+    # (+H4: the wrapper's cause is a broker error with the marker text)
+    "M4": {L1, L4, C1, S1, D1, F1, H1, H4},
+    # M5 another error's text is in the line: the non-broker tests that look
+    # for the marker: L3, H2, X1 (its "boom").
+    # (+L5, H3: the RuntimeError's own text OTHER_MARKER would be in the line)
+    "M5": {L3, H2, X1, L5, H3},
+    # M6 the failure line carries exc_info again: the launcher tests with a
+    # marker (L1, L3, L4), the grading path (F1: its launch calls the same
+    # function) and X1 (no exc_info keyword).
+    # (+L5: its records must all have exc_info None)
+    "M6": {L1, L3, L4, F1, X1, L5},
+    "M7": {C1},
+    "M8": {S1},
+    "M9": {D1},
+    # M10 logger.exception in the follow-up dispatch: chained traceback.
+    "M10": {F1},
+    # M11 the line no longer names the submission.
+    "M11": {F1},
+    # M12 the chain follows __context__ again: L5 and H3 (a RuntimeError raised
+    # inside the except of a broker error is then named "error=ConnectionError"
+    # and has no frames). The wrapper raised 'from' (L4, H4) still passes.
+    "M12": {L5, H3},
+}
+#: The BASE 8567a7a0 with the final tests (the two modules taken from the
+#: tip): everything that looks at the new behaviour is red. Green on purpose
+#: (a control): L2 (no frames for a broker error: the old traceback text does
+#: not match the frame pattern); it is killed only by M1.
+REPRO = {L1, L3, L4, C1, S1, D1, F1, H1, H2, X1, L5, H3, H4}
+#: RULE 22: fragments that must be in each red test's OWN failure block at
+#: (r), written before the run. The old lines carry the broker's text and a
+#: traceback, so the marker is found; L3 fails on its frame pattern (the old
+#: traceback does not print file:line:function); F1 fails earlier, on the
+#: submission id, which the old line did not carry; the helper tests fail on
+#: the missing module; X1 on the exc_info keyword.
+REASON = {
+    L1: ("self.assertNotIn(MARKER, text)", "H208-BROKER-TEXT-7f3a9c"),
+    L3: ("self.assertIsNotNone(", "unexpectedly None"),
+    L4: ("self.assertNotIn(MARKER, text)", "H208-BROKER-TEXT-7f3a9c"),
+    C1: ("self.assertNotIn(MARKER, text)", "H208-BROKER-TEXT-7f3a9c"),
+    S1: ("self.assertNotIn(MARKER, text)", "H208-BROKER-TEXT-7f3a9c"),
+    D1: ("self.assertNotIn(MARKER, text)", "H208-BROKER-TEXT-7f3a9c"),
+    F1: ("self.assertIn(str(self.submission.id), services_text)",),
+    H1: ("AutoGrader.safe_logging",),
+    H2: ("AutoGrader.safe_logging",),
+    X1: ('self.assertNotIn("exc_info", kwargs)', "exc_info"),
+    # L5 fails on the missing "error=" (the base line has no such part); H3 and
+    # H4 on the missing module, like H1 and H2.
+    L5: ('self.assertIn("error=RuntimeError", text)', "error=RuntimeError"),
+    H3: ("AutoGrader.safe_logging",),
+    H4: ("AutoGrader.safe_logging",),
+}
+#: M12's kills must fail for THEIR written reason: the line says
+#: "error=ConnectionError" where "error=RuntimeError" is expected.
+M12_REASON = ("error=RuntimeError", "error=ConnectionError")
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), REPRO)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    m12 = (logs / "M12.log").read_text(errors="replace")
+    blocks12 = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(m12)}
+    for test in (L5, H3):
+        missing = [f for f in M12_REASON if f not in blocks12.get(test, "")]
+        if missing:
+            print(f"M12 WRONG REASON: {test[1]} ({test[0]}): not in its own failure: {missing}")
+            bad += 1
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
