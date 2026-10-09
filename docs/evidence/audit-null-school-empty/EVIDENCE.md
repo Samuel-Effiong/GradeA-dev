@@ -54,3 +54,9 @@ No fault found. Expected set of **A3** stated before the run, with its extras: r
 - **New + related modules + repo-wide guards (`modules_and_guards.txt`):** Ran 479 in 112.8 s, OK; load 2.43 at start and end.
 - **Mutants (`mutation_log.txt`, `mutation_results.json`, `mutant_logs/`): 4 of 4 KILLED, no survivor, none broken, "source clean after mutants".** A1 failed 2 (T1, T2), A2 failed 2 (T1, T2), A4 failed 1 (T4): as written. **A3 failed 4:** T3 as written, plus three extras I had named only partly: `tests_query_api` `SchoolAdminAuditEventPermissionTests.test_school_admin_sees_only_own_school` (named), and `SchoolAdminCrossTenantAdversarialTests.test_queryset_level_ignores_other_schools_id_filter` and `...test_request_response_level_school_id_param_is_ignored` (the second is the "request/response-level cross-tenant test" Verifier 1 predicted; the first I had not named). **One miss, disclosed:** I had listed `audit.tests_state_change` `test_school_admin_sees_attempts_on_its_own_accounts` as an expected extra; it did NOT fail, because the mutant runner's module list is only `tests_school_admin_without_a_school` and `tests_query_api` (that module was in step 1's related list, which is green on the real code). Not a survivor: A3 is killed by T3.
 - Regression of the audit app and users: a later grant (step 3).
+
+## Verifier 1's record and the regression for H-192
+
+Verifier 1's record for H-192 and H-194 is committed byte for byte beside this file as `VERIFICATION_h192_h194.md` (sha256 begins ffb1fd5488df3e29). It covers tip 3dd1aebe (gate record fbf69cf5).
+
+Regression: the promotion's one full run of the merged tip is the regression for this row (SM, rule 15). No separate audit and users run is made for it.
