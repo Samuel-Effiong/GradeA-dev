@@ -96,7 +96,7 @@ class EveryoneElseIsUnchanged(WithdrawnFixture):
         names = set()
         for i, status in enumerate(statuses):
             names.add(self.name_of(self.enrol(i, status, i)))
-        submitted = self.submit(self.students[1])
+        submitted = self.submit(self.students[2])
 
         rows = self.rows()
 
@@ -104,9 +104,13 @@ class EveryoneElseIsUnchanged(WithdrawnFixture):
         self.assertEqual({row["name"] for row in rows}, names)
         by_name = {row["name"]: row for row in rows}
         self.assertEqual(
-            by_name[self.name_of(self.students[1])]["submission_id"], submitted.id
+            by_name[self.name_of(self.students[2])]["submission_id"], submitted.id
         )
-        self.assertIsNone(by_name[self.name_of(self.students[0])]["submission_id"])
+        # enrolled and pending without a submission are still listed
+        for index in (0, 1):
+            self.assertIsNone(
+                by_name[self.name_of(self.students[index])]["submission_id"]
+            )
 
     def test_c2_the_defined_order_holds_with_a_withdrawn_student_among_them(self):
         # oldest enrolment first: s0 (withdrawn, submitted), s1, s2 (withdrawn,
