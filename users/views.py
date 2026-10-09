@@ -1073,12 +1073,12 @@ address with no account is locked and answered exactly the same way.
         # or signed in by a code: the wrong-code refusal, the attempt spent,
         # nothing written.
         if not user.email_verified_at and _holds_admin_power(user):
-            refuse("Invalid email or token.")
+            refuse("Invalid email or token.", user, "INVALID_CODE")
 
         # H-202: a verified account that was switched off is not switched back
         # on or signed in by a code: the same refusal, nothing written.
         if user.email_verified_at and not user.is_active:
-            refuse("Invalid email or token.")
+            refuse("Invalid email or token.", user, "INVALID_CODE")
 
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.", user, "CODE_EXPIRED")
