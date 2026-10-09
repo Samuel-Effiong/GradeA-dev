@@ -55,3 +55,9 @@ No fault found. Traced with limit 6 and 10 attempts: counts 1-6 written, count 7
 - **New + related modules + repo-wide guards (`modules_and_guards.txt`):** Ran 507 in 121.3 s, OK; load 3.37 at start, 2.95 at end.
 - **Mutants (`mutation_log.txt`, `mutation_results.json`, `mutant_logs/`): 5 of 5 KILLED, no survivor, none broken, "source clean after mutants", every set exactly as written, no extras and no misses.** F1 failed 3 (G1, G2, G3); F2 failed 1 (G3); F3 failed 3 (G1, G2, G3); F4 failed 2 (G4 with `6 != 10`, and the existing `audit.tests_failed_auth_cap` signed-in test); F5 ERRORED 1 (G2, with the written fragment `KeyError: 'cap'`).
 - Regression of the audit app and users: a later grant (step 3).
+
+## Verifier 1's record and the regression for H-194
+
+Verifier 1's record for H-192 and H-194 is committed byte for byte beside this file as `VERIFICATION_h192_h194.md` (sha256 begins ffb1fd5488df3e29). It covers tip f5eedce0 (gate record 811318a0).
+
+Regression: the promotion's one full run of the merged tip is the regression for this row (SM, rule 15). No separate audit and users run is made for it.
