@@ -1,0 +1,163 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 7a9d3e92-7613-4990-af04-151c346268e6.
+Cannot activate automatic trial for user 7a9d3e92-7613-4990-af04-151c346268e6 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,027 task_tracking 1684492 128634124782528 [request_id=-] Could not revoke celery task 675b3111-cffe-499f-bc62-f2f54eb484a9 for cancelled processing task 909a21cd-06fe-49f6-8558-5a84ffb6b72e - broker unavailable (error=ConnectionError); the worker will observe the cancellation at its next cooperative check
+
+
+.Free trial plan not found: no trial activated for user f8eaf2a2-bac6-407f-9a27-cb468e11bb5d.
+Cannot activate automatic trial for user f8eaf2a2-bac6-407f-9a27-cb468e11bb5d (validation): ValueError
+
+
+students.task_tracking WARNING 2026-10-09 17:18:57,043 task_tracking 1684492 128634124782528 [request_id=-] Could not read celery state for processing task b7936d8a-23b1-4ad8-be36-9fc2c6ee8996 (celery id 2e15eec0-3317-46d6-823e-d07b8d6254a8) - result backend unavailable (result backend unreachable); reporting tracked status STARTED
+
+
+.Free trial plan not found: no trial activated for user 636b10dc-405d-45d6-a8db-ca81c9ce66ab.
+Cannot activate automatic trial for user 636b10dc-405d-45d6-a8db-ca81c9ce66ab (validation): ValueError
+.Free trial plan not found: no trial activated for user c8dee3c0-5cd2-442c-aa77-7a1576871bd4.
+Cannot activate automatic trial for user c8dee3c0-5cd2-442c-aa77-7a1576871bd4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 468885fd-1cff-46a4-9101-6281033473e0.
+Cannot activate automatic trial for user 468885fd-1cff-46a4-9101-6281033473e0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 711d535d-5c47-48ff-b192-56411b5749e0.
+Cannot activate automatic trial for user 711d535d-5c47-48ff-b192-56411b5749e0 (validation): ValueError
+.Free trial plan not found: no trial activated for user a7b32f27-7379-48e4-b359-7a2df250869c.
+Cannot activate automatic trial for user a7b32f27-7379-48e4-b359-7a2df250869c (validation): ValueError
+
+
+students.task_tracking WARNING 2026-10-09 17:18:57,193 task_tracking 1684492 128634124782528 [request_id=-] Skipping cleanup for cancelled task eb6527ca-6ef5-4578-b4f6-9194350ce681: assignment c01a95ba-143f-4272-a565-874279883bf6 is missing or already has submissions.
+
+
+......Free trial plan not found: no trial activated for user 01653bc1-cf6c-4362-90d6-28f4d7cc997a.
+Cannot activate automatic trial for user 01653bc1-cf6c-4362-90d6-28f4d7cc997a (validation): ValueError
+.Free trial plan not found: no trial activated for user ca1b615a-451a-4d30-878c-d2776eb96971.
+Cannot activate automatic trial for user ca1b615a-451a-4d30-878c-d2776eb96971 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,266 task_tracking 1684492 128634124782528 [request_id=-] Background task e0c468de-9d25-4bb0-a994-8b5109bf9af8 failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 884768be-25a2-4691-9c2b-a542882ae5ba.
+Cannot activate automatic trial for user 884768be-25a2-4691-9c2b-a542882ae5ba (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,285 task_tracking 1684492 128634124782528 [request_id=-] Background task 43bd9469-e911-459e-ba88-5317ae610ac8 failed: error=TypeError frames=task_tracking.py:73:launch_processing_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 29901b4f-66a4-4f15-9009-a34c9796d6a9.
+Cannot activate automatic trial for user 29901b4f-66a4-4f15-9009-a34c9796d6a9 (validation): ValueError
+.Free trial plan not found: no trial activated for user a7b31272-8638-454a-8d00-18086572641c.
+Cannot activate automatic trial for user a7b31272-8638-454a-8d00-18086572641c (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,331 task_tracking 1684492 128634124782528 [request_id=-] Background task 8b597000-c2c3-4218-a18a-2fadcf4a71df failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user 21ce2778-d017-4496-99f8-22367157b2e6.
+Cannot activate automatic trial for user 21ce2778-d017-4496-99f8-22367157b2e6 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,345 task_tracking 1684492 128634124782528 [request_id=-] Background task d8646351-f81d-464e-8ce0-da40f7a90d01 failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user 9be64315-353a-4d4c-90c9-af51dcda35cd.
+Cannot activate automatic trial for user 9be64315-353a-4d4c-90c9-af51dcda35cd (validation): ValueError
+
+
+students.task_tracking WARNING 2026-10-09 17:18:57,359 refusals 1684492 128634124782528 [request_id=-] Background task 9bf43503-bd1b-4534-a809-e3b25e0fe41c refused: InsufficientCreditsError: Refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user b6ac17ce-3b67-44c0-a63a-bcf270b082a6.
+Cannot activate automatic trial for user b6ac17ce-3b67-44c0-a63a-bcf270b082a6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 316a3720-2251-41d2-ab98-69ef33a73695.
+Cannot activate automatic trial for user 316a3720-2251-41d2-ab98-69ef33a73695 (validation): ValueError
+.Free trial plan not found: no trial activated for user aeef63a7-4cfa-4748-b567-5a333af99a6f.
+Cannot activate automatic trial for user aeef63a7-4cfa-4748-b567-5a333af99a6f (validation): ValueError
+.Free trial plan not found: no trial activated for user 1c802723-1def-4ba8-9ba8-8113cbcb7b24.
+Cannot activate automatic trial for user 1c802723-1def-4ba8-9ba8-8113cbcb7b24 (validation): ValueError
+.Free trial plan not found: no trial activated for user 196301fd-b511-49b3-bd9a-f8b8385f2f76.
+Cannot activate automatic trial for user 196301fd-b511-49b3-bd9a-f8b8385f2f76 (validation): ValueError
+....Free trial plan not found: no trial activated for user 91bfb536-8dbe-4c07-9fda-08a2b722869d.
+Cannot activate automatic trial for user 91bfb536-8dbe-4c07-9fda-08a2b722869d (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,545 task_tracking 1684492 128634124782528 [request_id=-] Could not revoke celery task celery-h208-1 for cancelled processing task b523a8d5-7bc2-4028-8b34-4781fa16517d - broker unavailable (error=ConnectionError); the worker will observe the cancellation at its next cooperative check
+
+
+.Free trial plan not found: no trial activated for user facf5b38-3063-41bf-8f7c-fabb3e9b7f93.
+Cannot activate automatic trial for user facf5b38-3063-41bf-8f7c-fabb3e9b7f93 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:57,819 task_tracking 1684492 128634124782528 [request_id=-] Background task 70ec0857-45c4-4f6d-af5c-2ea79c9f953a failed: error=ConnectionError
+
+
+
+
+students.services ERROR 2026-10-09 17:18:57,823 services 1684492 128634124782528 [request_id=-] Failed to dispatch post-grading follow-up tasks: submission=8c17b9da-b853-412e-8758-ae69b2eaa43b error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 1bf2e1bf-c6ed-418a-95ed-c0e57e6cbc4a.
+Cannot activate automatic trial for user 1bf2e1bf-c6ed-418a-95ed-c0e57e6cbc4a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:58,060 task_tracking 1684492 128634124782528 [request_id=-] Background task 1228edd2-0307-4225-8c40-dc3d50bf3475 failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user aa702509-8b6e-49cf-9ac0-4836d38163ed.
+Cannot activate automatic trial for user aa702509-8b6e-49cf-9ac0-4836d38163ed (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:58,283 task_tracking 1684492 128634124782528 [request_id=-] Background task 8c161b89-7b5e-4279-b52f-d2f268a215cf failed: error=RuntimeError frames=tests_broker_text_not_logged.py:249:test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself <- tests_broker_text_not_logged.py:166:a_fault_raised_while_the_broker_error_is_handled
+
+
+.Free trial plan not found: no trial activated for user 887d728f-6f19-4bf7-9439-972f044c3f94.
+Cannot activate automatic trial for user 887d728f-6f19-4bf7-9439-972f044c3f94 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:58,524 task_tracking 1684492 128634124782528 [request_id=-] Background task 0bb2de08-4b1c-46e4-82b8-cd7badafbfde failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user d16bc1d2-d508-4d2e-85d5-6935a44d1609.
+Cannot activate automatic trial for user d16bc1d2-d508-4d2e-85d5-6935a44d1609 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:58,749 task_tracking 1684492 128634124782528 [request_id=-] Background task d0050cb4-6bcd-453c-9938-bdcce503182c failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 037aca83-2ab4-420d-a0d8-7894fcb3aaba.
+Cannot activate automatic trial for user 037aca83-2ab4-420d-a0d8-7894fcb3aaba (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 17:18:58,993 task_tracking 1684492 128634124782528 [request_id=-] Background task 7fe4ad8d-9d65-4927-81bf-853e5e44c013 failed: error=RuntimeError frames=task_tracking.py:73:launch_processing_task <- tests_broker_text_not_logged.py:171:delay
+
+
+.....Free trial plan not found: no trial activated for user f94af877-81b7-448e-b15e-a0c8f4e13fa6.
+Cannot activate automatic trial for user f94af877-81b7-448e-b15e-a0c8f4e13fa6 (validation): ValueError
+.Free trial plan not found: no trial activated for user cd53c332-17ef-4281-89d9-1d1e1032a550.
+Cannot activate automatic trial for user cd53c332-17ef-4281-89d9-1d1e1032a550 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-10-09 17:18:59,453 task_tracking 1684492 128634124782528 [request_id=-] Could not read celery state for processing task dac9f8b8-4e10-46e7-804f-e7e38e12bb93 (celery id celery-h208-1) - result backend unavailable (Error 111 connecting to broker-internal.example:6379. H208-BROKER-TEXT-7f3a9c.); reporting tracked status STARTED
+
+
+F
+======================================================================
+FAIL: test_an_unreadable_result_backend_logs_ids_and_the_class_only (students.tests_broker_text_not_logged.TheStatusLine.test_an_unreadable_result_backend_logs_ids_and_the_class_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_broker_text_not_logged.py", line 305, in test_an_unreadable_result_backend_logs_ids_and_the_class_only
+    self.assertIn("ConnectionError", text)
+AssertionError: 'ConnectionError' not found in 'Could not read celery state for processing task dac9f8b8-4e10-46e7-804f-e7e38e12bb93 (celery id celery-h208-1) - result backend unavailable (Error 111 connecting to broker-internal.example:6379. H208-BROKER-TEXT-7f3a9c.); reporting tracked status STARTED'
+
+----------------------------------------------------------------------
+Ran 40 tests in 2.660s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 40 test(s).
