@@ -1,0 +1,13 @@
+16:00:03 (r) assignments/tests_sanitizer_threads.py taken from bf0d7632, the rest is aefb0147
+16:00:03 (r) start: loadavg 2.30 4.66 4.85 5/2595 462873
+16:06:53 (r) end: loadavg 2.51 3.08 4.05 1/2606 466697
+16:06:53 (r) exit=137 (1 is the expected one; for THIS row 124 and 137, a hang killed by the timeout, also count as RED)
+16:06:53 (r) TIMEOUT COUNTED RED (exit 137): the failing set is not compared; the log is the evidence
+16:06:53 (a) start: loadavg 2.51 3.08 4.05 12/2607 466711
+16:10:19 (a) end: loadavg 2.04 2.92 3.83 5/2597 468979
+16:10:19 (a) exit=0
+16:10:19 (b) start: loadavg 2.04 2.92 3.83 7/2597 468986
+16:18:17 (b) end: loadavg 2.30 2.54 3.27 4/2624 472647
+16:18:17 (b) exit=0
+16:18:17 expected failing sets: every mutant's failing set is the expected one
+16:18:17 H-191 CHAIN END: (c) needs its own GRANT

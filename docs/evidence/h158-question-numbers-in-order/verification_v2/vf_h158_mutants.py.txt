@@ -1,0 +1,188 @@
+"""SECOND FORM for 9f882c18 (the first, for 72cd7ae2, never run, is kept as
+vf_h158_mutants_for_72cd7ae2.py).
+v2 mutants for H-158 (d5: an AI reply's question numbers are made 1..N),
+beside d5's N1 to N18. Run from the vf2-s1 scratch worktree (detached at
+COMMIT, with v2's probe copied to assignments/tests_vf2_h158_probe.py),
+inside the rule 16/13/12 wrappers, output to a file, stdin from /dev/null
+(rule 18). Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h158_mutants.py
+check | baseline | (no args: every mutant).
+
+Every inner run writes its OWN file. Rule 17: PYTHONDONTWRITEBYTECODE=1,
+__pycache__ of the mutated module's directory deleted before each mutant
+and after each restore. Database tests: --keepdb (test_vf2_s1).
+A mutant is KILLED only with the run's own "Ran" line and the failing set
+EQUAL to the one written (this runner is stricter than the H-165 one, which
+asked for the written tests to be among the failing).
+Written 2026-10-07 before any run, after reading the diff 220f9cd6..7f5d1743.
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+SV = "assignments/services.py"
+SR = "assignments/serializers.py"
+VW = "assignments/views.py"
+D5 = ["assignments.tests_question_numbers_in_order"]
+PROBE = ["assignments.tests_vf2_h158_probe"]
+EDGE = ["assignments.tests_vf2_h158_edge_probe"]
+BASELINE = D5 + PROBE
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+
+Z1 = "test_z1_the_number_field_refuses_what_the_last_defence_never_sees"
+Z2 = "test_z2_a_repeat_from_the_model_is_graded_in_full"
+Z6 = "test_z6_numbers_that_are_already_distinct_are_kept"
+Z7 = "test_z7_a_repeat_in_a_paper_that_does_not_start_at_one"
+EXPECTED = {
+    # the numbered list is not put back into the extraction's questions
+    "M1_extraction_keeps_the_models_numbers": {"v2's probe": (PROBE, (Z2, Z7))},
+    # the numberer hands back each entry unchanged
+    "M2_the_numberer_leaves_each_entry_as_it_was": {"v2's probe": (PROBE, (Z2, Z7))},
+    # the number field takes text
+    "M3_the_number_field_takes_text": {"v2's probe": (PROBE, (Z1,))},
+    # the repeat test of the kept branch removed: a repeat is kept
+    "M4_a_repeat_is_kept_as_the_model_gave_it": {"v2's probe": (PROBE, (Z2, Z7))},
+    # the kept branch removed: always 1..N (the behaviour of 72cd7ae2)
+    "M5_distinct_numbers_are_numbered_all_the_same": {"v2's probe": (PROBE, (Z6,))},
+}
+PREDICTED_TO_SURVIVE = set()
+
+MUTANTS = {
+    "M1_extraction_keeps_the_models_numbers": (SV, [
+        ('            assignment_questions["questions"] = questions\n',
+         '            pass\n'),
+    ]),
+    "M2_the_numberer_leaves_each_entry_as_it_was": (SV, [
+        ('        numbered.append({**entry, "question_number": position})\n',
+         '        numbered.append(entry)\n'),
+    ]),
+    "M3_the_number_field_takes_text": (SR, [
+        ('    question_number = serializers.IntegerField(required=True)\n',
+         '    question_number = serializers.CharField(required=True)\n'),
+    ]),
+    "M4_a_repeat_is_kept_as_the_model_gave_it": (SV, [
+        ('        and len(set(kept_numbers)) == len(kept_numbers)\n',
+         '        and True\n'),
+    ]),
+    "M5_distinct_numbers_are_numbered_all_the_same": (SV, [
+        ('        kept_numbers\n        and None not in kept_numbers\n',
+         '        False\n        and None not in kept_numbers\n'),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits)."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["edge"]:
+    # Z4, run apart and not a gate: predicted RED (see the edge probe).
+    rc, ran, summary, failing, o = run(EDGE, "edge_z4.txt")
+    print("edge |", ran, "|", summary, "|", failing, flush=True)
+    sys.exit(0)
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SV)
+    clear_pycache(SR)
+    clear_pycache(VW)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            # r2: one file per judgement. The first form wrote both judgements
+            # of a mutant to the same file, so the second overwrote the first.
+            slug = re.sub(r"[^a-z0-9]+", "_", who.lower()).strip("_")
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_{slug}.txt")
+            predicted = (name, who) in PREDICTED_TO_SURVIVE
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif predicted:
+                status = "KILLED_NOT_AS_PREDICTED"
+            elif sorted(failing) == sorted(expected):
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if predicted else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

@@ -94,7 +94,12 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
-from .services import AssignmentProcessingService, ai_assignment_content_only
+from .services import (
+    QUESTION_NUMBERS_PUT_IN_ORDER,
+    AssignmentProcessingService,
+    ai_assignment_content_only,
+    number_questions_in_order,
+)
 from .tasks import (  # grade_all_submissions,
     extract_assignment_background_task,
     grade_engine_async,
@@ -1157,6 +1162,27 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = BatchUploadResponseSerializer(data)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
+    def _number_draft_questions_in_order(self, assignment_data, path):
+        """H-158: a draft's questions numbered 1..N in the model's order,
+        before its document is built and before the serializer. Nothing of
+        the model's own numbers is stored: a draft's snapshot is sent to
+        the client, and a generated assignment has no paper whose
+        numbering they would record. One log line when a number changed."""
+        if "questions" not in assignment_data:
+            return
+        questions, model_numbers, changed = number_questions_in_order(
+            assignment_data["questions"]
+        )
+        if changed:
+            logger.warning(
+                QUESTION_NUMBERS_PUT_IN_ORDER,
+                self.request.user.id,
+                path,
+                len(model_numbers),
+                changed,
+            )
+        assignment_data["questions"] = questions
+
     def _build_generated_assignment_draft(self, generated_assignment, course):
         # Content keys only: the strict response schema is not enforced by
         # every provider, and this dict is later saved through
@@ -1167,6 +1193,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "course": str(course.id),
             "ai_generated": True,
         }
+        self._number_draft_questions_in_order(assignment_data, "generation")
         assignment_html = AssignmentProcessingService.format_assignment_standard_html(
             assignment_data
         )
@@ -1630,6 +1657,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 **ai_assignment_content_only(draft_message.assignment_snapshot),
                 "ai_generated": True,
             }
+            # H-158: a draft stored before that row may hold a repeat.
+            self._number_draft_questions_in_order(assignment_data, "draft save")
             assignment_data["course"] = str(course.id)
 
             for field, value in save_serializer.validated_data.items():
