@@ -48,3 +48,10 @@ Everything: nothing has been run. And, even when run: the deployed throttle valu
 No fault found. Traced with limit 6 and 10 attempts: counts 1-6 written, count 7 the first suppression (`_is_threshold(1)`), exactly one summary; 8-10 no more. G1 6 rows, G2 one summary, G3 6 rows. The summary is written with the bypass, so it does not recurse.
 - **F2's set `[G3]` holds only because** the list route has no pk and no `get_audit_target`, so `target_id` is None through the route (G1, G2 cannot see a per-target key); G3 emits with a different `target_id` each time, which is what F2 changes.
 - **F4:** G4 goes red with `6 != 10`; the existing `audit.tests_failed_auth_cap` test `test_a_signed_in_requesters_failures_are_never_capped` is also expected red and stays listed.
+
+## RESULTS (step 1 on f5eedce0, 2026-10-09 20:11:26-20:14:51 WAT, Release Engineer's grant 20:11, one systemd-inhibit; raw files beside this one)
+- **Step 0 (base audit/emitter.py and audit/metadata.py under the new module):** Ran 5, FAILED (failures=3): exactly the three written tests, each with its written reason (runner step (r): "reason ok" three times: `10 != 6`, `0 != 1`, `10 != 6`). G0 and G4 green, as written. `prefix_base_production_failing.txt`.
+- **makemigrations --check:** exit 0, "No changes detected".
+- **New + related modules + repo-wide guards (`modules_and_guards.txt`):** Ran 507 in 121.3 s, OK; load 3.37 at start, 2.95 at end.
+- **Mutants (`mutation_log.txt`, `mutation_results.json`, `mutant_logs/`): 5 of 5 KILLED, no survivor, none broken, "source clean after mutants", every set exactly as written, no extras and no misses.** F1 failed 3 (G1, G2, G3); F2 failed 1 (G3); F3 failed 3 (G1, G2, G3); F4 failed 2 (G4 with `6 != 10`, and the existing `audit.tests_failed_auth_cap` signed-in test); F5 ERRORED 1 (G2, with the written fragment `KeyError: 'cap'`).
+- Regression of the audit app and users: a later grant (step 3).
