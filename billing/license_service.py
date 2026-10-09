@@ -1984,7 +1984,10 @@ class LicenseSubscriptionService:
         # SubscriptionService at import time (see the module docstring).
         from .services import SubscriptionService
 
-        wallet = teacher.credit_wallet
+        # H-222: the wallet row before any bucket row (billing/locks.py). The
+        # allocation row locked above comes first; no path locks a wallet and
+        # then an allocation (the licence roll-up runs after commit, H-182).
+        wallet = lock_wallet_first(teacher.credit_wallet)
         now = timezone.now()
         buckets = list(
             wallet.buckets.select_for_update().filter(
