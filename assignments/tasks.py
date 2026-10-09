@@ -378,6 +378,7 @@ def extract_answer_background_task(
     recorded verbatim; anything else is retried up to max_retries and only
     then recorded as a failure.
     """
+    user = None
     try:
         ensure_task_not_cancelled(processing_task_id)
         # The tracked row is the idempotency claim (there is no RUNNING
@@ -435,9 +436,20 @@ def extract_answer_background_task(
         )
         raise
     except UPLOAD_REFUSALS as exc:
+        # H-211: as in the upload task (H-180), a STUDENT who started the edit
+        # reads the fixed sentence for a credit refusal, never the gate's own
+        # text or the generic one that names the wallet; a teacher who started
+        # it keeps the generic text. `user` is None if the refusal came before
+        # the user was loaded.
+        shown = exc
+        if isinstance(exc, InsufficientCreditsError) and (
+            getattr(user, "user_type", None) == UserTypes.STUDENT
+        ):
+            log_refusal(logger, f"Background task {processing_task_id}", exc)
+            shown = StudentUploadNotProcessedError(STUDENT_UPLOAD_NOT_PROCESSED)
         mark_processing_task_failure(
             processing_task_id,
-            exc,
+            shown,
             # The code goes on the tracked row too: the task-status route
             # serves the row's meta, not this task's return value (H-133).
             meta={
@@ -448,7 +460,7 @@ def extract_answer_background_task(
         )
         return {
             "status": states.FAILURE,
-            "message": describe_background_task_error(exc),
+            "message": describe_background_task_error(shown),
             **_refusal_code(exc),
         }
     except Exception as exc:
