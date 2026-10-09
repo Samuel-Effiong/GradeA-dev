@@ -44,3 +44,6 @@ A road that sets a password and mails it signs nobody in by itself, but it hands
 
 ## Road 14: what stays allowed (Senior Manager, 2026-10-09 13:10)
 "Switched off" means what H-202 means: VERIFIED and inactive. A pending, never-verified account WITHOUT admin power (for example a self-registered teacher who has not verified yet) can still be invited by a licence admin, as before. The control test that shows it: `billing/tests/test_licence_invite_admin_power.py::test_an_ordinary_never_verified_inactive_teacher_is_still_added`. A verified, onboarded teacher with admin power is also still added (`test_a_verified_staff_teacher_who_has_onboarded_is_still_added`).
+
+## Helper forms (follow-up, 2026-10-09)
+On the Phase 2 line the audit history helper `history.record_bulk(queryset, **changes)` writes in one UPDATE, so the pin's patterns now read `update(...)` and `record_bulk(...)` calls for any keyword `is_active=True` (and `email_verified_at=...`, `password=...` which were already bare-keyword patterns), plus `setattr(obj, "is_active", True)` and `setattr(obj, "email_verified_at", <not None>)`. Evidence: docs/evidence/h203-pin-record-bulk/EVIDENCE.md.
