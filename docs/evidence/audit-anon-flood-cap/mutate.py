@@ -32,6 +32,7 @@ LOGS = pathlib.Path(os.environ.get("MUT_LOGS", HERE / "mutant_logs"))
 PYCACHE_ROOTS = ["audit", "users", "AutoGrader"]
 
 EMITTER = "audit/emitter.py"
+METADATA = "audit/metadata.py"
 
 C = "audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests."
 G0 = C + "test_the_route_exists_and_refuses_an_anonymous_caller"
@@ -80,6 +81,14 @@ MUTANTS = {
         '    outcome = fields.get("outcome")\n',
         '    outcome = fields.get("outcome")\n',
         [G4, OLD_SIGNED_IN],
+    ),
+    # Found by ed's hand trace on taking the row over: the summary's metadata
+    # keys were dropped for ADMIN_ACTION (its allow-list was only "source").
+    "F5_the_admin_action_summary_loses_its_metadata_keys": (
+        METADATA,
+        '    AuditAction.ADMIN_ACTION: frozenset({"source"} | _FAILED_AUTH_SUMMARY_KEYS),\n',
+        '    AuditAction.ADMIN_ACTION: frozenset({"source"}),\n',
+        [G2],
     ),
 }
 
