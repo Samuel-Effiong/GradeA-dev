@@ -1,0 +1,261 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 75d56323-8ad0-46f2-a6b6-ec8f517fb2f5.
+Cannot activate automatic trial for user 75d56323-8ad0-46f2-a6b6-ec8f517fb2f5 (validation): ValueError
+FFree trial plan not found: no trial activated for user 5f4b87a3-9e02-46f5-9f57-7ffa0206d25a.
+Cannot activate automatic trial for user 5f4b87a3-9e02-46f5-9f57-7ffa0206d25a (validation): ValueError
+.Free trial plan not found: no trial activated for user 035ae14c-f991-455f-a34b-832a2bfea8a8.
+Cannot activate automatic trial for user 035ae14c-f991-455f-a34b-832a2bfea8a8 (validation): ValueError
+..Free trial plan not found: no trial activated for user d882c2b6-db6b-4972-a589-cb41c3f5ce3d.
+Cannot activate automatic trial for user d882c2b6-db6b-4972-a589-cb41c3f5ce3d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 2011, in google_auth
+    raise AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: This account has been deactivated. Please contact support.
+.Free trial plan not found: no trial activated for user f06ae02b-c04c-4278-8be6-6fe6653d5ddb.
+Cannot activate automatic trial for user f06ae02b-c04c-4278-8be6-6fe6653d5ddb (validation): ValueError
+.Free trial plan not found: no trial activated for user 87d276fb-5ccc-484e-a942-0eb2969256f9.
+Cannot activate automatic trial for user 87d276fb-5ccc-484e-a942-0eb2969256f9 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user 3e437673-1f58-4b30-bc93-e2542862f10a.
+Cannot activate automatic trial for user 3e437673-1f58-4b30-bc93-e2542862f10a (validation): ValueError
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user e1fbb5b0-ff35-4218-9bc9-09ecfceaf867.
+Cannot activate automatic trial for user e1fbb5b0-ff35-4218-9bc9-09ecfceaf867 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+.Free trial plan not found: no trial activated for user 289dafcb-7627-4398-8493-b04ecd40af5d.
+Cannot activate automatic trial for user 289dafcb-7627-4398-8493-b04ecd40af5d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 2022, in google_auth
+    raise ParseError(GOOGLE_SIGN_IN_FAILED)
+rest_framework.exceptions.ParseError: Google sign-in failed. Please try again.
+..API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+FFAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/views.py", line 1776, in register_school_admin
+    raise ParseError("Invalid or expired activation token.")
+rest_framework.exceptions.ParseError: Invalid or expired activation token.
+.Free trial plan not found: no trial activated for user 06de008d-072e-411e-9801-cfd010497ec6.
+Cannot activate automatic trial for user 06de008d-072e-411e-9801-cfd010497ec6 (validation): ValueError
+User 06de008d-072e-411e-9801-cfd010497ec6 may not be invited by licence: not enrolled.
+.Free trial plan not found: no trial activated for user bce32743-3b19-49d1-9f71-cbd4d6e91ebb.
+Cannot activate automatic trial for user bce32743-3b19-49d1-9f71-cbd4d6e91ebb (validation): ValueError
+FFree trial plan not found: no trial activated for user 1c34d1e6-fe7f-4b03-9b9d-223cf210d126.
+Cannot activate automatic trial for user 1c34d1e6-fe7f-4b03-9b9d-223cf210d126 (validation): ValueError
+User 1c34d1e6-fe7f-4b03-9b9d-223cf210d126 may not be invited by licence: not enrolled.
+.Free trial plan not found: no trial activated for user 236fa92c-3efd-4f07-8252-960d42652599.
+Cannot activate automatic trial for user 236fa92c-3efd-4f07-8252-960d42652599 (validation): ValueError
+User 236fa92c-3efd-4f07-8252-960d42652599 may not be invited by licence: not enrolled.
+.Free trial plan not found: no trial activated for user 4614bb15-819b-41bf-b3bf-cfc9d2d48f9d.
+Cannot activate automatic trial for user 4614bb15-819b-41bf-b3bf-cfc9d2d48f9d (validation): ValueError
+.User e64c2390-234d-4cd6-9cd0-b8f4ca242cfa is not a teacher: not enrolled.
+.Free trial plan not found: no trial activated for user 4fae62f5-318c-4ae9-913c-f6f11dcc7643.
+Cannot activate automatic trial for user 4fae62f5-318c-4ae9-913c-f6f11dcc7643 (validation): ValueError
+.Free trial plan not found: no trial activated for user 85234e73-4177-46e4-a41f-78bf38372155.
+Cannot activate automatic trial for user 85234e73-4177-46e4-a41f-78bf38372155 (validation): ValueError
+.Free trial plan not found: no trial activated for user d07fe3df-129f-4291-8f6b-7936b8883537.
+Cannot activate automatic trial for user d07fe3df-129f-4291-8f6b-7936b8883537 (validation): ValueError
+FFree trial plan not found: no trial activated for user 6e5f50de-c143-4b3a-8c3d-5d7035812fdd.
+Cannot activate automatic trial for user 6e5f50de-c143-4b3a-8c3d-5d7035812fdd (validation): ValueError
+Teacher 6e5f50de-c143-4b3a-8c3d-5d7035812fdd belongs to school 4849eb26-88f6-4a92-a3d7-472ca9f91063, not 748af9ac-a1a3-429e-8924-6e9d115ee26d: not enrolled.
+FFree trial plan not found: no trial activated for user f4115265-e802-49fa-bcd4-2efd1027c80f.
+Cannot activate automatic trial for user f4115265-e802-49fa-bcd4-2efd1027c80f (validation): ValueError
+FFree trial plan not found: no trial activated for user 7a96b016-bc3b-4f17-abfb-fb3a03c94a51.
+Cannot activate automatic trial for user 7a96b016-bc3b-4f17-abfb-fb3a03c94a51 (validation): ValueError
+FFree trial plan not found: no trial activated for user f42a8aaf-4fde-4871-a912-d4b9cb53fdc1.
+Cannot activate automatic trial for user f42a8aaf-4fde-4871-a912-d4b9cb53fdc1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 40e636fd-6a80-4def-a75b-d5a4d186e31d.
+Cannot activate automatic trial for user 40e636fd-6a80-4def-a75b-d5a4d186e31d (validation): ValueError
+.Free trial plan not found: no trial activated for user ce4b8d6e-9ec5-4358-ae1b-a881c8bc23c4.
+Cannot activate automatic trial for user ce4b8d6e-9ec5-4358-ae1b-a881c8bc23c4 (validation): ValueError
+FFree trial plan not found: no trial activated for user 0e27744c-323e-4535-bdca-269c4ae89b93.
+Cannot activate automatic trial for user 0e27744c-323e-4535-bdca-269c4ae89b93 (validation): ValueError
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/serializers.py", line 742, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/services/enrollment.py", line 184, in check_existing_account_may_join
+    raise EnrollmentError(NOT_A_STUDENT_MESSAGE)
+classrooms.services.enrollment.EnrollmentError: This email can't be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/views.py", line 1419, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/serializers.py", line 744, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string="This email can't be added as a student.", code='invalid')]
+
+
+django.request ERROR 2026-10-09 17:10:36,348 log 1675385 131828297296832 [request_id=-] Internal Server Error: /api/v1/course/d62195fd-c4b4-4759-bd61-2252797b34fd/direct-add-student
+
+
+.Free trial plan not found: no trial activated for user e3850443-0702-479e-9158-554e0bfbac8f.
+Cannot activate automatic trial for user e3850443-0702-479e-9158-554e0bfbac8f (validation): ValueError
+.Free trial plan not found: no trial activated for user 1d3b9926-15af-49ac-b74e-3608db6a3725.
+Cannot activate automatic trial for user 1d3b9926-15af-49ac-b74e-3608db6a3725 (validation): ValueError
+FFree trial plan not found: no trial activated for user a2007b85-600e-4612-b1c4-f482367c27cb.
+Cannot activate automatic trial for user a2007b85-600e-4612-b1c4-f482367c27cb (validation): ValueError
+.Free trial plan not found: no trial activated for user 6f4d7281-e6c7-4f36-8be3-b2f2f8c30db3.
+Cannot activate automatic trial for user 6f4d7281-e6c7-4f36-8be3-b2f2f8c30db3 (validation): ValueError
+...
+======================================================================
+FAIL: test_a_student_typed_row_carrying_is_staff_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/tests_admin_power_principle.py", line 295, in test_a_student_typed_row_carrying_is_staff_is_refused
+    with self.assertRaises(EnrollmentError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: EnrollmentError not raised
+
+======================================================================
+FAIL: test_google_refuses_a_never_verified_staff_account (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/tests_admin_power_principle.py", line 108, in test_google_refuses_a_never_verified_staff_account
+    self.assert_refused_and_untouched(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/tests_admin_power_principle.py", line 97, in assert_refused_and_untouched
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_that_refusal_is_the_invalid_invitation_answer (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/tests_admin_power_principle.py", line 244, in test_that_refusal_is_the_invalid_invitation_answer
+    self.assertEqual(refused.status_code, wrong.status_code)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_staff (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/tests_admin_power_principle.py", line 225, in test_the_invitation_road_refuses_a_pending_row_carrying_is_staff
+    self.assert_refused_and_untouched(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/users/tests_admin_power_principle.py", line 216, in assert_refused_and_untouched
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_a_never_verified_staff_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/billing/tests/test_licence_invite_admin_power.py", line 137, in test_a_never_verified_staff_teacher_is_refused_and_untouched
+    self.assert_refused_and_untouched(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/billing/tests/test_licence_invite_admin_power.py", line 121, in assert_refused_and_untouched
+    with self.assertRaises(ValueError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_the_non_raising_path_returns_none_and_writes_nothing (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/billing/tests/test_licence_invite_admin_power.py", line 157, in test_the_non_raising_path_returns_none_and_writes_nothing
+    self.assert_refused_and_untouched(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/billing/tests/test_licence_invite_admin_power.py", line 126, in assert_refused_and_untouched
+    self.assertIsNone(result)
+AssertionError: <CustomUser: Some Teacher> is not None
+
+======================================================================
+FAIL: test_the_refusal_does_not_say_which_school_the_row_belongs_to (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/billing/tests/test_licence_invite_admin_power.py", line 174, in test_the_refusal_does_not_say_which_school_the_row_belongs_to
+    self.assertEqual(str(caught.exception), CANNOT_BE_ADDED)
+AssertionError: 'This teacher already belongs to another school.' != "This email can't be added as a teacher."
+- This teacher already belongs to another school.
++ This email can't be added as a teacher.
+
+
+======================================================================
+FAIL: test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/billing/tests/test_licence_invite_admin_power.py", line 184, in test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used
+    self.assertEqual(response.data["failed"], 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/tests_h203_admin_power_routes.py", line 129, in test_bulk_import_refuses_a_student_typed_row_carrying_is_staff
+    self.assertEqual(response.data["failure_count"], 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/tests_h203_admin_power_routes.py", line 150, in test_direct_add_refuses_a_student_typed_row_carrying_is_staff
+    self.assertIn(response.status_code, DIRECT_REFUSALS)
+AssertionError: 200 not found in (400, 500)
+
+======================================================================
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h203-google-road-admin-power/classrooms/tests_h203_admin_power_routes.py", line 108, in test_single_add_refuses_a_student_typed_row_carrying_is_staff
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+----------------------------------------------------------------------
+Ran 37 tests in 2.885s
+
+FAILED (failures=11)
+Preserving test database for alias 'default'...
+Found 37 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
