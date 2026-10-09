@@ -18,8 +18,8 @@ What these tests hold:
     each call (not once at import), and with it off the block is exactly
     `{"data_collection": "deny"}`;
   * the helper returns a NEW dict each call;
-  * static: the only `chat.completions.create` calls in the repository's code
-    are the two in `__ai_model`; every other file that builds a provider
+  * static: the only `chat.completions.create` call in the repository's code
+    is the one in `__ai_model`; every other file that builds a provider
     client or request is on a NAMED list as "sends the provider block" or
     "made-up data only, by statement"; a file added later fails until listed;
     no "data_collection" literal exists outside the helper;
@@ -295,7 +295,7 @@ class NoRequestCanBeSentWithoutTheBlock(SimpleTestCase):
         ]
         self.assertEqual(len(helpers), 1)
 
-    def test_the_only_create_calls_are_the_two_in_ai_model(self):
+    def test_the_only_create_call_is_the_one_in_ai_model(self):
         tree = ast.parse(
             (BASE / "ai_processor/services.py").read_text(encoding="utf-8")
         )
@@ -312,9 +312,9 @@ class NoRequestCanBeSentWithoutTheBlock(SimpleTestCase):
                 visit(child, function)
 
         visit(tree, None)
-        self.assertEqual(owners, ["__ai_model", "__ai_model"])
+        self.assertEqual(owners, ["__ai_model"])
 
-    def test_both_requests_take_the_block_from_the_helper(self):
+    def test_the_request_takes_the_block_from_the_helper(self):
         tree = ast.parse(
             (BASE / "ai_processor/services.py").read_text(encoding="utf-8")
         )
@@ -327,7 +327,7 @@ class NoRequestCanBeSentWithoutTheBlock(SimpleTestCase):
                     if isinstance(n, ast.Call)
                     and _call_chain(n.func) == "_provider_block"
                 )
-        self.assertEqual(uses, 2)
+        self.assertEqual(uses, 1)
 
     def test_every_file_that_builds_a_client_or_a_request_is_on_the_named_list(self):
         found = self._users_of_the_provider()
