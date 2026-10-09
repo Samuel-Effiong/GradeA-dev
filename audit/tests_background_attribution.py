@@ -289,8 +289,41 @@ class ClawbackRaceTests(TransactionTestCase):
     """Gate 3, real threads and commits: nothing is expired twice."""
 
     def setUp(self):
-        self.teacher = make_user("s3.race.teacher@example.com")
+        self.school = School.objects.create(name="S3 Race School")
+        self.admin = make_user(
+            "s3.race.admin@example.com", UserTypes.SCHOOL_ADMIN, school=self.school
+        )
+        plan = SubscriptionPlan.objects.create(
+            name=PlanType.PRO,
+            display_name="S3 Race Licence Plan",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.PRO,
+            monthly_credits=20000,
+        )
+        self.licence = LicenseSubscription.objects.create(
+            school=self.school,
+            admin_user=self.admin,
+            plan=plan,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + timedelta(days=30),
+            is_active=True,
+        )
+        self.teacher = make_user("s3.race.teacher@example.com", school=self.school)
+        SchoolCreditAllocation.objects.create(
+            license_subscription=self.licence,
+            user=self.teacher,
+            monthly_allocation=1000,
+            is_active=True,
+        )
         self.wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
+
+    def clawback(self):
+        """The REAL licence clawback (H-222: these tests used to carry a
+        hand-written copy of its lock order, which would keep the old order
+        whatever the production code did)."""
+        LicenseSubscriptionService.remove_teacher_from_license(
+            self.licence, self.teacher
+        )
 
     def race(self, *callables):
         barrier = threading.Barrier(len(callables), timeout=30)
@@ -322,16 +355,7 @@ class ClawbackRaceTests(TransactionTestCase):
         b = bucket(self.wallet, total=1000, used=300)
         stale = CreditBucket.objects.get(pk=b.pk)
 
-        def clawback():
-            from django.db import transaction
-
-            with transaction.atomic():
-                live = CreditBucket.objects.select_for_update().get(pk=b.pk)
-                live.expires_at = timezone.now()
-                live.save(update_fields=["expires_at", "updated_at"])
-                SubscriptionService.expire_bucket(live, reference="clawback")
-
-        self.race(clawback, lambda: SubscriptionService.expire_bucket(stale))
+        self.race(self.clawback, lambda: SubscriptionService.expire_bucket(stale))
 
         self.assertEqual(self.expire_rows_per_bucket(), [1])
 
@@ -339,19 +363,6 @@ class ClawbackRaceTests(TransactionTestCase):
         bucket(self.wallet, total=1000, used=300)
         now = timezone.now()
         plan = cast(Any, SimpleNamespace(carry_over_expiry_months=1))
-
-        def clawback():
-            from django.db import models, transaction
-
-            with transaction.atomic():
-                for live in self.wallet.buckets.select_for_update().filter(
-                    models.Q(expires_at__isnull=True)
-                    | models.Q(expires_at__gt=timezone.now()),
-                    is_processed=False,
-                ):
-                    live.expires_at = timezone.now()
-                    live.save(update_fields=["expires_at", "updated_at"])
-                    SubscriptionService.expire_bucket(live, reference="clawback")
 
         def monthly_grant():
             from django.db import transaction
@@ -372,6 +383,6 @@ class ClawbackRaceTests(TransactionTestCase):
                     metadata={},
                 )
 
-        self.race(clawback, monthly_grant)
+        self.race(self.clawback, monthly_grant)
 
         self.assertTrue(all(n == 1 for n in self.expire_rows_per_bucket()))
