@@ -1,0 +1,103 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user a0f63dd9-a307-43ce-a183-a163e91c6fd3.
+Cannot activate automatic trial for user a0f63dd9-a307-43ce-a183-a163e91c6fd3 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/pagination.py:207: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'audit.models.AuditEvent'> AppendOnlyQuerySet.
+  paginator = self.django_paginator_class(queryset, page_size)
+FFree trial plan not found: no trial activated for user f5ed34a4-1803-41cc-8450-f22ee1e719f0.
+Cannot activate automatic trial for user f5ed34a4-1803-41cc-8450-f22ee1e719f0 (validation): ValueError
+.Free trial plan not found: no trial activated for user a053b048-aefa-4a53-b12d-883240c2e392.
+Cannot activate automatic trial for user a053b048-aefa-4a53-b12d-883240c2e392 (validation): ValueError
+FFree trial plan not found: no trial activated for user ddaf6e78-40fb-4eac-a1e8-7c935a4f583f.
+Cannot activate automatic trial for user ddaf6e78-40fb-4eac-a1e8-7c935a4f583f (validation): ValueError
+.Free trial plan not found: no trial activated for user c5093902-cd36-4aa5-93eb-4a7ad070a45a.
+Cannot activate automatic trial for user c5093902-cd36-4aa5-93eb-4a7ad070a45a (validation): ValueError
+.Free trial plan not found: no trial activated for user 03b8eec8-abda-45bc-9498-d2554a7a7732.
+Cannot activate automatic trial for user 03b8eec8-abda-45bc-9498-d2554a7a7732 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a school admin to access this endpoint.
+.Free trial plan not found: no trial activated for user e2ac3089-c112-460c-971a-df0103885d87.
+Cannot activate automatic trial for user e2ac3089-c112-460c-971a-df0103885d87 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6c15a25c-6802-4279-8a32-3490c35aee57.
+Cannot activate automatic trial for user 6c15a25c-6802-4279-8a32-3490c35aee57 (validation): ValueError
+.Free trial plan not found: no trial activated for user caff334c-8d0b-4a4a-990f-aaaf0bb121c0.
+Cannot activate automatic trial for user caff334c-8d0b-4a4a-990f-aaaf0bb121c0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4fad64a1-38cf-47e4-bf0a-1c4889fe672a.
+Cannot activate automatic trial for user 4fad64a1-38cf-47e4-bf0a-1c4889fe672a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Free trial plan not found: no trial activated for user 61de08c8-3fa1-4fa5-b588-876f4f7e5f18.
+Cannot activate automatic trial for user 61de08c8-3fa1-4fa5-b588-876f4f7e5f18 (validation): ValueError
+.Free trial plan not found: no trial activated for user 58531e83-9579-4568-86a9-ba0883a68bf5.
+Cannot activate automatic trial for user 58531e83-9579-4568-86a9-ba0883a68bf5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 49c1f577-7113-4db2-b530-95c4fb5ef40a.
+Cannot activate automatic trial for user 49c1f577-7113-4db2-b530-95c4fb5ef40a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.
+======================================================================
+FAIL: test_a_school_id_parameter_does_not_widen_it (audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_a_school_id_parameter_does_not_widen_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-null-school-empty/audit/tests_school_admin_without_a_school.py", line 89, in test_a_school_id_parameter_does_not_widen_it
+    self.assertEqual(rows_of(response), [])
+AssertionError: Lists differ: [{'id': 'c67d329d-21b3-455a-afd1-acd5de46c[3156 chars] {}}] != []
+
+First list contains 5 additional elements.
+First extra element 0:
+{'id': 'c67d329d-21b3-455a-afd1-acd5de46ca9d', 'occurred_at': '2026-10-09T18:44:27.138606Z', 'actor_id': '8e958d54-43bf-4568-87ac-dc9230c61a0b', 'actor_role': 'TEACHER', 'actor_email': 'teacher@example.com', 'school_id': '8349bddc-e820-4d57-a028-5c1c50fc5bab', 'department_id': None, 'action': 'ASSIGNMENT_CREATE', 'target_type': 'Assignment', 'target_id': 'cdac4501-8738-48e1-b22a-7b9291c0e37a', 'outcome': 'SUCCESS', 'error_class': None, 'reason_code': None, 'trace_id': '1a429b6a-4aec-4bc8-95b4-dae772dec37d', 'client_correlation_id': None, 'source_ip': None, 'user_agent': None, 'retention_class': 'GENERAL', 'before': None, 'after': None, 'metadata': {}}
+
+Diff is 3623 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_an_admin_with_no_school_is_shown_an_empty_list (audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_no_school_is_shown_an_empty_list)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-null-school-empty/audit/tests_school_admin_without_a_school.py", line 80, in test_an_admin_with_no_school_is_shown_an_empty_list
+    self.assertEqual(rows_of(response), [])
+AssertionError: Lists differ: [{'id': 'dfe549e4-f419-48a9-9bb7-9c5a9700c[3156 chars] {}}] != []
+
+First list contains 5 additional elements.
+First extra element 0:
+{'id': 'dfe549e4-f419-48a9-9bb7-9c5a9700c78a', 'occurred_at': '2026-10-09T18:44:27.257181Z', 'actor_id': '9f235285-981a-45a7-be55-201b3c543b57', 'actor_role': 'TEACHER', 'actor_email': 'teacher@example.com', 'school_id': 'be39b931-79d9-4ef0-afa6-6f5a946ff04b', 'department_id': None, 'action': 'ASSIGNMENT_CREATE', 'target_type': 'Assignment', 'target_id': '7886a556-9f7c-40a5-a151-f562de44cb23', 'outcome': 'SUCCESS', 'error_class': None, 'reason_code': None, 'trace_id': '342670f6-17b1-43f4-882a-d3e3b928d62b', 'client_correlation_id': None, 'source_ip': None, 'user_agent': None, 'retention_class': 'GENERAL', 'before': None, 'after': None, 'metadata': {}}
+
+Diff is 3623 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.786s
+
+FAILED (failures=2)
+Preserving test database for alias 'default'...
+Found 13 test(s).
