@@ -251,6 +251,33 @@ MUTANTS = [
         K,
     ),
     (
+        "Q23",
+        "an unlisted finish reason is stored as NULL, not as other",
+        CR,
+        "        finish = finish if finish in _FINISH_REASONS else CallFinishReason.OTHER.value\n",
+        "        finish = finish if finish in _FINISH_REASONS else None\n",
+        BOTH,
+        K,
+    ),
+    (
+        "Q24",
+        "pdf parts are not counted",
+        CR,
+        '        elif kind == "pdf_url":\n            pdfs += 1\n',
+        '        elif kind == "pdf_url":\n            pass\n',
+        BOTH,
+        K,
+    ),
+    (
+        "Q25",
+        "the content lists inside messages are not read",
+        CR,
+        '    for message in arguments.get("messages") or []:\n',
+        "    for message in []:\n",
+        BOTH,
+        K,
+    ),
+    (
         "M3",
         "the upstream provider column is dropped from the model",
         MD,
@@ -348,11 +375,46 @@ _STATIC_HOOKS = [
     "test_the_function_makes_no_other_call_into_the_module",
     "test_the_hooks_are_five_lines_in_all",
 ]
+# Every test that reads the one row of a call that went through the charge
+# (each fails when no row is written, or when two are).
+_ROW_OF_A_CHARGE = [
+    "test_a_charged_call_leaves_one_row_with_what_was_known",
+    "test_the_row_reconciles_with_the_charge",
+    "test_the_model_asked_for_is_the_override_when_there_is_one",
+    "test_a_field_the_reply_does_not_carry_is_null_never_zero",
+    "test_a_weird_value_in_the_reply_becomes_null_and_the_call_goes_on",
+    "test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else",
+    "test_a_reply_with_no_usage_object_at_all_still_leaves_a_row",
+    "test_the_kind_is_set_only_where_the_task_type_proves_it",
+    "test_an_unlisted_task_type_and_feature_are_recorded_as_other",
+    "test_counts_of_what_was_sent_come_from_the_request_not_the_bytes",
+    "test_the_question_count_is_taken_from_the_assignment_when_given",
+    "test_images_and_pdfs_inside_messages_are_counted",
+    "test_a_pdf_part_in_the_prompt_is_counted_as_a_pdf_not_an_image",
+    "test_the_row_carries_the_teacher_and_never_the_student",
+]
+# Every test that needs any row at all (a charge, a refusal, a failure, the
+# super admin): the recorder writes nothing.
+_ANY_ROW = (
+    _ROW_OF_A_CHARGE
+    + _SEVEN
+    + [
+        "test_a_super_admin_call_is_recorded_as_unmetered",
+        "test_each_try_is_its_own_row",
+        "test_a_call_that_noted_nothing_carries_nothing_over_from_the_last",
+        "test_a_call_that_raised_has_no_upstream_provider",
+        "test_the_charge_is_the_same_with_recording_on_off_and_failing",
+        "test_no_text_from_the_call_reaches_a_column_or_a_log",
+        "test_deleting_the_teacher_or_the_assignment_leaves_the_rows",
+    ]
+)
 
 #: The failing tests each mutant must be caught by (written before any run):
-#: every test reckoned to fail under it. Overlaps are listed, not hidden.
+#: every test reckoned to fail under it, controls included, each traced by
+#: hand against ALL tests of both modules (the Checker's pre-read of 923aac5a
+#: corrected the first lists). Overlaps are listed, not hidden.
 EXPECTED = {
-    "Q1": _SWALLOW[:],
+    "Q1": _SWALLOW + ["test_no_text_from_the_call_reaches_a_column_or_a_log"],
     "Q2": [
         "test_a_recorder_error_in_a_failure_path_never_replaces_the_original",
         "test_the_time_limit_is_not_swallowed_after_a_charge_but_not_replacing_an_error",
@@ -362,24 +424,51 @@ EXPECTED = {
         "test_the_recorder_adds_one_insert_in_one_savepoint_and_reads_nothing",
         "test_a_missing_table_is_survived_and_counted",
     ],
+    # Q4: the extra write sits in the charge transaction and ignores the
+    # switch. A charged call leaves two rows (every one-row test fails); the
+    # tests that make the insert fail (patched create, deleted table) fail the
+    # call itself; the cancellation, refusal and charge-failure paths never reach it
+    # or roll it back with the charge, so they pass.
     "Q4": [
         "test_the_function_makes_no_other_call_into_the_module",
         "test_the_hooks_are_five_lines_in_all",
-        "test_a_charged_call_leaves_one_row_with_what_was_known",
+    ]
+    + _ROW_OF_A_CHARGE
+    + [
+        "test_each_try_is_its_own_row",
+        "test_the_charge_is_the_same_with_recording_on_off_and_failing",
+        "test_the_recorder_adds_one_insert_in_one_savepoint_and_reads_nothing",
+        "test_off_writes_no_row_and_runs_no_query",
+        "test_no_text_from_the_call_reaches_a_column_or_a_log",
+        "test_a_failing_insert_of_any_database_kind_leaves_the_charge_and_return",
+        "test_a_missing_table_is_survived_and_counted",
+        "test_a_failure_is_logged_with_ids_and_the_class_never_the_message",
+        "test_the_time_limit_is_not_swallowed_after_a_charge_but_not_replacing_an_error",
+        "test_a_failing_insert_inside_a_callers_transaction_leaves_it_usable",
     ],
+    # Q5: the recorder asks for the estimate again: two calls where one is
+    # asserted, and 20000 where a refusal before the estimate must say None.
     "Q5": [
         "test_the_estimate_is_computed_once_per_call_with_recording_on",
         "test_a_charged_call_leaves_one_row_with_what_was_known",
+        "test_a_refusal_before_the_estimate_has_no_estimate",
+        "test_a_call_that_noted_nothing_carries_nothing_over_from_the_last",
     ],
-    "Q6": ["test_a_failure_is_logged_with_ids_and_the_class_never_the_message"],
+    "Q6": [
+        "test_a_failure_is_logged_with_ids_and_the_class_never_the_message",
+        "test_no_text_from_the_call_reaches_a_column_or_a_log",
+    ],
     "Q7": [
         "test_off_writes_no_row_and_runs_no_query",
         "test_the_charge_is_the_same_with_recording_on_off_and_failing",
         "test_the_recorder_adds_one_insert_in_one_savepoint_and_reads_nothing",
     ],
     "Q8": ["test_a_super_admin_call_is_recorded_as_unmetered"] + _SEVEN,
+    # Q9: the column holds the first 24 characters of the message. The canary's
+    # provider error now begins with the sentinel, so the canary sees it.
     "Q9": [
         "test_a_provider_error_is_recorded_with_its_class_and_the_estimate",
+        "test_any_other_failure_of_the_charge_is_recorded_as_charge_failed",
         "test_no_text_from_the_call_reaches_a_column_or_a_log",
     ],
     "Q10": [
@@ -390,8 +479,21 @@ EXPECTED = {
     "Q11": ["test_the_row_carries_the_teacher_and_never_the_student"],
     "Q12": ["test_a_field_the_reply_does_not_carry_is_null_never_zero"],
     "Q13": ["test_a_weird_value_in_the_reply_becomes_null_and_the_call_goes_on"],
-    "Q14": ["test_a_call_that_noted_nothing_carries_nothing_over_from_the_last"],
-    "Q15": _SEVEN[:],
+    # Q14 (state never reset): the state of an earlier call is still open in
+    # this thread. The last two depend on earlier tests of the same run having
+    # made a call in the thread (test classes run in name order).
+    "Q14": [
+        "test_a_call_that_noted_nothing_carries_nothing_over_from_the_last",
+        "test_off_also_leaves_no_state_behind",
+        "test_notes_made_with_no_call_open_do_nothing",
+    ],
+    "Q15": _SEVEN
+    + [
+        "test_a_call_that_raised_has_no_upstream_provider",
+        "test_a_call_that_noted_nothing_carries_nothing_over_from_the_last",
+        "test_no_text_from_the_call_reaches_a_column_or_a_log",
+    ],
+    # Q16: every exception that leaves a call comes out as RuntimeError.
     "Q16": [
         "test_the_provider_exception_is_the_very_object_with_its_traceback",
         "test_each_exception_class_the_callers_branch_on_comes_out_unchanged",
@@ -403,6 +505,9 @@ EXPECTED = {
         "test_a_recorder_error_in_a_failure_path_never_replaces_the_original",
         "test_no_text_from_the_call_reaches_a_column_or_a_log",
         "test_the_gate_and_access_refusals_are_the_same_with_recording_off",
+        "test_a_call_that_raised_has_no_upstream_provider",
+        "test_a_call_that_noted_nothing_carries_nothing_over_from_the_last",
+        "test_the_time_limit_is_not_swallowed_after_a_charge_but_not_replacing_an_error",
     ],
     "Q17": [
         "test_the_time_limit_is_not_swallowed_after_a_charge_but_not_replacing_an_error"
@@ -422,22 +527,37 @@ EXPECTED = {
         "test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else",
     ],
     "Q22": ["test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else"],
-    # M3: the model loses the field; the recorder still passes it, the insert fails and is swallowed: no row is written.
+    "Q23": ["test_a_weird_value_in_the_reply_becomes_null_and_the_call_goes_on"],
+    "Q24": [
+        "test_images_and_pdfs_inside_messages_are_counted",
+        "test_a_pdf_part_in_the_prompt_is_counted_as_a_pdf_not_an_image",
+    ],
+    "Q25": ["test_images_and_pdfs_inside_messages_are_counted"],
+    # M3: the model loses the field, the recorder still passes it, every
+    # create() raises TypeError and is swallowed: NO row is written anywhere.
+    # The tests that patch create (or the usage numbers) and only count the
+    # failure still pass.
     "M3": [
         "test_the_columns_are_exactly_these_by_name_and_type",
         "test_the_upstream_provider_column_is_short_nullable_text",
-        "test_a_charged_call_leaves_one_row_with_what_was_known",
-        "test_the_upstream_provider_is_the_name_in_the_reply_and_nothing_else",
-    ],
+        "test_the_recorder_adds_one_insert_in_one_savepoint_and_reads_nothing",
+    ]
+    + _ANY_ROW,
     "H1": _STATIC_HOOKS
     + [
         "test_a_charged_call_leaves_one_row_with_what_was_known",
         "test_a_refusal_at_the_gate_is_recorded_with_the_estimate_and_no_usage",
+        "test_a_provider_error_is_recorded_with_its_class_and_the_estimate",
     ],
     "H2": _STATIC_HOOKS
     + [
+        "test_a_charged_call_leaves_one_row_with_what_was_known",
         "test_the_row_reconciles_with_the_charge",
+        "test_a_field_the_reply_does_not_carry_is_null_never_zero",
+        "test_the_row_carries_the_teacher_and_never_the_student",
         "test_a_provider_error_is_recorded_with_its_class_and_the_estimate",
+        "test_each_try_is_its_own_row",
+        "test_a_failure_is_logged_with_ids_and_the_class_never_the_message",
     ],
     "H3": _STATIC_HOOKS
     + [
@@ -446,15 +566,30 @@ EXPECTED = {
         "test_any_other_failure_of_the_charge_is_recorded_as_charge_failed",
     ],
     "H4": _STATIC_HOOKS + ["test_the_row_carries_the_teacher_and_never_the_student"],
+    # H5: no decorator, no recorder: nothing is written, nothing is counted,
+    # no spy is called.
     "H5": [
         "test_execute_graded_task_is_decorated_once_with_recorded_call",
-        "test_a_charged_call_leaves_one_row_with_what_was_known",
-    ],
+        "test_the_hooks_are_five_lines_in_all",
+        "test_a_failing_insert_of_any_database_kind_leaves_the_charge_and_return",
+        "test_a_missing_table_is_survived_and_counted",
+        "test_a_failure_is_logged_with_ids_and_the_class_never_the_message",
+        "test_the_time_limit_is_not_swallowed_after_a_charge_but_not_replacing_an_error",
+        "test_exit_requests_are_never_swallowed",
+        "test_reading_the_reply_failing_is_swallowed_too",
+        "test_a_database_error_from_the_real_insert_leaves_the_transaction_usable",
+        "test_the_charge_is_done_and_no_savepoint_is_open_when_the_recorder_runs",
+        "test_the_recorder_adds_one_insert_in_one_savepoint_and_reads_nothing",
+    ]
+    + _ANY_ROW,
     "M1": [
         "test_the_columns_are_exactly_these_by_name_and_type",
         "test_no_free_text_no_json_no_foreign_key",
     ],
-    "M2": ["test_it_is_one_create_model_and_nothing_else"],
+    "M2": [
+        "test_it_is_one_create_model_and_nothing_else",
+        "test_back_drops_only_the_table_and_forward_makes_it_again",
+    ],
 }
 
 #: A test module that could not be loaded.
