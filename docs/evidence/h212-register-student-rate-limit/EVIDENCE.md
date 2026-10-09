@@ -14,9 +14,12 @@ New module `users/tests_register_student_rate_limit` (3 tests). Setup: LocMem ca
 ## Expected results (no production change, so everything is green on base)
 These are tests of existing behaviour: all three PASS on beta b4fda750. They are proven able to fail only by the mutants below (rule 19).
 Mutants of users/views.py register_student:
-- D4a delete the `throttle_classes=[RegisterThrottle]` line: test 1 fails `410 != 429` (the fourth answer: list differs at the last item), test 3 fails `410 != 429`; test 2 stays green (killed by 1 and 3).
+- D4a delete the `throttle_classes=[RegisterThrottle]` line: test 1 fails with the list form `[410, 410, 410, 410] != [410, 410, 410, 429]` and `First differing element 3: 410 429` (its written fragment is `First differing element 3: 410 429`), test 3 fails with the bare `410 != 429`; test 2 stays green (killed by 1 and 3).
 - D4b replace it with `throttle_classes=[LoginThrottle]` (scope "login", patched to 1000/min): same set as D4a.
 - D4c replace it with `throttle_classes=[]`: same set as D4a.
 - D4d leave the class but patch `RegisterThrottle.scope` to "anon" via the file (`scope = "anon"`, rate 1000/min): same set as D4a.
 Not guarded (named): a throttle whose key is NOT the address (one global bucket) would turn test 2 red only if the class were replaced by one with a constant key; no such class exists, so test 2 is a control and is not claimed to kill any mutant.
 Gate list for the grant: users.tests_register_student_rate_limit, users.tests_throttle_client_identity, users.tests_old_activation_door_is_closed. No payload change (rule 20 not touched).
+
+## Limit (Verifier 1's note 2)
+The tests patch the rate to 3/hour, so they prove the throttle is attached to the door, not the production budget: changing the production "register" rate (10/hour in AutoGrader/settings.py) or dropping its key keeps all three green. Not claimed.
