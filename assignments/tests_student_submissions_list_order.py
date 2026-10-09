@@ -34,6 +34,9 @@ from students.models import StudentSubmission
 from users.models import UserTypes
 
 User = get_user_model()
+# N must stay below 7: the tie test (O2) relies on PostgreSQL sorting fewer
+# than 7 rows by insertion sort, which keeps equal keys in input order, so a
+# sort on created_at alone returns the rows in insertion order (Verifier 1).
 N = 6
 
 
