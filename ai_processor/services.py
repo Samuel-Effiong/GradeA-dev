@@ -455,8 +455,11 @@ def _provider_block():
     (zero-retention endpoints); without it several of our suppliers retain
     prompts (a supplier states this about itself; we did not audit it). A NEW
     dict each call, so a caller changing one request's block cannot change the
-    next. Read at each call, so the switch works without a restart. Student
-    names and submission content pass through these requests.
+    next. The setting comes from the environment when the process starts
+    (AutoGrader/settings.py) and is read at each call here; changing the
+    variable on the host needs a RESTART of the web, worker and Beat
+    processes. Student names and submission content pass through these
+    requests.
     """
     block = {"data_collection": "deny"}
     if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True):
