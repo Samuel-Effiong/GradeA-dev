@@ -107,3 +107,12 @@ Rule 19 reading: none of the three is a survivor (each mutant was killed), but 2
 
 ## Not yet done
 Verifier 1's record of this run; the single regression `APPS="users classrooms billing"` on the final tip after Verifier 1 reads (a separate grant from 0b).
+
+---
+
+# ADDENDUM (Senior Manager, 2026-10-09 18:14 WAT): two direct order tests, no gate re-run
+Commit c7c0659c, tests only. The written sets, `mutate.py` (b06d49f339a6d3bf) and the raw results above are untouched.
+- `users.tests_admin_power_principle.GoogleRoadTests.test_the_refusal_is_raised_before_any_write_to_the_account` and `billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_is_raised_before_any_write_to_the_account`. Each captures the SQL of the refused call (`CaptureQueriesContext`) and asserts (1) the refusal itself (400, or `ValueError`), (2) at least one SELECT on the users table (so a capture that saw nothing cannot pass), (3) **no UPDATE, INSERT or DELETE on the users table**. Statements count even when the atomic block later rolls them back, so the test does not depend on that block. The failure message carries counts only, never the SQL (it would hold the address and, in an UPDATE, values).
+- **Hand trace, Google:** a TEACHER row with is_superuser only, never verified; the view reads the row (one SELECT of users), the carve-out is skipped, the arm raises before the write lines (the only `save`/`create` in the view are in the new-account branch, 1966-1973); the middleware that writes activity does so to its own table for authenticated requests and the quoted table name `"users_customuser"` does not match it. **Licence:** an is_staff TEACHER row; `teacher_account_for_email` SELECTs; the guard raises; nothing else touches the table.
+- **Expected under the mutants, NOT RUN here (Verifier 2's slot):** T8 (`mutate.py`: Google stamps `email_verified_at` and saves before refusing) must turn the Google test red with `1 != 0` (one UPDATE on the users table); T20 (the licence guard attaches the school and saves before refusing) must turn the licence test red with `1 != 0`. Fragment for both: ` != 0`. Until that is seen, these two are not claimed to kill anything.
+- On the current code both are expected green; they are in the one regression to come.
