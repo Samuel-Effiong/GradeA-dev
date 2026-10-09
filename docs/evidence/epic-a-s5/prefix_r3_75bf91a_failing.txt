@@ -1,0 +1,243 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+FCannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+FCannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+FCannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+F.........API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-09-30 15:15:07,240 log 3488390 134804496350144 [request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+.API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-09-30 15:15:07,253 log 3488390 134804496350144 [request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+.API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-09-30 15:15:07,260 log 3488390 134804496350144 [request_id=-] Service Unavailable: /coded-client-id
+
+
+FAPI request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+.API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+.............AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+.AI access denied for user ANON (feature=None): User not authenticated
+.F
+======================================================================
+FAIL: test_a_client_cannot_join_another_actions_trail (audit.tests_trace_server_owned.TraceIdIsServerOwnedTests.test_a_client_cannot_join_another_actions_trail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/audit/tests_trace_server_owned.py", line 68, in test_a_client_cannot_join_another_actions_trail
+    self.assertNotEqual(event.trace_id, victim.trace_id)
+AssertionError: UUID('962da10f-bb7a-47d1-b74e-7a1eee8d1f2a') == UUID('962da10f-bb7a-47d1-b74e-7a1eee8d1f2a')
+
+======================================================================
+FAIL: test_an_inbound_id_that_is_not_a_uuid_is_dropped (audit.tests_trace_server_owned.TraceIdIsServerOwnedTests.test_an_inbound_id_that_is_not_a_uuid_is_dropped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/audit/tests_trace_server_owned.py", line 80, in test_an_inbound_id_that_is_not_a_uuid_is_dropped
+    self.assertIsNone(event.client_correlation_id)
+AssertionError: 'support-ticket-42' is not None
+
+======================================================================
+FAIL: test_log_lines_carry_the_server_id_and_the_client_id_apart (audit.tests_trace_server_owned.TraceIdIsServerOwnedTests.test_log_lines_carry_the_server_id_and_the_client_id_apart)
+A line logged inside the request (here, by the login's own audit
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/audit/tests_trace_server_owned.py", line 109, in test_log_lines_carry_the_server_id_and_the_client_id_apart
+    self.assertEqual(records[0].request_id, event.trace_id.hex)
+AssertionError: '133cd407-ce51-4571-9f8e-23d183c21d7e' != '133cd407ce5145719f8e23d183c21d7e'
+- 133cd407-ce51-4571-9f8e-23d183c21d7e
+?         -    -    -    -
++ 133cd407ce5145719f8e23d183c21d7e
+
+
+======================================================================
+FAIL: test_the_response_header_is_the_server_trace_id (audit.tests_trace_server_owned.TraceIdIsServerOwnedTests.test_the_response_header_is_the_server_trace_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/audit/tests_trace_server_owned.py", line 75, in test_the_response_header_is_the_server_trace_id
+    self.assertEqual(response[REQUEST_ID_HEADER], event.trace_id.hex)
+AssertionError: 'd30892a6-1e48-43a8-b3f6-bc8e5de52b93' != 'd30892a61e4843a8b3f6bc8e5de52b93'
+- d30892a6-1e48-43a8-b3f6-bc8e5de52b93
+?         -    -    -    -
++ d30892a61e4843a8b3f6bc8e5de52b93
+
+
+======================================================================
+FAIL: test_qa_err_04_an_inbound_request_id_is_never_the_reference (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_an_inbound_request_id_is_never_the_reference)
+X-5 wins over the first QA-ERR-04 reading (SM ruling): echoing a
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/AutoGrader/tests_reason_codes.py", line 432, in test_qa_err_04_an_inbound_request_id_is_never_the_reference
+    self.assertNotEqual(envelope["reference"], inbound)
+AssertionError: '3f2b9c1e-6d4a-4e8f-9a0b-1c2d3e4f5a6b' == '3f2b9c1e-6d4a-4e8f-9a0b-1c2d3e4f5a6b'
+
+======================================================================
+FAIL: test_the_error_reference_is_the_server_id (audit.tests_trace_server_owned.CodedErrorReferenceTests.test_the_error_reference_is_the_server_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/audit/tests_trace_server_owned.py", line 137, in test_the_error_reference_is_the_server_id
+    self.assertNotEqual(seen["reference"], inbound)
+AssertionError: '1d636cb0-b55f-431d-96b2-ca374ba0d3fc' == '1d636cb0-b55f-431d-96b2-ca374ba0d3fc'
+
+----------------------------------------------------------------------
+Ran 33 tests in 2.411s
+
+FAILED (failures=6)
+Destroying test database for alias 'default'...
+Found 33 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

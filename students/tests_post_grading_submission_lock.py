@@ -119,7 +119,14 @@ def _classroom(tag):
         title="A",
         course=course,
         status=AssignmentStatus.PUBLISHED,
-        questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+        questions=[
+            {
+                "question_number": 1,
+                "question_text": "Q1?",
+                "points": 10,
+                "model_answer": "4",
+            }
+        ],
     )
     return teacher, student, course, assignment
 
@@ -225,7 +232,14 @@ class PostGradingLockServiceTest(TestCase):
             title="B",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
-            questions=[{"question_number": 1, "question_text": "Q?", "points": 5}],
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_text": "Q?",
+                    "points": 5,
+                    "model_answer": "4",
+                }
+            ],
         )
         created = upload_answers_engine(other_assignment, "ignored", self.student)
         self.assertEqual(created.assignment, other_assignment)
@@ -473,7 +487,7 @@ class PostGradingLockAPITest(APITestCase):
                 title="B",
                 course=self.course,
                 status=AssignmentStatus.PUBLISHED,
-                questions=[{"question_number": 1, "points": 10}],
+                questions=[{"question_number": 1, "points": 10, "model_answer": "4"}],
             ),
             self.student,
             graded=False,
@@ -548,7 +562,7 @@ class PostGradingLockAPITest(APITestCase):
                 title="C",
                 course=self.course,
                 status=AssignmentStatus.PUBLISHED,
-                questions=[{"question_number": 1, "points": 10}],
+                questions=[{"question_number": 1, "points": 10, "model_answer": "4"}],
             ),
             self.student,
             graded=False,
@@ -577,7 +591,7 @@ class PostGradingLockAPITest(APITestCase):
                 title="D",
                 course=self.course,
                 status=AssignmentStatus.PUBLISHED,
-                questions=[{"question_number": 1, "points": 10}],
+                questions=[{"question_number": 1, "points": 10, "model_answer": "4"}],
             ),
             self.student,
             graded=False,

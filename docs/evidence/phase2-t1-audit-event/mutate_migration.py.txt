@@ -1,0 +1,65 @@
+"""Re-verify the migration-level mutants (M3-M8) with a FRESH test DB each
+run - --keepdb means a migration mutation never actually applies, since the
+schema is only built once. Same collision-safe restore-by-md5 discipline."""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-t1-audit-event"
+SCR = os.path.dirname(os.path.abspath(__file__))
+MG = "audit/migrations/0001_initial.py"
+LABEL = "audit"
+
+MUTANTS = [
+ ("M3","database check on student data made vacuous",[(MG,'models.Q(("actor_role", "STUDENT"), _negated=True),','models.Q(("actor_role", "NOBODY"), _negated=True),')],"student_event_with_an_email_is_refused"),
+ ("M4","reason-code index no longer partial",[(MG,'condition=models.Q(("reason_code__isnull", False)),',"")],"skip_null_rows"),
+ ("M5","actor_email made non-null",[(MG,'models.CharField(blank=True, max_length=254, null=True),\n                ),\n                ("school_id"','models.CharField(blank=True, max_length=254, default=""),\n                ),\n                ("school_id"')],"documented_columns"),
+ ("M6","trace_id made nullable",[(MG,'("trace_id", models.UUIDField()),','("trace_id", models.UUIDField(null=True)),')],"documented_columns"),
+ ("M7","school_id turned into a foreign key",[(MG,"dependencies = []",'dependencies = [("classrooms", "__latest__")]'),(MG,'("school_id", models.UUIDField(blank=True, null=True)),','("school_id", models.ForeignKey(blank=True, null=True, on_delete=models.CASCADE, to="classrooms.school", db_column="school_id")),')],"no_foreign_key"),
+ ("M8","retention index on the wrong columns",[(MG,'fields=["retention_class", "occurred_at"],','fields=["retention_class"],')],"documented_index"),
+]
+
+def md5(p): return hashlib.md5(open(p,"rb").read()).hexdigest()
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run([sys.executable,"manage.py","test",LABEL,"--settings=settings_worktree","--noinput"],cwd=ROOT,capture_output=True,text=True,timeout=timeout,env=env)
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+def main():
+    files = sorted({f for _,_,ms,_ in MUTANTS for f,_,_ in ms})
+    orig = {f: md5(os.path.join(ROOT,f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR,"backup2_"+f.replace("/","__")); shutil.copy2(os.path.join(ROOT,f), b); backups[f]=b
+    print("baseline (fresh db)...", flush=True)
+    rc,out,fails,summary = run()
+    print("BASELINE", rc, summary, flush=True)
+    if rc != 0:
+        print(out[-3000:])
+        raise SystemExit("baseline not green")
+    results = []
+    for mid,desc,edits,expect in MUTANTS:
+        for f,old,new in edits:
+            p = os.path.join(ROOT,f); s = open(p).read()
+            assert s.count(old) == 1, f"{mid}: pattern not unique in {f}"
+            open(p,"w").write(s.replace(old,new))
+        t=time.time()
+        try:
+            rc,out,fails,summary = run()
+            names = sorted({n for n,_ in fails})
+            killed = rc != 0 and any(expect in n for n,_ in fails)
+            res = {"id":mid,"desc":desc,"rc":rc,"summary":summary,"expected_test":expect,"failing":names,"killed_for_named_reason":killed,"secs":round(time.time()-t)}
+        except Exception as e:
+            res = {"id":mid,"desc":desc,"error":str(e),"killed_for_named_reason":False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT,f))
+            bad = [f for f in files if md5(os.path.join(ROOT,f)) != orig[f]]
+            if bad: raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR", res.get("failing") or res.get("error"), flush=True)
+        results.append(res)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+if __name__=="__main__":
+    main()

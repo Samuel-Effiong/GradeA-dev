@@ -3,6 +3,8 @@ import uuid
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
+from students.grading_label import FIRST_FORM_NOTE, UNLABELLED
+
 
 class GradingState(models.TextChoices):
     """
@@ -99,6 +101,81 @@ class StudentSubmission(models.Model):
     )
     grading_confidence = models.IntegerField(null=False, blank=True, default=0)
     extraction_confidence = models.IntegerField(null=False, blank=True, default=0)
+
+    # ------------------------------------------------------------------
+    # The grade's label (BE-I-04): what produced this grade.
+    #
+    # FIRST FORM OF THE GRADING RECORD. A later stage improves on it: a
+    # table of grading runs, built beside re-grading or feedback editing
+    # and filled from these fields. Until then a re-grade overwrites the
+    # label with the newer run's, as it overwrites the score.
+    #
+    # Written by students.services._populate_and_save_grade in the same
+    # UPDATE as the score, and by nothing else: a teacher changing a grade
+    # by hand does not touch them, because they describe the AI's marking.
+    # The words they can hold are in students/grading_label.py.
+    #
+    # NOT NULL with a database default (rule 11, H-56), so a code-only
+    # rollback still inserts, and every row made before the label existed
+    # reads "unlabelled" without any copying job.
+    # ------------------------------------------------------------------
+    grading_prompt_version = models.CharField(
+        max_length=128,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Version of the grading instructions the AI was given: the "
+            "prompt file's stem, a colon, and a hash of its text. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_config_version = models.CharField(
+        max_length=128,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Version of the grading settings in force, read once at the "
+            "start of the run (ai_processor/grading_config.py). " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_strictness = models.CharField(
+        max_length=32,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "How strictly the work was marked. 'not_yet_set' until the "
+            "strictness scale exists. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_model = models.CharField(
+        max_length=255,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "The AI model that marked the most answers, as the provider "
+            "named it; 'deterministic' when no AI was involved; 'unknown' "
+            "when the provider did not say. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_fallback_used = models.CharField(
+        max_length=16,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Whether a backup model produced any part of the grade: 'yes', "
+            "'no', 'unknown', or 'not_applicable' when no AI call was made "
+            "and no saved answer was reused. " + FIRST_FORM_NOTE
+        ),
+    )
+    grading_release = models.CharField(
+        max_length=64,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "The release of the system that did the grading, or 'none' "
+            "when the host does not say. Covers what the settings version "
+            "cannot: text and rules written directly in the code. " + FIRST_FORM_NOTE
+        ),
+    )
 
     needs_review = models.BooleanField(
         default=False,
@@ -280,6 +357,11 @@ class BatchUploadSession(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     total_files = models.IntegerField(default=0)
+    # FR-A-07 (S7c, 08a §4.5): set when credits run out mid-batch. Items
+    # still to run check it before any provider call and stop, uncharged,
+    # with INSUFFICIENT_CREDITS_MID_BATCH; a resume (S7b retry) clears it.
+    # Nullable, so a code-only rollback still inserts sessions (H-56).
+    credits_exhausted_at = models.DateTimeField(null=True, blank=True)
 
     results = models.JSONField(default=list)
 
@@ -396,6 +478,38 @@ class BackgroundProcessingTask(models.Model):
     file_name = models.CharField(max_length=255, null=True, blank=True)
     meta = models.JSONField(default=dict, blank=True)
     error = models.TextField(null=True, blank=True)
+    # FR-A-07 (S7a, 08a §4.3; 03a §4.5 minus the Epic B `job` FK). NOT NULL
+    # columns carry a db_default, so a code-only rollback still inserts
+    # (H-56); item_index and trace_id are nullable, since rows made before
+    # S7a have neither.
+    reason_code = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_default="",
+        help_text=_(
+            "The failure's FR-A-06 reason code, or empty for a success or an "
+            "unclassified fault (shown as error_class SYSTEM)."
+        ),
+    )
+    retry_count = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=_("How many times this item was retried in place (S7b)."),
+    )
+    item_index = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("The item's 1-based position in its batch, in upload order."),
+    )
+    trace_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "The dispatching request's server trace id, the item's reference "
+            "(QA-ERR-04); it resolves to the item's audit events."
+        ),
+    )
     cancel_requested_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)

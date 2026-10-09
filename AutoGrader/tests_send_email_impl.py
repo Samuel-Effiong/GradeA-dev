@@ -32,7 +32,7 @@ class SendEmailImplTests(SimpleTestCase):
             recipient_list=["teacher@example.com"],
         )
 
-        self.assertEqual(result, "Email sent successfully to ['teacher@example.com']")
+        self.assertEqual(result, "Email sent successfully to 1 recipient(s)")
         mock_mail.send.assert_called_once_with(fail_silently=False)
         mock_send_mail.assert_not_called()
 
@@ -209,7 +209,7 @@ class SendEmailImplTests(SimpleTestCase):
 
         mock_send_mail.assert_called_once()
         self.assertEqual(
-            result, "Fallback plain email sent successfully to ['teacher@example.com']"
+            result, "Fallback plain email sent successfully to 1 recipient(s)"
         )
 
     @patch("AutoGrader.tasks.EmailMultiAlternatives")

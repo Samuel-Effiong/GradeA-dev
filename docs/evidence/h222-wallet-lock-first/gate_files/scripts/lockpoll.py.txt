@@ -1,0 +1,66 @@
+"""H-222 diagnostic poller: samples who waits on whom in the test database.
+Read-only SELECTs on pg_stat_activity / pg_locks, one line block per sample.
+Never prints connection settings. Usage: lockpoll.py <worktree> <out file>"""
+import os
+import sys
+import time
+
+wt, out = sys.argv[1], sys.argv[2]
+sys.path.insert(0, wt)
+os.chdir(wt)
+os.environ["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+import django  # noqa: E402
+
+django.setup()
+import psycopg2  # noqa: E402
+from django.conf import settings  # noqa: E402
+
+cfg = settings.DATABASES["default"]
+name = cfg["TEST"]["NAME"]
+SQL = """
+SELECT a.pid, a.state, a.wait_event_type, a.wait_event,
+       pg_blocking_pids(a.pid) AS blocked_by, left(a.query, 220)
+FROM pg_stat_activity a
+WHERE a.datname = %s AND a.pid <> pg_backend_pid()
+  AND (cardinality(pg_blocking_pids(a.pid)) > 0 OR a.state <> 'idle')
+ORDER BY a.pid
+"""
+LOCKS = """
+SELECT l.pid, l.locktype, l.mode, l.granted, c.relname, l.transactionid::text
+FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
+LEFT JOIN pg_class c ON c.oid = l.relation
+WHERE a.datname = %s AND a.pid <> pg_backend_pid()
+  AND l.locktype IN ('tuple', 'transactionid', 'relation')
+  AND (NOT l.granted OR l.locktype = 'tuple')
+ORDER BY l.pid
+"""
+conn = None
+with open(out, "a") as f:
+    while True:
+        try:
+            if conn is None:
+                conn = psycopg2.connect(
+                    dbname=name,
+                    user=cfg["USER"],
+                    password=cfg["PASSWORD"],
+                    host=cfg["HOST"],
+                    port=cfg["PORT"],
+                )
+                conn.autocommit = True
+            cur = conn.cursor()
+            cur.execute(SQL, (name,))
+            rows = cur.fetchall()
+            if any(r[4] for r in rows):
+                f.write("--- %s waiters\n" % time.strftime("%H:%M:%S"))
+                for r in rows:
+                    f.write("%r\n" % (r,))
+                cur.execute(LOCKS, (name,))
+                for r in cur.fetchall():
+                    f.write("  lock %r\n" % (r,))
+                f.flush()
+        except Exception as exc:  # noqa: BLE001
+            conn = None
+            f.write("poll error: %s\n" % type(exc).__name__)
+            f.flush()
+            time.sleep(1)
+        time.sleep(0.15)

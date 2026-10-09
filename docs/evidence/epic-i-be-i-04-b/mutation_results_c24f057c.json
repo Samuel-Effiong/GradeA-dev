@@ -1,0 +1,496 @@
+{
+  "K1": {
+    "what": "the teacher's extra instructions are left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.757s",
+    "expected": "test_edited_teacher_instructions_are_a_fresh_grade",
+    "failing_tests": [
+      "test_edited_teacher_instructions_are_a_fresh_grade",
+      "test_teacher_instructions_added_where_there_were_none"
+    ]
+  },
+  "K2": {
+    "what": "the assignment's title is left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.403s",
+    "expected": "test_an_edited_assignment_title_is_a_fresh_grade",
+    "failing_tests": [
+      "test_an_edited_assignment_title_is_a_fresh_grade"
+    ]
+  },
+  "K3": {
+    "what": "the assignment's instructions are left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.453s",
+    "expected": "test_edited_assignment_instructions_are_a_fresh_grade",
+    "failing_tests": [
+      "test_edited_assignment_instructions_are_a_fresh_grade"
+    ]
+  },
+  "K4": {
+    "what": "only the question's text is in the key, not the whole question",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.453s",
+    "expected": "test_a_changed_additional_note_on_the_question_is_a_fresh_grade",
+    "failing_tests": [
+      "test_a_changed_additional_note_on_the_question_is_a_fresh_grade",
+      "test_a_changed_blooms_level_on_the_question_is_a_fresh_grade",
+      "test_a_changed_question_image_is_a_fresh_grade",
+      "test_a_field_of_the_question_nobody_listed_is_part_of_the_match",
+      "test_edited_rubric_forces_a_fresh_grade",
+      "test_miss_on_different_model_answer",
+      "test_the_other_questions_are_not_part_of_the_match"
+    ]
+  },
+  "K5": {
+    "what": "the prompt version is left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.501s",
+    "expected": "test_a_changed_grading_prompt_is_a_fresh_grade",
+    "failing_tests": [
+      "test_a_changed_grading_prompt_is_a_fresh_grade"
+    ]
+  },
+  "K6": {
+    "what": "the settings version is left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.378s",
+    "expected": "test_a_changed_grading_setting_is_a_fresh_grade",
+    "failing_tests": [
+      "test_a_changed_grading_setting_is_a_fresh_grade"
+    ]
+  },
+  "K7": {
+    "what": "the assignment is left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.832s",
+    "expected": "test_another_assignment_with_the_same_question_is_a_fresh_grade",
+    "failing_tests": [
+      "test_another_assignment_with_the_same_question_is_a_fresh_grade"
+    ]
+  },
+  "K8": {
+    "what": "the answer is left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.130s",
+    "expected": "test_miss_on_different_answer",
+    "failing_tests": [
+      "test_different_answer_text_is_a_fresh_call",
+      "test_miss_on_different_answer"
+    ]
+  },
+  "K9": {
+    "what": "the release is put into the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.592s",
+    "expected": "test_a_new_release_still_reuses_the_saved_answer",
+    "failing_tests": [
+      "test_a_new_release_still_reuses_the_saved_answer"
+    ]
+  },
+  "K10": {
+    "what": "the key takes the teacher's raw text, not the text as spliced",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 1.649s",
+    "expected": "test_teacher_instructions_that_are_switched_off_do_not_count",
+    "failing_tests": [
+      "test_a_switch_flipped_after_the_run_started_is_not_seen",
+      "test_teacher_instructions_that_are_switched_off_do_not_count",
+      "test_whitespace_around_teacher_instructions_does_not_count"
+    ]
+  },
+  "K11": {
+    "what": "the keys stay at version one",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.256s",
+    "expected": "test_the_keys_are_version_two",
+    "failing_tests": [
+      "test_the_keys_are_version_two"
+    ]
+  },
+  "R1": {
+    "what": "the store takes a fresh reading of the settings",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.294s",
+    "expected": "test_a_setting_changed_during_the_call_does_not_split_lookup_and_store",
+    "failing_tests": [
+      "test_a_retried_run_still_reads_them_once",
+      "test_a_setting_changed_during_the_call_does_not_split_lookup_and_store",
+      "test_the_run_keeps_its_starting_reading",
+      "test_the_settings_are_read_exactly_once_for_a_run"
+    ]
+  },
+  "R2": {
+    "what": "each attempt of the retry loop takes its own reading",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.096s",
+    "expected": "test_a_retried_run_still_reads_them_once",
+    "failing_tests": [
+      "test_a_retried_run_still_reads_them_once",
+      "test_the_settings_are_read_exactly_once_for_a_run"
+    ]
+  },
+  "R3": {
+    "what": "the pipeline ignores the reading it is given",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.289s",
+    "expected": "test_the_settings_are_read_exactly_once_for_a_run",
+    "failing_tests": [
+      "test_a_retried_run_still_reads_them_once",
+      "test_the_settings_are_read_exactly_once_for_a_run"
+    ]
+  },
+  "S1": {
+    "what": "the splice reads the live switch, not the run's reading",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.498s",
+    "expected": "test_a_switch_flipped_after_the_run_started_is_not_seen",
+    "failing_tests": [
+      "test_a_switch_flipped_after_the_run_started_is_not_seen",
+      "test_the_run_keeps_its_starting_reading"
+    ]
+  },
+  "E1": {
+    "what": "anything that is a dictionary is taken for an envelope",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.469s",
+    "expected": "test_an_entry_that_is_not_an_envelope_is_a_miss",
+    "failing_tests": [
+      "test_an_entry_that_is_not_an_envelope_is_a_miss"
+    ]
+  },
+  "E2": {
+    "what": "a reused answer keeps the marker inside its evaluation",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.053s",
+    "expected": "test_a_reused_answer_is_marked_by_our_code_not_by_its_content",
+    "failing_tests": [
+      "test_a_reused_answer_is_marked_by_our_code_not_by_its_content"
+    ]
+  },
+  "E3": {
+    "what": "the envelope names the intended model, not the one that answered",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.668s",
+    "expected": "test_the_model_that_answered_is_stored_beside_the_evaluation",
+    "failing_tests": [
+      "test_a_reply_that_names_no_model_is_stored_with_none",
+      "test_the_model_that_answered_is_stored_beside_the_evaluation"
+    ]
+  },
+  "E4": {
+    "what": "a reply that names no model is stored as \"llm\"",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.367s",
+    "expected": "test_a_reply_that_names_no_model_is_stored_with_none",
+    "failing_tests": [
+      "test_a_reply_that_names_no_model_is_stored_with_none"
+    ]
+  },
+  "B1": {
+    "what": "a graded_by in the AI's own reply is kept",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 4.142s",
+    "expected": "test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered",
+    "failing_tests": [
+      "test_a_graded_by_in_a_chunks_reply_is_replaced",
+      "test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered"
+    ]
+  },
+  "B2": {
+    "what": "a from_cache in the AI's own reply is kept",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.876s",
+    "expected": "test_a_from_cache_in_the_reply_is_dropped_and_the_answer_is_stored",
+    "failing_tests": [
+      "test_a_from_cache_in_a_chunks_reply_is_dropped_and_all_are_stored",
+      "test_a_from_cache_in_the_reply_is_dropped_and_the_answer_is_stored"
+    ]
+  },
+  "T1": {
+    "what": "the provider call uses a literal temperature again",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.305s",
+    "expected": "test_the_call_that_leaves_the_app_uses_the_constant",
+    "failing_tests": [
+      "test_the_call_that_leaves_the_app_uses_the_constant"
+    ]
+  },
+  "T2": {
+    "what": "the temperature is left out of the settings version",
+    "file": "ai_processor/grading_config.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.289s",
+    "expected": "test_it_is_in_the_settings_version",
+    "failing_tests": [
+      "test_changing_it_changes_the_version",
+      "test_it_is_in_the_settings_version",
+      "test_the_other_values_cover_every_name",
+      "test_the_version_for_a_fixed_reading_is_pinned"
+    ]
+  },
+  "A1": {
+    "what": "the answer's status is left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.884s",
+    "expected": "test_the_same_text_with_a_different_status_is_a_fresh_grade",
+    "failing_tests": [
+      "test_a_status_against_no_status_is_a_fresh_grade",
+      "test_the_same_text_with_a_different_status_is_a_fresh_grade"
+    ]
+  },
+  "A2": {
+    "what": "the answer's transcription notes are left out of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.518s",
+    "expected": "test_the_same_text_with_different_notes_is_a_fresh_grade",
+    "failing_tests": [
+      "test_an_inner_difference_in_the_notes_is_a_fresh_grade",
+      "test_notes_against_no_notes_is_a_fresh_grade",
+      "test_the_same_text_with_different_notes_is_a_fresh_grade"
+    ]
+  },
+  "A3": {
+    "what": "the answer's page is put into the key",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.317s",
+    "expected": "test_a_different_page_and_confidence_do_not_break_the_match",
+    "failing_tests": [
+      "test_a_different_page_and_confidence_do_not_break_the_match",
+      "test_no_status_is_one_thing_however_it_is_written"
+    ]
+  },
+  "A4": {
+    "what": "a field that is None is not the same as an empty one",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.869s",
+    "expected": "test_no_status_is_one_thing_however_it_is_written",
+    "failing_tests": [
+      "test_no_notes_is_one_thing_however_it_is_written",
+      "test_no_status_is_one_thing_however_it_is_written"
+    ]
+  },
+  "A5": {
+    "what": "outer whitespace of status and notes is compared",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.643s",
+    "expected": "test_outer_whitespace_of_the_notes_is_not_compared",
+    "failing_tests": [
+      "test_no_notes_is_one_thing_however_it_is_written",
+      "test_no_status_is_one_thing_however_it_is_written",
+      "test_outer_whitespace_of_the_notes_is_not_compared"
+    ]
+  },
+  "A6": {
+    "what": "a status that is not text is refused",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.625s",
+    "expected": "test_a_status_that_is_not_text_does_not_crash_the_grading",
+    "failing_tests": [
+      "test_a_status_that_is_not_text_does_not_crash_the_grading"
+    ]
+  },
+  "J1": {
+    "what": "the parts of the key are joined with nothing between them",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.801s",
+    "expected": "test_a_character_moved_across_a_boundary_changes_the_key",
+    "failing_tests": [
+      "test_a_character_moved_across_a_boundary_changes_the_key",
+      "test_a_separator_inside_a_part_cannot_pass_for_a_boundary",
+      "test_status_and_notes_cannot_run_together",
+      "test_text_and_status_cannot_run_together",
+      "test_the_model_and_the_assignment_cannot_run_together"
+    ]
+  },
+  "J2": {
+    "what": "the parts of the key are joined by a character a part can hold",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.850s",
+    "expected": "test_a_separator_inside_a_part_cannot_pass_for_a_boundary",
+    "failing_tests": [
+      "test_a_separator_inside_a_part_cannot_pass_for_a_boundary"
+    ]
+  },
+  "C1": {
+    "what": "a long paper's answers are not saved",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 2.836s",
+    "expected": "test_an_identical_second_long_paper_makes_no_provider_call",
+    "failing_tests": [
+      "test_a_from_cache_in_a_chunks_reply_is_dropped_and_all_are_stored",
+      "test_an_identical_second_long_paper_makes_no_provider_call",
+      "test_the_run_keeps_its_starting_reading"
+    ]
+  },
+  "C2": {
+    "what": "a chunk's reply keeps its own markers",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 6.310s",
+    "expected": "test_a_graded_by_in_a_chunks_reply_is_replaced",
+    "failing_tests": [
+      "test_a_from_cache_in_a_chunks_reply_is_dropped_and_all_are_stored",
+      "test_a_graded_by_in_a_chunks_reply_is_replaced"
+    ]
+  },
+  "C3": {
+    "what": "the single-pass reply keeps its own markers",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 4.356s",
+    "expected": "test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered",
+    "failing_tests": [
+      "test_a_from_cache_in_the_reply_is_dropped_and_the_answer_is_stored",
+      "test_a_graded_by_in_the_reply_is_replaced_by_the_model_that_answered",
+      "test_the_model_that_answered_is_stored_beside_the_evaluation"
+    ]
+  },
+  "P1": {
+    "what": "the chunk call's splice of the teacher's instructions ignores the run's reading",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 5.714s",
+    "expected": "test_the_run_keeps_its_starting_reading",
+    "failing_tests": [
+      "test_the_run_keeps_its_starting_reading"
+    ]
+  },
+  "P2": {
+    "what": "the summary call's splice of the teacher's instructions ignores the run's reading",
+    "file": "ai_processor/services.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 3.687s",
+    "expected": "test_the_run_keeps_its_starting_reading",
+    "failing_tests": [
+      "test_the_run_keeps_its_starting_reading"
+    ]
+  },
+  "P3": {
+    "what": "the answer's status and notes are joined into one part of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 4.212s",
+    "expected": "test_status_and_notes_cannot_run_together",
+    "failing_tests": [
+      "test_status_and_notes_cannot_run_together"
+    ]
+  },
+  "P4": {
+    "what": "the answer's text and status are joined into one part of the key",
+    "file": "ai_processor/grading_cache.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 96 tests in 4.285s",
+    "expected": "test_text_and_status_cannot_run_together",
+    "failing_tests": [
+      "test_text_and_status_cannot_run_together"
+    ]
+  }
+}

@@ -116,7 +116,9 @@ def make_people_and_submission(**submission_fields):
         title="A",
         course=course,
         total_points=10,
-        questions=[{"question_number": 1, "points": 10}],
+        # Merge-down b12b: a marking guide, which the Phase 2 line's rubric
+        # gate (F5) requires before grade_engine goes any further.
+        questions=[{"question_number": 1, "points": 10, "model_answer": "An answer."}],
     )
     submission = StudentSubmission.objects.create(
         assignment=assignment,

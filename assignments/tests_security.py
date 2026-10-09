@@ -1085,7 +1085,12 @@ class HostileUploadTest(TenancyAttackFixture, APITestCase):
             AssignmentProcessingService._compress_uploaded_image(uploaded)
 
         rss_after = _rss_mb()
-        self.assertIn("megapixel", str(caught.exception).lower())
+        # The pixel cap refused it (FR-A-06 FILE_TOO_LARGE by pixels), not
+        # a decode failure.
+        self.assertEqual(caught.exception.reason_code, "FILE_TOO_LARGE")
+        self.assertEqual(caught.exception.params["dimension"], "pixels")
+        self.assertEqual(caught.exception.params["actual"], 9000 * 9000)
+        self.assertIn("9000x9000 px", str(caught.exception))
         # 81 MP at 3 bytes/pixel is ~243 MB. Anything close to that means
         # the decode happened before the check.
         self.assertLess(
@@ -1109,8 +1114,14 @@ class HostileUploadTest(TenancyAttackFixture, APITestCase):
         uploaded = SimpleUploadedFile("huge.png", bomb, content_type="image/png")
         rss_before = _rss_mb()
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(ParseError) as caught:
             AssignmentProcessingService._compress_uploaded_image(uploaded)
+
+        # Pillow refused before reporting dimensions: the size is unknown, so
+        # it is absent from params rather than a made-up number (S6b N1).
+        self.assertEqual(caught.exception.params["dimension"], "pixels")
+        self.assertNotIn("actual", caught.exception.params)
+        self.assertIs(type(caught.exception.params["limit"]), int)
 
         self.assertLess(_rss_mb() - rss_before, 50)
 
@@ -1143,9 +1154,9 @@ class HostileUploadTest(TenancyAttackFixture, APITestCase):
             try:
                 AssignmentProcessingService._compress_uploaded_image(uploaded)
             except Exception as exc:
-                self.assertNotIn(
-                    "megapixel",
-                    str(exc).lower(),
+                self.assertNotEqual(
+                    getattr(exc, "params", {}).get("dimension"),
+                    "pixels",
                     "a legitimate 36 MP scan was refused by the size cap",
                 )
 
@@ -1177,7 +1188,10 @@ class HostileUploadTest(TenancyAttackFixture, APITestCase):
             with self.assertRaises(ParseError) as caught:
                 AssignmentProcessingService._compress_uploaded_image(uploaded)
 
-        self.assertIn("megapixel", str(caught.exception).lower())
+        self.assertEqual(caught.exception.reason_code, "FILE_TOO_LARGE")
+        self.assertEqual(caught.exception.params["dimension"], "pixels")
+        self.assertEqual(caught.exception.params["actual"], 60_000 * 60_000)
+        self.assertIn("60000x60000 px", str(caught.exception))
         self.assertGreater(60_000 * 60_000, MAX_IMAGE_PIXELS, "sanity")
 
     def test_a_normal_sized_image_still_gets_through(self):

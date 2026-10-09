@@ -1,0 +1,12 @@
+# S16: a non-infra provider failure is MODEL
+# file: assignments/tasks.py (occurrence 1)
+# old: '            and classify_infra_error(exc.__cause__) is None'
+# new: '            and False'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 8.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_async_grading_audits_provider_or_model_with_the_code (students.tests_s6d_provider_failure.ProviderFailureTests.test_async_grading_audits_provider_or_model_with_the_code) (failure='unusable')
+
+FAILED (failures=1, skipped=1)

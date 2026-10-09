@@ -1,0 +1,441 @@
+16:06:05 Creating test database for alias 'default' ('test_epic_a_resolve_intent_audit_mut')...
+16:06:05 Found 17 test(s).
+16:06:05 Operations to perform:
+16:06:05   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+16:06:05   Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+16:06:05 Synchronizing apps without migrations:
+16:06:05   Creating tables...
+16:06:05     Running deferred SQL...
+16:06:05 Running migrations:
+16:06:05   Applying contenttypes.0001_initial... OK
+16:06:05   Applying contenttypes.0002_remove_content_type_name... OK
+16:06:05   Applying auth.0001_initial... OK
+16:06:05   Applying auth.0002_alter_permission_name_max_length... OK
+16:06:05   Applying auth.0003_alter_user_email_max_length... OK
+16:06:05   Applying auth.0004_alter_user_username_opts... OK
+16:06:05   Applying auth.0005_alter_user_last_login_null... OK
+16:06:05   Applying auth.0006_require_contenttypes_0002... OK
+16:06:05   Applying auth.0007_alter_validators_add_error_messages... OK
+16:06:05   Applying auth.0008_alter_user_username_max_length... OK
+16:06:05   Applying auth.0009_alter_user_last_name_max_length... OK
+16:06:05   Applying auth.0010_alter_group_name_max_length... OK
+16:06:05   Applying auth.0011_update_proxy_permissions... OK
+16:06:05   Applying auth.0012_alter_user_first_name_max_length... OK
+16:06:05   Applying users.0001_initial... OK
+16:06:05   Applying admin.0001_initial... OK
+16:06:05   Applying admin.0002_logentry_remove_auto_add... OK
+16:06:05   Applying admin.0003_logentry_add_action_flag_choices... OK
+16:06:05   Applying classrooms.0001_initial... OK
+16:06:05   Applying ai_processor.0001_initial... OK
+16:06:05   Applying ai_processor.0002_initial... OK
+16:06:05   Applying ai_processor.0003_chatsession_user... OK
+16:06:05   Applying ai_processor.0004_chatsession_assistant_type... OK
+16:06:05   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+16:06:05   Applying classrooms.0002_initial... OK
+16:06:05   Applying classrooms.0003_coursecategory_course_categories... OK
+16:06:05   Applying classrooms.0004_course_teacher... OK
+16:06:05   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+16:06:05   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+16:06:05   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+16:06:05   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+16:06:05   Applying classrooms.0009_school... OK
+16:06:05   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+16:06:05   Applying classrooms.0011_remove_course_categories_topic... OK
+16:06:05   Applying classrooms.0012_studentcourse_auto_added... OK
+16:06:05   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+16:06:05   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+16:06:06   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+16:06:06   Applying classrooms.0016_school_is_active... OK
+16:06:06   Applying assignments.0001_initial... OK
+16:06:06   Applying assignments.0002_initial... OK
+16:06:06   Applying assignments.0003_initial... OK
+16:06:06   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+16:06:06   Applying assignments.0005_alter_assignment_options... OK
+16:06:06   Applying assignments.0006_assignment_estimated_time... OK
+16:06:06   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+16:06:06   Applying assignments.0008_alter_assignment_due_date... OK
+16:06:06   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+16:06:06   Applying assignments.0010_assignment_custom_ai_prompt... OK
+16:06:06   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+16:06:06   Applying assignments.0012_assignment_was_overridden... OK
+16:06:06   Applying assignments.0013_alter_assignment_ai_generated... OK
+16:06:06   Applying assignments.0014_assignment_self_assessment_and_more... OK
+16:06:06   Applying assignments.0015_alter_assignment_potential_issues... OK
+16:06:06   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+16:06:06   Applying assignments.0017_assignment_grading_status... OK
+16:06:06   Applying assignments.0018_assignment_topic... OK
+16:06:06   Applying assignments.0019_alter_assignment_title_and_more... OK
+16:06:06   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+16:06:06   Applying assignments.0021_assignment_overridden_at... OK
+16:06:06   Applying assignments.0022_assignment_raw_input... OK
+16:06:06   Applying assignments.0023_delete_rubric... OK
+16:06:06   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+16:06:06   Applying assignments.0025_alter_assignment_instructions... OK
+16:06:06   Applying assignments.0026_assignment_status... OK
+16:06:06   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+16:06:06   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+16:06:06   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+16:06:06   Applying assignments.0030_alter_assignment_status... OK
+16:06:06   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+16:06:06   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+16:06:06   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+16:06:06   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+16:06:06   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+16:06:06   Applying assignments.0036_backfill_assignment_rigor... OK
+16:06:07   Applying assignments.0037_assignment_course_title_index... OK
+16:06:07   Applying assignments.0038_assignment_updated_at... OK
+16:06:07   Applying assignments.0039_assignment_upload_fingerprint... OK
+16:06:07   Applying assignments.0040_db_defaults_for_rollback... OK
+16:06:07   Applying audit.0001_initial... OK
+16:06:07   Applying audit.0002_alter_auditevent_actor_role... OK
+16:06:07   Applying authtoken.0001_initial... OK
+16:06:07   Applying authtoken.0002_auto_20160226_1747... OK
+16:06:07   Applying authtoken.0003_tokenproxy... OK
+16:06:07   Applying authtoken.0004_alter_tokenproxy_options... OK
+16:06:07   Applying users.0002_customuser_activation_expires_and_more... OK
+16:06:07   Applying users.0003_passwordresetotp... OK
+16:06:07   Applying users.0004_customuser_email_verified_at... OK
+16:06:07   Applying users.0005_alter_passwordresetotp_code... OK
+16:06:07   Applying users.0006_alter_passwordresetotp_code... OK
+16:06:07   Applying users.0007_passwordchangeotp... OK
+16:06:07   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+16:06:07   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+16:06:07   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+16:06:07   Applying billing.0001_initial... OK
+16:06:07   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+16:06:08   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+16:06:08   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+16:06:08   Applying billing.0005_usersubscription_pending_plan... OK
+16:06:08   Applying billing.0006_alter_subscriptionplan_name... OK
+16:06:08   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+16:06:08   Applying billing.0008_betaprofile... OK
+16:06:08   Applying billing.0009_betaprofile_uuid_and_more... OK
+16:06:08   Applying billing.0010_alter_betaprofile_id... OK
+16:06:08   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+16:06:08   Applying billing.0012_populate_beta_profile_uuids... OK
+16:06:08   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+16:06:08   Applying billing.0014_rename_uid_betaprofile_id... OK
+16:06:08   Applying billing.0015_betaprofile_credits_used_feedback... OK
+16:06:08   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+16:06:08   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+16:06:08   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+16:06:09   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+16:06:09   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+16:06:09   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+16:06:09   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+16:06:09   Applying billing.0023_alter_subscriptionplan_name... OK
+16:06:09   Applying billing.0024_licensesubscription_custom_price_cents... OK
+16:06:09   Applying billing.0025_alter_subscriptionplan_name... OK
+16:06:09   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+16:06:09   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+16:06:09   Applying billing.0028_alter_usersubscription_is_trial... OK
+16:06:09   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+16:06:09   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+16:06:09   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+16:06:09   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+16:06:09   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+16:06:09   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+16:06:09   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+16:06:09   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+16:06:10   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+16:06:10   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+16:06:10   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+16:06:10   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+16:06:10   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+16:06:10   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+16:06:10   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+16:06:10   Applying billing.0044_alter_creditusagelog_feature... OK
+16:06:10   Applying billing.0045_billingtransaction... OK
+16:06:10   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+16:06:10   Applying billing.0047_subscriptionplan_carry_over_max... OK
+16:06:10   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+16:06:10   Applying billing.0049_billingtransaction_receipt_url... OK
+16:06:10   Applying billing.0050_creditusagelog_course... OK
+16:06:10   Applying billing.0051_creditusagelog_task_id_index... OK
+16:06:10   Applying billing.0052_creditusagelog_school... OK
+16:06:10   Applying billing.0053_backfill_creditusagelog_school... OK
+16:06:10   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+16:06:11   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+16:06:11   Applying billing.0056_liveqarun... OK
+16:06:11   Applying billing.0057_usersubscription_cancelled_at... OK
+16:06:11   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+16:06:11   Applying billing.0059_append_only_audit_tables... OK
+16:06:11   Applying billing.0060_backfill_audit_identity...
+16:06:11   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+16:06:11  OK
+16:06:11   Applying billing.0061_add_audit_table_time_indexes... OK
+16:06:11   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+16:06:11   Applying billing.0063_payment_disputes... OK
+16:06:12   Applying billing.0064_refund_credit_reversal... OK
+16:06:12   Applying billing.0065_backfill_ledger_payment_intent...
+16:06:12   attributed 0 ledger row(s) to their Stripe payment
+16:06:12  OK
+16:06:12   Applying billing.0066_dispute_deficit_by_wallet... OK
+16:06:12   Applying billing.0067_stripe_event_recovery... OK
+16:06:12   Applying billing.0068_price_reconciliation... OK
+16:06:12   Applying billing.0069_price_sync_audit... OK
+16:06:12   Applying billing.0070_db_defaults_for_rollback... OK
+16:06:12   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+16:06:12   Applying billing.0072_license_stripe_mutation_intent... OK
+16:06:12   Applying dashboard.0001_initial... OK
+16:06:12   Applying dashboard.0002_schoolatrisksnapshot... OK
+16:06:12   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+16:06:12   Applying dashboard.0004_db_defaults_for_rollback... OK
+16:06:12   Applying django_celery_beat.0001_initial... OK
+16:06:12   Applying django_celery_beat.0002_auto_20161118_0346... OK
+16:06:12   Applying django_celery_beat.0003_auto_20161209_0049... OK
+16:06:12   Applying django_celery_beat.0004_auto_20170221_0000... OK
+16:06:12   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+16:06:12   Applying django_celery_beat.0006_auto_20180322_0932... OK
+16:06:12   Applying django_celery_beat.0007_auto_20180521_0826... OK
+16:06:12   Applying django_celery_beat.0008_auto_20180914_1922... OK
+16:06:12   Applying django_celery_beat.0006_auto_20180210_1226... OK
+16:06:12   Applying django_celery_beat.0006_periodictask_priority... OK
+16:06:13   Applying django_celery_beat.0009_periodictask_headers... OK
+16:06:13   Applying django_celery_beat.0010_auto_20190429_0326... OK
+16:06:13   Applying django_celery_beat.0011_auto_20190508_0153... OK
+16:06:13   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+16:06:13   Applying django_celery_beat.0013_auto_20200609_0727... OK
+16:06:13   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+16:06:13   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+16:06:13   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+16:06:13   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+16:06:13   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+16:06:13   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+16:06:13   Applying django_celery_results.0001_initial... OK
+16:06:13   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+16:06:13   Applying django_celery_results.0003_auto_20181106_1101... OK
+16:06:13   Applying django_celery_results.0004_auto_20190516_0412... OK
+16:06:13   Applying django_celery_results.0005_taskresult_worker... OK
+16:06:13   Applying django_celery_results.0006_taskresult_date_created... OK
+16:06:13   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+16:06:13   Applying django_celery_results.0008_chordcounter... OK
+16:06:13   Applying django_celery_results.0009_groupresult... OK
+16:06:13   Applying django_celery_results.0010_remove_duplicate_indices... OK
+16:06:13   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+16:06:13   Applying django_celery_results.0012_taskresult_date_started... OK
+16:06:13   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+16:06:13   Applying django_celery_results.0014_alter_taskresult_status... OK
+16:06:13   Applying sessions.0001_initial... OK
+16:06:13   Applying users.0011_concurrentusersnapshot_useractivity... OK
+16:06:13   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+16:06:13   Applying users.0013_customuser_middle_name... OK
+16:06:13   Applying users.0014_alter_customuser_middle_name... OK
+16:06:13   Applying users.0015_customuser_bio_settings... OK
+16:06:14   Applying users.0016_remove_customuser_bio_delete_settings... OK
+16:06:14   Applying users.0017_settings... OK
+16:06:14   Applying users.0018_customuser_bio... OK
+16:06:14   Applying users.0019_betawhitelist... OK
+16:06:14   Applying users.0020_waitlist_betawhitelist_mode... OK
+16:06:14   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+16:06:14   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+16:06:14   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+16:06:14   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+16:06:14   Applying users.0025_customuser_profile_image... OK
+16:06:14   Applying students.0001_initial... OK
+16:06:14   Applying students.0002_initial... OK
+16:06:14   Applying students.0003_studentsubmission_graded_at_and_more... OK
+16:06:14   Applying students.0004_alter_studentsubmission_graded_at... OK
+16:06:14   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+16:06:14   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+16:06:14   Applying students.0007_studentsubmission_extraction_confidence... OK
+16:06:14   Applying students.0008_studentsubmission_formatted_grade... OK
+16:06:14   Applying students.0009_studentsubmission_raw_input... OK
+16:06:15   Applying students.0010_batchuploadsession... OK
+16:06:15   Applying students.0011_batchuploadsession_course_and_more... OK
+16:06:15   Applying students.0012_alter_batchuploadsession_task_type... OK
+16:06:15   Applying students.0013_studentsubmission_max_points_and_more... OK
+16:06:15   Applying students.0014_alter_studentsubmission_score_percentage... OK
+16:06:15   Applying students.0015_studentsubmission_is_published... OK
+16:06:15   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+16:06:15   Applying students.0017_backgroundprocessingtask... OK
+16:06:15   Applying students.0018_studentsubmission_attempt_count... OK
+16:06:15   Applying students.0019_alter_studentsubmission_attempt_count... OK
+16:06:16   Applying students.0020_studentsubmission_grading_state... OK
+16:06:16   Applying students.0021_studentsubmission_needs_review... OK
+16:06:16   Applying students.0022_studentsubmission_review_severity... OK
+16:06:16   Applying students.0023_studentsubmission_review_tier_and_more... OK
+16:06:16   Applying students.0024_repair_raw_input_json... OK
+16:06:16   Applying students.0025_student_submission_hot_path_indexes... OK
+16:06:16   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+16:06:16   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+16:06:16   Applying students.0028_backfill_ai_grading_completed_at... OK
+16:06:16   Applying students.0029_background_task_item_result... OK
+16:06:17   Applying students.0030_batch_session_credits_exhausted_at... OK
+16:06:17   Applying token_blacklist.0001_initial... OK
+16:06:17   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+16:06:17   Applying token_blacklist.0003_auto_20171017_2007... OK
+16:06:17   Applying token_blacklist.0004_auto_20171017_2013... OK
+16:06:17   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+16:06:17   Applying token_blacklist.0006_auto_20171017_2113... OK
+16:06:17   Applying token_blacklist.0007_auto_20171017_2214... OK
+16:06:17   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+16:06:17   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+16:06:17   Applying token_blacklist.0011_linearizes_history... OK
+16:06:17   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+16:06:17   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+16:06:17   Applying users.0026_customuser_registration_method... OK
+16:06:17   Applying users.0027_customuser_profile_image_url... OK
+16:06:18   Applying users.0028_alter_customuser_middle_name... OK
+16:06:18   Applying users.0029_usergooglecredentials... OK
+16:06:18   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+16:06:18   Applying users.0031_settings_notify_new_assignment_posted... OK
+16:06:18   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+16:06:18   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+16:06:18   Applying users.0034_passwordresetotp_attempts_and_more... OK
+16:06:18   Applying users.0035_settings_notify_assignment_edited... OK
+16:06:18   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+16:06:18   Applying users.0037_customuser_must_change_password... OK
+16:06:18   Applying users.0038_alter_customuser_must_change_password... OK
+16:06:18   Applying users.0039_customuser_token_epoch... OK
+16:06:19   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+16:06:19
+16:06:19 WARNINGS:
+16:06:19 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+16:06:19
+16:06:19 System check identified 1 issue (0 silenced).
+16:06:19 test_a_failed_event_does_not_stop_the_escalation (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_a_failed_event_does_not_stop_the_escalation)
+16:06:20 The audit table refusing the row must not cost the escalation or ... ok
+16:06:20 test_a_helper_that_raises_does_not_stop_the_escalation (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_a_helper_that_raises_does_not_stop_the_escalation)
+16:06:20 Anything else going wrong on the way to the emitter (here, the ... FAIL
+16:06:20 test_a_status_that_is_not_saved_leaves_no_event (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_a_status_that_is_not_saved_leaves_no_event)
+16:06:20 Same transaction: if the status write fails, so does the event. ... ok
+16:06:21 test_in_a_request_the_event_is_the_signed_in_users (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_in_a_request_the_event_is_the_signed_in_users) ... ERROR
+16:06:21 test_other_status_changes_write_no_event (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_other_status_changes_write_no_event)
+16:06:21 Only ESCALATED and a manual close are audited here; the licence's ... ok
+16:06:21 test_with_no_request_the_event_is_system (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_with_no_request_the_event_is_system)
+16:06:21 A direct service call: live QA today, or any later caller that ... ERROR
+16:06:22 test_a_dry_run_writes_no_event (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_dry_run_writes_no_event) ... ok
+16:06:22 test_a_lost_race_writes_no_event (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_lost_race_writes_no_event)
+16:06:22 Something else closed it between the read and the update: the ... ok
+16:06:22 test_a_manual_close_writes_one_event_by_the_resolver (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_manual_close_writes_one_event_by_the_resolver) ...
+16:06:22   test_a_manual_close_writes_one_event_by_the_resolver (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_manual_close_writes_one_event_by_the_resolver) (outcome='applied') ... ERROR
+16:06:22   test_a_manual_close_writes_one_event_by_the_resolver (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_manual_close_writes_one_event_by_the_resolver) (outcome='not-applied') ... ERROR
+16:06:23 test_a_refused_apply_writes_no_event (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_refused_apply_writes_no_event) ... ok
+16:06:23 test_closing_a_pending_intent_records_what_it_was (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_closing_a_pending_intent_records_what_it_was) ... ERROR
+16:06:23 test_the_event_is_written_with_the_close_or_not_at_all (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_the_event_is_written_with_the_close_or_not_at_all)
+16:06:23 Same transaction: if the event's write blows up past the helper, ... ERROR
+16:06:24 test_a_stale_stripe_applied_intent_records_what_it_was (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_a_stale_stripe_applied_intent_records_what_it_was) ... ERROR
+16:06:24 test_an_intent_the_check_does_not_claim_gets_no_event (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_an_intent_the_check_does_not_claim_gets_no_event)
+16:06:24 A flow that finishes between the read and the claim wins: the ... ok
+16:06:24 test_closed_and_recent_intents_get_no_event (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_closed_and_recent_intents_get_no_event) ... ok
+16:06:24 test_each_escalated_intent_gets_one_system_event (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_each_escalated_intent_gets_one_system_event) ... ERROR
+16:06:25 test_the_beat_task_writes_the_event_as_system (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_the_beat_task_writes_the_event_as_system) ... ERROR
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_in_a_request_the_event_is_the_signed_in_users (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_in_a_request_the_event_is_the_signed_in_users)
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 123, in test_in_a_request_the_event_is_the_signed_in_users
+16:06:25     event = assert_one_escalation_event(self, intent, self.superadmin)
+16:06:25             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_cancel_phases.py", line 105, in assert_one_escalation_event
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_with_no_request_the_event_is_system (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_with_no_request_the_event_is_system)
+16:06:25 A direct service call: live QA today, or any later caller that
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 115, in test_with_no_request_the_event_is_system
+16:06:25     assert_one_escalation_event(self, intent, None)
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_cancel_phases.py", line 105, in assert_one_escalation_event
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_a_manual_close_writes_one_event_by_the_resolver (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_manual_close_writes_one_event_by_the_resolver) (outcome='applied')
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 201, in test_a_manual_close_writes_one_event_by_the_resolver
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_a_manual_close_writes_one_event_by_the_resolver (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_a_manual_close_writes_one_event_by_the_resolver) (outcome='not-applied')
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 201, in test_a_manual_close_writes_one_event_by_the_resolver
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_closing_a_pending_intent_records_what_it_was (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_closing_a_pending_intent_records_what_it_was)
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 221, in test_closing_a_pending_intent_records_what_it_was
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_the_event_is_written_with_the_close_or_not_at_all (billing.tests.test_h28_intent_audit.ResolveCommandAuditTests.test_the_event_is_written_with_the_close_or_not_at_all)
+16:06:25 Same transaction: if the event's write blows up past the helper,
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 277, in test_the_event_is_written_with_the_close_or_not_at_all
+16:06:25     with patch(
+16:06:25          ^^^^^^
+16:06:25   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1467, in __enter__
+16:06:25     original, local = self.get_original()
+16:06:25                       ^^^^^^^^^^^^^^^^^^^
+16:06:25   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1437, in get_original
+16:06:25     raise AttributeError(
+16:06:25 AttributeError: <module 'billing.management.commands.resolve_licence_stripe_intent' from '/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/management/commands/resolve_licence_stripe_intent.py'> does not have the attribute 'audit_intent_status'
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_a_stale_stripe_applied_intent_records_what_it_was (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_a_stale_stripe_applied_intent_records_what_it_was)
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 67, in test_a_stale_stripe_applied_intent_records_what_it_was
+16:06:25     event = assert_one_escalation_event(self, applied, None)
+16:06:25             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_cancel_phases.py", line 105, in assert_one_escalation_event
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_each_escalated_intent_gets_one_system_event (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_each_escalated_intent_gets_one_system_event)
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 54, in test_each_escalated_intent_gets_one_system_event
+16:06:25     event = assert_one_escalation_event(self, pending, None)
+16:06:25             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_cancel_phases.py", line 105, in assert_one_escalation_event
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 ERROR: test_the_beat_task_writes_the_event_as_system (billing.tests.test_h28_intent_audit.StaleIntentCheckAuditTests.test_the_beat_task_writes_the_event_as_system)
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 76, in test_the_beat_task_writes_the_event_as_system
+16:06:25     assert_one_escalation_event(self, pending, None)
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_cancel_phases.py", line 105, in assert_one_escalation_event
+16:06:25     [event] = list(intent_events(intent))
+16:06:25     ^^^^^^^
+16:06:25 ValueError: not enough values to unpack (expected 1, got 0)
+16:06:25
+16:06:25 ======================================================================
+16:06:25 FAIL: test_a_helper_that_raises_does_not_stop_the_escalation (billing.tests.test_h28_intent_audit.InFlowEscalationAuditTests.test_a_helper_that_raises_does_not_stop_the_escalation)
+16:06:25 Anything else going wrong on the way to the emitter (here, the
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Traceback (most recent call last):
+16:06:25   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-resolve-intent-audit/billing/tests/test_h28_intent_audit.py", line 173, in test_a_helper_that_raises_does_not_stop_the_escalation
+16:06:25     self.assertIn("Could not write the audit event", "\n".join(logs.output))
+16:06:25 AssertionError: 'Could not write the audit event' not found in 'ERROR:billing.license_stripe_mutation:MANUAL RECONCILIATION NEEDED — Stripe and local state may now disagree for licence cb711aa5-c863-4966-bb0f-805e860cae10 (intent 4bec3471-507b-4fc3-9874-c544047bc1af, UPDATE_SEATS on Stripe subscription sub_h28_alerts): why'
+16:06:25
+16:06:25 ----------------------------------------------------------------------
+16:06:25 Ran 17 tests in 5.402s
+16:06:25
+16:06:25 FAILED (failures=1, errors=9)
+16:06:25 Destroying test database for alias 'default' ('test_epic_a_resolve_intent_audit_mut')...
+16:06:25  OK
+16:06:25 systemd-run failed with exit status 1.

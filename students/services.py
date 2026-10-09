@@ -11,12 +11,24 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from ai_processor.services import REPLY_CORRECTED, ai_processor, is_readable_answer
+from ai_processor.grading_run import GradingRun
+from ai_processor.services import (
+    GRADING_ASSIGNMENT_PROMPT,
+    REPLY_CORRECTED,
+    ai_processor,
+    is_readable_answer,
+)
+from assignments.exceptions import SubmissionEmptyError
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
+from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.celery import app as celery_app
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
+from classrooms.models import teacher_course_access_q
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
@@ -25,7 +37,8 @@ from .exceptions import (
     SUBMISSION_BUSY_FOR_STUDENT,
     SUBMISSION_CLOSED_FOR_STUDENT,
     AssignmentNotOpenError,
-    CannotAssociateStudentError,
+    StudentNameUnmatchedError,
+    StudentNotOnRosterError,
     SubmissionAlreadyGradedError,
     SubmissionAnswersUnreadableError,
     SubmissionBeingGradedError,
@@ -34,6 +47,8 @@ from .exceptions import (
     SubmissionProcessingInProgressError,
 )
 from .feedback_projection import grading_result_for_formatter
+from .grading_gates import ensure_gradable
+from .grading_label import LABEL_FIELDS, UNLABELLED
 from .models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -351,6 +366,9 @@ GRADING_RESULT_FIELDS = (
     "review_severity",
     "review_tier",
     "raw_input",
+    # BE-I-04: the grade's label, written by this same UPDATE, so a grade
+    # and its label cannot disagree and a grade cannot be missing its label.
+    *LABEL_FIELDS,
 )
 
 
@@ -417,6 +435,74 @@ def _coerce_confidence(value):
     return min(100, max(0, confidence))
 
 
+def emit_grading_completed(submission, *, actor, before, task_id=None):
+    """The one GRADING_COMPLETED event for an AI grading, from either path
+    (the Celery task, or the synchronous grade route).
+
+    Epic A S4 (SM note 2 and R2): the grade's before/after go on this event,
+    in its before/after columns, and the grading save itself writes no
+    GRADE_CHANGE. `before` is `history.snapshot(submission)` taken before
+    `grade_engine` ran; the after is read back from the saved row."""
+    # BE-A-09 #2: the model that actually served THIS grading run - not
+    # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
+    # GRADING_FALLBACK_MODELS - is already captured on the graded result as
+    # `grading_model` (ai_processor/services.py) and threaded onto the
+    # submission via `submission.feedback = grading`. Reading it back here is
+    # the only way this emit, which only sees the persisted submission,
+    # learns it too.
+    grading_model = (
+        submission.feedback.get("grading_model")
+        if isinstance(submission.feedback, dict)
+        else None
+    )
+    # BE-I-04: when the submission carries a label, the entry says what the
+    # label says, and carries the run's lists of models and the
+    # classification of its fresh calls. `_grading_run` is set by
+    # _populate_and_save_grade on the instance it saved.
+    #
+    # The fallback above, and an entry without the keys below, exist for
+    # OLD entries only: a submission graded by code older than this slice,
+    # or one in flight at a deploy. No production caller emits without a
+    # run: both callers pass the instance grade_engine returned
+    # (students/tests_grading_label_written.py pins the call sites).
+    label_metadata = {}
+    run = getattr(submission, "_grading_run", None)
+    if isinstance(run, GradingRun) and submission.grading_model != UNLABELLED:
+        grading_model = submission.grading_model.replace("@", "(at)")[:128]
+        label_metadata = {
+            "grading_config_version": submission.grading_config_version,
+            "strictness": submission.grading_strictness,
+            "fresh_backup_used": run.fresh_backup_used(),
+            **run.audit_models(),
+        }
+    changed_before, changed_after = history.grade_change(
+        before, history.snapshot(submission)
+    )
+    return emit(
+        AuditAction.GRADING_COMPLETED,
+        actor=actor,
+        request=None,
+        target_type="StudentSubmission",
+        target_id=submission.id,
+        outcome=AuditOutcome.SUCCESS,
+        before=changed_before,
+        after=changed_after,
+        metadata={
+            "assignment_id": str(submission.assignment_id),
+            "submission_id": str(submission.id),
+            "task_id": str(task_id) if task_id else None,
+            "model": grading_model,
+            # S5 (NFR-OBS-04): the exact grading prompt behind this grade.
+            "prompt_version": (
+                run.prompt_version
+                if label_metadata
+                else GRADING_ASSIGNMENT_PROMPT.version
+            ),
+            **label_metadata,
+        },
+    )
+
+
 def _refuse_unreadable_answers(submission):
     """Put a paper whose answers hold nothing readable in the teacher's
     review queue and refuse to grade it (H-165). Before the claim and
@@ -447,6 +533,12 @@ def _refuse_unreadable_answers(submission):
 
 
 def grade_engine(user, submission, processing_task_id=None):
+    # FR-A-06 #7 (S6d): nothing to grade against -> 409 RUBRIC_MISSING,
+    # before the claim, the AI call and any charge. Every grading path
+    # comes through here, including scheduled and automatic runs, which
+    # re-check at run time because the rubric can be removed meanwhile.
+    ensure_gradable(submission.assignment)
+
     if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:
         _refuse_unreadable_answers(submission)
 
@@ -467,9 +559,23 @@ def grade_engine(user, submission, processing_task_id=None):
         raise
 
 
-def _populate_and_save_grade(submission, grading, processing_task_id):
+def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     """
-    Write an AI grading result onto the submission and persist it.
+    Write an AI grading result onto the submission and persist it,
+    together with the grade's label (BE-I-04): what produced this grade.
+
+    FIRST FORM OF THE GRADING RECORD. A later stage improves on it: a table
+    of grading runs, built beside re-grading or feedback editing and filled
+    from these fields. Until that table exists a re-grade overwrites the
+    label with the newer run's, as it overwrites the score.
+
+    The label is derived from `run` (ai_processor/grading_run.py): the
+    run's one reading of the settings, and the models our code read from
+    the provider's kept replies. It is set on the same instance and saved
+    by the same UPDATE as the score. It travels beside `grading`, never
+    inside it: `grading` is saved whole as the feedback and is sent on to
+    another AI call. A caller that hands over no run (nothing in
+    production does) gets the label of a run that made no AI call.
 
     Split out of _run_grading_pipeline so the whole grade-then-persist
     sequence sits inside one billing_refund_scope: everything in here can
@@ -657,7 +763,16 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
         answer_html
     )
 
-    with cancellable_final_save(processing_task_id):
+    # Epic A S4 (SM note 2): AI grading writes no GRADE_CHANGE. Its
+    # before/after go onto the one GRADING_COMPLETED event its caller emits.
+    run = run or GradingRun.start()
+    for name, value in run.label().items():
+        setattr(submission, name, value)
+    # For emit_grading_completed, which only sees the returned submission:
+    # the lists of models are on the run, not on the row. Not a field.
+    submission._grading_run = run
+
+    with cancellable_final_save(processing_task_id), history.suppressed():
         submission.save(update_fields=GRADING_RESULT_FIELDS)
 
 
@@ -700,6 +815,11 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     # charged again. billing_refund_scope re-parents: the inner scope
     # hands its committed task_ids up to this one on success (see
     # billing/refunds.py), so a later failure here reclaims them too.
+    # BE-I-04: ONE reading of the grading settings for this run, taken
+    # here, above the grading service's retry loop, and handed down. The
+    # same run then gives the label that is saved with the grade.
+    run = GradingRun.start()
+
     with billing_refund_scope(
         reason="grading run failed before the grade was persisted"
     ):
@@ -709,9 +829,10 @@ def _run_grading_pipeline(user, submission, processing_task_id):
             answer_json,
             assignment_model=submission.assignment,
             processing_task_id=processing_task_id,
+            run=run,
         )
 
-        _populate_and_save_grade(submission, grading, processing_task_id)
+        _populate_and_save_grade(submission, grading, processing_task_id, run)
 
     # H4: follow-up tasks (formatted grade + AI summary refresh) dispatch
     # only after the grade's save has actually COMMITTED - via on_commit,
@@ -758,11 +879,16 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 str(user.id),
                 str(submission.assignment.course.id),
             )
-        except Exception:
+        except Exception as exc:
             # The grade itself is already committed - a follow-up dispatch
-            # failure must not fail (or un-claim) the graded run.
-            logger.exception(
-                "Failed to dispatch post-grading follow-up tasks",
+            # failure must not fail (or un-claim) the graded run. H-208: the
+            # error's class (and frames if it is not a broker outage), never
+            # its text: a refused queue arrives as a wrapper `from` the broker
+            # error, whose text a chained traceback would print.
+            logger.error(
+                "Failed to dispatch post-grading follow-up tasks: submission=%s %s",
+                submission.id,
+                describe_error_for_log(exc),
                 extra={"submission_id": str(submission.id)},
             )
 
@@ -1072,7 +1198,12 @@ def upload_answers_engine(
     request_user,
     is_proxy_upload=False,
     processing_task_id=None,
+    file_name=None,
+    upload_outcome=None,
 ):
+    """`file_name` names the file in a coded refusal (S6c). `upload_outcome`,
+    when given, receives replaced_existing: whether this upload overwrote an
+    existing (ungraded) submission instead of creating one (F3)."""
     assignment_context = f"""
     This is the Assignment Context to use in properly extracting the student submissions
     {assignment.questions}
@@ -1086,136 +1217,154 @@ def upload_answers_engine(
         ensure_student_may_submit(assignment, request_user)
 
     ensure_task_not_cancelled(processing_task_id)
-    student_submission = ai_processor.extract_answer_with_retry(
-        request_user,
-        content,
-        assignment_context,
-        assignment_model=assignment,
-        max_retries=3,
-        processing_task_id=processing_task_id,
-    )
-
-    if student_submission is not None:
-        # StudentSubmission.answers is NOT nullable, and both write paths
-        # below read this key. Before this guard, an extraction that came
-        # back without it (or with a non-list under it) reached the DB as
-        # SQL NULL and died there with a bare IntegrityError - AFTER the
-        # teacher had been billed for the call, and with no indication of
-        # what was actually wrong. Validated here, at the boundary, so the
-        # failure is legible and the enclosing refund scope can reclaim
-        # the charge.
-        extracted_answers = student_submission.get("answers")
-        if not is_a_list_of_objects(extracted_answers):
-            raise ValueError(
-                "Answer extraction returned no usable `answers` list "
-                f"(got {type(extracted_answers).__name__}); refusing to "
-                "persist an unusable submission."
-            )
-
-        target_student = request_user
-
-        if is_proxy_upload:
-            target_student = _match_enrolled_student(
-                assignment.course, student_submission.get("student_name")
-            )
-        else:
-            # Post-extraction re-check. The authoritative check is under
-            # the row lock below; this one exists because the extraction
-            # above took real time, and a grade can have landed meanwhile.
-            ensure_student_may_submit(assignment, request_user)
-
-        # ----------------------------------------------------------------
-        # Atomic submission limit enforcement + get-or-create + increment.
-        #
-        # select_for_update() on the student's row prevents the TOCTOU race
-        # where two concurrent uploads from the same student both pass the
-        # attempt_count guard, each increment the counter, and together
-        # bypass the submission limit. For that to hold, the lock has to
-        # stay held until the increment is COMMITTED - so the save is
-        # inside this block. (It used to be outside: the block released
-        # the lock with the new count only in memory, the second upload
-        # then read the old count from the DB, and both passed the guard.)
-        # What sits under the lock besides the save is CPU-only HTML
-        # rendering, milliseconds, and never a network call.
-        #
-        # attempt_count tracks *total submissions ever made*, starting at 1
-        # on the very first upload and increasing on every subsequent one.
-        # ----------------------------------------------------------------
-        is_student_self_upload = (
-            request_user.user_type == UserTypes.STUDENT and not is_proxy_upload
+    # F1 (S6d, 08a §6.0): every credit charged for this extraction (each
+    # chunk, on every attempt) is refunded if the upload fails before the
+    # submission is persisted, as grading and the raw-text edit already are.
+    # Before this, a mid-chunk failure kept the chunks already charged.
+    # The notification below stays outside: a failed notice must never
+    # refund a submission that was saved.
+    with billing_refund_scope(
+        reason="answer upload failed before the submission was persisted"
+    ):
+        student_submission = ai_processor.extract_answer_with_retry(
+            request_user,
+            content,
+            assignment_context,
+            assignment_model=assignment,
+            max_retries=3,
+            processing_task_id=processing_task_id,
         )
 
-        with transaction.atomic():
-            existing_submission = (
-                StudentSubmission.objects.select_for_update()
-                .filter(assignment=assignment, student=target_student)
-                .first()
-            )
-
-            if existing_submission:
-                # Authoritative: the row is locked, so this decision cannot
-                # race a concurrent upload, a grading claim, or a grade
-                # landing on the row. Applies to proxy uploads too.
-                _check_submission_open(
-                    existing_submission,
-                    student_upload=is_student_self_upload,
-                    told_to_student=is_student_self_upload,
+        if student_submission is not None:
+            # StudentSubmission.answers is NOT nullable, and both write paths
+            # below read this key. Before this guard, an extraction that came
+            # back without it (or with a non-list under it) reached the DB as
+            # SQL NULL and died there with a bare IntegrityError - AFTER the
+            # teacher had been billed for the call, and with no indication of
+            # what was actually wrong. Validated here, at the boundary, so the
+            # failure is legible and the enclosing refund scope can reclaim
+            # the charge.
+            extracted_answers = student_submission.get("answers")
+            if not is_a_list_of_objects(extracted_answers):
+                raise ValueError(
+                    "Answer extraction returned no usable `answers` list "
+                    f"(got {type(extracted_answers).__name__}); refusing to "
+                    "persist an unusable submission."
                 )
 
-            if existing_submission:
-                # Re-submission - update answers and increment counter.
-                created = False
-                submission = existing_submission
-                ensure_task_not_cancelled(processing_task_id)
-                submission.answers = student_submission.get(
-                    "answers", submission.answers
-                )
+            target_student = request_user
 
-                if is_student_self_upload:
-                    submission.attempt_count = (submission.attempt_count or 0) + 1
+            if is_proxy_upload:
+                target_student = _match_enrolled_student(
+                    assignment.course,
+                    student_submission.get("student_name"),
+                    file_name=file_name,
+                    teacher=request_user,
+                )
             else:
-                # First submission - create the row and set counter to 1.
-                # submission_date is set explicitly here (rather than left
-                # to auto_now_add) because student_submission_to_html()
-                # below renders this instance before it's ever saved, and
-                # auto_now_add only populates the field on save.
-                created = True
-                submission = StudentSubmission(
-                    assignment=assignment,
-                    student=target_student,
-                    answers=student_submission.get("answers"),
-                    attempt_count=1 if is_student_self_upload else 0,
-                    submission_date=timezone.now(),
+                # Post-extraction re-check. The authoritative check is under
+                # the row lock below; this one exists because the extraction
+                # above took real time, and a grade can have landed meanwhile.
+                ensure_student_may_submit(assignment, request_user)
+
+            # ----------------------------------------------------------------
+            # Atomic submission limit enforcement + get-or-create + increment.
+            #
+            # select_for_update() on the student's row prevents the TOCTOU race
+            # where two concurrent uploads from the same student both pass the
+            # attempt_count guard, each increment the counter, and together
+            # bypass the submission limit. For that to hold, the lock has to
+            # stay held until the increment is COMMITTED - so the save is
+            # inside this block. (It used to be outside: the block released
+            # the lock with the new count only in memory, the second upload
+            # then read the old count from the DB, and both passed the guard.)
+            # What sits under the lock besides the save is CPU-only HTML
+            # rendering, milliseconds, and never a network call.
+            #
+            # attempt_count tracks *total submissions ever made*, starting at 1
+            # on the very first upload and increasing on every subsequent one.
+            # ----------------------------------------------------------------
+            is_student_self_upload = (
+                request_user.user_type == UserTypes.STUDENT and not is_proxy_upload
+            )
+
+            with transaction.atomic():
+                existing_submission = (
+                    StudentSubmission.objects.select_for_update()
+                    .filter(assignment=assignment, student=target_student)
+                    .first()
                 )
 
-            ensure_task_not_cancelled(processing_task_id)
-            answer_html = student_submission_to_html(submission)
-            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-                answer_html
-            )
-            # Persist the extractor's confidence - the dashboard
-            # threshold-flags low-confidence extractions, which stayed 0
-            # forever while this field was silently dropped on the upload
-            # path.
-            submission.extraction_confidence = _coerce_confidence(
-                student_submission.get("extraction_confidence")
-            )
-            with cancellable_final_save(processing_task_id):
-                if created:
-                    submission.save()
-                else:
-                    # Only the columns this path owns. A full-row save here
-                    # would write back the stale copy of every other column
-                    # (score, feedback, is_published, grading_state...)
-                    # from an instance loaded before the AI extraction ran.
-                    submission.save(
-                        update_fields=[
-                            "answers",
-                            "attempt_count",
-                            "raw_input",
-                            "extraction_confidence",
-                        ]
+                if existing_submission:
+                    # Authoritative: the row is locked, so this decision cannot
+                    # race a concurrent upload, a grading claim, or a grade
+                    # landing on the row. Applies to proxy uploads too.
+                    _check_submission_open(
+                        existing_submission,
+                        student_upload=is_student_self_upload,
+                        told_to_student=is_student_self_upload,
                     )
+
+                if existing_submission:
+                    # Re-submission - update answers and increment counter.
+                    created = False
+                    submission = existing_submission
+                    ensure_task_not_cancelled(processing_task_id)
+                    submission.answers = student_submission.get(
+                        "answers", submission.answers
+                    )
+
+                    if is_student_self_upload:
+                        submission.attempt_count = (submission.attempt_count or 0) + 1
+                else:
+                    # First submission - create the row and set counter to 1.
+                    # submission_date is set explicitly here (rather than left
+                    # to auto_now_add) because student_submission_to_html()
+                    # below renders this instance before it's ever saved, and
+                    # auto_now_add only populates the field on save.
+                    created = True
+                    submission = StudentSubmission(
+                        assignment=assignment,
+                        student=target_student,
+                        answers=student_submission.get("answers"),
+                        attempt_count=1 if is_student_self_upload else 0,
+                        submission_date=timezone.now(),
+                    )
+
+                ensure_task_not_cancelled(processing_task_id)
+                answer_html = student_submission_to_html(submission)
+                submission.raw_input = (
+                    AssignmentProcessingService.html_to_prosemirror_text(answer_html)
+                )
+                # Persist the extractor's confidence - the dashboard
+                # threshold-flags low-confidence extractions, which stayed 0
+                # forever while this field was silently dropped on the upload
+                # path.
+                submission.extraction_confidence = _coerce_confidence(
+                    student_submission.get("extraction_confidence")
+                )
+                with cancellable_final_save(processing_task_id):
+                    if created:
+                        submission.save()
+                    else:
+                        # Only the columns this path owns. A full-row save here
+                        # would write back the stale copy of every other column
+                        # (score, feedback, is_published, grading_state...)
+                        # from an instance loaded before the AI extraction ran.
+                        submission.save(
+                            update_fields=[
+                                "answers",
+                                "attempt_count",
+                                "raw_input",
+                                "extraction_confidence",
+                            ]
+                        )
+
+    if student_submission is not None:
+        if upload_outcome is not None:
+            # F3: the overwrite of an existing ungraded submission stays, but
+            # the item says it happened (informational, never a failure).
+            upload_outcome["replaced_existing"] = not created
 
         if created and request_user.user_type == UserTypes.STUDENT:
             notify_teacher_of_student_submission(submission)
@@ -1364,6 +1513,11 @@ def ensure_no_active_extraction(
         )
 
 
+#: How SUBMISSION_EMPTY names a text submission, which has no file name:
+#: "The submitted text has no student answers to grade."
+SUBMITTED_TEXT = "The submitted text"
+
+
 def update_submission_from_raw_text(
     user, submission, raw_input, processing_task_id=None
 ):
@@ -1386,7 +1540,10 @@ def update_submission_from_raw_text(
             "This assignment is not currently open for submissions."
         )
     if not raw_input or not str(raw_input).strip():
-        raise ValueError("There is no text to extract answers from.")
+        # FR-A-06 #6 (S6d): empty text input is SUBMISSION_EMPTY (422),
+        # refused before the billed extraction. Blank ANSWERS in real text
+        # are not refused in Epic A (08a §6.1).
+        raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})
 
     told_to_student = user.user_type == UserTypes.STUDENT
     ensure_submission_open(submission, told_to_student=told_to_student)
@@ -1441,7 +1598,38 @@ def update_submission_from_raw_text(
     return locked
 
 
-def _match_enrolled_student(course, identified_name):
+#: Where the message names the file when a caller has none to give.
+UNNAMED_PAPER = "the paper"
+
+
+def _name_matches(candidates, name):
+    """Up to two of `candidates` whose name matches `name`: exact
+    (case-insensitive) "first last" first, then substring, never loading a
+    whole roster. Two rows are enough to know a match is ambiguous."""
+    exact = candidates.annotate(
+        full_name=Concat("first_name", Value(" "), "last_name")
+    ).filter(full_name__iexact=name)
+    matches = list(exact[:2])
+    if not matches:
+        first_name, _, last_name = name.partition(" ")
+        fuzzy = candidates.filter(
+            first_name__icontains=first_name, last_name__icontains=last_name
+        )
+        matches = list(fuzzy[:2])
+    return matches
+
+
+def _teachers_own_students(teacher):
+    """Every student enrolled, in ANY status, in a course `teacher` owns and
+    can still reach (H-38). Never the school's students: a colleague's or
+    another school's student is not the uploading teacher's to name (SM)."""
+    return CustomUser.objects.filter(
+        teacher_course_access_q(teacher, prefix="enrollments__course__"),
+        user_type=UserTypes.STUDENT,
+    ).distinct()
+
+
+def _match_enrolled_student(course, identified_name, file_name=None, teacher=None):
     """
     Resolve the student name the extractor read off a teacher-uploaded
     submission to exactly one ENROLLED student on the course.
@@ -1455,45 +1643,62 @@ def _match_enrolled_student(course, identified_name):
     student's work and grade landed on another student's record with no
     error anywhere. Refusing is the only safe answer; the teacher can
     upload for that student directly.
+
+    FR-A-06 (S6c): a refusal is coded. MISSING_STUDENT_NAME for no name, a
+    name matching nobody, or an ambiguous one; STUDENT_NOT_ON_ROSTER when the
+    name is uniquely one of `teacher`'s own students outside this course's
+    roster (`teacher` defaults to the course's teacher). Only the paper's own
+    text is ever quoted for an unmatched name.
     """
+    unnamed = not file_name
+    file_name = file_name or UNNAMED_PAPER
     name = " ".join((identified_name or "").split())
-    if not name:
-        raise CannotAssociateStudentError(
-            "Student name cannot be found in the submission"
+
+    def unmatched(name_state):
+        return StudentNameUnmatchedError(
+            params={"file_name": file_name, "name_state": name_state}
         )
+
+    if not name:
+        raise unmatched("no name was found on the paper")
 
     enrolled = CustomUser.objects.filter(
         enrollments__course=course,
         enrollments__enrollment_status="ENROLLED",
     ).distinct()
-
-    # Exact: the whole name against "first last", so multi-word first names
-    # ("Mary Ann Smith") match without guessing where the split is.
-    exact = enrolled.annotate(
-        full_name=Concat("first_name", Value(" "), "last_name")
-    ).filter(full_name__iexact=name)
-    # Two rows are enough to know it's ambiguous; never load a whole roster.
-    matches = list(exact[:2])
-    if not matches:
-        first_name, _, last_name = name.partition(" ")
-        fuzzy = enrolled.filter(
-            first_name__icontains=first_name, last_name__icontains=last_name
-        )
-        matches = list(fuzzy[:2])
-
-    if not matches:
-        raise CannotAssociateStudentError(
-            "Student not among the enrolled students in the course"
-        )
+    matches = _name_matches(enrolled, name)
     if len(matches) > 1:
         # Teacher-facing text: literal double quotes, not !r (see the same
         # choice in notify_school_admins_of_grading_complete).
-        raise CannotAssociateStudentError(
-            f'The name "{name}" matches more than one enrolled student in this '  # noqa: B907
-            "course, so the submission could not be attributed safely. Please "
-            "upload it for the right student directly."
+        raise unmatched(
+            f'the name "{name}" matches more than one student'  # noqa: B907
         )
-    return matches[0]
+    if matches:
+        return matches[0]
+
+    # Nobody on this roster. One of the teacher's own students elsewhere
+    # (pending, withdrawn, or in another of their courses) is named, so the
+    # teacher knows to enrol them; anything else is only the paper's text.
+    elsewhere = _name_matches(_teachers_own_students(teacher or course.teacher), name)
+    if len(elsewhere) == 1:
+        student = elsewhere[0]
+        raise StudentNotOnRosterError(
+            params={
+                "file_name": file_name,
+                "student_display": f"{student.first_name} {student.last_name}".strip(),
+            },
+            # This template opens with the file name. A real name is shown as
+            # given ("scan.png belongs to ..."); only the stand-in is
+            # capitalised to start the sentence (v2's S6c N1).
+            display=(
+                {"file_name": UNNAMED_PAPER[:1].upper() + UNNAMED_PAPER[1:]}
+                if unnamed
+                else None
+            ),
+        )
+    raise unmatched(
+        f'the name "{name}" doesn\'t match anyone on the roster'  # noqa: B907
+    )
 
 
 def get_grade_details(percentage):

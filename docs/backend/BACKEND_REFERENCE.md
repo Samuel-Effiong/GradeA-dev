@@ -153,9 +153,14 @@ service's deploy cutover, so folding a Beat outage into it would block unrelated
 
 ### Request correlation
 
-`AutoGrader/middleware.py::RequestIDMiddleware` runs **first** in `MIDDLEWARE`. It trusts an
-inbound `X-Request-ID` header if well-formed, otherwise generates one, sets it on a contextvar
-(`AutoGrader/request_context.py`), tags Sentry with it, and echoes it on the response.
+`AutoGrader/middleware.py::RequestIDMiddleware` runs **first** in `MIDDLEWARE`. It **always
+generates** the request id (Epic A S5, X-5): the id is also the audit trace id, so a client must
+not choose it. It sets the id on a contextvar (`AutoGrader/request_context.py`), tags Sentry with
+it, and returns it on the response `X-Request-ID` header. An inbound `X-Request-ID` is **never
+echoed back** - if it is a UUID it is kept only as `client_request_id` (beside the server id in
+every log line, and as the audit row's `client_correlation_id`); anything else is dropped.
+**Frontend contract change (Phase 2):** a client that sends its own `X-Request-ID` gets the
+server's id back, not its own; to join the two, read the response header.
 `AutoGrader/celery_signals.py` propagates that id across `.delay()` boundaries so a log line in a
 worker can be traced back to the originating HTTP request.
 
@@ -2260,7 +2265,7 @@ non-DRF errors return JSON.
 
 ```text
 Client
-  │  Authorization: Bearer <access>, X-Request-ID (optional)
+  │  Authorization: Bearer <access>, X-Request-ID (optional; kept only as client_request_id)
   ▼
 RequestIDMiddleware            → correlation id set on contextvar + Sentry tag
 UserActivityMiddleware         → UserActivity row, Redis heartbeat, wallet ensure
@@ -2279,7 +2284,7 @@ Service layer (*/services.py)  → transactions, locks, claims
   ▼
 APIJSONRenderer                → {success, message, data|error}
   ▼
-Client  (+ X-Request-ID echoed)
+Client  (+ X-Request-ID = the server's id, which is the audit trace id)
 ```
 
 ### 17.2 Grading data flow

@@ -1,0 +1,248 @@
+"""v2 mutants for merge-down b16 (tip 72bce4fd = 607e41b2 + 0b's tests-only commit).
+
+Run from the vf2-s1 scratch worktree detached at COMMIT, inside the caller's
+rule 16/13/12 wrappers, output to files, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_b16_mutants.py check | baseline | (no args: all) | <name>...
+
+Written 2026-10-09 ~19:55 WAT BEFORE any run, from reading the merge blobs and
+the judged tests. Judged by the EXISTING modules (0b's two new audit tests and
+the oversized-file door class are the things under test).
+
+EXACT = the failing set must EQUAL the written one (qualified Class.method).
+MUST  = every named test must be among the failing ones (others are printed).
+Fragments (rule 22): a regex that must appear inside the named test's OWN
+FAIL/ERROR block of the log; a missing fragment is reported as FRAGMENT_MISSING
+and the mutant is not counted as killed for its written reason.
+Rule 17: PYTHONDONTWRITEBYTECODE=1, __pycache__ of the mutated dir cleared
+before each mutant and after each restore; restore verified by sha256 against
+the commit blob.
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+UV = "users/views.py"
+SV = "students/views.py"
+DOOR = "assignments/upload_door.py"
+
+AUDIT = "users.tests_auth_audit_doors"
+BATCH = "students.tests_batch_item_results"
+DOORT = "students.tests_upload_credit_door"
+BASELINE = [AUDIT, BATCH, DOORT]
+
+INV_NEW = "InvitationDoorTests.test_an_admin_power_pending_row_is_refused_and_audited_like_a_wrong_token"
+INV_OLD = "InvitationDoorTests.test_school_admin_bad_code_survives_the_rollback"
+GOO_NEW = "GoogleDoorTests.test_a_never_verified_admin_power_account_is_refused_and_named"
+BIG1 = "ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch"
+BIG2 = "ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued"
+UNREAD = "StudentUploadDoorTest.test_a_file_the_door_cannot_read_is_left_to_the_task"
+POORB = "TeacherBatchDoorTest.test_a_poor_teacher_is_refused_and_nothing_is_queued"
+
+# name -> (judged modules, mode, tests, {test: fragment regex})
+EXPECTED = {
+    # the audit event of the invitation road's H-203 refusal is not written
+    "B1_invitation_refusal_writes_no_event": (
+        [AUDIT], "EXACT", [INV_NEW, INV_OLD],
+        {INV_NEW: r"0 != 1", INV_OLD: r"AssertionError"}),
+    # the invitation refusal for admin power is gone (the row is activated)
+    "B2_invitation_has_no_admin_power_refusal": (
+        [AUDIT], "EXACT", [INV_NEW], {INV_NEW: r"200 != 400"}),
+    # the Google arm does not name the account
+    "B3_google_refusal_names_no_account": (
+        [AUDIT], "EXACT", [GOO_NEW], {GOO_NEW: r"None != "}),
+    # the Google arm tags another reason
+    "B4_google_refusal_has_another_reason": (
+        [AUDIT], "EXACT", [GOO_NEW],
+        {GOO_NEW: r"'GOOGLE_TOKEN_INVALID' != 'GOOGLE_SIGN_IN_REFUSED'"}),
+    # the Google arm's H-203 refusal is gone (the account is signed in)
+    "B5_google_has_no_admin_power_refusal": (
+        [AUDIT], "EXACT", [GOO_NEW], {GOO_NEW: r"200 != 400"}),
+    # the door refuses what it cannot estimate (oversized and unreadable files)
+    "B6_door_refuses_when_it_cannot_estimate": (
+        [BATCH, DOORT], "MUST", [BIG1, BIG2, UNREAD],
+        {BIG1: r"402 != 202", BIG2: r"402 != 202", UNREAD: r"402 != 200"}),
+    # the per-item 413 of the teacher's batch is gone
+    "B7_batch_has_no_per_item_413": (
+        [BATCH], "MUST", [BIG1], {BIG1: r"(?s)AssertionError"}),
+    # the door is asked only AFTER the batch session exists (H-180: before)
+    "B8_batch_asks_the_door_after_the_session": (
+        [DOORT], "EXACT", [POORB], {POORB: r"1 != 0"}),
+}
+
+MUTANTS = {
+    "B1_invitation_refusal_writes_no_event": (UV, [(
+        '                if not user or _holds_admin_power(user):\n'
+        '                    audit_failure = (account_for_email(email), "INVALID_CODE")\n',
+        '                if not user or _holds_admin_power(user):\n'
+        '                    pass\n')]),
+    "B2_invitation_has_no_admin_power_refusal": (UV, [(
+        '                if not user or _holds_admin_power(user):\n'
+        '                    audit_failure = (account_for_email(email), "INVALID_CODE")\n',
+        '                if not user:\n'
+        '                    audit_failure = (account_for_email(email), "INVALID_CODE")\n')]),
+    "B3_google_refusal_names_no_account": (UV, [(
+        '                        self._audit_account = user\n'
+        '                        raise ParseError(GOOGLE_SIGN_IN_FAILED)\n',
+        '                        raise ParseError(GOOGLE_SIGN_IN_FAILED)\n')]),
+    "B4_google_refusal_has_another_reason": (UV, [(
+        '                        self._audit_reason = "GOOGLE_SIGN_IN_REFUSED"\n'
+        '                        self._audit_account = user\n'
+        '                        raise ParseError(GOOGLE_SIGN_IN_FAILED)\n',
+        '                        self._audit_reason = "GOOGLE_TOKEN_INVALID"\n'
+        '                        self._audit_account = user\n'
+        '                        raise ParseError(GOOGLE_SIGN_IN_FAILED)\n')]),
+    "B5_google_has_no_admin_power_refusal": (UV, [(
+        "if user.email_verified_at is None and _holds_admin_power(user):\n"
+        "                        # Epic A: a refused sign-in is audited",
+        "if False:\n"
+        "                        # Epic A: a refused sign-in is audited")]),
+    "B6_door_refuses_when_it_cannot_estimate": (DOOR, [(
+        "        if estimate is None or balance >= estimate:\n",
+        "        if estimate is not None and balance >= estimate:\n")]),
+    "B7_batch_has_no_per_item_413": (SV, [(
+        "            try:\n"
+        "                validate_upload_size(uploaded_file)\n"
+        "            except PayloadTooLarge as exc:\n"
+        "                refused = record_refused_item(\n"
+        "                    requested_by=request.user,\n"
+        "                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,\n",
+        "            try:\n"
+        "                pass\n"
+        "            except PayloadTooLarge as exc:\n"
+        "                refused = record_refused_item(\n"
+        "                    requested_by=request.user,\n"
+        "                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,\n")]),
+    "B8_batch_asks_the_door_after_the_session": (SV, [(
+        "        refusal = upload_refusal_if_unaffordable(\n"
+        "            request.user, assignment, files, prompt\n"
+        "        )\n"
+        "        if refusal is not None:\n"
+        "            return refusal\n"
+        "\n"
+        "        session = BatchUploadSession.objects.create(\n"
+        "            teacher=request.user,\n"
+        "            assignment=assignment,\n"
+        "            task_type=BatchUploadType.SUBMISSION,\n"
+        "            total_files=len(files),\n"
+        "        )\n",
+        "        session = BatchUploadSession.objects.create(\n"
+        "            teacher=request.user,\n"
+        "            assignment=assignment,\n"
+        "            task_type=BatchUploadType.SUBMISSION,\n"
+        "            total_files=len(files),\n"
+        "        )\n"
+        "        refusal = upload_refusal_if_unaffordable(\n"
+        "            request.user, assignment, files, prompt\n"
+        "        )\n"
+        "        if refusal is not None:\n"
+        "            return refusal\n")]),
+}
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    blocks = {}
+    for m in re.finditer(
+        r"^={70}\n(?:FAIL|ERROR): (\w+) \(([\w.]+)\)[^\n]*\n(.*?)(?=^={70}\n|\Z)",
+        o, re.M | re.S,
+    ):
+        method, dotted, body = m.groups()
+        blocks[".".join(dotted.split(".")[-2:-1] + [method])] = body
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, blocks, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name, (path, edits) in MUTANTS.items():
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        print(name, path, counts, "parses", flush=True)
+    # every expected test name exists in the judged modules
+    for name, (labels, mode, tests, frags) in EXPECTED.items():
+        for t in tests:
+            cls, meth = t.split(".")
+            hits = 0
+            for lab in labels:
+                p = pathlib.Path(lab.replace(".", "/") + ".py")
+                txt = p.read_text()
+                if re.search(rf"^class {cls}\b", txt, re.M) and f"def {meth}(" in txt:
+                    hits += 1
+            print(" ", name, t, "found" if hits == 1 else f"HITS={hits}", flush=True)
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    for p in (UV, SV, DOOR):
+        clear_pycache(p)
+    rc, ran, summary, blocks, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", sorted(blocks), flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    path, edits = MUTANTS[name]
+    src = open(path).read()
+    counts = [src.count(old) for old, _ in edits]
+    if counts != [1] * len(edits):
+        print(name, "APPLY_FAILED", path, counts, flush=True)
+        continue
+    for old, new in edits:
+        src = src.replace(old, new, 1)
+    ast.parse(src)
+    labels, mode, tests, frags = EXPECTED[name]
+    try:
+        clear_pycache(path)
+        open(path, "w").write(src)
+        rc, ran, summary, blocks, _ = run(labels, f"{name}.txt")
+        failing = sorted(blocks)
+        if rc == 0:
+            status = "SURVIVED"
+        elif ran == "Ran ?" or not failing:
+            status = "BROKEN"
+        elif mode == "EXACT":
+            status = "KILLED" if failing == sorted(tests) else "KILLED_OTHER_SET"
+        else:
+            status = "KILLED" if all(t in failing for t in tests) else "KILLED_OTHER_SET"
+        frag_bad = [t for t, rx in frags.items()
+                    if t in blocks and not re.search(rx, blocks[t])]
+        if status == "KILLED" and frag_bad:
+            status = "FRAGMENT_MISSING"
+        print(name, "|", status, "|", ran, "|", summary, "|", mode, tests,
+              "| failing", failing, "| fragment-missing", frag_bad, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True)
+        clear_pycache(path)
+        ok = sha(open(path, "rb").read()) == sha(
+            subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+        )
+        print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

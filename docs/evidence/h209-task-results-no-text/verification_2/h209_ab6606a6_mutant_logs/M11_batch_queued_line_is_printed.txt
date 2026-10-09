@@ -1,0 +1,56 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 660273d1-864d-467b-99ae-550d46b2dbb3.
+Cannot activate automatic trial for user 660273d1-864d-467b-99ae-550d46b2dbb3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 32173a3d-07e4-4d9d-a480-8b1253b5b66d.
+Cannot activate automatic trial for user 32173a3d-07e4-4d9d-a480-8b1253b5b66d (validation): ValueError
+.Free trial plan not found: no trial activated for user c344bb11-d70d-4f8c-89e7-1c458a5b3d4d.
+Cannot activate automatic trial for user c344bb11-d70d-4f8c-89e7-1c458a5b3d4d (validation): ValueError
+.Free trial plan not found: no trial activated for user 7c98fc08-5ae4-4501-a711-17430d761a72.
+Cannot activate automatic trial for user 7c98fc08-5ae4-4501-a711-17430d761a72 (validation): ValueError
+.Free trial plan not found: no trial activated for user fbc1ffde-f2b9-4480-9df8-5841e61201ae.
+Cannot activate automatic trial for user fbc1ffde-f2b9-4480-9df8-5841e61201ae (validation): ValueError
+.Free trial plan not found: no trial activated for user a59d92f4-7066-44d3-bb2d-20ec7d23d760.
+Cannot activate automatic trial for user a59d92f4-7066-44d3-bb2d-20ec7d23d760 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0a3a059f-edf7-4373-a490-cddb58ffaa93.
+Cannot activate automatic trial for user 0a3a059f-edf7-4373-a490-cddb58ffaa93 (validation): ValueError
+.Free trial plan not found: no trial activated for user b3a0002b-f8c6-428c-b5ca-f376ec59a2d5.
+Cannot activate automatic trial for user b3a0002b-f8c6-428c-b5ca-f376ec59a2d5 (validation): ValueError
+.Free trial plan not found: no trial activated for user d7a19824-fcff-4cfe-8f97-dfb0b58946b1.
+Cannot activate automatic trial for user d7a19824-fcff-4cfe-8f97-dfb0b58946b1 (validation): ValueError
+.Free trial plan not found: no trial activated for user ecffb8d6-f2ca-485c-aaa3-7a58c148ac40.
+Cannot activate automatic trial for user ecffb8d6-f2ca-485c-aaa3-7a58c148ac40 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:19,532 task_tracking 1864105 140252019862464 [request_id=-] Background task 32fd1b8e-0924-47b9-8554-8c99b0a9bb25 failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 8ca3026d-bed3-46bf-bcfd-cf472cbf655a.
+Cannot activate automatic trial for user 8ca3026d-bed3-46bf-bcfd-cf472cbf655a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:19,727 task_tracking 1864105 140252019862464 [request_id=-] Background task 1507309e-3882-477c-a593-5df44d4df3cb failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 261695dd-5437-473c-86b2-27f967edc1ae.
+Cannot activate automatic trial for user 261695dd-5437-473c-86b2-27f967edc1ae (validation): ValueError
+F
+======================================================================
+FAIL: test_g2_batch_dispatch_logs_ids_only_and_prints_nothing (students.tests_vf2_h209_probe.GradeAllAndFriendsThroughTheRealBodies.test_g2_batch_dispatch_logs_ids_only_and_prints_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 281, in test_g2_batch_dispatch_logs_ids_only_and_prints_nothing
+    self.assertEqual(len(queued), 1, "expected one queued line")
+AssertionError: 0 != 1 : expected one queued line
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.597s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

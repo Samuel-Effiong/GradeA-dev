@@ -1,0 +1,7 @@
+started 2026-09-30T19:51:54+01:00 tip 3c5aa16
+guards_and_s6d   3c5aa16 rc=0 23s Ran 105 tests in 20.395s OK
+mutation_battery 3c5aa16 rc=1 189s 16/17 killed with verified restore
+
+dropped test_s6d_mut
+app_students     3c5aa16 rc=0 71s Ran 311 tests in 66.377s OK (skipped=1)
+finished 2026-09-30T19:56:39+01:00

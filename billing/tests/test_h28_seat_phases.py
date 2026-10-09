@@ -23,6 +23,8 @@ a mock (rule 14).
 from unittest.mock import patch
 
 from django.db import OperationalError, transaction
+from django.urls import reverse
+from rest_framework.test import APIClient
 
 from billing import license_stripe_mutation
 from billing.billing_transaction_service import BillingTransactionService
@@ -38,7 +40,12 @@ from billing.models import (
     LicenseStripeMutationStatus,
     LicenseSubscription,
 )
-from billing.tests.test_h28_cancel_phases import MUTATION_LOGGER, LicencePhaseTestCase
+from billing.tests.test_h28_cancel_phases import (
+    MUTATION_LOGGER,
+    LicencePhaseTestCase,
+    as_a_request_by,
+    assert_one_escalation_event,
+)
 
 
 class SeatPhaseTests(LicencePhaseTestCase):
@@ -226,6 +233,46 @@ class SeatPhaseTests(LicencePhaseTestCase):
         self.assertEqual(self.stripe.invoices["in_h28_renewal"]["status"], "open")
         [(_, voided, _)] = self.void_calls()
         self.assertNotEqual(voided, "in_h28_renewal")
+
+    def _refuse_the_revert(self):
+        def refuse_the_revert(*args, **kwargs):
+            if kwargs["items"][0]["quantity"] == self.SEATS:
+                raise stripe.error.APIConnectionError("Request timed out")
+            return self.stripe.subscription_modify(*args, **kwargs)
+
+        return patch.object(
+            LicenceStripe, "modify_subscription", side_effect=refuse_the_revert
+        )
+
+    def test_an_escalated_seat_change_is_audited_as_the_signed_in_user(self):
+        self.stripe.invoice_outcome = "open"
+        with as_a_request_by(self.superadmin), self._refuse_the_revert():
+            with self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+                with self.assertRaises(
+                    license_stripe_mutation.LicenceStripeChangeNotRecorded
+                ):
+                    self.update_seats(self.SEATS + 5)
+
+        assert_one_escalation_event(self, self.only_intent(), self.superadmin)
+
+    def test_an_escalation_over_the_real_route_is_audited_with_the_request(self):
+        """End to end through the view and AuditMiddleware: the 409, and one
+        event by the signed-in super admin with the request's own fields."""
+        self.stripe.invoice_outcome = "open"
+        client = APIClient()
+        client.force_authenticate(self.superadmin)
+        with self._refuse_the_revert(), self.assertLogs(MUTATION_LOGGER, level="ERROR"):
+            response = client.post(
+                reverse(
+                    "license-subscription-update-seats", kwargs={"pk": self.licence.pk}
+                ),
+                {"max_seats": self.SEATS + 5},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 409, response.content)
+        event = assert_one_escalation_event(self, self.only_intent(), self.superadmin)
+        self.assertEqual(event.source_ip, "127.0.0.1")
 
     def test_a_failed_undo_escalates_to_a_human(self):
         self.stripe.invoice_outcome = "open"

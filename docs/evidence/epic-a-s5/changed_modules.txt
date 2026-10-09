@@ -1,0 +1,386 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.Cannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.Cannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.Cannot activate automatic trial for user trace.owner@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.
+
+ai_processor.services INFO 2026-09-30 15:15:20,923 services 3488671 137196537726656 [request_id=e1d02037007a49688c6e17a469a70325 client_request_id=-] ai_call trace_id=e1d02037-007a-4968-8c6e-17a469a70325 model=provider/served-model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd task_type=grade_assignment attempt=1 latency_ms=0 outcome=ok
+
+
+......[2026-09-30 15:15:24,991: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=credits (not allowed for this action)
+...[2026-09-30 15:15:24,998: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=answer_text (not on the allow-list)
+...[2026-09-30 15:15:25,020: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+[2026-09-30 15:15:25,022: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+.[2026-09-30 15:15:25,024: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+[2026-09-30 15:15:25,025: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
+.[2026-09-30 15:15:25,027: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+[2026-09-30 15:15:25,028: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+[2026-09-30 15:15:25,029: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+[2026-09-30 15:15:25,030: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+.[2026-09-30 15:15:25,032: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 15:15:25,033: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 15:15:25,033: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 15:15:25,034: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 15:15:25,034: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+..[2026-09-30 15:15:25,036: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
+.[2026-09-30 15:15:25,038: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
+.[2026-09-30 15:15:25,039: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
+.[2026-09-30 15:15:25,040: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+..[2026-09-30 15:15:25,043: ERROR/MainProcess] audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
+.[2026-09-30 15:15:25,044: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
+.[2026-09-30 15:15:25,045: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+.[2026-09-30 15:15:25,046: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+[2026-09-30 15:15:25,048: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+[2026-09-30 15:15:25,049: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+[2026-09-30 15:15:25,051: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=unexpected AttributeError
+[2026-09-30 15:15:25,051: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 15:15:25,051: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+.[2026-09-30 15:15:25,051: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+[2026-09-30 15:15:25,051: ERROR/MainProcess] audit event rejected: action=MADE_UP detail=action: not a known action
+...................[2026-09-30 15:15:25,243: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (looks like an email address)
+........................
+
+students.task_tracking ERROR 2026-09-30 15:15:25,518 task_tracking 3488671 137197113334720 [request_id=4d8da65e07dc46519b44a2f837157120 client_request_id=-] Background task 71937d42-c062-4998-b2b1-c2dbe8e12468 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/task_tracking.py", line 72, in launch_processing_task
+    async_result = task_callable.delay(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ConnectionError: broker unreachable
+[2026-09-30 15:15:25,522: ERROR/MainProcess] API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/task_tracking.py", line 72, in launch_processing_task
+    async_result = task_callable.delay(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ConnectionError: broker unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/views.py", line 847, in grade_async
+    task = launch_processing_task(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/task_tracking.py", line 78, in launch_processing_task
+    raise ProcessingTemporarilyUnavailable() from exc
+AutoGrader.dispatch.ProcessingTemporarilyUnavailable: Processing is temporarily unavailable right now. Please try again in a few minutes.
+
+
+django.request ERROR 2026-09-30 15:15:25,526 log 3488671 137197113334720 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/cc7dcf74-4cb5-4048-9ba4-f8c3e798a265/grade-async
+
+
+[2026-09-30 15:15:25,526: ERROR/MainProcess] Service Unavailable: /api/v1/submissions/cc7dcf74-4cb5-4048-9ba4-f8c3e798a265/grade-async
+..
+
+students.task_tracking WARNING 2026-09-30 15:15:25,635 refusals 3488671 137197113334720 [request_id=- client_request_id=-] Background task a95fbf95-5872-4349-8ec5-217034035f4e refused: AIFeatureNotAvailableError: content policy refusal
+
+
+[2026-09-30 15:15:25,641: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[fc6ec8c1-2489-4604-ab0a-35c1ee02c0f9] raised unexpected: AIFeatureNotAvailableError('content policy refusal')
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+    R = retval = fun(*args, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+billing.access_control.AIFeatureNotAvailableError: content policy refusal
+.
+
+students.task_tracking ERROR 2026-09-30 15:15:25,691 task_tracking 3488671 137197113334720 [request_id=- client_request_id=-] Background task 44545420-0e39-4885-8e1b-cda5865c1369 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ConnectionError: lost connection to grading service
+[2026-09-30 15:15:25,698: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[5801f54c-0a9d-4f66-888f-7e53d41c2a14] raised unexpected: ConnectionError('lost connection to grading service')
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+    R = retval = fun(*args, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ConnectionError: lost connection to grading service
+...
+
+students.task_tracking ERROR 2026-09-30 15:15:25,828 task_tracking 3488671 137197113334720 [request_id=- client_request_id=-] Background task f7a24a7d-153f-4f4b-a540-eced50044c54 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: unexpected grading failure
+[2026-09-30 15:15:25,834: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[f718f713-5c31-430f-8a9c-a5f969068d9b] raised unexpected: RuntimeError('unexpected grading failure')
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+    R = retval = fun(*args, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: unexpected grading failure
+.......
+
+ai_processor.services WARNING 2026-09-30 15:15:26,421 services 3488671 137197113334720 [request_id=- client_request_id=-] Attempt 1 failed: Error during AI model: flaky
+
+
+
+
+ai_processor.services INFO 2026-09-30 15:15:26,421 services 3488671 137197113334720 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-30 15:15:26,421 services 3488671 137197113334720 [request_id=- client_request_id=-] Attempt 2 failed: Error during AI model: flaky
+
+
+
+
+ai_processor.services INFO 2026-09-30 15:15:26,421 services 3488671 137197113334720 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-30 15:15:26,422 services 3488671 137197113334720 [request_id=- client_request_id=-] Attempt 3 failed: Error during AI model: flaky
+
+
+...
+
+ai_processor.services WARNING 2026-09-30 15:15:26,494 services 3488671 137197113334720 [request_id=- client_request_id=-] Attempt 1 failed: transient network blip
+
+
+
+
+ai_processor.services INFO 2026-09-30 15:15:26,494 services 3488671 137197113334720 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-30 15:15:26,494 services 3488671 137197113334720 [request_id=- client_request_id=-] Attempt 2 failed: transient network blip
+
+
+
+
+ai_processor.services INFO 2026-09-30 15:15:26,494 services 3488671 137197113334720 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-30 15:15:26,494 services 3488671 137197113334720 [request_id=- client_request_id=-] Attempt 3 failed: transient network blip
+
+
+..........
+
+ai_processor.services WARNING 2026-09-30 15:15:27,125 services 3488671 137197113334720 [request_id=- client_request_id=-] AI access denied for assignment <MagicMock name='mock.id' id='137196610388672'> (teacher 0018410b-d9ee-407a-af9e-b7c53d01282e): No credits remaining. Please purchase more credits to continue using AI features.
+
+
+..................
+
+ai_processor.services INFO 2026-09-30 15:15:27,575 services 3488671 137197113334720 [request_id=- client_request_id=-] ai_call trace_id=74cd0a04-2b9d-471d-8f24-295decff9245 model=provider/served-model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd task_type=grade_assignment attempt=1 latency_ms=0 outcome=ok
+
+
+..........
+
+django.request ERROR 2026-09-30 15:15:29,920 log 3488671 137197113334720 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+[2026-09-30 15:15:29,920: ERROR/MainProcess] Service Unavailable: /coded/PROVIDER_FAILURE
+.
+
+django.request ERROR 2026-09-30 15:15:29,933 log 3488671 137197113334720 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+[2026-09-30 15:15:29,933: ERROR/MainProcess] Service Unavailable: /coded/PROVIDER_FAILURE
+.
+
+django.request ERROR 2026-09-30 15:15:29,940 log 3488671 137197113334720 [request_id=- client_request_id=-] Service Unavailable: /coded-client-id
+
+
+[2026-09-30 15:15:29,940: ERROR/MainProcess] Service Unavailable: /coded-client-id
+.................................................
+----------------------------------------------------------------------
+Ran 178 tests in 10.624s
+
+OK
+Destroying test database for alias 'default'...
+Found 178 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -836,6 +836,15 @@ class PublishAllGradesResponseSerializer(serializers.Serializer):
     ungraded_count = serializers.IntegerField(
         min_value=0, help_text="Total number of submissions that were not graded"
     )
+    skipped = serializers.ListField(
+        child=serializers.DictField(),
+        help_text=(
+            "Epic A S7d (catalogue F): each submission not published, with "
+            "its reason: submission_id, student_id, status 'skipped' and the "
+            "coded fields (reason_code SUBMISSION_NOT_GRADED, message, "
+            "remediation, ...)."
+        ),
+    )
 
 
 class TaskInfoSerializer(serializers.Serializer):
@@ -844,7 +853,10 @@ class TaskInfoSerializer(serializers.Serializer):
     """
 
     file_name = serializers.CharField()
-    task_id = serializers.UUIDField()
+    # FR-A-07 (S7a): null for an item refused before dispatch (a file too
+    # large for the batch); its result is in session-results under item_id.
+    task_id = serializers.UUIDField(allow_null=True)
+    item_id = serializers.UUIDField(required=False)
 
 
 class BatchUploadResponseSerializer(serializers.Serializer):

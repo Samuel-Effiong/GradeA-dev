@@ -1,0 +1,29 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 06674519-b2ba-4487-80c3-576e782fa7fe.
+Cannot activate automatic trial for user 06674519-b2ba-4487-80c3-576e782fa7fe (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:12,982 task_tracking 1863400 128020729203648 [request_id=-] Background task a9f08cd5-5285-4e6a-97d0-1b3ed46d7ea3 failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+F
+======================================================================
+FAIL: test_f1_celerys_own_failure_log_for_a_failed_grade_all_carries_no_text (students.tests_vf2_h209_probe.VF2H209Findings.test_f1_celerys_own_failure_log_for_a_failed_grade_all_carries_no_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 324, in test_f1_celerys_own_failure_log_for_a_failed_grade_all_carries_no_text
+    self.assertNotIn(MARKER, blob, "the made-up error text reached celery's own failure log")
+AssertionError: 'VF2H209SECRET' unexpectedly found in 'Task assignments.tasks.grade_all_submissions[a8e38b82-7637-4584-afa2-9bf85ce05c8b] raised unexpected: RuntimeError(\'cannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET\')\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task\n    R = retval = fun(*args, **kwargs)\n                 ^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/assignments/tasks.py", line 158, in grade_all_submissions\n    submission = grade_engine(\n                 ^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call\n    raise effect\nRuntimeError: cannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET\n' : the made-up error text reached celery's own failure log
+
+----------------------------------------------------------------------
+Ran 1 test in 0.418s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 1 test(s).
