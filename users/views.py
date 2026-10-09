@@ -84,6 +84,7 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.admin_power import holds_admin_power as _holds_admin_power
 from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
@@ -149,6 +150,7 @@ NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 # sent code, and a locked reset alike - so its text says nothing about
 # whether an account exists.
 OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
+GOOGLE_SIGN_IN_FAILED = "Google sign-in failed. Please try again."
 
 # Founder-approved wording (2026-09-28) for the password-reset email.
 # Wording only: no link.
@@ -769,17 +771,6 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
             cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
 
         return Response(data)
-
-
-def _holds_admin_power(user):
-    """H-164: any one of the three marks of an admin account.
-
-    They can differ: `create_superuser` sets is_staff and is_superuser and
-    leaves user_type at its default, TEACHER (H-19 read the same shape), and
-    the Django admin ticks the flags independently of the type."""
-    return bool(
-        user.is_staff or user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN
-    )
 
 
 def _reset_locked_response(otp_obj):
@@ -1805,7 +1796,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     .first()
                 )
 
-                if not user:
+                # H-203, THE PRINCIPLE: the invitation token proves only the
+                # mailbox. A pending row that has admin power (the Django admin
+                # can give a SCHOOL_ADMIN row is_staff or is_superuser) is not
+                # activated or signed in: the answer for a wrong token.
+                if not user or _holds_admin_power(user):
                     raise ParseError("Invalid or expired activation token.")
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
@@ -1931,7 +1926,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 raise ParseError(
                     describe_user_error(
                         e,
-                        fallback_message=("Google sign-in failed. Please try again."),
+                        fallback_message=GOOGLE_SIGN_IN_FAILED,
                     )
                 ) from e
 
@@ -2046,6 +2041,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                             "contact support.",
                             "account_deactivated",
                         )
+
+                    # H-203, THE PRINCIPLE: a mailbox-only road (a Google
+                    # identity proves only the mailbox) never signs in, verifies
+                    # or activates a never-verified account with admin power.
+                    # Answered like a failed Google sign-in; nothing written.
+                    if user.email_verified_at is None and _holds_admin_power(user):
+                        raise ParseError(GOOGLE_SIGN_IN_FAILED)
 
                     resurrected_fields = []
                     if user.email_verified_at is None:
