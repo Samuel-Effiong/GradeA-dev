@@ -527,12 +527,26 @@ class D8TaskFailureLoggingTest(TestCase):
                 self.assertEqual(record.levelno, logging.WARNING)
                 self.assertIsNone(record.exc_info)
 
-    def test_transient_failure_still_logs_error_with_stack(self):
-        with self.assertLogs("students.task_tracking", level="DEBUG") as logs:
-            mark_processing_task_failure(str(uuid.uuid4()), TimeoutError("slow"))
+    def test_transient_failure_still_logs_error_with_frames_not_text(self):
+        # H-208: the line is still an ERROR and still locates the fault (the
+        # stack FRAMES, which exist only for an error that was raised), but
+        # carries neither the error's text nor a traceback.
+        def the_task_body_that_times_out():
+            raise TimeoutError("slow")
+
+        try:
+            the_task_body_that_times_out()
+        except TimeoutError as error:
+            with self.assertLogs("students.task_tracking", level="DEBUG") as logs:
+                mark_processing_task_failure(str(uuid.uuid4()), error)
         [record] = logs.records
         self.assertEqual(record.levelno, logging.ERROR)
-        self.assertIsNotNone(record.exc_info)
+        self.assertIsNone(record.exc_info)
+        message = record.getMessage()
+        self.assertTrue(message)
+        self.assertIn("error=TimeoutError", message)
+        self.assertIn("the_task_body_that_times_out", message)
+        self.assertNotIn("slow", message)
 
 
 # ---------------------- D9: student submission views answer refusal 400

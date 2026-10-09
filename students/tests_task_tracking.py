@@ -428,11 +428,15 @@ class MarkProcessingTaskFailureMessageTest(TestCase):
     ):
         # H-208: the line names the error's class and its stack frames; the
         # error's own text and a traceback are not logged.
-        exc = RuntimeError("boom")
+        def the_task_body_that_fails():
+            raise RuntimeError("boom")
 
-        mark_processing_task_failure(
-            self.processing_task.id, exc, fallback_message="Friendly message."
-        )
+        try:
+            the_task_body_that_fails()
+        except RuntimeError as exc:
+            mark_processing_task_failure(
+                self.processing_task.id, exc, fallback_message="Friendly message."
+            )
 
         mock_logger.error.assert_called_once()
         args, kwargs = mock_logger.error.call_args
@@ -440,6 +444,7 @@ class MarkProcessingTaskFailureMessageTest(TestCase):
         logged = args[0] % args[1:]
         self.assertIn(str(self.processing_task.id), logged)
         self.assertIn("RuntimeError", logged)
+        self.assertIn("the_task_body_that_fails", logged)
         self.assertNotIn("boom", logged)
 
     def test_none_error_with_fallback_used_for_celery_reported_failures(self):
