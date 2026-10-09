@@ -24,6 +24,7 @@ the error-reporting service.
 import importlib
 import logging
 import re
+import traceback
 from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 
@@ -329,9 +330,25 @@ class TheOneHelper(SimpleTestCase):
         return getattr(importlib.import_module(HELPER_MODULE), HELPER_NAME)
 
     def test_a_broker_error_is_named_by_its_class_alone(self):
-        text = self.helper()(RedisConnectionError(BROKER_TEXT))
+        def the_call_the_broker_refused():
+            raise RedisConnectionError(BROKER_TEXT)
 
+        try:
+            the_call_the_broker_refused()
+        except RedisConnectionError as error:
+            # The deciding value: the error HAS frames, so "no frames in the
+            # line" below is a statement about the helper, not about an empty
+            # traceback.
+            self.assertIsNotNone(error.__traceback__)
+            self.assertIn(
+                "the_call_the_broker_refused",
+                traceback.format_tb(error.__traceback__)[-1],
+            )
+            text = self.helper()(error)
+
+        self.assertTrue(text)
         self.assertIn("ConnectionError", text)
+        self.assertNotIn("the_call_the_broker_refused", text)
         self.assertNotIn(MARKER, text)
         self.assertNotIn(".py", text)
 
