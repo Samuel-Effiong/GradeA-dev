@@ -1,0 +1,96 @@
+"""v2 mutants for the merge-down b14 (beta batches 12s, 13, 13h, 14 into phase2/epic-a), tip 8a83d13b.
+Written 2026-10-09 BEFORE any run, from reading the merge blobs and the judged tests. Every mutant is one
+resolved place of the merge (or one of its follow-up commits) taken out, judged by the EXISTING modules that
+should guard it (no probe of mine: a mutant nothing catches is a finding for the merge). KILLED = rc != 0, a
+"Ran" line, and every named "must" test among the failing ones; KILLED_OTHER = it fell but a named test did
+not; SURVIVED = rc 0. D4 is PREDICTED TO SURVIVE (the closed student door's per-address rate limit has no
+test that I could find): a survivor there is a gap of the merge, not of my probe.
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_mdb14_mutants.py check | baseline | guards | mutants
+Rule 17: no bytecode, pycache cleared before each mutant and after each restore, restore verified by sha256
+against the commit blob. Database tests: --keepdb (test_vf2_s1)."""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]; LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+AD, VW = "users/admin.py", "users/views.py"
+SW = "users.tests_switched_off_means_out"; DOORS = "users.tests_auth_audit_doors"; INV = "users.tests_reset_for_an_invited_student"
+MA = "users.tests_models_and_admin"; HIST = "audit.tests_history"; GUARD = "audit.tests_history_guard"; ACT = "audit.tests_admin_action"
+CLOSED = "users.tests_old_activation_door_is_closed"; THR = "users.tests_register_throttle_school_admin"
+ROUTES = "audit.tests_route_coverage"
+JUDGED = [SW, DOORS, INV, MA, HIST, GUARD, ACT, CLOSED, THR]
+EXTRA_GUARDS = [ROUTES]
+BEFORE = "        if not user.email_verified_at and _holds_admin_power(user):\n            refuse(\"Invalid email or token.\", user, \"INVALID_CODE\")\n"
+AFTER_ = "        if user.email_verified_at and not user.is_active:\n            refuse(\"Invalid email or token.\", user, \"INVALID_CODE\")\n"
+def arm(block, new_call):
+    head, call = block.split("\n", 1)[0] + "\n", block.split("\n", 1)[1]
+    return (block, head + "            " + new_call + "\n")
+T_AUDIT = "test_the_beta_refusals_are_audited_like_a_wrong_code"
+T_LOCK_A = "test_a_refused_verify_on_an_admin_power_account_locks_the_address_like_a_wrong_guess"
+T_LOCK_B = "test_a_refused_verify_for_a_switched_off_account_locks_the_address_like_a_wrong_guess"
+M = {
+ "A1_no_epoch_bump": (AD, [('                When(is_active=True, then=F("token_epoch") + 1),\n', '                When(is_active=True, then=F("token_epoch")),\n')], [SW],
+      ["test_the_bulk_switch_off_bumps_the_token_epoch_by_one", "test_tokens_issued_before_the_switch_off_stay_dead_after_a_switch_on"]),
+ "A2_bump_even_an_inactive_row": (AD, [('                default=F("token_epoch"),\n', '                default=F("token_epoch") + 1,\n')], [SW],
+      ["test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone"]),
+ "A3_no_history_for_the_bulk_switch_off": (AD, [('        updated = history.record_bulk(\n            queryset,\n            is_active=False,\n', '        updated = queryset.update(\n            is_active=False,\n')], [MA, HIST, GUARD, ACT, SW],
+      ["test_admin_actions_record_each_user_they_change"]),
+ "V1_admin_power_arm_one_argument": (VW, [arm(BEFORE, 'refuse("Invalid email or token.")')], [DOORS, INV, SW], [T_LOCK_A, T_AUDIT]),
+ "V2_switched_off_arm_one_argument": (VW, [arm(AFTER_, 'refuse("Invalid email or token.")')], [DOORS, INV, SW], [T_LOCK_B, T_AUDIT]),
+ "V3_admin_power_arm_names_no_account": (VW, [arm(BEFORE, 'refuse("Invalid email or token.", None, "INVALID_CODE")')], [DOORS, INV, SW], [T_AUDIT]),
+ "V4_switched_off_arm_names_no_account": (VW, [arm(AFTER_, 'refuse("Invalid email or token.", None, "INVALID_CODE")')], [DOORS, INV, SW], [T_AUDIT]),
+ "V5_admin_power_arm_wrong_reason": (VW, [arm(BEFORE, 'refuse("Invalid email or token.", user, "CODE_EXPIRED")')], [DOORS, INV, SW], [T_AUDIT]),
+ "V6_switched_off_arm_wrong_reason": (VW, [arm(AFTER_, 'refuse("Invalid email or token.", user, "CODE_EXPIRED")')], [DOORS, INV, SW], [T_AUDIT]),
+ "V7_the_spending_guess_sets_no_lock": (VW, [("            if lock_triggered:\n                # The stored code is left alone", "            if False:\n                # The stored code is left alone")], [DOORS, INV, SW], [T_LOCK_A, T_LOCK_B]),
+ "D1_the_closed_door_answers_400": (VW, [('            {"detail": OLD_INVITATION_CLOSED_MESSAGE},\n            status=status.HTTP_410_GONE,\n', '            {"detail": OLD_INVITATION_CLOSED_MESSAGE},\n            status=status.HTTP_400_BAD_REQUEST,\n')], [CLOSED, THR],
+      ["test_a_valid_code_no_longer_opens_it", "test_every_knock_gets_the_same_answer_byte_for_byte"]),
+ "D2_the_activation_names_no_actor": (VW, [("        with history.acting_as(user):\n            user.save()\n        clear_verify_failures(email)\n", "        if True:\n            user.save()\n        clear_verify_failures(email)\n")], [HIST],
+      ["test_email_verification_names_the_account_that_proved_the_code", "test_a_student_invitation_names_the_invitee"]),
+ "D3_the_school_admin_door_has_no_rate_limit": (VW, [('        permission_classes=[AllowAny],\n        throttle_classes=[RegisterThrottle],\n        url_path="register/school-admin",\n', '        permission_classes=[AllowAny],\n        url_path="register/school-admin",\n')], [THR, CLOSED],
+      ["test_the_per_network_limit_answers_429_without_a_pause_code"]),
+ "D4_the_closed_student_door_has_no_rate_limit__PREDICTED_TO_SURVIVE": (VW, [('        permission_classes=[AllowAny],\n        throttle_classes=[RegisterThrottle],\n        url_path="register/student",\n', '        permission_classes=[AllowAny],\n        url_path="register/student",\n')], [THR, CLOSED], []),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear(p): shutil.rmtree(pathlib.Path(p).parent / "__pycache__", ignore_errors=True)
+def run(labels, name):
+    LOGS.mkdir(parents=True, exist_ok=True); log = LOGS / name
+    with open(log, "wb") as fh:
+        p = subprocess.run([sys.executable, "-B", "manage.py", "test", *labels, "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                           stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summ = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={p.returncode}")
+    return p.returncode, ran, summ, failing, o
+if sys.argv[1:] == ["check"]:
+    for n, (path, edits, *_r) in M.items():
+        s = open(path).read(); counts = [s.count(o) for o, _ in edits]
+        for o, nw in edits: s = s.replace(o, nw, 1)
+        ast.parse(s); print(n, path, counts, "parses")
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    clear(AD); clear(VW); rc, ran, summ, failing, o = run(JUDGED, "baseline.txt")
+    print("baseline |", ran, "|", summ, "|", failing, flush=True)
+    if rc: print(o[-8000:])
+    sys.exit(rc)
+if sys.argv[1:] == ["guards"]:
+    rc, ran, summ, failing, o = run(EXTRA_GUARDS, "guards_route_coverage.txt")
+    print("guards (not judged by 0b's targeted run) |", ran, "|", summ, "|", failing, flush=True)
+    if rc: print(o[-8000:])
+    sys.exit(0)
+for name, (path, edits, labels, must) in M.items():
+    src = open(path).read(); counts = [src.count(o) for o, _ in edits]
+    if counts != [1] * len(edits): print(name, "APPLY_FAILED", path, counts, flush=True); continue
+    for o, nw in edits: src = src.replace(o, nw, 1)
+    ast.parse(src)
+    try:
+        clear(path); open(path, "w").write(src)
+        rc, ran, summ, failing, _ = run(labels, f"{name}.txt")
+        if rc == 0: st = "SURVIVED"
+        elif ran == "Ran ?" or not failing: st = "BROKEN"
+        elif all(t in failing for t in must): st = "KILLED"
+        else: st = "KILLED_OTHER"
+        print(name, "|", st, "|", ran, "|", summ, "| must", must, "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True); clear(path)
+        ok = sha(open(path, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout)
+        print("  restore", path, "ok" if ok else "MISMATCH", flush=True)
