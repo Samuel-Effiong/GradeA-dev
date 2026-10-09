@@ -144,7 +144,7 @@ class BatchFixture:
             # The door stays live, with a wallet that clears it, so the file
             # that is too large is met by the door first and by its own
             # item after (merge-down b16).
-            wallet = CreditWallet.objects.create(user=self.teacher)
+            wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
             CreditBucket.objects.create(
                 wallet=wallet,
                 bucket_type=CreditBucketType.MONTHLY,
