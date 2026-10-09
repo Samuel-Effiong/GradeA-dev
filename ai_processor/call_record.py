@@ -311,6 +311,7 @@ def _fields(arguments, state, result, error, started):
         "outcome": outcome.value,
         "error_class": _error_class(error),
         "model_asked": (arguments.get("override_model") or services.MAIN_MODEL)[:255],
+        "prompt_version": str(arguments.get("prompt_version") or "unknown")[:128],
         "estimate": _count(state.estimate),
         "images": images,
         "pdf_items": pdfs,

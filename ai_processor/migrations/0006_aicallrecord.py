@@ -179,7 +179,7 @@ class Migration(migrations.Migration):
                     models.CharField(
                         db_default="unknown",
                         default="unknown",
-                        help_text="Not filled on the beta line (no prompt version reaches the call).",
+                        help_text="The prompt version the caller passed, as given; 'unknown' when none was passed.",
                         max_length=128,
                     ),
                 ),

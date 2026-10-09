@@ -304,7 +304,7 @@ class AICallRecord(models.Model):
         max_length=128,
         default="unknown",
         db_default="unknown",
-        help_text="Not filled on the beta line (no prompt version reaches the call).",
+        help_text="The prompt version the caller passed, as given; 'unknown' when none was passed.",
     )
     estimate = models.PositiveBigIntegerField(null=True, blank=True)
     prompt_tokens = models.PositiveBigIntegerField(null=True, blank=True)

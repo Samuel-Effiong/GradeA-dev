@@ -278,6 +278,15 @@ MUTANTS = [
         K,
     ),
     (
+        "Q26",
+        "the prompt version is not read from the call's arguments (the column keeps 'unknown')",
+        CR,
+        '        "prompt_version": str(arguments.get("prompt_version") or "unknown")[:128],\n',
+        '        "prompt_version": "unknown",\n',
+        BOTH,
+        K,
+    ),
+    (
         "M3",
         "the upstream provider column is dropped from the model",
         MD,
@@ -533,6 +542,7 @@ EXPECTED = {
         "test_a_pdf_part_in_the_prompt_is_counted_as_a_pdf_not_an_image",
     ],
     "Q25": ["test_images_and_pdfs_inside_messages_are_counted"],
+    "Q26": ["test_a_charged_call_leaves_one_row_with_what_was_known"],
     # M3: the model loses the field, the recorder still passes it, every
     # create() raises TypeError and is swallowed: NO row is written anywhere.
     # The tests that patch create (or the usage numbers) and only count the
