@@ -315,7 +315,9 @@ class CourseSerializer(serializers.ModelSerializer):
                 enrollment.student
                 for enrollment in obj.enrollments.exclude(
                     enrollment_status=EnrollmentStatusType.WITHDRAWN
-                ).select_related("student")
+                )
+                .select_related("student")
+                .in_list_order()
             ]
 
         # The enrollment status each student holds in THIS course, passed
@@ -347,7 +349,9 @@ class CourseSerializer(serializers.ModelSerializer):
             own = list(
                 obj.enrollments.exclude(
                     enrollment_status=EnrollmentStatusType.WITHDRAWN
-                ).filter(student=viewer)
+                )
+                .filter(student=viewer)
+                .in_list_order()
             )
         return StudentSerializer(
             [e.student for e in own],

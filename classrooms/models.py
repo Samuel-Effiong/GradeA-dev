@@ -282,9 +282,25 @@ def reachable_courses(user):
     return Course.objects.filter(teacher_course_access_q(user))
 
 
+# H-196: the one definition of the order enrolments are listed in (a course's
+# roster, a student's courses): the order they were made in, oldest first, with
+# the id as the tie-break so two rows made at the same instant still have a
+# fixed place. Before this the lists had no order and followed whatever the
+# database's query plan returned. To change the order, change it here.
+ENROLLMENT_LIST_ORDER = ("created_at", "id")
+
+
+def enrollment_list_key(enrollment):
+    """The same order as ENROLLMENT_LIST_ORDER, for rows already in memory."""
+    return (enrollment.created_at, enrollment.id)
+
+
 class StudentCourseQuerySet(models.QuerySet):
     def active(self):
         return self.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+
+    def in_list_order(self):
+        return self.order_by(*ENROLLMENT_LIST_ORDER)
 
 
 class StudentCourse(models.Model):
