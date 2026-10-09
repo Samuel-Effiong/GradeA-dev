@@ -6,9 +6,9 @@ database's plan returned (Verifier 2's note on H-196). H-196 defined the order
 every list of enrolments uses (`created_at`, then `id`, in
 `StudentCourse.objects.in_list_order()`); this list now uses it too.
 
-What does NOT change, and is tested as such: WHICH rows appear. The query
-includes every enrolment of the course whatever its status (a withdrawn student
-has a row, as before); only the order is new.
+What does NOT change, and is tested as such: WHICH rows appear (H-220 later
+left out a withdrawn student who did not submit; see
+tests_student_submissions_withdrawn); only the order is new.
 
 How the order is made observable (as in H-196): rows are inserted in one order
 and given created_at values (or one shared created_at and chosen ids) so that
@@ -142,7 +142,9 @@ class TheListIsInTheDefinedOrder(Fixture):
 class WhichRowsAppearIsUnchanged(Fixture):
     """Controls: green before and after the change."""
 
-    def test_c1_every_enrolment_has_a_row_whatever_its_status(self):
+    def test_c1_enrolled_and_pending_students_have_a_row_without_a_submission(self):
+        # H-220: a withdrawn student without a submission is no longer listed
+        # (see tests_student_submissions_withdrawn); the other statuses are.
         expected_names = set()
         statuses = [
             EnrollmentStatusType.ENROLLED,
@@ -153,12 +155,12 @@ class WhichRowsAppearIsUnchanged(Fixture):
             StudentCourse.objects.create(
                 student=student, course=self.course, enrollment_status=statuses[i]
             )
-            expected_names.add(self.name_of(student))
+            if statuses[i] != EnrollmentStatusType.WITHDRAWN:
+                expected_names.add(self.name_of(student))
 
         got = [row["name"] for row in self.rows()]
 
-        # the withdrawn student's row is there, as before this change
-        self.assertEqual(len(got), 3)
+        self.assertEqual(len(got), 2)
         self.assertEqual(set(got), expected_names)
 
     def test_c2_a_students_row_still_describes_that_students_submission(self):
