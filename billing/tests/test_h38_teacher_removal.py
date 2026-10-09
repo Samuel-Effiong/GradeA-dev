@@ -36,6 +36,7 @@ from billing.models import (
     SubscriptionPlan,
 )
 from classrooms.models import Course, School, StudentCourse
+from classrooms.tests_support_add_by_email import add_by_email
 from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
@@ -116,7 +117,7 @@ class TeacherRemovalBase(TestCase):
 
         response = teacher_client.post(
             f"{API}/course/{self.course_id}/students",
-            {"email": "pupil@h38.test"},
+            add_by_email("pupil@h38.test"),
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -200,9 +201,13 @@ class RemovedTeacherKeepsAccessTests(TeacherRemovalBase):
         self.assertEqual(response.status_code, 404, response.content)
 
     def test_cannot_enrol_more_students_into_the_school_course(self):
+        # A complete form (H-148 made the names required), so that what
+        # refuses the removed teacher is the course lookup and not the
+        # form: with an email alone the answer was 400 before the course
+        # was ever looked at, and this test would have said nothing.
         response = self.teacher_client.post(
             f"{API}/course/{self.course_id}/students",
-            {"email": "second-pupil@h38.test"},
+            add_by_email("second-pupil@h38.test"),
             format="json",
         )
         self.assertIn(response.status_code, (403, 404), response.content)
@@ -243,7 +248,7 @@ class SchoolAdminSeesRemovedTeachersNewDataTests(TeacherRemovalBase):
         assert response.status_code == 201, response.content
         response = teacher_client.post(
             f"{API}/course/{response.data['id']}/students",
-            {"email": "private-pupil@h38.test"},
+            add_by_email("private-pupil@h38.test"),
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -284,7 +289,7 @@ class LicensedTeacherKeepsLegitimateAccessTests(TeacherRemovalBase):
 
         response = client.post(
             f"{API}/course/{self.course_id}/students",
-            {"email": "another-pupil@h38.test"},
+            add_by_email("another-pupil@h38.test"),
             format="json",
         )
         self.assertEqual(response.status_code, 200, response.content)

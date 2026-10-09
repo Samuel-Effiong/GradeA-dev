@@ -1,0 +1,252 @@
+tree search at af1c5b8c, 2026-10-07 17:51:29; git objects only; test files: 414
+## pattern: ai_raw_payload|model_question_numbers
+        1 assignments/tests_cache_matrix_p4_all_commands.py
+        4 assignments/tests_extraction_service.py
+       13 assignments/tests_question_numbers_in_order.py
+        1 assignments/tests_real_extraction.py
+        3 assignments/tests_rigor.py
+lines:
+  assignments/tests_cache_matrix_p4_all_commands.py:166:                ai_raw_payload={"questions": [question(blooms="Apply")]},
+  assignments/tests_extraction_service.py:19:  * `ai_generated` is forced False and `ai_raw_payload` captures what the
+  assignments/tests_extraction_service.py:100:        self.assertEqual(data["ai_raw_payload"]["title"], "Extracted Title")
+  assignments/tests_extraction_service.py:102:            data["ai_raw_payload"]["instructions"], "<p>Answer all questions.</p>"
+  assignments/tests_extraction_service.py:104:        self.assertEqual(len(data["ai_raw_payload"]["questions"]), 1)
+  assignments/tests_question_numbers_in_order.py:16:  bounded length, in `ai_raw_payload` under one key of ours (new number
+  assignments/tests_question_numbers_in_order.py:17:  -> the model's number). `ai_raw_payload` is sent to no client. On
+  assignments/tests_question_numbers_in_order.py:51:#: Our key inside `ai_raw_payload`, written here as the contract.
+  assignments/tests_question_numbers_in_order.py:52:MODEL_NUMBERS = "model_question_numbers"
+  assignments/tests_question_numbers_in_order.py:230:            numbers_and_texts(data["ai_raw_payload"]["questions"]), IN_ORDER
+  assignments/tests_question_numbers_in_order.py:236:        self.assertEqual(data["ai_raw_payload"][MODEL_NUMBERS], KEPT_OF_REPEAT)
+  assignments/tests_question_numbers_in_order.py:246:            data["ai_raw_payload"][MODEL_NUMBERS], {"1": "1", "2": "2", "3": "3"}
+  assignments/tests_question_numbers_in_order.py:309:        self.assertEqual(assignment.ai_raw_payload[MODEL_NUMBERS], KEPT_OF_REPEAT)
+  assignments/tests_question_numbers_in_order.py:392:            self.assignment_b.ai_raw_payload[MODEL_NUMBERS],
+  assignments/tests_question_numbers_in_order.py:444:        self.assertNotIn("ai_raw_payload", snapshot)
+  assignments/tests_question_numbers_in_order.py:454:        self.assertIsNone(assignment.ai_raw_payload)
+  assignments/tests_question_numbers_in_order.py:542:            ai_raw_payload={
+  assignments/tests_question_numbers_in_order.py:560:        self.assertTrue(self.assignment.ai_raw_payload[MODEL_NUMBERS])
+  assignments/tests_real_extraction.py:216:        self.assertIn("questions", data["ai_raw_payload"])
+  assignments/tests_rigor.py:408:    The level survives in ai_raw_payload (the untouched AI response), so
+  assignments/tests_rigor.py:431:            ai_raw_payload=payload,
+  assignments/tests_rigor.py:493:            ai_raw_payload=None,
+
+## pattern: extract_assignment_data|update_assignment_from_extraction|extract_assignment_with_retry
+        1 ai_processor/tests_pdf_type_validation.py
+        2 ai_processor/tests_real_chunked_extraction.py
+        2 assignments/tests_ai_output_allowlist.py
+        1 assignments/tests_course_ownership_failure.py
+        2 assignments/tests_course_ownership_idor.py
+        1 assignments/tests_course_ownership_scale.py
+       31 assignments/tests_extraction_service.py
+        2 assignments/tests_partial_update_credit_gate.py
+        2 assignments/tests_question_numbers_in_order.py
+        5 assignments/tests_real_extraction.py
+        1 assignments/tests_upload_pipeline.py
+        1 billing/tests/test_h38_part2_removed_teacher_routes.py
+        2 billing/tests/test_refusal_handling.py
+        6 students/tests_assignment_edit_notification.py
+lines:
+  ai_processor/tests_pdf_type_validation.py:136:        "assignments.views.AssignmentProcessingService.extract_assignment_data",
+  ai_processor/tests_real_chunked_extraction.py:13:(`extraction_benchmark` drives extract_assignment_with_retry,
+  ai_processor/tests_real_chunked_extraction.py:177:        data = AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_ai_output_allowlist.py:13:places AI output enters (extract_assignment_data, and the generate view's
+  assignments/tests_ai_output_allowlist.py:41:EXTRACT = "assignments.services.ai_processor.extract_assignment_with_retry"
+  assignments/tests_course_ownership_failure.py:38:EXTRACT = "assignments.services.ai_processor.extract_assignment_with_retry"
+  assignments/tests_course_ownership_idor.py:102:    "assignments.views.AssignmentProcessingService.update_assignment_from_extraction",
+  assignments/tests_course_ownership_idor.py:323:    "assignments.views.AssignmentProcessingService.update_assignment_from_extraction",
+  assignments/tests_course_ownership_scale.py:49:EXTRACT = "assignments.services.ai_processor.extract_assignment_with_retry"
+  assignments/tests_extraction_service.py:3:These three methods - extract_assignment_data, update_assignment_from_extraction
+  assignments/tests_extraction_service.py:39:    """The shape ai_processor.extract_assignment_with_retry returns."""
+  assignments/tests_extraction_service.py:87:        return AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_extraction_service.py:91:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:106:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:118:        data = AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_extraction_service.py:125:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:142:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:154:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:167:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:182:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:195:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:212:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:218:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:234:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:245:                AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_extraction_service.py:251:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:258:        AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_extraction_service.py:317:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:321:        AssignmentProcessingService.update_assignment_from_extraction(
+  assignments/tests_extraction_service.py:334:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:371:        AssignmentProcessingService.update_assignment_from_extraction(
+  assignments/tests_extraction_service.py:381:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:390:            AssignmentProcessingService.update_assignment_from_extraction(
+  assignments/tests_extraction_service.py:396:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:419:            AssignmentProcessingService.update_assignment_from_extraction(
+  assignments/tests_extraction_service.py:425:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:441:            AssignmentProcessingService.update_assignment_from_extraction(
+  assignments/tests_extraction_service.py:451:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_extraction_service.py:459:            AssignmentProcessingService.update_assignment_from_extraction(
+  assignments/tests_extraction_service.py:468:    @patch("assignments.services.ai_processor.extract_assignment_with_retry")
+  assignments/tests_partial_update_credit_gate.py:43:        "assignments.views.AssignmentProcessingService.update_assignment_from_extraction"
+  assignments/tests_partial_update_credit_gate.py:59:        "assignments.views.AssignmentProcessingService.update_assignment_from_extraction"
+  assignments/tests_question_numbers_in_order.py:13:  `extract_assignment_data`, in the generated draft, and at the save of a
+  assignments/tests_question_numbers_in_order.py:221:            return AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_real_extraction.py:20:  * ai_processor.extract_assignment_with_retry - the actual billed call.
+  assignments/tests_real_extraction.py:21:  * The provenance/write-back logic in extract_assignment_data, running on
+  assignments/tests_real_extraction.py:166:        data = AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_real_extraction.py:264:        data = AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_real_extraction.py:296:        data = AssignmentProcessingService.extract_assignment_data(
+  assignments/tests_upload_pipeline.py:38:    @patch("assignments.tasks.AssignmentProcessingService.extract_assignment_data")
+  billing/tests/test_h38_part2_removed_teacher_routes.py:1357:        "assignments.views.AssignmentProcessingService.update_assignment_from_extraction",
+  billing/tests/test_refusal_handling.py:222:    Exception, so extract_assignment_with_retry's refusal passthrough never
+  billing/tests/test_refusal_handling.py:238:                        lambda teacher=teacher: ai_processor.extract_assignment_with_retry(
+  students/tests_assignment_edit_notification.py:3:it from AssignmentProcessingService.update_assignment_from_extraction.
+  students/tests_assignment_edit_notification.py:120:    Integration point: update_assignment_from_extraction must fire the
+  students/tests_assignment_edit_notification.py:165:    @patch("ai_processor.services.ai_processor.extract_assignment_with_retry")
+  students/tests_assignment_edit_notification.py:183:        AssignmentProcessingService.update_assignment_from_extraction(
+  students/tests_assignment_edit_notification.py:190:    @patch("ai_processor.services.ai_processor.extract_assignment_with_retry")
+  students/tests_assignment_edit_notification.py:198:        AssignmentProcessingService.update_assignment_from_extraction(
+
+## pattern: generate_assignment_from_prompt|assignment-generate|save-generated-draft|_build_generated_assignment_draft|assignment_snapshot
+        7 ai_processor/tests.py
+       13 assignments/tests_ai_output_allowlist.py
+        3 assignments/tests_course_ownership_idor.py
+       30 assignments/tests.py
+        9 assignments/tests_question_numbers_in_order.py
+        4 billing/tests/test_execute_graded_task.py
+        3 billing/tests/test_h38_part2_removed_teacher_routes.py
+lines:
+  ai_processor/tests.py:116:    generate_assignment_from_prompt used to assume exactly one tool-call
+  ai_processor/tests.py:141:        result = ai_processor.generate_assignment_from_prompt(
+  ai_processor/tests.py:173:        result = ai_processor.generate_assignment_from_prompt(
+  ai_processor/tests.py:205:        result = ai_processor.generate_assignment_from_prompt(
+  ai_processor/tests.py:225:            ai_processor.generate_assignment_from_prompt(
+  ai_processor/tests.py:235:            ai_processor.generate_assignment_from_prompt(user=object(), prompt="hi")
+  ai_processor/tests.py:249:        ai_processor.generate_assignment_from_prompt(
+  assignments/tests.py:81:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:88:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:105:            assistant_message.assignment_snapshot["title"],
+  assignments/tests.py:109:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:116:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:124:                "assignment-save-generated-draft",
+  assignments/tests.py:144:                "assignment-save-generated-draft",
+  assignments/tests.py:154:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:161:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:193:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:200:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:208:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:226:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:244:        self.assertIsNone(assistant_message.assignment_snapshot)
+  assignments/tests.py:253:                "assignment-save-generated-draft",
+  assignments/tests.py:264:            "assignments.views.ai_processor.generate_assignment_from_prompt_with_retry"
+  assignments/tests.py:267:                reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:276:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:288:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:302:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:310:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:319:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:338:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:354:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:363:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:372:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:387:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests.py:403:        self.assertIsNone(assistant_message.assignment_snapshot)
+  assignments/tests.py:408:    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests.py:423:            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+  assignments/tests_ai_output_allowlist.py:14:_build_generated_assignment_draft); AssignmentSerializer.teacher is also
+  assignments/tests_ai_output_allowlist.py:42:GENERATE = "assignments.views.ai_processor.generate_assignment_from_prompt_with_retry"
+  assignments/tests_ai_output_allowlist.py:210:            reverse("assignment-generate", kwargs={"course_id": self.course_b.id}),
+  assignments/tests_ai_output_allowlist.py:218:        snapshot_keys = set(message.assignment_snapshot)
+  assignments/tests_ai_output_allowlist.py:223:        self.assertEqual(message.assignment_snapshot["course"], str(self.course_b.id))
+  assignments/tests_ai_output_allowlist.py:227:                "assignment-save-generated-draft", kwargs={"message_id": message.id}
+  assignments/tests_ai_output_allowlist.py:251:            reverse("assignment-generate", kwargs={"course_id": self.course_b.id}),
+  assignments/tests_ai_output_allowlist.py:257:                "assignment-save-generated-draft",
+  assignments/tests_ai_output_allowlist.py:331:            reverse("assignment-generate", kwargs={"course_id": self.course_b.id}),
+  assignments/tests_ai_output_allowlist.py:340:        message.assignment_snapshot = {
+  assignments/tests_ai_output_allowlist.py:341:            **message.assignment_snapshot,
+  assignments/tests_ai_output_allowlist.py:345:        message.save(update_fields=["assignment_snapshot"])
+  assignments/tests_ai_output_allowlist.py:349:                "assignment-save-generated-draft", kwargs={"message_id": message.id}
+  assignments/tests_course_ownership_idor.py:446:@patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+  assignments/tests_course_ownership_idor.py:472:            reverse("assignment-generate", kwargs={"course_id": course.id}),
+  assignments/tests_course_ownership_idor.py:481:            "assignment-save-generated-draft", kwargs={"message_id": message_id}
+  assignments/tests_question_numbers_in_order.py:401:            reverse("assignment-generate", kwargs={"course_id": self.course_b.id}),
+  assignments/tests_question_numbers_in_order.py:411:                "assignment-save-generated-draft", kwargs={"message_id": message.id}
+  assignments/tests_question_numbers_in_order.py:426:        snapshot = message.assignment_snapshot
+  assignments/tests_question_numbers_in_order.py:441:        snapshot = message.assignment_snapshot
+  assignments/tests_question_numbers_in_order.py:462:        message.assignment_snapshot = {
+  assignments/tests_question_numbers_in_order.py:463:            **message.assignment_snapshot,
+  assignments/tests_question_numbers_in_order.py:466:        message.save(update_fields=["assignment_snapshot"])
+  assignments/tests_question_numbers_in_order.py:471:                for entry in message.assignment_snapshot["questions"]
+  assignments/tests_question_numbers_in_order.py:484:            numbers_and_texts(message.assignment_snapshot["questions"]), IN_ORDER
+  billing/tests/test_execute_graded_task.py:268:        by generate_assignment_from_prompt after a fetch_url_content round
+  billing/tests/test_execute_graded_task.py:678:            self.processor.generate_assignment_from_prompt_with_retry(
+  billing/tests/test_execute_graded_task.py:690:            self.processor.generate_assignment_from_prompt_with_retry(
+  billing/tests/test_execute_graded_task.py:709:            self.processor.generate_assignment_from_prompt_with_retry(
+  billing/tests/test_h38_part2_removed_teacher_routes.py:316:    def test_generate_assignment_from_prompt(self):
+  billing/tests/test_h38_part2_removed_teacher_routes.py:760:    def test_generate_assignment_from_prompt_succeeds_for_active_teacher(self):
+  billing/tests/test_h38_part2_removed_teacher_routes.py:899:        assignment_snapshot={
+
+## pattern: assignment-upload|upload_assignment|file_uploads
+        1 ai_processor/tests_pdf_type_validation.py
+        1 assignments/tests_ai_output_allowlist.py
+        1 assignments/tests_question_numbers_in_order.py
+        1 assignments/tests_real_upload_billing.py
+        9 assignments/tests_security.py
+        2 assignments/tests_upload_batch_billing.py
+        2 assignments/tests_upload_batch_scale.py
+        3 assignments/tests_upload_pipeline.py
+        3 assignments/tests_upload_task_retry_policy.py
+        3 billing/tests/test_h38_part2_removed_teacher_routes.py
+        1 billing/tests/test_refusal_handling.py
+lines:
+  ai_processor/tests_pdf_type_validation.py:144:            reverse("assignment-upload"),
+  assignments/tests_ai_output_allowlist.py:176:            reverse("assignment-upload"),
+  assignments/tests_question_numbers_in_order.py:350:            reverse("assignment-upload"),
+  assignments/tests_real_upload_billing.py:113:            reverse("assignment-upload"),
+  assignments/tests_security.py:387:            reverse("assignment-upload"),
+  assignments/tests_security.py:399:    @patch("assignments.views.upload_assignment_async")
+  assignments/tests_security.py:405:                reverse("assignment-upload-async"),
+  assignments/tests_security.py:415:    @patch("assignments.views.upload_assignment_async")
+  assignments/tests_security.py:425:                reverse("assignment-upload-async"),
+  assignments/tests_security.py:535:    @patch("assignments.views.upload_assignment_async")
+  assignments/tests_security.py:547:                reverse("assignment-upload-async"),
+  assignments/tests_security.py:552:                reverse("assignment-upload-async"),
+  assignments/tests_security.py:992:            reverse("assignment-upload"),
+  assignments/tests_upload_batch_billing.py:44:from assignments.file_uploads import CLAIM_STALE_AFTER, IN_PROGRESS_MESSAGE
+  assignments/tests_upload_batch_billing.py:225:            reverse("assignment-upload"),
+  assignments/tests_upload_batch_scale.py:23:from assignments.file_uploads import IN_PROGRESS_MESSAGE
+  assignments/tests_upload_batch_scale.py:72:            reverse("assignment-upload"),
+  assignments/tests_upload_pipeline.py:10:from assignments.tasks import upload_assignment_async
+  assignments/tests_upload_pipeline.py:18:            email="assignment-upload-pipeline-teacher@example.com",
+  assignments/tests_upload_pipeline.py:50:        upload_assignment_async.apply(
+  assignments/tests_upload_task_retry_policy.py:37:from assignments.tasks import upload_answers_engine_async, upload_assignment_async
+  assignments/tests_upload_task_retry_policy.py:236:        outcome = upload_assignment_async.apply(
+  assignments/tests_upload_task_retry_policy.py:384:        result = upload_assignment_async.apply_async(
+  billing/tests/test_h38_part2_removed_teacher_routes.py:263:    def test_upload_assignment(self):
+  billing/tests/test_h38_part2_removed_teacher_routes.py:293:    def test_upload_assignment_async(self):
+  billing/tests/test_h38_part2_removed_teacher_routes.py:740:    def test_upload_assignment_succeeds_for_active_teacher(self):
+  billing/tests/test_refusal_handling.py:636:            (teacher, "post", reverse("assignment-upload-async"), {}),
+
+## pattern: AssignmentSerializer\(
+        2 assignments/tests_ai_output_allowlist.py
+        4 assignments/tests_question_numbers_in_order.py
+lines:
+  assignments/tests_ai_output_allowlist.py:306:        create = AssignmentSerializer(data=data)
+  assignments/tests_ai_output_allowlist.py:312:        update = AssignmentSerializer(
+  assignments/tests_question_numbers_in_order.py:493:        return AssignmentSerializer(
+  assignments/tests_question_numbers_in_order.py:521:        serializer = AssignmentSerializer(
+  assignments/tests_question_numbers_in_order.py:552:        return AssignmentSerializer(data={**reply, "course": str(self.course_b.id)})
+  assignments/tests_question_numbers_in_order.py:555:        serializer = AssignmentSerializer(self.assignment, data=data, partial=True)
+
+## pattern: was_overridden|overridden_at
+        2 assignments/tests_question_numbers_in_order.py
+lines:
+  assignments/tests_question_numbers_in_order.py:564:        self.assertFalse(updated.was_overridden)
+  assignments/tests_question_numbers_in_order.py:571:        self.assertTrue(updated.was_overridden)
+
+## pattern: number_questions_in_order|Question numbers put in order
+        5 assignments/tests_question_numbers_in_order.py
+lines:
+  assignments/tests_question_numbers_in_order.py:50:NUMBERER = "number_questions_in_order"
+  assignments/tests_question_numbers_in_order.py:264:        self.assertIn("Question numbers put in order", logged)
+  assignments/tests_question_numbers_in_order.py:277:        self.assertNotIn("Question numbers put in order", logged)
+  assignments/tests_question_numbers_in_order.py:430:        self.assertIn("Question numbers put in order", logged)
+  assignments/tests_question_numbers_in_order.py:486:        self.assertIn("Question numbers put in order", logged)

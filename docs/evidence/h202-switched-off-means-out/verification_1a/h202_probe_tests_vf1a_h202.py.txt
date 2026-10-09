@@ -1,0 +1,367 @@
+"""1a's own attack on H-202 (switched off means out).
+
+The roads (a VERIFIED, switched-off account), each against a real unknown address:
+  y1  the VERIFY_EMAIL code request: the unknown address's 202, byte for byte;
+      no code stored, no mail.
+  y2a /auth/verify with a code planted on the row: the wrong-code answer (400, same
+      bytes), nothing written, no tokens.
+  y2b five such refusals spend the budget AND set the address lock; the next is 429.
+  y3  the RESET code request: the unknown address's 202, byte for byte; no code row
+      made, no mail.
+  y4  the reset step with a code that exists: the generic 400 an unknown address gets
+      (same bytes, same code); password unchanged, still inactive, no tokens.
+  y5  the lock interplay: five refused tries spend the reset budget (the row is
+      locked), and the answer after the lock is STILL the generic one (never the
+      lock message).
+The admin (real POSTs of the admin pages):
+  y6  one bulk switch-off of three rows (two active, one already off): the active rows'
+      token epoch rises by one, the inactive row's does not.
+  y7  tokens (access and refresh) issued before a bulk switch-off stay dead after a
+      bulk switch-on.
+  y8  the edit form (a real POST built from the page's own form): switching off bumps
+      the epoch; an edit of the name alone does not; switching on does not.
+Controls:
+  c1  an active verified account is still sent a reset code.
+  c2  an inactive, never-verified self-registered user is still activated end to end by
+      a code (202 with tokens).
+
+Copied into users/tests_vf1a_h202.py of a scratch checkout.
+Usage: python manage.py test users.tests_vf1a_h202
+"""
+
+from datetime import timedelta
+from unittest.mock import patch
+
+from django import forms
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.test import override_settings
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.throttling import SimpleRateThrottle
+
+from users.models import PasswordResetOTP, Settings, UserTypes
+from users.throttling import verify_lock_until
+from users.tokens import EpochRefreshToken
+
+User = get_user_model()
+
+LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+RATES = {
+    "otp_request": "1000/hour",
+    "login": "1000/min",
+    "anon": "1000/min",
+    "verify_email": "1000/min",
+    "password_reset": "1000/hour",
+}
+PLANTED = "424242"
+NEW_PASSWORD = "vf1a-h202-new-passphrase"  # pragma: allowlist secret
+
+
+@override_settings(CACHES=LOCMEM)
+class VF1aH202(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        throttles = patch.dict(SimpleRateThrottle.THROTTLE_RATES, RATES)
+        throttles.start()
+        self.addCleanup(throttles.stop)
+        mail = patch("users.services.send_email_task")
+        self.activation_mail = mail.start()
+        self.addCleanup(mail.stop)
+        reset_mail = patch("users.views.safe_delay")
+        self.reset_mail = reset_mail.start()
+        self.addCleanup(reset_mail.stop)
+        for target in ("users.views.sync_user_to_mailerlite", "users.views.AnalyticsService"):
+            patcher = patch(target)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.ip = 0
+
+    # fixtures ----------------------------------------------------------
+    def switched_off(self, email="vf1a.h202.off@x.example"):
+        user = User.objects.create_user(
+            email=email,
+            password="Old-pass-vf1a",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+        User.objects.filter(pk=user.pk).update(is_active=False)
+        user.refresh_from_db()
+        return user
+
+    def plant(self, user):
+        User.objects.filter(pk=user.pk).update(
+            activation_token=PLANTED,
+            activation_expires=timezone.now() + timedelta(minutes=15),
+        )
+
+    def ask(self, email, otp_type):
+        self.ip += 1
+        return self.client.post(
+            reverse("auth-otp"),
+            {"email": email, "otp_type": otp_type},
+            format="json",
+            REMOTE_ADDR=f"10.168.0.{self.ip}",
+        )
+
+    def verify(self, email, token):
+        return self.client.post(
+            reverse("auth-verify"), {"email": email, "token": token}, format="json"
+        )
+
+    def reset(self, email, code):
+        return self.client.post(
+            reverse("auth-reset-password"),
+            {"email": email, "otp": code, "new_password": NEW_PASSWORD},
+            format="json",
+        )
+
+    def code_for(self, user):
+        otp, _ = PasswordResetOTP.objects.get_or_create(user=user)
+        return otp.generate_code()
+
+    def epoch(self, user):
+        return User.objects.values_list("token_epoch", flat=True).get(pk=user.pk)
+
+    # the roads ---------------------------------------------------------
+    def test_y1_the_verify_code_request_is_the_unknown_address_answer(self):
+        user = self.switched_off()
+        unknown = self.ask("vf1a.h202.nobody1@x.example", "VERIFY_EMAIL")
+        self.activation_mail.reset_mock()
+
+        answer = self.ask(user.email, "VERIFY_EMAIL")
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(answer.content, unknown.content)
+        user.refresh_from_db()
+        self.assertIsNone(user.activation_token, "a code was stored")
+        self.activation_mail.delay.assert_not_called()
+
+    def test_y2a_verify_refuses_a_planted_code_like_a_wrong_code(self):
+        user = self.switched_off()
+        self.plant(user)
+
+        wrong = self.verify(user.email, "654321")
+        answer = self.verify(user.email, PLANTED)
+
+        self.assertEqual(wrong.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(answer.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(answer.content, wrong.content)
+        user.refresh_from_db()
+        self.assertFalse(user.is_active, "the switched-off account was switched on")
+        self.assertEqual(user.activation_token, PLANTED)
+
+    def test_y2b_refused_verifies_spend_the_budget_and_lock_the_address(self):
+        user = self.switched_off()
+        self.plant(user)
+
+        for number in range(settings.VERIFY_EMAIL_MAX_FAILURES):
+            answer = self.verify(user.email, PLANTED)
+            self.assertEqual(
+                answer.status_code, status.HTTP_400_BAD_REQUEST, f"attempt {number + 1}"
+            )
+
+        self.assertIsNotNone(verify_lock_until(user.email), "the address is not locked")
+        self.assertEqual(
+            self.verify(user.email, PLANTED).status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+    def test_y3_the_reset_code_request_is_the_unknown_address_answer(self):
+        user = self.switched_off()
+        unknown = self.ask("vf1a.h202.nobody3@x.example", "RESET_PASSWORD")
+        self.reset_mail.reset_mock()
+
+        answer = self.ask(user.email, "RESET_PASSWORD")
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(answer.content, unknown.content)
+        self.assertFalse(
+            PasswordResetOTP.objects.filter(user=user).exists(),
+            "a reset code row was made",
+        )
+        self.reset_mail.assert_not_called()
+
+    def test_y4_a_reset_with_an_existing_code_is_the_unknown_address_refusal(self):
+        user = self.switched_off()
+        code = self.code_for(user)
+        before = user.password
+
+        refused = self.reset(user.email, code)
+        unknown = self.reset("vf1a.h202.nobody4@x.example", code)
+
+        self.assertEqual(unknown.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(refused.status_code, unknown.status_code)
+        self.assertEqual(refused.content, unknown.content)
+        self.assertNotIn("access", refused.data)
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertEqual(user.password, before)
+
+    def test_y5_refused_resets_spend_the_budget_and_the_lock_never_shows(self):
+        user = self.switched_off()
+        code = self.code_for(user)
+        unknown = self.reset("vf1a.h202.nobody5@x.example", code)
+
+        for number in range(PasswordResetOTP.MAX_ATTEMPTS):
+            answer = self.reset(user.email, code)
+            self.assertEqual(
+                answer.status_code, status.HTTP_400_BAD_REQUEST, f"try {number + 1}"
+            )
+
+        self.assertTrue(
+            PasswordResetOTP.objects.get(user=user).is_locked(),
+            "the budget was not spent",
+        )
+        after = self.reset(user.email, code)
+        self.assertEqual(after.status_code, unknown.status_code)
+        self.assertEqual(after.content, unknown.content)
+
+    # the admin ---------------------------------------------------------
+    def operator(self):
+        operator = User.objects.create_superuser(
+            email="vf1a.h202.operator@x.example",
+            password="Operator-pass-vf1a",  # pragma: allowlist secret
+        )
+        User.objects.filter(pk=operator.pk).update(email_verified_at=timezone.now())
+        self.client.force_login(operator)
+        return operator
+
+    def bulk(self, action, *users):
+        response = self.client.post(
+            reverse("admin:users_customuser_changelist"),
+            {"action": action, "_selected_action": [str(u.pk) for u in users]},
+        )
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+
+    def active_user(self, email):
+        return User.objects.create_user(
+            email=email,
+            password="Pass-vf1a-h202",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+
+    def test_y6_one_bulk_switch_off_of_a_mix_bumps_only_the_active_rows(self):
+        self.operator()
+        first = self.active_user("vf1a.h202.a@x.example")
+        second = self.active_user("vf1a.h202.b@x.example")
+        off = self.switched_off("vf1a.h202.c@x.example")
+        before = {u.pk: self.epoch(u) for u in (first, second, off)}
+
+        self.bulk("deactivate_users", first, second, off)
+
+        self.assertEqual(
+            self.epoch(first), before[first.pk] + 1, "the active row's epoch did not rise"
+        )
+        self.assertEqual(
+            self.epoch(second), before[second.pk] + 1, "the active row's epoch did not rise"
+        )
+        self.assertEqual(
+            self.epoch(off), before[off.pk], "an already inactive row's epoch moved"
+        )
+        self.assertFalse(User.objects.filter(pk__in=[first.pk, second.pk, off.pk], is_active=True).exists())
+
+    def test_y7_tokens_from_before_a_switch_off_stay_dead_after_a_switch_on(self):
+        self.operator()
+        user = self.active_user("vf1a.h202.tokens@x.example")
+        own_settings = Settings.objects.get_or_create(user=user)[0]
+        refresh = EpochRefreshToken.for_user(user)
+        access = str(refresh.access_token)
+        reader = self.client_class()
+        reader.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        url = reverse("settings-detail", kwargs={"pk": own_settings.pk})
+        self.assertEqual(reader.get(url).status_code, status.HTTP_200_OK)
+
+        self.bulk("deactivate_users", user)
+        self.bulk("activate_users", user)
+
+        self.assertEqual(reader.get(url).status_code, status.HTTP_401_UNAUTHORIZED)
+        again = self.client_class().post(
+            reverse("refresh"), {"refresh": str(refresh)}, format="json"
+        )
+        self.assertEqual(again.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def form_post(self, user, **changes):
+        url = reverse("admin:users_customuser_change", args=[user.pk])
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        form = page.context["adminform"].form
+        data = {}
+        for name, field in form.fields.items():
+            if getattr(field, "disabled", False):
+                continue
+            value = changes[name] if name in changes else form.initial.get(name)
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                if value:
+                    data[name] = "on"
+            elif isinstance(widget, forms.FileInput):
+                continue
+            elif isinstance(widget, forms.MultiWidget):
+                for index, part in enumerate(widget.decompress(value)):
+                    data[f"{name}_{index}"] = "" if part is None else str(part)
+            elif value is None:
+                data[name] = ""
+            elif isinstance(value, (list, tuple, set)):
+                data[name] = [str(getattr(item, "pk", item)) for item in value]
+            else:
+                data[name] = str(getattr(value, "pk", value))
+        response = self.client.post(url, data)
+        errors = ""
+        if response.status_code != status.HTTP_302_FOUND:
+            errors = str(response.context["adminform"].form.errors)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND, errors)
+
+    def test_y8_the_edit_form_bumps_only_when_it_switches_a_user_off(self):
+        self.operator()
+        user = self.active_user("vf1a.h202.form@x.example")
+        start = self.epoch(user)
+
+        self.form_post(user, first_name="Renamed")
+        self.assertEqual(self.epoch(user), start, "an edit of the name moved the epoch")
+        self.assertTrue(User.objects.get(pk=user.pk).is_active)
+
+        self.form_post(user, is_active=False)
+        self.assertFalse(User.objects.get(pk=user.pk).is_active)
+        self.assertEqual(self.epoch(user), start + 1, "the epoch did not rise")
+
+        self.form_post(User.objects.get(pk=user.pk), is_active=True)
+        self.assertTrue(User.objects.get(pk=user.pk).is_active)
+        self.assertEqual(self.epoch(user), start + 1, "switching on moved the epoch")
+
+    # controls ----------------------------------------------------------
+    def test_c1_an_active_verified_account_is_still_sent_a_reset_code(self):
+        user = self.active_user("vf1a.h202.c1@x.example")
+
+        answer = self.ask(user.email, "RESET_PASSWORD")
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED)
+        self.assertTrue(
+            PasswordResetOTP.objects.filter(user=user).exists(), "no reset code row"
+        )
+        self.reset_mail.assert_called_once()
+
+    def test_c2_an_inactive_never_verified_user_is_still_activated_by_a_code(self):
+        user = User.objects.create_user(
+            email="vf1a.h202.c2@x.example",
+            password="Own-pass-vf1a",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            is_active=False,
+        )
+        asked = self.ask(user.email, "VERIFY_EMAIL")
+        self.assertEqual(asked.status_code, status.HTTP_202_ACCEPTED)
+        user.refresh_from_db()
+        self.assertIsNotNone(user.activation_token, "no code was issued")
+
+        answer = self.verify(user.email, user.activation_token)
+
+        self.assertEqual(answer.status_code, status.HTTP_202_ACCEPTED, answer.data)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
