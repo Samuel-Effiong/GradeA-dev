@@ -1,0 +1,111 @@
+"""H-146: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-06 BEFORE any test run of H-146, by
+reasoning from the code and the tests; no mutant was applied to anything
+but a parser (the anchors-only check). A test is named Class.method.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log of the module at the red commit>"""
+import re
+import sys
+from pathlib import Path
+
+C = "ARegradeClearsTheOldWording"
+C_CLEARS = (C, "test_the_regrade_clears_the_stored_formatted_grade")
+C_STUDENT = (C, "test_between_the_save_and_the_task_the_student_reads_no_old_wording")
+C_FAILED = (C, "test_a_failed_task_leaves_it_empty")
+C_FIRST = (C, "test_the_first_gradings_task_does_not_put_text_back")
+C_ONE_UPDATE = (C, "test_it_is_cleared_by_the_same_update_as_the_score")
+U = "BeforeReleaseItIsClearedToo"
+U_CLEARS = (U, "test_a_regrade_before_release_clears_the_stored_wording")
+U_RELEASED = (U, "test_released_afterwards_the_student_reads_no_old_sentence")
+#: The two tests of U and mutant V3 were added on 2026-10-06 after v2's
+#: pre-read of 6c9819c6 (no test regraded an UNRELEASED paper that had a
+#: formatted grade), still before any run of H-146. V1 and V2 gain both.
+#: The red commit's set is unchanged: the two tests are not in it there.
+#: green with or without the fix: the fixture's text reaches the student;
+#: the regrade's own task fills the text; a first grading has none.
+
+EXPECTED = {
+    # not cleared: the field is in the UPDATE, with the old text the test's
+    # grading read back from the row, so the one-UPDATE test passes.
+    "V1": {C_CLEARS, C_STUDENT, C_FAILED, C_FIRST, U_CLEARS, U_RELEASED},
+    # cleared in memory only, never written.
+    "V2": {C_CLEARS, C_STUDENT, C_FAILED, C_FIRST, C_ONE_UPDATE, U_CLEARS, U_RELEASED},
+    # cleared only when released: the released paper's tests all pass.
+    "V3": {U_CLEARS, U_RELEASED},
+}
+#: the red commit b06da22f (tests only): as V2.
+#: (r) now takes the module from the TIP (as H-145's chain does), so the two
+#: tests of class U that were added after the red commit (v2's pre-read) are
+#: seen at (r) too: a regrade of an UNRELEASED paper does not clear the stored
+#: wording on the old code, so both are red there, as in V2. Green at (r) on
+#: purpose (controls): the before-the-regrade statement, the regrade's own
+#: task fills the text, and a first grading has nothing to clear.
+REPRO = {C_CLEARS, C_STUDENT, C_FAILED, C_FIRST, C_ONE_UPDATE, U_CLEARS, U_RELEASED}
+#: RULE 22 (19:18): per test, fragments that must be in ITS OWN failure block
+#: at (r), written before the run. At the red commit the regrade does not clear
+#: the stored wording, so the four wording tests fail on their assertIsNone
+#: ("... is not None") and the one-update test on the count of clearing
+#: UPDATEs ("0 != 1"). A fixture error or a 500 would show other lines.
+REASON = {
+    C_CLEARS: ("is not None", "self.assertIsNone(self.stored_formatted())"),
+    C_STUDENT: ("is not None", 'self.assertIsNone(after["formatted_grade"])'),
+    C_FAILED: ("is not None", "self.assertIsNone(self.stored_formatted())"),
+    C_FIRST: ("is not None", "self.assertIsNone(self.stored_formatted())"),
+    C_ONE_UPDATE: ("0 != 1", "self.assertEqual(len(clearing), 1, clearing)"),
+    # U_CLEARS and U_RELEASED: the reason they were written is that a regrade
+    # before release must clear the stored wording too; the old regrade does
+    # not, so the stored text / the student's formatted_grade is not None.
+    U_CLEARS: ("is not None", "self.assertIsNone(self.stored_formatted())"),
+    U_RELEASED: ("is not None", 'self.assertIsNone(after["formatted_grade"])'),
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    wanted = REPRO
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), wanted)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one, each for its written reason" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)
