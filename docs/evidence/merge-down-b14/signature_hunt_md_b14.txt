@@ -1,0 +1,8 @@
+Merge-down b14, signature hunt (0b, read by Verifier 2). Method: for each of the 20 non-test Python files beta changed since merge-base 035e0a07 (signature_hunt_md_b14_files.txt), parse every function and method with ast at 035e0a07 and at phase2/epic-a before the merge (554fcf11), and list those whose positional names, default count, keyword-only names, *args or **kwargs differ (signature_hunt_md_b14.py). Then look for beta-side call sites (lines beta added since 035e0a07) of the changed names.
+
+Result: 3 changed signatures.
+1. users/views.py AuthViewSet.verify.refuse: (message) -> (message, account, reason_code). Beta's H-164 and H-202 arms called it with ONE argument: 500 (TypeError). FIXED in d4ff5be7; 11 tests were red on it; green after.
+2. billing/services.py SubscriptionService.expire_bucket: (bucket) -> (bucket, reference=...) (one default added). No line beta added calls it (grep of beta's added lines); the merged tree's call sites (billing/tasks.py:404, billing/license_service.py:1998) are Phase 2 side. Compatible.
+3. classrooms/services/roster_import.py _row_without_headers: (row) -> (row, number=...) (one default added). The only call (roster_import.py:257) passes both. Compatible.
+
+Limits: this finds signature changes only, not changed return values, changed exception types, renamed or removed functions that beta calls (those would be AttributeError or ImportError: pyflakes was clean on the 20 files except unused-import notes already handled, and the 17-module run is green), or model-field changes. The bundle's ONE full run is the backstop for those.
