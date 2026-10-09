@@ -47,3 +47,4 @@ users.tests_auth_audit_events
 users.tests_google_auth
 users.tests_register_throttle_school_admin
 users.tests_roads_that_sign_in_or_activate
+audit billing.tests.test_wallet_lock_first_expiry billing.tests.test_wallet_lock_first billing.tests.test_expire_bucket_race (added to the list for gate 4)
