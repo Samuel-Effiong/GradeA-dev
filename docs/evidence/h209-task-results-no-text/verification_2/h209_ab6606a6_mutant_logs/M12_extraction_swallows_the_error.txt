@@ -1,0 +1,56 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 27a58680-2107-46ed-ba5e-864b5749d434.
+Cannot activate automatic trial for user 27a58680-2107-46ed-ba5e-864b5749d434 (validation): ValueError
+.Free trial plan not found: no trial activated for user 70adce02-df50-4002-9790-6996dde0d7e2.
+Cannot activate automatic trial for user 70adce02-df50-4002-9790-6996dde0d7e2 (validation): ValueError
+.Free trial plan not found: no trial activated for user ff5ae724-372f-4ee5-8f7c-0ea092cf0377.
+Cannot activate automatic trial for user ff5ae724-372f-4ee5-8f7c-0ea092cf0377 (validation): ValueError
+.Free trial plan not found: no trial activated for user bdd38da9-e3f1-44b1-8027-546871c164a5.
+Cannot activate automatic trial for user bdd38da9-e3f1-44b1-8027-546871c164a5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3c543883-c59e-4acf-8401-b0a6b0006b36.
+Cannot activate automatic trial for user 3c543883-c59e-4acf-8401-b0a6b0006b36 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a5281f1-3993-452a-9533-2967ff878fe1.
+Cannot activate automatic trial for user 5a5281f1-3993-452a-9533-2967ff878fe1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0b7e132a-5d49-4138-a710-83fdec7080f5.
+Cannot activate automatic trial for user 0b7e132a-5d49-4138-a710-83fdec7080f5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6d6150d3-8c6d-4d9b-9b41-0d6d9bb94ed0.
+Cannot activate automatic trial for user 6d6150d3-8c6d-4d9b-9b41-0d6d9bb94ed0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 254f3efc-ef26-447b-94af-9f9d9829c133.
+Cannot activate automatic trial for user 254f3efc-ef26-447b-94af-9f9d9829c133 (validation): ValueError
+.Free trial plan not found: no trial activated for user da42f7ae-e79c-4c70-a8eb-93bc8819f2a0.
+Cannot activate automatic trial for user da42f7ae-e79c-4c70-a8eb-93bc8819f2a0 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:25,392 task_tracking 1864177 129211320499136 [request_id=-] Background task 30225e16-3a8f-46a8-84e7-e2a306112d6a failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+FFree trial plan not found: no trial activated for user 3a1c2697-1fa5-4aae-8777-adba1e6d3e6c.
+Cannot activate automatic trial for user 3a1c2697-1fa5-4aae-8777-adba1e6d3e6c (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:04:25,587 task_tracking 1864177 129211320499136 [request_id=-] Background task ec8c320e-0cf8-498d-b46a-29d99b2e7d59 failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 0c2281c8-4fc6-44e5-ad60-8ee223b2a6dd.
+Cannot activate automatic trial for user 0c2281c8-4fc6-44e5-ad60-8ee223b2a6dd (validation): ValueError
+.
+======================================================================
+FAIL: test_e1_a_failing_extraction_keeps_text_out_of_row_logs_and_output (students.tests_vf2_h209_probe.GradeAllAndFriendsThroughTheRealBodies.test_e1_a_failing_extraction_keeps_text_out_of_row_logs_and_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 297, in test_e1_a_failing_extraction_keeps_text_out_of_row_logs_and_output
+    self.assertTrue(result.failed(), "extraction did not re-raise")
+AssertionError: False is not true : extraction did not re-raise
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.598s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

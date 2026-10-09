@@ -1,0 +1,19 @@
+# v2 H-209 at ab6606a6: expected results, written BEFORE any run (2026-10-09 evening).
+Judge: students.tests_vf2_h209_probe (my 12 baseline tests + 1 finding test), real task bodies on TasksFixture rows, only the failing dependency replaced.
+Baseline expected: Ran 12 tests, OK  (swallowing: c1 a1 a2 a3 c2 r1 c3 p1; grade-all and friends: c4 g1 g2 e1).
+Findings step (not baseline): test_f1 expected RED, fragment "the made-up error text reached celery's own failure log" (Celery's own celery.app.trace failure record carries the exception repr and traceback when grade-all re-raises; observed design, outside d5's change).
+Mutants (one counted anchor in assignments/tasks.py each; KILLED = failing set EQUAL + fragment inside that test's own FAIL block):
+M1 auto-grade returns f"Error: {e}"            -> a1 a2 a3   frag "the stored result is not class-only" (a1,a2)
+M2 auto-grade logs str(e), not the describer    -> a1 a2      frags a1 "error=RuntimeError", a2 "error=OperationalError" (a3 stays green: its outer text is "outer")
+M3 reminder uses logger.exception               -> r1         frag "the ERROR record carries a traceback"
+M4 posted prints the error                      -> p1         frag "the made-up error text reached a log record, the output or the result"
+M5 grade-all meta error = str(e)                -> g1         frag "the failure meta is not class and ids only"
+M6 grade-all swallows (pass for raise)          -> g1         frag "grade-all did not re-raise"
+M7 grade-all progress printed                   -> c4         frag "the task printed something"
+M8 reminder logs at debug                       -> r1         frag "expected exactly one ERROR record, got 0"
+M9 auto-grade logs twice                        -> a1 a2 a3   frags a1,a2 "expected exactly one ERROR record, got 2"
+M10 posted log drops the frames                 -> p1         frag "no frames in the only report"
+M11 batch queued line printed                   -> g2         frag "expected one queued line"
+M12 extraction swallows (pass for raise)        -> e1         frag "extraction did not re-raise"
+M13 grade-all prints the error                  -> g1         frag "the task printed something"
+M14 grade-all meta gains "detail": str(e)       -> g1         frag "the failure meta is not class and ids only"
