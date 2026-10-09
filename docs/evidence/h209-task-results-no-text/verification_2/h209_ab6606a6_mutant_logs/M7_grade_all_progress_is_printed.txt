@@ -1,0 +1,58 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 56b80681-c39f-4cbe-93c7-de2d4a463aae.
+Cannot activate automatic trial for user 56b80681-c39f-4cbe-93c7-de2d4a463aae (validation): ValueError
+.Free trial plan not found: no trial activated for user 6fae586f-cfdf-4a20-bf40-882891670466.
+Cannot activate automatic trial for user 6fae586f-cfdf-4a20-bf40-882891670466 (validation): ValueError
+.Free trial plan not found: no trial activated for user d32ba051-a5a0-4d8f-8335-2c0ce1280bed.
+Cannot activate automatic trial for user d32ba051-a5a0-4d8f-8335-2c0ce1280bed (validation): ValueError
+.Free trial plan not found: no trial activated for user 53ca878d-6e6d-48a9-b737-42778104986c.
+Cannot activate automatic trial for user 53ca878d-6e6d-48a9-b737-42778104986c (validation): ValueError
+.Free trial plan not found: no trial activated for user 31d92ff3-f741-4588-9008-05690f916ff3.
+Cannot activate automatic trial for user 31d92ff3-f741-4588-9008-05690f916ff3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 71d9be83-fe6d-4a96-bd41-b3f242ff878c.
+Cannot activate automatic trial for user 71d9be83-fe6d-4a96-bd41-b3f242ff878c (validation): ValueError
+.Free trial plan not found: no trial activated for user 936cdf67-993c-4698-a32a-22e9f9a29180.
+Cannot activate automatic trial for user 936cdf67-993c-4698-a32a-22e9f9a29180 (validation): ValueError
+.Free trial plan not found: no trial activated for user ff8a05cb-80ad-4b90-b1e4-454de316de48.
+Cannot activate automatic trial for user ff8a05cb-80ad-4b90-b1e4-454de316de48 (validation): ValueError
+.Free trial plan not found: no trial activated for user ec683b56-8999-49fd-9914-bd6d8cd9a086.
+Cannot activate automatic trial for user ec683b56-8999-49fd-9914-bd6d8cd9a086 (validation): ValueError
+FFree trial plan not found: no trial activated for user a642dfc5-a6b2-45f8-8742-3c23b0e05f1d.
+Cannot activate automatic trial for user a642dfc5-a6b2-45f8-8742-3c23b0e05f1d (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:55,407 task_tracking 1863858 130763802446784 [request_id=-] Background task ecd33099-18a7-4604-8d19-00b4c9a32aca failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 00c4560a-0b95-4e88-9964-9a3ad5900aea.
+Cannot activate automatic trial for user 00c4560a-0b95-4e88-9964-9a3ad5900aea (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:55,617 task_tracking 1863858 130763802446784 [request_id=-] Background task 5c330812-da54-463b-8a41-4e4015d093fc failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 4903d938-6ea6-4c8f-84db-df93a2999300.
+Cannot activate automatic trial for user 4903d938-6ea6-4c8f-84db-df93a2999300 (validation): ValueError
+.
+======================================================================
+FAIL: test_c4_control_grade_all_completes_and_logs_ids_only (students.tests_vf2_h209_probe.GradeAllAndFriendsThroughTheRealBodies.test_c4_control_grade_all_completes_and_logs_ids_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 239, in test_c4_control_grade_all_completes_and_logs_ids_only
+    self.assertEqual(cap.printed, "", "the task printed something")
+AssertionError: 'Grade-all progress: assignment=%s %s/%s 5[37 chars] 1\n' != ''
+- Grade-all progress: assignment=%s %s/%s 5808f80a-6b8b-42ad-ad28-782a75c6d9a9 1 1
+ : the task printed something
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.577s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

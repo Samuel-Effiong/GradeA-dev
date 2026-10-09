@@ -1,0 +1,58 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 5b552bf0-0681-49a6-8dd3-7e4cb94a3d81.
+Cannot activate automatic trial for user 5b552bf0-0681-49a6-8dd3-7e4cb94a3d81 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6c8b44a2-cb56-45ea-bbf3-440ea3887242.
+Cannot activate automatic trial for user 6c8b44a2-cb56-45ea-bbf3-440ea3887242 (validation): ValueError
+.Free trial plan not found: no trial activated for user 17e05b41-b8fe-458a-8f8a-b76ff9a5e55b.
+Cannot activate automatic trial for user 17e05b41-b8fe-458a-8f8a-b76ff9a5e55b (validation): ValueError
+.Free trial plan not found: no trial activated for user 136b679d-bd11-4276-94b9-36f450a54ae3.
+Cannot activate automatic trial for user 136b679d-bd11-4276-94b9-36f450a54ae3 (validation): ValueError
+.Free trial plan not found: no trial activated for user a1e0c42f-4772-479f-86ad-85761da8a0c6.
+Cannot activate automatic trial for user a1e0c42f-4772-479f-86ad-85761da8a0c6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3b031703-8a2e-4c27-8b74-af9bf0e901fb.
+Cannot activate automatic trial for user 3b031703-8a2e-4c27-8b74-af9bf0e901fb (validation): ValueError
+.Free trial plan not found: no trial activated for user 4280b9b7-e6d3-4490-8fb5-6d9d5b75acdb.
+Cannot activate automatic trial for user 4280b9b7-e6d3-4490-8fb5-6d9d5b75acdb (validation): ValueError
+FFree trial plan not found: no trial activated for user 72178585-eb4d-4199-a917-91883b71e8af.
+Cannot activate automatic trial for user 72178585-eb4d-4199-a917-91883b71e8af (validation): ValueError
+.Free trial plan not found: no trial activated for user 4b16afc9-0f22-46d6-8ff0-dd6a4572d96e.
+Cannot activate automatic trial for user 4b16afc9-0f22-46d6-8ff0-dd6a4572d96e (validation): ValueError
+.Free trial plan not found: no trial activated for user d87e3af6-cb5c-4047-8c67-e83b6fb3e390.
+Cannot activate automatic trial for user d87e3af6-cb5c-4047-8c67-e83b6fb3e390 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:37,345 task_tracking 1863640 132276295207872 [request_id=-] Background task 857bc3ca-fd7d-44be-994b-1ffbea393629 failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user eef709d7-186a-4cff-87e9-58e4ff181b5a.
+Cannot activate automatic trial for user eef709d7-186a-4cff-87e9-58e4ff181b5a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:37,554 task_tracking 1863640 132276295207872 [request_id=-] Background task 8d28d8c8-431e-4871-a074-fa2120e8f67f failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 719e8461-8c54-406f-94db-47889fe28c32.
+Cannot activate automatic trial for user 719e8461-8c54-406f-94db-47889fe28c32 (validation): ValueError
+.
+======================================================================
+FAIL: test_p1_posted_failure_returns_class_only_and_logs_one_error (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_p1_posted_failure_returns_class_only_and_logs_one_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 223, in test_p1_posted_failure_returns_class_only_and_logs_one_error
+    no_text(self, cap.everything(), "a log record, the output or the result")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 112, in no_text
+    case.assertNotIn(MARKER, blob, f"the made-up error text reached {what}")
+AssertionError: 'VF2H209SECRET' unexpectedly found in 'send_new_assignment_posted_notification failed: assignment=34e22e33-19a1-45da-8d1e-ecf5bbd88cdf error=RuntimeError frames=tasks.py:1345:send_new_assignment_posted_notification <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call\n\ncannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET\nsend_new_assignment_posted_notification failed: assignment=34e22e33-19a1-45da-8d1e-ecf5bbd88cdf error=RuntimeError frames=tasks.py:1345:send_new_assignment_posted_notification <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call\n' : the made-up error text reached a log record, the output or the result
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.656s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

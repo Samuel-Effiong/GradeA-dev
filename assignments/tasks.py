@@ -9,6 +9,7 @@ from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_background_task_error
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.errors import InsufficientCreditsError
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
@@ -161,7 +162,12 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             submission = grade_engine(
                 user, submission, processing_task_id=processing_task_id
             )
-            print(f"Assignment saved: {index + 1}/{submissions_count}")
+            logger.info(
+                "Grade-all progress: assignment=%s %s/%s",
+                assignment_id,
+                index + 1,
+                submissions_count,
+            )
         except TaskCancelledError:
             mark_processing_task_cancelled(
                 processing_task_id,
@@ -173,17 +179,15 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             )
             raise
         except Exception as e:
-            import traceback
-
-            stack_trace_str = traceback.format_exc()
-            print(stack_trace_str)
+            # H-209: the stored result names the class and the ids; the error
+            # text and the traceback are not kept (the error is re-raised
+            # below, so error reporting receives it from the task machinery).
             self.update_state(
                 state=states.FAILURE,
                 meta={
-                    "error": str(e),
+                    "error": type(e).__name__,
                     "assignment_id": assignment_id,
                     "current_submission_id": submission.id,
-                    "detail": stack_trace_str,
                 },
             )
             mark_processing_task_failure(
@@ -220,12 +224,11 @@ def extract_assignment_background_task(
     keep_existing_title=True,
     processing_task_id=None,
 ):
-    print(
-        {
-            "user_id": user_id,
-            "assignment_id": assignment_id,
-            "keep_existing_title": keep_existing_title,
-        }
+    logger.info(
+        "Assignment extraction started: user=%s assignment=%s keep_existing_title=%s",
+        user_id,
+        assignment_id,
+        keep_existing_title,
     )
     try:
         ensure_task_not_cancelled(processing_task_id)
@@ -235,8 +238,6 @@ def extract_assignment_background_task(
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
         )
-
-        print("Extracting assignment content")
 
         assignment = Assignment.objects.get(id=assignment_id)
         user = CustomUser.objects.get(id=user_id)
@@ -251,7 +252,7 @@ def extract_assignment_background_task(
             processing_task_id=processing_task_id,
         )
 
-        print("Assignment saved successfully")
+        logger.info("Assignment extraction saved: assignment=%s", assignment_id)
         mark_processing_task_success(
             processing_task_id,
             meta={
@@ -1201,7 +1202,7 @@ def grade_batch_async(
             str(submission.id),
             batch_id=batch_id,
         )
-        print(f"Starting grading of Submission {submission.id}")
+        logger.info("Grading queued: submission=%s", submission.id)
 
 
 @shared_task(name="assignments.tasks.auto_grade_due_assignment")
@@ -1246,9 +1247,15 @@ def auto_grade_due_assignment(assignment_id):
 
         return f"Auto-grading started for {ungraded_submissions.count()} submissions."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "auto_grade_due_assignment",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(name="assignments.tasks.send_assignment_due_reminder")
@@ -1366,9 +1373,15 @@ def send_assignment_due_reminder(assignment_id, hours_before):
 
         return f"Queued {notifications_sent} assignment due reminder emails."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "send_assignment_due_reminder",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(name="assignments.tasks.send_new_assignment_posted_notification")
@@ -1440,9 +1453,15 @@ def send_new_assignment_posted_notification(assignment_id):
 
         return f"Queued {notifications_sent} new assignment notification email(s)."
     except Exception as e:
-        import traceback
-
-        return f"Error: {str(e)} {traceback.format_exc()}"
+        # H-209: swallowed here, so this line is the only report of it: class
+        # and frames, never the text; the stored result names the class only.
+        logger.error(
+            "%s failed: assignment=%s %s",
+            "send_new_assignment_posted_notification",
+            assignment_id,
+            describe_error_for_log(e),
+        )
+        return f"Error: {type(e).__name__}"
 
 
 @shared_task(
