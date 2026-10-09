@@ -25,6 +25,7 @@ A batch is a set of items, and each item answers for itself:
 
 import io
 import uuid
+from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any, Callable
 from unittest.mock import patch
@@ -34,6 +35,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 from rest_framework.test import APIClient
 
@@ -42,6 +44,7 @@ from assignments.models import Assignment, AssignmentStatus
 from audit.enums import ReasonCode
 from AutoGrader.reason_codes import REASON_CODES
 from billing.errors import InsufficientCreditsError
+from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students import task_tracking
 from students.models import (
@@ -90,7 +93,7 @@ class BatchFixture:
     addCleanup: Callable[..., Any]
     assertEqual: Callable[..., Any]
 
-    def build(self, students=3):
+    def build(self, students=3, door_open=True):
         cache.clear()
         self.teacher = self.user("teacher", UserTypes.TEACHER, "Tess", "Teacher")
         session = Session.objects.create(name="S7a", teacher=self.teacher)
@@ -126,6 +129,29 @@ class BatchFixture:
         ):
             target.start()
             self.addCleanup(target.stop)
+        if door_open:
+            # H-180's door asks the teacher's wallet before the session
+            # exists; most of this file is about what the items answer, and
+            # the door has its own tests (students.tests_upload_credit_door).
+            for name in (
+                "students.views.upload_refusal_if_unaffordable",
+                "assignments.views.upload_refusal_if_unaffordable",
+            ):
+                door = patch(name, return_value=None)
+                door.start()
+                self.addCleanup(door.stop)
+        else:
+            # The door stays live, with a wallet that clears it, so the file
+            # that is too large is met by the door first and by its own
+            # item after (merge-down b16).
+            wallet = CreditWallet.objects.create(user=self.teacher)
+            CreditBucket.objects.create(
+                wallet=wallet,
+                bucket_type=CreditBucketType.MONTHLY,
+                total_credits=1_000_000,
+                used_credits=0,
+                expires_at=timezone.now() + timedelta(days=30),
+            )
 
     def user(self, key, user_type, first, last):
         return CustomUser.objects.create_user(
@@ -340,7 +366,9 @@ class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
     """S6b's two batch 413 problems, fixed per item."""
 
     def setUp(self):
-        self.build(students=2)
+        # The upload door (H-180) is live here: an oversized file must not
+        # make it refuse the batch, and its own item still answers 413.
+        self.build(students=2, door_open=False)
 
     def test_batch_upload_runs_the_rest_of_the_batch(self):
         files = [

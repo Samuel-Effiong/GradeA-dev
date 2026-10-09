@@ -40,7 +40,10 @@ from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
 from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
-from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
+from billing.tests.test_execute_graded_task import (
+    TEST_PROMPT_VERSION,
+    ExecuteGradedTaskTestBase,
+)
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.models import (
     BackgroundProcessingTask,
@@ -389,6 +392,7 @@ class TheGateAsksTheSameMethodTest(ExecuteGradedTaskTestBase):
                     feature="Grading Assignment",
                     task_type="grade_assignment",
                     user_prompt="prompt",
+                    prompt_version=TEST_PROMPT_VERSION,
                 )
 
         ai_model.assert_not_called()
@@ -406,6 +410,7 @@ class TheGateAsksTheSameMethodTest(ExecuteGradedTaskTestBase):
                 feature="Grading Assignment",
                 task_type="grade_assignment",
                 user_prompt="prompt",
+                prompt_version=TEST_PROMPT_VERSION,
             )
 
         ai_model.assert_called_once()

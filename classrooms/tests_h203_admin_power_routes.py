@@ -36,6 +36,9 @@ User = get_user_model()
 LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 ROW_PASSWORD = "Row-pass-h203"  # pragma: allowlist secret
 DIRECT_REFUSALS = (status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR)
+# The Phase 2 line words a bulk-import row's error with the row number and a
+# lower-case first letter (pinned in classrooms.tests_s7d_roster_codes).
+ROW_ONE_NOT_A_STUDENT = "Row 1: this email can't be added as a student."
 
 
 @override_settings(CACHES=LOCMEM)
@@ -128,7 +131,7 @@ class StudentAddRoutesAdminPowerTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["failure_count"], 1)
         self.assertEqual(response.data["success_count"], 0)
-        self.assertEqual(response.data["results"][0]["error"], NOT_A_STUDENT_MESSAGE)
+        self.assertEqual(response.data["results"][0]["error"], ROW_ONE_NOT_A_STUDENT)
         self.assert_untouched(account, before)
 
     def test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser(self):
@@ -138,7 +141,7 @@ class StudentAddRoutesAdminPowerTests(APITestCase):
         response = self.bulk(account.email)
 
         self.assertEqual(response.data["failure_count"], 1)
-        self.assertEqual(response.data["results"][0]["error"], NOT_A_STUDENT_MESSAGE)
+        self.assertEqual(response.data["results"][0]["error"], ROW_ONE_NOT_A_STUDENT)
         self.assert_untouched(account, before)
 
     def test_direct_add_refuses_a_student_typed_row_carrying_is_staff(self):
