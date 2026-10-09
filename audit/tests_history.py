@@ -618,17 +618,16 @@ class PermissionChangeTests(APITestCase):
             activation_token="stu-inv-s4",
             activation_expires=timezone.now() + timedelta(days=1),
         )
+        # Merge-down b14: H-152 closed the old student registration door, so
+        # the invitee proves the code on /auth/verify (the road that still
+        # activates the holder of an activation code, with the same
+        # history.acting_as(user)).
         response = self.client.post(
-            reverse("auth-register-student"),
-            {
-                "token": "stu-inv-s4",
-                "password": INVITE_PW,
-                "first_name": "Stu",
-                "last_name": "Dent",
-            },
+            reverse("auth-verify"),
+            {"email": student.email, "token": "stu-inv-s4"},
             format="json",
         )
-        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.status_code, 202, response.content)
         self.assert_own_activation(student)
 
     def test_a_school_admin_invitation_names_the_invitee(self):
