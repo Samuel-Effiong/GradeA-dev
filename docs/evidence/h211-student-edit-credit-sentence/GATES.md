@@ -20,3 +20,11 @@ One sentence: an EXISTING test (`billing.tests.test_refusal_handling...test_extr
 - The window between the door/queue and the task (another job can spend the balance in between): Epic B's hold.
 - The student site's handling of the 402 body and of this failure text was not read (as in H-180).
 - Worktrees (rule 21): Grade-Automator-Plus-h211-student-edit-credit-sentence (stacked on H-180's).
+
+## Verifier 1's record and the limits he named (added 2026-10-09)
+Verifier 1 verified the row at `c6a1856c`: VERIFIED-WITH-NOTES, all his sets as written. His record and files are in `verification_1a/`, committed byte-identical to the originals in `~/Documents/Projects/GAP-1a-records/` (python files as `.py.txt`, logs gzipped; checked with `cmp`). Limits he named:
+- N1: the SYNCHRONOUS student edit route (`StudentSubmissionViewSet.partial_update`, kept until H-11 retires it) answers a credit refusal through `_failure_response` with the generic wallet text, 402. H-211 changes only `extract_answer_background_task`. This is its own row, H-216 (author: Hardening Engineer); his probe p4 is its predicted red.
+- N3: the window between the door/queue and the task (another job can spend the balance in between): Epic B's hold.
+- N4: a plan refusal (no active subscription) read by a STUDENT on this path was not probed.
+- A note on `assignments/tests_edit_refusal_student_sentence.py`: its check that "5000"/"25000" are not in the polled text runs over meta that holds a random submission uuid; a uuid can contain those digits (about 1 in 2,000 runs): a false red, never a false green. Not changed in this commit; to be asserted with the ids removed in a later tests-only commit if the Senior Manager asks.
+- Worktrees (rule 21): Grade-Automator-Plus-h211-student-edit-credit-sentence (stacked on H-180's, now in beta); the H-180 worktree stays until H-211 is merged.

@@ -1,0 +1,58 @@
+START 2026-10-09 17:43:24
+== base exit=1
+FAIL: test_p4_finding_the_synchronous_student_edit_reads_the_sentence (students.tests_vf1a_h211.VF1aH211Finding.test_p4_finding_the_synchronous_student_edit_reads_the_sentence)
+Ran 4 tests in 1.242s
+FAILED (failures=1)
+== Y1 exit=1
+pycache dirs after clear: 0
+applied Y1 to assignments/tasks.py
+mutated sha differs: True
+FAIL: test_p1_student_edit_real_gate_reads_the_sentence (students.tests_vf1a_h211.VF1aH211.test_p1_student_edit_real_gate_reads_the_sentence)
+FAIL: test_p2_teacher_edit_real_gate_keeps_the_generic_text (students.tests_vf1a_h211.VF1aH211.test_p2_teacher_edit_real_gate_keeps_the_generic_text)
+FAIL: test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else (students.tests_vf1a_h211.VF1aH211.test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else)
+FAIL: test_p4_finding_the_synchronous_student_edit_reads_the_sentence (students.tests_vf1a_h211.VF1aH211Finding.test_p4_finding_the_synchronous_student_edit_reads_the_sentence)
+Ran 4 tests in 0.868s
+FAILED (failures=4)
+restored_sha256_matches_commit_blob: True
+pycache dirs after clear: 0
+tracked changes after restore: 0
+== Y2 exit=1
+pycache dirs after clear: 0
+applied Y2 to assignments/tasks.py
+mutated sha differs: True
+FAIL: test_p1_student_edit_real_gate_reads_the_sentence (students.tests_vf1a_h211.VF1aH211.test_p1_student_edit_real_gate_reads_the_sentence)
+FAIL: test_p4_finding_the_synchronous_student_edit_reads_the_sentence (students.tests_vf1a_h211.VF1aH211Finding.test_p4_finding_the_synchronous_student_edit_reads_the_sentence)
+Ran 4 tests in 0.898s
+FAILED (failures=2)
+restored_sha256_matches_commit_blob: True
+pycache dirs after clear: 0
+tracked changes after restore: 0
+== Y3 exit=1
+pycache dirs after clear: 0
+applied Y3 to assignments/tasks.py
+mutated sha differs: True
+FAIL: test_p1_student_edit_real_gate_reads_the_sentence (students.tests_vf1a_h211.VF1aH211.test_p1_student_edit_real_gate_reads_the_sentence)
+FAIL: test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else (students.tests_vf1a_h211.VF1aH211.test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else)
+FAIL: test_p4_finding_the_synchronous_student_edit_reads_the_sentence (students.tests_vf1a_h211.VF1aH211Finding.test_p4_finding_the_synchronous_student_edit_reads_the_sentence)
+Ran 4 tests in 0.899s
+FAILED (failures=3)
+restored_sha256_matches_commit_blob: True
+pycache dirs after clear: 0
+tracked changes after restore: 0
+== G1 exit=1
+pycache dirs after clear: 0
+applied G1 to ai_processor/services.py
+mutated sha differs: True
+FAIL: test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else (students.tests_vf1a_h211.VF1aH211.test_p3_rich_student_poor_teacher_edit_is_refused_and_bills_nobody_else)
+FAIL: test_p4_finding_the_synchronous_student_edit_reads_the_sentence (students.tests_vf1a_h211.VF1aH211Finding.test_p4_finding_the_synchronous_student_edit_reads_the_sentence)
+Ran 4 tests in 1.246s
+FAILED (failures=2)
+restored_sha256_matches_commit_blob: True
+pycache dirs after clear: 0
+tracked changes after restore: 0
+base: Ran ['4'], failing ['p4']: as expected
+Y1: Ran ['4'], failing ['p1', 'p2', 'p3', 'p4']: as expected
+Y2: Ran ['4'], failing ['p1', 'p4']: as expected
+Y3: Ran ['4'], failing ['p1', 'p3', 'p4']: as expected
+G1: Ran ['4'], failing ['p3', 'p4']: as expected
+ALL AS WRITTEN

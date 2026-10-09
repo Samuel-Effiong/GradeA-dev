@@ -1,0 +1,75 @@
+"""1a, H-211: written 2026-10-09 at 17:4x (clock read from date) BEFORE any run,
+by tracing each of my four tests against the unmutated tip c6a1856c and each
+mutant by hand. Nothing here was seen by a run.
+Usage: python h211_expected.py <logs_dir>   (reads h211_base.log, h211_mutant_<M>.log)
+
+Tests (class VF1aH211 unless noted):
+ p1 student edit, real gate, poor teacher: the sentence stored/returned/polled, no money word,
+    gate text in the server log
+ p2 teacher edit, same: generic text
+ p3 funded student + poor teacher: refused with the sentence, both balances unchanged
+ p4 (class VF1aH211Finding) FINDING: the synchronous PATCH by a student reads the sentence.
+    RED at the tip BY DESIGN: it is the limit I report, not a requirement of the row.
+"""
+import re
+import sys
+from pathlib import Path
+
+P1, P2, P3, P4 = "p1", "p2", "p3", "p4"
+# base: only p4 is red (the sync route is untouched by the row and answers the generic text).
+# p4 is red in EVERY run (no mutant touches that route), so every set contains it.
+EXPECTED = {
+    "base": {P4},
+    # Y1: the test for "a student" inverted: a student reads the generic text, a teacher the sentence.
+    "Y1": {P1, P2, P3, P4},
+    # Y2: the real refusal is no longer written to the server log when the sentence is swapped in.
+    "Y2": {P1, P4},
+    # Y3: the student exception carries the gate's own text instead of the fixed sentence.
+    "Y3": {P1, P3, P4},
+    # G1: the gate reads the CALLER's wallet, not the teacher's: a funded student is let through
+    # (p1/p2: the caller's own wallet is empty / the teacher's, so they still refuse).
+    "G1": {P3, P4},
+}
+# Rule 22: fragments that must be in the test's OWN failure block (written before any run).
+FRAGMENTS = {
+    ("base", P4): ['self.assertEqual(response.data["error"], STUDENT_SENTENCE)', "The credit wallet needs to be topped up"],
+    ("Y1", P1): ["self.assertEqual(tracked.error, STUDENT_SENTENCE)", "The credit wallet needs to be topped up"],
+    ("Y1", P2): ["self.assertEqual(tracked.error, INSUFFICIENT_CREDITS_MESSAGE)", "Your answers were not submitted"],
+    ("Y1", P3): ["self.assertEqual(tracked.error, STUDENT_SENTENCE)", "The credit wallet needs to be topped up"],
+    ("Y2", P1): ["the gate's own refusal text was not logged server-side"],
+    ("Y3", P1): ["self.assertEqual(tracked.error, STUDENT_SENTENCE)", "Task requires"],
+    ("Y3", P3): ["self.assertEqual(tracked.error, STUDENT_SENTENCE)", "Task requires"],
+    ("G1", P3): ["self.assertEqual(tracked.error, STUDENT_SENTENCE)"],
+}
+FAILLINE = re.compile(r"^(?:FAIL|ERROR): test_(p\d)_\w+ \(([\w.]+)\)", re.M)
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): test_(p\d)_\w+ \([\w.]+\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def main(logs):
+    bad = 0
+    for run, want in EXPECTED.items():
+        name = "h211_base.log" if run == "base" else f"h211_mutant_{run}.log"
+        text = (Path(logs) / name).read_text(errors="replace")
+        got = {m[0] for m in FAILLINE.findall(text)}
+        ran = re.findall(r"^Ran (\d+) tests", text, re.M)
+        blocks = {m[0]: m[1] for m in BLOCK.findall(text)}
+        status = "as expected" if got == want else f"DIFFERS got={sorted(got)} want={sorted(want)}"
+        print(f"{run}: Ran {ran}, failing {sorted(got)}: {status}")
+        bad += got != want
+        for (r, t), frags in FRAGMENTS.items():
+            if r == run and t in blocks:
+                for f in frags:
+                    if f not in blocks[t]:
+                        print(f"  WRONG REASON {t}: fragment missing: {f!r}")
+                        bad += 1
+            elif r == run and t not in blocks:
+                print(f"  {t}: no failure block to check")
+                bad += 1
+    print("ALL AS WRITTEN" if not bad else f"{bad} difference(s)")
+    return 1 if bad else 0
+
+
+sys.exit(main(sys.argv[1]))
