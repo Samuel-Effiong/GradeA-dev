@@ -479,9 +479,13 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(StudentSubmissionStatusSerializer(many=True))
     def get_student_submissions(self, obj):
 
-        # Fetch all enrolled students for this course
-        enrollments = StudentCourse.objects.filter(course=obj.course).select_related(
-            "student"
+        # Fetch all enrolled students for this course, in the one defined
+        # order of enrolment lists (H-213; the rows are unchanged, withdrawn
+        # students included, as before).
+        enrollments = (
+            StudentCourse.objects.filter(course=obj.course)
+            .select_related("student")
+            .in_list_order()
         )
 
         # Build a lookup map: student_id → submission
