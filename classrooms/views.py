@@ -31,6 +31,7 @@ from drf_spectacular.utils import (
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
+    APIException,
     NotFound,
     ParseError,
     PermissionDenied,
@@ -1425,6 +1426,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         except DjangoValidationError as e:
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
             raise ValidationError(detail) from e
+        except APIException:
+            # H-214: the serializer refuses by raising DRF's own exceptions
+            # ("already enrolled", the school gate); those are the caller's
+            # 400, not a server fault.
+            raise
         except Exception as e:
             logger.error("Failed to direct-add student to course", exc_info=e)
             return Response(
