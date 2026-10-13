@@ -148,6 +148,11 @@ class ReasonCode(models.TextChoices):
     INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS", "Insufficient credits"
     AI_FEATURE_NOT_AVAILABLE = "AI_FEATURE_NOT_AVAILABLE", "AI feature not available"
     NOT_RETRYABLE = "NOT_RETRYABLE", "Not retryable"
+    # An individual teacher's overage purchase would exceed their plan's
+    # per-cycle cap (billing.stripe_service.StripeOverageService). Was a bare
+    # ValueError (detail only, no reason_code); wired into the catalogue
+    # alongside INSUFFICIENT_CREDITS and LICENCE_SEATS_EXCEEDED.
+    OVERAGE_CAP_EXCEEDED = "OVERAGE_CAP_EXCEEDED", "Overage cap exceeded"
 
     # QA catalogue additions (docs/phase2/qa/catalogue_additions_proposal.md,
     # approved as written by the founder acting as QA, 2026-09-30), built in

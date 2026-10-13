@@ -260,6 +260,20 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Upgrade your plan, or ask your school administrator to enable it.",
         retryable=False,
     ),
+    # An individual teacher's overage purchase would exceed their plan's
+    # per-cycle cap (billing.stripe_service.StripeOverageService). Mirrors
+    # LICENCE_SEATS_EXCEEDED's shape: the cap and what's left stay
+    # machine-readable in params, same as the message.
+    ReasonCode.OVERAGE_CAP_EXCEEDED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        "This purchase would exceed your plan's overage limit of "
+        "{max_blocks} block(s) per cycle ({remaining} remaining).",
+        "Request fewer blocks, or wait until your next billing cycle, then "
+        "try again.",
+        retryable=False,
+        params=frozenset({"max_blocks", "remaining"}),
+    ),
     ReasonCode.NOT_RETRYABLE: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_409_CONFLICT,

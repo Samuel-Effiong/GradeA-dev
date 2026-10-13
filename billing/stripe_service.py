@@ -39,8 +39,10 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
+from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error
+from AutoGrader.reason_codes import CodedError
 from classrooms.models import School
 from users.models import CustomUser
 
@@ -2286,10 +2288,12 @@ class StripeOverageService:
         # reserve a slot against the cap.
         remaining_blocks = plan.max_overage_blocks - (wallet.overage_blocks_used or 0)
         if quantity > max(0, remaining_blocks):
-            raise ValueError(
-                f"This purchase would exceed your plan's overage limit of "
-                f"{plan.max_overage_blocks} block(s) per cycle "
-                f"({max(0, remaining_blocks)} remaining)."
+            raise CodedError(
+                ReasonCode.OVERAGE_CAP_EXCEEDED,
+                params={
+                    "max_blocks": plan.max_overage_blocks,
+                    "remaining": max(0, remaining_blocks),
+                },
             )
 
         # AFTER the cap check, deliberately. This reaches Stripe, and a
