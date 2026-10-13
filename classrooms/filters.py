@@ -29,6 +29,11 @@ class MyStudentsFilter(django_filters.FilterSet):
     enrollments__course__session = django_filters.UUIDFilter(
         method="filter_own_session"
     )
+    # Against the `final_grade` annotation StudentCourseViewSet.get_queryset
+    # adds for this action (the same "relevant enrollment" grade the row
+    # displays), not a model field - a plain NumberFilter targets it fine.
+    min_grade = django_filters.NumberFilter(field_name="final_grade", lookup_expr="gte")
+    max_grade = django_filters.NumberFilter(field_name="final_grade", lookup_expr="lte")
 
     class Meta:
         model = CustomUser

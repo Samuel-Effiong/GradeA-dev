@@ -54,9 +54,9 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
                 expected_assignment_count=3,
                 submitted_count=3,
                 graded_scores=[
-                    (date(2026, 1, 1), 55.0),
-                    (date(2026, 1, 8), 58.0),
-                    (date(2026, 1, 15), 56.0),
+                    (date(2026, 1, 1), 55.0, 55.0, 100),
+                    (date(2026, 1, 8), 58.0, 58.0, 100),
+                    (date(2026, 1, 15), 56.0, 56.0, 100),
                 ],
             )
         )
@@ -68,7 +68,7 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
             RiskInputs(
                 expected_assignment_count=3,
                 submitted_count=1,
-                graded_scores=[(date(2026, 1, 1), 82.0)],
+                graded_scores=[(date(2026, 1, 1), 82.0, 82.0, 100)],
             )
         )
         self.assertTrue(result.at_risk)
@@ -94,7 +94,7 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
             RiskInputs(
                 expected_assignment_count=1,
                 submitted_count=1,
-                graded_scores=[(date(2026, 1, 1), 65.0)],
+                graded_scores=[(date(2026, 1, 1), 65.0, 65.0, 100)],
             )
         )
         self.assertFalse(result.at_risk)
@@ -106,7 +106,10 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
             RiskInputs(
                 expected_assignment_count=4,
                 submitted_count=2,
-                graded_scores=[(date(2026, 1, 1), 65.0), (date(2026, 1, 8), 65.0)],
+                graded_scores=[
+                    (date(2026, 1, 1), 65.0, 65.0, 100),
+                    (date(2026, 1, 8), 65.0, 65.0, 100),
+                ],
             )
         )
         self.assertTrue(result.at_risk)
@@ -124,12 +127,48 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
         self.assertIsNone(result.average_grade)
         self.assertFalse(result.at_risk)
 
+    def test_average_grade_is_points_weighted_not_a_plain_mean(self):
+        # A 5-point quiz at 100% and a 100-point exam at 60%: a plain mean
+        # of percentages would be 80%, but the exam should dominate - see
+        # classrooms.final_grade.final_grade_from, which this must match.
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=2,
+                submitted_count=2,
+                graded_scores=[
+                    (date(2026, 1, 1), 100.0, 5, 5),
+                    (date(2026, 1, 8), 60.0, 60, 100),
+                ],
+            )
+        )
+        # (5 + 60) / (5 + 100) * 100 = 61.90
+        self.assertAlmostEqual(result.average_grade, 61.90, places=1)
+
+    def test_average_grade_matches_final_grade_from_exactly(self):
+        from classrooms.final_grade import final_grade_from
+
+        scored = [(5, 5), (60, 100), (18, 20)]
+        expected = float(final_grade_from(scored))
+
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=3,
+                submitted_count=3,
+                graded_scores=[
+                    (date(2026, 1, 1), 100.0, 5, 5),
+                    (date(2026, 1, 8), 60.0, 60, 100),
+                    (date(2026, 1, 15), 90.0, 18, 20),
+                ],
+            )
+        )
+        self.assertEqual(result.average_grade, expected)
+
     def test_trend_improving_over_full_window(self):
         scores = [
-            (date(2026, 1, 1), 50.0),
-            (date(2026, 1, 8), 60.0),
-            (date(2026, 1, 15), 70.0),
-            (date(2026, 1, 22), 80.0),
+            (date(2026, 1, 1), 50.0, 50.0, 100),
+            (date(2026, 1, 8), 60.0, 60.0, 100),
+            (date(2026, 1, 15), 70.0, 70.0, 100),
+            (date(2026, 1, 22), 80.0, 80.0, 100),
         ]
         result = self.evaluator.evaluate(
             RiskInputs(
@@ -140,9 +179,9 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
 
     def test_trend_declining_over_full_window(self):
         scores = [
-            (date(2026, 1, 1), 90.0),
-            (date(2026, 1, 8), 75.0),
-            (date(2026, 1, 15), 60.0),
+            (date(2026, 1, 1), 90.0, 90.0, 100),
+            (date(2026, 1, 8), 75.0, 75.0, 100),
+            (date(2026, 1, 15), 60.0, 60.0, 100),
         ]
         result = self.evaluator.evaluate(
             RiskInputs(
@@ -156,9 +195,9 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
         # but a single midpoint spike shouldn't swing the regression fit
         # enough to call it a strong trend either way -> STABLE.
         scores = [
-            (date(2026, 1, 1), 70.0),
-            (date(2026, 1, 8), 95.0),
-            (date(2026, 1, 15), 71.0),
+            (date(2026, 1, 1), 70.0, 70.0, 100),
+            (date(2026, 1, 8), 95.0, 95.0, 100),
+            (date(2026, 1, 15), 71.0, 71.0, 100),
         ]
         result = self.evaluator.evaluate(
             RiskInputs(
@@ -169,7 +208,7 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
 
     def test_trend_same_day_scores_falls_back_to_first_vs_last(self):
         same_day = date(2026, 1, 1)
-        scores = [(same_day, 90.0), (same_day, 60.0)]
+        scores = [(same_day, 90.0, 90.0, 100), (same_day, 60.0, 60.0, 100)]
         result = self.evaluator.evaluate(
             RiskInputs(
                 expected_assignment_count=2, submitted_count=2, graded_scores=scores
@@ -183,7 +222,7 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
             RiskInputs(
                 expected_assignment_count=1,
                 submitted_count=1,
-                graded_scores=[(date(2026, 1, 1), 40.0)],
+                graded_scores=[(date(2026, 1, 1), 40.0, 40.0, 100)],
             )
         )
         self.assertEqual(result.grade_trend, "INSUFFICIENT DATA")
@@ -192,16 +231,16 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
         # An old, sharply declining pair falls outside the 6-score window
         # and should not affect a otherwise-flat recent trend.
         old_decline = [
-            (date(2026, 1, 1), 95.0),
-            (date(2026, 1, 2), 40.0),
+            (date(2026, 1, 1), 95.0, 95.0, 100),
+            (date(2026, 1, 2), 40.0, 40.0, 100),
         ]
         recent_flat = [
-            (date(2026, 2, 1), 70.0),
-            (date(2026, 2, 8), 71.0),
-            (date(2026, 2, 15), 69.0),
-            (date(2026, 2, 22), 70.0),
-            (date(2026, 3, 1), 70.0),
-            (date(2026, 3, 8), 71.0),
+            (date(2026, 2, 1), 70.0, 70.0, 100),
+            (date(2026, 2, 8), 71.0, 71.0, 100),
+            (date(2026, 2, 15), 69.0, 69.0, 100),
+            (date(2026, 2, 22), 70.0, 70.0, 100),
+            (date(2026, 3, 1), 70.0, 70.0, 100),
+            (date(2026, 3, 8), 71.0, 71.0, 100),
         ]
         result = self.evaluator.evaluate(
             RiskInputs(
@@ -262,18 +301,21 @@ class WeeklyCourseSummaryServiceTest(TestCase):
             )
 
         self.assignment_1 = Assignment.objects.create(
+            total_points=100,
             title="Cells Quiz",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
             due_date=self.now - timedelta(days=20),
         )
         self.assignment_2 = Assignment.objects.create(
+            total_points=100,
             title="Genetics Homework",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
             due_date=self.now - timedelta(days=10),
         )
         self.assignment_3 = Assignment.objects.create(
+            total_points=100,
             title="Lab Reflection",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -368,6 +410,7 @@ class WeeklyCourseSummaryServiceTest(TestCase):
 
     def test_build_course_summary_does_not_count_future_due_assignment_as_missing(self):
         future_assignment = Assignment.objects.create(
+            total_points=100,
             title="Future Project",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -429,6 +472,7 @@ class WeeklyCourseSummaryTaskTest(TestCase):
 
         for course in [self.course_one, self.course_two]:
             assignment = Assignment.objects.create(
+                total_points=100,
                 title=f"{course.name} Assignment",
                 course=course,
                 status=AssignmentStatus.PUBLISHED,
@@ -550,6 +594,7 @@ class SchoolAdminWeeklySummaryServiceTest(TestCase):
             )
 
         assignment = Assignment.objects.create(
+            total_points=100,
             title="Essay 1",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -733,6 +778,7 @@ class AtRiskStudentAlertTaskTest(TestCase):
             defaults={"enrollment_status": EnrollmentStatusType.ENROLLED},
         )
         assignment = Assignment.objects.create(
+            total_points=100,
             title=f"Assignment for {student.email}",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -1368,6 +1414,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
         # Assignments for Active Course 1
         # 1. Published, submitted
         self.a1 = Assignment.objects.create(
+            total_points=100,
             title="A1 Submitted",
             course=self.course_active_1,
             status=AssignmentStatus.PUBLISHED,
@@ -1384,6 +1431,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         # 2. Published, not yet due, pending submission
         self.a2 = Assignment.objects.create(
+            total_points=100,
             title="A2 Future Pending",
             course=self.course_active_1,
             status=AssignmentStatus.PUBLISHED,
@@ -1392,6 +1440,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         # 3. Published, due, pending submission (overdue)
         self.a3 = Assignment.objects.create(
+            total_points=100,
             title="A3 Due Pending",
             course=self.course_active_1,
             status=AssignmentStatus.PUBLISHED,
@@ -1400,6 +1449,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         # 4. Draft, pending (should be ignored)
         self.a4 = Assignment.objects.create(
+            total_points=100,
             title="A4 Draft",
             course=self.course_active_1,
             status=AssignmentStatus.DRAFT,
@@ -1409,6 +1459,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
         # Assignments for Active Course 2
         # 5. Published, no due date, pending submission
         self.a5 = Assignment.objects.create(
+            total_points=100,
             title="A5 No Due Date Pending",
             course=self.course_active_2,
             status=AssignmentStatus.PUBLISHED,
@@ -1417,6 +1468,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         # 6. Published, submitted
         self.a6 = Assignment.objects.create(
+            total_points=100,
             title="A6 Submitted",
             course=self.course_active_2,
             status=AssignmentStatus.PUBLISHED,
@@ -1433,6 +1485,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         # Assignments for Inactive Course (should be ignored)
         self.a_inactive = Assignment.objects.create(
+            total_points=100,
             title="A Inactive Course",
             course=self.course_inactive,
             status=AssignmentStatus.PUBLISHED,
@@ -1441,6 +1494,7 @@ class StudentDashboardOverviewAPITest(APITestCase):
 
         # Assignments for Withdrawn Course (should be ignored)
         self.a_withdrawn = Assignment.objects.create(
+            total_points=100,
             title="A Withdrawn Course",
             course=self.course_withdrawn,
             status=AssignmentStatus.PUBLISHED,
@@ -1610,6 +1664,7 @@ class StudentCourseSummaryAPITest(APITestCase):
 
         # 1. Submitted, graded and released
         self.a1 = Assignment.objects.create(
+            total_points=100,
             title="A1 Submitted Released",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -1627,6 +1682,7 @@ class StudentCourseSummaryAPITest(APITestCase):
 
         # 2. Submitted, graded but NOT released
         self.a2 = Assignment.objects.create(
+            total_points=100,
             title="A2 Submitted Unreleased",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -1644,6 +1700,7 @@ class StudentCourseSummaryAPITest(APITestCase):
 
         # 3. Not submitted, not yet due
         self.a3 = Assignment.objects.create(
+            total_points=100,
             title="A3 Future Pending",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -1652,6 +1709,7 @@ class StudentCourseSummaryAPITest(APITestCase):
 
         # 4. Not submitted, overdue
         self.a4 = Assignment.objects.create(
+            total_points=100,
             title="A4 Overdue",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -1660,6 +1718,7 @@ class StudentCourseSummaryAPITest(APITestCase):
 
         # 5. Draft (should be ignored - students never see drafts)
         Assignment.objects.create(
+            total_points=100,
             title="A5 Draft",
             course=self.course,
             status=AssignmentStatus.DRAFT,
@@ -1703,6 +1762,7 @@ class StudentCourseSummaryAPITest(APITestCase):
         stays under Submitted (the Verification Engineer's N1 on f908aaf:
         without this, Graded could drop its score condition unnoticed)."""
         unscored = Assignment.objects.create(
+            total_points=100,
             title="A6 Published Unscored",
             course=self.course,
             status=AssignmentStatus.PUBLISHED,
@@ -1789,6 +1849,7 @@ class StudentTilesPartitionFounderExampleTest(APITestCase):
                 course=self.course,
                 status=AssignmentStatus.PUBLISHED,
                 due_date=due,
+                total_points=100,
             )
 
         past, future = now - timedelta(days=1), now + timedelta(days=3)
@@ -1894,6 +1955,7 @@ class StudentDashboardOverviewGPAAPITest(APITestCase):
         percentages = [10, 0, 0, 68.75]
         for i, (course, pct) in enumerate(zip(self.courses, percentages, strict=True)):
             assignment = Assignment.objects.create(
+                total_points=100,
                 title=f"GPA Assignment {i}",
                 course=course,
                 status=AssignmentStatus.PUBLISHED,
@@ -1984,6 +2046,7 @@ class OverallGradeFollowsGPANotFlatPercentageAPITest(APITestCase):
         percentages = [96, 64]  # A (4.0) and F (0.0)
         for i, (course, pct) in enumerate(zip(self.courses, percentages, strict=True)):
             assignment = Assignment.objects.create(
+                total_points=100,
                 title=f"Overall Grade Assignment {i}",
                 course=course,
                 status=AssignmentStatus.PUBLISHED,

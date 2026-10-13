@@ -77,6 +77,7 @@ from dashboard.serializers import (
     CustomAIPrompt,
     CustomAIReply,
     DashboardChatSessionSerializer,
+    PaginatedTeacherAllStudentsSerializer,
     PaginatedTeacherStudentAnalyticsSerializer,
     PlatformAdoptionSerializer,
     PlatformAIPerformanceSerializer,
@@ -90,6 +91,7 @@ from dashboard.serializers import (
     StudentAssignmentStatusSummarySerializer,
     StudentDashboardOverviewSerializer,
     SuperAdminStudentPerformanceSerializer,
+    TeacherAllStudentsRowSerializer,
     TeacherAssignmentAnalyticsSerializer,
     TeacherCourseAnalyticsSerializer,
     TeacherDashboardOverviewSerializer,
@@ -3249,7 +3251,17 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     s for s in student_course_subs if s.score_percentage is not None
                 ]
                 dated_scores = [
-                    (s.submission_date, float(s.score_percentage)) for s in graded
+                    (
+                        s.submission_date,
+                        float(s.score_percentage),
+                        s.score,
+                        (
+                            s.max_points
+                            if s.max_points is not None
+                            else s.assignment.total_points
+                        ),
+                    )
+                    for s in graded
                 ]
 
                 risk_result = self.risk_evaluator.evaluate(
@@ -3660,7 +3672,17 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 worst = min(graded, key=lambda s: s.score_percentage or 0, default=None)
 
                 dated_scores = [
-                    (s.submission_date, float(s.score_percentage)) for s in graded
+                    (
+                        s.submission_date,
+                        float(s.score_percentage),
+                        s.score,
+                        (
+                            s.max_points
+                            if s.max_points is not None
+                            else s.assignment.total_points
+                        ),
+                    )
+                    for s in graded
                 ]
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
@@ -3720,6 +3742,208 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 )
 
             serializer = TeacherStudentAnalyticsSerializer(rows, many=True)
+            data = paginator.get_paginated_response(serializer.data).data
+
+            cache.set(cache_key, data, 60 * 15)
+
+        return Response(data)
+
+    @extend_schema(
+        tags=["Teacher Admin"],
+        summary="Teacher All Students (cross-course, optionally at-risk)",
+        description="""
+        List the teacher's students for a session, across every course they
+        teach in it (or scoped to a single course via `course_id`), with an
+        optional `at_risk` filter.
+
+        Backs an "All Students" view that can show either the full roster or
+        just the at-risk subset, for one course or every course in the
+        session at once.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                description=_("The unique identifier (UUID) of the session"),
+            ),
+            OpenApiParameter(
+                name="course_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_(
+                    "Restrict to one course. Omit to list across every "
+                    "course the teacher has in this session."
+                ),
+            ),
+            OpenApiParameter(
+                name="at_risk",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_("true: only at-risk students."),
+            ),
+            OpenApiParameter(
+                name="student_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_(
+                    "Restrict to one student's row(s) - e.g. to look up "
+                    "their at-risk status/grade directly instead of "
+                    "paginating the full list. Combinable with course_id "
+                    "and at_risk."
+                ),
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
+        responses={200: PaginatedTeacherAllStudentsSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/all-students/(?P<session_id>[-\w]+)",
+    )
+    def all_students(self, request, session_id, *args, **kwargs):
+        teacher = request.user
+        course_id = request.query_params.get("course_id") or ""
+        student_id = request.query_params.get("student_id") or ""
+        at_risk_param = request.query_params.get("at_risk")
+        at_risk_filter = (
+            None if at_risk_param is None else at_risk_param.lower() in ("1", "true")
+        )
+
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{teacher.id}:instance_id__{session_id}"
+            f":view__all_students:{course_id}:{student_id}:{at_risk_filter}"
+            f":{page_number}:{page_size}",
+            [(SCOPE_USER, teacher.id)],
+        )
+        data = cache.get(cache_key)
+
+        if data is None:
+            courses = reachable_courses(teacher).filter(session_id=session_id)
+            if course_id:
+                get_object_or_404(courses, id=course_id)
+                courses = courses.filter(id=course_id)
+
+            assignments = Assignment.objects.filter(course__in=courses)
+            total_by_course = dict(
+                assignments.values("course_id")
+                .annotate(n=Count("id"))
+                .values_list("course_id", "n")
+            )
+            # Same "expected by now" definition the risk evaluator assumes -
+            # see _expected_assignments_q.
+            expected_by_course = dict(
+                assignments.filter(_expected_assignments_q())
+                .values("course_id")
+                .annotate(n=Count("id"))
+                .values_list("course_id", "n")
+            )
+
+            course_submissions_qs = (
+                StudentSubmission.objects.filter(assignment__course__in=courses)
+                .select_related("assignment")
+                .order_by("submission_date", "id")
+            )
+
+            enrollments = StudentCourse.objects.filter(course__in=courses).active()
+            if student_id:
+                enrollments = enrollments.filter(student_id=student_id)
+            enrollments = (
+                enrollments.select_related("student", "course")
+                .annotate(
+                    submitted_count_val=Count(
+                        "student__submissions",
+                        filter=Q(
+                            student__submissions__assignment__course=F("course_id")
+                        ),
+                    ),
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "student__submissions",
+                        queryset=course_submissions_qs,
+                        to_attr="course_submissions",
+                    )
+                )
+                # Same stable order as the single-course `students` action.
+                .order_by("student__first_name", "student__last_name", "id")
+            )
+
+            def build_row(enrollment):
+                student = enrollment.student
+                course = enrollment.course
+                student_course_subs = [
+                    s
+                    for s in student.course_submissions
+                    if s.assignment.course_id == course.id
+                ]
+                graded = [
+                    s for s in student_course_subs if s.score_percentage is not None
+                ]
+                dated_scores = [
+                    (
+                        s.submission_date,
+                        float(s.score_percentage),
+                        s.score,
+                        (
+                            s.max_points
+                            if s.max_points is not None
+                            else s.assignment.total_points
+                        ),
+                    )
+                    for s in graded
+                ]
+                risk_result = self.risk_evaluator.evaluate(
+                    RiskInputs(
+                        expected_assignment_count=expected_by_course.get(course.id, 0),
+                        submitted_count=enrollment.submitted_count_val,
+                        graded_scores=dated_scores,
+                    )
+                )
+                return {
+                    "student_id": student.id,
+                    "student_name": student.get_full_name(),
+                    "course_id": course.id,
+                    "course_name": course.name,
+                    "assignment_submitted": enrollment.submitted_count_val,
+                    "assignment_assigned": total_by_course.get(course.id, 0),
+                    "average_grade": risk_result.average_grade,
+                    "grade_trend": risk_result.grade_trend,
+                    "at_risk": risk_result.at_risk,
+                }
+
+            if at_risk_filter is None:
+                # No risk filter: paginate in the database, evaluate risk
+                # only for the one page returned.
+                page = paginator.paginate_queryset(enrollments, request, view=self)
+                rows = [build_row(enrollment) for enrollment in page]
+            else:
+                # Risk is computed in Python, so filtering by it means
+                # evaluating every enrollment in scope before paginating -
+                # the same tradeoff `overview`'s at_risk_students list makes.
+                all_rows = [build_row(enrollment) for enrollment in enrollments]
+                matching = [row for row in all_rows if row["at_risk"] == at_risk_filter]
+                rows = paginator.paginate_queryset(matching, request, view=self)
+
+            serializer = TeacherAllStudentsRowSerializer(rows, many=True)
             data = paginator.get_paginated_response(serializer.data).data
 
             cache.set(cache_key, data, 60 * 15)

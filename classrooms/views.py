@@ -67,6 +67,7 @@ from . import services
 from .filters import MyStudentsFilter
 from .models import (  # , Classroom, ClassroomSettings
     COURSE_ACCESS_ENROLLMENT_STATUSES,
+    ENROLLMENT_LIST_ORDER,
     Course,
     CourseCategory,
     EnrollmentStatusType,
@@ -2108,6 +2109,10 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
+    # Only reached for `my_students`, the one action whose filter_backends
+    # includes OrderingFilter - but OrderingFilter.as_view() validation
+    # needs this attribute to already exist on the class.
+    ordering_fields = ["final_grade"]
 
     def get_queryset(self):
         user = self.request.user
@@ -2118,6 +2123,38 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     teacher_course_access_q(user, prefix="course__"),
                     student=OuterRef("pk"),
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+
+                # The grade a row's `final_grade` filter/ordering means: the
+                # same "relevant" enrollment StudentListSerializer resolves
+                # for display (course_id if given, else the H-196-ordered
+                # first enrollment through this teacher) - so what a teacher
+                # filters/sorts by is always the grade they're shown.
+                #
+                # `.GET`, not `.query_params`: this also runs when a test
+                # builds the view directly off a plain WSGIRequest (no DRF
+                # Request wrapper), which has no `query_params`.
+                relevant_course_id = self.request.GET.get("enrollments__course")
+                try:
+                    relevant_course_id = (
+                        uuid.UUID(relevant_course_id) if relevant_course_id else None
+                    )
+                except ValueError:
+                    # Malformed: leave the course-scoping to MyStudentsFilter,
+                    # which 400s it in filter_queryset. Resolving "the"
+                    # relevant course against junk input is not this
+                    # annotation's job.
+                    relevant_course_id = None
+                relevant_enrollment = StudentCourse.objects.filter(
+                    teacher_course_access_q(user, prefix="course__"),
+                    student=OuterRef("pk"),
+                )
+                if relevant_course_id:
+                    relevant_enrollment = relevant_enrollment.filter(
+                        course_id=relevant_course_id
+                    )
+                relevant_enrollment = relevant_enrollment.order_by(
+                    *ENROLLMENT_LIST_ORDER
+                ).values("final_grade")[:1]
                 # StudentListSerializer walks enrollments -> course ->
                 # teacher and assignments, and submissions -> assignment,
                 # for every row. Unprefetched that was ~140 queries PER
@@ -2132,27 +2169,31 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # course names, and `?enrollments__course=<their course>`
                 # made that foreign course the row's subject - its
                 # description, its teacher's name and the student's grade.
-                return CustomUser.objects.filter(
-                    Exists(active_enrollment)
-                ).prefetch_related(
-                    Prefetch(
-                        "enrollments",
-                        queryset=StudentCourse.objects.filter(
-                            teacher_course_access_q(user, prefix="course__")
-                        )
-                        .select_related("course", "course__teacher")
-                        .prefetch_related("course__assignments"),
-                        # H-196: deliberately NOT ordered here. The order
-                        # is applied where a student's enrolments are read
-                        # (StudentListSerializer._enrollments); a second one
-                        # here no test could tell apart. Do not add it back.
-                    ),
-                    Prefetch(
-                        "submissions",
-                        queryset=StudentSubmission.objects.filter(
-                            teacher_course_access_q(user, prefix="assignment__course__")
-                        ).select_related("assignment"),
-                    ),
+                return (
+                    CustomUser.objects.filter(Exists(active_enrollment))
+                    .annotate(final_grade=Subquery(relevant_enrollment))
+                    .prefetch_related(
+                        Prefetch(
+                            "enrollments",
+                            queryset=StudentCourse.objects.filter(
+                                teacher_course_access_q(user, prefix="course__")
+                            )
+                            .select_related("course", "course__teacher")
+                            .prefetch_related("course__assignments"),
+                            # H-196: deliberately NOT ordered here. The order
+                            # is applied where a student's enrolments are read
+                            # (StudentListSerializer._enrollments); a second one
+                            # here no test could tell apart. Do not add it back.
+                        ),
+                        Prefetch(
+                            "submissions",
+                            queryset=StudentSubmission.objects.filter(
+                                teacher_course_access_q(
+                                    user, prefix="assignment__course__"
+                                )
+                            ).select_related("assignment"),
+                        ),
+                    )
                 )
             return CustomUser.objects.none()
 
@@ -2211,7 +2252,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         summary="List Teacher's Students",
         description=(
             "Retrieves a unique list of students enrolled in any course taught by the currently authenticated teacher. "
-            "Supports filtering by specific course or session and searching by name/email."
+            "Supports filtering by specific course or session, filtering/sorting by grade performance, "
+            "and searching by name/email."
         ),
         parameters=[
             OpenApiParameter(
@@ -2232,6 +2274,27 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 location=OpenApiParameter.QUERY,
                 description="Search students by first name, last name, or email (case-insensitive).",
             ),
+            OpenApiParameter(
+                name="min_grade",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Only students whose grade (enrollments__course if given, "
+                    "else their first course with this teacher) is at least this."
+                ),
+            ),
+            OpenApiParameter(
+                name="max_grade",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Only students whose grade is at most this.",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Sort by grade: `final_grade` (lowest first) or `-final_grade` (highest first).",
+            ),
         ],
         responses={200: StudentListSerializer(many=True)},
         tags=["Student Course"],
@@ -2241,7 +2304,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         methods=["GET"],
         url_path="my-students",
         serializer_class=StudentListSerializer,
-        filter_backends=[DjangoFilterBackend, filters.SearchFilter],
+        filter_backends=[DjangoFilterBackend, filters.SearchFilter, OrderingFilter],
         permission_classes=[IsTeacher],
     )
     def my_students(self, request):
