@@ -153,6 +153,13 @@ class ReasonCode(models.TextChoices):
     # ValueError (detail only, no reason_code); wired into the catalogue
     # alongside INSUFFICIENT_CREDITS and LICENCE_SEATS_EXCEEDED.
     OVERAGE_CAP_EXCEEDED = "OVERAGE_CAP_EXCEEDED", "Overage cap exceeded"
+    # The generic per-IP/per-user throttle (AnonRateThrottle/ScopedRateThrottle/
+    # UserRateThrottle, DRF's DEFAULT_THROTTLE_CLASSES and the named buckets in
+    # users/throttling.py + dashboard/throttling.py) raises a bare DRF
+    # `Throttled` with no reason code. The three NAMED sign-in locks
+    # (RESET_LOCKED/VERIFY_LOCKED/ACCOUNT_LOCKED) already have their own codes
+    # and keep taking priority; this is the catch-all for every other 429.
+    RATE_LIMITED = "RATE_LIMITED", "Rate limited"
 
     # QA catalogue additions (docs/phase2/qa/catalogue_additions_proposal.md,
     # approved as written by the founder acting as QA, 2026-09-30), built in
