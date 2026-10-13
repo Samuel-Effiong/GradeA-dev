@@ -2253,7 +2253,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         description=(
             "Retrieves a unique list of students enrolled in any course taught by the currently authenticated teacher. "
             "Supports filtering by specific course or session, filtering/sorting by grade performance, "
-            "and searching by name/email."
+            "filtering by at-risk status, and searching by name/email."
         ),
         parameters=[
             OpenApiParameter(
@@ -2288,6 +2288,15 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 type=OpenApiTypes.NUMBER,
                 location=OpenApiParameter.QUERY,
                 description="Only students whose grade is at most this.",
+            ),
+            OpenApiParameter(
+                name="at_risk",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Only students flagged at_risk (true) or not (false), per the "
+                    "same StudentRiskEvaluator the response's at_risk field uses."
+                ),
             ),
             OpenApiParameter(
                 name="ordering",

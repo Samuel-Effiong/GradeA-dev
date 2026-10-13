@@ -1266,6 +1266,11 @@ def _expected_assignments_q():
     uses, and the one StudentRiskEvaluator's own wording assumes ("no
     submitted work for assignments due so far"). Drafts were never shown to
     students, and published work that is not yet due is not missing.
+
+    students.serializers.StudentListSerializer._is_expected_by_now
+    reimplements this same condition in plain Python (it filters an
+    already-prefetched assignment cache instead of issuing a query) - keep
+    the two in sync.
     """
     return Q(status=AssignmentStatus.PUBLISHED) & (
         Q(due_date__isnull=True) | Q(due_date__lte=timezone.now())

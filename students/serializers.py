@@ -5,7 +5,9 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from assignments.models import AssignmentStatus
 from classrooms.models import enrollment_list_key
+from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
 
 from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
@@ -773,6 +775,7 @@ class StudentListSerializer(serializers.ModelSerializer):
     total_assignments_submitted = serializers.SerializerMethodField()
     percentage_of_submission = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
+    at_risk = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -787,6 +790,7 @@ class StudentListSerializer(serializers.ModelSerializer):
             "total_assignments_in_course",
             "total_assignments_submitted",
             "percentage_of_submission",
+            "at_risk",
         ]
 
     def get_email(self, obj):
@@ -896,3 +900,65 @@ class StudentListSerializer(serializers.ModelSerializer):
             return 0.0
         submitted = self.get_total_assignments_submitted(obj)
         return round((submitted / total) * 100, 2)
+
+    def _is_expected_by_now(self, assignment):
+        # Mirrors dashboard.views._expected_assignments_q as a plain Python
+        # check: here we're filtering an already-prefetched
+        # `course.assignments.all()` cache, not issuing a query. Keep the
+        # two definitions in sync if either changes.
+        return assignment.status == AssignmentStatus.PUBLISHED and (
+            assignment.due_date is None or assignment.due_date <= timezone.now()
+        )
+
+    def _risk_result(self, obj):
+        """StudentRiskEvaluator's verdict for this student's relevant
+        course, memoised per student (same reasoning as
+        `_get_relevant_course`: `at_risk` and any future risk-derived field
+        must not re-run this per field).
+        """
+        if not hasattr(self, "_risk_result_cache"):
+            self._risk_result_cache = {}
+        if obj.pk in self._risk_result_cache:
+            return self._risk_result_cache[obj.pk]
+
+        course = self._get_relevant_course(obj)
+        if course is None:
+            result = StudentRiskEvaluator().evaluate(
+                RiskInputs(expected_assignment_count=0, submitted_count=0)
+            )
+        else:
+            course_submissions = [
+                s for s in obj.submissions.all() if s.assignment.course_id == course.id
+            ]
+            graded_scores = [
+                (
+                    s.submission_date,
+                    float(s.score_percentage),
+                    s.score,
+                    (
+                        s.max_points
+                        if s.max_points is not None
+                        else s.assignment.total_points
+                    ),
+                )
+                for s in course_submissions
+                if s.score_percentage is not None
+            ]
+            expected_count = sum(
+                1
+                for assignment in course.assignments.all()
+                if self._is_expected_by_now(assignment)
+            )
+            result = StudentRiskEvaluator().evaluate(
+                RiskInputs(
+                    expected_assignment_count=expected_count,
+                    submitted_count=len(course_submissions),
+                    graded_scores=graded_scores,
+                )
+            )
+
+        self._risk_result_cache[obj.pk] = result
+        return result
+
+    def get_at_risk(self, obj) -> bool:
+        return self._risk_result(obj).at_risk
