@@ -90,7 +90,8 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
 
         self.assertEqual(ctx.exception.reason_code, ReasonCode.OVERAGE_CAP_EXCEEDED)
         self.assertEqual(ctx.exception.params, {"max_blocks": 3, "remaining": 1})
-        self.assertIn("overage limit", str(ctx.exception))
+        self.assertIn("Purchase limit exceeded", str(ctx.exception))
+        self.assertIn("1 block(s) left", str(ctx.exception))
         mock_session_create.assert_not_called()
 
     @patch("billing.stripe_service.StripeCustomerService.get_or_create_customer")
@@ -139,7 +140,8 @@ class PurchaseOverageViewCapTests(OverageCapTestBase):
         self.assertEqual(response.data["error_class"], "USER")
         self.assertFalse(response.data["retryable"])
         self.assertEqual(response.data["params"], {"max_blocks": 3, "remaining": 1})
-        self.assertIn("overage limit", response.data["error"])
+        self.assertIn("Purchase limit exceeded", response.data["error"])
+        self.assertIn("1 block(s) left", response.data["error"])
 
 
 class GrantTimeOverageCapTests(OverageCapTestBase):

@@ -267,8 +267,8 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.OVERAGE_CAP_EXCEEDED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,
-        "This purchase would exceed your plan's overage limit of "
-        "{max_blocks} block(s) per cycle ({remaining} remaining).",
+        "Purchase limit exceeded — you have {remaining} block(s) left this "
+        "cycle. Reduce your quantity to {remaining} or fewer to proceed.",
         "Request fewer blocks, or wait until your next billing cycle, then "
         "try again.",
         retryable=False,
