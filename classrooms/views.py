@@ -67,7 +67,6 @@ from . import services
 from .filters import MyStudentsFilter
 from .models import (  # , Classroom, ClassroomSettings
     COURSE_ACCESS_ENROLLMENT_STATUSES,
-    ENROLLMENT_LIST_ORDER,
     Course,
     CourseCategory,
     EnrollmentStatusType,
@@ -2109,10 +2108,6 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
-    # Only reached for `my_students`, the one action whose filter_backends
-    # includes OrderingFilter - but OrderingFilter.as_view() validation
-    # needs this attribute to already exist on the class.
-    ordering_fields = ["final_grade"]
 
     def get_queryset(self):
         user = self.request.user
@@ -2124,37 +2119,15 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     student=OuterRef("pk"),
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
 
-                # The grade a row's `final_grade` filter/ordering means: the
-                # same "relevant" enrollment StudentListSerializer resolves
-                # for display (course_id if given, else the H-196-ordered
-                # first enrollment through this teacher) - so what a teacher
-                # filters/sorts by is always the grade they're shown.
+                # `grade` is a cross-course aggregate now (every course this
+                # teacher teaches this student, not one "relevant"
+                # enrollment) - StudentListSerializer computes it in Python
+                # from the prefetched submissions below, so there is no
+                # longer a single DB column/annotation for min_grade,
+                # max_grade or ordering=final_grade to target. See
+                # `my_students` for how those three (and at_risk) are
+                # evaluated instead.
                 #
-                # `.GET`, not `.query_params`: this also runs when a test
-                # builds the view directly off a plain WSGIRequest (no DRF
-                # Request wrapper), which has no `query_params`.
-                relevant_course_id = self.request.GET.get("enrollments__course")
-                try:
-                    relevant_course_id = (
-                        uuid.UUID(relevant_course_id) if relevant_course_id else None
-                    )
-                except ValueError:
-                    # Malformed: leave the course-scoping to MyStudentsFilter,
-                    # which 400s it in filter_queryset. Resolving "the"
-                    # relevant course against junk input is not this
-                    # annotation's job.
-                    relevant_course_id = None
-                relevant_enrollment = StudentCourse.objects.filter(
-                    teacher_course_access_q(user, prefix="course__"),
-                    student=OuterRef("pk"),
-                )
-                if relevant_course_id:
-                    relevant_enrollment = relevant_enrollment.filter(
-                        course_id=relevant_course_id
-                    )
-                relevant_enrollment = relevant_enrollment.order_by(
-                    *ENROLLMENT_LIST_ORDER
-                ).values("final_grade")[:1]
                 # StudentListSerializer walks enrollments -> course ->
                 # teacher and assignments, and submissions -> assignment,
                 # for every row. Unprefetched that was ~140 queries PER
@@ -2168,32 +2141,28 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # holds: unscoped, `enrolled_courses` listed other teachers'
                 # course names, and `?enrollments__course=<their course>`
                 # made that foreign course the row's subject - its
-                # description, its teacher's name and the student's grade.
-                return (
-                    CustomUser.objects.filter(Exists(active_enrollment))
-                    .annotate(final_grade=Subquery(relevant_enrollment))
-                    .prefetch_related(
-                        Prefetch(
-                            "enrollments",
-                            queryset=StudentCourse.objects.filter(
-                                teacher_course_access_q(user, prefix="course__")
-                            )
-                            .select_related("course", "course__teacher")
-                            .prefetch_related("course__assignments"),
-                            # H-196: deliberately NOT ordered here. The order
-                            # is applied where a student's enrolments are read
-                            # (StudentListSerializer._enrollments); a second one
-                            # here no test could tell apart. Do not add it back.
-                        ),
-                        Prefetch(
-                            "submissions",
-                            queryset=StudentSubmission.objects.filter(
-                                teacher_course_access_q(
-                                    user, prefix="assignment__course__"
-                                )
-                            ).select_related("assignment"),
-                        ),
-                    )
+                # description and its teacher's name.
+                return CustomUser.objects.filter(
+                    Exists(active_enrollment)
+                ).prefetch_related(
+                    Prefetch(
+                        "enrollments",
+                        queryset=StudentCourse.objects.filter(
+                            teacher_course_access_q(user, prefix="course__")
+                        )
+                        .select_related("course", "course__teacher")
+                        .prefetch_related("course__assignments"),
+                        # H-196: deliberately NOT ordered here. The order
+                        # is applied where a student's enrolments are read
+                        # (StudentListSerializer._enrollments); a second one
+                        # here no test could tell apart. Do not add it back.
+                    ),
+                    Prefetch(
+                        "submissions",
+                        queryset=StudentSubmission.objects.filter(
+                            teacher_course_access_q(user, prefix="assignment__course__")
+                        ).select_related("assignment"),
+                    ),
                 )
             return CustomUser.objects.none()
 
@@ -2279,8 +2248,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 type=OpenApiTypes.NUMBER,
                 location=OpenApiParameter.QUERY,
                 description=(
-                    "Only students whose grade (enrollments__course if given, "
-                    "else their first course with this teacher) is at least this."
+                    "Only students whose grade (points-weighted across every "
+                    "course this teacher teaches them) is at least this."
                 ),
             ),
             OpenApiParameter(
@@ -2295,7 +2264,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 location=OpenApiParameter.QUERY,
                 description=(
                     "Only students flagged at_risk (true) or not (false), per the "
-                    "same StudentRiskEvaluator the response's at_risk field uses."
+                    "same StudentRiskEvaluator the response's at_risk field uses, "
+                    "evaluated across every course this teacher teaches them."
                 ),
             ),
             OpenApiParameter(
@@ -2313,7 +2283,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         methods=["GET"],
         url_path="my-students",
         serializer_class=StudentListSerializer,
-        filter_backends=[DjangoFilterBackend, filters.SearchFilter, OrderingFilter],
+        filter_backends=[DjangoFilterBackend, filters.SearchFilter],
         permission_classes=[IsTeacher],
     )
     def my_students(self, request):
@@ -2323,12 +2293,67 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         queryset = self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(queryset)
+        min_grade = request.query_params.get("min_grade")
+        max_grade = request.query_params.get("max_grade")
+        at_risk_param = request.query_params.get("at_risk")
+        ordering = request.query_params.get("ordering")
+        sort_by_grade = ordering in ("final_grade", "-final_grade")
+
+        # `grade` and `at_risk` are cross-course Python computations
+        # (StudentListSerializer), not DB columns - DjangoFilterBackend and
+        # OrderingFilter can't filter/sort by them. The common case (none
+        # of these four params given) stays a plain DB-paginated list;
+        # only when one is actually present do we pay to materialise and
+        # evaluate every matching student up front, the same tradeoff
+        # dashboard/views.py's `all_students` action already takes for its
+        # own at_risk filter.
+        if not (min_grade or max_grade or at_risk_param or sort_by_grade):
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+        # One serializer instance, reused across every student: its
+        # memoised _cross_course_grade/_cross_course_risk_result are the
+        # SAME computation the response's grade/at_risk fields show, so
+        # this filtering/sorting can never disagree with the rows it
+        # returns - and reusing it costs no extra queries (everything
+        # needed is already prefetched by get_queryset).
+        probe = StudentListSerializer(context={"request": request})
+        rows = [
+            (student, probe._cross_course_grade(student), probe.get_at_risk(student))
+            for student in queryset
+        ]
+
+        if min_grade is not None:
+            threshold = float(min_grade)
+            rows = [r for r in rows if r[1] is not None and r[1] >= threshold]
+        if max_grade is not None:
+            threshold = float(max_grade)
+            rows = [r for r in rows if r[1] is not None and r[1] <= threshold]
+        if at_risk_param is not None:
+            want = at_risk_param.lower() in ("1", "true")
+            rows = [r for r in rows if r[2] == want]
+        if sort_by_grade:
+            # Ungraded students sort last regardless of direction - "no
+            # grade yet" isn't lower or higher than a real one, so it's
+            # excluded from the reversible part of the sort entirely.
+            graded = sorted(
+                (r for r in rows if r[1] is not None),
+                key=lambda r: r[1],
+                reverse=ordering.startswith("-"),
+            )
+            ungraded = [r for r in rows if r[1] is None]
+            rows = graded + ungraded
+
+        students = [r[0] for r in rows]
+        page = self.paginate_queryset(students)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
 
 

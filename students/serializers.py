@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from assignments.models import AssignmentStatus
+from classrooms.final_grade import final_grade_from
 from classrooms.models import enrollment_list_key
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
@@ -768,7 +769,6 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
 class StudentListSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     enrolled_courses = serializers.SerializerMethodField()
-    course_description = serializers.SerializerMethodField()
     teacher = serializers.SerializerMethodField()
     grade = serializers.SerializerMethodField()
     total_assignments_in_course = serializers.SerializerMethodField()
@@ -784,7 +784,6 @@ class StudentListSerializer(serializers.ModelSerializer):
             "full_name",
             "email",
             "enrolled_courses",
-            "course_description",
             "teacher",
             "grade",
             "total_assignments_in_course",
@@ -848,11 +847,19 @@ class StudentListSerializer(serializers.ModelSerializer):
         return enrollments[0].course if enrollments else None
 
     def get_enrolled_courses(self, obj):
-        return [enrollment.course.name for enrollment in self._enrollments(obj)]
-
-    def get_course_description(self, obj):
-        course = self._get_relevant_course(obj)
-        return course.description if course else None
+        # One object per enrollment (id/name/description), not a bare name
+        # string - a consumer needs the id to act on it (e.g. pass it back
+        # as `?enrollments__course=<id>`), and `description` moved here
+        # since `course_description` named exactly one ambiguous "relevant"
+        # course with no way to know which one without the resolution rule.
+        return [
+            {
+                "id": enrollment.course.id,
+                "name": enrollment.course.name,
+                "description": enrollment.course.description,
+            }
+            for enrollment in self._enrollments(obj)
+        ]
 
     def get_teacher(self, obj):
         course = self._get_relevant_course(obj)
@@ -860,21 +867,67 @@ class StudentListSerializer(serializers.ModelSerializer):
             return f"{course.teacher.first_name} {course.teacher.last_name}"
         return None
 
-    def get_grade(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            enrollment = next(
-                (e for e in self._enrollments(obj) if e.course_id == course.id), None
+    def _teacher_course_ids(self, obj):
+        return {enrollment.course_id for enrollment in self._enrollments(obj)}
+
+    def _cross_course_submissions(self, obj):
+        """Every submission of this student's that falls under a course
+        this teacher teaches them - every one of `_enrollments(obj)`, not
+        just the one "relevant" course `course_description`/`teacher`
+        describe. `grade` and `at_risk` are person-level summaries now, so
+        both are built from this, not from one course's slice of it.
+        """
+        course_ids = self._teacher_course_ids(obj)
+        return [
+            submission
+            for submission in obj.submissions.all()
+            if submission.assignment.course_id in course_ids
+        ]
+
+    def _cross_course_grade(self, obj):
+        """The points-weighted grade across every course this teacher
+        teaches this student, memoised per student - the same
+        `final_grade_from` formula every other final-grade figure in the
+        codebase uses, just fed this student's FULL submission set instead
+        of one course's.
+        """
+        if not hasattr(self, "_cross_course_grade_cache"):
+            self._cross_course_grade_cache = {}
+        if obj.pk in self._cross_course_grade_cache:
+            return self._cross_course_grade_cache[obj.pk]
+
+        # Same row selection as classrooms.signals.compute_final_grade (the
+        # stored StudentCourse.final_grade this used to just read): graded
+        # and scored, keyed on `graded_at`/`score`, NOT `score_percentage` -
+        # a submission graded before that field existed/was backfilled
+        # still counts (H-33), same as the per-course figure always did.
+        scored = (
+            (
+                submission.score,
+                (
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
             )
-            if enrollment and enrollment.final_grade is not None:
-                grade_details = get_grade_details(enrollment.final_grade)
-                return {
-                    "letter_grade": grade_details["letter_grade"],
-                    "gpa": grade_details["gpa"],
-                    "remark": grade_details["remark"],
-                    "percentage": enrollment.final_grade,
-                }
-        return None
+            for submission in self._cross_course_submissions(obj)
+            if submission.graded_at is not None and submission.score is not None
+        )
+        grade = final_grade_from(scored)
+        self._cross_course_grade_cache[obj.pk] = grade
+        return grade
+
+    def get_grade(self, obj):
+        grade = self._cross_course_grade(obj)
+        if grade is None:
+            return None
+        grade_details = get_grade_details(grade)
+        return {
+            "letter_grade": grade_details["letter_grade"],
+            "gpa": grade_details["gpa"],
+            "remark": grade_details["remark"],
+            "percentage": grade,
+        }
 
     def get_total_assignments_in_course(self, obj):
         course = self._get_relevant_course(obj)
@@ -911,51 +964,47 @@ class StudentListSerializer(serializers.ModelSerializer):
         )
 
     def _risk_result(self, obj):
-        """StudentRiskEvaluator's verdict for this student's relevant
-        course, memoised per student (same reasoning as
+        """StudentRiskEvaluator's verdict across EVERY course this teacher
+        teaches this student, memoised per student (same reasoning as
         `_get_relevant_course`: `at_risk` and any future risk-derived field
-        must not re-run this per field).
+        must not re-run this per field). `grade` became a cross-course
+        summary, so at_risk follows the same basis rather than judging a
+        student's overall standing off whichever one course happened to be
+        "relevant".
         """
         if not hasattr(self, "_risk_result_cache"):
             self._risk_result_cache = {}
         if obj.pk in self._risk_result_cache:
             return self._risk_result_cache[obj.pk]
 
-        course = self._get_relevant_course(obj)
-        if course is None:
-            result = StudentRiskEvaluator().evaluate(
-                RiskInputs(expected_assignment_count=0, submitted_count=0)
-            )
-        else:
-            course_submissions = [
-                s for s in obj.submissions.all() if s.assignment.course_id == course.id
-            ]
-            graded_scores = [
+        submissions = self._cross_course_submissions(obj)
+        graded_scores = [
+            (
+                submission.submission_date,
+                float(submission.score_percentage),
+                submission.score,
                 (
-                    s.submission_date,
-                    float(s.score_percentage),
-                    s.score,
-                    (
-                        s.max_points
-                        if s.max_points is not None
-                        else s.assignment.total_points
-                    ),
-                )
-                for s in course_submissions
-                if s.score_percentage is not None
-            ]
-            expected_count = sum(
-                1
-                for assignment in course.assignments.all()
-                if self._is_expected_by_now(assignment)
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
             )
-            result = StudentRiskEvaluator().evaluate(
-                RiskInputs(
-                    expected_assignment_count=expected_count,
-                    submitted_count=len(course_submissions),
-                    graded_scores=graded_scores,
-                )
+            for submission in submissions
+            if submission.score_percentage is not None
+        ]
+        expected_count = sum(
+            1
+            for enrollment in self._enrollments(obj)
+            for assignment in enrollment.course.assignments.all()
+            if self._is_expected_by_now(assignment)
+        )
+        result = StudentRiskEvaluator().evaluate(
+            RiskInputs(
+                expected_assignment_count=expected_count,
+                submitted_count=len(submissions),
+                graded_scores=graded_scores,
             )
+        )
 
         self._risk_result_cache[obj.pk] = result
         return result

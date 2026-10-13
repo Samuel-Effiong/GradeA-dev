@@ -1,10 +1,11 @@
 """`my-students` grade filter/sort: `min_grade`, `max_grade` and
-`ordering=final_grade`/`-final_grade` against the `final_grade` annotation
-StudentCourseViewSet.get_queryset adds for this action - the same
-points-weighted figure (classrooms.final_grade.final_grade_from) the row's
-"grade" field already shows, scoped to `enrollments__course` when given,
-else the student's first course with this teacher (the same "relevant
-course" StudentListSerializer resolves)."""
+`ordering=final_grade`/`-final_grade` against `grade` - a points-weighted
+average (classrooms.final_grade.final_grade_from) across EVERY course this
+teacher teaches the student, not one "relevant" course. `enrollments__course`
+still picks which course `course_description`/`teacher` describe, but no
+longer scopes the grade itself - a teacher's filter/sort is always "how is
+this student doing with me overall," never just their first course.
+"""
 
 from decimal import Decimal
 
@@ -16,6 +17,7 @@ from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
 LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
@@ -49,12 +51,35 @@ class Builder:
             name=name or f"Course {n}", teacher=teacher, session=session
         )
 
-    def enrol_with_grade(self, student, course, final_grade):
-        return StudentCourse.objects.create(
+    def enrol_with_grade(self, student, course, grade):
+        """Enrol `student` in `course` and, unless `grade` is None, back it
+        with ONE 100-point assignment scored exactly `grade`% - so the
+        student's REAL submissions (not a hand-set StudentCourse column)
+        are what the production grade formula reads, same as any other
+        student. `grade` is a plain number/None, not a Decimal, so callers
+        read like the old API.
+        """
+        StudentCourse.objects.create(
             student=student,
             course=course,
             enrollment_status=EnrollmentStatusType.ENROLLED,
-            final_grade=Decimal(str(final_grade)) if final_grade is not None else None,
+        )
+        if grade is None:
+            return
+        assignment = Assignment.objects.create(
+            title=f"Assignment {self.uid()}",
+            course=course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=100,
+        )
+        StudentSubmission.objects.create(
+            assignment=assignment,
+            student=student,
+            answers={},
+            score=Decimal(str(grade)),
+            score_percentage=Decimal(str(grade)),
+            submission_date=timezone.now(),
+            graded_at=timezone.now(),
         )
 
 
@@ -146,21 +171,48 @@ class MyStudentsGradeFilterTest(Builder, APITestCase):
             [str(high.id), str(mid.id), str(low.id)],
         )
 
-    def test_grade_filter_respects_the_named_course_not_a_different_one(self):
-        # Same student, two of the teacher's courses, different grades.
-        # Naming course_a's grade must not pick up course_b's.
+    def test_ordering_puts_ungraded_students_last_in_either_direction(self):
+        graded = self.user(UserTypes.STUDENT, first="Graded")
+        ungraded = self.user(UserTypes.STUDENT, first="Ungraded")
+        self.enrol_with_grade(graded, self.course_a, 50)
+        self.enrol_with_grade(ungraded, self.course_a, None)
+
+        ascending = self._get(ordering="final_grade")
+        descending = self._get(ordering="-final_grade")
+
+        self.assertEqual(
+            [r["id"] for r in ascending.data["results"]],
+            [str(graded.id), str(ungraded.id)],
+        )
+        self.assertEqual(
+            [r["id"] for r in descending.data["results"]],
+            [str(graded.id), str(ungraded.id)],
+        )
+
+    def test_grade_is_a_cross_course_aggregate_not_scoped_by_enrollments_course(self):
+        # Same student, two of the teacher's courses, equally-weighted
+        # (100pt each) opposite scores. Combined, points-weighted: (90 +
+        # 20) / 2 = 55 - the SAME figure regardless of which course
+        # `enrollments__course` names, because grade is now a person-level
+        # summary, not that one course's slice of it.
         course_b = self.course(self.teacher, name="Course B")
         student = self.user(UserTypes.STUDENT, first="TwoCourses")
         self.enrol_with_grade(student, self.course_a, 90)
         self.enrol_with_grade(student, course_b, 20)
 
-        high_scoped = self._get(enrollments__course=str(self.course_a.id), min_grade=80)
-        low_scoped = self._get(enrollments__course=str(course_b.id), min_grade=80)
+        via_course_a = self._get(
+            enrollments__course=str(self.course_a.id), min_grade=50
+        )
+        via_course_b = self._get(enrollments__course=str(course_b.id), min_grade=50)
+        too_high = self._get(min_grade=60)
 
         self.assertEqual(
-            {r["id"] for r in high_scoped.data["results"]}, {str(student.id)}
+            {r["id"] for r in via_course_a.data["results"]}, {str(student.id)}
         )
-        self.assertEqual(low_scoped.data["results"], [])
+        self.assertEqual(
+            {r["id"] for r in via_course_b.data["results"]}, {str(student.id)}
+        )
+        self.assertEqual(too_high.data["results"], [])
 
     def test_another_teachers_grades_are_never_visible(self):
         other_teacher = self.user(UserTypes.TEACHER)
@@ -175,16 +227,35 @@ class MyStudentsGradeFilterTest(Builder, APITestCase):
         ids = {r["id"] for r in response.data["results"]}
         self.assertEqual(ids, {str(mine.id)})
 
+    def test_another_teachers_courses_with_the_same_student_never_leak_into_the_grade(
+        self,
+    ):
+        # A student shared with another teacher: that OTHER teacher's
+        # course/submissions for this student must not be pulled into THIS
+        # teacher's view of the student's grade - `_enrollments(obj)` is
+        # already scoped to `teacher_course_access_q`, this just proves the
+        # cross-course widening didn't quietly drop that scoping.
+        other_teacher = self.user(UserTypes.TEACHER)
+        other_course = self.course(other_teacher, name="Other Teacher's Course")
+        student = self.user(UserTypes.STUDENT, first="Shared")
+        self.enrol_with_grade(student, self.course_a, 90)
+        self.enrol_with_grade(student, other_course, 10)
+
+        response = self._get(min_grade=80)
+
+        ids = {r["id"] for r in response.data["results"]}
+        self.assertEqual(ids, {str(student.id)})
+        self.assertEqual(
+            self._row(response, student)["grade"]["percentage"], Decimal("90.00")
+        )
+
     def test_grade_reflects_points_weighted_submissions_not_a_plain_mean(self):
         # A 5-point quiz at 100% and a 100-point exam at 60%: weighted,
         # the exam dominates - (5 + 60) / (5 + 100) * 100 ~= 61.90, not the
-        # plain-mean 80%. Proves the row's filterable grade is final_grade
-        # (auto-recomputed by classrooms.signals), not a separately
-        # computed average.
-        from students.models import StudentSubmission
-
+        # plain-mean 80%. Proves the row's filterable grade is
+        # final_grade_from, not a separately computed average.
         student = self.user(UserTypes.STUDENT, first="Weighted")
-        enrollment = StudentCourse.objects.create(
+        StudentCourse.objects.create(
             student=student,
             course=self.course_a,
             enrollment_status=EnrollmentStatusType.ENROLLED,
@@ -217,12 +288,10 @@ class MyStudentsGradeFilterTest(Builder, APITestCase):
             score_percentage=60,
             graded_at=timezone.now(),
         )
-        enrollment.refresh_from_db()
 
         response = self._get(min_grade=61, max_grade=63)
 
         ids = {r["id"] for r in response.data["results"]}
         self.assertEqual(ids, {str(student.id)})
-        self.assertIsNotNone(enrollment.final_grade)
-        assert enrollment.final_grade is not None
-        self.assertAlmostEqual(float(enrollment.final_grade), 61.90, places=1)
+        percentage = self._row(response, student)["grade"]["percentage"]
+        self.assertAlmostEqual(float(percentage), 61.90, places=1)
