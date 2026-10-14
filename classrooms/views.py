@@ -122,6 +122,30 @@ def _validate_uuid_query_param(value, param_name):
         ) from exc
 
 
+def _grade_query_param(request, param_name):
+    """A 0-100 grade filter from the query string, or None if not given.
+
+    A bare float() turned `?min_grade=abc`, or an empty `?min_grade=` beside
+    another filter, into an unhandled 500, and `nan` passed it and silently
+    matched nothing (H-231). Absent or empty means not given, as
+    dashboard's `_percentage_param` reads its thresholds; anything else that
+    is not a number from 0 to 100 is the caller's 400, naming the parameter.
+    """
+    value = request.query_params.get(param_name)
+    if value in (None, ""):
+        return None
+    try:
+        grade = float(value)
+    except ValueError:
+        grade = None
+    # `grade != grade` is NaN, which every comparison silently fails.
+    if grade is None or grade != grade or not 0 <= grade <= 100:
+        raise ValidationError(
+            {param_name: [f"{value!r} is not a number between 0 and 100."]}
+        )
+    return grade
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=["School"],
@@ -1066,7 +1090,19 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return Response({"detail": "School not found."}, status=404)
 
         # Number of months to look back
-        months = int(request.query_params.get("months", 12))
+        # Absent or empty is the default; a value that is not a whole number
+        # is the caller's 400 (a bare int() made it a 500, H-231). A whole
+        # number out of range still falls back to the default.
+        months_param = request.query_params.get("months")
+        if months_param in (None, ""):
+            months = 12
+        else:
+            try:
+                months = int(months_param)
+            except ValueError:
+                raise ValidationError(
+                    {"months": [f"{months_param!r} is not a whole number."]}
+                ) from None
         if months < 1 or months > 36:
             months = 12
 
@@ -2299,8 +2335,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         queryset = self.filter_queryset(self.get_queryset())
 
-        min_grade = request.query_params.get("min_grade")
-        max_grade = request.query_params.get("max_grade")
+        min_grade = _grade_query_param(request, "min_grade")
+        max_grade = _grade_query_param(request, "max_grade")
         at_risk_param = request.query_params.get("at_risk")
         ordering = request.query_params.get("ordering")
         sort_by_grade = ordering in ("final_grade", "-final_grade")
@@ -2313,7 +2349,14 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # evaluate every matching student up front, the same tradeoff
         # dashboard/views.py's `all_students` action already takes for its
         # own at_risk filter.
-        if not (min_grade or max_grade or at_risk_param or sort_by_grade):
+        # `is not None`: a grade of 0 is a filter (it leaves out the
+        # ungraded), not "no filter".
+        if not (
+            min_grade is not None
+            or max_grade is not None
+            or at_risk_param
+            or sort_by_grade
+        ):
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
@@ -2334,11 +2377,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         ]
 
         if min_grade is not None:
-            threshold = float(min_grade)
-            rows = [r for r in rows if r[1] is not None and r[1] >= threshold]
+            rows = [r for r in rows if r[1] is not None and r[1] >= min_grade]
         if max_grade is not None:
-            threshold = float(max_grade)
-            rows = [r for r in rows if r[1] is not None and r[1] <= threshold]
+            rows = [r for r in rows if r[1] is not None and r[1] <= max_grade]
         if at_risk_param is not None:
             want = at_risk_param.lower() in ("1", "true")
             rows = [r for r in rows if r[2] == want]
