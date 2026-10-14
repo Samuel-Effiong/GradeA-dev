@@ -52,7 +52,11 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
-from assignments.upload_door import upload_refusal_if_unaffordable
+from assignments.upload_door import (
+    batch_refusal_response,
+    parked_files,
+    upload_refusal_if_unaffordable,
+)
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -1401,14 +1405,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-        # H-180: before the session or any task exists. A file too large to
-        # read counts as "cannot say" for the door (it is that file's own item
-        # below, FR-A-07), so the door never refuses a batch for it.
-        refusal = upload_refusal_if_unaffordable(
-            request.user, assignment, files, prompt
-        )
-        if refusal is not None:
-            return refusal
+        # H-180 / H-223: before the session or any task exists, the door
+        # walks the files with a running balance. A file that does not fit
+        # is parked as its own item below; only when no file fits is the
+        # batch refused. A file too large to read counts as "cannot say"
+        # (it is that file's own item below, FR-A-07).
+        parked = parked_files(request.user, assignment, files, prompt)
+        if parked and len(parked) == len(files):
+            return batch_refusal_response()
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
@@ -1431,6 +1435,26 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     requested_by=request.user,
                     task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
                     error=exc,
+                    batch_session=session,
+                    assignment=assignment,
+                    file_name=uploaded_file.name,
+                    item_index=item_index,
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": refused.id,
+                    }
+                )
+                continue
+
+            if item_index - 1 in parked:
+                # H-223: parked, its own item; uploaded again after a top-up.
+                refused = record_refused_item(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                    error=parked[item_index - 1],
                     batch_session=session,
                     assignment=assignment,
                     file_name=uploaded_file.name,
