@@ -469,7 +469,7 @@ class ARowMadeBeforeTheColumnsExistedTest(TransactionTestCase):
                     "answers_recheck_model = 'x/model' WHERE id = %%s" % TABLE,
                     [old.pk],
                 )
-        self._migrate(AT_0034)
+        apps_0034 = self._migrate(AT_0034)
         self.assertIs(_constraint_validated(), True)
 
         with connection.cursor() as cursor:
@@ -479,7 +479,12 @@ class ARowMadeBeforeTheColumnsExistedTest(TransactionTestCase):
                 [old.pk],
             )
             self.assertEqual(cursor.fetchone(), (UNLABELLED,) * 6)
-        fresh = StudentSubmission.objects.get(pk=old.pk)
+        # The 0034 model, not the current one: the day 0035 adds a field,
+        # the current model would name a column this state does not have
+        # (as slice C's 0031 pin did once 0032 existed).
+        fresh = apps_0034.get_model("students", "StudentSubmission").objects.get(
+            pk=old.pk
+        )
         self.assertEqual(fresh.answers, [{"question_number": 1}])
 
         # Reversing the validation does nothing; reversing 0033 drops the

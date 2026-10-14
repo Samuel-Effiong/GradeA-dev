@@ -111,15 +111,32 @@ def in_order(*outs):
     return Provider(lambda n, request: outs[min(n, len(outs)) - 1])
 
 
-def read(provider, content=None, *, user=SUPER, questions=QUESTIONS, **kwargs):
-    """The real extraction. Returns (result, the run it was handed)."""
+def read(
+    provider,
+    content=None,
+    *,
+    user=SUPER,
+    questions=QUESTIONS,
+    assignment=None,
+    **kwargs,
+):
+    """The real extraction. Returns (result, the run it was handed).
+
+    A stand-in assignment carries only the questions, which is all an
+    unmetered reader needs. A METERED reader (a teacher) must pass a real
+    `assignment`: execute_graded_task records the usage against
+    `assignment.course` after the call."""
     run = ReadingRun()
     with patch.object(services.ai_processor, "client", provider.client):
         result = services.ai_processor.extract_answer_with_retry(
             user,
             content if content is not None else [TEXT],
             "ctx",
-            assignment_model=SimpleNamespace(questions=questions),
+            assignment_model=(
+                assignment
+                if assignment is not None
+                else SimpleNamespace(questions=questions)
+            ),
             reading_run=run,
             **kwargs,
         )
@@ -516,8 +533,20 @@ class TheRecheckAfterThePaymentTest(TestCase):
 
     def setUp(self):
         from ai_processor.tests_real_chunked_extraction import make_teacher_with_credits
+        from assignments.models import Assignment
+        from classrooms.models import Course, Session
 
         self.teacher = make_teacher_with_credits("reading-recheck@example.com")
+        # A real assignment of the teacher's own course: the reading is
+        # metered, and execute_graded_task records the usage against
+        # assignment.course after each call. A stand-in without a course
+        # died there (AttributeError), so neither test reached its claim
+        # (the slice 2 gate's step 1, 15:50 WAT on e4f3f0d7).
+        session = Session.objects.create(name="S", teacher=self.teacher)
+        course = Course.objects.create(name="C", teacher=self.teacher, session=session)
+        self.assignment = Assignment.objects.create(
+            title="A", course=course, questions=QUESTIONS
+        )
         patcher = patch.object(
             services.AIProcessor, "estimate_total_token", return_value=10
         )
@@ -540,7 +569,9 @@ class TheRecheckAfterThePaymentTest(TestCase):
             reply(BLANK_FIRST, "read/model"), reply(findings(), "check/model")
         )
         with patch.object(CreditWallet, "consume_credits", consume):
-            result, run = read(provider, [TEXT, IMAGE], user=self.teacher)
+            result, run = read(
+                provider, [TEXT, IMAGE], user=self.teacher, assignment=self.assignment
+            )
         self.assertEqual(len(provider.requests), 2)
         fields = label(result, run)
         self.assertEqual(fields["answers_recheck_result"], "failed")
@@ -563,7 +594,9 @@ class TheRecheckAfterThePaymentTest(TestCase):
 
         provider = in_order(reply(BLANK_FIRST, "read/model"))
         with patch.object(services, "can_user_access_ai", access):
-            result, run = read(provider, [TEXT, IMAGE], user=self.teacher)
+            result, run = read(
+                provider, [TEXT, IMAGE], user=self.teacher, assignment=self.assignment
+            )
         self.assertEqual(len(asked), 2)
         self.assertEqual(len(provider.requests), 1)
         fields = label(result, run)
