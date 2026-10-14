@@ -39,7 +39,7 @@ from rest_framework.response import Response
 
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import Assignment, AssignmentStatus, expected_q
 from assignments.services import get_student_assignment_status
 from AutoGrader.cache_generation import (
     SCOPE_ANY_SCHOOL,
@@ -1273,9 +1273,7 @@ def _expected_assignments_q():
     already-prefetched assignment cache instead of issuing a query) - keep
     the two in sync.
     """
-    return Q(status=AssignmentStatus.PUBLISHED) & (
-        Q(due_date__isnull=True) | Q(due_date__lte=timezone.now())
-    )
+    return expected_q()
 
 
 def _count_by(queryset, key):
@@ -1417,7 +1415,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         cache_key = versioned_key(
             f"schooladmins:user_id__{user.id}:view__summary"
-            f":session__{session.id if session else 'all'}",
+            f":session__{session.id if session else 'all'}:risk1",
             [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
         )
         data = cache.get(cache_key)
@@ -3033,7 +3031,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         teacher = request.user
         cache_key = versioned_key(
             f"teacheradmins:user_id__{teacher.id}"
-            f":instance__id__{session_id}:view__overview",
+            f":instance__id__{session_id}:view__overview:risk1",
             [(SCOPE_USER, teacher.id)],
         )
         data = cache.get(cache_key)
@@ -3209,11 +3207,14 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                             student__submissions__assignment__course=F("course_id")
                         ),
                     ),
-                    submitted_count_val=Count(
+                    # H-237: the risk rate counts only submissions to
+                    # published work that is due (expected_q).
+                    risk_submitted_val=Count(
                         "student__submissions",
                         filter=Q(
                             student__submissions__assignment__course=F("course_id")
-                        ),
+                        )
+                        & expected_q("student__submissions__assignment__"),
                     ),
                 )
                 .prefetch_related(
@@ -3250,7 +3251,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     if s.assignment.course_id == course.id
                 ]
 
-                submitted_count = enrollment.submitted_count_val
                 course_total_assigned = course_totals.get(course.id, 0)
 
                 graded = [
@@ -3273,7 +3273,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=course_total_assigned,
-                        submitted_count=submitted_count,
+                        submitted_count=enrollment.risk_submitted_val,
                         graded_scores=dated_scores,
                     )
                 )
@@ -3599,7 +3599,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         page_size = request.query_params.get(paginator.page_size_query_param, "")
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}"
-            f":view__students:{page_number}:{page_size}",
+            f":view__students:{page_number}:{page_size}:risk1",
             # `usr` alone - same reasoning as view__courses above.
             [(SCOPE_USER, request.user.id)],
         )
@@ -3636,6 +3636,14 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     submitted_count_val=Count(
                         "student__submissions",
                         filter=Q(student__submissions__assignment__course=course),
+                    ),
+                    # H-237: the risk rate counts only submissions to
+                    # published work that is due (expected_q); the shown
+                    # count above keeps every submission.
+                    risk_submitted_val=Count(
+                        "student__submissions",
+                        filter=Q(student__submissions__assignment__course=course)
+                        & expected_q("student__submissions__assignment__"),
                     ),
                 )
                 .prefetch_related(
@@ -3693,7 +3701,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=expected_assignment_count,
-                        submitted_count=submitted_count,
+                        submitted_count=enrollment.risk_submitted_val,
                         graded_scores=dated_scores,
                     )
                 )
@@ -3836,7 +3844,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         cache_key = versioned_key(
             f"teacheradmins:user_id__{teacher.id}:instance_id__{session_id}"
             f":view__all_students:{course_id}:{student_id}:{at_risk_filter}"
-            f":{page_number}:{page_size}",
+            f":{page_number}:{page_size}:risk1",
             [(SCOPE_USER, teacher.id)],
         )
         data = cache.get(cache_key)
@@ -3880,6 +3888,16 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                             student__submissions__assignment__course=F("course_id")
                         ),
                     ),
+                    # H-237: the risk rate counts only submissions to
+                    # published work that is due (expected_q); the shown
+                    # count above keeps every submission.
+                    risk_submitted_val=Count(
+                        "student__submissions",
+                        filter=Q(
+                            student__submissions__assignment__course=F("course_id")
+                        )
+                        & expected_q("student__submissions__assignment__"),
+                    ),
                 )
                 .prefetch_related(
                     Prefetch(
@@ -3919,7 +3937,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=expected_by_course.get(course.id, 0),
-                        submitted_count=enrollment.submitted_count_val,
+                        submitted_count=enrollment.risk_submitted_val,
                         graded_scores=dated_scores,
                     )
                 )

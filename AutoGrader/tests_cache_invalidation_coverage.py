@@ -80,7 +80,7 @@ FAMILIES = {
     "superadmins:user_id__<>:view__teachers:<>:<>": ("SCOPE_ANY_USER",),
     "superadmins:user_id__<>:view__students": ("SCOPE_GLOBAL",),
     # dashboard/views.py - school admin (23-25)
-    "schooladmins:user_id__<>:view__summary:session__<>": (
+    "schooladmins:user_id__<>:view__summary:session__<>:risk1": (
         "SCOPE_USER",
         "SCOPE_SCHOOL",
     ),
@@ -104,12 +104,16 @@ FAMILIES = {
         "SCOPE_SCHOOL",
     ),
     "dashboards:school_id__<>:view__department_overview:session__<>": ("SCOPE_SCHOOL",),
-    # Teacher dashboards, families 26-29.
-    "teacheradmins:user_id__<>:instance__id__<>:view__overview": ("SCOPE_USER",),
+    # Teacher dashboards, families 26-29. ":risk1" (H-237): the keys of the
+    # responses that carry an at_risk answer gained a version token, so an
+    # answer cached under the old at-risk rule is not served after deploy.
+    "teacheradmins:user_id__<>:instance__id__<>:view__overview:risk1": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__assignments": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__all_students:<>:<>:<>:<>:<>": (
+    "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>:risk1": (
+        "SCOPE_USER",
+    ),
+    "teacheradmins:user_id__<>:instance_id__<>:view__all_students:<>:<>:<>:<>:<>:risk1": (
         "SCOPE_USER",
     ),
     # dashboard/views.py - student (G2, and status-summary: H-1 step 4)

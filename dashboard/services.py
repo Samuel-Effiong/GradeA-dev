@@ -18,7 +18,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import Assignment, AssignmentStatus, expected_q, is_expected
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -1236,12 +1236,14 @@ class TeacherAIContextService:
         # the at-risk dashboards: published, and either undated or due.
         due_by_course = defaultdict(int)
         published_by_course = defaultdict(int)
+        due_ids = set()
         for assignment in assignments:
             if assignment["status"] != AssignmentStatus.PUBLISHED:
                 continue
             published_by_course[assignment["course_id"]] += 1
-            if assignment["due_date"] is None or assignment["due_date"] <= now:
+            if is_expected(assignment["status"], assignment["due_date"], now):
                 due_by_course[assignment["course_id"]] += 1
+                due_ids.add(assignment["id"])
 
         submitted_ids = defaultdict(set)
         dated_scores = defaultdict(list)
@@ -1273,7 +1275,9 @@ class TeacherAIContextService:
             result = self.risk_evaluator.evaluate(
                 RiskInputs(
                     expected_assignment_count=due_by_course[enrolment["course_id"]],
-                    submitted_count=len(submitted_ids[key]),
+                    # H-237: only submissions to work that is due count
+                    # toward the rate; "submitted" below shows them all.
+                    submitted_count=len(submitted_ids[key] & due_ids),
                     graded_scores=dated_scores[key],
                 )
             )
@@ -1572,18 +1576,18 @@ class SchoolAdminWeeklySummaryService:
             for course_id in course_ids
         }
 
-        due_assignment_counts = {
-            row["course_id"]: row["count"]
-            for row in (
-                Assignment.objects.filter(
-                    course_id__in=all_course_ids,
-                    status=AssignmentStatus.PUBLISHED,
-                )
-                .filter(Q(due_date__isnull=True) | Q(due_date__lte=timezone.now()))
-                .values("course_id")
-                .annotate(count=Count("id"))
-            )
-        }
+        # The work due by now (the shared expected_q), one row each: the
+        # per-course counts and, for H-237, the ids a submission must be to
+        # for it to count toward the rate. Still one query.
+        due_assignment_counts: dict[UUID, int] = defaultdict(int)
+        due_assignment_ids = set()
+        for assignment_id, course_id in (
+            Assignment.objects.filter(course_id__in=all_course_ids)
+            .filter(expected_q())
+            .values_list("id", "course_id")
+        ):
+            due_assignment_counts[course_id] += 1
+            due_assignment_ids.add(assignment_id)
 
         submissions_by_student = defaultdict(list)
         submissions = (
@@ -1618,7 +1622,11 @@ class SchoolAdminWeeklySummaryService:
                 for row in submissions_by_student.get(student_id, [])
                 if row[1] in student_course_ids
             ]
-            submitted_count = len({row[0] for row in student_submissions})
+            # H-237: only submissions to work that is due count toward the
+            # rate, so an early submission cannot hide a missed one.
+            submitted_count = len(
+                {row[0] for row in student_submissions if row[0] in due_assignment_ids}
+            )
             # Only published, graded submissions count toward the average
             # shown to school admins (matches the prior school-wide behavior).
             graded_scores = [

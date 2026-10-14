@@ -6,7 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from assignments.models import AssignmentStatus
+from assignments.models import is_expected_by_now, is_published
 from classrooms.final_grade import final_grade_from
 from classrooms.models import enrollment_list_key, grade_basis_enrollments
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
@@ -986,19 +986,17 @@ class StudentListSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _is_published(assignment):
-        """Published, as the counts (H-235) and `_is_expected_by_now` both
-        mean it: DRAFT and UNPUBLISHED work was never, or is no longer,
-        shown to students."""
-        return assignment.status == AssignmentStatus.PUBLISHED
+        """Published, as the counts (H-235) mean it: the shared definition
+        (assignments.models.is_published)."""
+        return is_published(assignment)
 
-    def _is_expected_by_now(self, assignment):
-        # Mirrors dashboard.views._expected_assignments_q as a plain Python
-        # check: here we're filtering an already-prefetched
-        # `course.assignments.all()` cache, not issuing a query. Keep the
-        # two definitions in sync if either changes.
-        return self._is_published(assignment) and (
-            assignment.due_date is None or assignment.due_date <= timezone.now()
-        )
+    @staticmethod
+    def _is_expected_by_now(assignment):
+        """Published and due: the shared definition
+        (assignments.models.is_expected_by_now), which the dashboards' query
+        form (expected_q) also follows. It filters the prefetched
+        `course.assignments.all()` cache, not a query."""
+        return is_expected_by_now(assignment)
 
     def _risk_result(self, obj):
         """StudentRiskEvaluator's verdict across EVERY course this teacher
@@ -1038,7 +1036,13 @@ class StudentListSerializer(serializers.ModelSerializer):
         result = StudentRiskEvaluator().evaluate(
             RiskInputs(
                 expected_assignment_count=expected_count,
-                submitted_count=len(submissions),
+                # H-237: only submissions to work that is due count toward
+                # the rate, so an early submission cannot hide a missed one.
+                submitted_count=sum(
+                    1
+                    for submission in submissions
+                    if self._is_expected_by_now(submission.assignment)
+                ),
                 graded_scores=graded_scores,
             )
         )
