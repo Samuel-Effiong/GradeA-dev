@@ -956,21 +956,25 @@ class StudentListSerializer(serializers.ModelSerializer):
 
     def get_total_assignments_in_course(self, obj):
         # H-234: over the same enrolments as `grade` and `at_risk`, not the
-        # one "relevant" course. Every assignment of each counted course
-        # (today's meaning; H-235 takes the definition to the user). len() of
-        # the prefetch cache, not .count(), which would issue a fresh COUNT.
+        # one "relevant" course. H-235 (the user's rule): published
+        # assignments only, due or not; drafts and unpublished ones are out.
+        # Read from the prefetch cache, not a fresh query per student.
         return sum(
-            len(enrollment.course.assignments.all())
+            1
             for enrollment in self._counted_enrollments(obj)
+            for assignment in enrollment.course.assignments.all()
+            if self._is_published(assignment)
         )
 
     def get_total_assignments_submitted(self, obj):
-        # H-234: the student's submissions in the counted courses.
+        # H-234: the student's submissions in the counted courses; H-235:
+        # to the published assignments the total counts.
         course_ids = self._teacher_course_ids(obj)
         return sum(
             1
             for submission in obj.submissions.all()
             if submission.assignment.course_id in course_ids
+            and self._is_published(submission.assignment)
         )
 
     def get_percentage_of_submission(self, obj):
@@ -980,12 +984,19 @@ class StudentListSerializer(serializers.ModelSerializer):
         submitted = self.get_total_assignments_submitted(obj)
         return round((submitted / total) * 100, 2)
 
+    @staticmethod
+    def _is_published(assignment):
+        """Published, as the counts (H-235) and `_is_expected_by_now` both
+        mean it: DRAFT and UNPUBLISHED work was never, or is no longer,
+        shown to students."""
+        return assignment.status == AssignmentStatus.PUBLISHED
+
     def _is_expected_by_now(self, assignment):
         # Mirrors dashboard.views._expected_assignments_q as a plain Python
         # check: here we're filtering an already-prefetched
         # `course.assignments.all()` cache, not issuing a query. Keep the
         # two definitions in sync if either changes.
-        return assignment.status == AssignmentStatus.PUBLISHED and (
+        return self._is_published(assignment) and (
             assignment.due_date is None or assignment.due_date <= timezone.now()
         )
 
