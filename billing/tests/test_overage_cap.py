@@ -21,6 +21,12 @@ Run with:
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from audit.enums import ReasonCode
+from AutoGrader.reason_codes import CodedError
 from billing.models import CreditBucketType, CreditWallet, PlanType
 from billing.stripe_service import StripeOverageService, StripeWebhookHandler
 from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
@@ -77,12 +83,15 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
     ):
         self._set_blocks_used(2)  # 1 block remaining of 3
 
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(CodedError) as ctx:
             StripeOverageService.create_overage_checkout_session(
                 self.teacher, "https://ok", "https://cancel", quantity=2
             )
 
-        self.assertIn("overage limit", str(ctx.exception))
+        self.assertEqual(ctx.exception.reason_code, ReasonCode.OVERAGE_CAP_EXCEEDED)
+        self.assertEqual(ctx.exception.params, {"max_blocks": 3, "remaining": 1})
+        self.assertIn("Purchase limit exceeded", str(ctx.exception))
+        self.assertIn("1 block(s) left", str(ctx.exception))
         mock_session_create.assert_not_called()
 
     @patch("billing.stripe_service.StripeCustomerService.get_or_create_customer")
@@ -92,12 +101,47 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
     ):
         self._set_blocks_used(3)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CodedError) as ctx:
             StripeOverageService.create_overage_checkout_session(
                 self.teacher, "https://ok", "https://cancel", quantity=1
             )
 
+        self.assertEqual(ctx.exception.reason_code, ReasonCode.OVERAGE_CAP_EXCEEDED)
+        self.assertEqual(ctx.exception.params, {"max_blocks": 3, "remaining": 0})
         mock_session_create.assert_not_called()
+
+
+class PurchaseOverageViewCapTests(OverageCapTestBase):
+    """The envelope `purchase_overage` (billing/views.py) answers when the
+    cap check refuses the request: the same coded body every other
+    reason-code refusal gets, not a bare `{"detail": ...}`."""
+
+    def setUp(self):
+        super().setUp()
+        self.client: APIClient = APIClient()
+        self.client.force_authenticate(user=self.teacher)
+        self.url = reverse("subscription-purchase-overage")
+
+    def test_exceeding_the_cap_answers_the_coded_envelope(self):
+        self._set_blocks_used(2)  # 1 block remaining of 3
+
+        response = self.client.post(
+            self.url,
+            {
+                "success_url": "https://example.com/ok",
+                "cancel_url": "https://example.com/cancel",
+                "quantity": 2,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["reason_code"], "OVERAGE_CAP_EXCEEDED")
+        self.assertEqual(response.data["error_class"], "USER")
+        self.assertFalse(response.data["retryable"])
+        self.assertEqual(response.data["params"], {"max_blocks": 3, "remaining": 1})
+        self.assertIn("Purchase limit exceeded", response.data["error"])
+        self.assertIn("1 block(s) left", response.data["error"])
 
 
 class GrantTimeOverageCapTests(OverageCapTestBase):

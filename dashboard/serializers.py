@@ -324,6 +324,32 @@ class PaginatedTeacherStudentAnalyticsSerializer(serializers.Serializer):
     results = TeacherStudentAnalyticsSerializer(many=True)
 
 
+class TeacherAllStudentsRowSerializer(serializers.Serializer):
+    """Serializer for one row of the cross-course "All Students" list, with
+    its optional "at risk only" filter."""
+
+    student_id = serializers.UUIDField(read_only=True)
+    student_name = serializers.CharField(read_only=True)
+    course_id = serializers.UUIDField(read_only=True)
+    course_name = serializers.CharField(read_only=True)
+    assignment_submitted = serializers.IntegerField(read_only=True)
+    assignment_assigned = serializers.IntegerField(read_only=True)
+    average_grade = serializers.FloatField(read_only=True, allow_null=True)
+    grade_trend = serializers.CharField(read_only=True)
+    at_risk = serializers.BooleanField(read_only=True)
+
+
+class PaginatedTeacherAllStudentsSerializer(serializers.Serializer):
+    """Schema-only: the StandardPageNumberPagination envelope the teacher
+    `all_students` endpoint returns. Declared by hand for the same reason as
+    PaginatedTeacherStudentAnalyticsSerializer above."""
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = TeacherAllStudentsRowSerializer(many=True)
+
+
 class SignupTotalsSerializer(serializers.Serializer):
     """Serializer for total signup counts by user type"""
 
