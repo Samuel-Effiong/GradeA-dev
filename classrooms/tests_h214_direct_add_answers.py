@@ -84,7 +84,14 @@ class DirectAddAnswersTests(APITestCase):
         response = self.direct(account.email, first="Other")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("already enrolled", str(response.data))
+        # The serializer's create() raises ValidationError(<sentence>), which
+        # DRF answers as a one-item list. The exact sentence, read from that
+        # item: "already enrolled" alone also matches the duplicate-name
+        # refusal in validate().
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            str(response.data[0]), "Student is already enrolled in this course."
+        )
         self.assertEqual(
             StudentCourse.objects.filter(student=account, course=self.course).count(),
             1,

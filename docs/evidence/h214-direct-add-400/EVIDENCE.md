@@ -34,3 +34,11 @@ No payload-shape change (rule 20 not touched: the success answer is the same).
 ## Base update onto beta fafed57f (after the Phase 2 promotion)
 
 The branch took beta fafed57f by a clean merge (no conflicts). H-203's route test `classrooms/tests_h203_admin_power_routes.py` accepted 400 or 500 for the direct add; it now accepts only 400 (`DIRECT_REFUSALS`), the same row's change. Hand-checked: the refusals on that route are `serializers.ValidationError`, which H-214 lets through as 400. `classrooms.tests_h203_admin_power_routes` is in the gate list. pre-commit over the three touched files: all hooks passed.
+
+## The reason assertion read from its field (Builder 58, 2026-10-14, SM's order; base beta 913f248f via a6's update 38312a61)
+
+`test_an_already_enrolled_student_is_a_400_with_the_reason` searched `str(response.data)` for "already enrolled". That substring also matches the duplicate-name refusal in `DirectAddStudentSerializer.validate` (classrooms/serializers.py ~701: "A student with the exact name ... is already enrolled in this course."), so the test could not tell the two refusals apart. On this path `create()` raises `serializers.ValidationError("Student is already enrolled in this course.")` and DRF answers it as a one-item LIST. The test now asserts `len(response.data) == 1` (non-empty, one sentence) and then `str(response.data[0]) == "Student is already enrolled in this course."`. Nothing else changed.
+
+Written reasons (before any run):
+- Base 913f248f (views.py unfixed): the test is still RED at its status line, fragment `500 != 400` (unchanged).
+- New mutant M4 (classrooms/serializers.py ~731): the create() sentence replaced by the duplicate-name form `f"A student with the exact name {email!r} is already enrolled in this course."`. Killed by this test ONLY, fragment `!= 'Student is already enrolled in this course.'` inside its own FAIL block. The old substring assertion passed M4. Every other test in the gate list stays green (none reads this sentence: grep `Student is already enrolled` over the tests at the tip).
