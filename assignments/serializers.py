@@ -6,7 +6,13 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    StudentCourse,
+    Topic,
+    teacher_can_reach_course,
+)
 from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
 from users.models import UserTypes
@@ -479,9 +485,14 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(StudentSubmissionStatusSerializer(many=True))
     def get_student_submissions(self, obj):
 
-        # Fetch all enrolled students for this course
-        enrollments = StudentCourse.objects.filter(course=obj.course).select_related(
-            "student"
+        # Fetch the course's enrolments in the one defined order of enrolment
+        # lists (H-213). A WITHDRAWN student is listed only if they submitted
+        # for THIS assignment (H-220, the founder's decision); every other
+        # status is listed as before.
+        enrollments = (
+            StudentCourse.objects.filter(course=obj.course)
+            .select_related("student")
+            .in_list_order()
         )
 
         # Build a lookup map: student_id → submission
@@ -496,6 +507,11 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         for enrollment in enrollments:
             student = enrollment.student
             submission = submission_map.get(student.id)
+            if (
+                enrollment.enrollment_status == EnrollmentStatusType.WITHDRAWN
+                and submission is None
+            ):
+                continue
 
             # Submission status
             submission_status = "SUBMITTED" if submission else "NOT SUBMITTED"
