@@ -19,3 +19,22 @@ One `git grep` over aca7da9a (tests included) for: every mention of EmptyWalletE
 
 ## Written reasons and expected sets
 GAP-58-runs/h225/config.py (copied here with the chain's logs after the run): (r) on daac5cf5 = {s1-s5, D11 (its six student subTests)}, each printing the generic and the student sentence; mutants P1 (the SM's: plain EmptyWalletError for a student), P2 handler branch removed, P3 remediation left, P4 subclass raised for everyone, P5 handler widened to the parent class.
+
+## The chain on 4d3780cb (a6's GRANT 12:21 WAT; logs gzipped in chain_4d3780cb/)
+
+Runner row_chain.py sha256 f3fe0bdde92d9065aeaf99aecfc3a2a9c69dc67a9598e561da2faa108d805b8e; config `config.py.txt` sha256 e891417d638f8b5f519cb9d6c77d688bc5fbddcb1d18ba77993ddbd885d47cf7 (Verifier pre-read: clear). One systemd-inhibit around the whole chain. Copied from chain.status and the logs:
+
+| Stage | Result |
+|---|---|
+| (r) the h225 module and test_refusal_handling from the tip, on daac5cf5 | "Ran 46 tests", FAILED (failures=11: s1-s5 and D11's six student subTests); "6 failing, as expected"; "the red set is the expected one, each for its written reason" |
+| (a) 21 labels | "Ran 331 tests in 71.551s", OK (skipped=1) |
+| (b) baseline | OK |
+| P1 plain EmptyWalletError for a student (SM's mutant) | 6 failing, as expected (failures=11) |
+| P2 handler branch removed | 6 failing, as expected (failures=11) |
+| P3 remediation left as the spec's | 5 failing, as expected |
+| P4 the subclass raised for everyone | 2 failing, as expected (failures=13: c1 and D11's 12 teacher subTests) |
+| P5 the handler widened to the parent class | 2 failing, as expected (failures=13) |
+
+"(b) every mutant killed, each failing set and reason as written"; "h225 CHAIN END: green as written" at 12:25:17. Rule 24: the row's regression is its batch's full run.
+
+The Verifier's note N1 (assert the student subclass in users/tests_credit_balance_permission's student case, so P1 also dies at the unit level) was not taken for this chain: it would have moved the cleared tip; P1 is killed by the five routes and D11.
