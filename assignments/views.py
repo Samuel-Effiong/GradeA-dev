@@ -1105,6 +1105,21 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             total_files=len(files),
         )
         tasks_data = []
+        # H-223: every parked file is recorded BEFORE any file is launched.
+        # launch_processing_task dispatches at once, so a park recorded after
+        # an earlier file's item STARTED would be read as a mid-batch stop
+        # (batch_credit_refusal: the session stamped, the rest stopped).
+        parked_items = {
+            index: record_refused_item(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                error=error,
+                batch_session=session,
+                file_name=files[index].name,
+                item_index=index + 1,
+            )
+            for index, error in parked.items()
+        }
         # FR-A-07 (S7a): every file is an item. A malformed or too-large file
         # fails as ITS item, before anything is dispatched for it, and the
         # rest still run: this used to raise mid-loop, after the earlier
@@ -1119,9 +1134,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     validate_upload_size(uploaded_file)
                 except PayloadTooLarge as exc:
                     refusal = exc
-            if refusal is None and item_index - 1 in parked:
-                # H-223: parked, its own item; uploaded again after a top-up.
-                refusal = parked[item_index - 1]
+            if refusal is None and item_index - 1 in parked_items:
+                # H-223: parked (recorded above); uploaded again after a top-up.
+                tasks_data.append(
+                    {
+                        "file_name": file_name,
+                        "task_id": None,
+                        "item_id": parked_items[item_index - 1].id,
+                    }
+                )
+                continue
             if refusal is not None:
                 refused = record_refused_item(
                     requested_by=request.user,
