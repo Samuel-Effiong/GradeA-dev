@@ -48,10 +48,10 @@ class ClosedStudentDoorRateLimitTests(APITestCase):
         )
 
     def test_the_fourth_request_from_one_address_in_the_hour_is_a_429(self):
-        answers = [self.knock(ADDRESS).status_code for _ in range(4)]
+        responses = [self.knock(ADDRESS) for _ in range(4)]
 
         self.assertEqual(
-            answers,
+            [response.status_code for response in responses],
             [
                 status.HTTP_410_GONE,
                 status.HTTP_410_GONE,
@@ -59,6 +59,9 @@ class ClosedStudentDoorRateLimitTests(APITestCase):
                 status.HTTP_429_TOO_MANY_REQUESTS,
             ],
         )
+        # The generic throttle envelope (users/exceptions.py): the closed
+        # door's 429 carries the RATE_LIMITED code like any other throttle.
+        self.assertEqual(responses[3].data.get("reason_code"), "RATE_LIMITED")
 
     def test_another_address_is_still_answered_when_one_is_limited(self):
         for _ in range(4):
@@ -75,3 +78,4 @@ class ClosedStudentDoorRateLimitTests(APITestCase):
         response = self.knock(ADDRESS)
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(response.data.get("reason_code"), "RATE_LIMITED")

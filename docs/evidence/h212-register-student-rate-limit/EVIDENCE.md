@@ -23,3 +23,13 @@ Gate list for the grant: users.tests_register_student_rate_limit, users.tests_th
 
 ## Limit (Verifier 1's note 2)
 The tests patch the rate to 3/hour, so they prove the throttle is attached to the door, not the production budget: changing the production "register" rate (10/hour in AutoGrader/settings.py) or dropping its key keeps all three green. Not claimed.
+
+## The 429 carries RATE_LIMITED (Builder 58, 2026-10-14, SM's order; base beta 913f248f via a6's update da4a1665)
+
+The user's commit 156495e5 gave every plain DRF `Throttled` the generic coded envelope (`custom_exception_handler` in users/exceptions.py, the `elif isinstance(exc, Throttled)` branch). `RegisterThrottle` is a plain `AnonRateThrottle` with no `.envelope`, so the closed door's 429 takes that branch. Test 1 (on the 4th response) and test 3 now also assert `response.data.get("reason_code") == "RATE_LIMITED"`, read from the key with `.get()` so that a missing key is a clean FAIL, not a KeyError ERROR. Test 2 (410 for another address) is unchanged.
+
+Written reasons (before any run):
+- Base 913f248f: all three tests GREEN (no production change in this row).
+- New mutant D5 (users/exceptions.py): the generic `elif isinstance(exc, Throttled) ...` branch removed (its `add_coded_envelope(...)` call is never made). Killed by test 1 and test 3, each with fragment `None != 'RATE_LIMITED'` inside its own FAIL block. Test 2 stays green.
+- D4a-D4d: unchanged. Test 1 still fails first at its status-list assertion (`First differing element 3: 410 429`), before the new line is reached. Test 3 fails at `410 != 429`.
+Gate list addition: users.tests_rate_limited_envelope (the envelope's own module), to show the branch the new assertions lean on.
