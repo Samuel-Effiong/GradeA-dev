@@ -1,7 +1,7 @@
 from django.apps import apps
 from rest_framework import permissions
 
-from billing.errors import EmptyWalletError
+from billing.errors import EmptyWalletError, StudentEmptyWalletError
 from users.models import UserTypes
 
 
@@ -46,6 +46,9 @@ class HasCreditBalance(permissions.BasePermission):
             not hasattr(target_user, "credit_wallet")
             or target_user.credit_wallet.total_remaining_credits() <= 0
         ):
+            if is_student:
+                # H-225: told as the student sentence (users.exceptions).
+                raise StudentEmptyWalletError("Credit wallet is empty")
             raise EmptyWalletError("Credit wallet is empty")
 
         return True
