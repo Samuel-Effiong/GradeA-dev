@@ -52,7 +52,11 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
-from assignments.upload_door import upload_refusal_if_unaffordable
+from assignments.upload_door import (
+    batch_refusal_response,
+    parked_files,
+    upload_refusal_if_unaffordable,
+)
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -1416,14 +1420,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-        # H-180: before the session or any task exists. A file too large to
-        # read counts as "cannot say" for the door (it is that file's own item
-        # below, FR-A-07), so the door never refuses a batch for it.
-        refusal = upload_refusal_if_unaffordable(
-            request.user, assignment, files, prompt
-        )
-        if refusal is not None:
-            return refusal
+        # H-180 / H-223: before the session or any task exists, the door
+        # walks the files with a running balance. A file that does not fit
+        # is parked as its own item below; only when no file fits is the
+        # batch refused. A file too large to read counts as "cannot say"
+        # (it is that file's own item below, FR-A-07).
+        parked = parked_files(request.user, assignment, files, prompt)
+        if parked and len(parked) == len(files):
+            return batch_refusal_response()
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
@@ -1434,6 +1438,23 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         tasks_data = []
         task_ids = []
+
+        # H-223: every parked file is recorded BEFORE any file is launched.
+        # launch_processing_task dispatches at once, so a park recorded after
+        # an earlier file's item STARTED would be read as a mid-batch stop
+        # (batch_credit_refusal: the session stamped, the rest stopped).
+        parked_items = {
+            index: record_refused_item(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                error=error,
+                batch_session=session,
+                assignment=assignment,
+                file_name=files[index].name,
+                item_index=index + 1,
+            )
+            for index, error in parked.items()
+        }
 
         # FR-A-07 (S7a): every file is an item. One too large for the batch
         # fails as ITS item (413 FILE_TOO_LARGE) and the others still run;
@@ -1456,6 +1477,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "file_name": uploaded_file.name,
                         "task_id": None,
                         "item_id": refused.id,
+                    }
+                )
+                continue
+
+            if item_index - 1 in parked_items:
+                # H-223: parked (recorded above); uploaded again after a top-up.
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": parked_items[item_index - 1].id,
                     }
                 )
                 continue
