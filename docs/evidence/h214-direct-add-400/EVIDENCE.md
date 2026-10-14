@@ -42,3 +42,25 @@ The branch took beta fafed57f by a clean merge (no conflicts). H-203's route tes
 Written reasons (before any run):
 - Base 913f248f (views.py unfixed): the test is still RED at its status line, fragment `500 != 400` (unchanged).
 - New mutant M4 (classrooms/serializers.py ~731): the create() sentence replaced by the duplicate-name form `f"A student with the exact name {email!r} is already enrolled in this course."`. Killed by this test ONLY, fragment `!= 'Student is already enrolled in this course.'` inside its own FAIL block. The old substring assertion passed M4. Every other test in the gate list stays green (none reads this sentence: grep `Student is already enrolled` over the tests at the tip).
+
+## Chain on 4a479919 (Builder 58, 2026-10-14, a6's GRANT 11:39; logs gzipped in chain_4a479919/)
+
+Runner: GAP-58-runs/row_chain.py (copy `row_chain.py.gz`, sha256 b999a8fd3cf97f36670b14c3bda434250db0ec0ca756171249a7a6ce86251b5b), config `config.py.txt` (sha256 ed0465e8baa87838e8dd0174787b01fa09beda39ac4f3051b97162b8484ff5aa), both read by the Verifier and a6 before the grant. One systemd-inhibit around the whole chain.
+
+| Stage | Result (copied from chain.status / the logs) |
+|---|---|
+| (r) the 4 row modules from the tip, on 913f248f | exit=1, "7 failing, as expected", "the red set is the expected one, each for its written reason" |
+| (a) 19 labels on the tip | exit=0, "Ran 335 tests in 86.918s", OK |
+| (b) baseline | exit=0 |
+| M1 clause removed | "7 failing, as expected", fragments found |
+| M2 narrowed to ValidationError | "1 failing, as expected", fragment found |
+| M3 widened to Exception | "1 failing, as expected", **WRONG REASON** (below) |
+| M4 create() sentence swapped | "1 failing, as expected", fragment found |
+
+The chain ended "STOP: (b) 1 mutant(s) not killed as written" at 11:44:47 because of M3.
+
+### M3: a trace fault (SM ruling 2026-10-14: the kill stands, no re-run)
+
+M3 was killed by the expected test (`test_an_unexpected_failure_is_still_a_500_with_the_fixed_message`; Ran line and the named test are in `b_M3.log.gz`), but the written reason was wrong. The trace assumed the test client re-raises the RuntimeError (fragment `RuntimeError: database exploded`). Actual reason, from M3.log lines 961-968: the RuntimeError reaches `custom_exception_handler`'s "Unhandled 500" branch, which answers a bare `Response(status=500)` with no data, so the status assertion passes and `response.data["message"]` raises `TypeError: 'NoneType' object is not subscriptable` (an ERROR, "FAILED (errors=1)"). The same wrong reason was in this file's earlier "M3" line.
+
+Lesson: before writing the reason for an exception that escapes a view, read how the project's exception handler answers it (here: a bare 500, no body); the test client re-raises only what no handler turns into a response.
