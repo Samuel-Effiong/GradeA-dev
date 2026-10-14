@@ -33,6 +33,7 @@ Said plainly, as limits:
 
 import logging
 
+from django.core.files.uploadedfile import UploadedFile
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -109,3 +110,43 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
             status=status.HTTP_402_PAYMENT_REQUIRED,
         )
     return None
+
+
+def parked_files(request_user, assignment, uploaded_files, prompt):
+    """H-223: {index: the refusal} for each file of a teacher's batch that
+    does not fit, walking the files in upload order with a running balance
+    (a file that fits takes its estimate off what is left). Empty when every
+    file may be queued; a file the door cannot read or estimate, a missing
+    wallet and a super admin are left to the task, as above. Nothing is
+    queued by this function."""
+    if request_user.user_type == UserTypes.SUPER_ADMIN:
+        return {}
+    billed = _billed_user(request_user, assignment)
+    wallet = getattr(billed, "credit_wallet", None)
+    if wallet is None:
+        return {}
+    left = wallet.total_remaining_credits()
+    parked = {}
+    for index, uploaded_file in enumerate(uploaded_files):
+        if not isinstance(uploaded_file, UploadedFile):
+            continue  # its own item in the route (FR-A-07)
+        estimate = _estimate_for(uploaded_file, prompt)
+        if estimate is None:
+            continue
+        if estimate <= left:
+            left -= estimate
+            continue
+        parked[index] = InsufficientCreditsError(
+            f"Upload needs ~{estimate} credits, {left} left in the batch"
+        )
+        log_refusal(logger, "Upload door (parked)", parked[index])
+    return parked
+
+
+def batch_refusal_response():
+    """The 402 a teacher reads when no file of the batch fits (H-223): the
+    usual generic credit message, as before."""
+    return Response(
+        {"error": INSUFFICIENT_CREDITS_MESSAGE, "code": "insufficient_credits"},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )

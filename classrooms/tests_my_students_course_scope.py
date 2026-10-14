@@ -80,6 +80,9 @@ class MyStudentsCourseScopeBase(APITestCase):
         self.assertEqual(len(rows), 1, "the shared student should be listed once")
         return rows[0]
 
+    def course_names(self, row):
+        return [c["name"] for c in row["enrolled_courses"]]
+
     def assert_nothing_about(self, response, *secrets):
         """Search the WHOLE serialized payload, not just the fields a test
         happens to name, so a leak through any field fails."""
@@ -142,11 +145,11 @@ class IndividualTeachersSharingAStudent(MyStudentsCourseScopeBase):
 
     def test_teacher_a_sees_only_their_own_course_names(self):
         row = self.row_for(self.fetch(self.teacher_a), self.student)
-        self.assertCountEqual(row["enrolled_courses"], ["Algebra A", "Geometry A"])
+        self.assertCountEqual(self.course_names(row), ["Algebra A", "Geometry A"])
 
     def test_teacher_b_sees_only_their_own_course_names(self):
         row = self.row_for(self.fetch(self.teacher_b), self.student)
-        self.assertEqual(row["enrolled_courses"], ["Private Tutoring B"])
+        self.assertEqual(self.course_names(row), ["Private Tutoring B"])
 
     def test_teacher_a_payload_carries_nothing_of_teacher_b(self):
         response = self.fetch(self.teacher_a)
@@ -203,8 +206,11 @@ class IndividualTeachersSharingAStudent(MyStudentsCourseScopeBase):
             self.fetch(self.teacher_a, {"enrollments__course": str(self.course_a2.id)}),
             self.student,
         )
-        self.assertEqual(row["course_description"], "A2 notes")
-        self.assertCountEqual(row["enrolled_courses"], ["Algebra A", "Geometry A"])
+        matching = next(
+            c for c in row["enrolled_courses"] if str(c["id"]) == str(self.course_a2.id)
+        )
+        self.assertEqual(matching["description"], "A2 notes")
+        self.assertCountEqual(self.course_names(row), ["Algebra A", "Geometry A"])
 
     def test_own_session_filter_still_selects_the_student(self):
         response = self.fetch(
@@ -267,8 +273,8 @@ class SchoolTeachersSharingAStudent(MyStudentsCourseScopeBase):
     def test_each_school_teacher_sees_only_their_own_course(self):
         row_a = self.row_for(self.fetch(self.teacher_a), self.student)
         row_b = self.row_for(self.fetch(self.teacher_b), self.student)
-        self.assertEqual(row_a["enrolled_courses"], ["Chemistry 101"])
-        self.assertEqual(row_b["enrolled_courses"], ["Drama Club"])
+        self.assertEqual(self.course_names(row_a), ["Chemistry 101"])
+        self.assertEqual(self.course_names(row_b), ["Drama Club"])
         self.assertEqual(row_a["teacher"], "Cal Chem")
         self.assertEqual(row_b["teacher"], "Dee Drama")
 
@@ -377,14 +383,14 @@ class OtherRolesAndTheCache(MyStudentsCourseScopeBase):
         for _ in range(2):
             row_a = self.row_for(self.fetch(self.teacher_a), self.student)
             row_b = self.row_for(self.fetch(self.teacher_b), self.student)
-            self.assertEqual(row_a["enrolled_courses"], ["Algebra A"])
-            self.assertEqual(row_b["enrolled_courses"], ["Private Tutoring B"])
+            self.assertEqual(self.course_names(row_a), ["Algebra A"])
+            self.assertEqual(self.course_names(row_b), ["Private Tutoring B"])
 
     @override_settings(CACHES=real_redis_caches("redis://127.0.0.1:1/0"))
     def test_redis_unreachable_still_serves_only_the_teachers_own_data(self):
         response = self.fetch(self.teacher_a)
         row = self.row_for(response, self.student)
-        self.assertEqual(row["enrolled_courses"], ["Algebra A"])
+        self.assertEqual(self.course_names(row), ["Algebra A"])
         self.assert_nothing_about(response, "Private Tutoring B", "B confidential")
 
 

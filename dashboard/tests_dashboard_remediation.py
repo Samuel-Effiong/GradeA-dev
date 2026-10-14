@@ -110,6 +110,7 @@ class Builder:
         )
 
     def assignment(self, course, *, title=None, status_=None, due=None, **extra):
+        extra.setdefault("total_points", 100)
         return Assignment.objects.create(
             title=title or f"Assignment {self.uid()}",
             course=course,

@@ -162,8 +162,9 @@ class MyStudentsReadsRacingForeignRosterChanges(ThreadSafeTransactionTestCase):
                     if not filtered:
                         rows_seen += len(data["results"])
                         for row in data["results"]:
+                            course_names = [c["name"] for c in row["enrolled_courses"]]
                             if (
-                                row["enrolled_courses"] != ["Algebra A"]
+                                course_names != ["Algebra A"]
                                 or row["grade"] is not None
                             ):
                                 violations.append((round_no, "row", row))

@@ -16,6 +16,13 @@ class EmptyWalletError(InsufficientCreditsError, APIException):
     default_code = "insufficient_credits"
 
 
+class StudentEmptyWalletError(EmptyWalletError):
+    """HasCreditBalance's refusal of a STUDENT, whose AI calls are billed to
+    their teacher (H-225). An EmptyWalletError in every other way;
+    users.exceptions answers it with the one fixed student sentence and no
+    remediation, so a student is never told about the teacher's wallet."""
+
+
 # What a client is told for EVERY InsufficientCreditsError. The exception's own
 # text can carry the wallet's balance, the task's estimate, or an unsettled
 # chargeback/refund deficit - internal billing state that belongs in server

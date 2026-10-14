@@ -93,7 +93,7 @@ class BatchFixture:
     addCleanup: Callable[..., Any]
     assertEqual: Callable[..., Any]
 
-    def build(self, students=3, door_open=True):
+    def build(self, students=3):
         cache.clear()
         self.teacher = self.user("teacher", UserTypes.TEACHER, "Tess", "Teacher")
         session = Session.objects.create(name="S7a", teacher=self.teacher)
@@ -129,29 +129,18 @@ class BatchFixture:
         ):
             target.start()
             self.addCleanup(target.stop)
-        if door_open:
-            # H-180's door asks the teacher's wallet before the session
-            # exists; most of this file is about what the items answer, and
-            # the door has its own tests (students.tests_upload_credit_door).
-            for name in (
-                "students.views.upload_refusal_if_unaffordable",
-                "assignments.views.upload_refusal_if_unaffordable",
-            ):
-                door = patch(name, return_value=None)
-                door.start()
-                self.addCleanup(door.stop)
-        else:
-            # The door stays live, with a wallet that clears it, so the file
-            # that is too large is met by the door first and by its own
-            # item after (merge-down b16).
-            wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
-            CreditBucket.objects.create(
-                wallet=wallet,
-                bucket_type=CreditBucketType.MONTHLY,
-                total_credits=1_000_000,
-                used_credits=0,
-                expires_at=timezone.now() + timedelta(days=30),
-            )
+        # H-180's door (per file since H-223) asks the teacher's wallet
+        # before the session exists, through the real path: every account
+        # is created with an empty wallet (users.signals), so the teacher's
+        # is funded far above any of these files' estimates.
+        wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
+        CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=1_000_000,
+            used_credits=0,
+            expires_at=timezone.now() + timedelta(days=30),
+        )
 
     def user(self, key, user_type, first, last):
         return CustomUser.objects.create_user(
@@ -366,9 +355,10 @@ class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
     """S6b's two batch 413 problems, fixed per item."""
 
     def setUp(self):
-        # The upload door (H-180) is live here: an oversized file must not
-        # make it refuse the batch, and its own item still answers 413.
-        self.build(students=2, door_open=False)
+        # The upload door (H-180) is live here, as everywhere in this file:
+        # an oversized file must not make it refuse the batch, and its own
+        # item still answers 413.
+        self.build(students=2)
 
     def test_batch_upload_runs_the_rest_of_the_batch(self):
         files = [
