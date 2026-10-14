@@ -1,0 +1,96 @@
+# H-230 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the code at 704029be (tests e4d43914 + fix
+# 704029be) and the base 8a64c35b (beta). Nothing here was seen by a run.
+
+ROW = "h230"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h230-my-students-withdrawn"
+BASE = "8a64c35b"  # beta: grade and at_risk built from every enrolment
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h230"
+DB_PREFIX = "test_h230"
+
+C = "AWithdrawnCourseDoesNotCountTest"
+W1 = (C, "test_w1_unsubmitted_work_in_the_withdrawn_course_is_not_missing_work")
+W2 = (C, "test_w2_the_grade_leaves_out_the_withdrawn_courses_grades")
+W3 = (C, "test_w3_min_grade_filters_on_the_same_grade")
+W4 = (C, "test_w4_control_the_withdrawn_course_is_still_listed")
+W5 = (C, "test_w5_control_a_completed_course_still_counts")
+
+# The new module plus the two my-students filter modules, whose fixtures
+# enrol with ENROLLED only (read: grade_filter :65 :261, at_risk_filter :60),
+# so no mutant below changes them.
+ROW_MODULES = [
+    "classrooms.tests_h230_my_students_withdrawn",
+    "classrooms.tests_my_students_at_risk_filter",
+    "classrooms.tests_my_students_grade_filter",
+]
+
+MISSING = {W1: ("True is not false",)}
+GRADE = {
+    W2: ("Decimal('60.00') != Decimal('90.00')",),
+    W3: ("Items in the second set but not the first:",),
+}
+
+# (r): the new module as at the tip, on the base. W1: X's two due,
+# unsubmitted assignments count, 1 of 3 submitted (critical missing work);
+# its all-students part passes first. W2: X's 30% counts, (30 + 90) / 200.
+# W3: min_grade=80 drops the student at 60.00. W4, W5 green.
+R_LABELS = ["classrooms.tests_h230_my_students_withdrawn"]
+R_FROM_TIP = ["classrooms/tests_h230_my_students_withdrawn.py"]
+R_REASON = {**MISSING, **GRADE}
+REPRO = set(R_REASON)
+
+# (a): the row's modules, every other reader of my-students and of the
+# risk evaluator's at_risk, the cache test (rule 20: a cached route's
+# answer changes), and the guard list.
+A_LABELS = ROW_MODULES + [
+    "classrooms.tests_enrollment_list_order",
+    "classrooms.tests_my_students_concurrency",
+    "classrooms.tests_my_students_course_scope",
+    "classrooms.tests_query_budget",
+    "classrooms.tests_security_penetration",
+    "classrooms.tests_teacher_access_sweep",
+    "billing.tests.test_h38_part2_removed_teacher_routes",
+    "users.tests_roads_that_sign_in_or_activate",
+    "dashboard.tests_teacher_all_students",
+    "dashboard.tests",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_cache_bespoke_1114",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+SER = "students/serializers.py"
+COURSE_IDS = "        return {enrollment.course_id for enrollment in self._counted_enrollments(obj)}\n"
+EXPECTED_COUNT = "            for enrollment in self._counted_enrollments(obj)\n            for assignment in enrollment.course.assignments.all()\n"
+NOT_WITHDRAWN = "            if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN\n"
+
+MUTANTS = {
+    # N1 the grade's and risk's submissions from every enrolment again: X's
+    # 30% counts (W2, W3). W1 has no submission in X, so it stays green.
+    "N1": (
+        SER, COURSE_IDS, COURSE_IDS.replace("_counted_enrollments", "_enrollments"),
+        ROW_MODULES, set(GRADE), GRADE,
+    ),
+    # N2 the risk's expected count from every enrolment again: W1. The grade
+    # tests read only the grade, which stays 90.00.
+    "N2": (
+        SER, EXPECTED_COUNT, EXPECTED_COUNT.replace("_counted_enrollments", "_enrollments"),
+        ROW_MODULES, set(MISSING), MISSING,
+    ),
+    # N3 only ENROLLED counts (not "all but WITHDRAWN"): the COMPLETED course
+    # drops out of the grade (W5: 90.00 instead of 60.00).
+    "N3": (
+        SER, NOT_WITHDRAWN,
+        "            if enrollment.enrollment_status == EnrollmentStatusType.ENROLLED\n",
+        ROW_MODULES, {W5}, {W5: ("Decimal('90.00') != Decimal('60.00')",)},
+    ),
+}
