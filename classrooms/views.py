@@ -138,8 +138,9 @@ def _grade_query_param(request, param_name):
         grade = float(value)
     except ValueError:
         grade = None
-    # `grade != grade` is NaN, which every comparison silently fails.
-    if grade is None or grade != grade or not 0 <= grade <= 100:
+    # NaN fails `0 <= grade <= 100` too (every comparison with it is false),
+    # so the range check refuses it as well.
+    if grade is None or not 0 <= grade <= 100:
         raise ValidationError(
             {param_name: [f"{value!r} is not a number between 0 and 100."]}
         )
