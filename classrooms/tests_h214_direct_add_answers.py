@@ -129,6 +129,9 @@ class DirectAddAnswersTests(APITestCase):
             response = self.direct("boom.h214@x.example")
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # The view's own 500 body, not the exception handler's bare 500
+        # (which carries no data at all).
+        self.assertIsInstance(response.data, dict)
         self.assertEqual(response.data["message"], "Unable to add student to course")
 
     def test_a_drf_exception_that_is_not_a_validation_error_also_passes_through(self):
