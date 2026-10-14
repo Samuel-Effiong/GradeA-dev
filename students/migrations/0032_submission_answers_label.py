@@ -14,6 +14,10 @@ transaction on the table while every new query on the table queues behind
 it; with the timeout it gives up after five seconds with an error instead
 of stalling the table. The deploy step then fails cleanly, the old version
 keeps running, and the deploy is simply run again (SM ruling 2026-10-14).
+A reverse runs the operations last to first, so the LAST operation sets the
+same timeout on the way back (its forward is a no-op): the six DROP COLUMNs
+of a rollback give up after five seconds too (SM ruling 2026-10-14 on the
+Verifier's N2 of 74fb0e89).
 
 To undo: go back to the previous version of the code and leave the columns
 in place, unused. Reversing this migration drops them and whatever labels
@@ -93,4 +97,5 @@ class Migration(migrations.Migration):
                 max_length=32,
             ),
         ),
+        migrations.RunSQL(migrations.RunSQL.noop, reverse_sql=SET_LOCK_TIMEOUT),
     ]
