@@ -47,6 +47,7 @@ SV = "ai_processor/services.py"
 STEP = "ai_processor/step_run.py"
 WORDS = "students/step_label.py"
 SS = "students/services.py"
+M32 = "students/migrations/0032_submission_answers_label.py"
 M33 = "students/migrations/0033_submission_answers_recheck_pair_check.py"
 M34 = "students/migrations/0034_submission_answers_recheck_pair_validate.py"
 
@@ -498,6 +499,17 @@ MUTANTS = [
         TESTS,
         F,
     ),
+    (
+        # Added 2026-10-14 (Builder 58, SM ruling on the Verifier's N2):
+        # 0032's own lock timeout, written before any run of it.
+        "D5",
+        "the column migration has no lock timeout",
+        M32,
+        "        migrations.RunSQL(SET_LOCK_TIMEOUT, reverse_sql=migrations.RunSQL.noop),\n",
+        "",
+        TESTS,
+        F,
+    ),
 ]
 
 #: The failing tests each mutant must be caught by (written before any run): EVERY test of the eight modules
@@ -876,6 +888,9 @@ EXPECTED = {
     ],
     "D4": [
         "test_0033_adds_the_one_constraint_not_valid_and_nothing_else",
+    ],
+    "D5": [
+        "test_0032_is_a_lock_timeout_then_six_add_fields_and_nothing_else",
     ],
 }
 
