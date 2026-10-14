@@ -110,7 +110,14 @@ class Base(APITestCase):
             self.addCleanup(launch.stop)
 
     def _launch(self, task, processing_task, *args, **kwargs):
+        # A fast worker: the item is STARTED before the route's loop reaches
+        # the next file (launch_processing_task dispatches at once, not on
+        # commit). A file parked after it must still be a plain pre-flight
+        # park, not a mid-batch stop (Verifier's F1 on 3cb3846c).
         self.queued.append(processing_task.file_name)
+        BackgroundProcessingTask.objects.filter(pk=processing_task.pk).update(
+            status=BackgroundTaskStatus.STARTED
+        )
         return SimpleNamespace(id=f"celery-{len(self.queued)}")
 
     def estimates(self, *values):
