@@ -132,22 +132,29 @@ class TheMigrationsTest(SimpleTestCase):
         loader = MigrationLoader(None, ignore_no_migrations=True)
         return loader.disk_migrations[("students", name)]
 
-    def test_0032_is_a_lock_timeout_then_six_add_fields_and_nothing_else(self):
+    def test_0032_sets_the_lock_timeout_both_ways_around_six_add_fields(self):
         # SM ruling 2026-10-14 (the Verifier's N2): ADD COLUMN takes the
         # ACCESS EXCLUSIVE lock as ADD CONSTRAINT does, so 0032 gives up after
         # five seconds behind a long transaction, as 0033 does, instead of
-        # queueing every query on the table behind it.
+        # queueing every query on the table behind it. A reverse runs the
+        # operations last to first, so the closing operation sets the same
+        # timeout before the six DROP COLUMNs (SM ruling on the Verifier's N2
+        # of 74fb0e89).
         migration = self._migration(M0032)
         self.assertEqual(
             [type(op).__name__ for op in migration.operations],
-            ["RunSQL"] + ["AddField"] * 6,
+            ["RunSQL"] + ["AddField"] * 6 + ["RunSQL"],
         )
         timeout = migration.operations[0]
         self.assertEqual(timeout.sql, "SET LOCAL lock_timeout = '5s'")
         self.assertEqual(timeout.reverse_sql, migrations.RunSQL.noop)
         self.assertEqual(timeout.state_operations, [])
+        closing = migration.operations[-1]
+        self.assertEqual(closing.sql, migrations.RunSQL.noop)
+        self.assertEqual(closing.reverse_sql, "SET LOCAL lock_timeout = '5s'")
+        self.assertEqual(closing.state_operations, [])
         self.assertTrue(migration.atomic)  # SET LOCAL lasts for the transaction
-        add_fields = migration.operations[1:]
+        add_fields = migration.operations[1:-1]
         self.assertEqual([op.name for op in add_fields], list(READING_LABEL_FIELDS))
         for op in add_fields:
             with self.subTest(name=op.name):
