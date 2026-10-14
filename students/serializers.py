@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from assignments.models import AssignmentStatus
 from classrooms.final_grade import final_grade_from
-from classrooms.models import enrollment_list_key
+from classrooms.models import EnrollmentStatusType, enrollment_list_key
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
 
@@ -867,15 +867,29 @@ class StudentListSerializer(serializers.ModelSerializer):
             return f"{course.teacher.first_name} {course.teacher.last_name}"
         return None
 
+    def _counted_enrollments(self, obj):
+        """The enrolments `grade` and `at_risk` are built from: every one
+        of `_enrollments(obj)` except WITHDRAWN, as `.active()` and the
+        all-students route count them (H-230). A course the student
+        withdrew from is still listed in `enrolled_courses`, but its work
+        that came due afterwards is not missing work, and its old grades
+        are not their grade now.
+        """
+        return [
+            enrollment
+            for enrollment in self._enrollments(obj)
+            if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN
+        ]
+
     def _teacher_course_ids(self, obj):
-        return {enrollment.course_id for enrollment in self._enrollments(obj)}
+        return {enrollment.course_id for enrollment in self._counted_enrollments(obj)}
 
     def _cross_course_submissions(self, obj):
         """Every submission of this student's that falls under a course
-        this teacher teaches them - every one of `_enrollments(obj)`, not
-        just the one "relevant" course `course_description`/`teacher`
-        describe. `grade` and `at_risk` are person-level summaries now, so
-        both are built from this, not from one course's slice of it.
+        this teacher teaches them - every one of `_counted_enrollments(obj)`,
+        not just the one "relevant" course `teacher` describes. `grade` and
+        `at_risk` are person-level summaries now, so both are built from
+        this, not from one course's slice of it.
         """
         course_ids = self._teacher_course_ids(obj)
         return [
@@ -994,7 +1008,7 @@ class StudentListSerializer(serializers.ModelSerializer):
         ]
         expected_count = sum(
             1
-            for enrollment in self._enrollments(obj)
+            for enrollment in self._counted_enrollments(obj)
             for assignment in enrollment.course.assignments.all()
             if self._is_expected_by_now(assignment)
         )
