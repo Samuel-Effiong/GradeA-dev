@@ -33,3 +33,11 @@ Written reasons (before any run):
 - New mutant D5 (users/exceptions.py): the generic `elif isinstance(exc, Throttled) ...` branch removed (its `add_coded_envelope(...)` call is never made). Killed by test 1 and test 3, each with fragment `None != 'RATE_LIMITED'` inside its own FAIL block. Test 2 stays green.
 - D4a-D4d: unchanged. Test 1 still fails first at its status-list assertion (`First differing element 3: 410 429`), before the new line is reached. Test 3 fails at `410 != 429`.
 Gate list addition: users.tests_rate_limited_envelope (the envelope's own module), to show the branch the new assertions lean on.
+
+## Chain on 1eb56e23 (Builder 58, 2026-10-14, a6's GRANT 11:45; logs gzipped in chain_1eb56e23/)
+
+Runner GAP-58-runs/row_chain.py (sha256 b999a8fd3cf97f36670b14c3bda434250db0ec0ca756171249a7a6ce86251b5b), config `config.py.txt` (sha256 341847f84783ac8ad920d71e7059260add84816c9036a39983a1c60030f850ee); one systemd-inhibit around the whole chain. Copied from chain.status and the logs:
+- (r) none by design (tests only).
+- (a) 16 labels: exit=0, "Ran 198 tests in 55.052s", OK.
+- (b) baseline "Ran 3 tests", OK; D4a, D4b, D4c, D4d, D5: each "2 failing, as expected", FAILED (failures=2), each failing test's written fragment inside its own block; "(b) every mutant killed, each failing set and reason as written"; "h212 CHAIN END: green as written" at 11:48:50.
+Correction of the earlier written fragment for test 1 (D4a-D4d): unittest prints "First differing element 3:" with the two values on the following lines, so the fragments used were `[410, 410, 410, 410] != [410, 410, 410, 429]` and `First differing element 3:` (written before the run, in the config).
