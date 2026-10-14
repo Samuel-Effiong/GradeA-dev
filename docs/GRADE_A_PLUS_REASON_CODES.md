@@ -391,7 +391,7 @@ HTTP 400 · USER · Not retryable
 
 | Field | Detail |
 |----|----|
-| Message | This purchase would exceed your plan's overage limit of `{max_blocks}` block(s) per cycle (`{remaining}` remaining). |
+| Message | This purchase would go over your plan's limit of `{max_blocks}` block(s) per billing cycle. You have `{remaining}` block(s) left this cycle. |
 | What to do | Request fewer blocks, or wait until your next billing cycle, then try again. |
 | Params | `max_blocks`, `remaining` |
 | Returned by | Whole request: `POST subscription/credits/overage/purchase` (an individual teacher buying extra credit blocks beyond their plan). |
@@ -448,6 +448,22 @@ HTTP 429 · USER · Retryable
 | Params | none |
 | Returned by | `POST auth/register/student` |
 | Notes | The body also has `detail` and `code`. A `Retry-After` header is sent (1 to 3600 seconds). |
+
+### Too many requests
+
+Any other route that limits how often it may be called.
+
+#### `RATE_LIMITED`
+
+HTTP 429 · USER · Retryable
+
+| Field | Detail |
+|----|----|
+| Message | Too many requests. Please wait `{wait_seconds}` second(s) and try again. |
+| What to do | Wait, then try again. |
+| Params | `wait_seconds` |
+| Returned by | Any rate-limited route that has no lock of its own above: the general per-user and per-visitor limits, the named limits on the sign-in and sign-up routes, and the dashboard AI prompt route. |
+| Notes | The body keeps DRF's `detail` beside the reason code, and a `Retry-After` header carries the same number of seconds as `wait_seconds`. The four sign-in locks above keep their own codes. |
 
 ### Roster import: the whole request
 
@@ -884,6 +900,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `RESET_LOCKED` | Sign-in locks | 429 | Yes |
 | `VERIFY_LOCKED` | Sign-in locks | 429 | Yes |
 | `REGISTRATION_PAUSED` | Sign-in locks | 429 | Yes |
+| `RATE_LIMITED` | Too many requests | 429 | Yes |
 | `ROSTER_NO_INPUT` | Roster import: the whole request | 400 | No |
 | `ROSTER_EMPTY` | Roster import: the whole request | 400 | No |
 | `ROSTER_FILE_UNREADABLE` | Roster import: the whole request | 400 | No |

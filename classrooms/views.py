@@ -53,6 +53,7 @@ from AutoGrader.cache_generation import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.query_params import boolean_query_param
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession
 from students.models import BackgroundTaskType, StudentSubmission
@@ -2338,7 +2339,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         min_grade = _grade_query_param(request, "min_grade")
         max_grade = _grade_query_param(request, "max_grade")
-        at_risk_param = request.query_params.get("at_risk")
+        at_risk = boolean_query_param(request, "at_risk")
         ordering = request.query_params.get("ordering")
         sort_by_grade = ordering in ("final_grade", "-final_grade")
 
@@ -2355,7 +2356,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not (
             min_grade is not None
             or max_grade is not None
-            or at_risk_param
+            or at_risk is not None
             or sort_by_grade
         ):
             page = self.paginate_queryset(queryset)
@@ -2381,9 +2382,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             rows = [r for r in rows if r[1] is not None and r[1] >= min_grade]
         if max_grade is not None:
             rows = [r for r in rows if r[1] is not None and r[1] <= max_grade]
-        if at_risk_param is not None:
-            want = at_risk_param.lower() in ("1", "true")
-            rows = [r for r in rows if r[2] == want]
+        if at_risk is not None:
+            rows = [r for r in rows if r[2] == at_risk]
         if sort_by_grade:
             # Ungraded students sort last regardless of direction - "no
             # grade yet" isn't lower or higher than a real one, so it's
