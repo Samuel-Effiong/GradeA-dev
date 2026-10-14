@@ -282,6 +282,29 @@ def reachable_courses(user):
     return Course.objects.filter(teacher_course_access_q(user))
 
 
+def grade_basis_enrollments(enrollments, *, course_id=None, session_id=None):
+    """The enrolments a student's grade and at-risk verdict are built from
+    on my-students (H-234): `enrollments` (already this teacher's
+    reachable ones, in memory) minus WITHDRAWN (H-230), narrowed to the
+    page's filters. `session_id` keeps only that session's courses,
+    `course_id` only that course; both together keep their intersection.
+    Both are the id's canonical text (str(uuid.UUID(...))) or None.
+    """
+    basis = [
+        enrollment
+        for enrollment in enrollments
+        if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN
+    ]
+    if session_id is not None:
+        basis = [e for e in basis if str(e.course.session_id) == session_id]
+    if course_id is not None:
+        basis = [e for e in basis if str(e.course_id) == course_id]
+    # With NO filter: the whole history (every reachable course not
+    # withdrawn from), the app's precedent until the user decides what
+    # "no filter" means (SM 2026-10-14). That answer changes this one place.
+    return basis
+
+
 # H-196: the one definition of the order enrolments are listed in (a course's
 # roster, a student's courses): the order they were made in, oldest first, with
 # the id as the tie-break so two rows made at the same instant still have a

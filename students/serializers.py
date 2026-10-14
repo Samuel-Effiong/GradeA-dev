@@ -1,4 +1,5 @@
 import copy
+import uuid
 
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -7,7 +8,7 @@ from rest_framework import serializers
 
 from assignments.models import AssignmentStatus
 from classrooms.final_grade import final_grade_from
-from classrooms.models import EnrollmentStatusType, enrollment_list_key
+from classrooms.models import enrollment_list_key, grade_basis_enrollments
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
 
@@ -870,16 +871,25 @@ class StudentListSerializer(serializers.ModelSerializer):
     def _counted_enrollments(self, obj):
         """The enrolments `grade` and `at_risk` are built from: every one
         of `_enrollments(obj)` except WITHDRAWN, as `.active()` and the
-        all-students route count them (H-230). A course the student
-        withdrew from is still listed in `enrolled_courses`, but its work
-        that came due afterwards is not missing work, and its old grades
-        are not their grade now.
+        all-students route count them (H-230), narrowed to the page's
+        `enrollments__course__session` and `enrollments__course` filters
+        (H-234). A course the student withdrew from is still listed in
+        `enrolled_courses`, but its work that came due afterwards is not
+        missing work, and its old grades are not their grade now.
         """
-        return [
-            enrollment
-            for enrollment in self._enrollments(obj)
-            if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN
-        ]
+        return grade_basis_enrollments(
+            self._enrollments(obj),
+            course_id=self._filter_uuid("enrollments__course"),
+            session_id=self._filter_uuid("enrollments__course__session"),
+        )
+
+    def _filter_uuid(self, name):
+        # MyStudentsFilter has already answered 400 for a value that is
+        # not a UUID; str(uuid.UUID(...)) makes any spelling of one (upper
+        # case, no dashes) the same text the database's id prints as.
+        request = self.context.get("request")
+        value = request.query_params.get(name) if request else None
+        return str(uuid.UUID(value)) if value else None
 
     def _teacher_course_ids(self, obj):
         return {enrollment.course_id for enrollment in self._counted_enrollments(obj)}
