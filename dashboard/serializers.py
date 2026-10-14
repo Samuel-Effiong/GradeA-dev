@@ -272,6 +272,7 @@ class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):
     total_submissions = serializers.IntegerField(read_only=True)
     unit = serializers.CharField(read_only=True, allow_null=True)
     average_grade = serializers.FloatField(read_only=True)
+    question_extraction_confidence = serializers.IntegerField(read_only=True)
     ai_extraction_confidence = serializers.FloatField(read_only=True)
     ai_grading_confidence = serializers.FloatField(read_only=True)
 

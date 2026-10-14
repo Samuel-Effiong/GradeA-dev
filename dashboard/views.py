@@ -55,6 +55,7 @@ from AutoGrader.query_params import boolean_query_param
 from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
+from classrooms.final_grade import final_grade_from
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -110,6 +111,7 @@ from dashboard.services import (
     dashboard_context_json,
 )
 from dashboard.throttling import CustomAIPromptThrottle
+from students.confidence import average_confidence_from
 from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
 from students.services import get_grade_details, get_letter_grade_from_gpa
@@ -3419,16 +3421,20 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD
             ).count()
 
-            # Grading Confidence
-            grading_qs = submissions.filter(grading_confidence__isnull=False)
+            # Grading Confidence. `grading_confidence__isnull=False` is a
+            # no-op (the field defaults to 0, never null) - `graded_at` is
+            # the real "was this graded" signal (students/confidence.py).
+            graded_confidence_qs = submissions.filter(graded_at__isnull=False)
             avg_grading_confidence = (
-                grading_qs.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+                average_confidence_from(submissions, "grading_confidence") or 0
             )
-            low_grading_count = grading_qs.filter(
+            low_grading_count = graded_confidence_qs.filter(
                 grading_confidence__lt=AI_CONFIDENCE_THRESHOLD
             ).count()
 
-            total_confidence_records = assignments.count() + grading_qs.count()
+            total_confidence_records = (
+                assignments.count() + graded_confidence_qs.count()
+            )
 
             low_confidence_rate = (
                 (low_extraction_count + low_grading_count)
@@ -3475,9 +3481,15 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         Retrieve detailed performance metrics and AI trust indicators for a specific assignment.
 
         Analytics include:
-        - Submission overview (total count, due date, type).
-        - Performance metrics (average grade).
-        - AI Trust indicators (extraction and grading confidence scores).
+        - Submission overview (total count, due date, type). Submissions
+          from withdrawn students are excluded.
+        - Performance metrics (average grade, same weighted formula as the
+          course final grade).
+        - `question_extraction_confidence`: how well the AI read the
+          teacher's own question paper (stamped once, per assignment).
+        - AI Trust indicators (`ai_extraction_confidence`/
+          `ai_grading_confidence`): how well the AI read and graded these
+          students' submissions, averaged over graded submissions only.
         """,
         parameters=[
             OpenApiParameter(
@@ -3509,17 +3521,33 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 ),
                 id=assignment_id,
             )
-            submissions = StudentSubmission.objects.filter(assignment=assignment)
+            submissions = StudentSubmission.objects.filter(
+                assignment=assignment,
+                student__enrollments__course=assignment.course,
+                student__enrollments__in=StudentCourse.objects.active(),
+            )
             total_submissions = submissions.count()
+            graded = submissions.filter(score__isnull=False, graded_at__isnull=False)
             average_grade = (
-                submissions.filter(score__isnull=False).aggregate(
-                    avg=Avg("score_percentage")
-                )["avg"]
+                final_grade_from(
+                    (
+                        submission.score,
+                        (
+                            submission.max_points
+                            if submission.max_points is not None
+                            else assignment.total_points
+                        ),
+                    )
+                    for submission in graded
+                )
                 or 0
             )
 
             avg_grading_confidence = (
-                submissions.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+                average_confidence_from(submissions, "grading_confidence") or 0
+            )
+            avg_submission_extraction_confidence = (
+                average_confidence_from(submissions, "extraction_confidence") or 0
             )
 
             assignment_metrics = {
@@ -3530,7 +3558,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 "total_submissions": total_submissions,
                 "unit": assignment.topic,
                 "average_grade": round(float(average_grade), 2),
-                "ai_extraction_confidence": assignment.extraction_confidence,
+                "question_extraction_confidence": assignment.extraction_confidence,
+                "ai_extraction_confidence": round(
+                    float(avg_submission_extraction_confidence), 2
+                ),
                 "ai_grading_confidence": round(float(avg_grading_confidence), 2),
             }
 
