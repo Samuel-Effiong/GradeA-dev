@@ -1,0 +1,145 @@
+# H-231 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the code at 1800ca80 (tests c4bfb05c + fix
+# 2463eed0 + one-check follow-up 1800ca80) and the base 8a64c35b (beta).
+# Nothing here was seen by a run.
+
+ROW = "h231"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h231-grade-filter-400"
+BASE = "8a64c35b"  # beta: bare float() / int() on the query values
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h231"
+DB_PREFIX = "test_h231"
+
+G = "ABadGradeFilterIsA400Test"
+M = "BadMonthsIsA400Test"
+G1 = (G, "test_g1_min_grade_that_is_not_a_number")
+G2 = (G, "test_g2_max_grade_that_is_not_a_number")
+G3 = (G, "test_g3_nan_is_not_a_number_here")
+G4 = (G, "test_g4_above_100")
+G5 = (G, "test_g5_below_0")
+G6 = (G, "test_g6_an_empty_grade_beside_another_filter_is_not_given")
+G7 = (G, "test_g7_control_the_edges_are_grades")
+M1 = (M, "test_m1_months_that_is_not_a_whole_number")
+M2 = (M, "test_m2_empty_months_is_the_default")
+M3 = (M, "test_m3_control_out_of_range_still_falls_back_to_12")
+UNGRADED = (
+    "MyStudentsGradeFilterTest",
+    "test_student_with_no_graded_work_is_excluded_from_a_grade_range",
+)
+
+AT_RISK_MIN_0 = ("MyStudentsAtRiskFilterTest", "test_at_risk_combines_with_min_grade")
+
+ROW_MODULES = [
+    "classrooms.tests_h231_bad_filter_numbers",
+    "classrooms.tests_my_students_grade_filter",
+    "classrooms.tests_my_students_at_risk_filter",
+]
+
+FIVE_HUNDRED_NOT_400 = ("500 != 400",)
+ACCEPTED = ("200 != 400",)
+EMPTY_500 = ("500 != 200",)
+
+# (r): the new module as at the tip, on the base. G1 G2 M1: float("abc") /
+# int("abc") -> ValueError -> the handler's bare 500; G3: nan -> Decimal
+# InvalidOperation -> the same 500 (see R_REASON). G4 G5: 150, -5 are
+# accepted (200). G6 M2: float("") / int("") -> 500. G7 M3 green.
+R_LABELS = ["classrooms.tests_h231_bad_filter_numbers"]
+R_FROM_TIP = ["classrooms/tests_h231_bad_filter_numbers.py"]
+R_REASON = {
+    G1: FIVE_HUNDRED_NOT_400,
+    G2: FIVE_HUNDRED_NOT_400,
+    M1: FIVE_HUNDRED_NOT_400,
+    # Trace fault, corrected AFTER the stopped run of 14:51 showed it (SM
+    # ruling 2026-10-14): G3 was written "200 != 400" ("nan matches
+    # nothing"); its own block read "500 != 400". On the base the grade is
+    # a Decimal and `Decimal('70.00') >= float('nan')` raises
+    # InvalidOperation (an ordering comparison with NaN signals in
+    # Decimal): the bare 500, as G1 and G2.
+    G3: FIVE_HUNDRED_NOT_400,
+    G4: ACCEPTED,
+    G5: ACCEPTED,
+    G6: EMPTY_500,
+    M2: EMPTY_500,
+}
+REPRO = set(R_REASON)
+
+# (a): the row's modules, every other reader of my-students and of
+# monthly-token-usage, the cache test and the guard list.
+A_LABELS = ROW_MODULES + [
+    "classrooms.tests_enrollment_list_order",
+    "classrooms.tests_my_students_concurrency",
+    "classrooms.tests_my_students_course_scope",
+    "classrooms.tests_query_budget",
+    "classrooms.tests_security_penetration",
+    "classrooms.tests_teacher_access_sweep",
+    "billing.tests.test_h38_part2_removed_teacher_routes",
+    "users.tests_roads_that_sign_in_or_activate",
+    "users.tests_superadmin_both_flags",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_error_messages",
+    "AutoGrader.tests_cache_bespoke_1114",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+V = "classrooms/views.py"
+CATCH = "    try:\n        grade = float(value)\n    except ValueError:\n        grade = None\n"
+RANGE = "    if grade is None or not 0 <= grade <= 100:\n"
+EMPTY = "    value = request.query_params.get(param_name)\n    if value in (None, \"\"):\n"
+GUARD = "            min_grade is not None\n            or max_grade is not None\n"
+MONTHS_CATCH = (
+    "            try:\n"
+    "                months = int(months_param)\n"
+    "            except ValueError:\n"
+    "                raise ValidationError(\n"
+    "                    {\"months\": [f\"{months_param!r} is not a whole number.\"]}\n"
+    "                ) from None\n"
+)
+MONTHS_EMPTY = "        if months_param in (None, \"\"):\n"
+
+MUTANTS = {
+    # P1 float() unguarded again: "abc" is the bare 500 (G1, G2). NaN parses
+    # and the range check still refuses it (G3 green).
+    "P1": (V, CATCH, "    grade = float(value)\n", ROW_MODULES, {G1, G2},
+           {G1: FIVE_HUNDRED_NOT_400, G2: FIVE_HUNDRED_NOT_400}),
+    # P2 no upper bound: 150 is accepted (G4). NaN still fails 0 <= nan.
+    "P2": (V, RANGE, RANGE.replace("not 0 <= grade <= 100", "not 0 <= grade"),
+           ROW_MODULES, {G4}, {G4: ACCEPTED}),
+    # P3 no lower bound: -5 is accepted (G5). NaN still fails nan <= 100.
+    "P3": (V, RANGE, RANGE.replace("not 0 <= grade <= 100", "not grade <= 100"),
+           ROW_MODULES, {G5}, {G5: ACCEPTED}),
+    # P4 an empty value is no longer "not given": float("") -> the 400 (G6).
+    "P4": (V, EMPTY, EMPTY.replace('value in (None, "")', "value is None"),
+           ROW_MODULES, {G6}, {G6: ("400 != 200",)}),
+    # P5 the plain-list guard by truthiness again: min_grade=0 (0.0) takes
+    # the unfiltered path and lists the ungraded student. The response's
+    # results are a ReturnList, so assertEqual prints "<list> != []".
+    "P5": (V, GUARD, "            min_grade\n            or max_grade\n",
+           ROW_MODULES, {UNGRADED}, {UNGRADED: ("!= []",)}),
+    # P6 months: int() unguarded again: the bare 500 (M1).
+    "P6": (V, MONTHS_CATCH, "            months = int(months_param)\n",
+           ROW_MODULES, {M1}, {M1: FIVE_HUNDRED_NOT_400}),
+    # P7 months: an empty value is no longer the default: the 400 (M2).
+    "P7": (V, MONTHS_EMPTY, MONTHS_EMPTY.replace('months_param in (None, "")', "months_param is None"),
+           ROW_MODULES, {M2}, {M2: ("400 != 200",)}),
+    # Added 2026-10-14 before any run (SM: the 0 and 100 ends must be
+    # accepted). P8 refuses 0: G7's second request (min_grade "0") is a 400;
+    # grade_filter :140 and at_risk_filter :172 send min_grade=0 and read
+    # response.data["results"] of the 400 body: KeyError.
+    "P8": (V, RANGE, RANGE.replace("not 0 <= grade <= 100", "not 0 < grade <= 100"),
+           ROW_MODULES, {G7, UNGRADED, AT_RISK_MIN_0},
+           {G7: ("400 != 200",), UNGRADED: ("KeyError: 'results'",),
+            AT_RISK_MIN_0: ("KeyError: 'results'",)}),
+    # P9 refuses 100: G7's first request (max_grade "100") is a 400. No
+    # other test of the three modules sends 100.
+    "P9": (V, RANGE, RANGE.replace("not 0 <= grade <= 100", "not 0 <= grade < 100"),
+           ROW_MODULES, {G7}, {G7: ("400 != 200",)}),
+}
