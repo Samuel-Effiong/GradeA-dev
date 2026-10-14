@@ -1,28 +1,26 @@
-"""H-234: my-students' grade and at_risk follow the page's filters.
+"""H-234: my-students' numbers follow the selected session, never the course.
 
-The user's decision (M2, 2026-10-14): with `?enrollments__course__session=`
-the grade and at_risk use only that session's courses; with
-`?enrollments__course=` only that course; with both, their intersection.
-Courses the student withdrew from stay out (H-230). min_grade, max_grade,
-at_risk and ordering filter and sort on the same scoped figures, and a
-filtered row agrees with the all-students route's row for that course.
+The user's final rule (2026-10-14, superseding the earlier one these tests
+first encoded): on my-students the grade, at_risk and the three counts
+(total_assignments_in_course, total_assignments_submitted,
+percentage_of_submission) are all computed over ONE basis: the student's
+non-withdrawn enrolments (H-230) in this teacher's reachable courses within
+the selected session (`?enrollments__course__session=`). The course filter
+(`?enrollments__course=`) changes none of these numbers: it only narrows
+which students appear. With no session the basis is the whole history.
+min_grade, max_grade, at_risk and ordering filter and sort on the same
+figures. "Total" keeps today's meaning, every assignment of the counted
+courses (H-235 takes that definition to the user).
 
-With NO filter the basis is pending the user's word (SM 2026-10-14): until
-then it is the app's precedent, the whole history (every reachable course
-not withdrawn from). That one rule lives in one helper
-(`classrooms.models.grade_basis_enrollments`, beside `reachable_courses`)
-and one constant here, `NO_FILTER_GRADE`: when the user decides, both change
-together.
+The basis is one helper (`classrooms.models.grade_basis_enrollments`); the
+no-session basis is pinned by NO_FILTER_GRADE here.
 
-The fixture: one teacher, two of their sessions; the student is enrolled
-in C1 and C3 (Term 1) and C2 (Term 2), each with one due, graded,
-100-point assignment: C1 90%, C3 60%, C2 30%. Each filter gives a
-different grade:
-    no filter     (90 + 60 + 30) / 300 = 60.00
-    Term 1        (90 + 60) / 200      = 75.00
-    Term 2 / C2   30.00
-    Term 1 + C1   90.00
-    Term 1 + C2   nothing in both: no grade
+The fixture: one teacher, two of their sessions; the student Wren is
+enrolled in C1 and C3 (Term 1) and C2 (Term 2), each with one due, graded,
+100-point assignment: C1 90%, C3 60%, C2 30%.
+    no session    (90 + 60 + 30) / 300 = 60.00, counts over all three
+    Term 1        (90 + 60) / 200      = 75.00, counts over C1 and C3
+    Term 2        30.00,                 counts over C2
 """
 
 from datetime import timedelta
@@ -45,13 +43,12 @@ MY_STUDENTS = reverse("student-course-my-students")
 SESSION = "enrollments__course__session"
 COURSE = "enrollments__course"
 
-#: The pending decision, in one place (see the module docstring). Today's
-#: basis with no filter: every course, (90 + 60 + 30) / 300.
+#: With no session: the whole history, (90 + 60 + 30) / 300.
 NO_FILTER_GRADE = Decimal("60.00")
 
 
 @override_settings(CACHES=LOCMEM)
-class TheGradeFollowsTheFiltersTest(APITestCase):
+class TheNumbersFollowTheSessionTest(APITestCase):
     def setUp(self):
         cache.clear()
         self.teacher = self._user(UserTypes.TEACHER, "Tess")
@@ -107,69 +104,110 @@ class TheGradeFollowsTheFiltersTest(APITestCase):
             graded_at=timezone.now(),
         )
 
+    def _withdraw(self, course):
+        self.enrolment[course.pk].enrollment_status = EnrollmentStatusType.WITHDRAWN
+        self.enrolment[course.pk].save(update_fields=["enrollment_status"])
+
     def _rows(self, **params):
         cache.clear()
         response = self.client.get(MY_STUDENTS, params)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         return response.data["results"]
 
-    def _wren(self, **params):
-        rows = [r for r in self._rows(**params) if r["id"] == str(self.wren.id)]
+    def _row(self, student, **params):
+        rows = [r for r in self._rows(**params) if r["id"] == str(student.id)]
         self.assertEqual(len(rows), 1)
         return rows[0]
 
     def _percentage(self, **params):
-        grade = self._wren(**params)["grade"]
+        grade = self._row(self.wren, **params)["grade"]
         self.assertIsNotNone(grade)
         return grade["percentage"]
 
-    # --- the grade --------------------------------------------------------
+    def _counts(self, **params):
+        row = self._row(self.wren, **params)
+        return (
+            row["total_assignments_in_course"],
+            row["total_assignments_submitted"],
+            row["percentage_of_submission"],
+        )
 
-    def test_f1_a_session_filter_grades_that_session_only(self):
+    def _numbers(self, **params):
+        """All five numbers of Wren's row."""
+        row = self._row(self.wren, **params)
+        return (
+            row["grade"]["percentage"],
+            row["at_risk"],
+            row["total_assignments_in_course"],
+            row["total_assignments_submitted"],
+            row["percentage_of_submission"],
+        )
+
+    # --- the session scopes every number ------------------------------------
+
+    def test_s1_the_session_scopes_the_grade(self):
         self.assertEqual(
             self._percentage(**{SESSION: str(self.term1.id)}), Decimal("75.00")
         )
 
-    def test_f2_a_course_filter_grades_that_course_only(self):
-        self.assertEqual(
-            self._percentage(**{COURSE: str(self.c2.id)}), Decimal("30.00")
-        )
+    def test_s2_the_session_scopes_the_counts(self):
+        self._assignment(self.c2)  # unsubmitted, in Term 2
 
-    def test_f3_both_filters_grade_their_intersection(self):
-        self.assertEqual(
-            self._percentage(**{SESSION: str(self.term1.id), COURSE: str(self.c1.id)}),
-            Decimal("90.00"),
-        )
+        self.assertEqual(self._counts(**{SESSION: str(self.term1.id)}), (2, 2, 100.0))
 
-    def test_f4_both_filters_with_nothing_in_common_give_no_grade(self):
-        # Wren is in C2 and in a Term 1 course, so the roster lists the row
-        # (the two filters narrow the student set separately); C2 is not in
-        # Term 1, so nothing is graded.
-        row = self._wren(**{SESSION: str(self.term1.id), COURSE: str(self.c2.id)})
-
-        self.assertIsNone(row["grade"])
-        self.assertFalse(row["at_risk"])
-
-    def test_f5_a_withdrawn_course_stays_out_under_a_filter(self):
-        self.enrolment[self.c3.pk].enrollment_status = EnrollmentStatusType.WITHDRAWN
-        self.enrolment[self.c3.pk].save(update_fields=["enrollment_status"])
-
-        self.assertEqual(
-            self._percentage(**{SESSION: str(self.term1.id)}), Decimal("90.00")
-        )
-
-    def test_f7_an_upper_case_session_id_is_the_same_session(self):
-        # The filter accepts any UUID spelling; the grade must follow it too,
+    def test_s3_an_upper_case_session_id_is_the_same_session(self):
+        # The filter accepts any UUID spelling; the numbers must follow it too,
         # not only the lower-case form the database prints.
         self.assertEqual(
             self._percentage(**{SESSION: str(self.term1.id).upper()}), Decimal("75.00")
         )
 
-    def test_f6_no_filter_is_the_pending_basis(self):
-        """Green before and after, for now: flips with NO_FILTER_GRADE."""
+    # --- the course filter changes no number --------------------------------
+
+    def test_k1_a_course_filter_beside_the_session_changes_no_number(self):
+        # C3 gets a second assignment, unsubmitted, so C3 alone would read
+        # differently from Term 1.
+        self._assignment(self.c3)
+
+        self.assertEqual(
+            self._numbers(**{SESSION: str(self.term1.id), COURSE: str(self.c3.id)}),
+            self._numbers(**{SESSION: str(self.term1.id)}),
+        )
+
+    def test_k2_a_course_filter_alone_changes_no_number(self):
+        self._assignment(self.c3)
+
+        self.assertEqual(self._numbers(**{COURSE: str(self.c3.id)}), self._numbers())
+
+    # --- a withdrawn course is out -------------------------------------------
+
+    def test_w1_a_withdrawn_course_is_out_of_the_session_grade(self):
+        self._withdraw(self.c3)
+
+        self.assertEqual(
+            self._percentage(**{SESSION: str(self.term1.id)}), Decimal("90.00")
+        )
+
+    def test_w2_a_withdrawn_course_is_not_counted(self):
+        self._withdraw(self.c1)
+        self._assignment(self.c1)  # unsubmitted, in the withdrawn course
+
+        # C3 and C2: one assigned and submitted each.
+        self.assertEqual(self._counts(), (2, 2, 100.0))
+
+    # --- no session: the whole history ---------------------------------------
+
+    def test_n1_no_session_grades_the_whole_history(self):
+        """Green before and after: the no-session basis is unchanged."""
         self.assertEqual(self._percentage(), NO_FILTER_GRADE)
 
-    # --- at_risk ------------------------------------------------------------
+    def test_n2_no_session_counts_the_whole_history(self):
+        self._assignment(self.c2)
+
+        # C1 1 + C3 1 + C2 2 assigned, 3 submitted.
+        self.assertEqual(self._counts(), (4, 3, 75.0))
+
+    # --- at_risk and the filters that read the numbers ------------------------
 
     def test_r1_at_risk_follows_the_session(self):
         # Two more due, unsubmitted assignments in C2 (Term 2). Over every
@@ -178,10 +216,14 @@ class TheGradeFollowsTheFiltersTest(APITestCase):
         self._assignment(self.c2)
         self._assignment(self.c2)
 
-        self.assertFalse(self._wren(**{SESSION: str(self.term1.id)})["at_risk"])
-        self.assertTrue(self._wren(**{SESSION: str(self.term2.id)})["at_risk"])
+        self.assertFalse(
+            self._row(self.wren, **{SESSION: str(self.term1.id)})["at_risk"]
+        )
+        self.assertTrue(
+            self._row(self.wren, **{SESSION: str(self.term2.id)})["at_risk"]
+        )
 
-    def test_r2_the_at_risk_filter_reads_the_scoped_verdict(self):
+    def test_r2_the_at_risk_filter_reads_the_session_verdict(self):
         self._assignment(self.c2)
         self._assignment(self.c2)
 
@@ -192,9 +234,7 @@ class TheGradeFollowsTheFiltersTest(APITestCase):
 
         self.assertEqual(ids, {str(self.wren.id)})
 
-    # --- the grade filters and the sort --------------------------------------
-
-    def test_g1_min_grade_reads_the_scoped_grade(self):
+    def test_g1_min_grade_reads_the_session_grade(self):
         ids = {
             r["id"]
             for r in self._rows(**{SESSION: str(self.term1.id), "min_grade": "70"})
@@ -202,14 +242,15 @@ class TheGradeFollowsTheFiltersTest(APITestCase):
 
         self.assertEqual(ids, {str(self.wren.id)})
 
-    def test_g2_max_grade_reads_the_scoped_grade(self):
+    def test_g2_max_grade_reads_the_session_grade(self):
         ids = {
-            r["id"] for r in self._rows(**{COURSE: str(self.c2.id), "max_grade": "40"})
+            r["id"]
+            for r in self._rows(**{SESSION: str(self.term2.id), "max_grade": "40"})
         }
 
         self.assertEqual(ids, {str(self.wren.id)})
 
-    def test_g3_ordering_sorts_on_the_scoped_grade(self):
+    def test_g3_ordering_sorts_on_the_session_grade(self):
         # Ada is in C1 only, at 70: 70 in every scope. Wren is 75 in Term 1
         # and 60 over every course.
         ada = self._user(UserTypes.STUDENT, "Ada")
@@ -225,18 +266,24 @@ class TheGradeFollowsTheFiltersTest(APITestCase):
 
         self.assertEqual(ids, [str(self.wren.id), str(ada.id)])
 
-    # --- agreement with all-students ---------------------------------------
+    # --- agreement with all-students -----------------------------------------
 
-    def test_a1_one_course_agrees_with_the_all_students_row(self):
+    def test_a1_control_a_one_course_student_agrees_with_all_students(self):
+        """Green before and after. All-students has one row per course, so its
+        rows can only be compared with a my-students row whose session holds
+        ONE course of the student's: Ada, in C1 only (Term 1), at 70%."""
+        ada = self._user(UserTypes.STUDENT, "Ada")
+        self._enrol(ada, self.c1)
+        self._submit(ada, Assignment.objects.get(course=self.c1), 70)
         cache.clear()
         response = self.client.get(
             reverse("teacher-admin-all-students", kwargs={"session_id": self.term1.id}),
-            {"course_id": str(self.c1.id)},
+            {"student_id": str(ada.id)},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         [theirs] = response.data["results"]
 
-        mine = self._wren(**{SESSION: str(self.term1.id), COURSE: str(self.c1.id)})
+        mine = self._row(ada, **{SESSION: str(self.term1.id)})
 
         self.assertEqual(float(mine["grade"]["percentage"]), theirs["average_grade"])
         self.assertEqual(mine["at_risk"], theirs["at_risk"])
