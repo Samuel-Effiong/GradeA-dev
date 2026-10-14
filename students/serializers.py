@@ -1,4 +1,5 @@
 import copy
+import uuid
 
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -7,7 +8,7 @@ from rest_framework import serializers
 
 from assignments.models import AssignmentStatus
 from classrooms.final_grade import final_grade_from
-from classrooms.models import EnrollmentStatusType, enrollment_list_key
+from classrooms.models import enrollment_list_key, grade_basis_enrollments
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
 
@@ -868,18 +869,28 @@ class StudentListSerializer(serializers.ModelSerializer):
         return None
 
     def _counted_enrollments(self, obj):
-        """The enrolments `grade` and `at_risk` are built from: every one
-        of `_enrollments(obj)` except WITHDRAWN, as `.active()` and the
-        all-students route count them (H-230). A course the student
-        withdrew from is still listed in `enrolled_courses`, but its work
-        that came due afterwards is not missing work, and its old grades
-        are not their grade now.
+        """The enrolments every number of the row is built from (`grade`,
+        `at_risk` and the three counts): every one of `_enrollments(obj)`
+        except WITHDRAWN, as `.active()` and the all-students route count
+        them (H-230), within the page's `enrollments__course__session`
+        (H-234). The course filter only narrows which students appear; it
+        changes none of their numbers (the user's rule, 2026-10-14). A course
+        the student withdrew from is still listed in `enrolled_courses`, but
+        its work that came due afterwards is not missing work, and its old
+        grades are not their grade now.
         """
-        return [
-            enrollment
-            for enrollment in self._enrollments(obj)
-            if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN
-        ]
+        return grade_basis_enrollments(
+            self._enrollments(obj),
+            session_id=self._filter_uuid("enrollments__course__session"),
+        )
+
+    def _filter_uuid(self, name):
+        # MyStudentsFilter has already answered 400 for a value that is
+        # not a UUID; str(uuid.UUID(...)) makes any spelling of one (upper
+        # case, no dashes) the same text the database's id prints as.
+        request = self.context.get("request")
+        value = request.query_params.get(name) if request else None
+        return str(uuid.UUID(value)) if value else None
 
     def _teacher_course_ids(self, obj):
         return {enrollment.course_id for enrollment in self._counted_enrollments(obj)}
@@ -944,22 +955,27 @@ class StudentListSerializer(serializers.ModelSerializer):
         }
 
     def get_total_assignments_in_course(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            # len() of the prefetch cache, not .count(), which would issue a
-            # fresh COUNT per student.
-            return len(course.assignments.all())
-        return 0
+        # H-234: over the same enrolments as `grade` and `at_risk`, not the
+        # one "relevant" course. H-235 (the user's rule): published
+        # assignments only, due or not; drafts and unpublished ones are out.
+        # Read from the prefetch cache, not a fresh query per student.
+        return sum(
+            1
+            for enrollment in self._counted_enrollments(obj)
+            for assignment in enrollment.course.assignments.all()
+            if self._is_published(assignment)
+        )
 
     def get_total_assignments_submitted(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            return sum(
-                1
-                for submission in obj.submissions.all()
-                if submission.assignment.course_id == course.id
-            )
-        return 0
+        # H-234: the student's submissions in the counted courses; H-235:
+        # to the published assignments the total counts.
+        course_ids = self._teacher_course_ids(obj)
+        return sum(
+            1
+            for submission in obj.submissions.all()
+            if submission.assignment.course_id in course_ids
+            and self._is_published(submission.assignment)
+        )
 
     def get_percentage_of_submission(self, obj):
         total = self.get_total_assignments_in_course(obj)
@@ -968,12 +984,19 @@ class StudentListSerializer(serializers.ModelSerializer):
         submitted = self.get_total_assignments_submitted(obj)
         return round((submitted / total) * 100, 2)
 
+    @staticmethod
+    def _is_published(assignment):
+        """Published, as the counts (H-235) and `_is_expected_by_now` both
+        mean it: DRAFT and UNPUBLISHED work was never, or is no longer,
+        shown to students."""
+        return assignment.status == AssignmentStatus.PUBLISHED
+
     def _is_expected_by_now(self, assignment):
         # Mirrors dashboard.views._expected_assignments_q as a plain Python
         # check: here we're filtering an already-prefetched
         # `course.assignments.all()` cache, not issuing a query. Keep the
         # two definitions in sync if either changes.
-        return assignment.status == AssignmentStatus.PUBLISHED and (
+        return self._is_published(assignment) and (
             assignment.due_date is None or assignment.due_date <= timezone.now()
         )
 

@@ -1,0 +1,192 @@
+# H-234 chain config for ../row_chain.py, REWRITTEN for the user's final rule
+# (2026-10-14): every my-students number (grade, at_risk, the three counts)
+# on ONE basis, the non-withdrawn enrolments within the selected session;
+# the course filter changes none of them. Written by the Builder (13) BEFORE
+# any run, by reading the tests at a5fc2125, the fix at 0dbe61e9 and the base
+# 486687ed; every tuple message checked against unittest's own output; the
+# operand types of each comparison named. The earlier config (51c734ab, for
+# the superseded course-scoping rule of 2b50899c/38563bd9) is kept as
+# config_51c734ab_superseded.py.txt. Nothing here was seen by a run.
+
+ROW = "h234"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h234-grade-follows-filters"
+BASE = "486687ed"  # beta: grade/at_risk over every course; counts on one "relevant" course
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h234"
+DB_PREFIX = "test_h234"
+
+T = "TheNumbersFollowTheSessionTest"
+S1 = (T, "test_s1_the_session_scopes_the_grade")
+S2 = (T, "test_s2_the_session_scopes_the_counts")
+S3 = (T, "test_s3_an_upper_case_session_id_is_the_same_session")
+K1 = (T, "test_k1_a_course_filter_beside_the_session_changes_no_number")
+K2 = (T, "test_k2_a_course_filter_alone_changes_no_number")
+W1 = (T, "test_w1_a_withdrawn_course_is_out_of_the_session_grade")
+W2 = (T, "test_w2_a_withdrawn_course_is_not_counted")
+N1 = (T, "test_n1_no_session_grades_the_whole_history")
+N2 = (T, "test_n2_no_session_counts_the_whole_history")
+R1 = (T, "test_r1_at_risk_follows_the_session")
+R2 = (T, "test_r2_the_at_risk_filter_reads_the_session_verdict")
+G1 = (T, "test_g1_min_grade_reads_the_session_grade")
+G2 = (T, "test_g2_max_grade_reads_the_session_grade")
+G3 = (T, "test_g3_ordering_sorts_on_the_session_grade")
+A1 = (T, "test_a1_control_a_one_course_student_agrees_with_all_students")
+
+ROW_MODULES = ["classrooms.tests_h234_grade_follows_filters"]
+
+SECOND_SET = ("Items in the second set but not the first:",)
+T1_GRADE = ("Decimal('60.00') != Decimal('75.00')",)
+COUNTS_BASE_RELEVANT = ("Tuples differ: (Decimal('60.00'), True, 2, 1, 50.0) != (Decimal('60.00'), True, 1, 1, 100.0)",)
+
+# (r): the test file as at the tip, on 486687ed. N1 and A1 are green on
+# both by design.
+R_LABELS = ROW_MODULES
+R_FROM_TIP = ["classrooms/tests_h234_grade_follows_filters.py"]
+R_REASON = {
+    S1: T1_GRADE,
+    S3: T1_GRADE,
+    S2: ("Tuples differ: (1, 1, 100.0) != (2, 2, 100.0)",),
+    K1: COUNTS_BASE_RELEVANT,  # base: grade 60 both, at risk both; counts on C3 vs C1
+    K2: COUNTS_BASE_RELEVANT,
+    W1: ("Decimal('60.00') != Decimal('90.00')",),  # base: C1 + C2 (H-230 drops C3)
+    W2: ("Tuples differ: (2, 1, 50.0) != (2, 2, 100.0)",),  # base: the withdrawn C1
+    N2: ("Tuples differ: (1, 1, 100.0) != (4, 3, 75.0)",),
+    R1: ("True is not false",),
+    R2: SECOND_SET,
+    G1: SECOND_SET,
+    G2: SECOND_SET,
+    G3: ("First differing element 0:",),
+}
+REPRO = set(R_REASON)
+
+A_LABELS = ROW_MODULES + [
+    "classrooms.tests_h230_my_students_withdrawn",
+    "classrooms.tests_h231_bad_filter_numbers",
+    "classrooms.tests_my_students_at_risk_filter",
+    "classrooms.tests_my_students_grade_filter",
+    "classrooms.tests_my_students_concurrency",
+    "classrooms.tests_my_students_course_scope",
+    "classrooms.tests_enrollment_list_order",
+    "classrooms.tests_query_budget",
+    "classrooms.tests_security_penetration",
+    "classrooms.tests_teacher_access_sweep",
+    "billing.tests.test_h38_part2_removed_teacher_routes",
+    "dashboard.tests_teacher_all_students",
+    "dashboard.tests_h232_all_students_scoping",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_cache_bespoke_1114",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+MOD = "classrooms/models.py"
+SER = "students/serializers.py"
+GRADE_SUBMISSIONS = "        course_ids = self._teacher_course_ids(obj)\n        return [\n"
+TOTAL_LOOP = "            for enrollment in self._counted_enrollments(obj)\n        )\n"
+SESSION_BLOCK = "    if session_id is not None:\n        basis = [e for e in basis if str(e.course.session_id) == session_id]\n"
+WITHDRAWN = "        if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN\n    ]\n    if session_id"
+COUNTS_NEW = '''    def get_total_assignments_in_course(self, obj):
+        # H-234: over the same enrolments as `grade` and `at_risk`, not the
+        # one "relevant" course. Every assignment of each counted course
+        # (today's meaning; H-235 takes the definition to the user). len() of
+        # the prefetch cache, not .count(), which would issue a fresh COUNT.
+        return sum(
+            len(enrollment.course.assignments.all())
+            for enrollment in self._counted_enrollments(obj)
+        )
+
+    def get_total_assignments_submitted(self, obj):
+        # H-234: the student's submissions in the counted courses.
+        course_ids = self._teacher_course_ids(obj)
+        return sum(
+            1
+            for submission in obj.submissions.all()
+            if submission.assignment.course_id in course_ids
+        )
+'''
+COUNTS_OLD = '''    def get_total_assignments_in_course(self, obj):
+        course = self._get_relevant_course(obj)
+        if course:
+            return len(course.assignments.all())
+        return 0
+
+    def get_total_assignments_submitted(self, obj):
+        course = self._get_relevant_course(obj)
+        if course:
+            return sum(
+                1
+                for submission in obj.submissions.all()
+                if submission.assignment.course_id == course.id
+            )
+        return 0
+'''
+NORMALISE = "        return str(uuid.UUID(value)) if value else None\n"
+LAST = "    # withdrawn from), the user's choice (option 1).\n    return basis\n"
+
+MUTANTS = {
+    # J1 the course filter leaks into the grade/at-risk submissions: with
+    # Term 1 + C3 the grade is C3's 60.00, not Term 1's 75.00 (at risk on
+    # both rows; counts unchanged). K2 stays green: C3's 60.00 equals the
+    # whole history's 60.00 and both rows are at risk.
+    "J1": (SER, GRADE_SUBMISSIONS,
+           GRADE_SUBMISSIONS.replace(
+               "        return [\n",
+               "        course = self._filter_uuid(\"enrollments__course\")\n"
+               "        if course:\n"
+               "            course_ids = {c for c in course_ids if str(c) == course}\n"
+               "        return [\n"),
+           ROW_MODULES, {K1},
+           {K1: ("Tuples differ: (Decimal('60.00'), True, 3, 2, 66.67) != (Decimal('75.00'), True, 3, 2, 66.67)",)}),
+    # J2 the course filter leaks into the total only.
+    "J2": (SER, TOTAL_LOOP,
+           "            for enrollment in self._counted_enrollments(obj)\n"
+           "            if not self._filter_uuid(\"enrollments__course\")\n"
+           "            or str(enrollment.course_id) == self._filter_uuid(\"enrollments__course\")\n"
+           "        )\n",
+           ROW_MODULES, {K1, K2},
+           {K1: ("Tuples differ: (Decimal('75.00'), True, 2, 2, 100.0) != (Decimal('75.00'), True, 3, 2, 66.67)",),
+            K2: ("Tuples differ: (Decimal('60.00'), True, 2, 3, 150.0) != (Decimal('60.00'), True, 4, 3, 75.0)",)}),
+    # J3 the session ignored: every number over the whole history. K1, K2
+    # stay green (both rows ignore it alike); A1 stays green (Ada has C1 only).
+    "J3": (MOD, SESSION_BLOCK, "", ROW_MODULES,
+           {S1, S2, S3, W1, R1, R2, G1, G2, G3},
+           {S1: T1_GRADE, S3: T1_GRADE,
+            S2: ("Tuples differ: (4, 3, 75.0) != (2, 2, 100.0)",),
+            W1: ("Decimal('60.00') != Decimal('90.00')",),
+            R1: ("True is not false",), R2: SECOND_SET, G1: SECOND_SET, G2: SECOND_SET,
+            G3: ("First differing element 0:",)}),
+    # J4 WITHDRAWN kept.
+    "J4": (MOD, WITHDRAWN, "        if True\n    ]\n    if session_id", ROW_MODULES,
+           {W1, W2},
+           {W1: ("Decimal('75.00') != Decimal('90.00')",),
+            W2: ("Tuples differ: (4, 3, 75.0) != (2, 2, 100.0)",)}),
+    # J5 the counts back on the one "relevant" course (the base's code).
+    "J5": (SER, COUNTS_NEW, COUNTS_OLD, ROW_MODULES,
+           {S2, K1, K2, W2, N2},
+           {S2: ("Tuples differ: (1, 1, 100.0) != (2, 2, 100.0)",),
+            K1: ("Tuples differ: (Decimal('75.00'), True, 2, 1, 50.0) != (Decimal('75.00'), True, 1, 1, 100.0)",),
+            K2: COUNTS_BASE_RELEVANT,
+            W2: ("Tuples differ: (2, 1, 50.0) != (2, 2, 100.0)",),
+            N2: ("Tuples differ: (1, 1, 100.0) != (4, 3, 75.0)",)}),
+    # J6 the session id not normalised: the upper-case spelling matches
+    # nothing, so no grade (_percentage's assertIsNotNone).
+    "J6": (SER, NORMALISE, "        return value if value else None\n", ROW_MODULES,
+           {S3}, {S3: ("unexpectedly None",)}),
+    # J7 a different no-session basis (the first counted enrolment only).
+    # K2 stays green (both its rows have no session, both C1).
+    "J7": (MOD, LAST,
+           LAST.replace("    return basis\n",
+                        "    if session_id is None:\n        basis = basis[:1]\n    return basis\n"),
+           ROW_MODULES, {N1, N2, W2},
+           {N1: ("Decimal('90.00') != Decimal('60.00')",),
+            N2: ("Tuples differ: (1, 1, 100.0) != (4, 3, 75.0)",),
+            W2: ("Tuples differ: (1, 1, 100.0) != (2, 2, 100.0)",)}),
+}
