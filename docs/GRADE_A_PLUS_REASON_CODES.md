@@ -385,6 +385,18 @@ HTTP 400 · USER · Not retryable
 | Params | none |
 | Returned by | Whole request: `POST submissions/{id}/publish`. Per item: the `skipped` list of `POST assignments/{id}/publish-all-grades`. |
 
+#### `OVERAGE_CAP_EXCEEDED`
+
+HTTP 400 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | This purchase would exceed your plan's overage limit of `{max_blocks}` block(s) per cycle (`{remaining}` remaining). |
+| What to do | Request fewer blocks, or wait until your next billing cycle, then try again. |
+| Params | `max_blocks`, `remaining` |
+| Returned by | Whole request: `POST subscription/credits/overage/purchase` (an individual teacher buying extra credit blocks beyond their plan). |
+| Notes | The cap is per billing cycle and set per plan (`SubscriptionPlan.max_overage_blocks`), not a single fixed number across plans. Re-checked again when Stripe confirms payment; if a race fills the cap between checkout and payment, the payment is kept and flagged for manual refund rather than granting over the cap — that path has no reason code, since it answers Stripe's webhook, not the teacher. |
+
 ### Sign-in locks
 
 Too many wrong attempts. The user has to wait. These four have a slightly different body, described in section 6.
@@ -867,6 +879,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `AI_FEATURE_NOT_AVAILABLE` | Grading, credits and plan | 403 | No |
 | `NOT_RETRYABLE` | Grading, credits and plan | 409 | No |
 | `SUBMISSION_NOT_GRADED` | Grading, credits and plan | 400 | No |
+| `OVERAGE_CAP_EXCEEDED` | Grading, credits and plan | 400 | No |
 | `ACCOUNT_LOCKED` | Sign-in locks | 401 | Yes |
 | `RESET_LOCKED` | Sign-in locks | 429 | Yes |
 | `VERIFY_LOCKED` | Sign-in locks | 429 | Yes |

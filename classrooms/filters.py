@@ -8,6 +8,14 @@ other teacher's course?" - it returned the shared student for a course the
 teacher cannot see. The filters here only ever match through the
 requester's own courses, so a foreign id behaves exactly like one that
 does not exist: zero rows.
+
+`min_grade`, `max_grade`, `at_risk` and `ordering=final_grade` are NOT
+declared here even though `my_students` accepts them: `grade` and
+`at_risk` are cross-course Python computations (StudentListSerializer),
+not SQL-expressible conditions, so DjangoFilterBackend can't apply them -
+`StudentCourseViewSet.my_students` reads them directly and evaluates them
+itself. Declaring them here would just mean DjangoFilterBackend silently
+ignoring them twice.
 """
 
 import django_filters

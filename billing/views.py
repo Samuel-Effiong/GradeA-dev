@@ -29,6 +29,7 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.reason_codes import CodedError, coded_response
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from dashboard.serializers import (
     CustomAIPrompt,
@@ -1336,6 +1337,8 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             result = StripeOverageService.create_overage_checkout_session(
                 request.user, success_url, cancel_url, quantity
             )
+        except CodedError as exc:
+            return coded_response(exc)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
