@@ -61,6 +61,7 @@ from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import CodedError, coded_response
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
+from billing.errors import InsufficientCreditsError
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -68,6 +69,7 @@ from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
 from .exceptions import (
+    STUDENT_UPLOAD_NOT_PROCESSED,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
@@ -140,13 +142,25 @@ def _submission_closed_response(exc):
     )
 
 
-def _failure_response(exc, fallback_message):
+def _failure_response(exc, fallback_message, requester=None):
     """A coded failure (FR-A-06, including the AI refusals: plan or credits)
     gets its own status and the coded body; any other refusal the user can
     act on is a 400 with its own text; anything else is a 500 with the
-    operation's fallback text (never the raw exception)."""
+    operation's fallback text (never the raw exception).
+
+    H-216: a credit refusal seen by a STUDENT (the wallet is their
+    teacher's) keeps its code but reads the one fixed student sentence, as
+    on the asynchronous routes, with no remediation (the sentence already
+    says what to do). A teacher keeps the generic text and remediation."""
     coded = coded_response(exc)
     if coded is not None:
+        if (
+            requester is not None
+            and requester.user_type == UserTypes.STUDENT
+            and isinstance(exc, InsufficientCreditsError)
+        ):
+            coded.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
+            coded.data["remediation"] = None
         return coded
     return Response(
         {"error": describe_user_error(exc, fallback_message=fallback_message)},
@@ -624,6 +638,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 e,
                 "We couldn't process your submission. Please check the file "
                 "and try again.",
+                request.user,
             )
 
     @extend_schema(
@@ -780,7 +795,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         except Exception as e:
             logger.error("Failed to save submission update", exc_info=e)
             return _failure_response(
-                e, "We couldn't save your update. Please try again."
+                e, "We couldn't save your update. Please try again.", request.user
             )
 
         # With the request, so the serializer knows a student is asking
