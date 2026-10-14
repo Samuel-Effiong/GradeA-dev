@@ -5,7 +5,9 @@ recorded, the file is restored. Judged three ways (rule 18, SM 2026-10-05):
   SURVIVED  the inner run exits 0;
   KILLED    non-zero exit, the run's own "Ran" line, no test module that
             failed to load, and the test named in EXPECTED for that mutant
-            among the failing tests;
+            among the failing tests; for a mutant in REASONS, each named
+            test's own FAIL/ERROR block also holds its written fragment
+            (rule 22);
   BROKEN    anything else. Never counted as a kill.
 EXPECTED was written before any run of a mutant.
 
@@ -20,7 +22,7 @@ ordinary exit so that block runs. After a SIGKILL nothing in this process
 can run; the gate script's EXIT trap restores the files from the commit,
 and the next start refuses to run unless every anchor is found once.
 
-The three "fresh" mutants (the migrations, D1 to D3) are last: each builds its own test
+The "fresh" mutants (the migrations, D1 to D7) are last: each builds its own test
 database from the mutated migration, and the gate script drops that
 database afterwards.
 """
@@ -510,6 +512,27 @@ MUTANTS = [
         TESTS,
         F,
     ),
+    (
+        # Added 2026-10-14 (Builder 58, SM ruling on the Verifier's N2 of
+        # 74fb0e89): 0032's closing operation, which sets the timeout before a
+        # rollback's DROP COLUMNs. Written before any run of them.
+        "D6",
+        "the column migration's rollback has no lock timeout (the closing operation dropped)",
+        M32,
+        "        migrations.RunSQL(migrations.RunSQL.noop, reverse_sql=SET_LOCK_TIMEOUT),\n",
+        "",
+        TESTS,
+        F,
+    ),
+    (
+        "D7",
+        "the closing operation's reverse sets no lock timeout",
+        M32,
+        "reverse_sql=SET_LOCK_TIMEOUT)",
+        "reverse_sql=migrations.RunSQL.noop)",
+        TESTS,
+        F,
+    ),
 ]
 
 #: The failing tests each mutant must be caught by (written before any run): EVERY test of the eight modules
@@ -890,9 +913,35 @@ EXPECTED = {
         "test_0033_adds_the_one_constraint_not_valid_and_nothing_else",
     ],
     "D5": [
-        "test_0032_is_a_lock_timeout_then_six_add_fields_and_nothing_else",
+        "test_0032_sets_the_lock_timeout_both_ways_around_six_add_fields",
+    ],
+    "D6": [
+        "test_0032_sets_the_lock_timeout_both_ways_around_six_add_fields",
+    ],
+    "D7": [
+        "test_0032_sets_the_lock_timeout_both_ways_around_six_add_fields",
     ],
 }
+
+#: Rule 22 for the lock-timeout mutants (the Verifier's N1 on 74fb0e89): each named test must fail for the reason
+#: written here, a fragment looked for inside that test's own FAIL/ERROR block. Written before any run, from
+#: unittest's own messages: D5 leaves ['AddField'] * 6 + ['RunSQL'] against the expected
+#: ['RunSQL'] + ['AddField'] * 6 + ['RunSQL'] (they differ at element 0); D6 leaves ['RunSQL'] + ['AddField'] * 6 (the
+#: expected list is one longer); D7 passes the list and the closing forward, and fails at the closing reverse.
+LIST_TEST = "test_0032_sets_the_lock_timeout_both_ways_around_six_add_fields"
+REASONS = {
+    "D5": {LIST_TEST: "First differing element 0:\n'AddField'\n'RunSQL'"},
+    "D6": {
+        LIST_TEST: "Second list contains 1 additional elements.\nFirst extra element 7:\n'RunSQL'"
+    },
+    "D7": {LIST_TEST: "'' != \"SET LOCAL lock_timeout = '5s'\""},
+}
+
+#: One test's own FAIL/ERROR block: from its header to the next header or the "Ran" line.
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \([\w.]+\)[^\n]*\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests?)",
+    re.M | re.S,
+)
 
 #: A test module that could not be loaded.
 LOAD_FAILURE = "unittest.loader._FailedTest"
@@ -910,18 +959,36 @@ def _expected(mid):
     return [value] if isinstance(value, str) else list(value)
 
 
+def wrong_reasons(mid, text):
+    """The tests of REASONS[mid] whose own blocks lack the written fragment."""
+    blocks = {}
+    for name, body in BLOCK.findall(text):
+        blocks.setdefault(name, []).append(body)
+    return sorted(
+        test
+        for test, fragment in REASONS.get(mid, {}).items()
+        if not any(fragment in body for body in blocks.get(test, []))
+    )
+
+
 def judge(mid, returncode, text):
-    """(status, the run's "Ran" line, the failing tests' names)."""
+    """(status, the run's "Ran" line, the failing tests' names, the tests red for another reason)."""
     failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", text, re.M)))
     ran = re.findall(r"^Ran \d+ tests? in .*$", text, re.M)
     ran_line = ran[-1] if ran else None
+    wrong = wrong_reasons(mid, text)
     if returncode == 0:
         status = "SURVIVED"
-    elif ran_line and LOAD_FAILURE not in text and set(_expected(mid)) <= set(failed):
+    elif (
+        ran_line
+        and LOAD_FAILURE not in text
+        and set(_expected(mid)) <= set(failed)
+        and not wrong
+    ):
         status = "KILLED"
     else:
         status = "BROKEN"
-    return status, ran_line, failed
+    return status, ran_line, failed, wrong
 
 
 def edits(old, new):
@@ -945,6 +1012,10 @@ def _exit_on_sigterm(signum, _frame):
 def main():
     signal.signal(signal.SIGTERM, _exit_on_sigterm)
     assert [m[0] for m in MUTANTS] == list(EXPECTED), "EXPECTED names every mutant"
+    for mid, reasons in REASONS.items():
+        assert set(reasons) <= set(
+            _expected(mid)
+        ), f"{mid}: a reason for a test not expected"
     originals = {}
     for mid, _what, path, old, new, _tests, kind in MUTANTS:
         source = originals.setdefault(path, open(path).read())
@@ -984,7 +1055,7 @@ def main():
             open(path, "w").write(original)
             clear_pycache(path)
         text = log.read_text(errors="replace")
-        status, ran_line, failed = judge(mid, p.returncode, text)
+        status, ran_line, failed, wrong = judge(mid, p.returncode, text)
         results[mid] = {
             "what": what,
             "file": path,
@@ -995,6 +1066,8 @@ def main():
             "expected": _expected(mid),
             "failing_tests": failed,
             "also_failed_not_expected": sorted(set(failed) - set(_expected(mid))),
+            "written_reasons": REASONS.get(mid, {}),
+            "wrong_reason": wrong,
         }
         print(mid, results[mid], flush=True)
     with open(OUT, "w") as f:
