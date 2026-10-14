@@ -12,6 +12,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.grading_run import GradingRun
+from ai_processor.reading_run import ReadingRun
 from ai_processor.services import (
     GRADING_ASSIGNMENT_PROMPT,
     REPLY_CORRECTED,
@@ -56,6 +57,7 @@ from .models import (
     GradingState,
     StudentSubmission,
 )
+from .reading_label import READING_LABEL_FIELDS, apply_reading_label
 from .signals import invalidate_submission_caches
 from .task_tracking import (
     cancellable_final_save,
@@ -1226,6 +1228,7 @@ def upload_answers_engine(
     with billing_refund_scope(
         reason="answer upload failed before the submission was persisted"
     ):
+        reading_run = ReadingRun()
         student_submission = ai_processor.extract_answer_with_retry(
             request_user,
             content,
@@ -1233,6 +1236,7 @@ def upload_answers_engine(
             assignment_model=assignment,
             max_retries=3,
             processing_task_id=processing_task_id,
+            reading_run=reading_run,
         )
 
         if student_submission is not None:
@@ -1331,6 +1335,9 @@ def upload_answers_engine(
                         submission_date=timezone.now(),
                     )
 
+                # How these answers were read, set before the one save below:
+                # the label and the answers are one INSERT or one UPDATE.
+                apply_reading_label(submission, reading_run, submission.answers)
                 ensure_task_not_cancelled(processing_task_id)
                 answer_html = student_submission_to_html(submission)
                 submission.raw_input = (
@@ -1357,6 +1364,7 @@ def upload_answers_engine(
                                 "attempt_count",
                                 "raw_input",
                                 "extraction_confidence",
+                                *READING_LABEL_FIELDS,
                             ]
                         )
 
@@ -1561,6 +1569,7 @@ def update_submission_from_raw_text(
     with billing_refund_scope(
         reason="submission edit failed before the new answers were persisted"
     ):
+        reading_run = ReadingRun()
         extracted = ai_processor.extract_answer_with_retry(
             user,
             content,
@@ -1568,6 +1577,7 @@ def update_submission_from_raw_text(
             assignment_model=assignment,
             max_retries=3,
             processing_task_id=processing_task_id,
+            reading_run=reading_run,
         )
         answers = extracted.get("answers") if isinstance(extracted, dict) else None
         if not is_a_list_of_objects(answers):
@@ -1583,6 +1593,9 @@ def update_submission_from_raw_text(
             )
             ensure_task_not_cancelled(processing_task_id)
             locked.answers = answers
+            # An edit is a new reading: its label replaces the old one in
+            # the same save.
+            apply_reading_label(locked, reading_run, answers)
             locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
                 student_submission_to_html(locked)
             )
@@ -1593,7 +1606,12 @@ def update_submission_from_raw_text(
                 # Only what this path owns - never a full-row save from an
                 # instance that predates the extraction.
                 locked.save(
-                    update_fields=["answers", "raw_input", "extraction_confidence"]
+                    update_fields=[
+                        "answers",
+                        "raw_input",
+                        "extraction_confidence",
+                        *READING_LABEL_FIELDS,
+                    ]
                 )
     return locked
 
