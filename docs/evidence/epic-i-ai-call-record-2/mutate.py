@@ -40,8 +40,29 @@ import sys
 
 HERE = pathlib.Path("docs/evidence/epic-i-ai-call-record-2")
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
-OUT = pathlib.Path(os.environ.get("MUT_RESULTS", HERE / "mutation_results.json"))
-LOGS = pathlib.Path(os.environ.get("MUT_LOGS", HERE / "mutant_logs"))
+#: A subset re-run (SM ruling 2026-10-14, after the laptop suspended during D3 of the
+#: b9a222cb battery): MUT_ONLY names mutant ids, comma- or space-separated. An unknown
+#: id STOPS the run before anything is mutated; every anchor is still checked for all
+#: mutants. A subset run writes, by default, to its own results file and log folder
+#: (never over the full battery's) and its results file names the subset.
+ONLY = [mid for mid in os.environ.get("MUT_ONLY", "").replace(",", " ").split() if mid]
+_SUBSET = "_".join(ONLY)
+OUT = pathlib.Path(
+    os.environ.get(
+        "MUT_RESULTS",
+        HERE
+        / (
+            f"mutation_results_subset_{_SUBSET}.json"
+            if ONLY
+            else "mutation_results.json"
+        ),
+    )
+)
+LOGS = pathlib.Path(
+    os.environ.get(
+        "MUT_LOGS", HERE / (f"mutant_logs_subset_{_SUBSET}" if ONLY else "mutant_logs")
+    )
+)
 
 RR = "ai_processor/reading_run.py"
 RC = "ai_processor/reading_config.py"
@@ -1026,14 +1047,23 @@ def main():
         assert broken(source, old, new) != source, f"{mid}: changes nothing"
         if path.endswith(".py"):
             ast.parse(broken(source, old, new))
+    unknown = sorted(set(ONLY) - {m[0] for m in MUTANTS})
+    if unknown:
+        print("STOP: MUT_ONLY names unknown mutant id(s):", unknown, flush=True)
+        raise SystemExit(2)
+    selected = [m for m in MUTANTS if not ONLY or m[0] in ONLY]
     if "--check" in sys.argv:
         print(len(MUTANTS), "mutants: every anchor found once, all parse")
         print(" ".join(m[0] for m in MUTANTS))
+        if ONLY:
+            print("SUBSET:", [m[0] for m in selected], "of", len(MUTANTS))
         return
+    if ONLY:
+        print("SUBSET:", [m[0] for m in selected], "of", len(MUTANTS), flush=True)
     LOGS.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     results = {}
-    for mid, what, path, old, new, tests, kind in MUTANTS:
+    for mid, what, path, old, new, tests, kind in selected:
         original = originals[path]
         database = ["--keepdb"] if kind == "keepdb" else []
         try:
@@ -1071,7 +1101,18 @@ def main():
         }
         print(mid, results[mid], flush=True)
     with open(OUT, "w") as f:
-        json.dump(results, f, indent=2)
+        if ONLY:
+            json.dump(
+                {
+                    "subset": [m[0] for m in selected],
+                    "of": len(MUTANTS),
+                    "results": results,
+                },
+                f,
+                indent=2,
+            )
+        else:
+            json.dump(results, f, indent=2)
         f.write("\n")
     for status in ("KILLED", "SURVIVED", "BROKEN"):
         print(f"{status}:", [k for k, v in results.items() if v["status"] == status])
