@@ -1175,10 +1175,11 @@ class SharedStudentBase(TeacherRemovalBase):
             score=Decimal("9.00"),
             graded_at=timezone.now(),
         )
-        # After the submission, whose receiver recalculates final_grade.
-        StudentCourse.objects.filter(
-            student=self.student, course_id=self.course_id
-        ).update(final_grade=Decimal("91.50"))
+        # my-students' `grade` is now a cross-course points-weighted
+        # aggregate computed straight from submissions (final_grade_from),
+        # not a read of the stored StudentCourse.final_grade column - this
+        # is the only graded submission in either course, so the expected
+        # figure is this one 9/10 score, not a hand-set column value.
 
         own_session = Session.objects.create(
             name="Own term",
@@ -1284,7 +1285,9 @@ class RemovedTeacherSharedStudentTests(SharedStudentBase):
         )
         self.assertEqual(response.status_code, 200, response.content)
         row = self.student_row(response)
-        self.assertEqual(row["enrolled_courses"], ["Own Chemistry"])
+        self.assertEqual(
+            [c["name"] for c in row["enrolled_courses"]], ["Own Chemistry"]
+        )
         self.assertFalse(leaked, body)
 
     # classrooms/views.py my_students: both prefetches, below the serializer
@@ -1428,7 +1431,8 @@ class ActiveTeacherSharedStudentTests(SharedStudentBase):
         self.assertEqual(response.status_code, 200, response.content)
         row = self.student_row(response)
         self.assertCountEqual(
-            row["enrolled_courses"], ["School A Biology", "Own Chemistry"]
+            [c["name"] for c in row["enrolled_courses"]],
+            ["School A Biology", "Own Chemistry"],
         )
         self.assertNotIn("Colleague", response.content.decode())
 
@@ -1442,8 +1446,11 @@ class ActiveTeacherSharedStudentTests(SharedStudentBase):
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.data["count"], 1, response.content)
         row = self.student_row(response)
-        self.assertEqual(row["course_description"], "School A syllabus")
-        self.assertEqual(Decimal(str(row["grade"]["percentage"])), Decimal("91.50"))
+        course = next(
+            c for c in row["enrolled_courses"] if str(c["id"]) == str(self.course_id)
+        )
+        self.assertEqual(course["description"], "School A syllabus")
+        self.assertEqual(Decimal(str(row["grade"]["percentage"])), Decimal("90.00"))
         self.assertEqual(row["total_assignments_submitted"], 1)
 
     def test_my_students_session_filter_selects_the_student(self):

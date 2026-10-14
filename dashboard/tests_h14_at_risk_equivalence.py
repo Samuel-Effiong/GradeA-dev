@@ -96,7 +96,16 @@ def reference_at_risk_students(service, school):
         # Only published, graded submissions count toward the average
         # shown to school admins (matches the prior school-wide behavior).
         graded_scores = [
-            (submission.submission_date, float(submission.score_percentage))
+            (
+                submission.submission_date,
+                float(submission.score_percentage),
+                submission.score,
+                (
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
+            )
             for submission in student_submissions
             if submission.is_published and submission.score_percentage is not None
         ]

@@ -11,6 +11,8 @@ from datetime import datetime
 
 import numpy as np
 
+from classrooms.final_grade import final_grade_from
+
 TREND_IMPROVING = "IMPROVING"
 TREND_DECLINING = "DECLINING"
 TREND_STABLE = "STABLE"
@@ -21,7 +23,12 @@ TREND_INSUFFICIENT_DATA = "INSUFFICIENT DATA"
 class RiskInputs:
     expected_assignment_count: int
     submitted_count: int
-    # (submission_date, score_percentage) pairs for graded submissions, any order.
+    # (submission_date, score_percentage, score, points) per graded
+    # submission, any order. `score_percentage` alone drives the trend
+    # calculation below (direction over time). `score`/`points` drive
+    # average_grade through the same points-weighted formula as
+    # classrooms.final_grade.final_grade_from, so a student's "grade" is
+    # never two different sums depending on which screen shows it.
     graded_scores: list = field(default_factory=list)
 
 
@@ -60,13 +67,15 @@ class StudentRiskEvaluator:
         submitted = inputs.submitted_count
         submission_rate = submitted / expected if expected else 1.0
 
-        graded_scores = sorted(inputs.graded_scores, key=lambda pair: pair[0])
-        scores_only = [score for _, score in graded_scores]
-        average_grade = (
-            round(sum(scores_only) / len(scores_only), 2) if scores_only else None
+        graded_scores = sorted(inputs.graded_scores, key=lambda row: row[0])
+        weighted = final_grade_from(
+            (score, points) for _, _, score, points in graded_scores
         )
+        average_grade = float(weighted) if weighted is not None else None
 
-        grade_trend, trend_delta = self._calculate_grade_trend(graded_scores)
+        grade_trend, trend_delta = self._calculate_grade_trend(
+            [(date, pct) for date, pct, _, _ in graded_scores]
+        )
 
         issue_tags = []
         reasons = []

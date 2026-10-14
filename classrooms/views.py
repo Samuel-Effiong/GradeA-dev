@@ -2124,6 +2124,16 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     teacher_course_access_q(user, prefix="course__"),
                     student=OuterRef("pk"),
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+
+                # `grade` is a cross-course aggregate now (every course this
+                # teacher teaches this student, not one "relevant"
+                # enrollment) - StudentListSerializer computes it in Python
+                # from the prefetched submissions below, so there is no
+                # longer a single DB column/annotation for min_grade,
+                # max_grade or ordering=final_grade to target. See
+                # `my_students` for how those three (and at_risk) are
+                # evaluated instead.
+                #
                 # StudentListSerializer walks enrollments -> course ->
                 # teacher and assignments, and submissions -> assignment,
                 # for every row. Unprefetched that was ~140 queries PER
@@ -2137,7 +2147,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # holds: unscoped, `enrolled_courses` listed other teachers'
                 # course names, and `?enrollments__course=<their course>`
                 # made that foreign course the row's subject - its
-                # description, its teacher's name and the student's grade.
+                # description and its teacher's name.
                 return CustomUser.objects.filter(
                     Exists(active_enrollment)
                 ).prefetch_related(
@@ -2217,7 +2227,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         summary="List Teacher's Students",
         description=(
             "Retrieves a unique list of students enrolled in any course taught by the currently authenticated teacher. "
-            "Supports filtering by specific course or session and searching by name/email."
+            "Supports filtering by specific course or session, filtering/sorting by grade performance, "
+            "filtering by at-risk status, and searching by name/email."
         ),
         parameters=[
             OpenApiParameter(
@@ -2238,6 +2249,37 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 location=OpenApiParameter.QUERY,
                 description="Search students by first name, last name, or email (case-insensitive).",
             ),
+            OpenApiParameter(
+                name="min_grade",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Only students whose grade (points-weighted across every "
+                    "course this teacher teaches them) is at least this."
+                ),
+            ),
+            OpenApiParameter(
+                name="max_grade",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Only students whose grade is at most this.",
+            ),
+            OpenApiParameter(
+                name="at_risk",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Only students flagged at_risk (true) or not (false), per the "
+                    "same StudentRiskEvaluator the response's at_risk field uses, "
+                    "evaluated across every course this teacher teaches them."
+                ),
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Sort by grade: `final_grade` (lowest first) or `-final_grade` (highest first).",
+            ),
         ],
         responses={200: StudentListSerializer(many=True)},
         tags=["Student Course"],
@@ -2257,12 +2299,67 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         queryset = self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(queryset)
+        min_grade = request.query_params.get("min_grade")
+        max_grade = request.query_params.get("max_grade")
+        at_risk_param = request.query_params.get("at_risk")
+        ordering = request.query_params.get("ordering")
+        sort_by_grade = ordering in ("final_grade", "-final_grade")
+
+        # `grade` and `at_risk` are cross-course Python computations
+        # (StudentListSerializer), not DB columns - DjangoFilterBackend and
+        # OrderingFilter can't filter/sort by them. The common case (none
+        # of these four params given) stays a plain DB-paginated list;
+        # only when one is actually present do we pay to materialise and
+        # evaluate every matching student up front, the same tradeoff
+        # dashboard/views.py's `all_students` action already takes for its
+        # own at_risk filter.
+        if not (min_grade or max_grade or at_risk_param or sort_by_grade):
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+        # One serializer instance, reused across every student: its
+        # memoised _cross_course_grade/_cross_course_risk_result are the
+        # SAME computation the response's grade/at_risk fields show, so
+        # this filtering/sorting can never disagree with the rows it
+        # returns - and reusing it costs no extra queries (everything
+        # needed is already prefetched by get_queryset).
+        probe = StudentListSerializer(context={"request": request})
+        rows = [
+            (student, probe._cross_course_grade(student), probe.get_at_risk(student))
+            for student in queryset
+        ]
+
+        if min_grade is not None:
+            threshold = float(min_grade)
+            rows = [r for r in rows if r[1] is not None and r[1] >= threshold]
+        if max_grade is not None:
+            threshold = float(max_grade)
+            rows = [r for r in rows if r[1] is not None and r[1] <= threshold]
+        if at_risk_param is not None:
+            want = at_risk_param.lower() in ("1", "true")
+            rows = [r for r in rows if r[2] == want]
+        if sort_by_grade:
+            # Ungraded students sort last regardless of direction - "no
+            # grade yet" isn't lower or higher than a real one, so it's
+            # excluded from the reversible part of the sort entirely.
+            graded = sorted(
+                (r for r in rows if r[1] is not None),
+                key=lambda r: r[1],
+                reverse=ordering.startswith("-"),
+            )
+            ungraded = [r for r in rows if r[1] is None]
+            rows = graded + ungraded
+
+        students = [r[0] for r in rows]
+        page = self.paginate_queryset(students)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
 
 

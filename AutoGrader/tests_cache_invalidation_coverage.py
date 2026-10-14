@@ -109,6 +109,9 @@ FAMILIES = {
     "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__assignments": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>": ("SCOPE_USER",),
+    "teacheradmins:user_id__<>:instance_id__<>:view__all_students:<>:<>:<>:<>:<>": (
+        "SCOPE_USER",
+    ),
     # dashboard/views.py - student (G2, and status-summary: H-1 step 4)
     "studentadmins:user_id__<>:instance_id__<>:view__summary": ("SCOPE_USER",),
     "studentadmins:user_id__<>:view__assignments:<>:<>": ("SCOPE_USER",),
