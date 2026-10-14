@@ -205,8 +205,9 @@ class HasCreditBalanceTests(TestCase):
         with self.assertRaises(EmptyWalletError) as ctx:
             self.check(self.student, assignment_id=self.assignment.id)
 
-        # Same refusal for a student (D11); the client-facing message is the
-        # role-neutral generic one (billing.errors.INSUFFICIENT_CREDITS_MESSAGE).
+        # Same refusal for a student (D11), as its student subclass (H-225):
+        # users.exceptions tells a student the fixed student sentence, not the
+        # generic wallet one (students.tests_h225_student_empty_wallet).
         self.assertIsInstance(ctx.exception, InsufficientCreditsError)
         self.assertEqual(ctx.exception.status_code, 402)
 
