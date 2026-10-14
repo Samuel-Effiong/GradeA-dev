@@ -51,6 +51,7 @@ from AutoGrader.cache_generation import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.query_params import boolean_query_param
 from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
@@ -3825,10 +3826,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         teacher = request.user
         course_id = request.query_params.get("course_id") or ""
         student_id = request.query_params.get("student_id") or ""
-        at_risk_param = request.query_params.get("at_risk")
-        at_risk_filter = (
-            None if at_risk_param is None else at_risk_param.lower() in ("1", "true")
-        )
+        # Read (and a bad value refused) before the cache key is built, so a
+        # refused request never reads or stores an entry (H-233).
+        at_risk_filter = boolean_query_param(request, "at_risk")
 
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")

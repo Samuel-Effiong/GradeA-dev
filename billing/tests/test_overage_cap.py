@@ -31,6 +31,14 @@ from billing.models import CreditBucketType, CreditWallet, PlanType
 from billing.stripe_service import StripeOverageService, StripeWebhookHandler
 from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
 
+#: H-233 (the user's sentence, SM-approved 2026-10-14): it reads right at
+#: 0 blocks left too, where the old one said "Reduce your quantity to 0 or
+#: fewer".
+CAP_SENTENCE = (
+    "This purchase would go over your plan's limit of {max_blocks} block(s) "
+    "per billing cycle. You have {remaining} block(s) left this cycle."
+)
+
 
 class OverageCapTestBase(ExecuteGradedTaskTestBase):
     def setUp(self):
@@ -90,8 +98,9 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
 
         self.assertEqual(ctx.exception.reason_code, ReasonCode.OVERAGE_CAP_EXCEEDED)
         self.assertEqual(ctx.exception.params, {"max_blocks": 3, "remaining": 1})
-        self.assertIn("Purchase limit exceeded", str(ctx.exception))
-        self.assertIn("1 block(s) left", str(ctx.exception))
+        self.assertEqual(
+            str(ctx.exception), CAP_SENTENCE.format(max_blocks=3, remaining=1)
+        )
         mock_session_create.assert_not_called()
 
     @patch("billing.stripe_service.StripeCustomerService.get_or_create_customer")
@@ -108,6 +117,9 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
 
         self.assertEqual(ctx.exception.reason_code, ReasonCode.OVERAGE_CAP_EXCEEDED)
         self.assertEqual(ctx.exception.params, {"max_blocks": 3, "remaining": 0})
+        self.assertEqual(
+            str(ctx.exception), CAP_SENTENCE.format(max_blocks=3, remaining=0)
+        )
         mock_session_create.assert_not_called()
 
 
@@ -140,8 +152,14 @@ class PurchaseOverageViewCapTests(OverageCapTestBase):
         self.assertEqual(response.data["error_class"], "USER")
         self.assertFalse(response.data["retryable"])
         self.assertEqual(response.data["params"], {"max_blocks": 3, "remaining": 1})
-        self.assertIn("Purchase limit exceeded", response.data["error"])
-        self.assertIn("1 block(s) left", response.data["error"])
+        self.assertEqual(
+            response.data["error"], CAP_SENTENCE.format(max_blocks=3, remaining=1)
+        )
+        self.assertEqual(
+            response.data["remediation"],
+            "Request fewer blocks, or wait until your next billing cycle, then "
+            "try again.",
+        )
 
 
 class GrantTimeOverageCapTests(OverageCapTestBase):
