@@ -282,13 +282,14 @@ def reachable_courses(user):
     return Course.objects.filter(teacher_course_access_q(user))
 
 
-def grade_basis_enrollments(enrollments, *, course_id=None, session_id=None):
-    """The enrolments a student's grade and at-risk verdict are built from
-    on my-students (H-234): `enrollments` (already this teacher's
-    reachable ones, in memory) minus WITHDRAWN (H-230), narrowed to the
-    page's filters. `session_id` keeps only that session's courses,
-    `course_id` only that course; both together keep their intersection.
-    Both are the id's canonical text (str(uuid.UUID(...))) or None.
+def grade_basis_enrollments(enrollments, *, session_id=None):
+    """The enrolments every number of a my-students row is built from (H-234,
+    the user's rule of 2026-10-14): the grade, at_risk and the three counts.
+    `enrollments` are already this teacher's reachable ones, in memory;
+    WITHDRAWN ones are dropped (H-230), and `session_id` (the id's canonical
+    text, str(uuid.UUID(...)), or None) keeps only that session's courses.
+    There is deliberately no course argument: the course filter only
+    narrows which students appear, never their numbers.
     """
     basis = [
         enrollment
@@ -297,11 +298,8 @@ def grade_basis_enrollments(enrollments, *, course_id=None, session_id=None):
     ]
     if session_id is not None:
         basis = [e for e in basis if str(e.course.session_id) == session_id]
-    if course_id is not None:
-        basis = [e for e in basis if str(e.course_id) == course_id]
-    # With NO filter: the whole history (every reachable course not
-    # withdrawn from), the app's precedent until the user decides what
-    # "no filter" means (SM 2026-10-14). That answer changes this one place.
+    # With no session: the whole history (every reachable course not
+    # withdrawn from), the user's choice (option 1).
     return basis
 
 

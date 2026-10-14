@@ -869,17 +869,18 @@ class StudentListSerializer(serializers.ModelSerializer):
         return None
 
     def _counted_enrollments(self, obj):
-        """The enrolments `grade` and `at_risk` are built from: every one
-        of `_enrollments(obj)` except WITHDRAWN, as `.active()` and the
-        all-students route count them (H-230), narrowed to the page's
-        `enrollments__course__session` and `enrollments__course` filters
-        (H-234). A course the student withdrew from is still listed in
-        `enrolled_courses`, but its work that came due afterwards is not
-        missing work, and its old grades are not their grade now.
+        """The enrolments every number of the row is built from (`grade`,
+        `at_risk` and the three counts): every one of `_enrollments(obj)`
+        except WITHDRAWN, as `.active()` and the all-students route count
+        them (H-230), within the page's `enrollments__course__session`
+        (H-234). The course filter only narrows which students appear; it
+        changes none of their numbers (the user's rule, 2026-10-14). A course
+        the student withdrew from is still listed in `enrolled_courses`, but
+        its work that came due afterwards is not missing work, and its old
+        grades are not their grade now.
         """
         return grade_basis_enrollments(
             self._enrollments(obj),
-            course_id=self._filter_uuid("enrollments__course"),
             session_id=self._filter_uuid("enrollments__course__session"),
         )
 
@@ -954,22 +955,23 @@ class StudentListSerializer(serializers.ModelSerializer):
         }
 
     def get_total_assignments_in_course(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            # len() of the prefetch cache, not .count(), which would issue a
-            # fresh COUNT per student.
-            return len(course.assignments.all())
-        return 0
+        # H-234: over the same enrolments as `grade` and `at_risk`, not the
+        # one "relevant" course. Every assignment of each counted course
+        # (today's meaning; H-235 takes the definition to the user). len() of
+        # the prefetch cache, not .count(), which would issue a fresh COUNT.
+        return sum(
+            len(enrollment.course.assignments.all())
+            for enrollment in self._counted_enrollments(obj)
+        )
 
     def get_total_assignments_submitted(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            return sum(
-                1
-                for submission in obj.submissions.all()
-                if submission.assignment.course_id == course.id
-            )
-        return 0
+        # H-234: the student's submissions in the counted courses.
+        course_ids = self._teacher_course_ids(obj)
+        return sum(
+            1
+            for submission in obj.submissions.all()
+            if submission.assignment.course_id in course_ids
+        )
 
     def get_percentage_of_submission(self, obj):
         total = self.get_total_assignments_in_course(obj)
