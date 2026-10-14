@@ -16,16 +16,25 @@ Every provider reply has a real string model, or None on purpose (rule 14).
 """
 
 import json
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
 from ai_processor import services
 from ai_processor.exceptions import ProviderFailureError
 from ai_processor.tests_reading_pinned import PINNED
+from billing.models import (
+    BillingInterval,
+    PlanCategory,
+    PlanTier,
+    SubscriptionPlan,
+    UserSubscription,
+)
 from students.models import StudentSubmission
 from students.services import update_submission_from_raw_text, upload_answers_engine
 from students.tests_post_grading_submission_lock import _classroom, _submission
@@ -126,10 +135,39 @@ def inserts_of_the_row(captured):
     ]
 
 
+def _subscribe(teacher):
+    """An active individual plan, so the real access check in
+    execute_graded_task lets the teacher's (and their student's) reading
+    through. `_classroom` funds the wallet only: the lock tests that own it
+    replace the whole ai_processor and never reach that check, but these
+    tests run the real extraction (the slice 2 gate's stopped red run, 15:10 WAT
+    on 47fcee87: "No active subscription")."""
+    plan = SubscriptionPlan.objects.create(
+        name="Reading label plan",
+        category=PlanCategory.INDIVIDUAL,
+        tier=PlanTier.PRO,
+        interval=BillingInterval.MONTHLY,
+        monthly_credits=20000,
+        carry_over_percent=25,
+        is_active=True,
+    )
+    now = timezone.now()
+    UserSubscription.objects.create(
+        user=teacher,
+        plan=plan,
+        is_active=True,
+        billing_cycle_start=now,
+        billing_cycle_end=now + timedelta(days=30),
+        is_trial=False,
+        auto_renew=True,
+    )
+
+
 @override_settings(**PINNED)
 class Base(TestCase):
     def setUp(self):
         self.teacher, self.student, self.course, self.assignment = _classroom("rl")
+        _subscribe(self.teacher)
         patcher = patch.object(
             services.AIProcessor, "estimate_total_token", return_value=10
         )
