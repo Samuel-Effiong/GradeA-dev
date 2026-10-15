@@ -187,6 +187,35 @@ class FlagRulesTest(SimpleTestCase):
         self.assertEqual(flags_from_extraction(None), [])
         self.assertEqual(submission_flags("not a list"), [])
 
+    def test_a_paper_with_one_answer_on_topic_is_not_another_assignment(self):
+        # Seen live: a maths paper with a right answer to Q3 was called
+        # another subject's. The paper flag yields; the answers' stand.
+        for on_topic in (
+            answer(3, html="20 cm^2"),
+            answer(3, html="C", flag=FLAG_TYPE_MISMATCH),
+            answer(3, ILLEGIBLE, html="2? cm"),
+        ):
+            with self.subTest(on_topic=on_topic):
+                reply = dict(
+                    MISMATCHED,
+                    answers=[answer(1, flag=FLAG_OFF_TOPIC), on_topic],
+                )
+                self.assertNotIn(
+                    SUBMISSION_MISMATCH,
+                    [flag["kind"] for flag in flags_from_extraction(reply)],
+                )
+        # Off-topic, lost and blank answers do not contradict it.
+        reply = dict(
+            MISMATCHED,
+            answers=[
+                answer(1, flag=FLAG_OFF_TOPIC),
+                answer(2, NOT_FOUND_IN_DOCUMENT),
+                answer(3, BLANK),
+                answer(4, ILLEGIBLE, flag=FLAG_OFF_TOPIC),
+            ],
+        )
+        self.assertEqual(flags_from_extraction(reply)[0]["kind"], SUBMISSION_MISMATCH)
+
     def test_whitespace_in_a_detail_is_tidied(self):
         flags = submission_flags([answer(1, flag=FLAG_OFF_TOPIC, detail="  a \n b ")])
         self.assertEqual(flags[0]["detail"], "a b")
@@ -252,7 +281,8 @@ class ReaderContractTest(SimpleTestCase):
             "Off-topic writing is still the student's work: transcribe it.",
             "`submission_matches_assignment`",
             "`answer_flag_detail`",
-            "transcribe the\nwhole piece under the FIRST question",
+            "whole piece under the FIRST question",
+            "**A flag never moves an answer.**",
         ):
             self.assertIn(phrase, prompt)
         # The field the old prompt asked for and the schema refused.

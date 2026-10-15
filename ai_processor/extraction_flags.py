@@ -19,6 +19,7 @@ No Django imports: ai_processor and students both use it.
 
 from .extraction_schemas import (
     ANSWER_FLAGS,
+    ANSWERED,
     FLAG_NONE,
     FLAG_OFF_TOPIC,
     FLAG_READING_PROBLEM,
@@ -131,18 +132,32 @@ def _question_kind(entry):
     return None
 
 
+def _on_topic(entry):
+    """An answer the reader transcribed and did not call off topic: work
+    for this question, whatever its form."""
+    return entry.get("answer_status") in (ANSWERED, ILLEGIBLE) and (
+        answer_flag(entry) != FLAG_OFF_TOPIC
+    )
+
+
 def submission_flags(answers, *, matches=True, mismatch_detail=""):
     """Every flag for a paper, the paper-level one first, then one per
     question at most, in the answers' order.
 
     The detail is the reader's own sentence when it gave one; for an answer
-    it could not find or read, its note on what it saw on the page."""
+    it could not find or read, its note on what it saw on the page.
+
+    The paper-level verdict is held against the reader's own answers: a
+    paper with even one answer on topic is work for this assignment, so a
+    "not for this assignment" verdict that contradicts it is not raised
+    (seen live: one maths paper with a right answer to Q3 was called
+    another subject's). The per-question flags still stand."""
+    answers = answers if isinstance(answers, list) else []
+    entries = [entry for entry in answers if isinstance(entry, dict)]
     flags = []
-    if matches is False:
+    if matches is False and not any(_on_topic(entry) for entry in entries):
         flags.append(_flag(SUBMISSION_MISMATCH, None, _text(mismatch_detail)))
-    for entry in answers if isinstance(answers, list) else []:
-        if not isinstance(entry, dict):
-            continue
+    for entry in entries:
         kind = _question_kind(entry)
         if kind is None:
             continue
