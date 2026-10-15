@@ -524,8 +524,10 @@ def graded_feedback(marks, statuses=None):
     return ai_processor._stamp_answer_provenance(grading, QUESTIONS, answers)
 
 
-@override_settings(CACHES=LOCMEM)
-class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
+class AnalyticsEndpointFixtures(Builder, APITestCase):
+    """A teacher's course and four-question assignment, and graded papers
+    saved as production saves them. Shared with H-245's tests."""
+
     def setUp(self):
         cache.clear()
         self.teacher = self.user(UserTypes.TEACHER)
@@ -573,9 +575,19 @@ class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
             is_published=True,
         )
 
+    def _absent(self, students):
+        """Enrolled students with nothing handed in: they size the class
+        (H-245: the ranking minimum is half of it) without a mark."""
+        for _ in range(students):
+            self._student()
+
     def _class(self, students=MINIMUM_STUDENTS):
         # Q1 90%, Q2 40%, Q3 60%, Q4 100% for every student.
         return [self._graded({1: 9, 2: 8, 3: 3, 4: 5}) for _ in range(students)]
+
+
+@override_settings(CACHES=LOCMEM)
+class AssignmentAnalyticsQuestionDifficultyTest(AnalyticsEndpointFixtures):
 
     def test_the_hardest_and_easiest_questions_are_served(self):
         self._class()
@@ -619,6 +631,7 @@ class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
         self.assertEqual(data["easiest_questions"][0]["average_percentage"], 100.0)
 
     def test_an_ungraded_submission_does_not_count(self):
+        self._absent(4)  # a class of 9: five must be counted
         self._class(students=MINIMUM_STUDENTS - 1)
         StudentSubmission.objects.create(
             assignment=self.assignment_obj,
@@ -667,6 +680,7 @@ class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
             used_credits=0,
             expires_at=timezone.now() + timedelta(days=30),
         )
+        self._absent(5)  # a class of 10: five must be counted
         papers = self._class()
         override = papers[0]
         response = self.client.patch(
@@ -692,7 +706,8 @@ class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
                 "status": STATUS_NOT_ENOUGH_DATA,
                 "students_analysed": 0,
                 "excluded_manual_grade_change": 0,
-                "minimum_students": MINIMUM_STUDENTS,
+                # Nobody enrolled: the floor.
+                "minimum_students": 3,
             },
         )
         # Every question still listed, in paper order, with nothing known.

@@ -343,7 +343,14 @@ class QuestionDifficultySummarySerializer(serializers.Serializer):
             "so their per-question marks no longer match it."
         ),
     )
-    minimum_students = serializers.IntegerField(read_only=True)
+    minimum_students = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "How many students a question must be counted on to be ranked: "
+            "half the students enrolled in the course, rounded up, never "
+            "fewer than 3 nor more than 10."
+        ),
+    )
 
 
 class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):

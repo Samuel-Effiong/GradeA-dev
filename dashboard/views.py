@@ -68,7 +68,11 @@ from classrooms.models import (
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.models import SchoolAtRiskSnapshot
-from dashboard.question_difficulty import LIST_LIMIT, question_difficulty
+from dashboard.question_difficulty import (
+    LIST_LIMIT,
+    minimum_for_class,
+    question_difficulty,
+)
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.serializers import (
     AssignmentActivityOverTimeChartSerializer,
@@ -3537,7 +3541,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"
             f":instance_id__{assignment_id}:view__assignments"
-            f":{question_limit}:qd4",
+            f":{question_limit}:qd5",
             [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
@@ -3597,7 +3601,17 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 "ai_grading_confidence": round(float(avg_grading_confidence), 2),
             }
 
-            difficulty = question_difficulty(assignment, graded, limit=question_limit)
+            # H-245: the ranking minimum scales with the class: the
+            # students whose enrollment counts, as for every figure here.
+            class_size = (
+                StudentCourse.objects.active().filter(course=assignment.course).count()
+            )
+            difficulty = question_difficulty(
+                assignment,
+                graded,
+                limit=question_limit,
+                minimum=minimum_for_class(class_size),
+            )
             assignment_metrics["hardest_questions"] = difficulty.pop("hardest")
             assignment_metrics["easiest_questions"] = difficulty.pop("easiest")
             assignment_metrics["question_breakdown"] = difficulty.pop("breakdown")

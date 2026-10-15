@@ -29,9 +29,14 @@ A BLANK answer is kept: a student who skipped a question is part of how
 hard it was. It is also counted as `not_attempted`, so a teacher can tell
 "got it wrong" from "never reached it".
 
-WHEN NOTHING IS NAMED. A question is ranked only once MINIMUM_STUDENTS have
+WHEN NOTHING IS NAMED. A question is ranked only once enough students have
 been counted on it; below that one student swings the average too far for
-a ranking to mean anything. With fewer than two rankable questions, or with
+a ranking to mean anything. How many is enough scales with the class
+(H-245, the user's decision): half the students enrolled, never fewer than
+MINIMUM_FLOOR nor more than MINIMUM_CAP (minimum_for_class). A fixed five
+left a class of four with empty cards forever, and let a class of forty be
+ranked on five papers. MINIMUM_STUDENTS is the minimum when no class size
+is given. With fewer than two rankable questions, or with
 every question on the same average, nothing is named hardest or easiest.
 
 The two lists never share a question, nor an average: each holds at most
@@ -42,7 +47,7 @@ named easiest. Ties within a list fall to the question's position on the
 paper, not to its number as text ("10" would otherwise sort before "2").
 
 THE BREAKDOWN lists every question on the paper, hardest first. A question
-short of MINIMUM_STUDENTS is shown, marked `enough_data: false`, after the
+short of the minimum is shown, marked `enough_data: false`, after the
 trusted ones; a question nobody has a mark on comes last.
 
 WHO STRUGGLED. Per question, the students who earned under half its marks
@@ -52,6 +57,7 @@ checking, not reteaching. A paper left out for a hand-changed grade names
 nobody: its per-question marks are not the grade the student holds.
 """
 
+import math
 import re
 from dataclasses import dataclass, field
 from html import unescape
@@ -62,6 +68,10 @@ from ai_processor.extraction_schemas import BLANK, REVIEW_REQUIRED_STATUSES
 from ai_processor.services import AIProcessor
 
 MINIMUM_STUDENTS = 5
+#: The class-size rule's bounds: ranking never rests on fewer than 3
+#: students, and never waits for more than 10.
+MINIMUM_FLOOR = 3
+MINIMUM_CAP = 10
 LIST_LIMIT = 3
 # A share of a question's marks below this is "struggled with it".
 STRUGGLING_BELOW = 0.5
@@ -144,13 +154,23 @@ def _student(submission):
     return {"student_id": student.id, "full_name": student.get_full_name()}
 
 
-def question_difficulty(assignment, submissions, limit=LIST_LIMIT):
+def minimum_for_class(class_size):
+    """How many students a question must be counted on before it is
+    ranked: half the class, rounded up, within [MINIMUM_FLOOR, MINIMUM_CAP]."""
+    half = math.ceil(max(0, int(class_size or 0)) / 2)
+    return min(MINIMUM_CAP, max(MINIMUM_FLOOR, half))
+
+
+def question_difficulty(
+    assignment, submissions, limit=LIST_LIMIT, minimum=MINIMUM_STUDENTS
+):
     """
     How the class did on every question of `assignment` across `submissions`.
 
     `submissions` must already be the reporting basis: graded, and only
     students whose enrollment counts, with `student` loaded. `limit` caps
-    each of the hardest/easiest lists. Returns a dict with `status`,
+    each of the hardest/easiest lists; `minimum` is how many students a
+    question must be counted on to be ranked. Returns a dict with `status`,
     `students_analysed`, `excluded_manual_grade_change`, `minimum_students`,
     `hardest`, `easiest` and `breakdown`; each list entry describes one
     question, and hardest/easiest entries are the breakdown's own entries.
@@ -217,7 +237,7 @@ def question_difficulty(assignment, submissions, limit=LIST_LIMIT):
                     round(sum(tally.fractions) / counted * 100, 2) if counted else None
                 ),
                 "students_counted": counted,
-                "enough_data": counted >= MINIMUM_STUDENTS,
+                "enough_data": counted >= minimum,
                 "not_attempted": tally.not_attempted,
                 "not_read": len(tally.unread),
                 "struggling_students": sorted(
@@ -245,7 +265,7 @@ def question_difficulty(assignment, submissions, limit=LIST_LIMIT):
         "status": STATUS_READY,
         "students_analysed": students_analysed,
         "excluded_manual_grade_change": excluded_manual_grade_change,
-        "minimum_students": MINIMUM_STUDENTS,
+        "minimum_students": minimum,
         "hardest": [],
         "easiest": [],
         "breakdown": breakdown,
