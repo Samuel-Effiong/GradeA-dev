@@ -48,6 +48,7 @@ from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
 from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
 from .exceptions import provider_failure
+from .extraction_flags import merge_answer_flags, paper_verdict
 from .extraction_schemas import (
     ANSWER_EXTRACTION_RESPONSE_SCHEMA,
     ANSWER_STATUSES,
@@ -453,6 +454,10 @@ def _merge_chunk_answer(existing, existing_origin, new, new_origin):
             return existing, existing_origin
         merged = dict(existing)
         merged["answer_html"] = f"{existing_html}\n{new_html}"
+        # H-242: a flag the reader raised on either part stands.
+        merged["answer_flag"], merged["answer_flag_detail"] = merge_answer_flags(
+            existing, new
+        )
         if ILLEGIBLE in (existing.get("answer_status"), new.get("answer_status")):
             merged["answer_status"] = ILLEGIBLE
         notes = " | ".join(
@@ -1767,6 +1772,8 @@ Do not include any explanatory text before or after the JSON
         student_name_raw = None
         student_id = ""
         all_feedback = []
+        # H-242: each part's verdict on the paper, combined after the loop.
+        chunk_verdicts = []
 
         for chunk_index, chunk in enumerate(chunks):
             ensure_task_not_cancelled(processing_task_id)
@@ -1945,6 +1952,14 @@ Do not include any explanatory text before or after the JSON
             # The part's reply was read and its answers merged: now it counts.
             run.keep_reply(chunk_model, ANSWERS_EXTRACTION_PROMPT.version)
 
+            chunk_verdicts.append(
+                {
+                    "submission_matches_assignment": chunk_result.get(
+                        "submission_matches_assignment"
+                    ),
+                    "mismatch_detail": chunk_result.get("mismatch_detail"),
+                }
+            )
             chunk_feedback = chunk_result.get("feedback", "")
             if chunk_feedback:
                 all_feedback.append(
@@ -1981,6 +1996,9 @@ Do not include any explanatory text before or after the JSON
             "extraction_confidence": derived_confidence,
             "feedback": " | ".join(all_feedback) if all_feedback else "",
         }
+        matches, mismatch_detail = paper_verdict(chunk_verdicts)
+        merged_result["submission_matches_assignment"] = matches
+        merged_result["mismatch_detail"] = mismatch_detail
 
         if student_name_raw is not None:
             merged_result["student_name_raw"] = student_name_raw
@@ -3390,7 +3408,18 @@ Do not include any explanatory text before or after the JSON
             match = match_objective_answer(question, answer_html)
             if match in CLAIMED_OUTCOMES:
                 deterministic_evaluations.append(
-                    build_objective_evaluation(question, answer_html, match)
+                    build_objective_evaluation(
+                        question,
+                        answer_html,
+                        match,
+                        # No entry at all is an answer not found, as
+                        # _stamp_answer_provenance reads it.
+                        answer_status=(
+                            answer.get("answer_status")
+                            if answer
+                            else NOT_FOUND_IN_DOCUMENT
+                        ),
+                    )
                 )
                 claimed_keys.add(key)
             else:

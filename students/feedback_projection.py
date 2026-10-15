@@ -253,3 +253,23 @@ def student_safe_formatted_grade(stored):
         )
 
     return str(safe)
+
+
+def submission_flags(submission) -> list:
+    """H-242: the upload's flags, as stored with its answers
+    (ai_processor/extraction_flags.py). About the reading of the upload,
+    never about a grade, so a student is shown them released or not."""
+    flags = getattr(submission, "extraction_flags", None)
+    if not isinstance(flags, list):
+        return []
+    return [flag for flag in flags if isinstance(flag, dict)]
+
+
+def flagged_for_review(submission) -> bool:
+    """H-242: the "Needs Review" a teacher and the student both see: the
+    reader flagged the upload and no teacher has reviewed it since. Not
+    `needs_review` itself, which a student is never sent (H-127): that
+    also covers the two AI graders disagreeing."""
+    return bool(submission_flags(submission)) and bool(
+        getattr(submission, "needs_review", False)
+    )

@@ -12,7 +12,13 @@ from classrooms.models import enrollment_list_key, grade_basis_enrollments
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
 
-from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
+from .feedback_projection import (
+    flagged_for_review,
+    student_safe_feedback,
+    student_safe_formatted_grade,
+    submission_flags,
+)
+from .flag_serializers import SubmissionFlagSerializer
 from .models import GradingState, StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
@@ -23,6 +29,22 @@ from .services import (
     get_grade_details,
     remaining_student_attempts,
 )
+
+
+class SubmissionFlagsMixin(serializers.Serializer):
+    """H-242: the same two keys on every page of a submission, teacher's
+    and student's. These are about the reading of the upload, never about
+    a grade, so a student is shown them released or not."""
+
+    submission_flags = serializers.SerializerMethodField()
+    flagged_for_review = serializers.SerializerMethodField()
+
+    @extend_schema_field(SubmissionFlagSerializer(many=True))
+    def get_submission_flags(self, obj):
+        return submission_flags(obj)
+
+    def get_flagged_for_review(self, obj) -> bool:
+        return flagged_for_review(obj)
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -181,7 +203,9 @@ def max_points_shown(submission, request):
     return submission.max_points or submission.assignment.total_points
 
 
-class StudentSubmissionListSerializer(serializers.ModelSerializer):
+class StudentSubmissionListSerializer(
+    SubmissionFlagsMixin, serializers.ModelSerializer
+):
     # H-141: teachers and students both receive this one. It needs the
     # request in its context: the methods named here change the answer
     # when a student is asking, and without the request they cannot.
@@ -223,6 +247,8 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
+            "submission_flags",
+            "flagged_for_review",
         ]
 
         read_only_fields = [
@@ -313,7 +339,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         return remaining_student_attempts(obj)
 
 
-class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+class StudentSubmissionDetailSerializer(
+    SubmissionFlagsMixin, serializers.ModelSerializer
+):
     # H-141: the teacher's page of a submission. Its student branches are
     # from before the student had a serializer of their own; no student
     # route may build it (the guard holds that).
@@ -369,6 +397,8 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
+            "submission_flags",
+            "flagged_for_review",
         ]
 
         read_only_fields = [
@@ -467,7 +497,9 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         return remaining_student_attempts(obj)
 
 
-class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerializer):
+class StudentSubmissionDetailStudentVersionSerializer(
+    SubmissionFlagsMixin, serializers.ModelSerializer
+):
     audience = "student"  # H-141
 
     score = serializers.SerializerMethodField()
@@ -519,6 +551,8 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "grade_letter",
             "feedback",
             "is_published",
+            "submission_flags",
+            "flagged_for_review",
         ]
 
         read_only_fields = [
@@ -608,7 +642,7 @@ class SentAs(serializers.Field):
         return copy.deepcopy(self.value)
 
 
-class StudentUploadAnswerSerializer(serializers.ModelSerializer):
+class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSerializer):
     """H-141: what a student's own answer upload is answered with.
 
     The route answered with the teacher's StudentSubmissionDetailSerializer,
@@ -617,7 +651,7 @@ class StudentUploadAnswerSerializer(serializers.ModelSerializer):
     the teacher's scheduled grading run and a failed or stale grading
     state.
 
-    The same thirty keys, in the same order, so a page that reads the
+    The same keys, in the same order, so a page that reads the
     answer finds what it found. The student's own facts keep their values.
     Every staff key is a constant, the value of a paper nobody has graded
     or scheduled: this class does not read the grade's columns at all, so
@@ -690,6 +724,8 @@ class StudentUploadAnswerSerializer(serializers.ModelSerializer):
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
+            "submission_flags",
+            "flagged_for_review",
         ]
         read_only_fields = fields
 

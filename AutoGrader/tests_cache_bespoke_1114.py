@@ -436,6 +436,9 @@ class SubmissionDetailFreshnessTests(BespokeBase):
                     "grade_letter",
                     "feedback",
                     "is_published",
+                    # H-242: about the reading of the upload, not a grade.
+                    "submission_flags",
+                    "flagged_for_review",
                 ]
             ),
         )

@@ -54,6 +54,23 @@ ANSWER_STATUSES = (ANSWERED, BLANK, ILLEGIBLE, NOT_FOUND_IN_DOCUMENT)
 #: is entitled to decide on its own.
 REVIEW_REQUIRED_STATUSES = frozenset({ILLEGIBLE, NOT_FOUND_IN_DOCUMENT})
 
+# ── answer_flag vocabulary (H-242) ───────────────────────────────────────
+# What the reader noticed ABOUT an answer, beside its status. The status
+# says whether the work is there; the flag says whether the work that is
+# there fits the question. A flag never changes a status or a score: it
+# routes the paper to a teacher with the reader's reason.
+FLAG_NONE = "NONE"
+#: The writing is not about this question (another subject, another
+#: assignment, unrelated text). It is still transcribed.
+FLAG_OFF_TOPIC = "OFF_TOPIC"
+#: The writing is about the question but not in the form its type asks
+#: for: an essay where one option was asked for, one letter for an essay.
+FLAG_TYPE_MISMATCH = "TYPE_MISMATCH"
+#: Part or all of the answer could not be read reliably off the upload.
+FLAG_READING_PROBLEM = "READING_PROBLEM"
+
+ANSWER_FLAGS = (FLAG_NONE, FLAG_OFF_TOPIC, FLAG_TYPE_MISMATCH, FLAG_READING_PROBLEM)
+
 #: Statuses under which a non-empty answer_html is a self-contradiction,
 #: and vice versa. Enforced in Python (schemas cannot express cross-field
 #: rules) by ai_processor.answer_completeness.
@@ -94,6 +111,11 @@ EXTRACTED_ANSWER_SCHEMA: Dict[str, Any] = {
         "transcription_notes": {"type": "string"},
         "answer_html": {"type": "string"},
         "answer_status": {"type": "string", "enum": list(ANSWER_STATUSES)},
+        # H-242: after the status, for the same reason the status follows
+        # the transcription: what is wrong with an answer is a judgement
+        # about what was read, so it comes after the reading.
+        "answer_flag": {"type": "string", "enum": list(ANSWER_FLAGS)},
+        "answer_flag_detail": {"type": "string"},
         # PER-ANSWER confidence. The document-level extraction_confidence
         # is too coarse to route on — it is one number for a whole
         # submission, so one unreadable question cannot lower it without
@@ -107,6 +129,8 @@ EXTRACTED_ANSWER_SCHEMA: Dict[str, Any] = {
         "transcription_notes",
         "answer_html",
         "answer_status",
+        "answer_flag",
+        "answer_flag_detail",
         "confidence",
     ],
     "additionalProperties": False,
@@ -128,6 +152,11 @@ ANSWER_EXTRACTION_RESPONSE_SCHEMA: Dict[str, Any] = {
             "student_id": {"type": "string"},
             "answers": {"type": "array", "items": EXTRACTED_ANSWER_SCHEMA},
             "extraction_confidence": {"type": "number"},
+            # H-242: the reader's verdict on the paper as a whole, after it
+            # has read every answer. False when the upload is not work for
+            # this assignment at all (another subject, another paper).
+            "submission_matches_assignment": {"type": "boolean"},
+            "mismatch_detail": {"type": "string"},
             "feedback": {"type": "string"},
         },
         "required": [
@@ -136,6 +165,8 @@ ANSWER_EXTRACTION_RESPONSE_SCHEMA: Dict[str, Any] = {
             "student_id",
             "answers",
             "extraction_confidence",
+            "submission_matches_assignment",
+            "mismatch_detail",
             "feedback",
         ],
         "additionalProperties": False,

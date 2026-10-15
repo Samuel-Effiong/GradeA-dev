@@ -13,7 +13,12 @@ from classrooms.models import (
     Topic,
     teacher_can_reach_course,
 )
-from students.feedback_projection import student_safe_feedback
+from students.feedback_projection import (
+    flagged_for_review,
+    student_safe_feedback,
+    submission_flags,
+)
+from students.flag_serializers import SubmissionFlagSerializer
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -45,6 +50,9 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     max_points = serializers.IntegerField(read_only=True, allow_null=True)
     grade_status = serializers.CharField(read_only=True)
     is_published = serializers.BooleanField(read_only=True)
+    # H-242: what the answer reader noticed about this student's upload.
+    flagged_for_review = serializers.BooleanField(read_only=True)
+    submission_flags = SubmissionFlagSerializer(many=True, read_only=True)
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -556,6 +564,12 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "grade_status": grade_status,
                     "was_regraded": submission.was_regraded if submission else None,
                     "is_published": submission.is_published if submission else False,
+                    "flagged_for_review": (
+                        flagged_for_review(submission) if submission else False
+                    ),
+                    "submission_flags": (
+                        submission_flags(submission) if submission else []
+                    ),
                     # "teacher_feedback": (
                     #     submission.formatted_grade if submission else None
                     # ),
@@ -576,6 +590,9 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
+    # H-242: what the answer reader noticed about the student's own upload.
+    student_submission_flags = serializers.SerializerMethodField()
+    student_flagged_for_review = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
@@ -584,6 +601,8 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
             "student_submission_id",
             "student_submission_raw_input",
             "assignment_raw_input",
+            "student_submission_flags",
+            "student_flagged_for_review",
         ]
 
     def get_performance_summary(self, obj):
@@ -597,6 +616,15 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     def get_student_submission_id(self, obj):
         submission = self._get_submission(obj)
         return str(submission.id) if submission else None
+
+    @extend_schema_field(SubmissionFlagSerializer(many=True))
+    def get_student_submission_flags(self, obj):
+        submission = self._get_submission(obj)
+        return submission_flags(submission) if submission else []
+
+    def get_student_flagged_for_review(self, obj) -> bool:
+        submission = self._get_submission(obj)
+        return flagged_for_review(submission) if submission else False
 
     def get_student_submission_raw_input(self, obj):
         # Not the stored column: before release it carries the grade

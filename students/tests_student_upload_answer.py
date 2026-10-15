@@ -89,6 +89,10 @@ KEYS = [
     "scheduled_grading_at",
     "grading_task_name",
     "is_grading_scheduled",
+    # H-242: what the answer reader noticed about the upload. The student's
+    # own facts, not a staff constant: a student is shown them.
+    "submission_flags",
+    "flagged_for_review",
 ]
 
 #: What a student is sent in place of every staff field, whatever the row

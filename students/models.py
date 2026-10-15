@@ -281,6 +281,19 @@ class StudentSubmission(models.Model):
         ),
     )
 
+    extraction_flags = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "H-242: what the answer reader noticed about this upload, as "
+            "plain-language flags: the upload not being for this assignment, "
+            "an answer off topic or in the wrong form for its question, an "
+            "answer that could not be read or found. Written with the "
+            "answers on every upload and edit; shown to the teacher and the "
+            "student. Each: kind, question_number, message, detail."
+        ),
+    )
+
     ai_score = models.DecimalField(
         max_digits=6,
         decimal_places=2,

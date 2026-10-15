@@ -11,6 +11,9 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from ai_processor.extraction_flags import REVIEW_REASON_TYPE as EXTRACTION_FLAG
+from ai_processor.extraction_flags import TIER_OF as EXTRACTION_FLAG_TIER
+from ai_processor.extraction_flags import flags_from_extraction
 from ai_processor.grading_run import GradingRun
 from ai_processor.reading_run import ReadingRun
 from ai_processor.services import (
@@ -427,6 +430,49 @@ def _whole_count(value):
         return 0
 
 
+#: H-242: the columns a new reading of a paper owns for its review state.
+EXTRACTION_REVIEW_FIELDS = (
+    "extraction_flags",
+    "needs_review",
+    "review_reasons",
+    "review_severity",
+    "review_tier",
+)
+
+
+def _extraction_flag_reason(flag):
+    """One extraction flag as a review-queue reason, with its tier and
+    sort key."""
+    tier = EXTRACTION_FLAG_TIER.get(flag.get("kind"), "moderate")
+    reason = {"type": EXTRACTION_FLAG, **flag}
+    return reason, tier, _review_sort_key(tier, 1.0 if tier == "critical" else None)
+
+
+def apply_extraction_flags(submission, extraction_result):
+    """H-242: set what the reader noticed about a new reading of a paper,
+    and the review state it calls for, on `submission` (not saved).
+
+    A new reading replaces the paper's answers, so it replaces the review
+    state too: every reason on file was about the answers being replaced.
+    A paper with no flags is taken off the queue; a paper with any is put
+    on it with the reader's reasons. Grading later rebuilds the reasons and
+    keeps these (_populate_and_save_grade)."""
+    flags = flags_from_extraction(extraction_result)
+    submission.extraction_flags = flags
+    filed = [_extraction_flag_reason(flag) for flag in flags]
+    if filed:
+        submission.needs_review = True
+        submission.review_reasons = [reason for reason, _, _ in filed]
+        submission.review_severity = max(key for _, _, key in filed)
+        submission.review_tier = _worst_tier([tier for _, tier, _ in filed])
+    else:
+        submission.needs_review = False
+        submission.review_reasons = None
+        submission.review_severity = None
+        submission.review_tier = None
+    return flags
+
+
 def _coerce_confidence(value):
     """Clamp a model-reported 0-100 confidence to a safe int; the DB field
     is non-nullable, and the model can emit null or junk here."""
@@ -746,6 +792,43 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
         sort_keys.append(_review_sort_key("critical", 1.0))
         reasons.append({"type": ANSWERS_UNREADABLE, "left_out": left_out})
         logger.warning(*unreadable_answers_log_line(submission, left_out))
+
+    # Source 5 (H-242): what the reader noticed when the paper was read.
+    # An answer it could not find or read is already in Source 1, and gets
+    # the reader's message there; every other flag is filed as its own.
+    key = ai_processor._question_number_key
+    flags = [
+        flag
+        for flag in (
+            submission.extraction_flags
+            if isinstance(submission.extraction_flags, list)
+            else []
+        )
+        if isinstance(flag, dict)
+    ]
+    flag_by_question = {
+        key(flag.get("question_number")): flag
+        for flag in flags
+        if flag.get("question_number") is not None
+    }
+    in_source_1 = set()
+    for reason in reasons:
+        if reason.get("type") != "answer_not_found":
+            continue
+        question = key(reason.get("question_number"))
+        in_source_1.add(question)
+        flag = flag_by_question.get(question)
+        if flag is not None:
+            reason["message"] = flag.get("message")
+            reason["detail"] = flag.get("detail")
+    for flag in flags:
+        number = flag.get("question_number")
+        if number is not None and key(number) in in_source_1:
+            continue
+        reason, tier, sort_key = _extraction_flag_reason(flag)
+        tiers.append(tier)
+        sort_keys.append(sort_key)
+        reasons.append(reason)
 
     if reasons:
         submission.needs_review = True
@@ -1350,6 +1433,7 @@ def upload_answers_engine(
                 submission.extraction_confidence = _coerce_confidence(
                     student_submission.get("extraction_confidence")
                 )
+                apply_extraction_flags(submission, student_submission)
                 with cancellable_final_save(processing_task_id):
                     if created:
                         submission.save()
@@ -1364,6 +1448,7 @@ def upload_answers_engine(
                                 "attempt_count",
                                 "raw_input",
                                 "extraction_confidence",
+                                *EXTRACTION_REVIEW_FIELDS,
                                 *READING_LABEL_FIELDS,
                             ]
                         )
@@ -1602,6 +1687,7 @@ def update_submission_from_raw_text(
             locked.extraction_confidence = _coerce_confidence(
                 extracted.get("extraction_confidence")
             )
+            apply_extraction_flags(locked, extracted)
             with cancellable_final_save(processing_task_id):
                 # Only what this path owns - never a full-row save from an
                 # instance that predates the extraction.
@@ -1610,6 +1696,7 @@ def update_submission_from_raw_text(
                         "answers",
                         "raw_input",
                         "extraction_confidence",
+                        *EXTRACTION_REVIEW_FIELDS,
                         *READING_LABEL_FIELDS,
                     ]
                 )
