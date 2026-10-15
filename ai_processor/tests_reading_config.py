@@ -126,6 +126,13 @@ class TheVersionTest(SimpleTestCase):
         with patch.object(services, "BLANK_VERIFICATION_INSTRUCTION", changed):
             self.assertNotEqual(ReadingConfig.read().version, base)
 
+    def test_the_second_readings_note_version_changes_the_version(self):
+        # H-242: the note sent with the second reading of recovered answers.
+        base = ReadingConfig.read().version
+        changed = SimpleNamespace(version="retranscription:changed")
+        with patch.object(services, "RETRANSCRIPTION_INSTRUCTION", changed):
+            self.assertNotEqual(ReadingConfig.read().version, base)
+
     def test_a_reading_cannot_be_changed_afterwards(self):
         config = ReadingConfig.read()
         with self.assertRaises(FrozenInstanceError):

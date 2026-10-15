@@ -72,6 +72,8 @@ CODE_CONSTANTS = (
 )
 #: The re-check's instruction is versioned like a prompt; its version joins.
 RECHECK_INSTRUCTION_NAME = "BLANK_VERIFICATION_INSTRUCTION_VERSION"
+#: So is the note sent with the second reading of recovered answers (H-242).
+RETRANSCRIPTION_INSTRUCTION_NAME = "RETRANSCRIPTION_INSTRUCTION_VERSION"
 
 
 def _frozen(value):
@@ -104,6 +106,12 @@ class ReadingConfig:
         pairs += [(name, _frozen(getattr(services, name))) for name in CODE_CONSTANTS]
         pairs.append(
             (RECHECK_INSTRUCTION_NAME, services.BLANK_VERIFICATION_INSTRUCTION.version)
+        )
+        pairs.append(
+            (
+                RETRANSCRIPTION_INSTRUCTION_NAME,
+                services.RETRANSCRIPTION_INSTRUCTION.version,
+            )
         )
         return cls(values=tuple(sorted(pairs)), release=grading_config._release())
 

@@ -309,6 +309,28 @@ class RetranscriptionTest(SimpleTestCase):
             self.run_step([found(2)], side_effect=TaskCancelledError("stop"))
 
 
+class RecheckWordingTest(SimpleTestCase):
+    """Seen live: the first reading put all four numbered English answers
+    under question 1 and returned 2-4 as not found, and the re-check, asked
+    for writing "responding to" each question, said an English paragraph
+    under number 2 was nothing, so the second reading never ran."""
+
+    def test_writing_in_a_questions_place_counts_whatever_it_is_about(self):
+        from ai_processor.services import BLANK_VERIFICATION_INSTRUCTION
+
+        text = " ".join(str(BLANK_VERIFICATION_INSTRUCTION).split())
+        self.assertNotIn("writing responding to it", text)
+        for phrase in (
+            "ANY student writing in that question's place",
+            "under its number, or where its answer would go",
+            "WHATEVER it is about",
+            "writing for another subject, another assignment or another "
+            "question still counts",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+
 class HtmlTextTest(SimpleTestCase):
     def test_visible_text(self):
         self.assertEqual(_html_text("<p>a</p>\n<p> b&nbsp;c </p>"), "a b c")
