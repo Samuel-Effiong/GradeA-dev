@@ -4,6 +4,8 @@
 
 **Why these rules:** the audit trail records what happened. These alerts tell a person when something is going wrong while it is still happening. The app already sends every signal below: the metrics from `audit/metrics.py`, and the error logs through Sentry's logging integration. Only the rules are missing.
 
+> **Update, 15 October 2026 (H-246).** The dashboard exists. Its record is [`sentry/README.md`](sentry/README.md). Beta used to report to Sentry as `prod`: set `SENTRY_ENVIRONMENT=beta` on the beta server before creating these rules, so that "main" below means `prod` only. The owner chose **all organisation members** as the recipients.
+
 **Before you start:**
 - Each rule lists the environments it belongs in (staging / beta / main):
   - "main" is production;
