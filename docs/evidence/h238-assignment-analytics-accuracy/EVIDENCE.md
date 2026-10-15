@@ -69,6 +69,27 @@ them; no other test in the 10-test file flipped. Restoration confirmed by
 md5 of `dashboard/views.py` / `students/confidence.py` matching
 pre-mutation in every case.
 
+## Rebase onto beta a4d089e4
+
+Branch was cut from beta `eca3d034`. H-237 landed on beta (now at
+`a4d089e4`) touching the same file (`dashboard/views.py`, different
+functions — the at-risk annotation sites vs. this change's
+`assignments`/`courses` actions). `git rebase origin/beta` completed with
+**no textual conflict** (the two changes sit in disjoint line ranges) —
+new tip `6a9ada3d` on top of `a4d089e4`.
+
+Content-preservation check: `git diff eca3d034 33947724` (pre-rebase) vs.
+`git diff a4d089e4 6a9ada3d` (post-rebase), both with the `index` lines
+stripped (those necessarily change — the base blob shifted under H-237):
+**byte-for-byte identical.** Confirms the rebase only replayed the same
+patch onto new line numbers; no logic changed.
+
+Re-verified on the rebased tip (`6a9ada3d`):
+- `dashboard`+`students`+`classrooms` full regression: **1718 tests, OK
+  (skipped=3)** (up from 1701 pre-rebase — the 17 new tests are H-237's).
+- `AutoGrader.tests_cache_invalidation_coverage`: 20 tests, OK.
+- `pre-commit` on all 5 changed/added files: clean.
+
 ## Gates 3-10
 
 Not applicable — this is a read-only reporting endpoint (no writes, no
