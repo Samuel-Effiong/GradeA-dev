@@ -455,6 +455,21 @@ class UploadFlagsTest(APITestCase):
         self.assertTrue(submission.needs_review)
         self.assertEqual(submission.review_tier, "moderate")
 
+    def test_a_paper_for_another_assignment_is_critical_on_its_own(self):
+        # Every answer kept and off topic (moderate each): the paper flag
+        # alone makes it critical.
+        reply = dict(
+            MISMATCHED,
+            answers=[answer(1, flag=FLAG_OFF_TOPIC), answer(2, flag=FLAG_OFF_TOPIC)],
+        )
+        submission = self._upload(reply)
+        submission.refresh_from_db()
+        self.assertEqual(
+            kinds(submission.extraction_flags),
+            [(SUBMISSION_MISMATCH, None), (OFF_TOPIC, 1), (OFF_TOPIC, 2)],
+        )
+        self.assertEqual(submission.review_tier, "critical")
+
     def test_a_clean_reupload_takes_the_paper_off_the_queue(self):
         self._upload(MISMATCHED)
         submission = self._upload(CLEAN)
