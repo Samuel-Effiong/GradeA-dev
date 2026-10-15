@@ -124,9 +124,11 @@ RAW_FEEDBACK_READERS = {
         "_reconcile_formatted_grade_numbers",
     ): "internal: reads max_points per question to correct the formatter",
     (
-        "dashboard/services.py",
-        "DashboardService.analyze_question_difficulty",
-    ): "teacher dashboard: averages scores per question, returns no feedback",
+        "dashboard/question_difficulty.py",
+        "_evaluations",
+    ): "teacher dashboard (H-240): per-question marks for hardest/easiest "
+    "questions; returns numbers and the assignment's own question text, no "
+    "feedback",
     (
         "ai_processor/management/commands/grading_eval.py",
         "Command._collect",

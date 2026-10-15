@@ -109,7 +109,8 @@ FAMILIES = {
     # answer cached under the old at-risk rule is not served after deploy.
     "teacheradmins:user_id__<>:instance__id__<>:view__overview:risk1": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__assignments": ("SCOPE_USER",),
+    # ":qd1" (H-240): the response gained hardest/easiest questions.
+    "teacheradmins:user_id__<>:instance_id__<>:view__assignments:qd1": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>:risk1": (
         "SCOPE_USER",
     ),

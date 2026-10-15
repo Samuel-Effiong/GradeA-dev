@@ -262,6 +262,54 @@ class TeacherCourseAnalyticsSerializer(serializers.Serializer):
     ai_trust = AITrustStatsSerializer(read_only=True)
 
 
+class QuestionDifficultySerializer(serializers.Serializer):
+    """One question named hardest or easiest (dashboard/question_difficulty.py)."""
+
+    question_number = serializers.CharField(read_only=True)
+    question_text = serializers.CharField(read_only=True)
+    question_type = serializers.CharField(read_only=True, allow_null=True)
+    points = serializers.FloatField(read_only=True, allow_null=True)
+    average_percentage = serializers.FloatField(
+        read_only=True,
+        help_text="The class's average share of this question's marks, 0-100.",
+    )
+    students_counted = serializers.IntegerField(
+        read_only=True, help_text="Students whose marks make up the average."
+    )
+    not_attempted = serializers.IntegerField(
+        read_only=True,
+        help_text="Of those, students who left it blank (scored 0, counted).",
+    )
+    not_read = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Students whose answer the AI could not read or find; left out "
+            "of the average and sent to the review queue."
+        ),
+    )
+
+
+class QuestionDifficultySummarySerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=["ready", "not_enough_data", "no_difference"],
+        read_only=True,
+        help_text=(
+            "ready: lists are filled. not_enough_data: fewer than two "
+            "questions have minimum_students counted. no_difference: every "
+            "question has the same average."
+        ),
+    )
+    students_analysed = serializers.IntegerField(read_only=True)
+    excluded_manual_grade_change = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Submissions left out because their grade was changed by hand, "
+            "so their per-question marks no longer match it."
+        ),
+    )
+    minimum_students = serializers.IntegerField(read_only=True)
+
+
 class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):
     """Serializer for the teacher assignment analytics dashboard"""
 
@@ -275,6 +323,9 @@ class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):
     question_extraction_confidence = serializers.IntegerField(read_only=True)
     ai_extraction_confidence = serializers.FloatField(read_only=True)
     ai_grading_confidence = serializers.FloatField(read_only=True)
+    hardest_questions = QuestionDifficultySerializer(many=True, read_only=True)
+    easiest_questions = QuestionDifficultySerializer(many=True, read_only=True)
+    question_difficulty = QuestionDifficultySummarySerializer(read_only=True)
 
 
 class StudentAssignmentHistorySerializer(serializers.Serializer):
