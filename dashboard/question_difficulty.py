@@ -213,11 +213,8 @@ def question_difficulty(assignment, submissions, limit=LIST_LIMIT):
                 "question_text": _plain_text(question.get("question_text")),
                 "question_type": question.get("question_type"),
                 "points": question.get("points"),
-                # H-243: 0, not null, when nobody has a mark on it (the
-                # user's call). students_counted 0 and enough_data false
-                # say it is "no marks yet", not "everyone scored zero".
                 "average_percentage": (
-                    round(sum(tally.fractions) / counted * 100, 2) if counted else 0.0
+                    round(sum(tally.fractions) / counted * 100, 2) if counted else None
                 ),
                 "students_counted": counted,
                 "enough_data": counted >= MINIMUM_STUDENTS,
@@ -238,8 +235,8 @@ def question_difficulty(assignment, submissions, limit=LIST_LIMIT):
     breakdown.sort(
         key=lambda q: (
             not q["enough_data"],
-            q["students_counted"] == 0,
-            q["average_percentage"],
+            q["average_percentage"] is None,
+            q["average_percentage"] or 0,
             q["position"],
         )
     )
