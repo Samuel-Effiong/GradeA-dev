@@ -205,14 +205,13 @@ def question_difficulty(assignment, submissions):
     ascending = sorted(ranked, key=lambda q: (q["average_percentage"], q["position"]))
     descending = sorted(ranked, key=lambda q: (-q["average_percentage"], q["position"]))
     hardest = [q for q in ascending if q["average_percentage"] < highest][:limit]
-    # A question tied with one already named hardest is not "easy".
+    # A question tied with one already named hardest is not "easy". The
+    # lowest average is always among them, so this also keeps out every
+    # question tied for worst.
     hard_averages = {q["average_percentage"] for q in hardest}
-    easiest = [
-        q
-        for q in descending
-        if q["average_percentage"] > lowest
-        and q["average_percentage"] not in hard_averages
-    ][:limit]
+    easiest = [q for q in descending if q["average_percentage"] not in hard_averages][
+        :limit
+    ]
 
     for entry in hardest + easiest:
         entry.pop("position", None)

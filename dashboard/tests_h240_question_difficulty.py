@@ -267,6 +267,27 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         self.assertEqual(numbers(result["hardest"]), [2])
         self.assertEqual(numbers(result["easiest"]), [3])
 
+    def test_a_paper_with_nothing_readable_is_not_counted_as_analysed(self):
+        subs = class_of({1: 2, 2: 8})
+        subs.append(
+            submission(
+                evaluation(1, 0, answer_status=NOT_FOUND_IN_DOCUMENT),
+                evaluation(2, 0, answer_status=ILLEGIBLE),
+            )
+        )
+        result = question_difficulty(paper(1, 2), subs)
+        self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS)
+        self.assertEqual(result["hardest"][0]["not_read"], 1)
+
+    def test_a_question_tied_for_worst_is_not_easiest(self):
+        # 20%, 20%, 20%, 90%: with two named hardest, the third 20% must
+        # not be offered as easy.
+        result = question_difficulty(
+            paper(1, 2, 3, 4), class_of({1: 2, 2: 2, 3: 2, 4: 9})
+        )
+        self.assertEqual(numbers(result["hardest"]), [1, 2])
+        self.assertEqual(numbers(result["easiest"]), [4])
+
     def test_submissions_without_grading_feedback_are_skipped(self):
         subs = class_of({1: 2, 2: 8})
         subs += [
