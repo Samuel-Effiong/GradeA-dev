@@ -1,5 +1,7 @@
 """
-Which questions on one assignment a class found hardest and easiest (H-240).
+How a class did on each question of one assignment (H-240, H-241): the
+full breakdown, the hardest and easiest questions, and which students
+struggled with each.
 
 THE MEASURE. A question's difficulty is the class's average share of that
 question's own marks: each student's score_awarded / max_points, clamped
@@ -38,9 +40,20 @@ LIST_LIMIT and at most half the rankable questions, a question is
 question did worse, and a question tied with one named hardest is never
 named easiest. Ties within a list fall to the question's position on the
 paper, not to its number as text ("10" would otherwise sort before "2").
+
+THE BREAKDOWN lists every question on the paper, hardest first. A question
+short of MINIMUM_STUDENTS is shown, marked `enough_data: false`, after the
+trusted ones; a question nobody has a mark on comes last.
+
+WHO STRUGGLED. Per question, the students who earned under half its marks
+(blanks included, flagged `left_blank`), lowest first; and, separately,
+the students whose answer the AI could not read - their papers need
+checking, not reteaching. A paper left out for a hand-changed grade names
+nobody: its per-question marks are not the grade the student holds.
 """
 
 import re
+from dataclasses import dataclass, field
 from html import unescape
 
 from django.utils.html import strip_tags
@@ -49,7 +62,9 @@ from ai_processor.extraction_schemas import BLANK, REVIEW_REQUIRED_STATUSES
 from ai_processor.services import AIProcessor
 
 MINIMUM_STUDENTS = 5
-LIST_LIMIT = 2
+LIST_LIMIT = 3
+# A share of a question's marks below this is "struggled with it".
+STRUGGLING_BELOW = 0.5
 
 STATUS_READY = "ready"
 STATUS_NOT_ENOUGH_DATA = "not_enough_data"
@@ -116,17 +131,32 @@ def _is_not_attempted(evaluation):
     return evaluation.get("level_achieved") == "not_attempted"
 
 
-def question_difficulty(assignment, submissions):
+@dataclass
+class _Tally:
+    fractions: list = field(default_factory=list)
+    not_attempted: int = 0
+    struggling: list = field(default_factory=list)
+    unread: list = field(default_factory=list)
+
+
+def _student(submission):
+    student = submission.student
+    return {"student_id": student.id, "full_name": student.get_full_name()}
+
+
+def question_difficulty(assignment, submissions, limit=LIST_LIMIT):
     """
-    The hardest and easiest questions on `assignment` across `submissions`.
+    How the class did on every question of `assignment` across `submissions`.
 
     `submissions` must already be the reporting basis: graded, and only
-    students whose enrollment counts. Returns a dict with `status`,
+    students whose enrollment counts, with `student` loaded. `limit` caps
+    each of the hardest/easiest lists. Returns a dict with `status`,
     `students_analysed`, `excluded_manual_grade_change`, `minimum_students`,
-    `hardest` and `easiest`; each list entry describes one question.
+    `hardest`, `easiest` and `breakdown`; each list entry describes one
+    question, and hardest/easiest entries are the breakdown's own entries.
     """
     paper = _paper(assignment)
-    tallies = {}
+    tallies = {key: _Tally() for key in paper}
     students_analysed = 0
     excluded_manual_grade_change = 0
 
@@ -145,42 +175,71 @@ def question_difficulty(assignment, submissions):
             if key not in paper or key in seen:
                 continue
             seen.add(key)
-            tally = tallies.setdefault(
-                key, {"fractions": [], "not_attempted": 0, "not_read": 0}
-            )
+            tally = tallies[key]
             if evaluation.get("answer_status") in REVIEW_REQUIRED_STATUSES:
-                tally["not_read"] += 1
+                tally.unread.append(_student(submission))
                 continue
             awarded = _number(evaluation.get("score_awarded"))
             available = _number(evaluation.get("max_points"))
             if awarded is None or available is None or available <= 0:
                 continue
-            tally["fractions"].append(max(0.0, min(1.0, awarded / available)))
-            if _is_not_attempted(evaluation):
-                tally["not_attempted"] += 1
+            fraction = max(0.0, min(1.0, awarded / available))
+            tally.fractions.append(fraction)
+            blank = _is_not_attempted(evaluation)
+            if blank:
+                tally.not_attempted += 1
+            if fraction < STRUGGLING_BELOW:
+                tally.struggling.append(
+                    {
+                        **_student(submission),
+                        "score_awarded": awarded,
+                        "max_points": available,
+                        "percentage": round(fraction * 100, 2),
+                        "left_blank": blank,
+                    }
+                )
             contributed = True
         if contributed:
             students_analysed += 1
 
-    ranked = []
-    for key, tally in tallies.items():
-        counted = len(tally["fractions"])
-        if counted < MINIMUM_STUDENTS:
-            continue
-        position, question = paper[key]
-        ranked.append(
+    breakdown = []
+    for key, (position, question) in paper.items():
+        tally = tallies[key]
+        counted = len(tally.fractions)
+        breakdown.append(
             {
                 "position": position,
                 "question_number": question.get("question_number"),
                 "question_text": _plain_text(question.get("question_text")),
                 "question_type": question.get("question_type"),
                 "points": question.get("points"),
-                "average_percentage": round(sum(tally["fractions"]) / counted * 100, 2),
+                "average_percentage": (
+                    round(sum(tally.fractions) / counted * 100, 2) if counted else None
+                ),
                 "students_counted": counted,
-                "not_attempted": tally["not_attempted"],
-                "not_read": tally["not_read"],
+                "enough_data": counted >= MINIMUM_STUDENTS,
+                "not_attempted": tally.not_attempted,
+                "not_read": len(tally.unread),
+                "struggling_students": sorted(
+                    tally.struggling,
+                    key=lambda s: (s["percentage"], s["full_name"].casefold()),
+                ),
+                "unread_students": sorted(
+                    tally.unread, key=lambda s: s["full_name"].casefold()
+                ),
             }
         )
+
+    # Trusted questions hardest first, then those short of the minimum
+    # (same order), then questions nobody has a mark on, in paper order.
+    breakdown.sort(
+        key=lambda q: (
+            not q["enough_data"],
+            q["average_percentage"] is None,
+            q["average_percentage"] or 0,
+            q["position"],
+        )
+    )
 
     result = {
         "status": STATUS_READY,
@@ -189,19 +248,27 @@ def question_difficulty(assignment, submissions):
         "minimum_students": MINIMUM_STUDENTS,
         "hardest": [],
         "easiest": [],
+        "breakdown": breakdown,
     }
 
+    ranked = [q for q in breakdown if q["enough_data"]]
     if len(ranked) < 2:
         result["status"] = STATUS_NOT_ENOUGH_DATA
-        return result
-
-    lowest = min(q["average_percentage"] for q in ranked)
-    highest = max(q["average_percentage"] for q in ranked)
-    if lowest == highest:
+    elif min(q["average_percentage"] for q in ranked) == max(
+        q["average_percentage"] for q in ranked
+    ):
         result["status"] = STATUS_NO_DIFFERENCE
-        return result
+    else:
+        result["hardest"], result["easiest"] = _extremes(ranked, limit)
 
-    limit = min(LIST_LIMIT, len(ranked) // 2)
+    for entry in breakdown:
+        del entry["position"]
+    return result
+
+
+def _extremes(ranked, limit):
+    highest = max(q["average_percentage"] for q in ranked)
+    limit = min(limit, len(ranked) // 2)
     ascending = sorted(ranked, key=lambda q: (q["average_percentage"], q["position"]))
     descending = sorted(ranked, key=lambda q: (-q["average_percentage"], q["position"]))
     hardest = [q for q in ascending if q["average_percentage"] < highest][:limit]
@@ -212,9 +279,4 @@ def question_difficulty(assignment, submissions):
     easiest = [q for q in descending if q["average_percentage"] not in hard_averages][
         :limit
     ]
-
-    for entry in hardest + easiest:
-        entry.pop("position", None)
-    result["hardest"] = hardest
-    result["easiest"] = easiest
-    return result
+    return hardest, easiest

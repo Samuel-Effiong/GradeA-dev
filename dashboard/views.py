@@ -68,7 +68,7 @@ from classrooms.models import (
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.models import SchoolAtRiskSnapshot
-from dashboard.question_difficulty import question_difficulty
+from dashboard.question_difficulty import LIST_LIMIT, question_difficulty
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.serializers import (
     AssignmentActivityOverTimeChartSerializer,
@@ -3491,11 +3491,16 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         - AI Trust indicators (`ai_extraction_confidence`/
           `ai_grading_confidence`): how well the AI read and graded these
           students' submissions, averaged over graded submissions only.
-        - `hardest_questions`/`easiest_questions`: up to two questions each,
-          by the class's average share of each question's marks, over the
-          same graded, non-withdrawn submissions. Answers the AI could not
-          read, and submissions whose grade was changed by hand, are left
-          out; `question_difficulty.status` says why a list is empty.
+        - `hardest_questions`/`easiest_questions`: up to `question_limit`
+          questions each (default 3), by the class's average share of each
+          question's marks, over the same graded, non-withdrawn
+          submissions. Answers the AI could not read, and submissions whose
+          grade was changed by hand, are left out;
+          `question_difficulty.status` says why a list is empty.
+        - `question_breakdown`: every question on the paper, hardest first.
+        - On each question: the students who earned under half its marks
+          (`struggling_students`) and those whose answer the AI could not
+          read (`unread_students`).
         """,
         parameters=[
             OpenApiParameter(
@@ -3503,7 +3508,18 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.PATH,
                 description=_("The unique identifier (UUID) of the assignment"),
-            )
+            ),
+            OpenApiParameter(
+                name="question_limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_(
+                    "Most questions in each of hardest_questions and "
+                    "easiest_questions (default 3; never more than half the "
+                    "paper's ranked questions)."
+                ),
+            ),
         ],
         responses={200: TeacherAssignmentAnalyticsSerializer},
     )
@@ -3513,9 +3529,15 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/assignments/(?P<assignment_id>[-\w]+)",
     )
     def assignments(self, request, assignment_id, *args, **kwargs):
+        try:
+            question_limit = _bounded_int_param(request, "question_limit", LIST_LIMIT)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"
-            f":instance_id__{assignment_id}:view__assignments:qd1",
+            f":instance_id__{assignment_id}:view__assignments"
+            f":{question_limit}:qd2",
             [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
@@ -3534,7 +3556,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             )
             total_submissions = submissions.count()
             graded = list(
-                submissions.filter(score__isnull=False, graded_at__isnull=False)
+                submissions.filter(
+                    score__isnull=False, graded_at__isnull=False
+                ).select_related("student")
             )
             average_grade = (
                 final_grade_from(
@@ -3573,9 +3597,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 "ai_grading_confidence": round(float(avg_grading_confidence), 2),
             }
 
-            difficulty = question_difficulty(assignment, graded)
+            difficulty = question_difficulty(assignment, graded, limit=question_limit)
             assignment_metrics["hardest_questions"] = difficulty.pop("hardest")
             assignment_metrics["easiest_questions"] = difficulty.pop("easiest")
+            assignment_metrics["question_breakdown"] = difficulty.pop("breakdown")
             assignment_metrics["question_difficulty"] = difficulty
 
             serializer = TeacherAssignmentAnalyticsSerializer(assignment_metrics)

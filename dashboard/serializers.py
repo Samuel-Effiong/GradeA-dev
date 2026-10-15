@@ -262,8 +262,20 @@ class TeacherCourseAnalyticsSerializer(serializers.Serializer):
     ai_trust = AITrustStatsSerializer(read_only=True)
 
 
+class QuestionStudentSerializer(serializers.Serializer):
+    student_id = serializers.UUIDField(read_only=True)
+    full_name = serializers.CharField(read_only=True)
+
+
+class StrugglingStudentSerializer(QuestionStudentSerializer):
+    score_awarded = serializers.FloatField(read_only=True)
+    max_points = serializers.FloatField(read_only=True)
+    percentage = serializers.FloatField(read_only=True)
+    left_blank = serializers.BooleanField(read_only=True)
+
+
 class QuestionDifficultySerializer(serializers.Serializer):
-    """One question named hardest or easiest (dashboard/question_difficulty.py)."""
+    """How the class did on one question (dashboard/question_difficulty.py)."""
 
     question_number = serializers.CharField(read_only=True)
     question_text = serializers.CharField(read_only=True)
@@ -271,10 +283,21 @@ class QuestionDifficultySerializer(serializers.Serializer):
     points = serializers.FloatField(read_only=True, allow_null=True)
     average_percentage = serializers.FloatField(
         read_only=True,
-        help_text="The class's average share of this question's marks, 0-100.",
+        allow_null=True,
+        help_text=(
+            "The class's average share of this question's marks, 0-100; "
+            "null when no student has a mark on it."
+        ),
     )
     students_counted = serializers.IntegerField(
         read_only=True, help_text="Students whose marks make up the average."
+    )
+    enough_data = serializers.BooleanField(
+        read_only=True,
+        help_text=(
+            "Whether enough students were counted (minimum_students) for the "
+            "average to be trusted."
+        ),
     )
     not_attempted = serializers.IntegerField(
         read_only=True,
@@ -286,6 +309,19 @@ class QuestionDifficultySerializer(serializers.Serializer):
             "Students whose answer the AI could not read or find; left out "
             "of the average and sent to the review queue."
         ),
+    )
+    struggling_students = StrugglingStudentSerializer(
+        many=True,
+        read_only=True,
+        help_text=(
+            "Students who earned under half this question's marks, blanks "
+            "included, lowest first."
+        ),
+    )
+    unread_students = QuestionStudentSerializer(
+        many=True,
+        read_only=True,
+        help_text="Students whose answer the AI could not read: papers to check.",
     )
 
 
@@ -325,6 +361,14 @@ class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):
     ai_grading_confidence = serializers.FloatField(read_only=True)
     hardest_questions = QuestionDifficultySerializer(many=True, read_only=True)
     easiest_questions = QuestionDifficultySerializer(many=True, read_only=True)
+    question_breakdown = QuestionDifficultySerializer(
+        many=True,
+        read_only=True,
+        help_text=(
+            "Every question on the paper, hardest first; questions short of "
+            "minimum_students after the trusted ones, unmarked ones last."
+        ),
+    )
     question_difficulty = QuestionDifficultySummarySerializer(read_only=True)
 
 

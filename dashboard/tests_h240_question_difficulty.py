@@ -17,6 +17,7 @@ from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.core.cache import cache
 from django.test import SimpleTestCase, override_settings
@@ -74,13 +75,20 @@ def evaluation(number, awarded, available=10, answer_status=ANSWERED, **extra):
     return entry
 
 
-def submission(*evaluations, score=None):
+def student(name=None):
+    identity = uuid4()
+    full_name = name or f"Student {identity.hex[:6]}"
+    return SimpleNamespace(id=identity, get_full_name=lambda: full_name)
+
+
+def submission(*evaluations, score=None, name=None):
     """A graded submission whose score is its marks' sum unless given."""
     if score is None:
         score = sum(e["score_awarded"] for e in evaluations)
     return SimpleNamespace(
         score=Decimal(str(score)),
         feedback={"question_evaluations": list(evaluations)},
+        student=student(name),
     )
 
 
@@ -291,9 +299,13 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
     def test_submissions_without_grading_feedback_are_skipped(self):
         subs = class_of({1: 2, 2: 8})
         subs += [
-            SimpleNamespace(score=Decimal("0"), feedback=None),
-            SimpleNamespace(score=Decimal("0"), feedback={}),
-            SimpleNamespace(score=Decimal("0"), feedback={"question_evaluations": "x"}),
+            SimpleNamespace(score=Decimal("0"), feedback=None, student=student()),
+            SimpleNamespace(score=Decimal("0"), feedback={}, student=student()),
+            SimpleNamespace(
+                score=Decimal("0"),
+                feedback={"question_evaluations": "x"},
+                student=student(),
+            ),
         ]
         result = question_difficulty(paper(1, 2), subs)
         self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS)
@@ -355,11 +367,23 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
 
     # -- the two lists -----------------------------------------------------
 
-    def test_at_most_two_of_each(self):
+    def test_at_most_three_of_each_by_default(self):
         marks = {n: n for n in range(1, 9)}
         result = question_difficulty(paper(*range(1, 9)), class_of(marks))
+        self.assertEqual(numbers(result["hardest"]), [1, 2, 3])
+        self.assertEqual(numbers(result["easiest"]), [8, 7, 6])
+
+    def test_the_limit_is_the_callers(self):
+        marks = {n: n for n in range(1, 9)}
+        result = question_difficulty(paper(*range(1, 9)), class_of(marks), limit=1)
+        self.assertEqual(numbers(result["hardest"]), [1])
+        self.assertEqual(numbers(result["easiest"]), [8])
+
+    def test_the_limit_never_passes_half_the_paper(self):
+        marks = {n: n for n in range(1, 5)}
+        result = question_difficulty(paper(*range(1, 5)), class_of(marks), limit=10)
         self.assertEqual(numbers(result["hardest"]), [1, 2])
-        self.assertEqual(numbers(result["easiest"]), [8, 7])
+        self.assertEqual(numbers(result["easiest"]), [4, 3])
 
     def test_two_questions_give_one_each(self):
         result = question_difficulty(paper(1, 2), class_of({1: 3, 2: 7}))
@@ -418,8 +442,11 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
                 "points",
                 "average_percentage",
                 "students_counted",
+                "enough_data",
                 "not_attempted",
                 "not_read",
+                "struggling_students",
+                "unread_students",
             },
         )
 
@@ -668,3 +695,12 @@ class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
                 "minimum_students": MINIMUM_STUDENTS,
             },
         )
+        # Every question still listed, in paper order, with nothing known.
+        self.assertEqual(
+            [q["question_number"] for q in data["question_breakdown"]],
+            ["1", "2", "3", "4"],
+        )
+        for entry in data["question_breakdown"]:
+            self.assertIsNone(entry["average_percentage"])
+            self.assertFalse(entry["enough_data"])
+            self.assertEqual(entry["struggling_students"], [])
