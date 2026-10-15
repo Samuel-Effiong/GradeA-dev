@@ -266,8 +266,9 @@ class EveryProviderCallOfAnEnforcedTypeIsInsideAScopeTest(SimpleTestCase):
                 visit(child, in_scope)
 
         visit(tree, False)
-        # the single call, the chunked call and the re-check
-        self.assertEqual(len(checked), 3, checked)
+        # the single call, the chunked call, the re-check and (H-242) the
+        # second reading of answers the re-check found writing for
+        self.assertEqual(len(checked), 4, checked)
 
 
 class ScopesAreOpenedOnlyWithAWithTest(SimpleTestCase):
