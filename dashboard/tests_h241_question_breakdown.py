@@ -96,7 +96,7 @@ class BreakdownRulesTest(SimpleTestCase):
         result = question_difficulty(paper(1, 2, 3, 4), class_of({3: 2, 1: 8}))
         self.assertEqual(numbers(result["breakdown"]), [3, 1, 2, 4])
         for entry in result["breakdown"][2:]:
-            self.assertIsNone(entry["average_percentage"])
+            self.assertEqual(entry["average_percentage"], 0.0)
             self.assertEqual(entry["students_counted"], 0)
             self.assertFalse(entry["enough_data"])
 
@@ -106,7 +106,8 @@ class BreakdownRulesTest(SimpleTestCase):
         result = question_difficulty(paper(1, 2), class_of({1: 6}, students=2))
         self.assertEqual(numbers(result["breakdown"]), [1, 2])
         self.assertEqual(result["breakdown"][0]["average_percentage"], 60.0)
-        self.assertIsNone(result["breakdown"][1]["average_percentage"])
+        self.assertEqual(result["breakdown"][1]["average_percentage"], 0.0)
+        self.assertEqual(result["breakdown"][1]["students_counted"], 0)
 
     def test_the_breakdown_is_there_when_nothing_is_ranked(self):
         few = question_difficulty(paper(1, 2), class_of({1: 1, 2: 9}, students=2))

@@ -701,6 +701,6 @@ class AssignmentAnalyticsQuestionDifficultyTest(Builder, APITestCase):
             ["1", "2", "3", "4"],
         )
         for entry in data["question_breakdown"]:
-            self.assertIsNone(entry["average_percentage"])
+            self.assertEqual(entry["average_percentage"], 0.0)
             self.assertFalse(entry["enough_data"])
             self.assertEqual(entry["struggling_students"], [])

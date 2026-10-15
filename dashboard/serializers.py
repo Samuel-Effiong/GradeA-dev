@@ -283,10 +283,9 @@ class QuestionDifficultySerializer(serializers.Serializer):
     points = serializers.FloatField(read_only=True, allow_null=True)
     average_percentage = serializers.FloatField(
         read_only=True,
-        allow_null=True,
         help_text=(
             "The class's average share of this question's marks, 0-100; "
-            "null when no student has a mark on it."
+            "0 when no student has a mark on it (students_counted is then 0)."
         ),
     )
     students_counted = serializers.IntegerField(

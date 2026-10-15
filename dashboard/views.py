@@ -3537,7 +3537,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"
             f":instance_id__{assignment_id}:view__assignments"
-            f":{question_limit}:qd2",
+            f":{question_limit}:qd3",
             [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)

@@ -109,10 +109,11 @@ FAMILIES = {
     # answer cached under the old at-risk rule is not served after deploy.
     "teacheradmins:user_id__<>:instance__id__<>:view__overview:risk1": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
-    # ":qd2" (H-240 qd1, H-241 qd2): the response gained hardest/easiest
-    # questions, then the breakdown and student names; the middle value is
+    # ":qd3" (H-240 qd1, H-241 qd2, H-243 qd3): the response gained
+    # hardest/easiest questions, then the breakdown and student names, then
+    # average_percentage 0 instead of null; the middle value is
     # question_limit.
-    "teacheradmins:user_id__<>:instance_id__<>:view__assignments:<>:qd2": (
+    "teacheradmins:user_id__<>:instance_id__<>:view__assignments:<>:qd3": (
         "SCOPE_USER",
     ),
     "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>:risk1": (
