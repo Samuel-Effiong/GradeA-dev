@@ -223,6 +223,30 @@ class RetranscriptionTest(SimpleTestCase):
         self.assertIn(RECOVERED_ANSWER_NOTE, flags[0]["detail"])
         self.assertNotIn(ANSWER_NOT_FOUND, [f["kind"] for f in flags])
 
+    def test_a_recovered_answer_is_credited_to_the_second_readings_reply(self):
+        # The reading label votes over the answers as saved: a recovered
+        # answer has the second reading's reply behind it.
+        from ai_processor.reading_run import ReadingRun
+
+        run = ReadingRun()
+        with patch(TARGET, return_value=reply([answered(2, "<p>words</p>")])):
+            result = self.processor._retranscribe_found_answers(
+                None, [image()], ASSIGNMENT, [answered(1), found(2)], reading_run=run
+            )
+        self.assertTrue(run.reading.has_kept_reply())
+        self.assertEqual(run.votes([result[1]]), {None: 1})
+        self.assertEqual(run.votes([result[0]]), {})
+
+    def test_nothing_recovered_credits_no_reply(self):
+        from ai_processor.reading_run import ReadingRun
+
+        run = ReadingRun()
+        with patch(TARGET, return_value=reply([])):
+            self.processor._retranscribe_found_answers(
+                None, [image()], ASSIGNMENT, [found(2)], reading_run=run
+            )
+        self.assertFalse(run.reading.has_kept_reply())
+
     # ── a reply that recovers nothing changes nothing ──────────────────
     def test_still_not_found_keeps_the_original_entry(self):
         entry = found(2)
