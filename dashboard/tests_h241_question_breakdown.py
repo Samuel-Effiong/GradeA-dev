@@ -100,6 +100,14 @@ class BreakdownRulesTest(SimpleTestCase):
             self.assertEqual(entry["students_counted"], 0)
             self.assertFalse(entry["enough_data"])
 
+    def test_an_unmarked_question_comes_after_a_thinly_marked_one(self):
+        # Q1 has 2 students at 60%; Q2 has no marks. Neither is trusted,
+        # but "no marks" must not read as 0% and jump ahead of Q1.
+        result = question_difficulty(paper(1, 2), class_of({1: 6}, students=2))
+        self.assertEqual(numbers(result["breakdown"]), [1, 2])
+        self.assertEqual(result["breakdown"][0]["average_percentage"], 60.0)
+        self.assertIsNone(result["breakdown"][1]["average_percentage"])
+
     def test_the_breakdown_is_there_when_nothing_is_ranked(self):
         few = question_difficulty(paper(1, 2), class_of({1: 1, 2: 9}, students=2))
         self.assertEqual(few["status"], STATUS_NOT_ENOUGH_DATA)
