@@ -48,13 +48,15 @@ from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
 from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
 from .exceptions import provider_failure
-from .extraction_flags import merge_answer_flags, paper_verdict
+from .extraction_flags import answer_flag, merge_answer_flags, paper_verdict
 from .extraction_schemas import (
     ANSWER_EXTRACTION_RESPONSE_SCHEMA,
     ANSWER_STATUSES,
     ANSWERED,
     BLANK,
     BLANK_VERIFICATION_RESPONSE_SCHEMA,
+    FLAG_NONE,
+    FLAG_READING_PROBLEM,
     ILLEGIBLE,
     NOT_FOUND_IN_DOCUMENT,
     REVIEW_REQUIRED_STATUSES,
@@ -195,6 +197,41 @@ _BLANK_VERIFICATION_TEXT = (
 BLANK_VERIFICATION_INSTRUCTION = Prompt(
     _BLANK_VERIFICATION_TEXT,
     prompt_version_of("BLANK_VERIFICATION_INSTRUCTION", _BLANK_VERIFICATION_TEXT),
+)
+
+# H-242: the note sent beside the ordinary answer-reading prompt when the
+# re-check found writing the first reading did not transcribe. Versioned over
+# the template before `{numbers}` is filled in.
+_RETRANSCRIPTION_TEXT = (
+    "A first reading of this submission did not transcribe the student's "
+    "answers to question(s) {numbers}, and a re-check of the pages found "
+    "student writing for each of them.\n\n"
+    "Read the pages again and transcribe ONLY those question(s), in full, "
+    "under the rules above. Return one entry in `answers` for each of them "
+    "and no other question. Off-topic writing is still the student's work: "
+    "transcribe it and flag it. If you truly find nothing, say so with the "
+    "status the rules give."
+)
+RETRANSCRIPTION_INSTRUCTION = Prompt(
+    _RETRANSCRIPTION_TEXT,
+    prompt_version_of("RETRANSCRIPTION_INSTRUCTION", _RETRANSCRIPTION_TEXT),
+)
+
+_HTML_TAG = re.compile(r"<[^>]*>")
+
+
+def _html_text(html):
+    """The visible text of an answer's HTML, whitespace collapsed: empty for
+    an answer that holds only tags such as `<p></p>`."""
+    if not isinstance(html, str):
+        return ""
+    return " ".join(_HTML_TAG.sub(" ", html).replace("&nbsp;", " ").split())
+
+
+#: Added to the flag detail of an answer the second reading recovered.
+RECOVERED_ANSWER_NOTE = (
+    "The first reading missed this answer and a second reading recovered it: "
+    "check it against the upload."
 )
 
 logger = logging.getLogger(__name__)
@@ -2357,6 +2394,156 @@ Do not include any explanatory text before or after the JSON
         )
         return verified
 
+    def _retranscribe_found_answers(
+        self,
+        user,
+        content,
+        assignment,
+        answers,
+        assignment_model=None,
+        processing_task_id=None,
+        reading_run=None,
+        config=None,
+    ):
+        """
+        H-242: transcribe again, in full, the answers the re-check found
+        writing for.
+
+        The re-check (_verify_blank_answers) only proves something is there;
+        its fragment is never the answer. Seen live: on a paper of numbered
+        answers for another subject, the first reading said in its own notes
+        that the student wrote under questions 2-4, still returned them as
+        not found, and the re-check found the writing. Without this the
+        teacher saw an empty answer box and had to go to the upload.
+
+        One more call, made only in that case, with the ordinary reading
+        prompt and schema, asking for those questions alone. An answer it
+        returns with writing replaces the empty one and stays flagged for
+        review: its own flag when it raised one, otherwise a reading
+        problem, and either way a note that it was recovered. A question it
+        still cannot find keeps the re-check's not-found entry.
+
+        Entirely non-fatal, like the re-check: any failure leaves `answers`
+        exactly as they were.
+        """
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
+        if not isinstance(answers, list):
+            return answers
+
+        targets = [
+            entry
+            for entry in answers
+            if isinstance(entry, dict)
+            and entry.get("answer_status") == NOT_FOUND_IN_DOCUMENT
+            and isinstance(entry.get("blank_verification"), dict)
+            and entry["blank_verification"].get("content_found")
+        ]
+        if not targets:
+            return answers
+
+        images = [
+            item
+            for item in (content or [])
+            if isinstance(item, dict) and item.get("type") == "image_url"
+        ]
+        if not images:
+            return answers
+
+        numbers = [entry.get("question_number") for entry in targets]
+        note = RETRANSCRIPTION_INSTRUCTION.format(numbers=numbers)
+        messages = [
+            {"role": "system", "content": ANSWERS_EXTRACTION_PROMPT},
+            {"role": "user", "content": assignment},
+            {"role": "user", "content": [{"type": "text", "text": note}] + images},
+        ]
+
+        try:
+            ensure_task_not_cancelled(processing_task_id)
+            with run.reading.scope():
+                run.reading.begin_call()
+                response = self.execute_graded_task(
+                    prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
+                    user=user,
+                    feature="Answer Extraction",
+                    task_type="extract_answer",
+                    messages=messages,
+                    assignment=assignment_model,
+                    processing_task_id=processing_task_id,
+                    response_schema=self._answer_extraction_schema(config),
+                )
+            reply_model = (
+                run.reading.reply_model if run.reading.reply_received else None
+            )
+            reply = json.loads(response.choices[0].message.content)
+        except TaskCancelledError:
+            raise
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            logger.info("[Retranscription] Skipped - feature or credits unavailable.")
+            return answers
+        except Exception:
+            logger.exception(
+                "[Retranscription] Second reading failed; the not-found "
+                "entries and their re-check evidence still stand."
+            )
+            return answers
+
+        returned = reply.get("answers") if isinstance(reply, dict) else None
+        found = {}
+        for entry in returned if isinstance(returned, list) else []:
+            if (
+                isinstance(entry, dict)
+                and entry.get("answer_status") in (ANSWERED, ILLEGIBLE)
+                and _html_text(entry.get("answer_html"))
+            ):
+                found.setdefault(
+                    _canonical_question_key(entry.get("question_number")), entry
+                )
+
+        wanted = {_canonical_question_key(n) for n in numbers}
+        target_ids = {id(entry) for entry in targets}
+        recovered = []
+        merged = []
+        for entry in answers:
+            key = (
+                _canonical_question_key(entry.get("question_number"))
+                if isinstance(entry, dict)
+                else None
+            )
+            replacement = found.get(key) if key in wanted else None
+            if replacement is None or id(entry) not in target_ids:
+                merged.append(entry)
+                continue
+            updated = dict(replacement)
+            # The assignment's own label, never the reply's spelling of it.
+            updated["question_number"] = entry.get("question_number")
+            updated["blank_verification"] = entry["blank_verification"]
+            updated["retranscribed"] = True
+            flag = answer_flag(replacement)
+            detail = " ".join(str(replacement.get("answer_flag_detail") or "").split())
+            if flag == FLAG_NONE:
+                flag, detail = FLAG_READING_PROBLEM, ""
+            updated["answer_flag"] = flag
+            updated["answer_flag_detail"] = " ".join(
+                part for part in (detail, RECOVERED_ANSWER_NOTE) if part
+            )
+            merged.append(updated)
+            recovered.append(updated)
+
+        if recovered:
+            run.keep_reply(reply_model, ANSWERS_EXTRACTION_PROMPT.version)
+            run.keep_answers(recovered, reply_model)
+        logger.warning(
+            "[Retranscription] Second reading recovered %s of %s question(s) "
+            "the re-check found writing for.",
+            len(recovered),
+            len(targets),
+        )
+        return merged
+
     @staticmethod
     def _note_recheck_used(run, found_writing):
         """The re-check's reply was read and used. Only when the run saw the
@@ -2483,6 +2670,16 @@ Do not include any explanatory text before or after the JSON
                     result["answers"] = self._verify_blank_answers(
                         user,
                         content,
+                        result.get("answers"),
+                        assignment_model=assignment_model,
+                        processing_task_id=processing_task_id,
+                        reading_run=run,
+                        config=config,
+                    )
+                    result["answers"] = self._retranscribe_found_answers(
+                        user,
+                        content,
+                        assignment,
                         result.get("answers"),
                         assignment_model=assignment_model,
                         processing_task_id=processing_task_id,
