@@ -246,6 +246,11 @@ class FlagRulesTest(SimpleTestCase):
             (FLAG_OFF_TOPIC, "Second half is a recipe. | Blur."),
         )
         self.assertEqual(merge_answer_flags(answer(1), answer(1)), (FLAG_NONE, ""))
+        # A value outside the vocabulary is no flag, joined or not.
+        self.assertEqual(
+            merge_answer_flags(answer(1, flag="BOGUS", detail="?"), answer(1)),
+            (FLAG_NONE, ""),
+        )
 
     def test_the_chunk_merge_keeps_a_flag_from_the_later_part(self):
         first = dict(answer(1, html="2x = 8"), source_page=1)
