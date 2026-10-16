@@ -1,0 +1,201 @@
+"""H-247 mutation battery. Each mutant breaks one rule; a test must fail.
+Restores come from `git show <sha>:<path>` and are checked by sha256."""
+
+import hashlib
+import json
+import re
+import subprocess
+import sys
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/GAP-h247-mut"
+SHA = "fb7bc8bd"
+MODULES = [
+    "classrooms.tests_h247_student_identity",
+    "classrooms.tests_teacher_names_student_on_add",
+    "classrooms.tests_s7d_roster_codes",
+]
+E = "classrooms/services/enrollment.py"
+R = "classrooms/services/roster_import.py"
+SER = "classrooms/serializers.py"
+
+MUTANTS = [
+    (
+        "M1",
+        E,
+        "a different name is accepted",
+        "        raise EnrollmentError(NAME_MISMATCH_MESSAGE)\n    return []",
+        "        return []\n    return []",
+    ),
+    (
+        "M2",
+        E,
+        "case counts as a difference",
+        '" ".join((part or "").split()).casefold()',
+        '" ".join((part or "").split())',
+    ),
+    (
+        "M3",
+        E,
+        "inner spaces count as a difference",
+        '" ".join((part or "").split()).casefold()',
+        '(part or "").strip().casefold()',
+    ),
+    (
+        "M4",
+        E,
+        "middle name ignored",
+        "        for part in (first_name, middle_name, last_name)\n",
+        "        for part in (first_name, last_name)\n",
+    ),
+    (
+        "M5",
+        E,
+        "a nameless account is not filled",
+        "        if not fill_empty:\n            return []\n",
+        "        return []\n",
+    ),
+    (
+        "M6",
+        E,
+        "fill_empty ignored",
+        "        if not fill_empty:\n            return []\n",
+        "",
+    ),
+    (
+        "M7",
+        E,
+        "rule (b) removed",
+        "    if course.teacher and already_teaches(course.teacher, student):\n        return\n",
+        "",
+    ),
+    (
+        "M8",
+        E,
+        "already_teaches always true",
+        '    return StudentCourse.objects.filter(\n        teacher_course_access_q(teacher, prefix="course__"), student=student\n    ).exists()',
+        "    return True",
+    ),
+    (
+        "M9",
+        E,
+        "already_teaches ignores reachability (H-38)",
+        'teacher_course_access_q(teacher, prefix="course__"), student=student',
+        "course__teacher=teacher, student=student",
+    ),
+    (
+        "M10",
+        E,
+        "name checked before the school gate",
+        "        check_existing_account_may_join(student, course)\n\n        if not student.is_active",
+        "        apply_typed_name(student, first_name=first_name, middle_name=middle_name, last_name=last_name, fill_empty=False)\n        check_existing_account_may_join(student, course)\n\n        if not student.is_active",
+    ),
+    (
+        "M11",
+        R,
+        "mismatch not mapped to its row code",
+        "    NAME_MISMATCH_MESSAGE: ReasonCode.ROW_NAME_MISMATCH,\n",
+        "",
+    ),
+    (
+        "M12",
+        R,
+        "same name in the same course not recognised",
+        "    if _name_clashes(course, row):\n        return _not_added(\n            row,\n            ReasonCode.ROW_ALREADY_ENROLLED,",
+        "    if False:\n        return _not_added(\n            row,\n            ReasonCode.ROW_ALREADY_ENROLLED,",
+    ),
+    (
+        "M13",
+        R,
+        "no-email row joined to the teacher's student by name across courses",
+        "    if _name_clashes(course, row):\n        return _not_added(\n            row,\n            ReasonCode.ROW_ALREADY_ENROLLED,",
+        "    from users.models import CustomUser as _U\n    from ..models import teacher_course_access_q as _q\n    _s = _U.objects.filter(_q(course.teacher, prefix='enrollments__course__'), first_name__iexact=row.first_name, last_name__iexact=row.last_name, middle_name__iexact=row.middle_name).exclude(enrollments__course=course).first()\n    if _s is not None:\n        StudentCourse.objects.create(student=_s, course=course, enrollment_status='ENROLLED', auto_added=True)\n        return _added(row, _s, 'enrolled', 'direct_add')\n    if _name_clashes(course, row):\n        return _not_added(\n            row,\n            ReasonCode.ROW_ALREADY_ENROLLED,",
+    ),
+    (
+        "M14",
+        SER,
+        "direct add skips the name rule",
+        "                    name_fields = apply_typed_name(",
+        "                    name_fields = [] and apply_typed_name(",
+    ),
+    (
+        "M15",
+        SER,
+        "direct add does not save a filled name",
+        "                if name_fields:\n                    student.save(update_fields=name_fields)\n",
+        "",
+    ),
+]
+
+
+def show(path):
+    return subprocess.run(
+        ["git", "-C", ROOT, "show", f"{SHA}:{path}"], capture_output=True, check=True
+    ).stdout
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def run_tests():
+    p = subprocess.run(
+        [
+            "python3",
+            "manage.py",
+            "test",
+            *MODULES,
+            "--settings=settings_worktree",
+            "--noinput",
+            "--keepdb",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    out = p.stdout + p.stderr
+    failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", out, re.M)))
+    return p.returncode, failed, out
+
+
+def main():
+    only = sys.argv[1:]
+    for _, path, _, old, _ in MUTANTS:
+        assert show(path).decode().count(old) == 1, (path, old[:60])
+    code, failed, out = run_tests()
+    print("baseline", code, failed, flush=True)
+    assert code == 0, out[-3000:]
+    results = []
+    for mid, path, what, old, new in MUTANTS:
+        if only and mid not in only:
+            continue
+        original = show(path)
+        full = f"{ROOT}/{path}"
+        try:
+            open(full, "w").write(original.decode().replace(old, new, 1))
+            code, failed, out = run_tests()
+            if "too many clients" in out:
+                print(mid, "WARNING: too many clients in log", flush=True)
+        finally:
+            open(full, "wb").write(original)
+        restored = open(full, "rb").read()
+        verdict = "KILLED" if code != 0 else "SURVIVED"
+        results.append(
+            {
+                "id": mid,
+                "file": path,
+                "what": what,
+                "verdict": verdict,
+                "failed": failed,
+                "restored_sha256_match": sha(restored) == sha(original),
+                "sha256": sha(restored),
+            }
+        )
+        print(mid, verdict, len(failed), failed[:4], flush=True)
+    json.dump(results, open(sys.argv[0].replace(".py", f"_{SHA}.json"), "w"), indent=1)
+    status = subprocess.run(
+        ["git", "-C", ROOT, "status", "--porcelain"], capture_output=True, text=True
+    ).stdout
+    print("porcelain after:", repr(status))
+
+
+main()
