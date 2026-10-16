@@ -286,7 +286,10 @@ class BulkEnrollmentTenancyTest(ClassroomTenancyBase):
             User.objects.filter(first_name="John", last_name="Smith").count(), 2
         )
 
-    def test_the_teachers_own_existing_student_is_still_reused(self):
+    def test_a_name_in_another_course_is_a_different_student(self):
+        """H-247 (owner, 2026-10-16): with no email a name is unique within
+        one course only. The teacher's Jane Doe in another course is not
+        this row's Jane Doe: the row is a new student."""
         mine = self.make_student(
             "mine@school-a.test",
             school=self.school_a,
@@ -300,11 +303,16 @@ class BulkEnrollmentTenancyTest(ClassroomTenancyBase):
 
         self.client.post(self.url, {"raw_data": "Jane,Doe"})
 
-        self.assertTrue(
+        self.assertFalse(
             StudentCourse.objects.filter(student=mine, course=self.course_a).exists()
         )
         self.assertEqual(
-            User.objects.filter(first_name="Jane", last_name="Doe").count(), 1
+            User.objects.filter(first_name="Jane", last_name="Doe").count(), 2
+        )
+        self.assertTrue(
+            StudentCourse.objects.filter(
+                course=self.course_a, student__first_name="Jane"
+            ).exists()
         )
 
 

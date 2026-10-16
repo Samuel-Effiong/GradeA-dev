@@ -180,6 +180,10 @@ class ReasonCode(models.TextChoices):
     ROW_NAME_CLASH = "ROW_NAME_CLASH", "Row: name clash"
     ROW_STAFF_EMAIL = "ROW_STAFF_EMAIL", "Row: email can't be added as a student"
     ROW_OTHER_SCHOOL = "ROW_OTHER_SCHOOL", "Row: account in another school"
+    ROW_NAME_MISMATCH = (
+        "ROW_NAME_MISMATCH",
+        "Row: email belongs to a differently named student",
+    )
     ROW_ACCOUNT_DISABLED = "ROW_ACCOUNT_DISABLED", "Row: account disabled"
     ROW_EMAIL_INVALID = "ROW_EMAIL_INVALID", "Row: email invalid"
     ROW_DUPLICATE = "ROW_DUPLICATE", "Row: repeats an earlier row"

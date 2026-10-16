@@ -138,7 +138,7 @@ class RosterEmailRowsAreReadyToUseTests(SignInHelpers):
         )
         UserActivity.objects.create(user=student)  # the pre-last_login signal
 
-        response = self._import("Other,Name,known@example.com")
+        response = self._import("Known,Student,known@example.com")
 
         student.refresh_from_db()
         self.assertTrue(student.check_password("Known-Student-Pw-8"))

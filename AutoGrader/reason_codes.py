@@ -434,6 +434,12 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "believe this is a mistake, contact your school administrator.",
         "",
     ),
+    # H-247: one email is one student with one name. Neutral on purpose:
+    # never prints the stored name, so the import can't look one up.
+    ReasonCode.ROW_NAME_MISMATCH: _row_spec(
+        "Row {row}: this email already belongs to a student with a different " "name.",
+        "Use the name on the student's account, or check the email address.",
+    ),
     ReasonCode.ROW_ACCOUNT_DISABLED: _row_spec(
         "Row {row}: this student's account is disabled.",
         "Contact support if they should have access.",

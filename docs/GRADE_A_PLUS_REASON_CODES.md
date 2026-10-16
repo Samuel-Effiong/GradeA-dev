@@ -4,7 +4,7 @@ Error and reason code reference for Frontend and QA
 
 When the backend refuses something, it says why with a **reason code**: a short, fixed name such as `FILE_TOO_LARGE`. This document lists every code, what it means in plain words, the exact text the user sees, and what the response looks like, so that the frontend can handle each one and QA can test each one.
 
-There are **63 codes**. **44** are sent to the user in a response. **19** are written only into the activity record and are never sent to the user.
+There are **64 codes**. **45** are sent to the user in a response. **19** are written only into the activity record and are never sent to the user.
 
 **Where this applies.** The contract described here is the one on the **staging** environment, updated on 5 October 2026. All paths are under `/api/v1/`.
 
@@ -587,6 +587,18 @@ HTTP 422 · USER · Not retryable
 | Params | `row` |
 | Returned by | Per row: `results[]` of `POST course/{id}/bulk-add-students`, with `status: "failed"`. |
 
+#### `ROW_NAME_MISMATCH`
+
+HTTP 422 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | Row `{row}`: this email already belongs to a student with a different name. |
+| What to do | Use the name on the student's account, or check the email address. |
+| Params | `row` |
+| Returned by | Per row: `results[]` of `POST course/{id}/bulk-add-students`, with `status: "failed"`. |
+| Notes | One email is one student with one name, whichever teacher adds it. Neutral on purpose: the stored name is never sent. Upper/lower case and extra spaces don't count as a difference. Nothing is created or sent for the row. The single add and the direct add refuse the same case with a 400 and the same sentence as `detail`. |
+
 #### `ROW_ALREADY_ENROLLED`
 
 HTTP 422 · USER · Not retryable
@@ -911,6 +923,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `ROW_NAME_CLASH` | Roster import: one row | 422 | No |
 | `ROW_STAFF_EMAIL` | Roster import: one row | 422 | No |
 | `ROW_OTHER_SCHOOL` | Roster import: one row | 422 | No |
+| `ROW_NAME_MISMATCH` | Roster import: one row | 422 | No |
 | `ROW_ALREADY_ENROLLED` | Roster import: one row | 422 | No |
 | `ROW_DUPLICATE` | Roster import: one row | 422 | No |
 | `ROW_ACCOUNT_DISABLED` | Roster import: one row | 422 | No |
